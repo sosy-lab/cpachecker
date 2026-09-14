@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -26,10 +27,9 @@ final class DoesNothingRule {
 
   /** Every proposition that CPAchecker knows: a program that does nothing satisfies all of them. */
   private static final ImmutableSet<Property> PROPOSITIONS =
-      ImmutableSet.copyOf(
-          Arrays.stream(CommonVerificationProperty.values())
-              .filter(Property::isVerification)
-              .toList());
+      Arrays.stream(CommonVerificationProperty.values())
+          .filter(Property::isVerification)
+          .collect(toImmutableSet());
 
   static ImmutableList<TrivialRule> rules() {
     return ImmutableList.of(
@@ -41,7 +41,7 @@ final class DoesNothingRule {
             DoesNothingRule::checkProgramDoesNothing));
   }
 
-  private static Optional<RuleVerdict> checkProgramDoesNothing(ProgramFacts pFacts) {
+  private static RuleVerdict checkProgramDoesNothing(ProgramFacts pFacts) {
     for (CFAEdge edge : pFacts.reachableEdges()) {
       if (edge instanceof BlankEdge) {
         continue;
@@ -49,7 +49,7 @@ final class DoesNothingRule {
       if (edge instanceof AReturnStatementEdge returnEdge && returnsNothingOrLiteral(returnEdge)) {
         continue;
       }
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     return RuleVerdict.proven(
         "every execution of the program reaches the end of the entry function without performing"

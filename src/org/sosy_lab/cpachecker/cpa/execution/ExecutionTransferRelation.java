@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -96,6 +97,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       throws CPATransferException, InterruptedException {
 
     ExecutionState current = (ExecutionState) pState;
+    // A negative value of stepsPerTransfer means that the whole program is executed here.
     for (int steps = 0; stepsPerTransfer < 0 || steps < stepsPerTransfer; steps++) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -126,12 +128,8 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       throws CPATransferException, InterruptedException {
 
     final AbstractState wrappedState = pState.getWrappedState();
-    final AbstractStateWithLocations locationState =
-        AbstractStates.extractStateByType(wrappedState, AbstractStateWithLocations.class);
-    if (locationState == null) {
-      throw new CPATransferException(
-          "ExecutionCPA needs a CPA that tracks the program location, e.g., LocationCPA");
-    }
+    final StackFrame callStack = pState.getCallStack();
+    final AbstractStateWithLocations locationState = locationsOf(wrappedState);
 
     if (collectInvariants) {
       // Remember the assignments of this execution for the invariants of a correctness witness.
@@ -141,24 +139,11 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     }
 
     AbstractState state = wrappedState;
-    AlgorithmStatus status = pState.getStatus();
-    if (valueTransferOptions != null) {
-      for (CFAEdge edge : locationState.getOutgoingEdges()) {
-        if (edge instanceof CStatementEdge statementEdge
-            && !(edge instanceof CFunctionSummaryStatementEdge)
-            && statementEdge.getStatement() instanceof CFunctionCall functionCall) {
-          // Account for calls even if the specification subsequently removes their successors.
-          status =
-              status.update(
-                  ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls(
-                      statementEdge, functionCall, valueTransferOptions, logger));
-        }
-      }
-    }
+    AlgorithmStatus status = statusAfterUnhandledCalls(pState.getStatus(), locationState);
     List<ExecutionStep> steps =
         computeSteps(
             state,
-            pState.getCallStack(),
+            callStack,
             locationState,
             pPrecision,
             /* pAllowSeveralSuccessors= */ sampler.isEnabled());
@@ -166,35 +151,80 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     if (steps.size() > 1) {
       // The execution depends on an input of the program. Choose values for the inputs and
       // continue with the successor that these values determine.
-      AbstractState sampledState = sampler.sample(state, steps);
-      if (sampledState == null) {
-        throw nondeterminismException(steps.getFirst().edge(), steps.get(1).edge());
-      }
-      state = sampledState;
+      state = sampleInputs(state, steps);
       status = status.withSound(false);
       steps =
           computeSteps(
-              state,
-              pState.getCallStack(),
-              locationState,
-              pPrecision,
-              /* pAllowSeveralSuccessors= */ false);
+              state, callStack, locationState, pPrecision, /* pAllowSeveralSuccessors= */ false);
     }
 
     if (steps.isEmpty()) {
-      new ExecutionState(wrappedState, pState.getCallStack(), status).checkSoundness();
+      new ExecutionState(wrappedState, callStack, status).checkMayProveSafety();
       return null;
     }
     ExecutionStep step = steps.getFirst();
     ExecutionState successor =
         new ExecutionState(step.successor(), updateCallStack(pState, step.edge(), state), status);
     if (AbstractStates.isTargetState(successor)) {
-      successor.checkTargetState();
+      successor.checkMayReportViolation();
       // Remember where the specification was violated for the violation witness.
       witnessExporter.reportViolation(step.edge());
     }
     stats.executedSteps.inc();
     return successor;
+  }
+
+  /** The component of the given state that tracks the program location. */
+  private static AbstractStateWithLocations locationsOf(AbstractState pState)
+      throws CPATransferException {
+    AbstractStateWithLocations locationState =
+        AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
+    if (locationState == null) {
+      throw new CPATransferException(
+          "ExecutionCPA needs a CPA that tracks the program location, e.g., LocationCPA");
+    }
+    return locationState;
+  }
+
+  /**
+   * Account for the calls that the value analysis does not handle: their side effects are ignored
+   * and the value they return is over-approximated, which makes the execution unsound or imprecise.
+   * Every leaving edge is accounted for, even if the specification subsequently removes its
+   * successors.
+   */
+  private AlgorithmStatus statusAfterUnhandledCalls(
+      AlgorithmStatus pStatus, AbstractStateWithLocations pLocationState)
+      throws UnsupportedCodeException {
+
+    if (valueTransferOptions == null) {
+      return pStatus;
+    }
+    AlgorithmStatus status = pStatus;
+    for (CFAEdge edge : pLocationState.getOutgoingEdges()) {
+      if (edge instanceof CStatementEdge statementEdge
+          && !(edge instanceof CFunctionSummaryStatementEdge)
+          && statementEdge.getStatement() instanceof CFunctionCall functionCall) {
+        status =
+            status.update(
+                ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls(
+                    statementEdge, functionCall, valueTransferOptions, logger));
+      }
+    }
+    return status;
+  }
+
+  /**
+   * Fix the nondeterministic values of the given state such that only one successor is left.
+   *
+   * @throws UnsupportedCodeException if no assignment of the inputs could be computed
+   */
+  private AbstractState sampleInputs(AbstractState pState, List<ExecutionStep> pSteps)
+      throws UnsupportedCodeException {
+    AbstractState sampledState = sampler.sample(pState, pSteps);
+    if (sampledState == null) {
+      throw nondeterminismException(pSteps.getFirst().edge(), pSteps.get(1).edge());
+    }
+    return sampledState;
   }
 
   /**
@@ -306,16 +336,16 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
         stats.recursiveCalls.inc();
       }
       StackFrame newFrame =
-          new StackFrame(
+          StackFrame.push(
               callStack,
               entryNode.getFunctionName(),
-              isRecursive ? shadowedValues(pCallerState, entryNode) : null);
-      stats.maxCallStackDepth.setNextValue(newFrame.getDepth());
+              isRecursive ? shadowedValues(pCallerState, entryNode) : ImmutableMap.of());
+      stats.maxCallStackDepth.setNextValue(newFrame.depth());
       return newFrame;
     }
 
     if (pEdge instanceof FunctionReturnEdge && callStack != null) {
-      return callStack.getParent();
+      return callStack.parent();
     }
     return callStack;
   }
@@ -332,21 +362,20 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
    * pointer is still analyzed imprecisely. Use the SMG analysis for such programs, it models the
    * stack frames explicitly.
    *
-   * @return the values to restore when the call returns, or {@code null} if nothing needs to be
-   *     restored
+   * @return the values to restore when the call returns, empty if nothing needs to be restored
    */
-  private @Nullable ImmutableMap<MemoryLocation, ValueAndType> shadowedValues(
+  private ImmutableMap<MemoryLocation, ValueAndType> shadowedValues(
       AbstractState pCallerState, FunctionEntryNode pEntryNode) {
 
     if (!restoreCallerValues) {
-      return null;
+      return ImmutableMap.of();
     }
     ValueAnalysisState valueState =
         AbstractStates.extractStateByType(pCallerState, ValueAnalysisState.class);
     if (valueState == null) {
       // Analyses that model the function stack explicitly (e.g., the SMG analysis)
       // do not need any help here.
-      return null;
+      return ImmutableMap.of();
     }
     final String function = pEntryNode.getFunctionName();
 
@@ -369,29 +398,23 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
   private AbstractState restoreCallerValues(
       AbstractState pState, FunctionReturnEdge pEdge, StackFrame pFrame) {
 
-    final ImmutableMap<MemoryLocation, ValueAndType> shadowed = pFrame.getShadowedValues();
-    if (shadowed == null
-        || !pFrame.getFunctionName().equals(pEdge.getFunctionEntry().getFunctionName())) {
+    final ImmutableMap<MemoryLocation, ValueAndType> shadowed = pFrame.shadowedValues();
+    if (shadowed.isEmpty()
+        || !pFrame.functionName().equals(pEdge.getFunctionEntry().getFunctionName())) {
       // Nothing was overwritten by this call, or the call stack of this CPA does not match the
       // returning function (which can happen only if the analysis does not start at a function
       // entry). In both cases the state of the value analysis is already correct.
       return pState;
     }
-    if (!(pState instanceof CompositeState compositeState)) {
-      logRestoringNotPossible();
-      return pState;
-    }
-    final List<AbstractState> components = new ArrayList<>(compositeState.getWrappedStates());
-    final int valueStateIndex = indexOfValueState(components);
-    if (valueStateIndex < 0) {
+    Optional<ValueAnalysisState> valueState = ExecutionStates.valueState(pState);
+    if (valueState.isEmpty()) {
       logRestoringNotPossible();
       return pState;
     }
 
-    final String function = pFrame.getFunctionName();
+    final String function = pFrame.functionName();
     final MemoryLocation returnVariable = returnVariable(pEdge.getFunctionEntry());
-    final ValueAnalysisState restored =
-        ValueAnalysisState.copyOf((ValueAnalysisState) components.get(valueStateIndex));
+    final ValueAnalysisState restored = ValueAnalysisState.copyOf(valueState.orElseThrow());
     // Drop the frame of the callee ...
     for (MemoryLocation memoryLocation : restored.getTrackedMemoryLocations()) {
       if (memoryLocation.isOnFunctionStack(function) && !memoryLocation.equals(returnVariable)) {
@@ -404,17 +427,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
             restored.assignConstant(
                 memoryLocation, valueAndType.getValue(), valueAndType.getType()));
 
-    components.set(valueStateIndex, restored);
-    return new CompositeState(components);
-  }
-
-  private static int indexOfValueState(List<AbstractState> pComponents) {
-    for (int i = 0; i < pComponents.size(); i++) {
-      if (pComponents.get(i) instanceof ValueAnalysisState) {
-        return i;
-      }
-    }
-    return -1;
+    return ExecutionStates.withValueState(pState, restored).orElse(pState);
   }
 
   private static @Nullable MemoryLocation returnVariable(FunctionEntryNode pEntryNode) {

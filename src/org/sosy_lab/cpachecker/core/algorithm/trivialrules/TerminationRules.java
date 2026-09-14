@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.trivialrules.ProgramFacts.ChainEnd;
@@ -52,43 +53,42 @@ final class TerminationRules {
             TerminationRules::checkEndlessLoopOnEveryExecution));
   }
 
-  private static Optional<RuleVerdict> checkNoReachableLoop(ProgramFacts pFacts) {
-    Optional<LoopStructure> loopStructure = pFacts.loopStructure();
-    if (loopStructure.isEmpty()) {
+  private static RuleVerdict checkNoReachableLoop(ProgramFacts pFacts) {
+    Optional<LoopStructure> optionalLoopStructure = pFacts.loopStructure();
+    if (optionalLoopStructure.isEmpty()) {
       // Without the loop structure we do not know where the loops are.
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
-    if (pFacts.isOptionSetTo(REMOVE_TRIVIAL_LOOPS_OPTION, true)
+    LoopStructure loopStructure = optionalLoopStructure.orElseThrow();
+    if (pFacts.isOptionExplicitlyEnabled(REMOVE_TRIVIAL_LOOPS_OPTION)
         || pFacts.hasReplacedTrivialLoop()) {
       pFacts
           .logger()
           .log(
-              java.util.logging.Level.INFO,
+              Level.INFO,
               "Not using the rule no-reachable-loop because the option",
               REMOVE_TRIVIAL_LOOPS_OPTION,
               "removed loops from the CFA that a nonterminating program can have.");
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     if (!pFacts.unknownFunctions().isEmpty()) {
       // A function without a body could run forever.
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
 
     ImmutableSet<CFANode> reachable = pFacts.reachableNodes();
-    for (Loop loop : loopStructure.orElseThrow().getAllLoops()) {
+    for (Loop loop : loopStructure.getAllLoops()) {
       if (!Sets.intersection(loop.getLoopNodes(), reachable).isEmpty()) {
-        return Optional.empty();
+        return RuleVerdict.abstained();
       }
     }
-    ImmutableSet<CFANode> recursion =
-        ImmutableSet.copyOf(Sets.intersection(pFacts.recursionNodes(), reachable));
-    if (!recursion.isEmpty()) {
-      return Optional.empty();
+    if (!Sets.intersection(pFacts.recursionNodes(), reachable).isEmpty()) {
+      return RuleVerdict.abstained();
     }
 
     return RuleVerdict.proven(
         "no execution of the program reaches one of the "
-            + loopStructure.orElseThrow().getCount()
+            + loopStructure.getCount()
             + " loops of the CFA or a recursive call, so every execution reaches the end of the"
             + " program after at most "
             + pFacts.reachableEdges().size()
@@ -108,9 +108,9 @@ final class TerminationRules {
     return pChain.getLast();
   }
 
-  private static Optional<RuleVerdict> checkEndlessLoopOnEveryExecution(ProgramFacts pFacts) {
+  private static RuleVerdict checkEndlessLoopOnEveryExecution(ProgramFacts pFacts) {
     if (pFacts.chain().end() != ChainEnd.REPEATED_LOCATION) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     ImmutableList<CFAEdge> chain = pFacts.chain().edges();
     CFAEdge inTheLoop = lastEdgeWithLocation(chain);

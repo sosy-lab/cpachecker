@@ -173,8 +173,8 @@ class ExecutionSampler {
 
     ValueAnalysisState concreteState =
         concretize(valueState, constraints.getModel(), chosen.edge().getPredecessor());
-    AbstractState result = ExecutionStates.withValueState(pState, concreteState);
-    if (result == null) {
+    Optional<AbstractState> result = ExecutionStates.withValueState(pState, concreteState);
+    if (result.isEmpty()) {
       logger.logOnce(
           Level.WARNING,
           "Could not replace the values of the analysis, so the nondeterministic values of the"
@@ -190,7 +190,7 @@ class ExecutionSampler {
         "of",
         pSuccessors.size(),
         "possible successors.");
-    return result;
+    return result.orElseThrow();
   }
 
   /** Choose the successor that is closest to a loop head or a function call. */

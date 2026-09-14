@@ -13,6 +13,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,7 +53,7 @@ public class ExecutionPrecisionAdjustmentTest {
 
   @Test
   public void replacingWrappedStatePreservesVerdictRestrictionsAndStack() throws Exception {
-    StackFrame stack = new StackFrame(null, "main", null);
+    StackFrame stack = StackFrame.push(null, "main", ImmutableMap.of());
     AbstractState replacement =
         new CompositeState(ImmutableList.of(SingletonAbstractState.INSTANCE));
     for (AlgorithmStatus status :

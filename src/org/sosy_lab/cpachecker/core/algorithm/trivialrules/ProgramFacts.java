@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -56,10 +55,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.algorithm.trivialrules.RangeEstimator.Truth;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 
 /**
@@ -81,8 +82,8 @@ final class ProgramFacts {
    */
   private static final ImmutableSet<String> KNOWN_HARMLESS_FUNCTIONS =
       ImmutableSet.<String>builder()
-          .addAll(org.sosy_lab.cpachecker.util.StandardFunctions.C11_MATH_H_FUNCTIONS)
-          .addAll(org.sosy_lab.cpachecker.util.StandardFunctions.C11_FENV_H_FUNCTIONS)
+          .addAll(StandardFunctions.C11_MATH_H_FUNCTIONS)
+          .addAll(StandardFunctions.C11_FENV_H_FUNCTIONS)
           .add("abort")
           .add("exit")
           .add("_Exit")
@@ -269,6 +270,16 @@ final class ProgramFacts {
     return recursionNodes.get();
   }
 
+  /** Whether the given option of the CFA construction is explicitly set to {@code true}. */
+  boolean isOptionExplicitlyEnabled(String pOption) {
+    return isOptionExplicitlySetTo(pOption, true);
+  }
+
+  /** Whether the given option of the CFA construction is explicitly set to {@code false}. */
+  boolean isOptionExplicitlyDisabled(String pOption) {
+    return isOptionExplicitlySetTo(pOption, false);
+  }
+
   /**
    * Whether the given option of the CFA construction is explicitly set to the given value.
    *
@@ -278,7 +289,7 @@ final class ProgramFacts {
    * a rule sees is the one that the surrounding configuration asked for.
    */
   @SuppressWarnings("deprecation") // we deliberately look at the option of another component
-  boolean isOptionSetTo(String pOption, boolean pValue) {
+  private boolean isOptionExplicitlySetTo(String pOption, boolean pValue) {
     String value = config.getProperty(pOption);
     return value != null && Boolean.parseBoolean(value.trim()) == pValue;
   }
@@ -366,6 +377,28 @@ final class ProgramFacts {
   }
 
   /**
+   * Whether an execution of the program can call one of the given functions. This covers both a
+   * call of a function without a body and a call of a definition that the program brings along
+   * itself, so a rule that has to see all uses of a function can rely on it.
+   */
+  boolean callsAnyOf(ImmutableSet<String> pFunctionNames) {
+    for (CFAEdge edge : reachableEdges()) {
+      String calledWithoutBody = nameOfCallWithoutBody(edge);
+      if (calledWithoutBody != null && pFunctionNames.contains(calledWithoutBody)) {
+        return true;
+      }
+      for (CAstNode node : astNodes(edge)) {
+        if (node instanceof CFunctionCallExpression call
+            && call.getDeclaration() != null
+            && pFunctionNames.contains(call.getDeclaration().getName())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Whether the given assume edge cannot be taken by any execution, because its condition is
    * constant.
    */
@@ -373,10 +406,8 @@ final class ProgramFacts {
     if (!(pEdge instanceof CAssumeEdge assumeEdge)) {
       return false;
     }
-    CExpression condition = assumeEdge.getExpression();
-    return assumeEdge.getTruthAssumption()
-        ? ranges().isAlwaysFalse(condition)
-        : ranges().isAlwaysTrue(condition);
+    Truth condition = ranges().evaluate(assumeEdge.getExpression());
+    return condition == (assumeEdge.getTruthAssumption() ? Truth.ALWAYS_FALSE : Truth.ALWAYS_TRUE);
   }
 
   private Reachable computeReachable() {

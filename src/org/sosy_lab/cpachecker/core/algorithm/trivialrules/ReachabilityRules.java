@@ -33,7 +33,7 @@ final class ReachabilityRules {
 
   private ReachabilityRules() {}
 
-  private static final ImmutableSet<Property> PROPOSITIONS =
+  private static final ImmutableSet<Property> SPECIFICATIONS =
       ImmutableSet.of(
           CommonVerificationProperty.REACHABILITY,
           CommonVerificationProperty.REACHABILITY_ERROR,
@@ -47,31 +47,34 @@ final class ReachabilityRules {
             "A specification that is given by an automaton holds if the automaton cannot match: no"
                 + " location that an execution of the program can reach is a target location of"
                 + " the automaton.",
-            PROPOSITIONS,
+            SPECIFICATIONS,
             ReachabilityRules::checkNoReachableTargetLocation),
         new TrivialRule(
             "violation-on-every-execution",
             "Every execution of the program executes the same sequence of edges as long as every"
                 + " location on it has exactly one possible successor. If a target location is on"
                 + " that sequence, every execution violates the specification.",
-            PROPOSITIONS,
+            SPECIFICATIONS,
             ReachabilityRules::checkViolationOnEveryExecution));
   }
 
-  private static Optional<RuleVerdict> checkNoReachableTargetLocation(ProgramFacts pFacts) {
+  private static RuleVerdict checkNoReachableTargetLocation(ProgramFacts pFacts) {
     if (pFacts.usesFunctionAddress()) {
       // A function without a body could call a function of the program that reports a violation,
       // and the computation of the target locations does not know about such a call.
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
-    Optional<ImmutableSet<CFANode>> targetLocations = pFacts.targetLocations();
-    if (targetLocations.isEmpty()
-        || !Sets.intersection(targetLocations.orElseThrow(), pFacts.reachableNodes()).isEmpty()) {
-      return Optional.empty();
+    Optional<ImmutableSet<CFANode>> optionalTargetLocations = pFacts.targetLocations();
+    if (optionalTargetLocations.isEmpty()) {
+      return RuleVerdict.abstained();
+    }
+    ImmutableSet<CFANode> targetLocations = optionalTargetLocations.orElseThrow();
+    if (!Sets.intersection(targetLocations, pFacts.reachableNodes()).isEmpty()) {
+      return RuleVerdict.abstained();
     }
     return RuleVerdict.proven(
         "none of the "
-            + targetLocations.orElseThrow().size()
+            + targetLocations.size()
             + " target locations of the specification automata is among the "
             + pFacts.reachableNodes().size()
             + " locations that an execution of the program ("
@@ -79,15 +82,15 @@ final class ReachabilityRules {
             + " functions) can reach");
   }
 
-  private static Optional<RuleVerdict> checkViolationOnEveryExecution(ProgramFacts pFacts) {
-    Optional<ImmutableSet<CFANode>> targetLocations = pFacts.targetLocations();
-    if (targetLocations.isEmpty() || targetLocations.orElseThrow().isEmpty()) {
-      return Optional.empty();
+  private static RuleVerdict checkViolationOnEveryExecution(ProgramFacts pFacts) {
+    ImmutableSet<CFANode> targetLocations = pFacts.targetLocations().orElse(ImmutableSet.of());
+    if (targetLocations.isEmpty()) {
+      return RuleVerdict.abstained();
     }
     ImmutableList<CFAEdge> chain = pFacts.chain().edges();
     for (int i = 0; i < chain.size(); i++) {
       CFAEdge edge = chain.get(i);
-      if (targetLocations.orElseThrow().contains(edge.getSuccessor())) {
+      if (targetLocations.contains(edge.getSuccessor())) {
         return RuleVerdict.refuted(
             "every execution reaches the violation at "
                 + edge.getFileLocation()
@@ -99,6 +102,6 @@ final class ReachabilityRules {
             edge);
       }
     }
-    return Optional.empty();
+    return RuleVerdict.abstained();
   }
 }

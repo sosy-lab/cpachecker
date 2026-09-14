@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -20,7 +19,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * @param name the name of the rule, used to select it and to report which rule decided a task
  * @param argument the argument that makes the rule sound, independently of the program
  * @param decides the propositions that this rule can settle
- * @param check applies the rule to a program; returns an empty {@link Optional} if the rule
+ * @param check applies the rule to a program; returns {@link RuleVerdict#abstained()} if the rule
  *     abstains, which it has to do whenever its argument does not hold for the program
  */
 record TrivialRule(String name, String argument, ImmutableSet<Property> decides, Check check) {
@@ -28,6 +27,6 @@ record TrivialRule(String name, String argument, ImmutableSet<Property> decides,
   /** The check of a rule, cf. {@link TrivialRule#check()}. */
   @FunctionalInterface
   interface Check {
-    Optional<RuleVerdict> apply(ProgramFacts pFacts) throws CPAException, InterruptedException;
+    RuleVerdict apply(ProgramFacts pFacts) throws CPAException, InterruptedException;
   }
 }

@@ -47,7 +47,12 @@ public class ExecutionState extends AbstractSingleWrapperState {
     return status;
   }
 
-  void checkSoundness() throws CPATransferException {
+  @Nullable StackFrame getCallStack() {
+    return callStack;
+  }
+
+  /** Check that this execution still proves that the program is safe. */
+  void checkMayProveSafety() throws CPATransferException {
     if (!status.isSound()) {
       throw new CPATransferException(
           "The execution ended without violating the specification, but it is no longer sound"
@@ -56,17 +61,14 @@ public class ExecutionState extends AbstractSingleWrapperState {
     }
   }
 
-  void checkTargetState() throws CPATransferException {
+  /** Check that a violation of the specification in this state may be reported. */
+  void checkMayReportViolation() throws CPATransferException {
     if (isTarget() && !status.isPrecise()) {
       throw new CPATransferException(
           "The execution reached a target state, but it is no longer precise because a return"
               + " value of an unhandled function call was overapproximated. ExecutionCPA cannot"
               + " report a property violation.");
     }
-  }
-
-  @Nullable StackFrame getCallStack() {
-    return callStack;
   }
 
   /**
@@ -79,50 +81,37 @@ public class ExecutionState extends AbstractSingleWrapperState {
    * therefore remembers the values that a recursive call is about to overwrite, so that {@link
    * ExecutionTransferRelation} can restore them when the call returns. This is done in this CPA
    * only, the value analysis itself is not affected.
+   *
+   * @param parent the frame of the caller, {@code null} for the outermost call
+   * @param functionName the name of the function that this frame belongs to
+   * @param shadowedValues the values of the caller that the callee overwrites because it uses the
+   *     same memory locations; empty if this call is not recursive and thus nothing is overwritten
+   * @param depth the number of frames on the stack, including this one
    */
-  static final class StackFrame {
+  record StackFrame(
+      @Nullable StackFrame parent,
+      String functionName,
+      ImmutableMap<MemoryLocation, ValueAndType> shadowedValues,
+      int depth) {
 
-    private final @Nullable StackFrame parent;
-    private final String functionName;
+    StackFrame {
+      checkNotNull(functionName);
+      checkNotNull(shadowedValues);
+    }
 
-    /**
-     * The values of the caller that the callee will overwrite because it uses the same memory
-     * locations, or {@code null} if this call is not recursive and thus nothing gets overwritten.
-     */
-    private final @Nullable ImmutableMap<MemoryLocation, ValueAndType> shadowedValues;
-
-    private final int depth;
-
-    StackFrame(
+    /** Push a new frame for a call of the given function onto the given stack. */
+    static StackFrame push(
         @Nullable StackFrame pParent,
         String pFunctionName,
-        @Nullable ImmutableMap<MemoryLocation, ValueAndType> pShadowedValues) {
-      parent = pParent;
-      functionName = checkNotNull(pFunctionName);
-      shadowedValues = pShadowedValues;
-      depth = pParent == null ? 1 : pParent.depth + 1;
-    }
-
-    @Nullable StackFrame getParent() {
-      return parent;
-    }
-
-    String getFunctionName() {
-      return functionName;
-    }
-
-    @Nullable ImmutableMap<MemoryLocation, ValueAndType> getShadowedValues() {
-      return shadowedValues;
-    }
-
-    int getDepth() {
-      return depth;
+        ImmutableMap<MemoryLocation, ValueAndType> pShadowedValues) {
+      return new StackFrame(
+          pParent, pFunctionName, pShadowedValues, pParent == null ? 1 : pParent.depth() + 1);
     }
 
     /** Whether the given function is already active, i.e., whether calling it means recursion. */
     boolean contains(String pFunctionName) {
-      for (StackFrame frame = this; frame != null; frame = frame.parent) {
-        if (frame.functionName.equals(pFunctionName)) {
+      for (StackFrame frame = this; frame != null; frame = frame.parent()) {
+        if (frame.functionName().equals(pFunctionName)) {
           return true;
         }
       }

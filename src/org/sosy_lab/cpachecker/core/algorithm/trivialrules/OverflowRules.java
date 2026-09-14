@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -56,7 +55,15 @@ final class OverflowRules {
    *     null} if we cannot say
    */
   private record Operation(
-      CAstNode operation, CType type, IntegerRange allowed, @Nullable IntegerRange result) {}
+      CAstNode operation, CType type, IntegerRange allowed, @Nullable IntegerRange result) {
+
+    /** Whether the result of the operation leaves the range of its type for every value. */
+    boolean alwaysOverflows() {
+      return result != null
+          && (result.high().compareTo(allowed.low()) < 0
+              || result.low().compareTo(allowed.high()) > 0);
+    }
+  }
 
   static ImmutableList<TrivialRule> rules() {
     return ImmutableList.of(
@@ -79,11 +86,11 @@ final class OverflowRules {
             OverflowRules::checkOverflowOnEveryExecution));
   }
 
-  private static Optional<RuleVerdict> checkNoSignedOverflowPossible(ProgramFacts pFacts) {
+  private static RuleVerdict checkNoSignedOverflowPossible(ProgramFacts pFacts) {
     if (!pFacts.isCProgram()) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
-    if (!pFacts.isOptionSetTo(SIMPLIFY_CONST_EXPRESSIONS_OPTION, false)) {
+    if (!pFacts.isOptionExplicitlyDisabled(SIMPLIFY_CONST_EXPRESSIONS_OPTION)) {
       pFacts
           .logger()
           .log(
@@ -92,18 +99,18 @@ final class OverflowRules {
               SIMPLIFY_CONST_EXPRESSIONS_OPTION,
               "is not disabled, so an overflow in a constant expression is not visible in the"
                   + " CFA.");
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     if (!pFacts.unknownFunctions().isEmpty()) {
       // A function without a body could have an overflow of its own.
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
 
     int checked = 0;
     for (CFAEdge edge : pFacts.reachableEdges()) {
       for (Operation operation : operationsOf(pFacts, edge)) {
         if (operation.result() == null || !operation.result().isWithin(operation.allowed())) {
-          return Optional.empty();
+          return RuleVerdict.abstained();
         }
         checked++;
       }
@@ -122,13 +129,13 @@ final class OverflowRules {
             + " value that the types of the operands allow");
   }
 
-  private static Optional<RuleVerdict> checkOverflowOnEveryExecution(ProgramFacts pFacts) {
+  private static RuleVerdict checkOverflowOnEveryExecution(ProgramFacts pFacts) {
     if (!pFacts.isCProgram()) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     for (CFAEdge edge : pFacts.chain().edges()) {
       for (Operation operation : operationsOf(pFacts, edge)) {
-        if (operation.result() != null && isOutside(operation.result(), operation.allowed())) {
+        if (operation.alwaysOverflows()) {
           return RuleVerdict.refuted(
               "every execution evaluates \""
                   + operation.operation().toASTString()
@@ -145,7 +152,7 @@ final class OverflowRules {
         }
       }
     }
-    return Optional.empty();
+    return RuleVerdict.abstained();
   }
 
   /**
@@ -157,15 +164,8 @@ final class OverflowRules {
     RangeEstimator ranges = pFacts.ranges();
     ImmutableList.Builder<Operation> result = ImmutableList.builder();
     for (CAstNode node : ProgramFacts.astNodes(pEdge)) {
-      CType type;
-      if (node instanceof CBinaryExpression binary) {
-        type = binary.getCalculationType();
-      } else if (node instanceof CUnaryExpression unary) {
-        type = unary.getExpressionType();
-      } else {
-        continue;
-      }
-      if (!ranges.isSignedIntegerType(type)) {
+      CType type = calculationTypeOf(node);
+      if (type == null || !ranges.isSignedIntegerType(type)) {
         continue;
       }
       IntegerRange allowed = ranges.rangeOfType(type);
@@ -181,9 +181,15 @@ final class OverflowRules {
     return result.build();
   }
 
-  /** Whether no value of the first range is a value of the second one. */
-  private static boolean isOutside(IntegerRange pRange, IntegerRange pAllowed) {
-    return pRange.high().compareTo(pAllowed.low()) < 0
-        || pRange.low().compareTo(pAllowed.high()) > 0;
+  /**
+   * The type that the given AST node is computed in, or {@code null} if the node is not an
+   * operation that can overflow.
+   */
+  private static @Nullable CType calculationTypeOf(CAstNode pNode) {
+    return switch (pNode) {
+      case CBinaryExpression binary -> binary.getCalculationType();
+      case CUnaryExpression unary -> unary.getExpressionType();
+      default -> null;
+    };
   }
 }

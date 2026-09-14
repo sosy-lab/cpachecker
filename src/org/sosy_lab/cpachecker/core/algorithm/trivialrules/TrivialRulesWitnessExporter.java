@@ -8,52 +8,65 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import java.io.PrintStream;
-import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.witnesses.LocationWitnessExporter;
 
 /**
  * Uses the standard YAML witness exporters with the location summary prepared by the trivial rules.
+ *
+ * <p>A witness is written only if a rule has decided the task, i.e. only if the reached set was
+ * prepared by one of the {@code prepare...} methods; the answer UNKNOWN leaves the reached set
+ * empty and there is nothing to export.
  */
 class TrivialRulesWitnessExporter extends LocationWitnessExporter {
 
-  private final TrivialRulesStatistics stats;
+  private boolean decided = false;
 
   TrivialRulesWitnessExporter(
       Configuration pConfig,
       CFA pCfa,
       Specification pSpecification,
       LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa,
-      TrivialRulesStatistics pStats)
+      ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa, pSpecification, pCfa);
-    stats = pStats;
+  }
+
+  @Override
+  public void prepareCorrectnessWitness(
+      ReachedSet pReached, Multimap<CFANode, ImmutableList<ExpressionTreeReportingState>> pInvars) {
+    super.prepareCorrectnessWitness(pReached, pInvars);
+    decided = true;
+  }
+
+  @Override
+  public void prepareViolationWitness(
+      ReachedSet pReached, CFAEdge pEdge, DummyTargetState pTarget) {
+    super.prepareViolationWitness(pReached, pEdge, pTarget);
+    decided = true;
   }
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-    if (!isYamlWitnessExportEnabled() || stats.verdict() == null) {
-      return;
+    if (isYamlWitnessExportEnabled() && decided) {
+      writeYamlWitnesses(pResult, pReached);
     }
-    if (pResult == Result.FALSE) {
-      if (stats.verdict().violatingEdge() == null) {
-        logger.log(
-            Level.WARNING,
-            "Cannot export a violation witness because the violated location is unknown.");
-        return;
-      }
-    }
-    writeYamlWitnesses(pResult, pReached);
   }
 
   @Override

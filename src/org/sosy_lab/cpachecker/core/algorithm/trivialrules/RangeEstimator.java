@@ -50,6 +50,25 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 final class RangeEstimator {
 
+  /** What we can say about the value of a condition of the program. */
+  enum Truth {
+    /** The condition has a value other than zero for every value of its operands. */
+    ALWAYS_TRUE,
+    /** The condition has the value zero for every value of its operands. */
+    ALWAYS_FALSE,
+    /** We cannot say which value the condition has. */
+    UNKNOWN;
+
+    /** The values that a C expression with this truth value can have. */
+    IntegerRange asRange() {
+      return switch (this) {
+        case ALWAYS_TRUE -> IntegerRange.ONE;
+        case ALWAYS_FALSE -> IntegerRange.ZERO;
+        case UNKNOWN -> IntegerRange.ZERO_OR_ONE;
+      };
+    }
+  }
+
   private final MachineModel machineModel;
   private final ImmutableMap<String, BigInteger> constants;
 
@@ -67,7 +86,7 @@ final class RangeEstimator {
       char character = literal.getCharacter();
       if (character <= 127) {
         // The value of a character of the basic character set is the same in every representation.
-        return IntegerRange.of(character, character);
+        return IntegerRange.of(character);
       }
       return rangeOfType(pExpression.getExpressionType());
 
@@ -115,16 +134,16 @@ final class RangeEstimator {
     return type != null && machineModel.isSigned(type);
   }
 
-  /** Whether the expression has a value other than zero for every value of its operands. */
-  boolean isAlwaysTrue(CExpression pExpression) {
+  /** What we can say about the value of the given condition. */
+  Truth evaluate(CExpression pExpression) {
     IntegerRange range = rangeOf(pExpression);
-    return range != null && !range.contains(BigInteger.ZERO);
-  }
-
-  /** Whether the expression has the value zero for every value of its operands. */
-  boolean isAlwaysFalse(CExpression pExpression) {
-    IntegerRange range = rangeOf(pExpression);
-    return range != null && BigInteger.ZERO.equals(range.exactValue());
+    if (range == null) {
+      return Truth.UNKNOWN;
+    }
+    if (!range.contains(BigInteger.ZERO)) {
+      return Truth.ALWAYS_TRUE;
+    }
+    return BigInteger.ZERO.equals(range.exactValue()) ? Truth.ALWAYS_FALSE : Truth.UNKNOWN;
   }
 
   /**
@@ -175,7 +194,7 @@ final class RangeEstimator {
       case TILDE -> {
         IntegerRange operand = rangeOf(pExpression.getOperand());
         // ~x == -x - 1
-        yield operand == null ? null : operand.negate().minus(IntegerRange.of(1, 1));
+        yield operand == null ? null : operand.negate().minus(IntegerRange.ONE);
       }
       // The address of an object is not an integer, and the value of sizeof and __alignof__ is
       // handled by the range of their type (size_t).
@@ -329,44 +348,49 @@ final class RangeEstimator {
 
   private static IntegerRange compare(
       BinaryOperator pOperator, IntegerRange pOperand1, IntegerRange pOperand2) {
-    boolean isTrue;
-    boolean isFalse;
-    switch (pOperator) {
-      case LESS_THAN -> {
-        isTrue = pOperand1.high().compareTo(pOperand2.low()) < 0;
-        isFalse = pOperand1.low().compareTo(pOperand2.high()) >= 0;
-      }
-      case LESS_EQUAL -> {
-        isTrue = pOperand1.high().compareTo(pOperand2.low()) <= 0;
-        isFalse = pOperand1.low().compareTo(pOperand2.high()) > 0;
-      }
-      case GREATER_THAN -> {
-        isTrue = pOperand1.low().compareTo(pOperand2.high()) > 0;
-        isFalse = pOperand1.high().compareTo(pOperand2.low()) <= 0;
-      }
-      case GREATER_EQUAL -> {
-        isTrue = pOperand1.low().compareTo(pOperand2.high()) >= 0;
-        isFalse = pOperand1.high().compareTo(pOperand2.low()) < 0;
-      }
-      case EQUALS -> {
-        isTrue =
-            pOperand1.exactValue() != null && pOperand1.exactValue().equals(pOperand2.exactValue());
-        isFalse =
-            pOperand1.high().compareTo(pOperand2.low()) < 0
-                || pOperand2.high().compareTo(pOperand1.low()) < 0;
-      }
-      case NOT_EQUALS -> {
-        isFalse =
-            pOperand1.exactValue() != null && pOperand1.exactValue().equals(pOperand2.exactValue());
-        isTrue =
-            pOperand1.high().compareTo(pOperand2.low()) < 0
-                || pOperand2.high().compareTo(pOperand1.low()) < 0;
-      }
-      default -> throw new AssertionError("not a comparison: " + pOperator);
+    Truth result =
+        switch (pOperator) {
+          case LESS_THAN ->
+              truth(
+                  pOperand1.high().compareTo(pOperand2.low()) < 0,
+                  pOperand1.low().compareTo(pOperand2.high()) >= 0);
+          case LESS_EQUAL ->
+              truth(
+                  pOperand1.high().compareTo(pOperand2.low()) <= 0,
+                  pOperand1.low().compareTo(pOperand2.high()) > 0);
+          case GREATER_THAN ->
+              truth(
+                  pOperand1.low().compareTo(pOperand2.high()) > 0,
+                  pOperand1.high().compareTo(pOperand2.low()) <= 0);
+          case GREATER_EQUAL ->
+              truth(
+                  pOperand1.low().compareTo(pOperand2.high()) >= 0,
+                  pOperand1.high().compareTo(pOperand2.low()) < 0);
+          case EQUALS -> truth(isSameValue(pOperand1, pOperand2), isDisjoint(pOperand1, pOperand2));
+          case NOT_EQUALS ->
+              truth(isDisjoint(pOperand1, pOperand2), isSameValue(pOperand1, pOperand2));
+          default -> throw new AssertionError("not a comparison: " + pOperator);
+        };
+    return result.asRange();
+  }
+
+  /** The truth value of a comparison from the two cases in which its result is determined. */
+  private static Truth truth(boolean pIsAlwaysTrue, boolean pIsAlwaysFalse) {
+    if (pIsAlwaysTrue) {
+      return Truth.ALWAYS_TRUE;
     }
-    if (isTrue) {
-      return IntegerRange.of(1, 1);
-    }
-    return isFalse ? IntegerRange.of(0, 0) : IntegerRange.of(0, 1);
+    return pIsAlwaysFalse ? Truth.ALWAYS_FALSE : Truth.UNKNOWN;
+  }
+
+  /** Whether both ranges have the same single value, i.e. whether the operands are equal. */
+  private static boolean isSameValue(IntegerRange pOperand1, IntegerRange pOperand2) {
+    BigInteger value = pOperand1.exactValue();
+    return value != null && value.equals(pOperand2.exactValue());
+  }
+
+  /** Whether the ranges have no value in common, i.e. whether the operands are different. */
+  private static boolean isDisjoint(IntegerRange pOperand1, IntegerRange pOperand2) {
+    return pOperand1.high().compareTo(pOperand2.low()) < 0
+        || pOperand2.high().compareTo(pOperand1.low()) < 0;
   }
 }

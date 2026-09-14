@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
-import java.util.Optional;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -75,6 +74,16 @@ final class MemorySafetyRules {
           "strdup",
           "strndup");
 
+  /** Where an array access lies relative to the bounds of the array it is applied to. */
+  private enum ArrayAccess {
+    /** The access is inside the bounds for every value that the types of the index allow. */
+    INSIDE,
+    /** The access is outside the bounds for every value that the types of the index allow. */
+    OUTSIDE,
+    /** We cannot say, e.g. because the length of the array or the value of the index is unknown. */
+    UNKNOWN,
+  }
+
   static ImmutableList<TrivialRule> rules() {
     return ImmutableList.of(
         new TrivialRule(
@@ -115,14 +124,14 @@ final class MemorySafetyRules {
             MemorySafetyRules::checkFreeOfNonHeapObjectOnEveryExecution));
   }
 
-  private static Optional<RuleVerdict> checkNoMemoryOperation(ProgramFacts pFacts) {
+  private static RuleVerdict checkNoMemoryOperation(ProgramFacts pFacts) {
     if (!isApplicable(pFacts)) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     for (CFAEdge edge : pFacts.reachableEdges()) {
       for (CAstNode node : ProgramFacts.astNodes(edge)) {
         if (isMemoryOperation(node)) {
-          return Optional.empty();
+          return RuleVerdict.abstained();
         }
       }
     }
@@ -133,9 +142,9 @@ final class MemorySafetyRules {
             + " takes the address of an object");
   }
 
-  private static Optional<RuleVerdict> checkNoHeapAllocation(ProgramFacts pFacts) {
+  private static RuleVerdict checkNoHeapAllocation(ProgramFacts pFacts) {
     if (!isApplicable(pFacts)) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     return RuleVerdict.proven(
         "no reachable edge of the program ("
@@ -143,9 +152,9 @@ final class MemorySafetyRules {
             + " edges) calls a function that allocates or frees memory");
   }
 
-  private static Optional<RuleVerdict> checkAllAccessesInsideTheirObject(ProgramFacts pFacts) {
+  private static RuleVerdict checkAllAccessesInsideTheirObject(ProgramFacts pFacts) {
     if (!isApplicable(pFacts)) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     // Without a pointer the program cannot reach an object other than the ones it declares, and
     // without the address-of operator it cannot create a pointer.
@@ -155,11 +164,11 @@ final class MemorySafetyRules {
         continue;
       }
       if (hasPointerType(declaration.getType().getReturnType())) {
-        return Optional.empty();
+        return RuleVerdict.abstained();
       }
       for (CParameterDeclaration parameter : declaration.getParameters()) {
         if (hasPointerType(parameter.getType())) {
-          return Optional.empty();
+          return RuleVerdict.abstained();
         }
       }
     }
@@ -167,12 +176,11 @@ final class MemorySafetyRules {
     for (CFAEdge edge : pFacts.reachableEdges()) {
       for (CAstNode node : ProgramFacts.astNodes(edge)) {
         if (isAddressOf(node) || hasPointerType(node)) {
-          return Optional.empty();
+          return RuleVerdict.abstained();
         }
         if (node instanceof CArraySubscriptExpression subscript) {
-          Optional<Boolean> inBounds = isInBounds(pFacts, subscript);
-          if (!inBounds.orElse(false)) {
-            return Optional.empty();
+          if (classifyAccess(pFacts, subscript) != ArrayAccess.INSIDE) {
+            return RuleVerdict.abstained();
           }
           accesses++;
         }
@@ -185,25 +193,22 @@ final class MemorySafetyRules {
             + " the index allow");
   }
 
-  private static Optional<RuleVerdict> checkAccessOutsideObjectOnEveryExecution(
-      ProgramFacts pFacts) {
+  private static RuleVerdict checkAccessOutsideObjectOnEveryExecution(ProgramFacts pFacts) {
     if (!pFacts.isCProgram()) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     for (CFAEdge edge : pFacts.chain().edges()) {
       for (CAstNode node : ProgramFacts.astNodes(edge)) {
-        if (node instanceof CArraySubscriptExpression subscript) {
-          Optional<Boolean> inBounds = isInBounds(pFacts, subscript);
-          if (!inBounds.orElse(false)) {
-            return RuleVerdict.refuted(
-                "every execution evaluates \""
-                    + subscript.toASTString()
-                    + "\" at "
-                    + edge.getFileLocation()
-                    + ", whose subscript is outside the bounds of the array for every value that"
-                    + " the types of the index allow",
-                edge);
-          }
+        if (node instanceof CArraySubscriptExpression subscript
+            && classifyAccess(pFacts, subscript) == ArrayAccess.OUTSIDE) {
+          return RuleVerdict.refuted(
+              "every execution evaluates \""
+                  + subscript.toASTString()
+                  + "\" at "
+                  + edge.getFileLocation()
+                  + ", whose subscript is outside the bounds of the array for every value that the"
+                  + " types of the index allow",
+              edge);
         }
         if (node instanceof CPointerExpression pointer && isNullPointer(pointer.getOperand())) {
           return RuleVerdict.refuted(
@@ -211,13 +216,12 @@ final class MemorySafetyRules {
         }
       }
     }
-    return Optional.empty();
+    return RuleVerdict.abstained();
   }
 
-  private static Optional<RuleVerdict> checkFreeOfNonHeapObjectOnEveryExecution(
-      ProgramFacts pFacts) {
+  private static RuleVerdict checkFreeOfNonHeapObjectOnEveryExecution(ProgramFacts pFacts) {
     if (!pFacts.isCProgram() || pFacts.isDefinedFunction("free")) {
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
     for (CFAEdge edge : pFacts.chain().edges()) {
       if (!"free".equals(ProgramFacts.nameOfCallWithoutBody(edge))) {
@@ -241,7 +245,7 @@ final class MemorySafetyRules {
         }
       }
     }
-    return Optional.empty();
+    return RuleVerdict.abstained();
   }
 
   /**
@@ -249,25 +253,10 @@ final class MemorySafetyRules {
    * of the program, so we have to see all of them.
    */
   private static boolean isApplicable(ProgramFacts pFacts) {
-    if (!pFacts.isCProgram() || !pFacts.unknownFunctions().isEmpty()) {
-      // A function without a body can allocate memory and dereference a pointer.
-      return false;
-    }
-    for (CFAEdge edge : pFacts.reachableEdges()) {
-      String called = ProgramFacts.nameOfCallWithoutBody(edge);
-      if (called != null && ALLOCATION_FUNCTIONS.contains(called)) {
-        return false;
-      }
-      for (CAstNode node : ProgramFacts.astNodes(edge)) {
-        if (node instanceof CFunctionCallExpression call
-            && call.getDeclaration() != null
-            && ALLOCATION_FUNCTIONS.contains(call.getDeclaration().getName())) {
-          // The program brings its own definition of an allocation function.
-          return false;
-        }
-      }
-    }
-    return true;
+    // A function without a body can allocate memory and dereference a pointer.
+    return pFacts.isCProgram()
+        && pFacts.unknownFunctions().isEmpty()
+        && !pFacts.callsAnyOf(ALLOCATION_FUNCTIONS);
   }
 
   private static boolean isMemoryOperation(CAstNode pNode) {
@@ -300,33 +289,29 @@ final class MemorySafetyRules {
     return type instanceof CPointerType;
   }
 
-  /**
-   * Whether the given array access is inside the bounds of its array: {@code true} if it is for
-   * every value of the subscript, {@code false} if it is for none, and {@code Optional#empty} if we
-   * cannot say or if the length of the array is unknown.
-   */
-  private static Optional<Boolean> isInBounds(
+  /** Where the given array access lies relative to the bounds of its array. */
+  private static ArrayAccess classifyAccess(
       ProgramFacts pFacts, CArraySubscriptExpression pSubscript) {
     CType arrayType = pSubscript.getArrayExpression().getExpressionType().getCanonicalType();
     if (!(arrayType instanceof CArrayType array)) {
-      return Optional.empty();
+      return ArrayAccess.UNKNOWN;
     }
     OptionalInt length = array.getLengthAsInt();
     if (length.isEmpty()) {
-      return Optional.empty();
+      return ArrayAccess.UNKNOWN;
     }
     IntegerRange index = pFacts.ranges().rangeOf(pSubscript.getSubscriptExpression());
     if (index == null) {
-      return Optional.empty();
+      return ArrayAccess.UNKNOWN;
     }
     IntegerRange bounds =
         new IntegerRange(BigInteger.ZERO, BigInteger.valueOf(length.orElseThrow() - 1L));
     if (index.isWithin(bounds)) {
-      return Optional.of(true);
+      return ArrayAccess.INSIDE;
     }
     boolean outside =
         index.high().compareTo(bounds.low()) < 0 || index.low().compareTo(bounds.high()) > 0;
-    return outside ? Optional.of(false) : Optional.empty();
+    return outside ? ArrayAccess.OUTSIDE : ArrayAccess.UNKNOWN;
   }
 
   /** Whether the given expression is the null pointer, i.e., the literal 0. */

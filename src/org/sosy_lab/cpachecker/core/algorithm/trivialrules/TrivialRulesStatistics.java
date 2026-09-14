@@ -27,13 +27,22 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  */
 class TrivialRulesStatistics implements Statistics {
 
+  /** How many unknown functions are listed before the rest is summarized as a count. */
+  private static final int MAX_LISTED_FUNCTIONS = 3;
+
+  private static final Joiner COMMA = Joiner.on(", ");
+
   private final Timer totalTime = new Timer();
+
+  /** The answer of every rule that was applied, by the name of the rule. */
   private final Map<String, String> outcomes = new LinkedHashMap<>();
+
+  /** The rule that settled a proposition of the specification, by the name of the proposition. */
   private final Map<String, String> propositions = new LinkedHashMap<>();
+
+  /** The argument of every rule that settled a proposition, by the name of the rule. */
   private final Map<String, String> arguments = new LinkedHashMap<>();
 
-  private @Nullable TrivialRule decidingRule = null;
-  private @Nullable RuleVerdict verdict = null;
   private @Nullable ProgramFacts facts = null;
 
   Timer totalTime() {
@@ -44,17 +53,9 @@ class TrivialRulesStatistics implements Statistics {
     facts = pFacts;
   }
 
-  void abstained(TrivialRule pRule) {
-    outcomes.put(pRule.name(), "abstained");
-  }
-
-  void decided(TrivialRule pRule, RuleVerdict pVerdict) {
-    outcomes.put(
-        pRule.name(), (pVerdict.isViolation() ? "violated: " : "proven: ") + pVerdict.reason());
-    if (decidingRule == null) {
-      decidingRule = pRule;
-      verdict = pVerdict;
-    }
+  /** Report the answer that the given rule gave for this program. */
+  void recordVerdict(TrivialRule pRule, RuleVerdict pVerdict) {
+    outcomes.put(pRule.name(), describe(pVerdict));
   }
 
   /** Report which rule settled the given proposition, and how. */
@@ -65,14 +66,12 @@ class TrivialRulesStatistics implements Statistics {
     arguments.put(pRule.name(), pRule.argument());
   }
 
-  /** The rule that decided the task, if there is one. */
-  @Nullable TrivialRule decidingRule() {
-    return decidingRule;
-  }
-
-  /** The answer of the rule that decided the task, if there is one. */
-  @Nullable RuleVerdict verdict() {
-    return verdict;
+  private static String describe(RuleVerdict pVerdict) {
+    return switch (pVerdict.outcome()) {
+      case ABSTAINED -> "abstained";
+      case PROVEN -> "proven: " + pVerdict.reason();
+      case REFUTED -> "violated: " + pVerdict.reason();
+    };
   }
 
   @Override
@@ -91,7 +90,9 @@ class TrivialRulesStatistics implements Statistics {
                   facts.chain().edges().size() + " edges, ends at " + facts.chain().end())
               .put(
                   "Unknown functions without a body",
-                  facts.unknownFunctions().isEmpty() ? "none" : describe(facts.unknownFunctions()));
+                  facts.unknownFunctions().isEmpty()
+                      ? "none"
+                      : describeFunctions(facts.unknownFunctions()));
     }
 
     writer = writer.put("Rules checked", outcomes.size());
@@ -111,12 +112,15 @@ class TrivialRulesStatistics implements Statistics {
     }
   }
 
-  private static String describe(Iterable<String> pNames) {
+  private static String describeFunctions(Iterable<String> pNames) {
     FluentIterable<String> names = FluentIterable.from(pNames);
-    if (names.size() <= 3) {
-      return Joiner.on(", ").join(names);
+    if (names.size() <= MAX_LISTED_FUNCTIONS) {
+      return COMMA.join(names);
     }
-    return Joiner.on(", ").join(names.limit(3)) + ", ... (" + (names.size() - 3) + " more)";
+    return COMMA.join(names.limit(MAX_LISTED_FUNCTIONS))
+        + ", ... ("
+        + (names.size() - MAX_LISTED_FUNCTIONS)
+        + " more)";
   }
 
   @Override

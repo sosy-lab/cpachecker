@@ -55,18 +55,17 @@ class ExecutionPrecisionAdjustment implements PrecisionAdjustment {
             pFullState);
 
     if (result.isEmpty()) {
-      state.checkSoundness();
+      // The wrapped CPA removed the state, so this execution ends here without a violation.
+      state.checkMayProveSafety();
       return result;
     }
     PrecisionAdjustmentResult unwrapped = result.orElseThrow();
-    if (unwrapped.abstractState() == state.getWrappedState()) {
-      state.checkTargetState();
-      return Optional.of(
-          new PrecisionAdjustmentResult(state, unwrapped.precision(), unwrapped.action()));
-    }
     ExecutionState adjustedState =
-        new ExecutionState(unwrapped.abstractState(), state.getCallStack(), state.getStatus());
-    adjustedState.checkTargetState();
+        unwrapped.abstractState() == state.getWrappedState()
+            ? state
+            : new ExecutionState(
+                unwrapped.abstractState(), state.getCallStack(), state.getStatus());
+    adjustedState.checkMayReportViolation();
     return Optional.of(
         new PrecisionAdjustmentResult(adjustedState, unwrapped.precision(), unwrapped.action()));
   }

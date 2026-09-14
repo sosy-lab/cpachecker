@@ -22,6 +22,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 record IntegerRange(BigInteger low, BigInteger high) {
 
+  static final IntegerRange ZERO = of(BigInteger.ZERO);
+  static final IntegerRange ONE = of(BigInteger.ONE);
+
+  /** The values of a C comparison, which yields either zero or one. */
+  static final IntegerRange ZERO_OR_ONE = new IntegerRange(BigInteger.ZERO, BigInteger.ONE);
+
   IntegerRange {
     checkArgument(low.compareTo(high) <= 0, "empty range [%s, %s]", low, high);
   }
@@ -30,8 +36,8 @@ record IntegerRange(BigInteger low, BigInteger high) {
     return new IntegerRange(pValue, pValue);
   }
 
-  static IntegerRange of(long pLow, long pHigh) {
-    return new IntegerRange(BigInteger.valueOf(pLow), BigInteger.valueOf(pHigh));
+  static IntegerRange of(long pValue) {
+    return of(BigInteger.valueOf(pValue));
   }
 
   /** The value of this range if it has only one, and {@code null} otherwise. */

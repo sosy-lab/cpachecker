@@ -92,13 +92,7 @@ class ExecutionWitnessExporter implements Statistics {
    * loop head, function entry, nor a function call are ignored.
    */
   void observe(CFANode pNode, AbstractState pState) {
-    if (!pNode.isLoopStart()
-        && !(pNode instanceof FunctionEntryNode)
-        && !(pNode.getNumLeavingEdges() == 1
-            && pNode.getLeavingEdge(0) instanceof FunctionCallEdge)) {
-      return;
-    }
-    if (abandonedLocations.contains(pNode)) {
+    if (!isInvariantLocation(pNode) || abandonedLocations.contains(pNode)) {
       return;
     }
 
@@ -113,6 +107,13 @@ class ExecutionWitnessExporter implements Statistics {
       abandonedLocations.add(pNode);
       invariants.removeAll(pNode);
     }
+  }
+
+  /** Whether a witness can carry an invariant for the given location. */
+  private static boolean isInvariantLocation(CFANode pNode) {
+    return pNode.isLoopStart()
+        || pNode instanceof FunctionEntryNode
+        || (pNode.getNumLeavingEdges() == 1 && pNode.getLeavingEdge(0) instanceof FunctionCallEdge);
   }
 
   /** Report the edge whose execution violates the specification. */

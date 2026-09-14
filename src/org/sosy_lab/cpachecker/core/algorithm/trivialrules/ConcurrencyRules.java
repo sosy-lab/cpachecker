@@ -10,10 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -48,24 +44,13 @@ final class ConcurrencyRules {
             ConcurrencyRules::checkSingleThreaded));
   }
 
-  private static Optional<RuleVerdict> checkSingleThreaded(ProgramFacts pFacts) {
+  private static RuleVerdict checkSingleThreaded(ProgramFacts pFacts) {
     if (!pFacts.unknownFunctions().isEmpty()) {
       // A function without a body could create a thread.
-      return Optional.empty();
+      return RuleVerdict.abstained();
     }
-    for (CFAEdge edge : pFacts.reachableEdges()) {
-      String called = ProgramFacts.nameOfCallWithoutBody(edge);
-      if (called != null && THREAD_CREATION_FUNCTIONS.contains(called)) {
-        return Optional.empty();
-      }
-      for (CAstNode node : ProgramFacts.astNodes(edge)) {
-        if (node instanceof CFunctionCallExpression call
-            && call.getDeclaration() != null
-            && THREAD_CREATION_FUNCTIONS.contains(call.getDeclaration().getName())) {
-          // The program brings its own definition of a function that creates a thread.
-          return Optional.empty();
-        }
-      }
+    if (pFacts.callsAnyOf(THREAD_CREATION_FUNCTIONS)) {
+      return RuleVerdict.abstained();
     }
     return RuleVerdict.proven(
         "no reachable edge of the program ("
