@@ -42,9 +42,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -55,12 +57,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -69,9 +69,9 @@ import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PORTransferRelation implements TransferRelation {
-  private final LocationCPA locationCPA;
-  private final CallstackCPA callstackCPA;
   private final TransferRelation wrappedTransferRelation;
+  private final ConfigurableProgramAnalysis threadSpecificCPA;
+  private final TransferRelation threadSpecificTransferRelation;
 
   private final CFA cfa;
 
@@ -81,6 +81,13 @@ public class PORTransferRelation implements TransferRelation {
   private final BasicBlockAggregator basicBlockAggregator;
 
   private final Random random;
+
+  /**
+   * Thread-specific precision is not implemented properly yet, as thread-specific CPAs do not use
+   * a precision for current analyses. The wrapper precision of the POR CPA should be extended to
+   * also include thread-specific precisions (similarly to this transfer relation), if needed.
+   */
+  private final Precision threadSpecificUnitPrecision;
 
   /**
    * The program's {@code __thread} variables, scanned once: every spawned thread's private copy of
@@ -99,10 +106,15 @@ public class PORTransferRelation implements TransferRelation {
       boolean pAggregateBasicBlocks,
       LogManager pLogger,
       Random pRandom)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
-    locationCPA = LocationCPA.create(pCfa, pConfig);
-    callstackCPA = new CallstackCPA(pConfig, pLogger);
+
+    // Construct thread specific CPA
+    threadSpecificCPA = new ThreadSpecificCPA(pConfig, pCfa, pLogger);
+    threadSpecificTransferRelation = threadSpecificCPA.getTransferRelation();
+    threadSpecificUnitPrecision =
+        threadSpecificCPA.getInitialPrecision(CFANode.newDummyCFANode(),
+            StateSpacePartition.getDefaultPartition());
 
     cfa = pCfa;
     logger = pLogger;
@@ -244,7 +256,6 @@ public class PORTransferRelation implements TransferRelation {
             ThreadFunctions.canonicalHandleAddressKey((CExpression) params.getFirst());
         finishEdge(
             addNewThread(state, threadFunc, handleName),
-            precision,
             cfaEdge,
             pid,
             afterWrite,
@@ -276,7 +287,7 @@ public class PORTransferRelation implements TransferRelation {
           if (hint != null && state.livePids().contains(hint)) {
             Optional<PORState> joined = state.joinThread(hint);
             if (joined.isPresent()) {
-              finishEdge(joined.get(), precision, cfaEdge, pid, wrappedSuccessors, result);
+              finishEdge(joined.get(), cfaEdge, pid, wrappedSuccessors, result);
             }
             return;
           }
@@ -306,59 +317,77 @@ public class PORTransferRelation implements TransferRelation {
                     pid));
           }
           if (!filtered.isEmpty()) {
-            finishEdge(joined.get(), precision, cfaEdge, pid, filtered, result);
+            finishEdge(joined.get(), cfaEdge, pid, filtered, result);
           }
         }
         return;
       }
 
       if (ThreadFunctions.isThreadExitFunction(functionName.get())) {
-        PORState exited = state.exitThread(pid, locationCPA.getStateFactory());
-        if (exited != null) {
-          finishEdge(exited, precision, cfaEdge, pid, wrappedSuccessors, result);
+        ThreadState threadState = state.threads().get(pid);
+        assert threadState != null : "threads must contain pid to exit " + pid;
+        CFANode currentNode = threadState.getLocationNode();
+        // Resolve to original CFA node to find exit node in the original CFA
+        CFANode originalCurrentNode = PorEdgeCloner.getOriginalNode(currentNode);
+        String function = originalCurrentNode.getFunctionName();
+
+        CFANode originalExitNode =
+            cfa.nodes().stream()
+                .filter(
+                    n ->
+                        n instanceof FunctionExitNode
+                            && function.equals(n.getFunctionName())
+                            && n.getNumLeavingEdges() == 0)
+                .findAny()
+                .orElseThrow();
+        // Get the cloned exit node for this thread
+        CFANode clonedExitNode = PorEdgeCloner.getClonedNode(originalExitNode, pid, cfa);
+
+        String description = "Thread exit dummy edge";
+        CFAEdge exitEdge =
+            new BlankEdge(description, cfaEdge.getFileLocation(), currentNode, clonedExitNode, description);
+
+        Collection<? extends AbstractState> threadSpecificSuccessors =
+            threadSpecificTransferRelation.getAbstractSuccessorsForEdge(
+                threadState.getWrappedState(), threadSpecificUnitPrecision, exitEdge);
+
+        for (AbstractState threadSpecificSuccessor : threadSpecificSuccessors) {
+          if (!(threadSpecificSuccessor instanceof CompositeState nextWrappedState)) {
+            throw new CPATransferException("Thread-specific successor is not a ThreadState");
+          }
+          ThreadState nextThreadState = new ThreadState(nextWrappedState);
+          PORState exited = state.stepThread(pid, nextThreadState);
+          finishEdge(exited, cfaEdge, pid, wrappedSuccessors, result);
         }
         return;
       }
     }
 
-    finishEdge(state, precision, cfaEdge, pid, wrappedSuccessors, result);
+    finishEdge(state, cfaEdge, pid, wrappedSuccessors, result);
   }
 
-  /**
-   * Advances {@code pid}'s location/callstack past {@code cfaEdge} and combines every resulting POR
-   * successor with every given wrapped-analysis successor. Shared tail of {@link
-   * #getAbstractSuccessorsForEdge}, called once per candidate branch for a join and once otherwise.
-   */
   private void finishEdge(
       PORState old,
-      PORPrecision precision,
       CFAEdge cfaEdge,
       int pid,
       Collection<? extends AbstractState> wrappedSuccessors,
       Collection<PORState> result)
       throws CPATransferException, InterruptedException {
-    final PORThreadState threadState = old.threads().get(pid);
+    final ThreadState threadState = old.threads().get(pid);
     if (threadState == null) {
       throw new CPATransferException("Thread state not found for PID " + pid);
     }
-    final var loc = threadState.pLocationState();
-    final var stack = threadState.pCallstackState();
 
-    final var nextLocs =
-        locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
-    final var nextStacks =
-        callstackCPA.getTransferRelation().getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
-
-    List<PORState> successors =
-        nextLocs.stream()
-            .flatMap(
-                nextLoc ->
-                    nextStacks.stream()
-                        .map(
-                            nextStack ->
-                                old.stepThread(
-                                    pid, (LocationState) nextLoc, (CallstackState) nextStack)))
-            .toList();
+    final Collection<? extends AbstractState> nextThreadSpecificStates =
+        threadSpecificTransferRelation.getAbstractSuccessorsForEdge(threadState.getWrappedState(), threadSpecificUnitPrecision, cfaEdge);
+    final List<PORState> successors = new ArrayList<>();
+    for (AbstractState nextThreadSpecificState : nextThreadSpecificStates) {
+      if (!(nextThreadSpecificState instanceof CompositeState nextWrappedState)) {
+        throw new CPATransferException("Thread-specific successor is not a ThreadState");
+      }
+      ThreadState nextThreadState = new ThreadState(nextWrappedState);
+      successors.add(old.stepThread(pid, nextThreadState));
+    }
 
     for (PORState porSuccessor : successors) {
       for (AbstractState wrappedSuccessor : wrappedSuccessors) {
@@ -644,13 +673,14 @@ public class PORTransferRelation implements TransferRelation {
         "", FileLocation.DUMMY, edge.getPredecessor(), edge.getSuccessor(), identity, true);
   }
 
-  PORState initial(AbstractState wrappedInitialState) {
+  PORState initial(AbstractState wrappedInitialState) throws InterruptedException {
     return addNewThreadNode(
         PORState.empty(wrappedInitialState, cfa, logger, random), false, "main", Optional.empty());
   }
 
   PORState addNewThread(
-      final PORState old, final String functionName, Optional<String> handleName) {
+      final PORState old, final String functionName, Optional<String> handleName)
+      throws InterruptedException {
     return addNewThreadNode(old, true, functionName, handleName);
   }
 
@@ -658,7 +688,7 @@ public class PORTransferRelation implements TransferRelation {
       final PORState old,
       boolean addToLivePids,
       final String functionName,
-      Optional<String> handleName) {
+      Optional<String> handleName) throws InterruptedException {
     CFANode functionCallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
@@ -666,14 +696,11 @@ public class PORTransferRelation implements TransferRelation {
     // Compute the PID for the new thread so we can get its cloned entry node
     int newPid = old.threads().size();
     CFANode clonedEntryNode = PorEdgeCloner.getClonedNode(functionCallNode, newPid, cfa);
-
-    CallstackState initialStack =
-        (CallstackState)
-            callstackCPA.getInitialState(
-                clonedEntryNode, StateSpacePartition.getDefaultPartition());
-    LocationState initialLoc =
-        locationCPA.getInitialState(clonedEntryNode, StateSpacePartition.getDefaultPartition());
-
-    return old.addNewThread(addToLivePids, handleName, initialLoc, initialStack);
+    AbstractState initialWrappedState = threadSpecificCPA.getInitialState(clonedEntryNode, StateSpacePartition.getDefaultPartition());
+    if (!(initialWrappedState instanceof CompositeState composite)) {
+      throw new IllegalStateException("Thread-specific CPA's initial state is not a CompositeState");
+    }
+    ThreadState initialThreadState = new ThreadState(composite);
+    return old.addNewThread(addToLivePids, handleName, initialThreadState);
   }
 }

@@ -96,7 +96,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   @SuppressWarnings("unused")
   private PORCPA(
       ConfigurableProgramAnalysis pCpa, Configuration pConfig, LogManager pLogger, CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     super(pCpa);
     pConfig.inject(this);
 

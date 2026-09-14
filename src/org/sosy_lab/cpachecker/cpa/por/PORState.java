@@ -36,17 +36,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
@@ -70,7 +66,7 @@ public class PORState extends AbstractSingleWrapperState
 
   private final LogManager logger;
 
-  private final ImmutableMap<Integer, PORThreadState> threads;
+  private final ImmutableMap<Integer, ThreadState> threads;
 
   /** Thread instances created so far along this path and not yet joined away. */
   private final ImmutableSet<Integer> livePids;
@@ -97,7 +93,7 @@ public class PORState extends AbstractSingleWrapperState
       AbstractState pWrappedState,
       CFA pCfa,
       LogManager pLogger,
-      ImmutableMap<Integer, PORThreadState> pThreads,
+      ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLivePids,
       ImmutableMap<String, Integer> pHandleHints,
       Random pRandom) {
@@ -123,7 +119,7 @@ public class PORState extends AbstractSingleWrapperState
         pRandom);
   }
 
-  public ImmutableMap<Integer, PORThreadState> threads() {
+  public ImmutableMap<Integer, ThreadState> threads() {
     return threads;
   }
 
@@ -164,13 +160,12 @@ public class PORState extends AbstractSingleWrapperState
   PORState addNewThread(
       boolean pAddToLivePids,
       Optional<String> pHandleQualifiedName,
-      LocationState pInitialLoc,
-      CallstackState pInitialStack) {
+      ThreadState pInitialThreadState) {
     final int newPid = threads.size();
-    final ImmutableMap<Integer, PORThreadState> newThreads =
-        ImmutableMap.<Integer, PORThreadState>builder()
+    final ImmutableMap<Integer, ThreadState> newThreads =
+        ImmutableMap.<Integer, ThreadState>builder()
             .putAll(threads)
-            .put(newPid, new PORThreadState(pInitialLoc, pInitialStack))
+            .put(newPid, pInitialThreadState)
             .buildKeepingLast();
     final ImmutableSet<Integer> newLivePids =
         pAddToLivePids
@@ -201,7 +196,7 @@ public class PORState extends AbstractSingleWrapperState
       return Optional.empty();
     }
 
-    final ImmutableMap<Integer, PORThreadState> newThreads =
+    final ImmutableMap<Integer, ThreadState> newThreads =
         threads.entrySet().stream()
             .filter(e -> e.getKey() != pPid)
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
@@ -213,8 +208,7 @@ public class PORState extends AbstractSingleWrapperState
 
   private boolean canJoin(int pPid) {
     var threadState = threads.get(pPid);
-    return threadState != null
-        && !threadState.pLocationState().getOutgoingEdges().iterator().hasNext();
+    return threadState != null && !threadState.getOutgoingEdges().iterator().hasNext();
   }
 
   /**
@@ -235,15 +229,15 @@ public class PORState extends AbstractSingleWrapperState
     return livePids.stream().anyMatch(this::canJoin);
   }
 
-  public PORState stepThread(int pPid, LocationState pNextLoc, CallstackState pNextStack) {
+  public PORState stepThread(int pPid, ThreadState pNextThreadState) {
     assert threads.containsKey(pPid) : "threads must contain pid to step " + pPid;
-    final ImmutableMap.Builder<Integer, PORThreadState> newThreads = ImmutableMap.builder();
-    for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
+    final ImmutableMap.Builder<Integer, ThreadState> newThreads = ImmutableMap.builder();
+    for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
       if (entry.getKey() != pPid) {
         newThreads.put(entry.getKey(), entry.getValue());
       }
     }
-    newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack));
+    newThreads.put(pPid, pNextThreadState);
     return new PORState(
         getWrappedState(),
         cfa,
@@ -252,34 +246,6 @@ public class PORState extends AbstractSingleWrapperState
         livePids,
         handleHints,
         random);
-  }
-
-  public PORState exitThread(int pPid, LocationStateFactory pLocationStateFactory) {
-    PORThreadState threadState = threads.get(pPid);
-    assert threadState != null : "threads must contain pid to exit " + pPid;
-    CFANode currentNode = threadState.pLocationState().getLocationNode();
-    // Resolve to original CFA node to find exit node in the original CFA
-    CFANode originalCurrentNode = PorEdgeCloner.getOriginalNode(currentNode);
-    String function = originalCurrentNode.getFunctionName();
-
-    CFANode originalExitNode =
-        cfa.nodes().stream()
-            .filter(
-                n ->
-                    n instanceof FunctionExitNode
-                        && function.equals(n.getFunctionName())
-                        && n.getNumLeavingEdges() == 0)
-            .findAny()
-            .orElseThrow();
-    // Get the cloned exit node for this thread
-    CFANode clonedExitNode = PorEdgeCloner.getClonedNode(originalExitNode, pPid, cfa);
-    LocationState exitLocationState = pLocationStateFactory.getState(clonedExitNode);
-
-    CFANode clonedFunctionHead =
-        PorEdgeCloner.getClonedNode(cfa.getFunctionHead(function), pPid, cfa);
-    CallstackState exitCallstackState = new CallstackState(null, function, clonedFunctionHead);
-
-    return stepThread(pPid, exitLocationState, exitCallstackState);
   }
 
   PORState withWrappedState(AbstractState pWrappedState) {
@@ -300,7 +266,7 @@ public class PORState extends AbstractSingleWrapperState
       throw new IllegalArgumentException("No thread with pid " + pid);
     }
 
-    CFANode locationNode = threadState.pLocationState().getLocationNode();
+    CFANode locationNode = threadState.getLocationNode();
     CFANode clonedNode = PorEdgeCloner.getClonedNode(locationNode, pid, cfa);
     var leavingEdges = clonedNode.getLeavingEdges();
     assert leavingEdges.size() == 1 : "Expected exactly one leaving edge for basic block stepping";
@@ -323,8 +289,8 @@ public class PORState extends AbstractSingleWrapperState
   @Override
   public Iterable<CFANode> getLocationNodes() {
     ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
-    for (PORThreadState threadState : threads.values()) {
-      for (CFANode node : threadState.pLocationState().getLocationNodes()) {
+    for (ThreadState threadState : threads.values()) {
+      for (CFANode node : threadState.getLocationNodes()) {
         nodes.add(node);
       }
     }
@@ -344,8 +310,8 @@ public class PORState extends AbstractSingleWrapperState
   @Override
   public Iterable<CFAEdge> getIncomingEdges() {
     ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
-    for (PORThreadState threadState : threads.values()) {
-      for (CFAEdge edge : threadState.pLocationState().getIncomingEdges()) {
+    for (ThreadState threadState : threads.values()) {
+      for (CFAEdge edge : threadState.getIncomingEdges()) {
         edges.add(edge);
       }
     }
@@ -355,30 +321,24 @@ public class PORState extends AbstractSingleWrapperState
   @Override
   public @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
     if (pChild instanceof PORState child) {
-      PORThreadState parentThreadState = null;
-      PORThreadState childThreadState = null;
-      for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
+      ThreadState parentThreadState = null;
+      ThreadState childThreadState = null;
+      for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
         int threadId = entry.getKey();
-        PORThreadState currentParentState = entry.getValue();
-        PORThreadState currentChildState = child.threads().get(threadId);
+        ThreadState currentParentState = entry.getValue();
+        ThreadState currentChildState = child.threads().get(threadId);
         if (currentChildState != null
-            && !currentParentState
-                .pLocationState()
-                .getLocationNode()
-                .equals(currentChildState.pLocationState().getLocationNode())) {
+            && !currentParentState.getLocationNode().equals(currentChildState.getLocationNode())) {
           if (parentThreadState != null) {
             // Multiple threads changed: collect edges from all changed threads
             ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
-            for (Entry<Integer, PORThreadState> entry2 : threads.entrySet()) {
+            for (Entry<Integer, ThreadState> entry2 : threads.entrySet()) {
               int tid = entry2.getKey();
-              PORThreadState pState = entry2.getValue();
-              PORThreadState cState = child.threads().get(tid);
+              ThreadState pState = entry2.getValue();
+              ThreadState cState = child.threads().get(tid);
               if (cState != null
-                  && !pState
-                      .pLocationState()
-                      .getLocationNode()
-                      .equals(cState.pLocationState().getLocationNode())) {
-                var edges = pState.pLocationState().getEdgesToChild(cState.pLocationState());
+                  && !pState.getLocationNode().equals(cState.getLocationNode())) {
+                var edges = pState.getEdgesToChild(cState);
                 if (edges != null) {
                   allEdges.addAll(edges);
                 }
@@ -395,12 +355,12 @@ public class PORState extends AbstractSingleWrapperState
         if (!threads.keySet().equals(child.threads().keySet())) {
           // Thread set changed (thread created/destroyed) but no location changed.
           // Find a thread that exists in parent whose location edges lead to the child.
-          for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
+          for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
             int threadId = entry.getKey();
-            PORThreadState pState = entry.getValue();
-            PORThreadState cState = child.threads().get(threadId);
+            ThreadState pState = entry.getValue();
+            ThreadState cState = child.threads().get(threadId);
             if (cState != null) {
-              var edges = pState.pLocationState().getEdgesToChild(cState.pLocationState());
+              var edges = pState.getEdgesToChild(cState);
               if (edges != null && !edges.isEmpty()) {
                 return edges;
               }
@@ -410,7 +370,7 @@ public class PORState extends AbstractSingleWrapperState
         return ImmutableList.of();
       }
 
-      return parentThreadState.pLocationState().getEdgesToChild(childThreadState.pLocationState());
+      return parentThreadState.getEdgesToChild(childThreadState);
     }
     return null;
   }
@@ -420,7 +380,7 @@ public class PORState extends AbstractSingleWrapperState
     return "["
         + threads.keySet().stream()
             .sorted()
-            .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode())
+            .map(e -> e + ": " + threads.get(e).getLocationNode())
             .collect(Collectors.joining(", "))
         + ((CompositeState) getWrappedState()).toDOTLabel()
         + "]";
@@ -451,9 +411,9 @@ public class PORState extends AbstractSingleWrapperState
     MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     edgePidMap.clear();
     ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
-    for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
+    for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
       int pid = entry.getKey();
-      PORThreadState threadState = entry.getValue();
+      ThreadState threadState = entry.getValue();
 
       // Atomic block filtering: if another thread holds the atomic block, this thread is blocked.
       Integer atomicHolder = mutexState != null ? mutexState.getAtomicHolder() : null;
@@ -461,7 +421,7 @@ public class PORState extends AbstractSingleWrapperState
         continue;
       }
 
-      CFANode locationNode = threadState.pLocationState().getLocationNode();
+      CFANode locationNode = threadState.getLocationNode();
       CFANode clonedNode = PorEdgeCloner.getClonedNode(locationNode, pid, cfa);
       for (CFAEdge cloned : clonedNode.getLeavingEdges()) {
 
@@ -542,7 +502,7 @@ public class PORState extends AbstractSingleWrapperState
             p ->
                 sb.append(p)
                     .append(":")
-                    .append(threads.get(p).pLocationState().getLocationNode())
+                    .append(threads.get(p).getLocationNode())
                     .append(" "));
     sb.append("} enabled=[");
     for (CFAEdge e : pAllOutgoingEdges) {

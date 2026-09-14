@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.por.PORState;
-import org.sosy_lab.cpachecker.cpa.por.PORThreadState;
+import org.sosy_lab.cpachecker.cpa.por.ThreadState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -247,8 +247,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // uniquely identify the thread that just moved to the successor of the edge.
     PORState porState = extractStateByType(pState, PORState.class);
     if (porState != null) {
-      for (Map.Entry<Integer, PORThreadState> entry : porState.threads().entrySet()) {
-        if (entry.getValue().pLocationState().getLocationNode().equals(pEdge.getSuccessor())) {
+      for (Map.Entry<Integer, ThreadState> entry : porState.threads().entrySet()) {
+        if (entry.getValue().getLocationNode().equals(pEdge.getSuccessor())) {
           return getPorThreadName(porState, entry.getKey());
         }
       }
