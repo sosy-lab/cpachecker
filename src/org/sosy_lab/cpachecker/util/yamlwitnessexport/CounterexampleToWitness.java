@@ -476,7 +476,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         && functionName.getDeclaration().getOrigName().equals(pFunctionName);
   }
 
-  private static WaypointRecord defaultTargetWaypoint(
+  private static WaypointRecord getStatementBasedTargetWaypoint(
       CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
     // We need to process the file location to avoid exporting FileLocation.Dummy contents which are
     // generated when the edge contains internal variables of CPAchecker, for example when verifying
@@ -516,59 +516,65 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    *     violation
    */
   private WaypointRecord targetWaypoint(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+    // Warning: the Specification instance contains only information about what was given as input
+    // to CPAchecker, not about what was violated! So a witness export depending on the
+    // Specification instance would be wrong if different specifications were combined in a call to
+    // CPAchecker!
     Specification specification = getSpecification();
     Set<Property> properties = specification.getProperties();
-    // Make sure to never return the wrong waypoint for overflows
-    checkArgument(
-        properties.size() < 2 || !properties.contains(CommonVerificationProperty.OVERFLOW));
 
-    // If there are ever multiple properties in this set that need to be treated distinctly in
-    // how we return their target waypoints; retrieve the actually violated (sub-)property from the
-    // analysis that reported false and only resolve the target waypoint for that case!
-    if (properties.size() != 1) {
-      return defaultTargetWaypoint(pEdge, pAstCfaRelation);
+    // Definition for target waypoints from the witness user-guide v2.2
+    // (https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/2.2/user-guide/Witness-Format.md?ref_type=tags#target):
+    // "The location of the target waypoint must point to the first character of to the
+    // (statement or full expression) F, whose evaluation directly contains a
+    // specification violation P, i.e., there is no evaluation of any other
+    // (statement or full expression) E, where E contains the specification violation P
+    // and E does not contain F."
+
+    // Example (valid-free with a violation in free(ptr)): return /* dummy */ (foo(), free(ptr), 0);
+    // Here we target the first '(' from the left, as C11 §6.4.9 and §5.1.1.2 tell us that
+    // comments do not belong to statements and expressions, as they are removed.
+    // 'return ...;' is the statement (i.e. the target location of the statement would be 'r',
+    // if it were a target location), while '(foo(), free(ptr), 0)' is the
+    // expression (C11 §6.8.6.4). C11 §6.8 says that "A full expression is an expression that
+    // is not part of another expression or of a declarator. Each of the following is a
+    // full expression:  ... the (optional) expression in a return statement.", so
+    // '(foo(), free(ptr), 0)' is a full expression. C11 §6.5.1 confirms that the entire outer
+    // brackets form a full expression. But what about the comma operator? It is defined in
+    // C11 §6.5.17 such that "there is a sequence point between its evaluation and that of the
+    // right operand.", but still, 'free(ptr)' can't be a full expression according to §6.8. Hence,
+    // the violating expressions previous full expression starts at the first '(' from the left.
+
+    // Currently, only overflows are resolved to full expressions
+    final boolean resolveFullExpressionBasedWaypoint =
+        properties.size() == 1
+            && properties.iterator().next()
+                instanceof CommonVerificationProperty verificationProperty
+            && verificationProperty == CommonVerificationProperty.OVERFLOW;
+
+    // TODO: this needs to be checked and potentially reworked;
+    //  see https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1731
+    if (resolveFullExpressionBasedWaypoint) {
+      // Only no-overflows for now. The target waypoint needs to point to the full expression which
+      // caused the overflow.
+      return getFullExpressionLocation(pEdge, pAstCfaRelation);
+    } else {
+      // Return statement location as target.
+      // This is sufficient for most properties, e.g. reachability properties.
+
+      // Make sure to never return the wrong waypoint for overflows
+      checkArgument(
+          properties.size() < 2 || !properties.contains(CommonVerificationProperty.OVERFLOW));
+
+      return getStatementBasedTargetWaypoint(pEdge, pAstCfaRelation);
     }
-
-    return switch (properties.iterator().next()) {
-      case CommonVerificationProperty verificationProperty
-          when verificationProperty == CommonVerificationProperty.OVERFLOW ->
-          // no-overflow violations need to satisfy this rule:
-          // "The target points to the first character of the statement or full expression whose
-          //    evaluation is sequenced directly before the overflow violation occurs."
-          getFullExpressionLocation(pEdge, pAstCfaRelation);
-
-      // Return statement location as target. This is sufficient for most properties.
-      // In regard to valid-free: the standard says that
-      // "More precisely, the location points at the first character of the statement or
-      //  full expression whose evaluation is sequenced directly before the violation occurs,
-      //  i.e., there is no other evaluation sequenced before the violation and the sequence
-      //  point associated with the location.
-      //  This also implies that it can only point to a function call if it calls a function
-      //  of the C standard library that violates the property or if the function call itself
-      //  is the property violation."
-      // meaning that due to free causing the violation, and it being a C standard function, we
-      // treat it like any other violation.
-      // Example (free(ptr) fails for valid-free) : return /* dummy */ (foo(), free(ptr), 0);
-      // Here we target the first '(' from the left, as C11 §6.4.9 and §5.1.1.2 tell us that
-      // comments do not belong to statements and expressions, as they are removed.
-      // 'return ...;' is the statement (i.e. the target location of the statement would be 'r',
-      // if it were a target location), while '(foo(), free(ptr), 0)' is the
-      // expression (C11 §6.8.6.4). C11 §6.8 says that "A full expression is an expression that
-      // is not part of another expression or of a declarator. Each of the following is a
-      // full expression:  ... the (optional) expression in a return statement.", so
-      // '(foo(), free(ptr), 0)' is a full expression. C11 §6.5.1 confirms that the entire outer
-      // brackets form a full expression. But what about the comma operator? It is defined in
-      // C11 §6.5.17 such that "there is a sequence point between its evaluation and that of the
-      // right operand.", but still, 'free(ptr)' can't be a full expression according to §6.8.
-      // Hence, the full expression previous full expression starts at the first '(' from the left.
-      default -> defaultTargetWaypoint(pEdge, pAstCfaRelation);
-    };
   }
 
   /**
-   * Returns the {@link WaypointRecord} that points to the full expression of this edge that caused
-   * the property violation, e.g. in no-overflow.
+   * Returns the {@link WaypointRecord} that points to the full expression of this edge, e.g.
+   * because the property violation was caused by it in no-overflow.
    */
+  // TODO: this is not really correct. It should be the last full expression before the violation.
   private WaypointRecord getFullExpressionLocation(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
     // If we, for example, want to return the target location for a no-overflow violation:
     // If we did not find the closest full expression to the edge this is a bug and should be
