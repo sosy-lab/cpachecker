@@ -80,6 +80,8 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
     ParsedInvariantSet contents = transformer.parseInvariantSets(pEntries);
 
     if (!contents.functionContracts().isEmpty()) {
+      // Currently function contracts are unsupported, see issue for the state of this:
+      // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1732
       logger.logf(
           Level.WARNING,
           "Ignoring %d function contract(s) of the correctness witness, "
