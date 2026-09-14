@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -21,15 +20,14 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignmentType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
@@ -468,12 +466,10 @@ public class SequentializationFieldsTest {
   private SequentializationFields getSequentializationFields(
       Path pInputFilePath, MPOROptions pOptions) throws Exception {
 
-    // create cfa for test program pInputFilePath
+    CFA inputCfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
     Configuration config = TestUtils.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
-    CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
     SequentializationUtils utils =
         SequentializationUtils.of(inputCfa, config, logger, shutdownNotifier);
     return new SequentializationFields(pOptions, inputCfa, utils);

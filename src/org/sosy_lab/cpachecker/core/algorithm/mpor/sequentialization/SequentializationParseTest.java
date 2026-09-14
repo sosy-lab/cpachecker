@@ -21,9 +21,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -372,16 +370,6 @@ public class SequentializationParseTest {
     testProgram(path, options);
   }
 
-  private CFA buildCfaTestInstance(
-      Path pInputFilePath, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws Exception {
-
-    // create cfa for test program pInputFilePath. always use preprocessor, we work with .c files
-    CFACreator cfaCreator =
-        MPORUtil.buildTestCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
-    return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
-  }
-
   private String buildTestOutputProgram(
       MPOROptions pOptions,
       Path pInputFilePath,
@@ -390,7 +378,7 @@ public class SequentializationParseTest {
       LogManager pLogger)
       throws Exception {
 
-    CFA cfa = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
+    CFA cfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
     SequentializationUtils utils =
         SequentializationUtils.of(cfa, pConfiguration, pLogger, pShutdownNotifier);
     return Sequentialization.tryBuildProgramString(pOptions, cfa, utils);
