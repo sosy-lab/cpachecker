@@ -65,6 +65,9 @@ TIMELIMIT = "timelimit"
 SOFTTIMELIMIT = "softtimelimit"
 CORELIMIT = "cpuCores"
 
+RESULT_FILES_COUNT_ATTRIBUTE = "resultFilesCount"
+RESULT_FILE_NAMES_ATTRIBUTE = "resultFileNames"
+
 RESULT_FILE_LOG = "output.log"
 RESULT_FILE_STDERR = "stderr"
 RESULT_FILE_RUN_INFO = "runInformation.txt"
@@ -1352,19 +1355,21 @@ def _handle_result(
             resultZipFile.extractall(output_path, result_files)
 
         # Retrieve the expected count from the run information
-        if "resultFilesCount" in run_info_values:
-            expected_count = int(run_info_values["resultFilesCount"])
+        if RESULT_FILES_COUNT_ATTRIBUTE in run_info_values:
+            expected_count = int(run_info_values[RESULT_FILES_COUNT_ATTRIBUTE])
             actual_files = {f for f in result_files if not f.endswith("/")}
             actual_count = len(actual_files)
 
             # Adjust expected count to exclude special files that are handled separately
-            if "resultFileNames" in run_info_values:
-                expected_files = set(run_info_values["resultFileNames"].split(","))
+            if RESULT_FILE_NAMES_ATTRIBUTE in run_info_values:
+                expected_files = set(
+                    run_info_values[RESULT_FILE_NAMES_ATTRIBUTE].split(",")
+                )
                 expected_files -= SPECIAL_RESULT_FILES
                 expected_count = len(expected_files)
 
             if expected_count != actual_count:
-                if "resultFileNames" in run_info_values:
+                if RESULT_FILE_NAMES_ATTRIBUTE in run_info_values:
                     missing_files = expected_files - actual_files
                     logging.warning(
                         "Number of result files received (%d) does not match the expected count (%d) for run %s. "
@@ -1390,7 +1395,8 @@ def _handle_result(
                 )
         else:
             logging.debug(
-                "'resultFilesCount' not found in run info for run %s.",
+                "'%s' not found in run info for run %s.",
+                RESULT_FILES_COUNT_ATTRIBUTE,
                 run_identifier,
             )
 

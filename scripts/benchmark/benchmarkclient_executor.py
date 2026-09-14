@@ -27,6 +27,8 @@ STOPPED_BY_INTERRUPT = False
 
 _JustReprocessResults = False
 
+VCLOUD_RESULT_FILES_COUNT = "vcloud-resultFilesCount"
+VCLOUD_RESULT_FILE_NAMES = "vcloud-resultFileNames"
 
 def set_vcloud_jar_path(p):
     global vcloud_jar
@@ -382,24 +384,24 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                 actual_count = len(actual_result_files)
 
                 # Extract the expected count from the run information
-                if "vcloud-resultFilesCount" in values:
-                    expected_count = int(values["vcloud-resultFilesCount"])
+                if VCLOUD_RESULT_FILES_COUNT in values:
+                    expected_count = int(values[VCLOUD_RESULT_FILES_COUNT])
 
                     # "cloudBenchmarkOutput-<timestamp>" is benchcloud's internal
                     # stdout/stderr capture file for the whole submission. The
                     # worker deliberately keeps it out of the result zip
                     # (see FinishingRunState.java in benchcloud), so it must be
                     # excluded here too or it always shows up as "missing".
-                    if "vcloud-resultFileNames" in values:
+                    if VCLOUD_RESULT_FILE_NAMES in values:
                         expected_files = {
                             f
-                            for f in values["vcloud-resultFileNames"].split(",")
+                            for f in values[VCLOUD_RESULT_FILE_NAMES].split(",")
                             if not f.startswith("cloudBenchmarkOutput-")
                         }
                         expected_count = len(expected_files)
 
                     if expected_count != actual_count:
-                        if "vcloud-resultFileNames" in values:
+                        if VCLOUD_RESULT_FILE_NAMES in values:
                             actual_files = actual_result_files
                             missing_files = expected_files - actual_files
                             logging.warning(
@@ -426,7 +428,8 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                         )
                 else:
                     logging.debug(
-                        "'vcloud-resultFilesCount' not found in run values for run %s.",
+                        "'%s' not found in run values for run %s.",
+                        VCLOUD_RESULT_FILES_COUNT,
                         run.identifier,
                     )
 
