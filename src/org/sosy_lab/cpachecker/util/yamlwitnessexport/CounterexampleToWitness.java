@@ -57,8 +57,8 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.por.PORState;
-import org.sosy_lab.cpachecker.cpa.por.ThreadState;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentState;
+import org.sosy_lab.cpachecker.cpa.concurrent.ThreadState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -212,14 +212,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
-    // PORState. The newly created thread is the one whose PID is present in the current state but
+    // ConcurrentState. The newly created thread is the one whose PID is present in the current state but
     // not in the previous one.
-    PORState porState = extractStateByType(pState, PORState.class);
-    PORState previousPorState = extractStateByType(pPreviousState, PORState.class);
-    if (porState != null && previousPorState != null) {
-      for (Integer pid : porState.threads().keySet()) {
-        if (!previousPorState.threads().containsKey(pid)) {
-          return getPorThreadName(porState, pid);
+    ConcurrentState concurrentState = extractStateByType(pState, ConcurrentState.class);
+    ConcurrentState previousConcurrentState = extractStateByType(pPreviousState, ConcurrentState.class);
+    if (concurrentState != null && previousConcurrentState != null) {
+      for (Integer pid : concurrentState.threads().keySet()) {
+        if (!previousConcurrentState.threads().containsKey(pid)) {
+          return getPorThreadName(concurrentState, pid);
         }
       }
     }
@@ -243,13 +243,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
-    // PORState. Since it clones the CFA per thread, the location nodes are thread-specific and thus
+    // ConcurrentState. Since it clones the CFA per thread, the location nodes are thread-specific and thus
     // uniquely identify the thread that just moved to the successor of the edge.
-    PORState porState = extractStateByType(pState, PORState.class);
-    if (porState != null) {
-      for (Map.Entry<Integer, ThreadState> entry : porState.threads().entrySet()) {
+    ConcurrentState concurrentState = extractStateByType(pState, ConcurrentState.class);
+    if (concurrentState != null) {
+      for (Map.Entry<Integer, ThreadState> entry : concurrentState.threads().entrySet()) {
         if (entry.getValue().getLocationNode().equals(pEdge.getSuccessor())) {
-          return getPorThreadName(porState, entry.getKey());
+          return getPorThreadName(concurrentState, entry.getKey());
         }
       }
     }
@@ -265,7 +265,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * name to recover here. This still yields one stable, unique name per thread, which is all the
    * caller's name-to-witness-id map (see pThreadNameToId) needs.
    */
-  private static Optional<String> getPorThreadName(PORState pState, int pPid) {
+  private static Optional<String> getPorThreadName(ConcurrentState pState, int pPid) {
     if (pPid == 0) {
       return Optional.of("main");
     }

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static org.junit.Assume.assumeTrue;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
 
 /**
  * Integration tests for the POR CPA checking the <b>no-overflow</b> property, as opposed to {@link
- * PORCPATest}, which checks reachability.
+ * ConcurrentCPATest}, which checks reachability.
  *
  * <p>This is the only automated coverage of POR + {@link
  * org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA}, and it exists because that combination hid two
@@ -46,12 +46,12 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
  *       handle-equality assume at a join). Feeding an already-<i>violating</i> state through one of
  *       them returned an empty collection — OverflowCPA reports a violation precisely by producing
  *       no successors — which POR then read as "infeasible branch" and dropped the violation. See
- *       {@code PORTransferRelation#applyBookkeepingEdge}. Guarded by {@code overflow_unsafe.c},
+ *       {@code ConcurrentTransferRelation#applyBookkeepingEdge}. Guarded by {@code overflow_unsafe.c},
  *       whose second {@code pthread_create} is what destroyed the flagged state.
  * </ul>
  */
 @RunWith(Parameterized.class)
-public class PORCPAOverflowTest {
+public class ConcurrentCPAOverflowTest {
 
   private static final String TEST_DIR = "test/programs/por/";
 

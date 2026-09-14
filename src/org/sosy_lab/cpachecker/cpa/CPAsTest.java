@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
-import org.sosy_lab.cpachecker.cpa.por.PORCPA;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentCPA;
 import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
@@ -114,7 +114,7 @@ public class CPAsTest {
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
-    cpas.remove(PORCPA.class); // wraps CompositeCPA, which itself needs its own children
+    cpas.remove(ConcurrentCPA.class); // wraps CompositeCPA, which itself needs its own children
 
     // stop() intentionally does not check coverage against the reached set: it only reports
     // states a prior merge() marked absorbed, since the algorithm merges before checking stop.

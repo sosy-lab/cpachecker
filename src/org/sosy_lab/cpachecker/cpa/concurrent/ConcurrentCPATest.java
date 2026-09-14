@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
 
 /** Integration tests for the POR CPA using the {@code por.properties} configuration. */
 @RunWith(Parameterized.class)
-public class PORCPATest {
+public class ConcurrentCPATest {
 
   private static final String TEST_DIR = "test/programs/por/";
 
@@ -117,7 +117,7 @@ public class PORCPATest {
    * variable no predicate/tracked-value refers to yet (that is the entire point of the reduction);
    * {@code por-value-cegar-aa} then correctly makes the wrapped value analysis take both directions
    * of the later assume instead of trusting a concrete value the reduction never promised to order
-   * (see PORTransferRelation's forget/remember around ignorable uses). For the two- and
+   * (see ConcurrentTransferRelation's forget/remember around ignorable uses). For the two- and
    * three-writer siblings of this test, one extra CEGAR round (which tracks the racy variable once
    * its assume is found spuriously infeasible, letting the reduction stop ignoring it) is enough to
    * construct the racing schedule and confirm the violation outright. These particular files do not

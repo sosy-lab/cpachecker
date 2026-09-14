@@ -72,9 +72,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
-import org.sosy_lab.cpachecker.cpa.por.GlobalAccessRenamer;
-import org.sosy_lab.cpachecker.cpa.por.PorEdgeCloner;
-import org.sosy_lab.cpachecker.cpa.por.ThreadFunctions;
+import org.sosy_lab.cpachecker.cpa.concurrent.GlobalAccessRenamer;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentEdgeCloner;
+import org.sosy_lab.cpachecker.cpa.concurrent.ThreadFunctions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -533,7 +533,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
    * value, in the instance's own root context, and returns the extended context.
    *
    * <p>A {@code __thread} variable is privatized to {@code T{instance}_x} exactly like a local (see
-   * {@code org.sosy_lab.cpachecker.cpa.por.PorAstCloner}), which is what stops it from being read
+   * {@code org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentAstCloner}), which is what stops it from being read
    * as shared state — but a spawned instance explores from its start routine's entry and so never
    * folds in the file-scope declaration edge that carries the initializer; only the main instance
    * does. Without this the copy would be an unconstrained symbol, i.e. an arbitrary value, and an
@@ -652,7 +652,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       try {
         rewritten =
             (CAssumeEdge)
-                PorEdgeCloner.cloneSingleEdge(assumeEdge, pState.getInstanceId(), renamer);
+                ConcurrentEdgeCloner.cloneSingleEdge(assumeEdge, pState.getInstanceId(), renamer);
       } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
         throw new UnsupportedCodeException(e.getMessage(), pEdge);
       }
@@ -788,7 +788,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     PathFormula edgeFormula;
     try {
-      CFAEdge rewritten = PorEdgeCloner.cloneSingleEdge(pEdge, pState.getInstanceId(), pRenamer);
+      CFAEdge rewritten = ConcurrentEdgeCloner.cloneSingleEdge(pEdge, pState.getInstanceId(), pRenamer);
       edgeFormula =
           pathFormulaManager.makeAnd(
               pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
@@ -998,7 +998,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       try {
         rewritten =
             (CAssumeEdge)
-                PorEdgeCloner.cloneSingleEdge(successEdge, pState.getInstanceId(), renamer);
+                ConcurrentEdgeCloner.cloneSingleEdge(successEdge, pState.getInstanceId(), renamer);
       } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
         throw new UnsupportedCodeException(e.getMessage(), pEdge);
       }
@@ -1119,7 +1119,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     CAssumeEdge rewrittenFirst;
     try {
       rewrittenFirst =
-          (CAssumeEdge) PorEdgeCloner.cloneSingleEdge(pFirst, pState.getInstanceId(), renamer);
+          (CAssumeEdge) ConcurrentEdgeCloner.cloneSingleEdge(pFirst, pState.getInstanceId(), renamer);
     } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
       throw new UnsupportedCodeException(e.getMessage(), pFirst);
     }

@@ -6,20 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-class AbstractionUnawarePORPrecision extends PORPrecision {
+class SimpleConcurrentPrecision extends ConcurrentPrecision {
 
-  AbstractionUnawarePORPrecision(Precision pWrappedPrecision) {
+  SimpleConcurrentPrecision(Precision pWrappedPrecision) {
     super(pWrappedPrecision);
   }
 
   @Override
-  protected PORPrecision withWrappedPrecision(Precision newWrappedPrecision) {
-    return new AbstractionUnawarePORPrecision(newWrappedPrecision);
+  protected ConcurrentPrecision withWrappedPrecision(Precision newWrappedPrecision) {
+    return new SimpleConcurrentPrecision(newWrappedPrecision);
   }
 
   @Override

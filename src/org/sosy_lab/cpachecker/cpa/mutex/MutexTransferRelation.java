@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Transfer relation for the MutexCPA. The {@link #getAbstractSuccessorsForEdge} method passes the
  * state through unchanged for all edges. The actual mutex state updates happen in {@link
- * #strengthen}, where the PORState is available to determine which thread (PID) is executing.
+ * #strengthen}, where the ConcurrentState is available to determine which thread (PID) is executing.
  */
 class MutexTransferRelation extends SingleEdgeTransferRelation {
 

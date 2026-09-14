@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
  * per-thread initialization at each {@code pthread_create} (see {@link
  * ThreadFunctions#threadLocalGlobals}).
  */
-class PorAstCloner {
+class ConcurrentAstCloner {
 
   private final int threadId;
   private final @Nullable GlobalAccessRenamer globalRenamer;
@@ -75,12 +75,12 @@ class PorAstCloner {
   /** Whether the AST currently being cloned is on the left-hand side of an assignment/write. */
   private boolean isLhs = false;
 
-  PorAstCloner(int pThreadId) {
+  ConcurrentAstCloner(int pThreadId) {
     this.threadId = pThreadId;
     this.globalRenamer = null;
   }
 
-  PorAstCloner(int pThreadId, GlobalAccessRenamer pGlobalRenamer) {
+  ConcurrentAstCloner(int pThreadId, GlobalAccessRenamer pGlobalRenamer) {
     this.threadId = pThreadId;
     this.globalRenamer = checkNotNull(pGlobalRenamer);
   }
@@ -370,7 +370,7 @@ class PorAstCloner {
     public CExpression visit(CUnaryExpression exp) {
       if (globalRenamer != null && exp.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
         CExpression replacement =
-            globalRenamer.replaceAddressOf(exp, PorAstCloner.this::cloneRvalue);
+            globalRenamer.replaceAddressOf(exp, ConcurrentAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }
@@ -387,7 +387,7 @@ class PorAstCloner {
       boolean accessIsWrite = isLhs;
       if (globalRenamer != null) {
         CIdExpression replacement =
-            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, PorAstCloner.this::cloneRvalue);
+            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }
@@ -405,7 +405,7 @@ class PorAstCloner {
       boolean accessIsWrite = isLhs;
       if (globalRenamer != null) {
         CIdExpression replacement =
-            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, PorAstCloner.this::cloneRvalue);
+            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }
@@ -440,7 +440,7 @@ class PorAstCloner {
       boolean accessIsWrite = isLhs;
       if (globalRenamer != null) {
         CIdExpression replacement =
-            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, PorAstCloner.this::cloneRvalue);
+            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }

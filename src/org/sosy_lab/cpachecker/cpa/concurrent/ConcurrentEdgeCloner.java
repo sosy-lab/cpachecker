@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,15 +34,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 /**
- * Edge cloner for POR. Most methods delegate to {@link PorCfaCloner}, which clones the entire CFA
+ * Edge cloner for POR. Most methods delegate to {@link ConcurrentCfaCloner}, which clones the entire CFA
  * (nodes and edges) per thread ID. {@link #cloneSingleEdge} instead rebuilds one edge in isolation,
  * keeping its original endpoint nodes and optionally renaming every global-variable access to a
  * fresh name via a {@link GlobalAccessRenamer} ("concurrent SSA"); the result is not wired into the
  * CFA.
  */
-public final class PorEdgeCloner {
+public final class ConcurrentEdgeCloner {
 
-  private PorEdgeCloner() {}
+  private ConcurrentEdgeCloner() {}
 
   /**
    * Returns the cloned edge for the given original CFA edge and thread ID. The first call for a
@@ -50,7 +50,7 @@ public final class PorEdgeCloner {
    * as-is.
    */
   static CFAEdge clone(final CFAEdge pCFAEdge, final int pid, final CFA pCfa) {
-    PorCfaCloner cfaCloner = PorCfaCloner.getOrCreate(pid, pCfa);
+    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(pid, pCfa);
     return cfaCloner.getClonedEdge(pCFAEdge);
   }
 
@@ -59,7 +59,7 @@ public final class PorEdgeCloner {
    * node is already a cloned node, it is returned as-is.
    */
   static CFANode getClonedNode(final CFANode pNode, final int pid, final CFA pCfa) {
-    PorCfaCloner cfaCloner = PorCfaCloner.getOrCreate(pid, pCfa);
+    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(pid, pCfa);
     return cfaCloner.getClonedNode(pNode);
   }
 
@@ -68,7 +68,7 @@ public final class PorEdgeCloner {
    * is not a cloned node, it is returned as-is.
    */
   static CFANode getOriginalNode(final CFANode pNode) {
-    return PorCfaCloner.getOriginalNode(pNode);
+    return ConcurrentCfaCloner.getOriginalNode(pNode);
   }
 
   /**
@@ -76,7 +76,7 @@ public final class PorEdgeCloner {
    * POR node.
    */
   static OptionalInt getThreadIdForNode(final CFANode pNode) {
-    return PorCfaCloner.getThreadIdForNode(pNode);
+    return ConcurrentCfaCloner.getThreadIdForNode(pNode);
   }
 
   /**
@@ -84,7 +84,7 @@ public final class PorEdgeCloner {
    * is not a cloned edge, it is returned as-is.
    */
   static CFAEdge getOriginalEdge(final CFAEdge pEdge) {
-    return PorCfaCloner.getOriginalEdge(pEdge);
+    return ConcurrentCfaCloner.getOriginalEdge(pEdge);
   }
 
   /**
@@ -105,7 +105,7 @@ public final class PorEdgeCloner {
       return pEdge;
     }
 
-    PorAstCloner renamerCloner = new PorAstCloner(pThreadId, pRenamer);
+    ConcurrentAstCloner renamerCloner = new ConcurrentAstCloner(pThreadId, pRenamer);
 
     if (pEdge instanceof CAssumeEdge cEdge) {
       return cloneSingleAssumeEdge(cEdge, renamerCloner);
@@ -128,7 +128,7 @@ public final class PorEdgeCloner {
     throw new AssertionError("unhandled edge " + pEdge + " of " + pEdge.getClass());
   }
 
-  private static CFAEdge cloneSingleAssumeEdge(CAssumeEdge pEdge, PorAstCloner pCloner) {
+  private static CFAEdge cloneSingleAssumeEdge(CAssumeEdge pEdge, ConcurrentAstCloner pCloner) {
     return new CAssumeEdge(
         pEdge.getRawStatement(),
         pEdge.getFileLocation(),
@@ -141,7 +141,7 @@ public final class PorEdgeCloner {
   }
 
   private static CFAEdge cloneSingleSummaryStatementEdge(
-      CFunctionSummaryStatementEdge pEdge, PorAstCloner pCloner) {
+      CFunctionSummaryStatementEdge pEdge, ConcurrentAstCloner pCloner) {
     return new CFunctionSummaryStatementEdge(
         pEdge.getRawStatement(),
         pCloner.cloneAst(pEdge.getStatement()),
@@ -152,7 +152,7 @@ public final class PorEdgeCloner {
         pEdge.getFunctionName());
   }
 
-  private static CFAEdge cloneSingleStatementEdge(CStatementEdge pEdge, PorAstCloner pCloner) {
+  private static CFAEdge cloneSingleStatementEdge(CStatementEdge pEdge, ConcurrentAstCloner pCloner) {
     return new CStatementEdge(
         pEdge.getRawStatement(),
         pCloner.cloneAst(pEdge.getStatement()),
@@ -161,7 +161,7 @@ public final class PorEdgeCloner {
         pEdge.getSuccessor());
   }
 
-  private static CFAEdge cloneSingleDeclarationEdge(CDeclarationEdge pEdge, PorAstCloner pCloner) {
+  private static CFAEdge cloneSingleDeclarationEdge(CDeclarationEdge pEdge, ConcurrentAstCloner pCloner) {
     return new CDeclarationEdge(
         pEdge.getRawStatement(),
         pEdge.getFileLocation(),
@@ -171,7 +171,7 @@ public final class PorEdgeCloner {
   }
 
   private static CFAEdge cloneSingleReturnStatementEdge(
-      CReturnStatementEdge pEdge, PorAstCloner pCloner) {
+      CReturnStatementEdge pEdge, ConcurrentAstCloner pCloner) {
     CFANode succ = pEdge.getSuccessor();
     if (!(succ instanceof FunctionExitNode exitNode)) {
       throw new AssertionError("Expected FunctionExitNode successor: " + succ);
@@ -191,12 +191,12 @@ public final class PorEdgeCloner {
    * fresh, renamer-less cloner.
    */
   private static CFAEdge cloneSingleFunctionCallEdge(
-      CFunctionCallEdge pEdge, int pThreadId, PorAstCloner pRenamerCloner) {
+      CFunctionCallEdge pEdge, int pThreadId, ConcurrentAstCloner pRenamerCloner) {
     CFANode succ = pEdge.getSuccessor();
     if (!(succ instanceof CFunctionEntryNode entryNode)) {
       throw new AssertionError("Expected CFunctionEntryNode successor: " + succ);
     }
-    PorAstCloner plainCloner = new PorAstCloner(pThreadId);
+    ConcurrentAstCloner plainCloner = new ConcurrentAstCloner(pThreadId);
     CFunctionCall clonedCall =
         cloneFunctionCallStatement(pEdge.getFunctionCall(), pRenamerCloner, plainCloner);
 
@@ -228,7 +228,7 @@ public final class PorEdgeCloner {
    * path-formula converter and never wired into the CFA.
    */
   private static CFunctionEntryNode cloneEntryForFormulas(
-      CFunctionEntryNode pEntry, PorAstCloner pCloner) {
+      CFunctionEntryNode pEntry, ConcurrentAstCloner pCloner) {
     CFunctionDeclaration clonedDeclaration = pCloner.cloneAst(pEntry.getFunctionDefinition());
     Optional<CVariableDeclaration> clonedReturnVariable =
         pEntry.getReturnVariable().map(pCloner::cloneAstLeftSide);
@@ -243,12 +243,12 @@ public final class PorEdgeCloner {
    * plain thread-ID renaming.
    */
   private static CFAEdge cloneSingleFunctionReturnEdge(
-      CFunctionReturnEdge pEdge, int pThreadId, PorAstCloner pRenamerCloner) {
+      CFunctionReturnEdge pEdge, int pThreadId, ConcurrentAstCloner pRenamerCloner) {
     CFANode pred = pEdge.getPredecessor();
     if (!(pred instanceof FunctionExitNode exitNode)) {
       throw new AssertionError("Expected FunctionExitNode predecessor: " + pred);
     }
-    PorAstCloner plainCloner = new PorAstCloner(pThreadId);
+    ConcurrentAstCloner plainCloner = new ConcurrentAstCloner(pThreadId);
     CFunctionSummaryEdge origSummary = pEdge.getSummaryEdge();
     CFunctionCall clonedCall =
         cloneFunctionCallStatement(origSummary.getExpression(), plainCloner, pRenamerCloner);
@@ -272,7 +272,7 @@ public final class PorEdgeCloner {
    * arguments and the assignment left-hand side are renamed via {@code pRenamerCloner}.
    */
   private static CFAEdge cloneSingleFunctionSummaryEdge(
-      CFunctionSummaryEdge pEdge, PorAstCloner pRenamerCloner) {
+      CFunctionSummaryEdge pEdge, ConcurrentAstCloner pRenamerCloner) {
     CFunctionCall clonedCall =
         cloneFunctionCallStatement(pEdge.getExpression(), pRenamerCloner, pRenamerCloner);
     return new CFunctionSummaryEdge(
@@ -290,7 +290,7 @@ public final class PorEdgeCloner {
    * for a possible assignment left-hand side (a write).
    */
   private static CFunctionCall cloneFunctionCallStatement(
-      CFunctionCall pCall, PorAstCloner pArgsCloner, PorAstCloner pLhsCloner) {
+      CFunctionCall pCall, ConcurrentAstCloner pArgsCloner, ConcurrentAstCloner pLhsCloner) {
     CFunctionCallExpression clonedExpr =
         pArgsCloner.cloneAstRightSide(pCall.getFunctionCallExpression());
     if (pCall instanceof CFunctionCallAssignmentStatement assignment) {

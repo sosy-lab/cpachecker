@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -68,12 +68,14 @@ import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class PORTransferRelation implements TransferRelation {
+public class ConcurrentTransferRelation implements TransferRelation {
   private final TransferRelation wrappedTransferRelation;
   private final ConfigurableProgramAnalysis threadSpecificCPA;
   private final TransferRelation threadSpecificTransferRelation;
 
   private final CFA cfa;
+
+  private final PartialOrderReductionStrategy por;
 
   private final LogManager logger;
 
@@ -99,10 +101,11 @@ public class PORTransferRelation implements TransferRelation {
   private final EdgeDefUseData.Extractor defUseExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
-  public PORTransferRelation(
+  public ConcurrentTransferRelation(
       ConfigurableProgramAnalysis wrappedCpa,
       Configuration pConfig,
       CFA pCfa,
+      PartialOrderReductionStrategy pPor,
       boolean pAggregateBasicBlocks,
       LogManager pLogger,
       Random pRandom)
@@ -117,6 +120,7 @@ public class PORTransferRelation implements TransferRelation {
             StateSpacePartition.getDefaultPartition());
 
     cfa = pCfa;
+    por = pPor;
     logger = pLogger;
     threadLocalGlobals = ThreadFunctions.threadLocalGlobals(pCfa);
 
@@ -130,14 +134,14 @@ public class PORTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState state, Precision precision) throws CPATransferException, InterruptedException {
-    if (!(state instanceof PORState porState)) {
-      throw new CPATransferException("State is not a PORState.");
+    if (!(state instanceof ConcurrentState pConcurrentState)) {
+      throw new CPATransferException("State is not a ConcurrentState.");
     }
-    if (!(precision instanceof PORPrecision porPrecision)) {
-      throw new CPATransferException("Precision is not PORPrecision");
+    if (!(precision instanceof ConcurrentPrecision pConcurrentPrecision)) {
+      throw new CPATransferException("Precision is not ConcurrentPrecision");
     }
 
-    Collection<CFAEdge> sourceSet = porState.getSourceSet(porPrecision, basicBlockAggregator);
+    Collection<CFAEdge> sourceSet = pConcurrentState.getEdgesToExplore(pConcurrentPrecision, basicBlockAggregator);
     List<AbstractState> allSuccessors = new ArrayList<>();
     for (CFAEdge edge : sourceSet) {
       allSuccessors.addAll(getAbstractSuccessorsForEdge(state, precision, edge));
@@ -149,15 +153,15 @@ public class PORTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    if (!(state instanceof PORState porState)) {
-      throw new CPATransferException("State is not a PORState.");
+    if (!(state instanceof ConcurrentState pConcurrentState)) {
+      throw new CPATransferException("State is not a ConcurrentState.");
     }
-    if (!(precision instanceof PORPrecision porPrecision)) {
-      throw new CPATransferException("Precision is not PORPrecision");
+    if (!(precision instanceof ConcurrentPrecision pConcurrentPrecision)) {
+      throw new CPATransferException("Precision is not ConcurrentPrecision");
     }
 
     // Determine which thread this edge belongs to (populated by getOutgoingEdges)
-    final Integer pid = porState.getEdgePid(cfaEdge);
+    final Integer pid = pConcurrentState.getEdgePid(cfaEdge);
     if (pid == null) {
       throw new CPATransferException("Could not determine thread for edge " + cfaEdge);
     }
@@ -169,15 +173,15 @@ public class PORTransferRelation implements TransferRelation {
       if (basicBlockAggregator.isValidMultiEdgeStart(startNode)
           && basicBlockAggregator.isValidMultiEdgeComponent(startNode, cfaEdge)) {
 
-        Collection<PORState> currentStates = new ArrayList<>(1);
-        currentStates.add(porState);
+        Collection<ConcurrentState> currentStates = new ArrayList<>(1);
+        currentStates.add(pConcurrentState);
         boolean hasAnyResults = false;
 
         while (basicBlockAggregator.isValidMultiEdgeComponent(startNode, cfaEdge)) {
-          Collection<PORState> successorStates = new ArrayList<>(currentStates.size());
+          Collection<ConcurrentState> successorStates = new ArrayList<>(currentStates.size());
 
-          for (PORState currentState : currentStates) {
-            getAbstractSuccessorsForEdge(currentState, porPrecision, cfaEdge, pid, successorStates);
+          for (ConcurrentState currentState : currentStates) {
+            getAbstractSuccessorsForEdge(currentState, pConcurrentPrecision, cfaEdge, pid, successorStates);
           }
 
           // if there are no successors for the current edge, we do not need to continue
@@ -199,7 +203,7 @@ public class PORTransferRelation implements TransferRelation {
 
           // if there is more than one leaving edge we do not create a further multi edge part
           if (cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
-            // all current states should be the same PORState
+            // all current states should be the same ConcurrentState
             cfaEdge = currentStates.iterator().next().getNextBasicBlockEdge(pid);
           } else {
             break;
@@ -210,13 +214,13 @@ public class PORTransferRelation implements TransferRelation {
       }
     }
 
-    Collection<PORState> results = new ArrayList<>(1);
-    getAbstractSuccessorsForEdge(porState, porPrecision, cfaEdge, pid, results);
+    Collection<ConcurrentState> results = new ArrayList<>(1);
+    getAbstractSuccessorsForEdge(pConcurrentState, pConcurrentPrecision, cfaEdge, pid, results);
     return ImmutableList.copyOf(results);
   }
 
   private void getAbstractSuccessorsForEdge(
-      PORState state, PORPrecision precision, CFAEdge cfaEdge, int pid, Collection<PORState> result)
+      ConcurrentState state, ConcurrentPrecision precision, CFAEdge cfaEdge, int pid, Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> wrappedSuccessors =
         applyEdgeWithForgetting(precision, state.getWrappedState(), cfaEdge, pid);
@@ -272,7 +276,7 @@ public class PORTransferRelation implements TransferRelation {
         // array indices / non-pointer field accesses — see
         // ThreadFunctions#canonicalHandleLvalueKey)
         // and a single create
-        // call already unambiguously paired that same key with a pid (see PORState#handleHints).
+        // call already unambiguously paired that same key with a pid (see ConcurrentState#handleHints).
         // Joining directly here, without any synthetic assume edge, avoids polluting the wrapped
         // analysis's own reasoning (and, for predicate abstraction, CEGAR's interpolation) with an
         // identity fact about the handle that has nothing to do with the program's actual
@@ -285,7 +289,7 @@ public class PORTransferRelation implements TransferRelation {
         if (handleKey.isPresent()) {
           Integer hint = state.getHandleHint(handleKey.get());
           if (hint != null && state.livePids().contains(hint)) {
-            Optional<PORState> joined = state.joinThread(hint);
+            Optional<ConcurrentState> joined = state.joinThread(hint);
             if (joined.isPresent()) {
               finishEdge(joined.get(), cfaEdge, pid, wrappedSuccessors, result);
             }
@@ -303,7 +307,7 @@ public class PORTransferRelation implements TransferRelation {
         // needed here (and forgetting an ignorable handle value, same as any other edge, lets
         // more than one candidate stay feasible when POR's reduction has no information yet).
         for (int candidate : state.livePids()) {
-          Optional<PORState> joined = state.joinThread(candidate);
+          Optional<ConcurrentState> joined = state.joinThread(candidate);
           if (joined.isEmpty()) {
             continue; // that candidate has not finished yet
           }
@@ -328,7 +332,7 @@ public class PORTransferRelation implements TransferRelation {
         assert threadState != null : "threads must contain pid to exit " + pid;
         CFANode currentNode = threadState.getLocationNode();
         // Resolve to original CFA node to find exit node in the original CFA
-        CFANode originalCurrentNode = PorEdgeCloner.getOriginalNode(currentNode);
+        CFANode originalCurrentNode = ConcurrentEdgeCloner.getOriginalNode(currentNode);
         String function = originalCurrentNode.getFunctionName();
 
         CFANode originalExitNode =
@@ -341,7 +345,7 @@ public class PORTransferRelation implements TransferRelation {
                 .findAny()
                 .orElseThrow();
         // Get the cloned exit node for this thread
-        CFANode clonedExitNode = PorEdgeCloner.getClonedNode(originalExitNode, pid, cfa);
+        CFANode clonedExitNode = ConcurrentEdgeCloner.getClonedNode(originalExitNode, pid, cfa);
 
         String description = "Thread exit dummy edge";
         CFAEdge exitEdge =
@@ -356,7 +360,7 @@ public class PORTransferRelation implements TransferRelation {
             throw new CPATransferException("Thread-specific successor is not a ThreadState");
           }
           ThreadState nextThreadState = new ThreadState(nextWrappedState);
-          PORState exited = state.stepThread(pid, nextThreadState);
+          ConcurrentState exited = state.stepThread(pid, nextThreadState);
           finishEdge(exited, cfaEdge, pid, wrappedSuccessors, result);
         }
         return;
@@ -367,11 +371,11 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   private void finishEdge(
-      PORState old,
+      ConcurrentState old,
       CFAEdge cfaEdge,
       int pid,
       Collection<? extends AbstractState> wrappedSuccessors,
-      Collection<PORState> result)
+      Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
     final ThreadState threadState = old.threads().get(pid);
     if (threadState == null) {
@@ -380,7 +384,7 @@ public class PORTransferRelation implements TransferRelation {
 
     final Collection<? extends AbstractState> nextThreadSpecificStates =
         threadSpecificTransferRelation.getAbstractSuccessorsForEdge(threadState.getWrappedState(), threadSpecificUnitPrecision, cfaEdge);
-    final List<PORState> successors = new ArrayList<>();
+    final List<ConcurrentState> successors = new ArrayList<>();
     for (AbstractState nextThreadSpecificState : nextThreadSpecificStates) {
       if (!(nextThreadSpecificState instanceof CompositeState nextWrappedState)) {
         throw new CPATransferException("Thread-specific successor is not a ThreadState");
@@ -389,7 +393,7 @@ public class PORTransferRelation implements TransferRelation {
       successors.add(old.stepThread(pid, nextThreadState));
     }
 
-    for (PORState porSuccessor : successors) {
+    for (ConcurrentState porSuccessor : successors) {
       for (AbstractState wrappedSuccessor : wrappedSuccessors) {
         result.add(porSuccessor.withWrappedState(wrappedSuccessor));
       }
@@ -412,7 +416,7 @@ public class PORTransferRelation implements TransferRelation {
    * so the handle value it never got told about cannot matter.
    */
   private Collection<? extends AbstractState> applyBookkeepingEdge(
-      PORPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
+      ConcurrentPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
       throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> successors =
         applyEdgeWithForgetting(precision, wrappedState, edge, pid);
@@ -424,7 +428,7 @@ public class PORTransferRelation implements TransferRelation {
 
   /**
    * Runs {@code edge} through the wrapped transfer relation, first temporarily forgetting any value
-   * the reduction currently treats as ignorable (see {@link PORPrecision#canIgnoreVariable}): a
+   * the reduction currently treats as ignorable (see {@link ConcurrentPrecision#canIgnoreVariable}): a
    * domain that tracks concrete/precise values (e.g. ValueAnalysisCPA) could otherwise decide the
    * edge's outcome (an assume's direction, in particular) from a value the reduction assumed did
    * not need cross-thread ordering, silently baking in whichever single interleaving happened to be
@@ -435,11 +439,11 @@ public class PORTransferRelation implements TransferRelation {
    * <p>Also registers {@code pid} as {@code edge}'s executing thread on any {@link MutexState}
    * component: MutexCPA's transfer relation requires a PID for every edge it processes (see {@code
    * MutexTransferRelation}), and a synthetic edge built on the fly (the thread-handle write/assume
-   * edges) is not one PORState's normal edge-enumeration already registered. Re-registering the
+   * edges) is not one ConcurrentState's normal edge-enumeration already registered. Re-registering the
    * real edge here too is a harmless no-op (same value it already has).
    */
   private Collection<? extends AbstractState> applyEdgeWithForgetting(
-      PORPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
+      ConcurrentPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
       throws CPATransferException, InterruptedException {
     MutexState mutexState = AbstractStates.extractStateByType(wrappedState, MutexState.class);
     if (mutexState != null) {
@@ -546,7 +550,7 @@ public class PORTransferRelation implements TransferRelation {
    * {@code __thread} variable, writing that variable's initial value to the <b>child's</b> private
    * copy. Returns the states resulting from applying all of them in sequence to {@code pStates}.
    *
-   * <p>Without this, privatizing a {@code __thread} variable (see {@link PorAstCloner}) would make
+   * <p>Without this, privatizing a {@code __thread} variable (see {@link ConcurrentAstCloner}) would make
    * things worse rather than better: the child's copy is a variable no edge on its path ever
    * assigns, so the wrapped analysis treats it as indeterminate and an {@code assert(data == 0)}
    * fails on a value the child can never actually hold. Only the main thread's clone contains the
@@ -558,7 +562,7 @@ public class PORTransferRelation implements TransferRelation {
    * observe it, so where in the schedule the write lands cannot matter.
    */
   private List<AbstractState> initializeThreadLocals(
-      PORPrecision precision, List<AbstractState> pStates, int newPid, CFAEdge cfaEdge, int pid)
+      ConcurrentPrecision precision, List<AbstractState> pStates, int newPid, CFAEdge cfaEdge, int pid)
       throws CPATransferException, InterruptedException {
     List<AbstractState> states = pStates;
     for (CVariableDeclaration threadLocal : threadLocalGlobals) {
@@ -621,7 +625,7 @@ public class PORTransferRelation implements TransferRelation {
 
   /**
    * A synthetic {@code T{pid}_x = <initial value>;} edge for one {@code __thread} variable. The
-   * left-hand side is built as the very declaration {@link PorAstCloner} renames {@code pDecl} to
+   * left-hand side is built as the very declaration {@link ConcurrentAstCloner} renames {@code pDecl} to
    * for thread {@code pid} — same qualified name, same non-global flag — so that this write and the
    * child's own reads of the variable are the same symbol to the wrapped analysis.
    */
@@ -673,19 +677,19 @@ public class PORTransferRelation implements TransferRelation {
         "", FileLocation.DUMMY, edge.getPredecessor(), edge.getSuccessor(), identity, true);
   }
 
-  PORState initial(AbstractState wrappedInitialState) throws InterruptedException {
+  ConcurrentState initial(AbstractState wrappedInitialState) throws InterruptedException {
     return addNewThreadNode(
-        PORState.empty(wrappedInitialState, cfa, logger, random), false, "main", Optional.empty());
+        por.emptyState(wrappedInitialState, cfa, logger, random), false, "main", Optional.empty());
   }
 
-  PORState addNewThread(
-      final PORState old, final String functionName, Optional<String> handleName)
+  ConcurrentState addNewThread(
+      final ConcurrentState old, final String functionName, Optional<String> handleName)
       throws InterruptedException {
     return addNewThreadNode(old, true, functionName, handleName);
   }
 
-  private PORState addNewThreadNode(
-      final PORState old,
+  private ConcurrentState addNewThreadNode(
+      final ConcurrentState old,
       boolean addToLivePids,
       final String functionName,
       Optional<String> handleName) throws InterruptedException {
@@ -695,7 +699,7 @@ public class PORTransferRelation implements TransferRelation {
 
     // Compute the PID for the new thread so we can get its cloned entry node
     int newPid = old.threads().size();
-    CFANode clonedEntryNode = PorEdgeCloner.getClonedNode(functionCallNode, newPid, cfa);
+    CFANode clonedEntryNode = ConcurrentEdgeCloner.getClonedNode(functionCallNode, newPid, cfa);
     AbstractState initialWrappedState = threadSpecificCPA.getInitialState(clonedEntryNode, StateSpacePartition.getDefaultPartition());
     if (!(initialWrappedState instanceof CompositeState composite)) {
       throw new IllegalStateException("Thread-specific CPA's initial state is not a CompositeState");

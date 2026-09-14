@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
 
 /**
  * Runs the concurrency regression programs written for the POR and ordering-consistency analyses
- * (see {@code org.sosy_lab.cpachecker.cpa.por.PORCPATest} / {@code
+ * (see {@code org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentCPATest} / {@code
  * org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyTest}) against <b>every other</b> concurrency
  * analysis that checks reachability, so that the same programs are pinned down across all of them.
  *

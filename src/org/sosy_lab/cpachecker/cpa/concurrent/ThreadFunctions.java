@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -75,7 +75,7 @@ public final class ThreadFunctions {
    * Checks that a {@code pthread_create} call has the expected 4 arguments. The thread handle
    * argument itself (params.get(0)) is not further restricted: any pointer-typed expression is
    * accepted, and its identity is established at runtime via a synthetic thread-id write (see
-   * OrderingConsistencyTransferRelation#handleCreate / PORTransferRelation's create dispatch), not
+   * OrderingConsistencyTransferRelation#handleCreate / ConcurrentTransferRelation's create dispatch), not
    * by statically resolving a variable name here.
    */
   public static void checkCreateParams(List<? extends AExpression> params) {
@@ -136,8 +136,8 @@ public final class ThreadFunctions {
   /**
    * A string key identifying the storage location a {@code pthread_create}/{@code pthread_join}
    * handle addresses, or null if that cannot be determined purely syntactically. Used by both
-   * {@link PORTransferRelation} (to populate/consult the fast-path join hint) and {@link
-   * PORState#isJoinCurrentlyEnabled} (which must decide, consistently with the transfer relation,
+   * {@link ConcurrentTransferRelation} (to populate/consult the fast-path join hint) and {@link
+   * ConcurrentState#isJoinCurrentlyEnabled} (which must decide, consistently with the transfer relation,
    * whether a join is actually enabled without introducing any synthetic branching) — the two call
    * sites must agree on what counts as a resolvable handle, or a join could be offered by one and
    * rejected by the other, silently dropping every schedule that reaches that state (see git

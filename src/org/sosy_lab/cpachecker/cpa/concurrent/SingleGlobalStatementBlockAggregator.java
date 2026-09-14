@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
@@ -59,7 +59,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       // A block must never extend past the end of a critical section: the node after an
       // atomic_end/unlock is a scheduling point where other threads may interleave, and the POR
       // dependence computation scopes a transition's footprint to at most one critical section
-      // (see PORState#getUsedGlobalVars). Fusing `atomic_end; atomic_begin` into one step makes
+      // (see ConcurrentState#getUsedGlobalVars). Fusing `atomic_end; atomic_begin` into one step makes
       // two adjacent atomic blocks one atomic transition, silently removing the interleavings at
       // the boundary (wrong TRUE on the pthread-wmm litmus family, e.g. safe034: another thread's
       // z-write must fall between main's two atomic blocks to violate the assertion). The end
@@ -76,7 +76,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       if (currentEdge != edge && (isThreadStart(currentEdge) || isThreadJoin(currentEdge))) {
         return false;
       }
-      // A lock/atomic_begin may only be the FIRST edge of a block: PORState#getUsedGlobalVars
+      // A lock/atomic_begin may only be the FIRST edge of a block: ConcurrentState#getUsedGlobalVars
       // extends a step's dependence footprint through the acquired critical section only when the
       // step STARTS with the lock call. A block like [blank; lock(G); ...] executes the
       // acquisition but carries the blank edge's empty footprint, so the reduction treats it as
@@ -97,7 +97,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
               // contain at most one critical-section entry and no global statement besides it.
               || MutexFunctions.isLockCall(currentEdge))
           && !atomicBlockNodes.contains(
-              PorEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
+              ConcurrentEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
         if (anyGlobalStatements) {
           return false;
         }
@@ -164,7 +164,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     }
 
     return transformedImmutableSetCopy(
-        nodesBeforeAnyThreadStart, node -> PorEdgeCloner.getClonedNode(node, 0, pCFA));
+        nodesBeforeAnyThreadStart, node -> ConcurrentEdgeCloner.getClonedNode(node, 0, pCFA));
   }
 
   private ImmutableCollection<CFANode> getAtomicBlockNodes(CFA pCFA) {

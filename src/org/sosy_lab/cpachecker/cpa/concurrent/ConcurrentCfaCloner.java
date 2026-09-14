@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import com.google.common.collect.MapMaker;
 import java.util.ArrayDeque;
@@ -40,13 +40,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 /**
  * Clones the entire CFA (nodes and edges) for a specific thread ID, renaming all variable
- * references with the thread-ID prefix using {@link PorAstCloner}. The cloning is performed lazily
+ * references with the thread-ID prefix using {@link ConcurrentAstCloner}. The cloning is performed lazily
  * on first access for each thread ID and then cached.
  *
  * <p>For {@link CFunctionEntryNode}s, the function declaration is also cloned so that parameter
  * declarations carry the renamed qualified names.
  */
-final class PorCfaCloner {
+final class ConcurrentCfaCloner {
 
   /**
    * Thread cloners, scoped to the CFA they were cloned from. The CFA key is essential: several
@@ -56,7 +56,7 @@ final class PorCfaCloner {
    * no value equality) and weakly, so a finished analysis's clones become collectable with it
    * rather than being retained for the life of the JVM.
    */
-  private static final Map<CFA, Map<Integer, PorCfaCloner>> perCfaCache =
+  private static final Map<CFA, Map<Integer, ConcurrentCfaCloner>> perCfaCache =
       new MapMaker().weakKeys().makeMap();
 
   /**
@@ -92,24 +92,24 @@ final class PorCfaCloner {
   private final IdentityHashMap<CFAEdge, CFAEdge> reverseEdgeMap = new IdentityHashMap<>();
 
   private final int threadId;
-  private final PorAstCloner astCloner;
+  private final ConcurrentAstCloner astCloner;
 
-  private PorCfaCloner(int pThreadId) {
+  private ConcurrentCfaCloner(int pThreadId) {
     threadId = pThreadId;
-    astCloner = new PorAstCloner(pThreadId);
+    astCloner = new ConcurrentAstCloner(pThreadId);
   }
 
   /**
    * Get or create the CFA clone of {@code pCfa} for the given thread ID. Cloning is performed once
    * per (CFA, thread ID) pair and then cached.
    */
-  static PorCfaCloner getOrCreate(int pThreadId, CFA pCfa) {
+  static ConcurrentCfaCloner getOrCreate(int pThreadId, CFA pCfa) {
     return perCfaCache
         .computeIfAbsent(pCfa, unused -> new HashMap<>())
         .computeIfAbsent(
             pThreadId,
             pid -> {
-              PorCfaCloner cloner = new PorCfaCloner(pid);
+              ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(pid);
               cloner.cloneEntireCfa(pCfa);
               return cloner;
             });

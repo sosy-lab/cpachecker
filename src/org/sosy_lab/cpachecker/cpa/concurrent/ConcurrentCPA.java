@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.CompositePrecisionVariableManager;
-import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.ConfigurablePrecisionVariableManager;
-import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.PredicatePrecisionVariableManager;
-import org.sosy_lab.cpachecker.cpa.por.PrecisionVariableManager.ScopedRefinablePrecisionVariableManager;
+import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.CompositePrecisionVariableManager;
+import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.ConfigurablePrecisionVariableManager;
+import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.PredicatePrecisionVariableManager;
+import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.ScopedRefinablePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -55,11 +55,11 @@ import org.sosy_lab.cpachecker.util.Precisions;
  * {@code strengthen} to read the MutexState from the MutexCPA for lock-based filtering during
  * source-set computation.
  */
-@Options(prefix = "cpa.por")
-public class PORCPA extends AbstractSingleWrapperCPA {
+@Options(prefix = "cpa.concurrent")
+public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(PORCPA.class);
+    return AutomaticCPAFactory.forType(ConcurrentCPA.class);
   }
 
   @Option(
@@ -89,50 +89,63 @@ public class PORCPA extends AbstractSingleWrapperCPA {
               + "keep runs reproducible.")
   private long randomSeed = 0;
 
-  private final PORTransferRelation transferRelation;
+  @Option(
+      secure = true,
+      description = "Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR"
+  )
+  private String partialOrderReductionAlgorithm = "SPOR";
+
+  private final ConcurrentTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
 
   @SuppressWarnings("unused")
-  private PORCPA(
+  private ConcurrentCPA(
       ConfigurableProgramAnalysis pCpa, Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     super(pCpa);
     pConfig.inject(this);
 
     logger = pLogger;
+
+    PartialOrderReductionStrategy strategy = switch (partialOrderReductionAlgorithm) {
+      case "NOPOR" -> ConcurrentState::new;
+      case "SPOR" -> SPORConcurrentState::new;
+      default -> throw new InvalidConfigurationException(
+          "Unknown partial order reduction algorithm: " + partialOrderReductionAlgorithm);
+    };
     transferRelation =
-        new PORTransferRelation(
-            pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger, new Random(randomSeed));
+        new ConcurrentTransferRelation(
+            pCpa, pConfig, pCfa, strategy, aggregateBasicBlocks, pLogger, new Random(randomSeed));
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
     precisionAdjustment =
         (state, precision, states, stateProjection, fullState) -> {
-          if (!(state instanceof PORState porState)
-              || !(precision instanceof PORPrecision porPrecision)) {
-            throw new CPAException("Expected PORState, got " + state.getClass().getSimpleName());
+          if (!(state instanceof ConcurrentState pConcurrentState)
+              || !(precision instanceof ConcurrentPrecision pConcurrentPrecision)) {
+            throw new CPAException("Expected ConcurrentState, got " + state.getClass().getSimpleName());
           }
           Optional<PrecisionAdjustmentResult> result =
               wrappedPrecisionAdjustment.prec(
-                  checkNotNull(porState.getWrappedState()),
-                  porPrecision.getWrappedPrecision(),
+                  checkNotNull(pConcurrentState.getWrappedState()),
+                  pConcurrentPrecision.getWrappedPrecision(),
                   states,
                   Functions.compose(
-                      s -> checkNotNull((PORState) s).getWrappedState(), stateProjection),
+                      s -> checkNotNull((ConcurrentState) s).getWrappedState(), stateProjection),
                   fullState);
 
           return result.map(
               r ->
                   new PrecisionAdjustmentResult(
-                      porState.withWrappedState(r.abstractState()),
-                      porPrecision.replaceWrappedPrecision(
+                      pConcurrentState.withWrappedState(r.abstractState()),
+                      pConcurrentPrecision.replaceWrappedPrecision(
                           r.precision(), Predicates.instanceOf(r.precision().getClass())),
                       r.action()));
         };
   }
 
   @Override
-  public PORTransferRelation getTransferRelation() {
+  public ConcurrentTransferRelation getTransferRelation() {
     return transferRelation;
   }
 
@@ -189,7 +202,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       return new AbstractionAwarePORPrecision(variableManager, initialWrappedPrecision);
     }
 
-    return new AbstractionUnawarePORPrecision(wrappedCpa.getInitialPrecision(pNode, pPartition));
+    return new SimpleConcurrentPrecision(wrappedCpa.getInitialPrecision(pNode, pPartition));
   }
 
   @Override
@@ -201,19 +214,19 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   public MergeOperator getMergeOperator() {
     MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
     return (state1, state2, precision) -> {
-      if (state1 instanceof PORState porState1
-          && state2 instanceof PORState porState2
-          && precision instanceof PORPrecision porPrecision) {
-        if (porState1.canMerge(porState2)) {
-          AbstractState wrapped1 = porState1.getWrappedState();
-          AbstractState wrapped2 = porState2.getWrappedState();
-          Precision wrappedPrecision = porPrecision.getWrappedPrecision();
+      if (state1 instanceof ConcurrentState pConcurrentState1
+          && state2 instanceof ConcurrentState pConcurrentState2
+          && precision instanceof ConcurrentPrecision pConcurrentPrecision) {
+        if (pConcurrentState1.canMerge(pConcurrentState2)) {
+          AbstractState wrapped1 = pConcurrentState1.getWrappedState();
+          AbstractState wrapped2 = pConcurrentState2.getWrappedState();
+          Precision wrappedPrecision = pConcurrentPrecision.getWrappedPrecision();
           AbstractState mergedWrapped =
               wrappedMergeOperator.merge(wrapped1, wrapped2, wrappedPrecision);
           if (wrapped2.equals(mergedWrapped)) {
-            return porState2;
+            return pConcurrentState2;
           } else {
-            return porState1.withWrappedState(mergedWrapped);
+            return pConcurrentState1.withWrappedState(mergedWrapped);
           }
         }
       }
@@ -224,18 +237,18 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   @Override
   public StopOperator getStopOperator() {
     return (state, reached, precision) -> {
-      if (state instanceof PORState porState && precision instanceof PORPrecision porPrecision) {
+      if (state instanceof ConcurrentState pConcurrentState && precision instanceof ConcurrentPrecision pConcurrentPrecision) {
         ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
         for (AbstractState reachedState : reached) {
-          if (reachedState instanceof PORState reachedPorState
-              && Objects.equals(porState.threads(), reachedPorState.threads())
-              && Objects.equals(porState.livePids(), reachedPorState.livePids())) {
-            builder.add(reachedPorState.getWrappedState());
+          if (reachedState instanceof ConcurrentState pReachedConcurrentState
+              && Objects.equals(pConcurrentState.threads(), pReachedConcurrentState.threads())
+              && Objects.equals(pConcurrentState.livePids(), pReachedConcurrentState.livePids())) {
+            builder.add(pReachedConcurrentState.getWrappedState());
           }
         }
         return getWrappedCpa()
             .getStopOperator()
-            .stop(porState.getWrappedState(), builder.build(), porPrecision.getWrappedPrecision());
+            .stop(pConcurrentState.getWrappedState(), builder.build(), pConcurrentPrecision.getWrappedPrecision());
       }
       return false;
     };

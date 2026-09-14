@@ -10,4 +10,4 @@
  * This CPA explores all interleavings of all threads in concurrent programs for partial order
  * reduction analysis.
  */
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;

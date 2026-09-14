@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
 /**
  * Runs the concurrent no-overflow regression programs against the <b>other</b> concurrency analyses
  * that check that property. The POR analyses check the same programs in {@code
- * org.sosy_lab.cpachecker.cpa.por.PORCPAOverflowTest}.
+ * org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentCPAOverflowTest}.
  *
  * <p>{@code sequentialization-concurrency--overflow} gets all of them right, which is what
  * establishes independently that the "unsafe" programs really do overflow — including {@code

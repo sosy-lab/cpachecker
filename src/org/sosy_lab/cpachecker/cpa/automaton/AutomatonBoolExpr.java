@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
-import org.sosy_lab.cpachecker.cpa.por.PORState;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -117,13 +117,12 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         return Optional.empty();
       }
 
-      // The POR analysis does not use a ThreadingCPA and its PORState is not a sibling of the
-      // witness automaton (it wraps the composite). However, POR clones the CFA per thread, so the
-      // successor node of the (cloned) edge uniquely identifies the thread that just moved. Its
-      // PID,
-      // assigned in creation order with the main thread having PID 0, matches the thread ID used in
-      // the witness.
-      OptionalInt porThreadId = PORState.getThreadIdForClonedNode(pEdge.getSuccessor());
+      // The ConcurrentCPA analysis does not use a ThreadingCPA and its ConcurrentState is not a
+      // sibling of the witness automaton (it wraps the composite). However, POR clones the CFA per
+      // thread, so the successor node of the (cloned) edge uniquely identifies the thread that just
+      // moved. Its PID, assigned in creation order with the main thread having PID 0, matches the
+      // thread ID used in the witness.
+      OptionalInt porThreadId = ConcurrentState.getThreadIdForClonedNode(pEdge.getSuccessor());
       if (porThreadId.isPresent()) {
         if (porThreadId.orElseThrow() != threadId.orElseThrow()) {
           return Optional.of(CONST_FALSE);
@@ -144,7 +143,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    */
   private static boolean threadInfoAvailable(List<AbstractState> pAbstractStates, CFAEdge pEdge) {
     return !FluentIterable.from(pAbstractStates).filter(ThreadingState.class).isEmpty()
-        || PORState.getThreadIdForClonedNode(pEdge.getSuccessor()).isPresent();
+        || ConcurrentState.getThreadIdForClonedNode(pEdge.getSuccessor()).isPresent();
   }
 
   public static class IsStatementEdge implements AutomatonBoolExpr {

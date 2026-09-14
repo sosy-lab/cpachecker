@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.por;
+package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -15,15 +15,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-abstract class PORPrecision implements WrapperPrecision {
+abstract class ConcurrentPrecision implements WrapperPrecision {
 
   private final Precision wrappedPrecision;
 
-  PORPrecision(Precision pWrappedPrecision) {
+  ConcurrentPrecision(Precision pWrappedPrecision) {
     wrappedPrecision = pWrappedPrecision;
   }
 
-  protected abstract PORPrecision withWrappedPrecision(Precision newWrappedPrecision);
+  protected abstract ConcurrentPrecision withWrappedPrecision(Precision newWrappedPrecision);
 
   abstract boolean canIgnoreVariable(MemoryLocation memoryLocation);
 
