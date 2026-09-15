@@ -85,7 +85,8 @@ public class BuiltinFunctions {
 
     if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(pFunctionName)) {
       return Objects.requireNonNullElse(
-          BuiltinOverflowFunctions.getType(pFunctionName).orElse(null), UNSPECIFIED_TYPE);
+          BuiltinOverflowFunctions.getFixedArithmeticType(pFunctionName).orElse(null),
+          UNSPECIFIED_TYPE);
     }
 
     if (isPopcountFunction(pFunctionName)) {

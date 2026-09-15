@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
@@ -123,14 +124,15 @@ public class BuiltinOverflowFunctions {
   }
 
   private static final Map<String, BuiltinOverflowFunction> functions;
-  private static final ImmutableSet<String> OVERFLOW_CARRY_BORROW_FUNCTIONS =
-      ImmutableSet.of(
-          "__builtin_addc",
-          "__builtin_addcl",
-          "__builtin_addcll",
-          "__builtin_subc",
-          "__builtin_subcl",
-          "__builtin_subcll");
+  private static final ImmutableMap<String, CSimpleType> OVERFLOW_CARRY_BORROW_TYPES =
+      ImmutableMap.<String, CSimpleType>builder()
+          .put("__builtin_addc", CNumericTypes.UNSIGNED_INT)
+          .put("__builtin_addcl", CNumericTypes.UNSIGNED_LONG_INT)
+          .put("__builtin_addcll", CNumericTypes.UNSIGNED_LONG_LONG_INT)
+          .put("__builtin_subc", CNumericTypes.UNSIGNED_INT)
+          .put("__builtin_subcl", CNumericTypes.UNSIGNED_LONG_INT)
+          .put("__builtin_subcll", CNumericTypes.UNSIGNED_LONG_LONG_INT)
+          .buildOrThrow();
 
   static {
     functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
@@ -141,9 +143,15 @@ public class BuiltinOverflowFunctions {
    * a generic or predicate variant. Requires a name recognized by {@link
    * #isBuiltinOverflowFunction(String)}.
    */
-  public static Optional<CSimpleType> getType(String pFunctionName) {
+  public static Optional<CSimpleType> getFixedArithmeticType(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).type;
+  }
+
+  /** Returns the integer type for the given carry or borrow builtin. */
+  public static CSimpleType getCarryBorrowArithmeticType(String pFunctionName) {
+    checkState(OVERFLOW_CARRY_BORROW_TYPES.containsKey(pFunctionName));
+    return checkNotNull(OVERFLOW_CARRY_BORROW_TYPES.get(pFunctionName));
   }
 
   /**
@@ -176,7 +184,7 @@ public class BuiltinOverflowFunctions {
    * </ul>
    */
   public static boolean isBuiltinOverflowCarryBorrowFunction(String pFunctionName) {
-    return OVERFLOW_CARRY_BORROW_FUNCTIONS.contains(pFunctionName);
+    return OVERFLOW_CARRY_BORROW_TYPES.containsKey(pFunctionName);
   }
 
   /**
@@ -269,7 +277,7 @@ public class BuiltinOverflowFunctions {
 
   private static CSimpleType getTargetType(String pFunctionName, CExpression thirdArgument) {
     if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
-      return getType(pFunctionName).orElseThrow();
+      return getFixedArithmeticType(pFunctionName).orElseThrow();
     }
 
     CType targetType = thirdArgument.getExpressionType().getCanonicalType();
