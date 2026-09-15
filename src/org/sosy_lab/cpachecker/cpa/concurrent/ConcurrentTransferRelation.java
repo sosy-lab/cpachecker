@@ -101,6 +101,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private final EdgeDefUseData.Extractor defUseExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
+  @SuppressWarnings("unused") // pConfig and the declared exceptions are kept for future use
   public ConcurrentTransferRelation(
       ConfigurableProgramAnalysis wrappedCpa,
       ConfigurableProgramAnalysis pThreadSpecificCPA,

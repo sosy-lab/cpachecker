@@ -325,6 +325,12 @@ public class ConcurrentState extends AbstractSingleWrapperState
     return ret.build();
   }
 
+  /**
+   * Returns the edges to explore from this state. This implementation explores all outgoing edges;
+   * {@link SPORConcurrentState} overrides it to return only the edges selected by the partial-order
+   * reduction, for which it needs both parameters and can fail.
+   */
+  @SuppressWarnings("unused") // parameters and exception exist for the overriding implementation
   ImmutableCollection<CFAEdge> getEdgesToExplore(
       ConcurrentPrecision precision,
       BasicBlockAggregator basicBlock)
