@@ -158,7 +158,18 @@ public class BuiltinOverflowFunctions {
     return functions.containsKey(pFunctionName);
   }
 
-  /** Check whether a given function is a GCC carry or borrow builtin. */
+  /**
+   * Returns true for the following GCC builtin borrow/carry function names:
+   *
+   * <ul>
+   *   <li>__builtin_subcll
+   *   <li>__builtin_subcl
+   *   <li>__builtin_subc
+   *   <li>__builtin_addcll
+   *   <li>__builtin_addcl
+   *   <li>__builtin_addc
+   * </ul>
+   */
   public static boolean isBuiltinOverflowCarryBorrowFunction(String pFunctionName) {
     return OVERFLOW_CARRY_BORROW_FUNCTIONS.contains(pFunctionName);
   }

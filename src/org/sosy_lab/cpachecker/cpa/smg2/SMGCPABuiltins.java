@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -98,14 +99,6 @@ public class SMGCPABuiltins {
 
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
-  private static final ImmutableSet<String> GCC_BUILTIN_BORROW_CARRY_OVERFLOW_FUNCTIONS =
-      ImmutableSet.of(
-          "__builtin_subcll",
-          "__builtin_subcl",
-          "__builtin_subc",
-          "__builtin_addcll",
-          "__builtin_addcl",
-          "__builtin_addc");
   public static final ImmutableSet<String> GCC_BUILTIN_SIMPLE_OVERFLOW_FUNCTIONS =
       ImmutableSet.of(
           "__builtin_add_overflow_p", "__builtin_sub_overflow_p", "__builtin_mul_overflow_p");
@@ -413,7 +406,7 @@ public class SMGCPABuiltins {
           state, cfaEdge, funCallExpr, functionName);
     }
 
-    if (isGccBuiltinBorrowCarryOverflowFunction(functionName)) {
+    if (BuiltinOverflowFunctions.isBuiltinOverflowCarryBorrowFunction(functionName)) {
       // __builtin_subcll, __builtin_subcl, __builtin_subc, __builtin_addcll, __builtin_addcl etc.
       return handleGccBuiltinCarryBorrowFunctions(functionName, state, funCallExpr, cfaEdge);
     }
@@ -588,11 +581,13 @@ public class SMGCPABuiltins {
 
     CExpression a = parameters.getFirst();
     CExpression b = parameters.get(1);
-    CPointerExpression res = (CPointerExpression) parameters.get(2);
+    CExpression res = parameters.get(2);
 
     CType typeOfRes = res.getExpressionType().getCanonicalType();
     checkArgument(typeOfRes instanceof CPointerType);
     CType typeOfResBelowPointer = ((CPointerType) typeOfRes).getType().getCanonicalType();
+    CPointerExpression resPointerExpr =
+        new CPointerExpression(res.getFileLocation(), typeOfResBelowPointer, res);
 
     OverflowFunctionReturnAndCastCalculationResult resultExpressions =
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
@@ -604,7 +599,7 @@ public class SMGCPABuiltins {
     // Assign the cast calculation result
     Collection<SMGState> assignedStates =
         SMGTransferRelation.handleAssignment(
-            initialState, pCfaEdge, res, castCalculationResult, evaluator, logger);
+            initialState, pCfaEdge, resPointerExpr, castCalculationResult, evaluator, logger);
     checkState(assignedStates.size() == 1);
     SMGState currentState = assignedStates.iterator().next();
 
@@ -859,22 +854,6 @@ public class SMGCPABuiltins {
             BinaryOperator.NOT_EQUALS);
 
     return new OverflowFunctionReturnAndCastCalculationResult(overflowComparison, calculationCast);
-  }
-
-  /**
-   * Returns true for the following GCC builtin borrow/carry function names:
-   *
-   * <ul>
-   *   <li>__builtin_subcll
-   *   <li>__builtin_subcl
-   *   <li>__builtin_subc
-   *   <li>__builtin_addcll
-   *   <li>__builtin_addcl
-   *   <li>__builtin_addc
-   * </ul>
-   */
-  private boolean isGccBuiltinBorrowCarryOverflowFunction(String functionName) {
-    return GCC_BUILTIN_BORROW_CARRY_OVERFLOW_FUNCTIONS.contains(functionName);
   }
 
   /**
