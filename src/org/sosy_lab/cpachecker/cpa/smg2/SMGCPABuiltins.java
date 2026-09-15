@@ -696,12 +696,12 @@ public class SMGCPABuiltins {
         castAExpr, castBExpr, typeOfResBelowPointer, operator);
   }
 
-  private static CExpression castIfNecessary(CExpression expr, CType targetType) {
-    checkArgument(!(expr instanceof CPointerExpression));
-    if (expr.getExpressionType().getCanonicalType() != targetType) {
-      return new CCastExpression(FileLocation.DUMMY, targetType, expr);
+  /** Casts the expression to the target type unless their canonical types are equal. */
+  private static CExpression castIfNecessary(CExpression pExpr, CType pTargetType) {
+    if (pExpr.getExpressionType().getCanonicalType().equals(pTargetType.getCanonicalType())) {
+      return pExpr;
     }
-    return expr;
+    return new CCastExpression(FileLocation.DUMMY, pTargetType, pExpr);
   }
 
   private static void checkIntegralTypeButNoBoolOrEnum(CType typeToCheck) {
