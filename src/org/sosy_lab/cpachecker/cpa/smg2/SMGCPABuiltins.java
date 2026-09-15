@@ -35,7 +35,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -710,23 +709,6 @@ public class SMGCPABuiltins {
     checkArgument(
         !(typeToCheck instanceof CSimpleType simpleTypeToCheck)
             || simpleTypeToCheck.getType() != BOOL);
-  }
-
-  private static @NonNull BinaryOperator getOperatorFromFunctionName(
-      String fullFunctionName, CFAEdge pCFAEdge, String coreFunctionName)
-      throws UnrecognizedCodeException {
-    final BinaryOperator operator;
-    if (coreFunctionName.contains("add")) {
-      operator = BinaryOperator.PLUS;
-    } else if (coreFunctionName.contains("sub")) {
-      operator = BinaryOperator.MINUS;
-    } else if (coreFunctionName.contains("mul")) {
-      operator = BinaryOperator.MULTIPLY;
-    } else {
-      throw new UnrecognizedCodeException(
-          "Unknown builtin function: " + fullFunctionName, pCFAEdge);
-    }
-    return operator;
   }
 
   /**
