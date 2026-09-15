@@ -907,6 +907,12 @@ public class ARGUtils {
 
             if (pPathStates.contains(child)) {
               List<CFAEdge> allEdges = s.getEdgesToChild(child);
+              Preconditions.checkState(
+                  !allEdges.isEmpty(),
+                  "No CFA connection from %s to %s, cannot produce an"
+                      + " automaton for this path",
+                  s,
+                  child);
               if (allEdges.size() > 1) {
                 // The successor state might have several incoming MultiEdges.
                 // In this case the state names like ARG<successor>_0 would occur
