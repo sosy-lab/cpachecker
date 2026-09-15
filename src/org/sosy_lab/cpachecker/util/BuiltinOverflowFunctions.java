@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
@@ -122,6 +123,14 @@ public class BuiltinOverflowFunctions {
   }
 
   private static final Map<String, BuiltinOverflowFunction> functions;
+  private static final ImmutableSet<String> OVERFLOW_CARRY_BORROW_FUNCTIONS =
+      ImmutableSet.of(
+          "__builtin_addc",
+          "__builtin_addcl",
+          "__builtin_addcll",
+          "__builtin_subc",
+          "__builtin_subcl",
+          "__builtin_subcll");
 
   static {
     functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
@@ -147,6 +156,11 @@ public class BuiltinOverflowFunctions {
    */
   public static boolean isBuiltinOverflowFunction(String pFunctionName) {
     return functions.containsKey(pFunctionName);
+  }
+
+  /** Check whether a given function is a GCC carry or borrow builtin. */
+  public static boolean isBuiltinOverflowCarryBorrowFunction(String pFunctionName) {
+    return OVERFLOW_CARRY_BORROW_FUNCTIONS.contains(pFunctionName);
   }
 
   /* Functions without prefix and suffix have arbitrary argument types */
