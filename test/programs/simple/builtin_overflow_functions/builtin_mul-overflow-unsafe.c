@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -190,6 +189,15 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (mul_ov_14 != 1);
 
 
+  long long int mul_res_15;
+  int mul_ov_15 = __builtin_mul_overflow(int_max, 2, &mul_res_15);
+
+  // 2147483647 * 2 fits the wider destination; stored result = 4294967294LL and overflow = 0.
+  all_expected_checks_fail = all_expected_checks_fail || (mul_res_15 != 4294967294LL);
+
+  all_expected_checks_fail = all_expected_checks_fail || (mul_ov_15 != 0);
+
+
   // Signed int multiplication overflow tests.
 
   int smul_res_1;
@@ -280,6 +288,24 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (smul_res_10 != 1);
 
   all_expected_checks_fail = all_expected_checks_fail || (smul_ov_10 != 0);
+
+
+  int smul_res_11;
+  int smul_ov_11 = __builtin_smul_overflow(2147483648LL, 1, &smul_res_11);
+
+  // The first argument converts to int before multiplication; the converted product fits.
+  all_expected_checks_fail = all_expected_checks_fail || (smul_res_11 != int_min);
+
+  all_expected_checks_fail = all_expected_checks_fail || (smul_ov_11 != 0);
+
+
+  int smul_res_12;
+  int smul_ov_12 = __builtin_smul_overflow(1, 2147483648LL, &smul_res_12);
+
+  // The second argument converts to INT_MIN before multiplication; the converted product fits.
+  all_expected_checks_fail = all_expected_checks_fail || (smul_res_12 != int_min);
+
+  all_expected_checks_fail = all_expected_checks_fail || (smul_ov_12 != 0);
 
 
   // Signed long int multiplication overflow tests.

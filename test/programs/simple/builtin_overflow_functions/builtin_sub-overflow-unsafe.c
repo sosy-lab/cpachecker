@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -186,6 +185,24 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (sub_ov_13 != 1);
 
 
+  long long int sub_res_14;
+  int sub_ov_14 = __builtin_sub_overflow(int_min, 1, &sub_res_14);
+
+  // -2147483648 - 1 fits the wider destination; stored result = -2147483649LL and overflow = 0.
+  all_expected_checks_fail = all_expected_checks_fail || (sub_res_14 != -2147483649LL);
+
+  all_expected_checks_fail = all_expected_checks_fail || (sub_ov_14 != 0);
+
+
+  int sub_res_15;
+  int sub_ov_15 = __builtin_sub_overflow(-2147483649LL, -100, &sub_res_15);
+
+  // The first operand is below int, but -2147483649LL - -100 fits the destination.
+  all_expected_checks_fail = all_expected_checks_fail || (sub_res_15 != -2147483549);
+
+  all_expected_checks_fail = all_expected_checks_fail || (sub_ov_15 != 0);
+
+
   // Signed int subtraction overflow tests.
 
   int ssub_res_1;
@@ -258,6 +275,15 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (ssub_res_8 != int_min);
 
   all_expected_checks_fail = all_expected_checks_fail || (ssub_ov_8 != 1);
+
+
+  int ssub_res_9;
+  int ssub_ov_9 = __builtin_ssub_overflow(2147483648LL, -100, &ssub_res_9);
+
+  // The first argument converts to int before subtraction; the converted difference fits.
+  all_expected_checks_fail = all_expected_checks_fail || (ssub_res_9 != -2147483548);
+
+  all_expected_checks_fail = all_expected_checks_fail || (ssub_ov_9 != 0);
 
 
   // Signed long int subtraction overflow tests.

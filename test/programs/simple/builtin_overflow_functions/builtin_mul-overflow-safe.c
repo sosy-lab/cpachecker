@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -199,6 +198,16 @@ int main(void) {
   __VERIFIER_assert(mul_uint_1_2_ov == 1);
 
 
+  long long int mul_int_max_2_wide_res;
+  int mul_int_max_2_wide_ov;
+  mul_int_max_2_wide_ov = __builtin_mul_overflow(int_max, 2, &mul_int_max_2_wide_res);
+
+  // 2147483647 * 2 fits the wider destination; stored result = 4294967294LL and overflow = 0.
+  __VERIFIER_assert(mul_int_max_2_wide_res == 4294967294LL);
+
+  __VERIFIER_assert(mul_int_max_2_wide_ov == 0);
+
+
   // Signed int multiplication overflow tests.
 
   int smul_0_0_res;
@@ -299,6 +308,26 @@ int main(void) {
   __VERIFIER_assert(smul_1_m1_res == 1);
 
   __VERIFIER_assert(smul_1_m1_ov == 0);
+
+
+  int smul_converted_res;
+  int smul_converted_ov;
+  smul_converted_ov = __builtin_smul_overflow(2147483648LL, 1, &smul_converted_res);
+
+  // The first argument converts to int before multiplication; the converted product fits.
+  __VERIFIER_assert(smul_converted_res == int_min);
+
+  __VERIFIER_assert(smul_converted_ov == 0);
+
+
+  int smul_converted_second_res;
+  int smul_converted_second_ov;
+  smul_converted_second_ov = __builtin_smul_overflow(1, 2147483648LL, &smul_converted_second_res);
+
+  // The second argument converts to INT_MIN before multiplication; the converted product fits.
+  __VERIFIER_assert(smul_converted_second_res == int_min);
+
+  __VERIFIER_assert(smul_converted_second_ov == 0);
   long int smull_0_0_res;
   int smull_0_0_ov;
   smull_0_0_ov = __builtin_smull_overflow(0L, 0L, &smull_0_0_res);

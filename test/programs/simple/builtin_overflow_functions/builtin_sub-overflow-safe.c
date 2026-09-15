@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -192,6 +191,26 @@ int main(void) {
   __VERIFIER_assert(sub_uint_1_0_ov == 1);
 
 
+  long long int sub_int_min_1_wide_res;
+  int sub_int_min_1_wide_ov;
+  sub_int_min_1_wide_ov = __builtin_sub_overflow(int_min, 1, &sub_int_min_1_wide_res);
+
+  // -2147483648 - 1 fits the wider destination; stored result = -2147483649LL and overflow = 0.
+  __VERIFIER_assert(sub_int_min_1_wide_res == -2147483649LL);
+
+  __VERIFIER_assert(sub_int_min_1_wide_ov == 0);
+
+
+  int sub_wide_back_in_range_res;
+  int sub_wide_back_in_range_ov;
+  sub_wide_back_in_range_ov = __builtin_sub_overflow(-2147483649LL, -100, &sub_wide_back_in_range_res);
+
+  // The first operand is below int, but -2147483649LL - -100 fits the destination.
+  __VERIFIER_assert(sub_wide_back_in_range_res == -2147483549);
+
+  __VERIFIER_assert(sub_wide_back_in_range_ov == 0);
+
+
   // Signed int subtraction overflow tests.
 
   int ssub_0_0_res;
@@ -272,6 +291,16 @@ int main(void) {
   __VERIFIER_assert(ssub_0_int_min_res == int_min);
 
   __VERIFIER_assert(ssub_0_int_min_ov == 1);
+
+
+  int ssub_converted_res;
+  int ssub_converted_ov;
+  ssub_converted_ov = __builtin_ssub_overflow(2147483648LL, -100, &ssub_converted_res);
+
+  // The first argument converts to int before subtraction; the converted difference fits.
+  __VERIFIER_assert(ssub_converted_res == -2147483548);
+
+  __VERIFIER_assert(ssub_converted_ov == 0);
   long int ssubl_0_0_res;
   int ssubl_0_0_ov;
   ssubl_0_0_ov = __builtin_ssubl_overflow(0L, 0L, &ssubl_0_0_res);
