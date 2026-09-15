@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -195,6 +194,24 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (add_ov_14 != 1);
 
 
+  long long int add_res_15;
+  int add_ov_15 = __builtin_add_overflow(int_max, 1, &add_res_15);
+
+  // 2147483647 + 1 fits the wider destination; stored result = 2147483648LL and overflow = 0.
+  all_expected_checks_fail = all_expected_checks_fail || (add_res_15 != 2147483648LL);
+
+  all_expected_checks_fail = all_expected_checks_fail || (add_ov_15 != 0);
+
+
+  int add_res_16;
+  int add_ov_16 = __builtin_add_overflow(2147483648LL, -100, &add_res_16);
+
+  // The first operand exceeds int, but 2147483648LL + -100 fits the destination.
+  all_expected_checks_fail = all_expected_checks_fail || (add_res_16 != 2147483548);
+
+  all_expected_checks_fail = all_expected_checks_fail || (add_ov_16 != 0);
+
+
   // Signed int addition overflow tests.
 
   int sadd_res_1;
@@ -258,6 +275,15 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (sadd_res_7 != int_max);
 
   all_expected_checks_fail = all_expected_checks_fail || (sadd_ov_7 != 1);
+
+
+  int sadd_res_8;
+  int sadd_ov_8 = __builtin_sadd_overflow(2147483648LL, -100, &sadd_res_8);
+
+  // GCC converts the first argument to INT_MIN; adding -100 overflows int.
+  all_expected_checks_fail = all_expected_checks_fail || (sadd_res_8 != 2147483548);
+
+  all_expected_checks_fail = all_expected_checks_fail || (sadd_ov_8 != 1);
 
 
   // Signed long int addition overflow tests.
@@ -535,6 +561,15 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (uaddl_res_6 != (~0UL) - 1UL);
 
   all_expected_checks_fail = all_expected_checks_fail || (uaddl_ov_6 != 1);
+
+
+  unsigned long int uaddl_res_7;
+  int uaddl_ov_7 = __builtin_uaddl_overflow(4294967295UL, -1, &uaddl_res_7);
+
+  // -1 converts to unsigned long before addition; the stored result is 4294967294UL.
+  all_expected_checks_fail = all_expected_checks_fail || (uaddl_res_7 != 4294967294UL);
+
+  all_expected_checks_fail = all_expected_checks_fail || (uaddl_ov_7 != 1);
 
 
   // Unsigned long long int addition overflow tests.

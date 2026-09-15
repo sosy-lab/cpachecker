@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -202,6 +201,26 @@ int main(void) {
   __VERIFIER_assert(add_int_ull_max_0_ov == 1);
 
 
+  long long int add_int_max_1_wide_res;
+  int add_int_max_1_wide_ov;
+  add_int_max_1_wide_ov = __builtin_add_overflow(int_max, 1, &add_int_max_1_wide_res);
+
+  // 2147483647 + 1 fits the wider destination; stored result = 2147483648LL and overflow = 0.
+  __VERIFIER_assert(add_int_max_1_wide_res == 2147483648LL);
+
+  __VERIFIER_assert(add_int_max_1_wide_ov == 0);
+
+
+  int add_wide_back_in_range_res;
+  int add_wide_back_in_range_ov;
+  add_wide_back_in_range_ov = __builtin_add_overflow(2147483648LL, -100, &add_wide_back_in_range_res);
+
+  // The first operand exceeds int, but 2147483648LL + -100 fits the destination.
+  __VERIFIER_assert(add_wide_back_in_range_res == 2147483548);
+
+  __VERIFIER_assert(add_wide_back_in_range_ov == 0);
+
+
   // Signed int addition overflow tests.
 
   int sadd_0_0_res;
@@ -272,6 +291,16 @@ int main(void) {
   __VERIFIER_assert(sadd_min_m1_res == int_max);
 
   __VERIFIER_assert(sadd_min_m1_ov == 1);
+
+
+  int sadd_converted_res;
+  int sadd_converted_ov;
+  sadd_converted_ov = __builtin_sadd_overflow(2147483648LL, -100, &sadd_converted_res);
+
+  // GCC converts the first argument to INT_MIN; adding -100 overflows int.
+  __VERIFIER_assert(sadd_converted_res == 2147483548);
+
+  __VERIFIER_assert(sadd_converted_ov == 1);
   long int saddl_0_0_res;
   int saddl_0_0_ov;
   saddl_0_0_ov = __builtin_saddl_overflow(0L, 0L, &saddl_0_0_res);
@@ -557,6 +586,16 @@ int main(void) {
   __VERIFIER_assert(uaddl_max_max_res == (~0UL) - 1UL);
 
   __VERIFIER_assert(uaddl_max_max_ov == 1);
+
+
+  unsigned long int uaddl_negative_int_res;
+  int uaddl_negative_int_ov;
+  uaddl_negative_int_ov = __builtin_uaddl_overflow(4294967295UL, -1, &uaddl_negative_int_res);
+
+  // -1 converts to unsigned long before addition; the stored result is 4294967294UL.
+  __VERIFIER_assert(uaddl_negative_int_res == 4294967294UL);
+
+  __VERIFIER_assert(uaddl_negative_int_ov == 1);
 
 
   // Unsigned long long int addition overflow tests.
