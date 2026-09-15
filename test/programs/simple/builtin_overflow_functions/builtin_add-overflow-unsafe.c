@@ -43,10 +43,11 @@ int main(void) {
   const unsigned char uchar_max = 255U;
   const short int short_min = -32768;
   const short int short_max = 32767;
-  const int int_min = (-2147483647 - 1);
+  const int int_min = -2147483648LL;
   const int int_max = 2147483647;
   const unsigned int uint_max = 4294967295U;
-  const long long int ll_min = (-9223372036854775807LL - 1LL);
+  // GCC converts the explicit unsigned sign-bit value to LLONG_MIN.
+  const long long int ll_min = (long long int)9223372036854775808ULL;
   const long long int ll_max = 9223372036854775807LL;
   const unsigned long long int ull_max = 18446744073709551615ULL;
 
@@ -70,13 +71,14 @@ int main(void) {
 
   // Generic addition overflow tests.
 
-  const unsigned long int add_ulong_max = ~0UL;
+  const unsigned long int add_ulong_max = sizeof(long int) == 4U ? 4294967295UL : 18446744073709551615UL;
 
 
-  const long int add_long_max = (long int)((~0UL) >> 1);
+  const long int add_long_max = sizeof(long int) == 4U ? 2147483647L : 9223372036854775807L;
 
 
-  const long int add_long_min = (-((long int)((~0UL) >> 1)) - 1L);
+  // GCC's unsigned-to-signed conversion gives LONG_MIN for the explicit sign-bit value.
+  const long int add_long_min = sizeof(long int) == 4U ? (long int)2147483648UL : (long int)9223372036854775808UL;
 
 
   signed char add_res_1;
@@ -305,10 +307,10 @@ int main(void) {
   // Signed long int addition overflow tests.
 
 
-  const long int saddl_max = (long int)((~0UL) >> 1);
+  const long int saddl_max = add_long_max;
 
 
-  const long int saddl_min = (-((long int)((~0UL) >> 1)) - 1L);
+  const long int saddl_min = add_long_min;
 
 
   long int saddl_res_1;
@@ -348,7 +350,7 @@ int main(void) {
   // ILP32: 2147483647L + -1L = 2147483646, which fits the destination range; stored result = 2147483646L and overflow = 0.
   // LP64: 9223372036854775807L + -1L = 9223372036854775806, which fits the destination range; stored result = 9223372036854775806L and
   // overflow = 0.
-  all_expected_checks_fail = all_expected_checks_fail || (saddl_res_4 != ((long int)((~0UL) >> 1)) - 1L);
+  all_expected_checks_fail = all_expected_checks_fail || (saddl_res_4 != saddl_max - 1L);
 
   all_expected_checks_fail = all_expected_checks_fail || (saddl_ov_4 != 0);
 
@@ -358,7 +360,7 @@ int main(void) {
 
   // ILP32: saddl_min + 1L = saddl_min + 1L, which fits the destination range; stored result = -2147483647L and overflow = 0.
   // LP64: saddl_min + 1L = saddl_min + 1L, which fits the destination range; stored result = -9223372036854775807L and overflow = 0.
-  all_expected_checks_fail = all_expected_checks_fail || (saddl_res_5 != ((-((long int)((~0UL) >> 1)) - 1L)) + 1L);
+  all_expected_checks_fail = all_expected_checks_fail || (saddl_res_5 != saddl_min + 1L);
 
   all_expected_checks_fail = all_expected_checks_fail || (saddl_ov_5 != 0);
 
@@ -514,7 +516,7 @@ int main(void) {
 
   // Unsigned long int addition overflow tests.
 
-  const unsigned long int uaddl_max = ~0UL;
+  const unsigned long int uaddl_max = add_ulong_max;
 
 
   unsigned long int uaddl_res_1;
@@ -538,7 +540,7 @@ int main(void) {
 
 
   unsigned long int uaddl_res_3;
-  int uaddl_ov_3 = __builtin_uaddl_overflow((~0UL) - 1UL, 1UL, &uaddl_res_3);
+  int uaddl_ov_3 = __builtin_uaddl_overflow(uaddl_max - 1UL, 1UL, &uaddl_res_3);
 
   // ILP32: 4294967294UL + 1UL = 4294967295, which fits the destination range; stored result = 4294967295UL and overflow = 0.
   // LP64: 18446744073709551614UL + 1UL = 18446744073709551615, which fits the destination range; stored result = 18446744073709551615UL and
@@ -574,7 +576,7 @@ int main(void) {
   // ILP32: 4294967295UL + 4294967295UL = 8589934590, outside the destination range; stored result = 4294967294UL and overflow = 1.
   // LP64: 18446744073709551615UL + 18446744073709551615UL = 36893488147419103230, outside the destination range; stored result =
   // 18446744073709551614UL and overflow = 1.
-  all_expected_checks_fail = all_expected_checks_fail || (uaddl_res_6 != (~0UL) - 1UL);
+  all_expected_checks_fail = all_expected_checks_fail || (uaddl_res_6 != uaddl_max - 1UL);
 
   all_expected_checks_fail = all_expected_checks_fail || (uaddl_ov_6 != 1);
 

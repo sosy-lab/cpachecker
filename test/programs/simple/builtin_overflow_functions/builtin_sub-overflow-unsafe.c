@@ -28,10 +28,11 @@ int main(void) {
   const short int short_min = -32768;
   const short int short_max = 32767;
   const unsigned short int ushort_max = 65535U;
-  const int int_min = (-2147483647 - 1);
+  const int int_min = -2147483648LL;
   const int int_max = 2147483647;
   const unsigned int uint_max = 4294967295U;
-  const long long int ll_min = (-9223372036854775807LL - 1LL);
+  // GCC converts the explicit unsigned sign-bit value to LLONG_MIN.
+  const long long int ll_min = (long long int)9223372036854775808ULL;
   const long long int ll_max = 9223372036854775807LL;
   const unsigned long long int ull_max = 18446744073709551615ULL;
 
@@ -55,13 +56,14 @@ int main(void) {
 
   // Generic subtraction overflow tests.
 
-  const unsigned long int sub_ulong_max = ~0UL;
+  const unsigned long int sub_ulong_max = sizeof(long int) == 4U ? 4294967295UL : 18446744073709551615UL;
 
 
-  const long int sub_long_max = (long int)((~0UL) >> 1);
+  const long int sub_long_max = sizeof(long int) == 4U ? 2147483647L : 9223372036854775807L;
 
 
-  const long int sub_long_min = (-((long int)((~0UL) >> 1)) - 1L);
+  // GCC's unsigned-to-signed conversion gives LONG_MIN for the explicit sign-bit value.
+  const long int sub_long_min = sizeof(long int) == 4U ? (long int)2147483648UL : (long int)9223372036854775808UL;
 
 
   signed char sub_res_1;
@@ -289,10 +291,10 @@ int main(void) {
   // Signed long int subtraction overflow tests.
 
 
-  const long int ssubl_max = (long int)((~0UL) >> 1);
+  const long int ssubl_max = sub_long_max;
 
 
-  const long int ssubl_min = (-((long int)((~0UL) >> 1)) - 1L);
+  const long int ssubl_min = sub_long_min;
 
 
   long int ssubl_res_1;
@@ -332,7 +334,7 @@ int main(void) {
   // ILP32: -2147483648L - -1L = -2147483647, which fits the destination range; stored result = -2147483647L and overflow = 0.
   // LP64: -9223372036854775808L - -1L = -9223372036854775807, which fits the destination range; stored result = -9223372036854775807L and
   // overflow = 0.
-  all_expected_checks_fail = all_expected_checks_fail || (ssubl_res_4 != ((-((long int)((~0UL) >> 1)) - 1L)) + 1L);
+  all_expected_checks_fail = all_expected_checks_fail || (ssubl_res_4 != ssubl_min + 1L);
 
   all_expected_checks_fail = all_expected_checks_fail || (ssubl_ov_4 != 0);
 
@@ -342,7 +344,7 @@ int main(void) {
 
   // ILP32: ssubl_max - 1L = ssubl_max - 1L, which fits the destination range; stored result = 2147483646L and overflow = 0.
   // LP64: ssubl_max - 1L = ssubl_max - 1L, which fits the destination range; stored result = 9223372036854775806L and overflow = 0.
-  all_expected_checks_fail = all_expected_checks_fail || (ssubl_res_5 != ((long int)((~0UL) >> 1)) - 1L);
+  all_expected_checks_fail = all_expected_checks_fail || (ssubl_res_5 != ssubl_max - 1L);
 
   all_expected_checks_fail = all_expected_checks_fail || (ssubl_ov_5 != 0);
 
@@ -528,7 +530,7 @@ int main(void) {
 
   // Unsigned long int subtraction overflow tests.
 
-  const unsigned long int usubl_max = ~0UL;
+  const unsigned long int usubl_max = sub_ulong_max;
 
 
   unsigned long int usubl_res_1;
