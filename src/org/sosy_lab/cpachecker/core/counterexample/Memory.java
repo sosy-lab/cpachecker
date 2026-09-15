@@ -52,7 +52,7 @@ public class Memory {
    * Return the value stored at the given address.
    *
    * @param address the address
-   * @return Returns the value stored at the given address.
+   * @return the value stored at the given address.
    */
   public Object getValue(Address address) {
     Preconditions.checkArgument(hasValue(address));

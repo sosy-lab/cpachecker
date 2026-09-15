@@ -12,8 +12,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,36 +49,41 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
-    boolean nextHasOverflow = prev.nextHasOverflow();
-    int leavingEdgesOfNextState = cfaEdge.getSuccessor().getNumLeavingEdges();
-    Set<CExpression> assumptions;
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
-    if (leavingEdgesOfNextState == 0) {
-      return ImmutableList.of(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));
-    }
+    for (CFAEdge nextEdge : cfaEdge.getSuccessor().getLeavingEdges()) {
+      Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(nextEdge);
 
-    for (int i = 0; i < leavingEdgesOfNextState; i++) {
-      assumptions =
-          noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
-
-      if (assumptions.isEmpty()) {
-        outStates.add(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));
-        continue;
+      ImmutableSet.Builder<CExpression> logicalAssumptions = ImmutableSet.builder();
+      for (CExpression assumption : assumptions) {
+        if (!(assumption instanceof CBinaryExpression binExpr)
+            || !binExpr.getOperator().isLogicalOperator()) {
+          // Transform into logical expr
+          logicalAssumptions.add(mkLogical(assumption));
+        } else {
+          logicalAssumptions.add(assumption);
+        }
       }
+      assumptions = logicalAssumptions.build();
 
       for (CExpression assumption : assumptions) {
         outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, prev));
       }
 
       // No overflows <=> all assumptions hold.
-      outStates.add(new OverflowState(assumptions, nextHasOverflow, prev));
+      outStates.add(new OverflowState(assumptions, prev.nextHasOverflow(), prev));
     }
 
     return outStates.build();
   }
 
-  private CExpression mkNot(CExpression arg) {
+  private CBinaryExpression mkLogical(CExpression expr) throws UnrecognizedCodeException {
+    return mkNot(
+        expressionBuilder.buildBinaryExpression(
+            CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS));
+  }
+
+  private CBinaryExpression mkNot(CExpression arg) {
     try {
       return expressionBuilder.negateExpressionAndSimplify(arg);
     } catch (UnrecognizedCodeException e) {

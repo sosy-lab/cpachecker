@@ -65,7 +65,7 @@ class BasicBlock {
   }
 
   public void write(Object pStatement) {
-    if (!(pStatement instanceof String) || !((String) pStatement).isEmpty()) {
+    if (!(pStatement instanceof String string) || !string.isEmpty()) {
       codeList.add(pStatement);
     }
   }
@@ -75,13 +75,13 @@ class BasicBlock {
   }
 
   /**
-   * This method checks whether or nor the given declaration is already part of this block.
+   * This method checks whether the given declaration is already part of this block.
    *
    * <p>This is needed, as some tools (e.g. llbmc, i.e. clang) do not allow re-declaration of a
    * previously declared variable.
    *
    * @param declarationEdge the edge to check
-   * @return true, if the given declaration is already part of this block, else false
+   * @return whether the given declaration is already part of this block
    */
   boolean hasDeclaration(ADeclarationEdge declarationEdge) {
     return declarations.contains(declarationEdge);
@@ -103,11 +103,11 @@ class BasicBlock {
     for (Object obj : codeList) {
       // check whether we have a simple statement
       // or a conditional statement
-      if (obj instanceof String) {
+      if (obj instanceof String string) {
         ret.append(indent);
-        ret.append((String) obj);
-      } else if (obj instanceof BasicBlock) {
-        ret.append(((BasicBlock) obj).getCode(indent));
+        ret.append(string);
+      } else if (obj instanceof BasicBlock basicBlock) {
+        ret.append(basicBlock.getCode(indent));
       } else {
         throw new AssertionError();
       }

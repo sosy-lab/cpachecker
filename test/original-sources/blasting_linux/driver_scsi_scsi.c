@@ -1,13 +1,12 @@
+// Copyright (C) 1992 Drew Eckhardt <drew@colorado.edu>
+// Copyright (C) 1993, 1994, 1995, 1999 Eric Youngdale
+// Copyright (C) 2002, 2003 Christoph Hellwig
+//
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- *  scsi.c Copyright (C) 1992 Drew Eckhardt
- *         Copyright (C) 1993, 1994, 1995, 1999 Eric Youngdale
- *         Copyright (C) 2002, 2003 Christoph Hellwig
- *
  *  generic mid-level SCSI driver
  *      Initial versions: Drew Eckhardt
  *      Subsequent revisions: Eric Youngdale
- *
- *  <drew@colorado.edu>
  *
  *  Bug correction thanks go to :
  *      Rik Faith <faith@cs.unc.edu>

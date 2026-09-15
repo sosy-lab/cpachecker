@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
+import java.io.Serial;
+
 public class InvalidCounterexampleException extends Exception {
 
-  private static final long serialVersionUID = 3730137043150121319L;
+  @Serial private static final long serialVersionUID = 3730137043150121319L;
 
   public InvalidCounterexampleException(String pReason) {
     super(pReason);

@@ -18,23 +18,19 @@ import os
 import platform
 import random
 import re
+import ssl
 import tempfile
 import threading
-import ssl
+import urllib.parse
 import zipfile
 import zlib
-
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from getpass import getpass
-from time import sleep
-from time import time
+from time import sleep, time
 
 import requests
-from requests import HTTPError
-import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
-from concurrent.futures import Future
 from benchexec.util import get_files
+from requests import HTTPError
 
 try:
     import sseclient  # @UnresolvedImport
@@ -48,20 +44,20 @@ This module provides helpers for accessing the web interface of the VerifierClou
 """
 
 __all__ = [
-    "WebClientError",
+    "CORELIMIT",
+    "MEMLIMIT",
+    "RESULT_FILE_HOST_INFO",
+    "RESULT_FILE_LOG",
+    "RESULT_FILE_RUN_DESCRIPTION",
+    "RESULT_FILE_RUN_INFO",
+    "RESULT_FILE_STDERR",
+    "SOFTTIMELIMIT",
+    "SPECIAL_RESULT_FILES",
+    "TIMELIMIT",
     "UserAbortError",
+    "WebClientError",
     "WebInterface",
     "handle_result",
-    "MEMLIMIT",
-    "TIMELIMIT",
-    "SOFTTIMELIMIT",
-    "CORELIMIT",
-    "RESULT_FILE_LOG",
-    "RESULT_FILE_STDERR",
-    "RESULT_FILE_RUN_INFO",
-    "RESULT_FILE_HOST_INFO",
-    "RESULT_FILE_RUN_DESCRIPTION",
-    "SPECIAL_RESULT_FILES",
 ]
 
 MEMLIMIT = "memlimit"
@@ -136,7 +132,7 @@ class PollingResultDownloader:
             states = {}
 
             with self._web_interface._unfinished_runs_lock:
-                for run_id in self._web_interface._unfinished_runs.keys():
+                for run_id in self._web_interface._unfinished_runs:
                     state_future = self._state_poll_executor.submit(
                         self._web_interface._is_finished, run_id
                     )
@@ -214,9 +210,9 @@ if HAS_SSECLIENT:
                     and str(e) == "'NoneType' object has no attribute 'read'"
                 ):
                     # This is harmless, it occurs because SSEClient reads on closed connection.
-                    logging.debug("Error during result processing:", exc_info=True)
+                    logging.debug("Error during result processing:", exc_info=True)  # noqa: LOG014 TODO unclear whether exc_info does something
                 else:
-                    logging.warning("Error during result processing:", exc_info=True)
+                    logging.warning("Error during result processing:", exc_info=True)  # noqa: LOG014 TODO unclear whether exc_info does something
 
                 if not self._shutdown:
                     self._fall_back()
@@ -260,7 +256,7 @@ if HAS_SSECLIENT:
                         data=params,
                     )
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 TODO more specific type
                     logging.warning("Creating SSE connection failed: %s", e)
                     self._fall_back()
                     return
@@ -347,14 +343,14 @@ class RunResultFuture(Future):
 
 class WebInterface:
     """
-    The WebInterface is a executor like class for the submission of runs to the VerifierCloud
+    The WebInterface is an executor like class for the submission of runs to the VerifierCloud
     """
 
     def __init__(
         self,
         web_interface_url,
         user_pwd,
-        revision="trunk:HEAD",
+        revision="main:HEAD",
         thread_count=1,
         result_poll_interval=2,
         user_agent=None,
@@ -365,7 +361,7 @@ class WebInterface:
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
         @param web_interface_url: the base URL of the VerifierCloud's web interface
         @param user_pwd: user name (and password) in the format '<user_name>[:<password>]' or none if no authentification is required
-        @param revision: the svn revision string, defaults to 'trunk:HEAD'
+        @param revision: the svn revision string, defaults to 'main:HEAD'
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
         """
@@ -375,27 +371,19 @@ class WebInterface:
 
         if not (1 <= thread_count <= MAX_SUBMISSION_THREADS):
             sys.exit(
-                "Invalid number {} of client threads, needs to be between 1 and {}.".format(
-                    thread_count, MAX_SUBMISSION_THREADS
-                )
+                f"Invalid number {thread_count} of client threads, needs to be between 1 and {MAX_SUBMISSION_THREADS}."
             )
         if not 1 <= result_poll_interval:
             sys.exit(
-                "Poll interval {} is too small, needs to be at least 1s.".format(
-                    result_poll_interval
-                )
+                f"Poll interval {result_poll_interval} is too small, needs to be at least 1s."
             )
-        if not web_interface_url[-1] == "/":
+        if web_interface_url[-1] != "/":
             web_interface_url += "/"
 
         default_headers = {"Connection": "Keep-Alive"}
         if user_agent:
-            default_headers["User-Agent"] = "{}/{} (Python/{} {}/{})".format(
-                user_agent,
-                version,
-                platform.python_version(),
-                platform.system(),
-                platform.release(),
+            default_headers["User-Agent"] = (
+                f"{user_agent}/{version} (Python/{platform.python_version()} {platform.system()}/{platform.release()})"
             )
 
         urllib.parse.urlparse(web_interface_url)  # sanity check
@@ -428,10 +416,11 @@ class WebInterface:
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
         self._hash_code_cache = {}
-        self._group_id = str(random.randint(0, 1000000))  # noqa: S311
+        self._group_id = str(random.randint(0, 1000000))
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
+        self._print_banner()
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -464,7 +453,7 @@ class WebInterface:
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
             return
 
-        with open(HASH_CODE_CACHE_PATH, mode="r") as hashCodeCacheFile:
+        with open(HASH_CODE_CACHE_PATH) as hashCodeCacheFile:
             for line in hashCodeCacheFile:
                 tokens = line.strip().split("\t")
                 if len(tokens) == 3:
@@ -517,6 +506,21 @@ class WebInterface:
 
     def tool_name(self):
         return self._tool_name
+
+    def _print_banner(self):
+        try:
+            (banner, _) = self._request(
+                "GET", "master/banner", headers={"Accept": "text/plain"}
+            )
+            banner_text = banner.decode("UTF-8").strip()
+            if banner_text:
+                print("\n=== BenchCloud Maintenance Info ===")
+                print(banner_text)
+                print("===================================\n")
+                sleep(10)
+
+        except Exception as e:  # noqa: BLE001 TODO more specific type
+            logging.debug("Could not fetch banner: %s", e)
 
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
@@ -580,9 +584,7 @@ class WebInterface:
             run_id = response.decode("UTF-8")
         except UnicodeDecodeError as e:
             raise WebClientError(
-                "Malformed response from server while submitting witness-validation run:\n{}".format(
-                    response
-                )
+                f"Malformed response from server while submitting witness-validation run:\n{response}"
             ) from e
         logging.debug("Submitted witness validation run with id %s", run_id)
 
@@ -706,9 +708,7 @@ class WebInterface:
         opened_files.extend(files)
         if invalidOption:
             raise WebClientError(
-                'Command {0}  contains option "{1}" that is not usable with the webclient. '.format(
-                    run.options, invalidOption
-                )
+                f'Command {run.options}  contains option "{invalidOption}" that is not usable with the webclient. '
             )
 
         params.append(("groupId", str(self._group_id)))
@@ -734,9 +734,7 @@ class WebInterface:
         if statusCode == 412:
             if counter >= 1:
                 raise WebClientError(
-                    "Files still missing on server for run {0} even after uploading them:\n{1}".format(
-                        run.identifier, response
-                    )
+                    f"Files still missing on server for run {run.identifier} even after uploading them:\n{response}"
                 )
             headers = {
                 "Content-Type": "application/octet-stream",
@@ -789,15 +787,11 @@ class WebInterface:
                 run_id = response.decode("UTF-8")
             except UnicodeDecodeError as e:
                 raise WebClientError(
-                    "Malformed response from server while submitting run {0}:\n{1}".format(
-                        run.identifier, response
-                    )
+                    f"Malformed response from server while submitting run {run.identifier}:\n{response}"
                 ) from e
             if not VALID_RUN_ID.match(run_id):
                 raise WebClientError(
-                    "Malformed response from server while submitting run {0}:\n{1}".format(
-                        run.identifier, run_id
-                    )
+                    f"Malformed response from server while submitting run {run.identifier}:\n{run_id}"
                 )
             logging.debug("Submitted run with id %s", run_id)
             return self._create_and_add_run_future(run_id)
@@ -806,7 +800,7 @@ class WebInterface:
         opened_files = []
         config = None
 
-        # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
+        # TODO use code from CPAchecker module, it add --stats and sets --timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
             params.append(("option", "statistics.print=true"))
@@ -829,9 +823,7 @@ class WebInterface:
                         )
                     else:
                         raise WebClientError(
-                            "Unsupported data_model '{}' defined for task '{}'".format(
-                                data_model, run.identifier
-                            )
+                            f"Unsupported data_model '{data_model}' defined for task '{run.identifier}'"
                         )
 
         if run.options:
@@ -843,36 +835,39 @@ class WebInterface:
                     if len(option) == 0:
                         continue
 
-                    if option == "-heap":
+                    if option in ["--heap", "-heap"]:
                         params.append(("heap", next(i)))
-                    elif option == "-stack":
+                    elif option in ["--stack", "-stack"]:
                         params.append(("stack", next(i)))
 
-                    elif option == "-noout":
+                    elif option in ["--no-output-files", "-noout"]:
                         params.append(("option", "output.disable=true"))
-                    elif option == "-outputpath":
+                    elif option in ["--output-path", "-outputpath"]:
                         params.append(("option", "output.path=" + next(i)))
                     elif option == "-logfile":
                         params.append(("option", "log.file=" + next(i)))
                     elif option == "-nolog":
                         params.append(("option", "log.level=OFF"))
                         params.append(("option", "log.consoleLevel=OFF"))
-                    elif option == "-stats":
+                    elif option in ["--stats", "-stats"]:
                         # ignore, is always set by this script
                         pass
-                    elif option == "-disable-java-assertions":
+                    elif option in [
+                        "--disable-java-assertions",
+                        "-disable-java-assertions",
+                    ]:
                         disableAssertions = True
-                    elif option == "-java":
+                    elif option in ["--java", "-java"]:
                         params.append(("option", "language=JAVA"))
-                    elif option == "-32":
+                    elif option in ["--32", "-32"]:
                         params.append(("option", "analysis.machineModel=Linux32"))
-                    elif option == "-64":
+                    elif option in ["--64", "-64"]:
                         params.append(("option", "analysis.machineModel=Linux64"))
-                    elif option == "-entryfunction":
+                    elif option in ["--entry-function", "-entryfunction"]:
                         params.append(("option", "analysis.entryFunction=" + next(i)))
-                    elif option == "-timelimit":
+                    elif option in ["--timelimit", "-timelimit"]:
                         params.append(("option", "limits.time.cpu=" + next(i)))
-                    elif option == "-skipRecursion":
+                    elif option in ["--skip-recursion", "-skipRecursion"]:
                         params.append(("option", "cpa.callstack.skipRecursion=true"))
                         params.append(("option", "analysis.summaryEdges=true"))
                     elif option == "-cbmc":
@@ -880,23 +875,23 @@ class WebInterface:
                         params.append(("option", "counterexample.checker=CBMC"))
                     elif option == "-clang":
                         params.append(("option", "parser.useClang=true"))
-                    elif option == "-preprocess":
+                    elif option in ["--preprocess", "-preprocess"]:
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(("generateReport", "true"))
-                    elif option == "-sourcepath":
+                    elif option in ["--source-path", "-sourcepath"]:
                         params.append(("option", "java.sourcepath=" + next(i)))
-                    elif option in ["-cp", "-classpath"]:
+                    elif option in ["--class-path", "-cp", "-classpath"]:
                         params.append(("option", "java.classpath=" + next(i)))
 
-                    elif option == "-spec":
+                    elif option in ["--spec", "-spec"]:
                         spec_path = next(i)
                         spec_file = self._add_file_to_params(
                             params, "specificationText", spec_path
                         )
                         opened_files.append(spec_file)
 
-                    elif option == "-config":
+                    elif option in ["--config", "-c", "-config"]:
                         configPath = next(i)
                         tokens = configPath.split("/")
                         if tokens[0] == "config" and len(tokens) == 2:
@@ -907,24 +902,35 @@ class WebInterface:
                                 ("option", "configuration.file=" + configPath)
                             )
 
-                    elif option == "-setprop":
+                    elif option in ["--option", "-setprop"]:
                         params.append(("option", next(i)))
 
-                    elif option == "-benchmark":
-                        params.append(("option", "coverage.enabled=true"))
+                    elif option in ["--benchmark", "-benchmark"]:
+                        params.append(("option", "coverage.enabled=false"))
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"))
                         disableAssertions = True
+
+                    elif option in ["--witness", "-witness"]:
+                        witness_path = next(i)
+
+                        # upload witness file
+                        witness_file = self._add_file_to_params(
+                            params, "witnessText", witness_path
+                        )
+                        opened_files.append(witness_file)
+
                     elif option[0] == "-":
                         if config:
                             raise WebClientError(
-                                "More than one configuration: '{}' and '{}'".format(
-                                    config, option[1:]
-                                )
+                                f"More than one configuration: '{config}' and '{option[1:]}'"
                             )
                         else:
-                            params.append(("configuration", option[1:]))
-                            config = option[1:]
+                            if option[1] == "-":
+                                config = option[2:]
+                            else:
+                                config = option[1:]
+                            params.append(("configuration", config))
                     else:
                         return (option, opened_files)
 
@@ -938,7 +944,7 @@ class WebInterface:
 
     def _add_file_to_params(self, params, name, path):
         norm_path = self._normalize_path_for_cloud(path)
-        opened_file = open(path, "rb")
+        opened_file = open(path, "rb")  # noqa: SIM115
         params.append((name, (norm_path, opened_file)))
         return opened_file
 
@@ -1061,7 +1067,7 @@ class WebInterface:
             error_msg = getErrorForRun(run_id)
             logging.warning("Execution of run %s failed. Error(%s)", run_id, error_msg)
             run_result_future.set_exception(
-                WebClientError("Execution failed. Error({})".format(error_msg))
+                WebClientError(f"Execution failed. Error({error_msg})")
             )
 
     def shutdown(self):
@@ -1076,7 +1082,7 @@ class WebInterface:
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
             stop_tasks = set()
             with self._unfinished_runs_lock:
-                for runId in self._unfinished_runs.keys():
+                for runId in self._unfinished_runs:
                     stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                     self._unfinished_runs[runId].set_exception(
                         UserAbortError(
@@ -1273,7 +1279,7 @@ def handle_result(
             with open(output_path + ".zip", "wb") as zip_file:
                 zip_file.write(zip_content)
 
-    except IOError as e:
+    except OSError as e:
         logging.warning("Error while writing results of run %s: %s", run_identifier, e)
 
     return return_value
@@ -1308,10 +1314,12 @@ def _handle_result(
 
     # extract log file
     if RESULT_FILE_LOG in files:
-        with open_output_log(output_path) as log_file:
-            with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
-                for line in result_log_file:
-                    log_file.write(line)
+        with (
+            open_output_log(output_path) as log_file,
+            resultZipFile.open(RESULT_FILE_LOG) as result_log_file,
+        ):
+            for line in result_log_file:
+                log_file.write(line)
     else:
         logging.warning("Missing log file for run %s.", run_identifier)
 

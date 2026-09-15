@@ -82,9 +82,7 @@ public class TestVector {
     checkState(
         inputValues.size()
             == inputVariableValues.size()
-                + inputFunctionValues.values().stream()
-                    .map(ImmutableList::size)
-                    .reduce(0, (x, y) -> x + y));
+                + inputFunctionValues.values().stream().mapToInt(ImmutableList::size).sum());
     return inputValues;
   }
 
@@ -175,7 +173,7 @@ public class TestVector {
 
     private final AFunctionDeclaration declaration;
 
-    public ComparableFunctionDeclaration(AFunctionDeclaration pDeclaration) {
+    ComparableFunctionDeclaration(AFunctionDeclaration pDeclaration) {
       declaration = Objects.requireNonNull(pDeclaration);
     }
 
@@ -203,8 +201,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      return pObj instanceof ComparableFunctionDeclaration
-          && declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
+      return pObj instanceof ComparableFunctionDeclaration comparableFunctionDeclaration
+          && declaration.equals(comparableFunctionDeclaration.declaration);
     }
 
     @Override
@@ -223,7 +221,7 @@ public class TestVector {
 
     private final AVariableDeclaration declaration;
 
-    public ComparableVariableDeclaration(AVariableDeclaration pDeclaration) {
+    ComparableVariableDeclaration(AVariableDeclaration pDeclaration) {
       declaration = Objects.requireNonNull(pDeclaration);
     }
 
@@ -247,8 +245,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      return pObj instanceof ComparableVariableDeclaration
-          && declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
+      return pObj instanceof ComparableVariableDeclaration comparableVariableDeclaration
+          && declaration.equals(comparableVariableDeclaration.declaration);
     }
 
     @Override

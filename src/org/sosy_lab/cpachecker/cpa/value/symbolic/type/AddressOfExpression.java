@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -15,7 +18,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Representation of ampersand expression in C. Example: <code>int a; int b = &a</code> */
 public final class AddressOfExpression extends UnarySymbolicExpression {
 
-  private static final long serialVersionUID = -4583179464566332040L;
+  @Serial private static final long serialVersionUID = -4583179464566332040L;
 
   AddressOfExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
@@ -31,6 +34,22 @@ public final class AddressOfExpression extends UnarySymbolicExpression {
   AddressOfExpression(
       final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
     super(pOperand, pType, pAbstractState);
+  }
+
+  /**
+   * Expressions with operands based on {@link PointerExpression}s are simplified automatically
+   * (i.e. &*p == p).
+   */
+  public static SymbolicExpression of(SymbolicExpression pOperand, Type pType) {
+    checkNotNull(pOperand);
+
+    // &*a = a
+    if (pOperand instanceof PointerExpression pointerExpression) {
+      return pointerExpression.getOperand();
+
+    } else {
+      return new AddressOfExpression(pOperand, getCanonicalType(pType));
+    }
   }
 
   @Override

@@ -10,18 +10,21 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 /**
@@ -31,19 +34,21 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
  * <p>Note that whenever a new state is created, this represents a new, unique, entry of a function.
  * Two separate entries of the same function are not considered equal, even if the function names
  * and call nodes of the two callstacks match. Cf. {@link
- * CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example. (Because of this this
+ * CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example. (Because of this, this
  * class must inherit the identity-based {@link #equals(Object)} and {@link #hashCode()} from
  * Object.)
  */
 public class CallstackState
     implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
-  private static final long serialVersionUID = 3629687385150064994L;
+  @Serial private static final long serialVersionUID = 3629687385150064994L;
 
   protected final @Nullable CallstackState previousState;
   protected final String currentFunction;
   protected transient CFANode callerNode;
   private final int depth;
+
+  private @LazyInit Boolean isNormalFunctionCall = null;
 
   public CallstackState(
       @Nullable CallstackState pPreviousElement,
@@ -59,6 +64,18 @@ public class CallstackState
     } else {
       depth = pPreviousElement.getDepth() + 1;
     }
+  }
+
+  public boolean isNormalFunctionCall() {
+    // Lazy initialization to avoid unnecessary computation
+    if (isNormalFunctionCall == null) {
+      isNormalFunctionCall =
+          CFAUtils.successorsOf(getCallNode())
+              .filter(FunctionEntryNode.class)
+              .transform(CFANode::getFunctionName)
+              .contains(getCurrentFunction());
+    }
+    return isNormalFunctionCall;
   }
 
   public CallstackState getPreviousState() {
@@ -85,7 +102,7 @@ public class CallstackState
       stack.add(state.getCurrentFunction());
       state = state.getPreviousState();
     }
-    return Lists.reverse(stack);
+    return stack.reversed();
   }
 
   @Override
@@ -102,7 +119,7 @@ public class CallstackState
         + ", stack depth "
         + getDepth()
         + " ["
-        + Integer.toHexString(super.hashCode())
+        + Integer.toHexString(System.identityHashCode(this))
         + "], stack "
         + getStack();
   }
@@ -137,11 +154,13 @@ public class CallstackState
             "Evaluating %s not supported by %s", pProperty, getClass().getCanonicalName()));
   }
 
+  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(callerNode.getNodeNumber());
   }
 
+  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();

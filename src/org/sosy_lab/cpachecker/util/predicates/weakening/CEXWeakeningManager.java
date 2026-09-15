@@ -18,6 +18,10 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -31,10 +35,11 @@ import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /** Perform weakening using counter-examples to induction. */
+@Options(prefix = "cpa.slicing")
 public class CEXWeakeningManager {
 
   /** Selection strategy for CEX-based weakening. */
-  enum SELECTION_STRATEGY {
+  private enum SelectionStrategy {
     /** Abstract all matching children. */
     ALL,
 
@@ -48,20 +53,26 @@ public class CEXWeakeningManager {
     LEAST_REMOVALS
   }
 
+  @Option(description = "Strategy for abstracting children during CEX weakening", secure = true)
+  private SelectionStrategy removalSelectionStrategy = SelectionStrategy.ALL;
+
+  @Option(description = "Depth limit for the 'LEAST_REMOVALS' strategy.")
+  private int leastRemovalsDepthLimit = 2;
+
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
   private final InductiveWeakeningManager.InductiveWeakeningStatistics statistics;
   private final Random r = new Random(0);
   private final ShutdownNotifier shutdownNotifier;
-  private final WeakeningOptions options;
 
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
       InductiveWeakeningManager.InductiveWeakeningStatistics pStatistics,
-      WeakeningOptions pOptions,
-      ShutdownNotifier pShutdownNotifier) {
-    options = pOptions;
+      Configuration config,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+    config.inject(this);
     solver = pSolver;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -191,26 +202,27 @@ public class CEXWeakeningManager {
           }
 
           private TraversalProcess selectChildren(List<BooleanFormula> operands) {
-            switch (options.getRemovalSelectionStrategy()) {
-              case ALL:
-                return TraversalProcess.CONTINUE;
-              case FIRST:
-                BooleanFormula selected = operands.iterator().next();
-                return TraversalProcess.custom(selected);
-              case RANDOM:
+            return switch (removalSelectionStrategy) {
+              case ALL -> TraversalProcess.CONTINUE;
+
+              case FIRST -> {
+                BooleanFormula selected = operands.getFirst();
+                yield TraversalProcess.custom(selected);
+              }
+              case RANDOM -> {
                 int rand = r.nextInt(operands.size());
-                return TraversalProcess.custom(operands.get(rand));
-              case LEAST_REMOVALS:
-                if (depth >= options.getLeastRemovalsDepthLimit()) {
-                  return TraversalProcess.custom(operands.iterator().next());
+                yield TraversalProcess.custom(operands.get(rand));
+              }
+              case LEAST_REMOVALS -> {
+                if (depth >= leastRemovalsDepthLimit) {
+                  yield TraversalProcess.custom(operands.getFirst());
                 }
                 BooleanFormula out =
                     Collections.min(
                         operands, Comparator.comparingInt(f -> recursivelyCallSelf(f).size()));
-                return TraversalProcess.custom(out);
-              default:
-                throw new UnsupportedOperationException("Unexpected strategy");
-            }
+                yield TraversalProcess.custom(out);
+              }
+            };
           }
 
           private List<BooleanFormula> recursivelyCallSelf(BooleanFormula f) {

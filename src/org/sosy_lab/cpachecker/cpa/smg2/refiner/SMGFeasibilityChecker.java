@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -47,23 +48,32 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
   private final CFA cfa;
   private final SMGCPAExpressionEvaluator evaluator;
 
+  private final SMGCPAStatistics statistics;
+
   /**
    * This method acts as the constructor of the class.
    *
    * @param pLogger the logger to use
-   * @param pCfa the cfa in use
+   * @param pCfa the CFA in use
    */
   public SMGFeasibilityChecker(
       final StrongestPostOperator<SMGState> pStrongestPostOp,
       final LogManagerWithoutDuplicates pLogger,
       final CFA pCfa,
       final Configuration pConfig,
-      SMGCPAExpressionEvaluator pEvaluator)
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
         pStrongestPostOp,
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig), pCfa, pEvaluator),
+        SMGState.of(
+            pCfa.getMachineModel(),
+            pLogger,
+            new SMGOptions(pConfig, pCfa),
+            pCfa,
+            pEvaluator,
+            pStatistics),
         SMGCPA.class,
         pLogger,
         pConfig,
@@ -78,6 +88,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
     machineModel = pCfa.getMachineModel();
     logger = pLogger;
     evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   public List<Pair<SMGState, List<CFAEdge>>> evaluate(final ARGPath path)
@@ -85,11 +96,13 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
     try {
       List<Pair<SMGState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
-      SMGState next = SMGState.of(machineModel, logger, new SMGOptions(config), cfa, evaluator);
+      SMGState next =
+          SMGState.of(
+              machineModel, logger, new SMGOptions(config, cfa), cfa, evaluator, statistics);
 
-      if (cfa.getMainFunction() instanceof CFunctionEntryNode) {
+      if (cfa.getMainFunction() instanceof CFunctionEntryNode functionNode) {
         // Init main
-        CFunctionEntryNode functionNode = (CFunctionEntryNode) cfa.getMainFunction();
+
         next = next.copyAndAddStackFrame(functionNode.getFunctionDefinition());
       }
 

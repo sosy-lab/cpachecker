@@ -93,8 +93,7 @@ class PushValueToEnvironmentVisitor
     TypeInfo typeInfo = pBitVectorType.getTypeInfo();
     if (compoundIntervalManagerFactory
         instanceof
-        CompoundBitVectorIntervalManagerFactory
-        compoundBitVectorIntervalManagerFactory) {
+        CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory) {
       return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(typeInfo, false);
     }
     return compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);

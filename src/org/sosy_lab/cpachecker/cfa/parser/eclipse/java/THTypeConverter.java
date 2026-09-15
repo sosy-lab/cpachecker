@@ -37,15 +37,15 @@ class THTypeConverter extends TypeConverter {
 
     String typeName = convertClassOrInterfaceToFullName(t);
 
-    // check if type is was already converted.
+    // check if type was already converted.
     if (typeTable.containsType(typeName) || typeTable.containsType("java.lang." + typeName)) {
       JClassOrInterfaceType type =
           typeTable.getType(typeName) != null
               ? typeTable.getType(typeName)
               : typeTable.getType("java.lang." + typeName);
 
-      if (type instanceof JClassType) {
-        return (JClassType) type;
+      if (type instanceof JClassType jClassType) {
+        return jClassType;
       } else {
         throw new CFAGenerationRuntimeException(
             "Class Type " + typeName + " was parsed as Interface.");
@@ -72,10 +72,10 @@ class THTypeConverter extends TypeConverter {
       if (cls != null && cls.getSuperclass() != null) {
         superClassType = createJClassTypeFromClass(cls.getSuperclass());
       } else {
-        superClassType = JClassType.createUnresolvableType();
+        superClassType = typeTable.getUnresolvableClassType();
       }
     } else {
-      superClassType = JClassType.createUnresolvableType();
+      superClassType = typeTable.getUnresolvableClassType();
     }
 
     ITypeBinding[] interfaceBindings = t.getInterfaces();
@@ -110,7 +110,7 @@ class THTypeConverter extends TypeConverter {
 
     JClassType jTypeOfSuperClass;
     if ("java.lang.Object".equals(superclass.getName())) {
-      jTypeOfSuperClass = JClassType.getTypeOfObject();
+      jTypeOfSuperClass = typeTable.getTypeOfObject();
     } else {
       jTypeOfSuperClass = createJClassTypeFromClass(superclass);
     }
@@ -140,12 +140,12 @@ class THTypeConverter extends TypeConverter {
 
     String typeName = convertClassOrInterfaceToFullName(t);
 
-    // check if type is was already converted.
+    // check if type was already converted.
     if (typeTable.containsType(typeName)) {
       JClassOrInterfaceType type = typeTable.getType(typeName);
 
-      if (type instanceof JInterfaceType) {
-        return (JInterfaceType) type;
+      if (type instanceof JInterfaceType jInterfaceType) {
+        return jInterfaceType;
       } else {
         throw new CFAGenerationRuntimeException(
             "Interface type " + typeName + " was parsed as class type.");
@@ -182,7 +182,7 @@ class THTypeConverter extends TypeConverter {
     ITypeBinding enclosingTypeBinding = pT.getDeclaringClass();
 
     if (enclosingTypeBinding == null) {
-      return JClassType.createUnresolvableType();
+      return typeTable.getUnresolvableClassType();
     } else {
       return convertClassOrInterfaceType(enclosingTypeBinding);
     }

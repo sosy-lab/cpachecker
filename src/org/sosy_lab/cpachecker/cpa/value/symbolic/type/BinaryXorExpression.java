@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -15,7 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** {@link BinarySymbolicExpression} representing the 'binary xor' operation. */
 public final class BinaryXorExpression extends BinarySymbolicExpression {
 
-  private static final long serialVersionUID = 4554823889664793659L;
+  @Serial private static final long serialVersionUID = 4554823889664793659L;
 
   BinaryXorExpression(
       SymbolicExpression pOperand1,
@@ -41,6 +42,16 @@ public final class BinaryXorExpression extends BinarySymbolicExpression {
       final Type pCalculationType,
       final AbstractState pAbstractState) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
+  }
+
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+
+    return new BinaryXorExpression(
+        pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   @Override

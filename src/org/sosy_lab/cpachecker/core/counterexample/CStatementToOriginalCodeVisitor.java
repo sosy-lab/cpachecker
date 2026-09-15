@@ -32,15 +32,15 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, NoExce
   public String visit(CExpressionStatement pIastExpressionStatement) {
     return pIastExpressionStatement
             .getExpression()
-            .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)
+            .accept(CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER)
         + ";";
   }
 
   @Override
   public String visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
 
-    CExpressionToOrinalCodeVisitor expressionToOrinalCodeVisitor =
-        CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
+    CExpressionToOriginalCodeVisitor expressionToOrinalCodeVisitor =
+        CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER;
 
     String leftHandSide =
         pIastExpressionAssignmentStatement.getLeftHandSide().accept(expressionToOrinalCodeVisitor);
@@ -53,8 +53,8 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, NoExce
   @Override
   public String visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
 
-    CExpressionToOrinalCodeVisitor expressionToOrinalCodeVisitor =
-        CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
+    CExpressionToOriginalCodeVisitor expressionToOrinalCodeVisitor =
+        CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER;
 
     String leftHandSide =
         pIastFunctionCallAssignmentStatement
@@ -84,13 +84,13 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, NoExce
             lASTString,
             transform(
                 pFunctionCallExpression.getParameterExpressions(),
-                pInput -> pInput.accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
+                pInput -> pInput.accept(CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER)));
     lASTString.append(")");
 
     return lASTString.toString();
   }
 
   private static String parenthesize(CExpression pInput) {
-    return CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.parenthesize(pInput);
+    return CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER.parenthesize(pInput);
   }
 }

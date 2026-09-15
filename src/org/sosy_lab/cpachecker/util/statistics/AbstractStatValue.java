@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.statistics;
 public abstract class AbstractStatValue {
 
   private final String title;
-  private StatKind mainStatisticKind;
+  private final StatKind mainStatisticKind;
 
   protected AbstractStatValue(StatKind pMainStatisticKind, String pTitle) {
     title = pTitle;

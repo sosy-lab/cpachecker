@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -34,10 +35,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
 
   private class CTypeTransformerVisitor implements CTypeVisitor<CType, NoException> {
 
-    private CTypeTransformerVisitor(
-        final boolean ignoreConst, final boolean ignoreVolatile, final boolean ignoreSignedness) {
-      this.ignoreConst = ignoreConst;
-      this.ignoreVolatile = ignoreVolatile;
+    private CTypeTransformerVisitor(final boolean ignoreSignedness) {
       this.ignoreSignedness = ignoreSignedness;
     }
 
@@ -45,12 +43,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
     public CType visit(final CArrayType t) {
       final CType oldType = t.getType();
       final CType type = oldType.accept(CachingCanonizingCTypeVisitor.this);
-      return type == oldType
-              && (!t.isConst() || !ignoreConst)
-              && (!t.isVolatile() || !ignoreVolatile)
+      return type == oldType && t.getQualifiers().isEmpty()
           ? t
-          : new CArrayType(
-              !ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), type, t.getLength());
+          : new CArrayType(CTypeQualifiers.NONE, type, t.getLength());
     }
 
     @Override
@@ -66,17 +61,10 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
               ? (CComplexType) oldRealType.accept(CachingCanonizingCTypeVisitor.this)
               : null;
 
-      return realType == oldRealType
-              && (!ignoreConst || !t.isConst())
-              && (!ignoreVolatile || !t.isVolatile())
+      return realType == oldRealType && t.getQualifiers().isEmpty()
           ? t
           : new CElaboratedType(
-              !ignoreConst && t.isConst(),
-              !ignoreVolatile && t.isVolatile(),
-              t.getKind(),
-              t.getName(),
-              t.getOrigName(),
-              realType);
+              CTypeQualifiers.NONE, t.getKind(), t.getName(), t.getOrigName(), realType);
     }
 
     @Override
@@ -84,11 +72,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
       final CType oldType = t.getType();
       final CType type = oldType.accept(CachingCanonizingCTypeVisitor.this);
 
-      return type == oldType
-              && (!ignoreConst || !t.isConst())
-              && (!ignoreVolatile || !t.isVolatile())
+      return type == oldType && t.getQualifiers().isEmpty()
           ? t
-          : new CPointerType(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), type);
+          : new CPointerType(CTypeQualifiers.NONE, type);
     }
 
     @Override
@@ -96,12 +82,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
       final CType oldRealType = t.getRealType();
       final CType realType = oldRealType.accept(CachingCanonizingCTypeVisitor.this);
 
-      return realType == oldRealType
-              && (!ignoreConst || !t.isConst())
-              && (!ignoreVolatile || !t.isVolatile())
+      return realType == oldRealType && t.getQualifiers().isEmpty()
           ? t
-          : new CTypedefType(
-              !ignoreConst && t.isConst(), !ignoreConst && t.isVolatile(), t.getName(), realType);
+          : new CTypedefType(CTypeQualifiers.NONE, t.getName(), realType);
     }
 
     @Override
@@ -151,14 +134,12 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
 
     @Override
     public CSimpleType visit(final CSimpleType t) {
-      return (!ignoreConst || !t.isConst())
-              && (!ignoreVolatile || !t.isVolatile())
+      return t.getQualifiers().isEmpty()
               && (!ignoreSignedness || !t.hasSignedSpecifier())
               && (!ignoreSignedness || !t.hasUnsignedSpecifier())
           ? t
           : new CSimpleType(
-              !ignoreConst && t.isConst(),
-              !ignoreVolatile && t.isVolatile(),
+              CTypeQualifiers.NONE,
               t.getType(),
               t.hasLongSpecifier(),
               t.hasShortSpecifier(),
@@ -180,17 +161,14 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
 
     @Override
     public CType visit(CVoidType t) {
-      return CVoidType.create(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile());
+      return CVoidType.VOID;
     }
 
-    private final boolean ignoreConst;
-    private final boolean ignoreVolatile;
     private final boolean ignoreSignedness;
   }
 
-  CachingCanonizingCTypeVisitor(
-      final boolean ignoreConst, final boolean ignoreVolatile, final boolean ignoreSignedness) {
-    typeVisitor = new CTypeTransformerVisitor(ignoreConst, ignoreVolatile, ignoreSignedness);
+  CachingCanonizingCTypeVisitor(final boolean ignoreSignedness) {
+    typeVisitor = new CTypeTransformerVisitor(ignoreSignedness);
   }
 
   @Override
@@ -205,8 +183,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
       // Need to create our own instance because we will modify it to prevent recursion.
       canonicalType =
           new CCompositeType(
-              !typeVisitor.ignoreConst && canonicalType.isConst(),
-              !typeVisitor.ignoreVolatile && canonicalType.isVolatile(),
+              CTypeQualifiers.NONE,
               canonicalType.getKind(),
               canonicalType.getName(),
               canonicalType.getOrigName());

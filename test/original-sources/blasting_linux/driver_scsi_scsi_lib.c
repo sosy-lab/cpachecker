@@ -1,6 +1,7 @@
+// Copyright (C) 1999 Eric Youngdale
+//
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- *  scsi_lib.c Copyright (C) 1999 Eric Youngdale
- *
  *  SCSI queueing library.
  *      Initial versions: Eric Youngdale (eric@andante.org).
  *                        Based upon conversations with large numbers

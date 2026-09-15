@@ -22,6 +22,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -68,9 +69,10 @@ import org.sosy_lab.java_smt.api.SolverException;
  * (doi:10.1007/978-3-642-27940-9_13)
  */
 @Options(prefix = "cpa.predicate.slicingabstractions")
-public class SlicingAbstractionsStrategy extends RefinementStrategy implements StatisticsProvider {
+public final class SlicingAbstractionsStrategy extends RefinementStrategy
+    implements StatisticsProvider {
 
-  private class Stats implements Statistics {
+  private final class Stats implements Statistics {
 
     private final Timer coverTime = new Timer();
     private final Timer argUpdate = new Timer();
@@ -104,11 +106,11 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       SlicingAbstractionsStrategy.this.printStatistics(out);
     }
 
-    public void increaseRefinementCounter() {
+    void increaseRefinementCounter() {
       refinementCount++;
     }
 
-    public void increaseSolverCallCounter() {
+    void increaseSolverCallCounter() {
       solverCallCount++;
     }
   }
@@ -216,7 +218,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
       forkedStateMap.put(s, newState);
 
-      // Now we strengthen the splitted state with negated interpolant:
+      // Now we strengthen the split state with negated interpolant:
       BooleanFormula negatedItp = bfmgr.not(itp);
       impact.strengthenStateWithInterpolant(negatedItp, newState, lastAbstraction);
     }
@@ -265,10 +267,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     } else {
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
       // root state. Then handling more than one root state would be no problem.
-      rootState =
-          rootStates.stream()
-              .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
-              .orElseThrow();
+      rootState = Collections.min(rootStates, Comparator.comparingInt(ARGState::getStateId));
       logger.logf(
           Level.INFO,
           "More than one root state present!(%s)",
@@ -383,7 +382,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     // for minimalSlicing, there could be the case that no states got changed
     // in the refinement, but still some edges in the error path are infeasible
-    // Therefore we need to make sure that allChangedStates at least contains
+    // Therefore, we need to make sure that allChangedStates at least contains
     // all abstraction states on the error path:
     if (minimalSlicing) {
       allChangedStates.addAll(
@@ -395,9 +394,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     for (ARGState currentState : allChangedStates) {
 
       // Optimization to reduce number of solver calls:
-      if (currentState instanceof SLARGState) {
-        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch((SLARGState) currentState);
-        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch((SLARGState) currentState);
+      if (currentState instanceof SLARGState sLARGState) {
+        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch(sLARGState);
+        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch(sLARGState);
       }
 
       Map<ARGState, PersistentList<ARGState>> segmentMap =
@@ -540,9 +539,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
               + " must be infeasible!";
     }
 
-    assert !(startState instanceof SLARGState)
-        || ((SLARGState) startState).getEdgeSetToChild(endState) == null
-        || ((SLARGState) startState).getEdgeSetToChild(endState).size() > 0
+    assert !(startState instanceof SLARGState sLARGState)
+        || sLARGState.getEdgeSetToChild(endState) == null
+        || sLARGState.getEdgeSetToChild(endState).size() > 0
         || infeasible;
     return infeasible;
   }
@@ -618,7 +617,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     // root state needs special treatment:
     if (Objects.equals(parent, rootState)) {
-      ARGState firstAfterRoot = abstractionStatesTrace.get(0);
+      ARGState firstAfterRoot = abstractionStatesTrace.getFirst();
       ARGState s = forkedStateMap.get(firstAfterRoot);
       if (Objects.equals(s, child) && pChangedElements.contains(firstAfterRoot)) {
         return true;

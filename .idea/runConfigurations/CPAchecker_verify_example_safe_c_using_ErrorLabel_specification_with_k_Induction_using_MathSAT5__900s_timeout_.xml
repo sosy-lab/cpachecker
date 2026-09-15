@@ -1,0 +1,23 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="CPAchecker verify example-safe.c using ErrorLabel specification with k-Induction using MathSAT5 (900s timeout)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="org.sosy_lab.cpachecker.cmdline.CPAMain" />
+    <module name="CPAchecker" />
+    <option name="PROGRAM_PARAMETERS" value="--kInduction --timelimit 900s --option solver.solver=MATHSAT5 --spec ErrorLabel doc/examples/example-safe.c" />
+    <selectedOptions>
+      <option name="environmentVariables" visible="false" />
+    </selectedOptions>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -165,6 +167,34 @@ final class SlicingAbstractedState extends SlicingState
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     BooleanFormula constraint = fmgr.getBooleanFormulaManager().and(lemmas);
     return manager.translateFrom(constraint, fmgr);
+  }
+
+  @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
+    Collection<BooleanFormula> filteredLemmas =
+        lemmas.stream()
+            .filter(
+                lemma ->
+                    pManager.extractVariableNames(lemma).stream()
+                        .allMatch(
+                            name ->
+                                !name.contains("::")
+                                    || name.startsWith(pFunctionScope.getFunctionName() + "::")))
+            .toList();
+    if (filteredLemmas.isEmpty()) {
+      return pManager.getBooleanFormulaManager().makeTrue();
+    }
+    return pManager.renameFreeVariablesAndUFs(
+        pManager.translateFrom(fmgr.getBooleanFormulaManager().and(filteredLemmas), pManager),
+        name -> {
+          int separatorIndex = name.indexOf("::");
+          if (separatorIndex >= 0) {
+            return name.substring(separatorIndex + 2);
+          } else {
+            return name;
+          }
+        });
   }
 
   @Override

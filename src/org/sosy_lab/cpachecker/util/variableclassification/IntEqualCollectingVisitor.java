@@ -83,17 +83,19 @@ class IntEqualCollectingVisitor extends VariablesCollectingVisitor {
       return null;
     }
 
-    switch (exp.getOperator()) {
-      case EQUALS:
-      case NOT_EQUALS: // ==, != work with numbers
+    return switch (exp.getOperator()) {
+      case EQUALS, NOT_EQUALS -> {
+        // ==, != work with numbers
         operand1.addAll(operand2);
-        return operand1;
-
-      default: // +-*/ --> no simple operators
+        yield operand1;
+      }
+      default -> {
+        // +-*/ --> no simple operators
         nonIntEqVars.addAll(operand1);
         nonIntEqVars.addAll(operand2);
-        return null;
-    }
+        yield null;
+      }
+    };
   }
 
   @Override
@@ -152,8 +154,8 @@ class IntEqualCollectingVisitor extends VariablesCollectingVisitor {
     if (exp instanceof CBinaryExpression) {
       return true;
 
-    } else if (exp instanceof CCastExpression) {
-      return isNestedBinaryExp(((CCastExpression) exp).getOperand());
+    } else if (exp instanceof CCastExpression cCastExpression) {
+      return isNestedBinaryExp(cCastExpression.getOperand());
 
     } else {
       return false;

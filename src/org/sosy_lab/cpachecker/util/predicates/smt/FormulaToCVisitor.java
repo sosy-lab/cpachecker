@@ -8,10 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -24,23 +30,34 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  * This visitor is used to translate predicate based invariants from SMT formulae to expressions
  * which are evaluable in C.
  *
- * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid and
- * therefore it is discouraged to use it.
+ * <p>If visit returns <code>false</code> the computed C code is likely to be invalid, and therefore
+ * it is discouraged to use it.
  *
  * <p>Warning: Usage of this class can be exponentially expensive, because formulas are unfolded
  * into C code. For formulas with several shared subtrees this leads to bad performance.
  */
 public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
-  private static final String LLONG_MIN_LITERAL = "9223372036854775808";
-
-  private static final String INT_MIN_LITERAL = "2147483648";
+  /** The unsigned C types that we can use for casting a bitvector, cf. {@link #unsignedTypeOf}. */
+  private static final ImmutableList<CSimpleType> UNSIGNED_TYPES =
+      ImmutableList.of(
+          CNumericTypes.UNSIGNED_CHAR,
+          CNumericTypes.UNSIGNED_SHORT_INT,
+          CNumericTypes.UNSIGNED_INT,
+          CNumericTypes.UNSIGNED_LONG_INT,
+          CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
   private final StringBuilder builder = new StringBuilder();
 
   private final FormulaManagerView fmgr;
 
+  private final MachineModel machineModel;
+
+  private final int intWidthInBits;
+
   private boolean bvSigned = false;
+
+  private Function<String, String> variableNameConverter;
 
   private static final ImmutableSet<FunctionDeclarationKind> UNARY_OPS =
       Sets.immutableEnumSet(
@@ -51,6 +68,28 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.FP_NEG,
           FunctionDeclarationKind.BV_NOT,
           FunctionDeclarationKind.BV_NEG);
+
+  /** Operations that read their operands as signed numbers. */
+  private static final ImmutableSet<FunctionDeclarationKind> SIGNED_OPS =
+      Sets.immutableEnumSet(
+          FunctionDeclarationKind.BV_SDIV,
+          FunctionDeclarationKind.BV_SREM,
+          FunctionDeclarationKind.BV_SGT,
+          FunctionDeclarationKind.BV_SGE,
+          FunctionDeclarationKind.BV_SLT,
+          FunctionDeclarationKind.BV_SLE,
+          FunctionDeclarationKind.BV_ASHR);
+
+  /** Operations that read their operands as unsigned numbers. All of them are binary. */
+  private static final ImmutableSet<FunctionDeclarationKind> UNSIGNED_OPS =
+      Sets.immutableEnumSet(
+          FunctionDeclarationKind.BV_UDIV,
+          FunctionDeclarationKind.BV_UREM,
+          FunctionDeclarationKind.BV_UGT,
+          FunctionDeclarationKind.BV_UGE,
+          FunctionDeclarationKind.BV_ULT,
+          FunctionDeclarationKind.BV_ULE,
+          FunctionDeclarationKind.BV_LSHR);
 
   private static final ImmutableSet<FunctionDeclarationKind> N_ARY_OPS =
       Sets.immutableEnumSet(
@@ -63,8 +102,14 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.BV_MUL,
           FunctionDeclarationKind.FP_MUL);
 
-  public FormulaToCVisitor(FormulaManagerView fmgr) {
+  public FormulaToCVisitor(
+      FormulaManagerView fmgr,
+      Function<String, String> pVariableNameConverter,
+      MachineModel pMachineModel) {
     this.fmgr = fmgr;
+    variableNameConverter = pVariableNameConverter;
+    machineModel = pMachineModel;
+    intWidthInBits = pMachineModel.getSizeofInBits(CNumericTypes.INT);
   }
 
   @Override
@@ -74,78 +119,82 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     if (index != -1) {
       pName = pName.substring(index + 1);
     }
-    builder.append(pName);
-    return Boolean.TRUE;
-  }
-
-  @Override
-  public Boolean visitBoundVariable(Formula pF, int pDeBruijnIdx) {
-    // No-OP; not relevant for the given use-cases
-    return Boolean.TRUE;
+    builder.append(variableNameConverter.apply(pName));
+    return true;
   }
 
   @Override
   public Boolean visitConstant(Formula pF, Object pValue) {
     FormulaType<?> type = fmgr.getFormulaType(pF);
-    final String value = pValue.toString();
 
-    if (type.isBitvectorType()) {
+    if (type.isBitvectorType() && pValue instanceof BigInteger value) {
       final int size = ((FormulaType.BitvectorType) type).getSize();
-      switch (size) {
-        case 32:
-          if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
-            return Boolean.TRUE;
-          }
-          // $FALL-THROUGH$
-        case 64:
-          if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
-            return Boolean.TRUE;
-          }
-          // $FALL-THROUGH$
-        default:
-          builder.append(value);
-      }
-    } else if (pValue instanceof Boolean) {
-      builder.append(((boolean) pValue) ? "1" : "0");
+      appendLiteral(interpretBitvectorValue(value, size), size);
+    } else if (pValue instanceof Boolean value) {
+      builder.append(value ? "1" : "0");
     } else {
-      builder.append(value);
+      builder.append(pValue);
     }
 
-    return Boolean.TRUE;
+    return true;
   }
 
   /**
-   * The literals used for INT_MIN or LONG_MIN exceed the positive values of their corresponding
-   * data types and therefore an overflow would occur, if just written as '-[LITERAL]', since in C a
-   * literal is assigned its corresponding type before the unary '-' is applied.
+   * Bitvector values are reported as the unsigned interpretation of their bit pattern, i.e., as a
+   * non-negative number. Writing such a number verbatim changes its meaning in C, because a literal
+   * that does not fit into the signed type of the operands is given a wider type, and the
+   * surrounding operation is then evaluated in that wider type. For example, the invariant {@code b
+   * >= 0xF0000001} of an {@code int} variable must be written as {@code b >= -268435455}, whereas
+   * {@code b >= 4026531841} is unsatisfiable.
    *
-   * @param pGuardString the representation of a number that would be expected to overflow
-   * @param pValue the value of the observed expression
-   * @return whether a guard was necessary or not
+   * <p>For bit-widths below the width of {@code int} the operands are promoted to {@code int}
+   * anyway, so there the bit pattern is only signed if the enclosing operation reads it as signed.
    */
-  private boolean appendOverflowGuardForNegativeIntegralLiterals(
-      String pGuardString, Object pValue) {
-    if (pValue instanceof BigInteger) {
-      String valueString = pValue.toString();
-      if (valueString.equals("-" + pGuardString)) {
-        builder.append("( ( ").append(((BigInteger) pValue).add(BigInteger.ONE)).append(" ) - 1 )");
-        return true;
-      }
-      if (bvSigned && valueString.equals(pGuardString)) {
-        builder
-            .append("( ( -")
-            .append(((BigInteger) pValue).subtract(BigInteger.ONE))
-            .append(" ) - 1 )");
-        return true;
+  private BigInteger interpretBitvectorValue(BigInteger pValue, int pSize) {
+    boolean signBitSet = pValue.signum() >= 0 && pValue.testBit(pSize - 1);
+    // If the first bit is signed and we are working with a signed bitvector, we need to interpret
+    // the value as a negative value
+    if (signBitSet && (bvSigned || pSize >= intWidthInBits)) {
+      return pValue.subtract(BigInteger.ONE.shiftLeft(pSize));
+    }
+    return pValue;
+  }
+
+  /**
+   * The magnitude of the smallest value of a signed type exceeds the positive values of that type,
+   * so writing it as '-[LITERAL]' would widen the expression, since in C a literal is assigned its
+   * corresponding type before the unary '-' is applied. This is only relevant for types that are at
+   * least as wide as {@code int}, because narrower operands are promoted to {@code int} anyway.
+   */
+  private void appendLiteral(BigInteger pValue, int pSize) {
+    if (pValue.negate().equals(BigInteger.ONE.shiftLeft(pSize - 1)) && pSize >= intWidthInBits) {
+      builder.append("( ( ").append(pValue.add(BigInteger.ONE)).append(" ) - 1 )");
+    } else {
+      builder.append(pValue);
+    }
+  }
+
+  /**
+   * Returns the unsigned C type with the same bit-width as the given operand, or {@code null} if
+   * there is no such type.
+   */
+  private Optional<CSimpleType> unsignedTypeOf(Formula pOperand) {
+    FormulaType<?> type = fmgr.getFormulaType(pOperand);
+    if (type.isBitvectorType()) {
+      int size = ((FormulaType.BitvectorType) type).getSize();
+      for (CSimpleType unsignedType : UNSIGNED_TYPES) {
+        if (machineModel.getSizeofInBits(unsignedType) == size) {
+          return Optional.of(unsignedType);
+        }
       }
     }
-    return false;
+    return Optional.empty();
   }
 
   @Override
   public Boolean visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-    String op = null;
+    String op;
     FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
 
     // despite being ugly, this way I can
@@ -154,160 +203,88 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     //
     // Consider a formula like:
     // bv_slt ( bv_ule x b#101010... ) ( bv_slt y b#110010001... )
-    boolean signedCarryThrough = false;
-    if (bvSigned) {
-      signedCarryThrough = true;
-      bvSigned = false;
-    }
+    final boolean signedCarryThrough = bvSigned;
 
     switch (kind) {
-      case BV_ADD:
-      case FP_ADD:
-      case ADD:
-        op = "+";
-        break;
-      case BV_SUB:
-      case BV_NEG:
-      case FP_SUB:
-      case FP_NEG:
-      case UMINUS:
-      case SUB:
-        op = "-";
-        break;
-      case BV_SDIV:
-        bvSigned = true;
-        // $FALL-THROUGH$
-      case BV_UDIV:
-      case FP_DIV:
-      case DIV:
-        op = "/";
-        break;
-      case BV_SREM:
-        bvSigned = true;
-        // $FALL-THROUGH$
-      case BV_UREM:
-      case MODULO:
-        op = "%";
-        break;
-      case BV_MUL:
-      case FP_MUL:
-      case MUL:
-        op = "*";
-        break;
-      case BV_EQ:
-      case FP_EQ:
-      case IFF:
-      case EQ:
-        op = "==";
-        break;
-      case BV_SGT:
-        bvSigned = true;
-        // $FALL-THROUGH$
-      case BV_UGT:
-      case FP_GT:
-      case GT:
-        op = ">";
-        break;
-      case BV_SGE:
-        bvSigned = true;
-        // $FALL-THROUGH$
-      case BV_UGE:
-      case FP_GE:
-      case GTE:
-        op = ">=";
-        break;
-      case BV_SLT:
-        bvSigned = true;
-        // $FALL-THROUGH$
-      case BV_ULT:
-      case FP_LT:
-      case LT:
-        op = "<";
-        break;
-      case BV_SLE:
-        bvSigned = true;
-        // $FALL-THROUGH$
-      case BV_ULE:
-      case FP_LE:
-      case LTE:
-        op = "<=";
-        break;
-      case BV_NOT:
-        op = "~";
-        break;
-      case NOT:
-        op = "!";
-        break;
-      case BV_XOR:
-      case XOR:
-        op = "^";
-        break;
-      case BV_AND:
-        op = "&";
-        break;
-      case AND:
-        op = "&&";
-        break;
-      case BV_OR:
-        op = "|";
-        break;
-      case OR:
-        op = "||";
-        break;
-      case GTE_ZERO:
-        op = "0 <=";
-        break;
-      case EQ_ZERO:
-        op = "0 ==";
-        break;
-      case ITE:
-        // Special-case that is to be handled separately
-        // below
-        break;
-      case BV_SHL:
-        op = "<<";
-        break;
-      case BV_LSHR:
-      case BV_ASHR:
-        op = ">>";
-        break;
-      default:
-        return Boolean.FALSE;
+      case BV_ADD, FP_ADD, ADD -> op = "+";
+      case BV_SUB, BV_NEG, FP_SUB, FP_NEG, UMINUS, SUB -> op = "-";
+      case BV_SDIV, BV_UDIV, FP_DIV, DIV -> op = "/";
+      case BV_SREM, BV_UREM, MODULO -> op = "%";
+      case BV_MUL, FP_MUL, MUL -> op = "*";
+      case BV_EQ, FP_EQ, IFF, EQ -> op = "==";
+      case BV_SGT, BV_UGT, FP_GT, GT -> op = ">";
+      case BV_SGE, BV_UGE, FP_GE, GTE -> op = ">=";
+      case BV_SLT, BV_ULT, FP_LT, LT -> op = "<";
+      case BV_SLE, BV_ULE, FP_LE, LTE -> op = "<=";
+      case BV_NOT -> op = "~";
+      case NOT -> op = "!";
+      case BV_XOR, XOR -> op = "^";
+      case BV_AND -> op = "&";
+      case AND -> op = "&&";
+      case BV_OR -> op = "|";
+      case OR -> op = "||";
+      case GTE_ZERO -> op = "0 <=";
+      case EQ_ZERO -> op = "0 ==";
+      case ITE ->
+          // Special-case that is to be handled separately below
+          op = null;
+      case BV_SHL -> op = "<<";
+      case BV_LSHR, BV_ASHR -> op = ">>";
+      default -> {
+        return false;
+      }
     }
+    // all other operations do not interpret the sign bit themselves,
+    // so their operands keep the signedness of the surrounding context
+    bvSigned = SIGNED_OPS.contains(kind) || (signedCarryThrough && !UNSIGNED_OPS.contains(kind));
+
+    // The variables of the C program usually have a signed type, so operations that read their
+    // operands as unsigned numbers need an explicit cast.
+    String cast = "";
+    if (UNSIGNED_OPS.contains(kind)) {
+      Optional<CSimpleType> unsignedType = unsignedTypeOf(pArgs.getFirst());
+      if (unsignedType.isEmpty()) {
+        // there is no C type with the bit-width of the operands
+        return false;
+      }
+      cast = "( " + unsignedType.orElseThrow() + " ) ";
+    }
+
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
+        return false;
       }
       builder.append(" ? ");
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
+        return false;
       }
       builder.append(" : ");
       if (!fmgr.visit(pArgs.get(2), this)) {
-        return Boolean.FALSE;
+        return false;
       }
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
       builder.append(op).append(" ");
-      if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
+        return false;
       }
     } else if (N_ARY_OPS.contains(kind)) {
       for (int i = 0; i < pArgs.size(); i++) {
         if (!fmgr.visit(pArgs.get(i), this)) {
-          return Boolean.FALSE;
+          return false;
         }
         if (i != pArgs.size() - 1) {
           builder.append(" ").append(op).append(" ");
         }
       }
     } else if (pArgs.size() == 2) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+      builder.append(cast);
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
+        return false;
       }
-      builder.append(" ").append(op).append(" ");
+      builder.append(" ").append(op).append(" ").append(cast);
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
+        return false;
       }
     } else {
       throw new AssertionError(
@@ -321,7 +298,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     // of the translation
     bvSigned = signedCarryThrough;
 
-    return Boolean.TRUE;
+    return true;
   }
 
   @Override
@@ -331,7 +308,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       List<Formula> pBoundVariables,
       BooleanFormula pBody) {
     // No-OP; not relevant for the given use-cases
-    return Boolean.TRUE;
+    return true;
   }
 
   public String getString() {

@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
  * representation of each previously found counterexample in a set, and reports counterexamples as
  * relevant if their representation was not already contained in that set.
  *
- * <p>The representation of each counterexample is left to be determined by the sub-classes. The
+ * <p>The representation of each counterexample is left to be determined by the subclasses. The
  * general guidelines of {@link CounterexampleFilter} apply: the representation should be immutable,
  * should not retain too much memory, and thus should not contain ARGStates.
  *
@@ -41,7 +41,7 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
   protected AbstractSetBasedCounterexampleFilter(
       Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa) {
     // We do not need the parameter objects,
-    // this constructor is only to encourage sub-classes
+    // this constructor is only to encourage subclasses
     // to define a constructor with the same signature
     // (each CounterexampleFilter needs to have one such constructor).
     checkNotNull(config);

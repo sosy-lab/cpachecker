@@ -42,11 +42,11 @@ public abstract class AOctagonCoefficients implements IOctagonCoefficients {
   public final IOctagonCoefficients mul(IOctagonCoefficients other) {
     if (other instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
-    } else if (other instanceof AOctagonCoefficients) {
+    } else if (other instanceof AOctagonCoefficients aOctagonCoefficients) {
       if (hasOnlyOneValue()) {
         return mulInner(other);
       } else if (other.hasOnlyOneValue()) {
-        return ((AOctagonCoefficients) other).mulInner(this);
+        return aOctagonCoefficients.mulInner(this);
       }
       throw new IllegalArgumentException(
           "At least one of the coefficients has to be a single variable or constant.");

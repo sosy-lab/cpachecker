@@ -29,12 +29,12 @@ public final class ACSLAssertion implements ACSLAnnotation {
   }
 
   @Override
-  public List<Behavior> getDeclaredBehaviors() {
+  public ImmutableList<Behavior> getDeclaredBehaviors() {
     return ImmutableList.of();
   }
 
   @Override
-  public List<Behavior> getReferencedBehaviors() {
+  public ImmutableList<Behavior> getReferencedBehaviors() {
     return enclosingBehaviors;
   }
 

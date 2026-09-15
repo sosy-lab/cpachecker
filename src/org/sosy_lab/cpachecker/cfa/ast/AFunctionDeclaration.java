@@ -9,14 +9,15 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
-  private static final long serialVersionUID = -4385134795747669972L;
-  private final List<AParameterDeclaration> parameters;
+  @Serial private static final long serialVersionUID = -4385134795747669972L;
+  private final ImmutableList<AParameterDeclaration> parameters;
 
   protected AFunctionDeclaration(
       FileLocation pFileLocation,
@@ -34,7 +35,7 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
     return (AFunctionType) super.getType();
   }
 
-  public List<? extends AParameterDeclaration> getParameters() {
+  public ImmutableList<? extends AParameterDeclaration> getParameters() {
     return parameters;
   }
 

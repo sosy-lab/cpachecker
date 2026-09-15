@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinementBlock<I, O> {
-  private StatTimer totalTimer = new StatTimer("Time for generic iterator");
-  private StatCounter numOfIterations = new StatCounter("Number of iterations");
+  private final StatTimer totalTimer = new StatTimer("Time for generic iterator");
+  private final StatCounter numOfIterations = new StatCounter("Number of iterations");
 
   PredicatePrecision completePrecision;
 

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -48,16 +49,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 class DeferredAllocation implements Serializable {
-  private static final long serialVersionUID = -6882598785306470437L;
+  @Serial private static final long serialVersionUID = -6882598785306470437L;
 
   DeferredAllocation(
-      final String base, final Optional<CIntegerLiteralExpression> size, final boolean isZeroed) {
+      final PointerBase base,
+      final Optional<CIntegerLiteralExpression> size,
+      final boolean isZeroed) {
     this.isZeroed = isZeroed;
     this.size = size;
     this.base = base;
   }
 
-  String getBase() {
+  PointerBase getBase() {
     return base;
   }
 
@@ -98,8 +101,9 @@ class DeferredAllocation implements Serializable {
 
   private final boolean isZeroed;
   private final Optional<CIntegerLiteralExpression> size;
-  private final String base;
+  private PointerBase base;
 
+  @Serial
   private Object writeReplace() {
     return new SerializationProxy(this);
   }
@@ -110,15 +114,16 @@ class DeferredAllocation implements Serializable {
    * @param in the input stream
    */
   @SuppressWarnings("UnusedVariable") // parameter is required by API
+  @Serial
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerializationProxy implements Serializable {
 
-    private static final long serialVersionUID = 4850967154964188729L;
+    @Serial private static final long serialVersionUID = 4850967154964188729L;
     private final boolean isZeroed;
-    private final String base;
+    private final PointerBase base;
     private final long size;
     private final @Nullable CType sizeType;
 
@@ -134,6 +139,7 @@ class DeferredAllocation implements Serializable {
       }
     }
 
+    @Serial
     private Object readResolve() {
       return new DeferredAllocation(
           base,

@@ -25,7 +25,7 @@ class ASTTypeConverter extends TypeConverter {
    * Searches for a type within the Type Hierarchy. If found, returns it.
    *
    * @param t binding representing the sought after type.
-   * @return Returns a type within the TypeHierachie or a Unspecified Type.
+   * @return a type within the TypeHierachie or an Unspecified Type.
    */
   @Override
   public JInterfaceType convertInterfaceType(ITypeBinding t) {

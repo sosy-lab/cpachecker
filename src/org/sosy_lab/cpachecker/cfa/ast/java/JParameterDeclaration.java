@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JParameterDeclaration extends AParameterDeclaration
     implements JSimpleDeclaration {
 
-  private static final long serialVersionUID = -5728272567926253312L;
+  @Serial private static final long serialVersionUID = -5728272567926253312L;
   private final String qualifiedName;
   private final boolean isFinal;
 

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -76,7 +75,7 @@ public class FinalAssumeEdgePostConditionComposer implements PostConditionCompos
                         "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
         return new PostCondition(
             postConditionEdges,
-            Lists.reverse(irrelevant),
+            irrelevant.reversed(),
             pCounterexample.subList(0, i + 1),
             PostConditionComposer.postConditionFromList(context, postConditionEdges));
       } else {

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  *	Spanning tree protocol; interface code
  *	Linux ethernet bridge
@@ -6,11 +10,6 @@
  *	Lennert Buytenhek		<buytenh@gnu.org>
  *
  *	$Id: net_bridge_br_stp_if.c,v 1.1 2006/06/05 23:12:27 muehlber Exp $
- *
- *	This program is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU General Public License
- *	as published by the Free Software Foundation; either version
- *	2 of the License, or (at your option) any later version.
  */
 
 #include <linux/kernel.h>

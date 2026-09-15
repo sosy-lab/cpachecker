@@ -144,8 +144,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.INFO, "Proof check algorithm started.");
     stats.totalTimer.start();
 
-    boolean result;
-    result = checkingStrategy.checkCertificate(reachedSet);
+    boolean result = checkingStrategy.checkCertificate(reachedSet);
 
     stats.totalTimer.stop();
     logger.log(Level.INFO, "Proof check algorithm finished.");
@@ -161,8 +160,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    if (checkingStrategy instanceof StatisticsProvider) {
-      ((StatisticsProvider) checkingStrategy).collectStatistics(pStatsCollection);
+    if (checkingStrategy instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

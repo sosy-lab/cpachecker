@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 
 /** Interface for all possible right-hand sides of an assignment. */
-@SuppressWarnings("serial") // we cannot set a UID for an interface
 public sealed interface JLeftHandSide extends JExpression, ALeftHandSide
     permits JArraySubscriptExpression, JIdExpression {
 

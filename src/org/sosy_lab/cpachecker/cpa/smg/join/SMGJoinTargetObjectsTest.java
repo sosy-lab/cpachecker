@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 public class SMGJoinTargetObjectsTest {
   private SMG smg1;

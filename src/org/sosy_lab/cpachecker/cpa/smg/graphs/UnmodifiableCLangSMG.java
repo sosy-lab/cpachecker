@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 
 /**
  * A view on a CLangSMG, where no modifications are allowed.
@@ -36,7 +36,7 @@ public sealed interface UnmodifiableCLangSMG extends UnmodifiableSMG permits CLa
    */
   PersistentStack<CLangStackFrame> getStackFrames();
 
-  /** return a unmodifiable view on all SMG-objects on the heap. */
+  /** return an unmodifiable view on all SMG-objects on the heap. */
   PersistentSet<SMGObject> getHeapObjects();
 
   /** check whether an object is part of the heap. */

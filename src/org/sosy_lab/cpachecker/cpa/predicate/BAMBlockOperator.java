@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 @Options
-public class BAMBlockOperator extends BlockOperator {
+public final class BAMBlockOperator extends BlockOperator {
 
   private BlockPartitioning partitioning = null;
 

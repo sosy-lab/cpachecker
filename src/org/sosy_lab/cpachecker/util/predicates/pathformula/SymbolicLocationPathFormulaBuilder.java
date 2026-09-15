@@ -39,7 +39,7 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
     private final CFAEdge edge;
 
-    protected SymbolicLocationPathFormulaAndBuilder(
+    SymbolicLocationPathFormulaAndBuilder(
         final DefaultPathFormulaBuilder pPathFormulaAndBuilder,
         final CFAEdge pEdge,
         final CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
@@ -62,8 +62,7 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
         final PathFormulaManager pPfmgr, final PathFormula pathFormula)
         throws CPATransferException, InterruptedException {
       // add edge with symbolic location semantics: %pc==OLD -> edge -> %pc = NEW
-      PathFormula newPathFormula;
-      newPathFormula = pPfmgr.makeAnd(pathFormula, makeProgramCounterAssumption(edge));
+      PathFormula newPathFormula = pPfmgr.makeAnd(pathFormula, makeProgramCounterAssumption(edge));
       newPathFormula = pPfmgr.makeAnd(newPathFormula, edge);
       newPathFormula = pPfmgr.makeAnd(newPathFormula, makeProgramCounterAssignment(edge));
       return newPathFormula;
@@ -75,7 +74,7 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
     private final PathFormulaBuilder first;
     private final PathFormulaBuilder second;
 
-    protected SymbolicLocationPathFormulaOrBuilder(
+    SymbolicLocationPathFormulaOrBuilder(
         final PathFormulaBuilder first,
         final PathFormulaBuilder second,
         final CBinaryExpressionBuilder cBinaryExpressionBuilder) {

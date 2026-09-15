@@ -121,14 +121,15 @@ public class CFunctionPointerResolver implements StatisticsProvider {
           FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
 
   private static class CFunctionPointerResolverStatistics implements Statistics {
-    private StatInt totalFPs = new StatInt(StatKind.SUM, "Function calls via function pointers");
-    private StatInt instrumentedFPs =
+    private final StatInt totalFPs =
+        new StatInt(StatKind.SUM, "Function calls via function pointers");
+    private final StatInt instrumentedFPs =
         new StatInt(StatKind.SUM, "Instrumented function pointer calls");
-    private StatInt totalFPsWithParameter =
+    private final StatInt totalFPsWithParameter =
         new StatInt(StatKind.SUM, "Function calls with function pointer arguments");
-    private StatInt instrumentedFPsWithParameter =
+    private final StatInt instrumentedFPsWithParameter =
         new StatInt(StatKind.SUM, "Instrumented function pointer arguments");
-    private StatTimer totalTimer = new StatTimer("Time for function pointers resolving");
+    private final StatTimer totalTimer = new StatTimer("Time for function pointers resolving");
 
     @Override
     public String getName() {
@@ -280,10 +281,10 @@ public class CFunctionPointerResolver implements StatisticsProvider {
 
   private @Nullable CExpression getParameter(CFunctionCall call) {
     for (CExpression param : call.getFunctionCallExpression().getParameterExpressions()) {
-      if (param.getExpressionType() instanceof CPointerType
-          && ((CPointerType) param.getExpressionType()).getType() instanceof CFunctionTypeWithNames
-          && ((param instanceof CIdExpression
-                  && ((CIdExpression) param).getDeclaration().getType() instanceof CPointerType)
+      if (param.getExpressionType() instanceof CPointerType cPointerType
+          && cPointerType.getType() instanceof CFunctionTypeWithNames
+          && ((param instanceof CIdExpression cIdExpression
+                  && cIdExpression.getDeclaration().getType() instanceof CPointerType)
               || (param instanceof CFieldReference))) {
         return param;
       }
@@ -299,7 +300,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     }
 
     CExpression nameExpr = callExpr.getFunctionNameExpression();
-    if (nameExpr instanceof CIdExpression && ((CIdExpression) nameExpr).getDeclaration() == null) {
+    if (nameExpr instanceof CIdExpression cIdExpression && cIdExpression.getDeclaration() == null) {
       // "f()" where "f" is an undefined identifier
       // Someone calls an undeclared function.
       return false;
@@ -387,9 +388,9 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     }
 
     private boolean checkParameterEdge(AStatement stmt) {
-      return stmt instanceof CFunctionCall
-          && !isFunctionPointerCall((CFunctionCall) stmt)
-          && getParameter((CFunctionCall) stmt) != null;
+      return stmt instanceof CFunctionCall cFunctionCall
+          && !isFunctionPointerCall(cFunctionCall)
+          && getParameter(cFunctionCall) != null;
     }
   }
 

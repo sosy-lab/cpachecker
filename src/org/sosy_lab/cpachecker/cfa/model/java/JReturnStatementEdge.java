@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public final class JReturnStatementEdge extends AReturnStatementEdge {
 
-  private static final long serialVersionUID = -6303184113368127372L;
-
   public JReturnStatementEdge(
       String pRawStatement,
       JReturnStatement pRawAST,

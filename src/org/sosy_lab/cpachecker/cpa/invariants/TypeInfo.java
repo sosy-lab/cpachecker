@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
-public interface TypeInfo {
+public sealed interface TypeInfo permits BitVectorInfo, FloatingPointTypeInfo {
 
   boolean isSigned();
 
@@ -50,7 +50,7 @@ public interface TypeInfo {
       return BitVectorInfo.from(size, signed);
 
     } else if (pType instanceof JSimpleType simpleType) {
-      return switch (simpleType.getType()) {
+      return switch (simpleType) {
         case BOOLEAN -> BitVectorInfo.from(32, false);
         case BYTE -> BitVectorInfo.from(8, true);
         case CHAR -> BitVectorInfo.from(16, false);
@@ -74,7 +74,7 @@ public interface TypeInfo {
       }
       if (cType instanceof CSimpleType simpleType) {
         return switch (simpleType.getType()) {
-          case CHAR, INT, BOOL, INT128, FLOAT, DOUBLE, FLOAT128 -> true;
+          case CHAR, INT, BOOL, INT128, FLOAT, DOUBLE -> true;
           default -> false;
         };
       } else {
@@ -84,7 +84,7 @@ public interface TypeInfo {
       }
 
     } else if (pType instanceof JSimpleType simpleType) {
-      return switch (simpleType.getType()) {
+      return switch (simpleType) {
         case BOOLEAN, BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> true;
         default -> false;
       };

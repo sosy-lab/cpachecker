@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -15,7 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** {@link SymbolicExpression} representing a cast. */
 public final class CastExpression extends UnarySymbolicExpression {
 
-  private static final long serialVersionUID = 3928318112889309143L;
+  @Serial private static final long serialVersionUID = 3928318112889309143L;
 
   /**
    * Create a new <code>CastExpression</code> with the given operand and {@link Type}.
@@ -51,6 +52,43 @@ public final class CastExpression extends UnarySymbolicExpression {
   private CastExpression(
       final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
     super(pOperand, pType, pAbstractState);
+  }
+
+  /**
+   * Creates a {@link SymbolicExpression} representing the cast of the given value to the given
+   * type. If multiple casts occur sequentially, it is tried to simplify them.
+   *
+   * @param pValue the value to cast
+   * @param pTargetType the type to cast to
+   * @return a <code>SymbolicExpression</code> representing the cast of the given value to the given
+   *     type
+   */
+  public static SymbolicExpression of(SymbolicValue pValue, Type pTargetType) {
+    Type canonicalTargetType = getCanonicalType(pTargetType);
+
+    SymbolicExpression operand;
+
+    if (pValue instanceof AddressExpression) {
+      // TODO:
+      // We want to cast AddressExpressions only if the cast type is smaller than signed int
+      // (default for pointers) because only then the cast would make a difference.
+      // In all smaller cases we need to make sure that there are 2 possibilities later on.
+      // One where due to the cast the values still match and one where they don't.
+      return (SymbolicExpression) pValue;
+    }
+
+    if (!(pValue instanceof SymbolicExpression symbolicExpression)) {
+      return ConstantSymbolicExpression.of(pValue, canonicalTargetType);
+    } else {
+      operand = symbolicExpression;
+    }
+
+    if (operand.getType().equals(canonicalTargetType)) {
+      return operand;
+
+    } else {
+      return new CastExpression(operand, canonicalTargetType);
+    }
   }
 
   @Override

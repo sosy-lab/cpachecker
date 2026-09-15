@@ -118,16 +118,16 @@ public final class FunctionContract implements ACSLAnnotation {
   }
 
   @Override
-  public List<Behavior> getDeclaredBehaviors() {
+  public ImmutableList<Behavior> getDeclaredBehaviors() {
     return behaviors;
   }
 
   @Override
-  public List<Behavior> getReferencedBehaviors() {
+  public ImmutableList<Behavior> getReferencedBehaviors() {
     return ImmutableList.of();
   }
 
-  public List<CompletenessClause> getCompletenessClauses() {
+  public ImmutableList<CompletenessClause> getCompletenessClauses() {
     return completenessClauses;
   }
 

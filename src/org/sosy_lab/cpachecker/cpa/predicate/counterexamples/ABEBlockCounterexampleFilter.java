@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * An implementation of {@link CounterexampleFilter} that bases path similarity on the ABE blocks
  * the path contains (to be more precise, on the sequence of abstraction locations along the path).
  */
-public class ABEBlockCounterexampleFilter
+public final class ABEBlockCounterexampleFilter
     extends AbstractSetBasedCounterexampleFilter<ImmutableList<CFANode>> {
 
   public ABEBlockCounterexampleFilter(

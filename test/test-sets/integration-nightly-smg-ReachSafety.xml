@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">11000M</option>
+
+  <rundefinition>
+    <option name="--smgSymbolicExecution"/>
+  </rundefinition>
+
+  <tasks name="C.unreach-call.Arrays">
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.BitVectors">
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.ControlFlow">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/Sanity.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.ECA">
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Floats">
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Heap">
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="C.unreach-call.Combinations">
+    <includesfile>../programs/benchmarks/Combinations.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.unreach-call.Hardware">
+    <includesfile>../programs/benchmarks/Hardware.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="C.unreach-call.SoftwareSystems-uthash">
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+</benchmark>

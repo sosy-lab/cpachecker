@@ -52,8 +52,8 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
     if (this == obj) {
       return true;
     }
-    return obj instanceof PowerSetState
-        && Objects.equals(setOfStates, ((PowerSetState) obj).setOfStates);
+    return obj instanceof PowerSetState powerSetState
+        && Objects.equals(setOfStates, powerSetState.setOfStates);
   }
 
   @Override

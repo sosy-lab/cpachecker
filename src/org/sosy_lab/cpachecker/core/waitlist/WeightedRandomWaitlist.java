@@ -33,7 +33,7 @@ public class WeightedRandomWaitlist implements Waitlist {
                 + "This value influences the probability distribution over the waitlist elements"
                 + "when choosing the next element."
                 + "Has to be a double in the range [0, INF)")
-    private double exponent = 1;
+    private double exponent = 8;
 
     @Option(secure = true, description = "Seed for random values.")
     private int seed = 0;

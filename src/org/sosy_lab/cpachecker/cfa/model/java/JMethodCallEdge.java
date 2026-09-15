@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
@@ -18,8 +18,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
 public final class JMethodCallEdge extends FunctionCallEdge {
-
-  private static final long serialVersionUID = -4905542776822697507L;
 
   public JMethodCallEdge(
       String pRawStatement,
@@ -53,7 +51,7 @@ public final class JMethodCallEdge extends FunctionCallEdge {
   }
 
   @Override
-  public List<JExpression> getArguments() {
+  public ImmutableList<JExpression> getArguments() {
     return getFunctionCallExpression().getParameterExpressions();
   }
 

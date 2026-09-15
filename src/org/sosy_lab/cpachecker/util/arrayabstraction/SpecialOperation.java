@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -62,10 +63,10 @@ abstract class SpecialOperation {
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger the logger to use
    * @param pValueAnalysisState where to get the values for variables (identifiers)
-   * @return If its possible to fully evaluate the specified expression, {@code Optional.of(value)}
+   * @return If it's possible to fully evaluate the specified expression, {@code Optional.of(value)}
    *     is returned, where {@code value} is the value the expression evaluates to. Otherwise, if
-   *     its not possible to fully evaluate the expression, {@code Optional.empty()} is returned.
-   * @throws NullPointerException if an parameter is {@code null}
+   *     it's not possible to fully evaluate the expression, {@code Optional.empty()} is returned.
+   * @throws NullPointerException if a parameter is {@code null}
    */
   public static Optional<BigInteger> eval(
       CExpression pExpression,
@@ -85,10 +86,10 @@ abstract class SpecialOperation {
       return Optional.empty();
     }
 
-    if (value.isExplicitlyKnown() && value.isNumericValue()) {
-      Number number = value.asNumericValue().getNumber();
-      if (number instanceof BigInteger) {
-        return Optional.of((BigInteger) number);
+    if (value.isExplicitlyKnown() && value instanceof NumericValue numValue) {
+      Number number = numValue.getNumber();
+      if (number instanceof BigInteger bigInteger) {
+        return Optional.of(bigInteger);
       } else if (number instanceof Byte
           || number instanceof Short
           || number instanceof Integer
@@ -126,10 +127,10 @@ abstract class SpecialOperation {
 
         CDeclaration declaration = declarationEdge.getDeclaration();
 
-        if (declaration instanceof CVariableDeclaration) {
-          CInitializer initializer = ((CVariableDeclaration) declaration).getInitializer();
-          if (initializer instanceof CInitializerExpression) {
-            CExpression expression = ((CInitializerExpression) initializer).getExpression();
+        if (declaration instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer initializer = cVariableDeclaration.getInitializer();
+          if (initializer instanceof CInitializerExpression cInitializerExpression) {
+            CExpression expression = cInitializerExpression.getExpression();
             return Optional.of(new ExpressionAssign(declaration, expression));
           }
         }
@@ -204,9 +205,9 @@ abstract class SpecialOperation {
      * @param pMachineModel where to get info about types, for casting and overflows
      * @param pLogger the logger to use
      * @param pValueAnalysisState where to get the values for variables (identifiers)
-     * @return If its possible to extract a constant assign operation form the specified CFA edge,
+     * @return If it's possible to extract a constant assign operation form the specified CFA edge,
      *     {@code Optional.of(constantAssign)} is returned, where {@code constantAssign} is the
-     *     constant assign operation extracted from the CFA edge. Otherwise, if its not possible to
+     *     constant assign operation extracted from the CFA edge. Otherwise, if it's not possible to
      *     extract this operation, {@code Optional.empty()} is returned.
      * @throws NullPointerException if any parameter is {@code null}
      */
@@ -293,9 +294,9 @@ abstract class SpecialOperation {
      * @param pMachineModel where to get info about types, for casting and overflows
      * @param pLogger the logger to use
      * @param pValueAnalysisState where to get the values for variables (identifiers)
-     * @return If its possible to extract an update assign operation form the specified CFA edge,
+     * @return If it's possible to extract an update assign operation form the specified CFA edge,
      *     {@code Optional.of(updateAssign)} is returned, where {@code updateAssign} is the update
-     *     assign operation extracted from the CFA edge. Otherwise, if its not possible to extract
+     *     assign operation extracted from the CFA edge. Otherwise, if it's not possible to extract
      *     this operation, {@code Optional.empty()} is returned.
      * @throws NullPointerException if any parameter is {@code null}
      */
@@ -320,10 +321,10 @@ abstract class SpecialOperation {
 
           if ((operator == CBinaryExpression.BinaryOperator.PLUS
                   || operator == CBinaryExpression.BinaryOperator.MINUS)
-              && operand1 instanceof CIdExpression) {
+              && operand1 instanceof CIdExpression cIdExpression) {
 
             CSimpleDeclaration assignDeclaration = expressionAssign.getDeclaration();
-            CSimpleDeclaration operand1Declaration = ((CIdExpression) operand1).getDeclaration();
+            CSimpleDeclaration operand1Declaration = cIdExpression.getDeclaration();
 
             if (operand1Declaration.equals(assignDeclaration)) {
 
@@ -413,9 +414,9 @@ abstract class SpecialOperation {
      * @param pMachineModel where to get info about types, for casting and overflows
      * @param pLogger the logger to use
      * @param pValueAnalysisState where to get the values for variables (identifiers)
-     * @return If its possible to extract a constant comparison operation form the specified CFA
+     * @return If it's possible to extract a constant comparison operation form the specified CFA
      *     edge, {@code Optional.of(comparisonAssume)} is returned, where {@code comparisonAssume}
-     *     is the constant comparison operation extracted from the CFA edge. Otherwise, if its not
+     *     is the constant comparison operation extracted from the CFA edge. Otherwise, if it's not
      *     possible to extract this operation, {@code Optional.empty()} is returned.
      * @throws NullPointerException if any parameter is {@code null}
      */
@@ -439,7 +440,7 @@ abstract class SpecialOperation {
                   || operator == CBinaryExpression.BinaryOperator.GREATER_THAN
                   || operator == CBinaryExpression.BinaryOperator.LESS_EQUAL
                   || operator == CBinaryExpression.BinaryOperator.GREATER_EQUAL)
-              && operand1 instanceof CIdExpression) {
+              && operand1 instanceof CIdExpression cIdExpression) {
 
             CExpression valueExpression = binaryExpression.getOperand2();
 
@@ -468,20 +469,16 @@ abstract class SpecialOperation {
 
             if (optConstantValue.isPresent()) {
 
-              Operator operationOperator;
-              if (operator == CBinaryExpression.BinaryOperator.LESS_THAN) {
-                operationOperator = Operator.LESS_EQUAL;
-              } else if (operator == CBinaryExpression.BinaryOperator.GREATER_THAN) {
-                operationOperator = Operator.GREATER_EQUAL;
-              } else if (operator == CBinaryExpression.BinaryOperator.LESS_EQUAL) {
-                operationOperator = Operator.LESS_EQUAL;
-              } else if (operator == CBinaryExpression.BinaryOperator.GREATER_EQUAL) {
-                operationOperator = Operator.GREATER_EQUAL;
-              } else {
-                throw new AssertionError("Unknown operator: " + operator);
-              }
+              Operator operationOperator =
+                  switch (operator) {
+                    case LESS_THAN -> Operator.LESS_EQUAL;
+                    case GREATER_THAN -> Operator.GREATER_EQUAL;
+                    case LESS_EQUAL -> Operator.LESS_EQUAL;
+                    case GREATER_EQUAL -> Operator.GREATER_EQUAL;
+                    default -> throw new AssertionError("Unknown operator: " + operator);
+                  };
 
-              CSimpleDeclaration variableDeclaration = ((CIdExpression) operand1).getDeclaration();
+              CSimpleDeclaration variableDeclaration = cIdExpression.getDeclaration();
               BigInteger constantValue = optConstantValue.orElseThrow();
 
               return Optional.of(

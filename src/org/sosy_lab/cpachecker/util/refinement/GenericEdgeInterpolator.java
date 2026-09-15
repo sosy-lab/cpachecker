@@ -53,9 +53,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   @Option(secure = true, description = "apply optimizations based on infeasibility of suffix")
   private boolean applyUnsatSuffixOptimization = true;
 
-  @Option(
-      secure = true,
-      description = "whether or not to manage the callstack, which is needed for BAM")
+  @Option(secure = true, description = "whether to manage the callstack, which is needed for BAM")
   private boolean manageCallstack = true;
 
   /** the shutdownNotifier in use */
@@ -139,7 +137,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     S stateFromOldInterpolant = pInputInterpolant.reconstructState();
 
     // TODO callstack-management depends on a forward-iteration on a single path.
-    // TODO Thus interpolants have to be computed from front to end. Can we assure this?
+    // TODO Thus, interpolants have to be computed from front to end. Can we assure this?
     final Optional<S> maybeSuccessor;
     if (pCurrentEdge == null) {
       PathIterator it = pOffset.fullPathIterator();
@@ -235,7 +233,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * This method checks, if the given error path is contradicting in itself.
    *
    * @param errorPath the error path to check.
-   * @return true, if the given error path is contradicting in itself, else false
+   * @return whether the given error path is contradicting in itself
    */
   private boolean isSuffixContradicting(ARGPath errorPath)
       throws CPAException, InterruptedException {
@@ -293,7 +291,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
     S oldState = pInitialState;
 
-    // we enter a function, so lets add the previous state to the stack
+    // we enter a function, so let's add the previous state to the stack
     if (manageCallstack && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       oldState = postOperator.handleFunctionCall(oldState, pInitialEdge, pCallstack);
     }
@@ -309,8 +307,8 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   }
 
   /**
-   * This method checks, whether or not the (remaining) error path is feasible when starting with
-   * the given (pseudo) initial state.
+   * This method checks, whether the (remaining) error path is feasible when starting with the given
+   * (pseudo) initial state.
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state

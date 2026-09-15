@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public sealed class GlobalVariableIdentifier extends VariableIdentifier
     permits GeneralGlobalVariableIdentifier {
 
-  public GlobalVariableIdentifier(String nm, CType t, int dereference) {
-    super(nm, t, dereference);
+  public GlobalVariableIdentifier(String nm, CType t, int pDereference) {
+    super(nm, t, pDereference);
   }
 
   @Override

@@ -58,8 +58,8 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements Proo
     super(pCpa);
     pConfig.inject(this);
     propChecker = PropertyCheckerBuilder.buildPropertyChecker(className, parameters);
-    if (pCpa instanceof ProofChecker) {
-      wrappedProofChecker = (ProofChecker) pCpa;
+    if (pCpa instanceof ProofChecker proofChecker) {
+      wrappedProofChecker = proofChecker;
     } else {
       wrappedProofChecker = null;
     }

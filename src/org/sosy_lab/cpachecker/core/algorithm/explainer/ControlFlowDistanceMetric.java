@@ -93,8 +93,8 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     // default location is 0 - the first node
     int locationOfLastChangedNode = 0;
 
-    List<CFAEdge> firstGeneratedPath = successfulGeneratedPath.get(0);
-    CFANode firstNodeOfSafePath = firstGeneratedPath.get(0).getPredecessor();
+    List<CFAEdge> firstGeneratedPath = successfulGeneratedPath.getFirst();
+    CFANode firstNodeOfSafePath = firstGeneratedPath.getFirst().getPredecessor();
 
     int spRootNodeNumber = firstNodeOfSafePath.getEnteringEdge(0).getPredecessor().getNodeNumber();
 
@@ -115,13 +115,13 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     // check the number of the successfulGeneratedPath
     List<CFAEdge> finalGeneratedPath;
     if (successfulGeneratedPath.size() == 1) {
-      finalGeneratedPath = successfulGeneratedPath.get(0);
+      finalGeneratedPath = successfulGeneratedPath.getFirst();
     } else if (successfulGeneratedPath.size() > 1) {
       finalGeneratedPath = comparePaths(branchesCe, successfulGeneratedPath);
       if (finalGeneratedPath == null) {
         // Case the control flow distance metric couldn't find any differences
         // because the paths are too short
-        finalGeneratedPath = successfulGeneratedPath.get(0);
+        finalGeneratedPath = successfulGeneratedPath.getFirst();
       }
     } else {
       return;
@@ -277,12 +277,14 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
    * @param pARGStates the ARGStates
    * @return the new Generated Path (maybe more than one found)
    */
+  @SuppressWarnings("RedundantControlFlow") // FIXME
+  // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/5f68fc9d6b5e69680a6b798b2d320106711197cd#note_2269388303
   private List<List<CFAEdge>> pathGenerator(List<CFAEdge> pBranchesCE, List<ARGState> pARGStates) {
     if (pBranchesCE.isEmpty()) {
       return null;
     }
     // Get the last branch of the counterexample - the one closer to the Error -
-    CFAEdge lastBranch = pBranchesCE.get(pBranchesCE.size() - 1);
+    CFAEdge lastBranch = pBranchesCE.getLast();
     for (CFAEdge pCFAEdge : pBranchesCE) {
       if (pCFAEdge.getPredecessor().getNumLeavingEdges() == 0) {
         continue;

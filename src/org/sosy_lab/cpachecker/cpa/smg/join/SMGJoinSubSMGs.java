@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 final class SMGJoinSubSMGs {
   private static boolean performChecks = false;
@@ -210,7 +211,7 @@ final class SMGJoinSubSMGs {
 
     /* If no abstraction can be found for this sub Smg, then the join is only defined,
      * if all values are defined. For values that are defined under the assumption,
-     * that a abstraction candidate is execued for the destination smg, execute the abstraction
+     * that an abstraction candidate is execued for the destination smg, execute the abstraction
      * so that the join of this sub SMG is complete.*/
     if (!allValuesDefined) {
       status = SMGJoinStatus.INCOMPARABLE;
@@ -220,7 +221,7 @@ final class SMGJoinSubSMGs {
 
     for (List<SMGGenericAbstractionCandidate> abstractionCandidates :
         valueAbstractionCandidates.values()) {
-      abstractionCandidates.iterator().next().execute(destSMG);
+      abstractionCandidates.getFirst().execute(destSMG);
     }
 
     defined = true;

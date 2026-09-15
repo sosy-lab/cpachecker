@@ -76,14 +76,14 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   public void constructInternalProofRepresentation(
       UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) {
+    if (!(pReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet)) {
       throw new InvalidConfigurationException(
           "Reached sets used by restart algorithm are not memorized. Please enable option"
               + " analysis.memorizeReachedAfterRestart");
     }
 
     Collection<ReachedSet> partialReachedSets =
-        ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
+        historyForwardingReachedSet.getAllReachedSetsUsedAsDelegates();
     roots = new ARGState[partialReachedSets.size()];
 
     if (roots.length <= 0) {
@@ -93,7 +93,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     int index = 0;
     for (ReachedSet partialReached : partialReachedSets) {
-      if (!(partialReached.getFirstState() instanceof ARGState)
+      if (!(partialReached.getFirstState() instanceof ARGState aRGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
         logger.log(
             Level.SEVERE,
@@ -103,7 +103,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         return;
       } else {
         stats.increaseProofSize(1);
-        roots[index++] = (ARGState) partialReached.getFirstState();
+        roots[index++] = aRGState;
       }
     }
 
@@ -198,7 +198,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                 Level.FINE,
                 "Write down report of non-checked states which is provided to next partial ARG"
                     + " check. Report is given by assumption automaton.");
-            automatonWriter.writeAutomaton(roots[i], incompleteStates);
+            automatonWriter.writeAutomaton(roots[i], incompleteStates, cfa.getMachineModel());
             shutdown.shutdownIfNecessary();
           }
           logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
@@ -313,7 +313,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                 Level.FINE,
                 "Write down report of non-checked states which is provided to next partial ARG"
                     + " check. Report is given by assumption automaton.");
-            automatonWriter.writeAutomaton(roots[i], incompleteStates);
+            automatonWriter.writeAutomaton(roots[i], incompleteStates, cfa.getMachineModel());
             shutdown.shutdownIfNecessary();
           }
           logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract class AbstractCFAEdge implements CFAEdge {
 
-  private static final long serialVersionUID = -8493135984889665408L;
   private final CFANode predecessor;
   private final CFANode successor;
   private final String rawStatement;
@@ -72,12 +71,12 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return 31 * predecessor.hashCode() + successor.hashCode();
   }
 
   @Override
-  public boolean equals(Object pOther) {
+  public final boolean equals(Object pOther) {
     return pOther instanceof AbstractCFAEdge otherEdge
         && predecessor.equals(otherEdge.predecessor)
         && successor.equals(otherEdge.successor);

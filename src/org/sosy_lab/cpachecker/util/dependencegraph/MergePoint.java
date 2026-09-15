@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class MergePoint<T> {
 
-  private DomTree<T> tree;
-  private SuccessorsFunction<T> actualSuccessors;
+  private final DomTree<T> tree;
+  private final SuccessorsFunction<T> actualSuccessors;
 
   /**
    * Find the first merge point of a node with two successors. E.g. find the node that represents an
@@ -65,9 +65,9 @@ public class MergePoint<T> {
     List<T> currentPath;
     while (!waitlist.isEmpty()) {
 
-      currentPath = waitlist.remove(0);
+      currentPath = waitlist.removeFirst();
 
-      lastElement = currentPath.remove(currentPath.size() - 1);
+      lastElement = currentPath.removeLast();
 
       if (isPotentialMergeNode(assume, lastElement, currentPath)) {
         int prevSize = potentialMergeNodes.size();

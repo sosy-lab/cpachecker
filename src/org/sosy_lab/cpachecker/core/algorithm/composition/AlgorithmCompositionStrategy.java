@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 
 public abstract class AlgorithmCompositionStrategy {
 
-  protected LogManager logger;
+  protected final LogManager logger;
   protected boolean considerRecursiveContexts = false;
 
   protected AlgorithmCompositionStrategy(LogManager pLogger) {

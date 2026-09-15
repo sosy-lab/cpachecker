@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.automaton;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -25,8 +26,6 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
 
   private final LoadingCache<CacheKey, ImmutableSet<CFANode>> cache =
       CacheBuilder.newBuilder()
-          .weakKeys()
-          .weakValues()
           .build(
               new CacheLoader<CacheKey, ImmutableSet<CFANode>>() {
 
@@ -52,35 +51,11 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
     return cache.getUnchecked(new CacheKey(pRootNode, specification));
   }
 
-  private static class CacheKey {
+  private record CacheKey(CFANode node, Specification specification) {
 
-    private final CFANode node;
-
-    private final Specification specification;
-
-    public CacheKey(CFANode pNode, Specification pSpecification) {
-      node = pNode;
-      specification = pSpecification;
-    }
-
-    @Override
-    public String toString() {
-      return node + ": " + specification;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(node, specification);
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-      return pObj instanceof CacheKey other
-          && node.equals(other.node)
-          && specification.equals(other.specification);
+    CacheKey {
+      checkNotNull(node);
+      checkNotNull(specification);
     }
   }
 }

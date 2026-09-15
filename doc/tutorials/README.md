@@ -10,6 +10,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Tutorials about CPAchecker
 
+- [Use of the CPAchecker Test Harness](test-harness.md)
 - [Experimenting with Different Analyses](https://sosy-lab.gitlab.io/research/tutorials/CPAchecker/)
 - [Interpreting Results](interpret-statistics.md)
 

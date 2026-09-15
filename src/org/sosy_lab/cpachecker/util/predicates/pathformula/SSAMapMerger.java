@@ -16,8 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -31,14 +30,14 @@ public class SSAMapMerger {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final ShutdownNotifier shutdownNotifier;
-  private final CtoFormulaConverter converter;
+  private final LanguageToSmtConverter<? extends Type> converter;
   private final boolean useNondetFlags;
   private final FormulaType<?> nondetFormulaType;
 
   SSAMapMerger(
       boolean pUseNondetFlags,
       FormulaManagerView pFmgr,
-      CtoFormulaConverter pConverter,
+      LanguageToSmtConverter<? extends Type> pConverter,
       ShutdownNotifier pShutdownNotifier,
       FormulaType<?> pNondetFormulaType) {
     useNondetFlags = pUseNondetFlags;
@@ -77,7 +76,7 @@ public class SSAMapMerger {
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
-      final CType symbolType = resultSSA.getType(symbolName);
+      final Type symbolType = resultSSA.getType(symbolName);
       final int index1 = symbolDifference.getLeftValue().orElse(1);
       final int index2 = symbolDifference.getRightValue().orElse(1);
 
@@ -108,7 +107,7 @@ public class SSAMapMerger {
    */
   private BooleanFormula makeSsaMerger(
       final String symbolName,
-      final CType symbolType,
+      final Type symbolType,
       final int oldIndex,
       final int newIndex,
       final PointerTargetSet oldPts)
@@ -157,7 +156,7 @@ public class SSAMapMerger {
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
-      final CType symbolType = resultSSA.getType(symbolName);
+      final Type symbolType = resultSSA.getType(symbolName);
       final int index1 = symbolDifference.getLeftValue().orElse(1);
       final int index2 = symbolDifference.getRightValue().orElse(1);
 

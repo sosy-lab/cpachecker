@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
@@ -98,7 +99,7 @@ public abstract class SMGAbstractionFinder {
       Set<SMGValue> pValues,
       Set<SMGObject> pObjects) {
 
-    Set<SMGObject> toBeChecked = new LinkedHashSet<>();
+    SequencedSet<SMGObject> toBeChecked = new LinkedHashSet<>();
 
     pObjects.add(pObject);
 
@@ -119,7 +120,7 @@ public abstract class SMGAbstractionFinder {
       }
     }
 
-    Set<SMGObject> toCheck = new LinkedHashSet<>();
+    SequencedSet<SMGObject> toCheck = new LinkedHashSet<>();
 
     while (!toBeChecked.isEmpty()) {
       toCheck.clear();

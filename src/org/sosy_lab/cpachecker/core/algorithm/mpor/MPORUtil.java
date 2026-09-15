@@ -1,0 +1,314 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import java.util.List;
+import java.util.NavigableMap;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
+
+/** Contains static methods that can be reused outside the MPOR context. */
+public final class MPORUtil {
+
+  public static boolean isFunctionDefined(
+      CFunctionCallExpression pFunctionCallExpression,
+      NavigableMap<String, FunctionEntryNode> pAllFunctions) {
+
+    // do not use the CFunctionDeclaration since it may be null if the function is not declared
+    return pAllFunctions.entrySet().stream()
+        .anyMatch(
+            f ->
+                f.getKey()
+                    .equals(pFunctionCallExpression.getFunctionNameExpression().toASTString()));
+  }
+
+  /**
+   * Returns {@code true} if pOrigin can be reached through its successor {@link CFANode}. <br>
+   * If pStop is encountered in a path, it is not explored further, even if pOrigin may be in the
+   * path.
+   */
+  public static boolean isSelfReachable(
+      final CFAEdge pOrigin,
+      final Optional<CFAEdge> pStop,
+      List<CFAEdge> pVisited,
+      CFAEdge pCurrent) {
+
+    pVisited.add(pCurrent);
+    boolean foundPath = false;
+    for (CFAEdge cfaEdge : pCurrent.getSuccessor().getLeavingEdges()) {
+      // only search original call context via summary edge, exclude return edges
+      if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+        // ignore edges that lead to pStop
+        if (!(pStop.isPresent() && cfaEdge.equals(pStop.orElseThrow()))) {
+          if (cfaEdge.equals(pOrigin)) {
+            // self reach found
+            return true;
+          } else if (!pVisited.contains(cfaEdge)) {
+            // visit edges only once, otherwise we trigger a stack overflow
+            foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge);
+            if (foundPath) {
+              break;
+            }
+          }
+        }
+      }
+    }
+    return foundPath;
+  }
+
+  /**
+   * Returns {@code true} if pOrigin can be reached through its leaving edges. <br>
+   * If pStop is encountered in a path, it is not explored further, even if pOrigin may be in the
+   * path.
+   */
+  public static boolean isSelfReachable(
+      final CFANode pOrigin,
+      final Optional<CFANode> pStop,
+      List<CFANode> pVisited,
+      CFANode pCurrent) {
+
+    pVisited.add(pCurrent);
+    boolean foundPath = false;
+    for (CFAEdge cfaEdge : pCurrent.getLeavingEdges()) {
+      // only search original call context via summary edge, exclude return edges
+      if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+        CFANode successor = cfaEdge.getSuccessor();
+        // ignore edges that lead to pStop
+        if (!(pStop.isPresent() && successor.equals(pStop.orElseThrow()))) {
+          if (successor.equals(pOrigin)) {
+            // self reach found
+            return true;
+          } else if (!pVisited.contains(successor)) {
+            // visit edges only once, otherwise we trigger a stack overflow
+            foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge.getSuccessor());
+            if (foundPath) {
+              break;
+            }
+          }
+        }
+      }
+    }
+    return foundPath;
+  }
+
+  // Functions =====================================================================================
+
+  /**
+   * Returns the {@link CParameterDeclaration} at {@code pIndex}, or the last {@link
+   * CParameterDeclaration} if the index is out of bounds. Then {@code pFunctionDeclaration} must be
+   * a variadic function, where the last {@link CParameterDeclaration} is always the variadic one.
+   */
+  public static CParameterDeclaration getParameterDeclarationByIndex(
+      int pIndex, CFunctionDeclaration pFunctionDeclaration) {
+
+    checkArgument(pIndex >= 0, "pIndex must be at least 0");
+    List<CParameterDeclaration> parameterDeclarations = pFunctionDeclaration.getParameters();
+    if (pIndex < parameterDeclarations.size()) {
+      return parameterDeclarations.get(pIndex);
+    } else {
+      // handle variadic function (more arguments than parameter declarations)
+      checkArgument(
+          pFunctionDeclaration.getType().takesVarArgs(),
+          "If pIndex >= parameters.size(), then pFunctionDeclaration must be variadic.");
+      return parameterDeclarations.getLast();
+    }
+  }
+
+  // const CPAchecker_TMP ==========================================================================
+
+  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVariableDeclaration) {
+    return pVariableDeclaration.getType().isConst()
+        && !pVariableDeclaration.isGlobal()
+        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
+        // in tests, const CPAchecker_TMP variables always had initializer
+        && pVariableDeclaration.getInitializer() != null;
+  }
+
+  public static boolean isCpaCheckerTmpWithoutInitializer(
+      CVariableDeclaration pVariableDeclaration) {
+    return !pVariableDeclaration.getType().isConst()
+        && !pVariableDeclaration.isGlobal()
+        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
+        && pVariableDeclaration.getInitializer() == null;
+  }
+
+  public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        return isConstCpaCheckerTmp(variableDeclaration);
+      }
+    }
+    return false;
+  }
+
+  public static boolean isCpaCheckerTmpDeclarationWithoutInitializer(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        return isCpaCheckerTmpWithoutInitializer(variableDeclaration);
+      }
+    }
+    return false;
+  }
+
+  // CVariableDeclaration
+
+  public static CVariableDeclaration withInitializer(
+      CVariableDeclaration pVariableDeclaration, @Nullable CInitializer pInitializer) {
+
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        pVariableDeclaration.getType(),
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        pInitializer);
+  }
+
+  // Pointers ======================================================================================
+
+  /**
+   * Extracts e.g. {@code id1} from {@code &id1}, throws a {@link UnsupportedCodeException} if the
+   * extraction is not possible.
+   */
+  public static CExpression getOperandFromUnaryExpression(CExpression pExpression)
+      throws UnsupportedCodeException {
+
+    if (pExpression instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getExpressionType() instanceof CPointerType) {
+        return unaryExpression.getOperand();
+      }
+    }
+    throw new UnsupportedCodeException(
+        "Could not extract operand from pExpression " + pExpression.toASTString(), null);
+  }
+
+  public static boolean isFunctionPointer(CInitializer pInitializer) {
+    if (pInitializer instanceof CInitializerExpression initializerExpression) {
+      if (initializerExpression.getExpression() instanceof CIdExpression idExpression) {
+        if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean isVoidPointer(CExpression pExpression) {
+    if (pExpression instanceof CCastExpression castExpression) {
+      if (castExpression.getCastType().equals(CPointerType.POINTER_TO_VOID)) {
+        if (castExpression.getOperand()
+            instanceof CIntegerLiteralExpression integerLiteralExpression) {
+          if (integerLiteralExpression.equals(CIntegerLiteralExpression.ZERO)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Converts the given {@link CSimpleDeclaration} to a {@link CVariableDeclaration}.
+   *
+   * @throws IllegalArgumentException if {@link CSimpleDeclaration} is not a {@link
+   *     CVariableDeclaration} or {@link CParameterDeclaration} because only those can be converted.
+   */
+  public static CVariableDeclaration convertToVariableDeclaration(
+      CSimpleDeclaration pSimpleDeclaration) {
+
+    checkArgument(
+        pSimpleDeclaration instanceof CVariableDeclaration
+            || pSimpleDeclaration instanceof CParameterDeclaration,
+        "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
+    return pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration
+        ? variableDeclaration
+        : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
+  }
+
+  // Collections ===================================================================================
+
+  /**
+   * Returns a new {@link ImmutableSet} containing all pElements from the given set except the
+   * specified element.
+   *
+   * <p>If the element is not present in the original set, the original set is returned unchanged.
+   */
+  public static <T> ImmutableSet<T> withoutElement(ImmutableSet<T> pElements, T pElementToRemove) {
+    if (pElements.contains(pElementToRemove)) {
+      return ImmutableSet.copyOf(Sets.difference(pElements, ImmutableSet.of(pElementToRemove)));
+    }
+    return pElements;
+  }
+
+  /**
+   * Returns a new {@link ImmutableList} containing all pElements from the given list except the
+   * specified element.
+   *
+   * <p>If the element is not present in the original list, the original list is returned unchanged.
+   */
+  public static <T> ImmutableList<T> withoutElement(
+      ImmutableList<T> pElements, T pElementToRemove) {
+
+    if (pElements.contains(pElementToRemove)) {
+      ImmutableList<T> toRemove = ImmutableList.of(pElementToRemove);
+      return pElements.stream()
+          .filter(e -> !toRemove.contains(e))
+          .collect(ImmutableList.toImmutableList());
+    }
+    return pElements;
+  }
+
+  // CFA ===========================================================================================
+
+  public static CFACreator buildTestCfaCreator(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+
+    return new CFACreator(TestUtils.configurationForTest().build(), pLogger, pShutdownNotifier);
+  }
+
+  public static CFACreator buildTestCfaCreatorWithPreprocessor(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+
+    return new CFACreator(
+        TestUtils.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
+        pLogger,
+        pShutdownNotifier);
+  }
+}

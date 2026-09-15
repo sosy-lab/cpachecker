@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public interface NumeralFormula<ConstantType> extends Typed {
+public sealed interface NumeralFormula<ConstantType> extends Typed permits AbstractFormula {
 
   /**
    * Accepts the given invariants formula visitor.

@@ -201,7 +201,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private boolean isFloatingPointType(CType pType) {
-    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
+    return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
   @Override
@@ -241,8 +241,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @return the memory location of the struct member
    */
   public @Nullable MemoryLocation evaluateRelativeMemLocForStructMember(
-      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType)
-      throws UnrecognizedCodeException {
+      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType) {
 
     MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
 
@@ -329,10 +328,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
-
+      CExpression fieldOwner = pIastFieldReference.getFieldOwner();
       MemoryLocation memLocOfFieldOwner = fieldOwner.accept(this);
-
       if (memLocOfFieldOwner == null) {
         return null;
       }
@@ -342,8 +339,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
-        MemoryLocation pStartLocation, String pFieldName, CType pOwnerType)
-        throws UnrecognizedCodeException {
+        MemoryLocation pStartLocation, String pFieldName, CType pOwnerType) {
 
       CType canonicalOwnerType = pOwnerType.getCanonicalType();
 
@@ -356,14 +352,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       return pStartLocation.withAddedOffset(offset.orElseThrow());
     }
 
-    private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName)
-        throws UnrecognizedCodeException {
+    private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName) {
 
-      if (ownerType instanceof CElaboratedType) {
-        return getFieldOffsetInBits(((CElaboratedType) ownerType).getRealType(), fieldName);
-      } else if (ownerType instanceof CCompositeType) {
-        return bitsToByte(
-            evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
+      if (ownerType instanceof CElaboratedType cElaboratedType) {
+        return getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
+      } else if (ownerType instanceof CCompositeType cCompositeType) {
+        return bitsToByte(evv.getMachineModel().getFieldOffsetInBits(cCompositeType, fieldName));
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
         return OptionalLong.empty();

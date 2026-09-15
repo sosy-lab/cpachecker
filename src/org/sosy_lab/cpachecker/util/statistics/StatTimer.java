@@ -31,14 +31,27 @@ public class StatTimer extends AbstractStatValue {
     timer.stop();
   }
 
+  public void stopIfRunning() {
+    timer.stopIfRunning();
+  }
+
   @Override
   public int getUpdateCount() {
     return timer.getNumberOfIntervals();
   }
 
+  /** Same as {@link #getUpdateCount()}, for easier migration from {@link Timer}. */
+  public int getNumberOfIntervals() {
+    return timer.getNumberOfIntervals();
+  }
+
   @Override
   public String toString() {
-    return timer.toString();
+    if (getNumberOfIntervals() > 1) {
+      return timer.prettyFormat();
+    } else {
+      return timer.toString();
+    }
   }
 
   public TimeSpan getConsumedTime() {

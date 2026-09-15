@@ -75,7 +75,7 @@ public class BDDManagerFactory {
     if (bddPackage.equals("SYLVAN")) {
       rmgr = new SylvanBDDRegionManager(config, logger);
     } else if (bddPackage.equals("PJBDD")) {
-      rmgr = new PJBDDRegionManager(config);
+      rmgr = new PJBDDRegionManager(config, logger);
     } else {
       rmgr = new JavaBDDRegionManager(bddPackage, config, logger);
     }

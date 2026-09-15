@@ -162,29 +162,24 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   private List<Fault> sortingByScoreReversed(List<Fault> faults) {
     return faults.stream()
         .filter(f -> f.getScore() != 0)
-        .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
+        .sorted(Comparator.comparingDouble((Fault f) -> f.getScore()).reversed())
         .collect(ImmutableList.toImmutableList());
   }
 
   private SuspiciousnessMeasure createSuspiciousnessMeasure(AlgorithmType pAlgorithmType) {
     logger.log(Level.INFO, "Ranking-algorithm type: " + pAlgorithmType + " starts");
-    switch (pAlgorithmType) {
-      case TARANTULA:
-        return new Tarantula();
-      case DSTAR:
-        return new DStar();
-      case OCHIAI:
-        return new Ochiai();
-      default:
-        throw new AssertionError("Unexpected ranking-algorithm type: " + pAlgorithmType);
-    }
+    return switch (pAlgorithmType) {
+      case TARANTULA -> new Tarantula();
+      case DSTAR -> new DStar();
+      case OCHIAI -> new Ochiai();
+    };
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if (algorithm instanceof Statistics) {
-      statsCollection.add((Statistics) algorithm);
+    if (algorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
   }
 

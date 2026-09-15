@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.sign.Sign;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -126,105 +126,105 @@ public class RedundancyRemoverTest {
         new RedundantRequirementsRemoverSignStateImplementation();
     // EMPTY, EMPTY (expected 0)
 
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.EMPTY)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.EMPTY)).isEqualTo(0);
     // EMPTY, PLUS (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.EMPTY)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.PLUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.EMPTY)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.PLUS)).isEqualTo(-1);
     // EMPTY, MINUS (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.EMPTY)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.MINUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.EMPTY)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.MINUS)).isEqualTo(-1);
     // EMPTY, ZERO (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.EMPTY)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.ZERO)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.EMPTY)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.ZERO)).isEqualTo(-1);
     // EMPTY, PLUSMINUS (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.EMPTY)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.PLUSMINUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.EMPTY)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.PLUSMINUS)).isEqualTo(-1);
     // EMPTY, PLUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.EMPTY)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.PLUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.EMPTY)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.PLUS0)).isEqualTo(-1);
     // EMPTY, MINUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.EMPTY)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.MINUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.EMPTY)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.MINUS0)).isEqualTo(-1);
     // EMPTY, ALL (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.EMPTY)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.EMPTY, SIGN.ALL)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.EMPTY)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.EMPTY, Sign.ALL)).isEqualTo(-1);
     // PLUS, PLUS (expected 0)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.PLUS)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.PLUS)).isEqualTo(0);
     // PLUS, MINUS (expected 1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.PLUS)).isEqualTo(-1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.MINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.PLUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.MINUS)).isEqualTo(1);
     // PLUS, ZERO (expected 1)
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.PLUS)).isEqualTo(-1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.ZERO)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.PLUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.ZERO)).isEqualTo(1);
     // PLUS, PLUSMINUS (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.PLUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.PLUSMINUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.PLUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.PLUSMINUS)).isEqualTo(-1);
     // PLUS, PLUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.PLUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.PLUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.PLUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.PLUS0)).isEqualTo(-1);
     // PLUS, MINUS0 (expected 1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.PLUS)).isEqualTo(-1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.MINUS0)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.PLUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.MINUS0)).isEqualTo(1);
     // PLUS, ALL (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.PLUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS, SIGN.ALL)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.PLUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS, Sign.ALL)).isEqualTo(-1);
     // MINUS, MINUS (expected 0)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.MINUS)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.MINUS)).isEqualTo(0);
     // MINUS, ZERO (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.MINUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.ZERO)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.MINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.ZERO)).isEqualTo(-1);
     // MINUS, PLUSMINUS (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.MINUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.PLUSMINUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.MINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.PLUSMINUS)).isEqualTo(-1);
     // MINUS, PLUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.MINUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.PLUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.MINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.PLUS0)).isEqualTo(-1);
     // MINUS, MINUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.MINUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.MINUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.MINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.MINUS0)).isEqualTo(-1);
     // MINUS, ALL (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.MINUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.MINUS, SIGN.ALL)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.MINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS, Sign.ALL)).isEqualTo(-1);
     // ZERO, ZERO (expected 0)
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.ZERO)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.ZERO)).isEqualTo(0);
     // ZERO, PLUSMINUS (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.ZERO)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.PLUSMINUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.ZERO)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.PLUSMINUS)).isEqualTo(-1);
     // ZERO, PLUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.ZERO)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.PLUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.ZERO)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.PLUS0)).isEqualTo(-1);
     // ZERO, MINUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.ZERO)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.MINUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.ZERO)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.MINUS0)).isEqualTo(-1);
     // ZERO, ALL (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.ZERO)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.ZERO, SIGN.ALL)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.ZERO)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.ZERO, Sign.ALL)).isEqualTo(-1);
     // PLUSMINUS, PLUSMINUS (expected 0)
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.PLUSMINUS)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.PLUSMINUS)).isEqualTo(0);
     // PLUSMINUS, PLUS0 (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.PLUSMINUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.PLUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.PLUSMINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.PLUS0)).isEqualTo(-1);
     // PLUSMINUS, MINUS0 (expected 1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.PLUSMINUS)).isEqualTo(-1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.MINUS0)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.PLUSMINUS)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.MINUS0)).isEqualTo(1);
     // PLUSMINUS, ALL (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.PLUSMINUS)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUSMINUS, SIGN.ALL)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.PLUSMINUS)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.PLUSMINUS, Sign.ALL)).isEqualTo(-1);
     // PLUS0, PLUS0 (expected 0)
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.PLUS0)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.PLUS0)).isEqualTo(0);
     // PLUS0, MINUS0 (expected 1)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.PLUS0)).isEqualTo(-1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.MINUS0)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.PLUS0)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.MINUS0)).isEqualTo(1);
     // PLUS0, ALL (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.PLUS0)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.PLUS0, SIGN.ALL)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.PLUS0)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.PLUS0, Sign.ALL)).isEqualTo(-1);
     // MINUS0, MINUS0 (expected 0)
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.MINUS0)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.MINUS0)).isEqualTo(0);
     // MINUS0, ALL (expected -1)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.MINUS0)).isEqualTo(1);
-    Truth.assertThat(signImpl.compare(SIGN.MINUS0, SIGN.ALL)).isEqualTo(-1);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.MINUS0)).isEqualTo(1);
+    Truth.assertThat(signImpl.compare(Sign.MINUS0, Sign.ALL)).isEqualTo(-1);
     // ALL, ALL (expected 0)
-    Truth.assertThat(signImpl.compare(SIGN.ALL, SIGN.ALL)).isEqualTo(0);
+    Truth.assertThat(signImpl.compare(Sign.ALL, Sign.ALL)).isEqualTo(0);
   }
 
   @Test
@@ -235,10 +235,10 @@ public class RedundancyRemoverTest {
     // ALL, EMPTY (true)
     RedundantRequirementsRemoverSignStateImplementation signImpl =
         new RedundantRequirementsRemoverSignStateImplementation();
-    Truth.assertThat(signImpl.covers(SIGN.PLUS, SIGN.MINUS)).isFalse();
-    Truth.assertThat(signImpl.covers(SIGN.PLUS0, SIGN.ZERO)).isTrue();
-    Truth.assertThat(signImpl.covers(SIGN.MINUS0, SIGN.PLUSMINUS)).isFalse();
-    Truth.assertThat(signImpl.covers(SIGN.ALL, SIGN.EMPTY)).isTrue();
+    Truth.assertThat(signImpl.covers(Sign.PLUS, Sign.MINUS)).isFalse();
+    Truth.assertThat(signImpl.covers(Sign.PLUS0, Sign.ZERO)).isTrue();
+    Truth.assertThat(signImpl.covers(Sign.MINUS0, Sign.PLUSMINUS)).isFalse();
+    Truth.assertThat(signImpl.covers(Sign.ALL, Sign.EMPTY)).isTrue();
   }
 
   @Test
@@ -251,17 +251,17 @@ public class RedundancyRemoverTest {
     // varOrConst y -> ALL
     RedundantRequirementsRemoverSignStateImplementation signImpl =
         new RedundantRequirementsRemoverSignStateImplementation();
-    SignState signState1 = SignState.TOP.assignSignToVariable("-1", SIGN.MINUS);
-    SignState signState2 = SignState.TOP.assignSignToVariable("0", SIGN.ZERO);
-    SignState signState3 = SignState.TOP.assignSignToVariable("1", SIGN.PLUS);
-    SignState signState4 = SignState.TOP.assignSignToVariable("x", SIGN.PLUSMINUS);
-    SignState signState5 = SignState.TOP.assignSignToVariable("y", SIGN.ALL);
+    SignState signState1 = SignState.TOP.assignSignToVariable("-1", Sign.MINUS);
+    SignState signState2 = SignState.TOP.assignSignToVariable("0", Sign.ZERO);
+    SignState signState3 = SignState.TOP.assignSignToVariable("1", Sign.PLUS);
+    SignState signState4 = SignState.TOP.assignSignToVariable("x", Sign.PLUSMINUS);
+    SignState signState5 = SignState.TOP.assignSignToVariable("y", Sign.ALL);
 
-    Truth.assertThat(signImpl.getAbstractValue(signState1, "-1")).isEqualTo(SIGN.MINUS);
-    Truth.assertThat(signImpl.getAbstractValue(signState2, "0")).isEqualTo(SIGN.ZERO);
-    Truth.assertThat(signImpl.getAbstractValue(signState3, "1")).isEqualTo(SIGN.PLUS);
-    Truth.assertThat(signImpl.getAbstractValue(signState4, "x")).isEqualTo(SIGN.PLUSMINUS);
-    Truth.assertThat(signImpl.getAbstractValue(signState5, "y")).isEqualTo(SIGN.ALL);
+    Truth.assertThat(signImpl.getAbstractValue(signState1, "-1")).isEqualTo(Sign.MINUS);
+    Truth.assertThat(signImpl.getAbstractValue(signState2, "0")).isEqualTo(Sign.ZERO);
+    Truth.assertThat(signImpl.getAbstractValue(signState3, "1")).isEqualTo(Sign.PLUS);
+    Truth.assertThat(signImpl.getAbstractValue(signState4, "x")).isEqualTo(Sign.PLUSMINUS);
+    Truth.assertThat(signImpl.getAbstractValue(signState5, "y")).isEqualTo(Sign.ALL);
   }
 
   @Test

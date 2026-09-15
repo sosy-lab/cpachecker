@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -27,6 +28,14 @@ import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetReductionUtil
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
+/*
+ * Based on paper
+ * Martina Marré, Antonia Bertolino: Using Spanning Sets for Coverage Testing.
+ * IEEE TSE 29(11): 974-984 (2003)
+ * https://doi.org/10.1109/TSE.2003.1245299
+ *
+ * TODO paper for DominatorGraph??
+ */
 public class TestTargetReductionSpanningSet_DominatorGraph {
 
   public Set<CFAEdge> reduceTargets(
@@ -82,7 +91,7 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
         }
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (subOracle.subsumes(targetSucc, targetPred)) {
-          edgeToNode.get(targetPred).addEdgeTo(edgeToNode.get(targetSucc));
+          edgeToNode.get(targetPred).addOrUpdateEdgeTo(edgeToNode.get(targetSucc), false);
         }
       }
     }
@@ -97,8 +106,9 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
     CFAEdgeNode node;
     Map<CFAEdge, CFAEdgeNode> targetToNode = Maps.newHashMapWithExpectedSize(pTargets.size());
 
-    Pair<CFAEdgeNode, CFAEdgeNode> entryExit =
+    Pair<Pair<CFAEdgeNode, CFAEdgeNode>, ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>> result =
         TestTargetReductionUtils.buildNodeBasedTestGoalGraph(pTargets, pStartNode, targetToNode);
+    Pair<CFAEdgeNode, CFAEdgeNode> entryExit = result.getFirst();
     Map<CFAEdgeNode, CFAEdgeNode> graphNodeToNodeSpanningSet =
         Maps.newHashMapWithExpectedSize(targetToNode.size());
 
@@ -115,6 +125,8 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
         DomTree.forGraph(
             CFAEdgeNode::allSuccessorsOf, CFAEdgeNode::allPredecessorsOf, entryExit.getSecond());
 
+    ImmutableSet<CFAEdgeNode> reachableFromExit = getReachableFromExit(entryExit.getSecond());
+
     for (CFAEdgeNode targetPred : targetToNode.values()) {
       for (CFAEdgeNode targetSucc : targetToNode.values()) {
         if (targetPred == targetSucc) {
@@ -123,15 +135,38 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
 
         // targetSucc subsumes targetPred
         if (domTree.isAncestorOf(targetPred, targetSucc)
-            || inverseDomTree.isAncestorOf(targetPred, targetSucc)) {
+            || (reachableFromExit.contains(targetPred)
+                && reachableFromExit.contains(targetSucc)
+                && inverseDomTree.isAncestorOf(targetPred, targetSucc)
+                && !result.getSecond().contains(Pair.of(targetSucc, targetPred)))) {
+          // TODO never entered for example
           graphNodeToNodeSpanningSet
               .get(targetPred)
-              .addEdgeTo(graphNodeToNodeSpanningSet.get(targetSucc));
+              .addOrUpdateEdgeTo(graphNodeToNodeSpanningSet.get(targetSucc), false);
         }
       }
     }
 
     return nodeBuilder.build();
+  }
+
+  private ImmutableSet<CFAEdgeNode> getReachableFromExit(final CFAEdgeNode pExit) {
+    Set<CFAEdgeNode> visited = new HashSet<>();
+    Deque<CFAEdgeNode> waitlist = new ArrayDeque<>();
+    visited.add(pExit);
+    waitlist.add(pExit);
+
+    CFAEdgeNode succ;
+    while (!waitlist.isEmpty()) {
+      succ = waitlist.poll();
+      for (CFAEdgeNode pred : CFAEdgeNode.allPredecessorsOf(succ)) {
+        if (visited.add(pred)) {
+          waitlist.add(pred);
+        }
+      }
+    }
+
+    return ImmutableSet.copyOf(visited);
   }
 
   private ImmutableList<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(

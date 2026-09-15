@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /** <code>PartitioningHeuristic</code> that creates blocks for each loop-body. */
@@ -59,7 +58,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private boolean hasBlankEdgeFromLoop(CFANode pNode) {
-    for (CFAEdge edge : CFAUtils.enteringEdges(pNode)) {
+    for (CFAEdge edge : pNode.getEnteringEdges()) {
       if (edge instanceof BlankEdge && isLoopHead(edge.getPredecessor())) {
         return true;
       }
@@ -98,7 +97,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void insertLoopStartState(Set<CFANode> pLoopBody, CFANode pLoopHeader) {
-    for (CFAEdge edge : CFAUtils.enteringEdges(pLoopHeader)) {
+    for (CFAEdge edge : pLoopHeader.getEnteringEdges()) {
       if (edge instanceof BlankEdge && !pLoopBody.contains(edge.getPredecessor())) {
         pLoopBody.add(edge.getPredecessor());
       }
@@ -108,7 +107,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
     List<CFANode> addNodes = new ArrayList<>();
     for (CFANode node : pLoopBody) {
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
         if (!pLoopBody.contains(edge.getSuccessor())
             && !(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
           addNodes.add(edge.getSuccessor());
@@ -130,9 +129,9 @@ public class LoopPartitioning extends PartitioningHeuristic {
     // either through the loopstart or with a break-statement.
     final List<CFANode> waitlist = new ArrayList<>(addNodes);
     while (!waitlist.isEmpty()) {
-      final CFANode node = waitlist.remove(0);
+      final CFANode node = waitlist.removeFirst();
       if (pLoopBody.add(node)) {
-        for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
+        for (CFAEdge edge : node.getEnteringEdges()) {
           if (edge.getEdgeType() != CFAEdgeType.FunctionReturnEdge) {
             waitlist.add(edge.getPredecessor());
           }

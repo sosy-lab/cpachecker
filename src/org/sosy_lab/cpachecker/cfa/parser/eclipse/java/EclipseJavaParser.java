@@ -171,7 +171,7 @@ class EclipseJavaParser implements Parser {
     // A) Main function via property file or config option + source paths on command line
     // B) Source paths via config options + main function on command line
     // We need to distinguish them:
-    final String firstSourceFile = sourceFiles.get(0);
+    final String firstSourceFile = sourceFiles.getFirst();
     if (sourceFiles.size() == 1 && searchForClassFile(firstSourceFile).isPresent()) {
       // B)
       return parse(firstSourceFile);
@@ -190,8 +190,8 @@ class EclipseJavaParser implements Parser {
         throw new JParserException(
             "Path '"
                 + firstSourceFile
-                + "' does not exist. If this is the name of the main class, then "
-                + "either class path or source path need to be given with -classpath/-sourcepath.");
+                + "' does not exist. If this is the name of the main class, then either class path"
+                + " or source path need to be given with --class-path/--source-path.");
       } else {
         // seems like B) was attempted
         throw new JParserException(

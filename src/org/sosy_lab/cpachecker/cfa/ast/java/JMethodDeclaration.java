@@ -12,13 +12,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -42,7 +43,7 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
 
   // TODO Type Variables, Exceptions, Annotations
 
-  private static final long serialVersionUID = 2250464052511901845L;
+  @Serial private static final long serialVersionUID = 2250464052511901845L;
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean isStatic;
@@ -52,22 +53,6 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
   private final VisibilityModifier visibility;
   private final JClassOrInterfaceType declaringClass;
   private final String simpleName;
-
-  private static final JMethodDeclaration UNRESOLVED_METHOD =
-      new JMethodDeclaration(
-          FileLocation.DUMMY,
-          JMethodType.createUnresolvableType(),
-          "__Unresolved__",
-          "__Unresolved__",
-          new ArrayList<>(),
-          VisibilityModifier.NONE,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          JClassType.createUnresolvableType());
 
   public JMethodDeclaration(
       FileLocation pFileLocation,
@@ -115,12 +100,12 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<JParameterDeclaration> getParameters() {
-    return (List<JParameterDeclaration>) super.getParameters();
+  public ImmutableList<JParameterDeclaration> getParameters() {
+    return (ImmutableList<JParameterDeclaration>) super.getParameters();
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 
@@ -222,10 +207,6 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
         && other.isStrictfp == isStrictfp
         && other.isSynchronized == isSynchronized
         && Objects.equals(other.visibility, visibility);
-  }
-
-  public static JMethodDeclaration createUnresolvedMethodDeclaration() {
-    return UNRESOLVED_METHOD;
   }
 
   public static JMethodDeclaration createExternMethodDeclaration(

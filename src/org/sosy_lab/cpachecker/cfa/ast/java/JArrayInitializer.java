@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
@@ -15,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
 /**
- * This class represents a Array initializer AST node type.
+ * This class represents an Array initializer AST node type.
  *
  * <pre>
  * ArrayInitializer:
@@ -27,14 +29,14 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  */
 public final class JArrayInitializer extends AbstractExpression implements JExpression {
 
-  private static final long serialVersionUID = -9034136529891743726L;
-  private final List<JExpression> initializerExpressions;
+  @Serial private static final long serialVersionUID = -9034136529891743726L;
+  private final ImmutableList<JExpression> initializerExpressions;
 
   public JArrayInitializer(
       FileLocation pFileLocation, List<JExpression> pInitializerExpression, JArrayType pType) {
     super(pFileLocation, pType);
 
-    initializerExpressions = pInitializerExpression;
+    initializerExpressions = ImmutableList.copyOf(pInitializerExpression);
   }
 
   @Override
@@ -42,17 +44,17 @@ public final class JArrayInitializer extends AbstractExpression implements JExpr
     return (JArrayType) super.getExpressionType();
   }
 
-  public List<JExpression> getInitializerExpressions() {
+  public ImmutableList<JExpression> getInitializerExpressions() {
     return initializerExpressions;
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
 
     StringBuilder astString = new StringBuilder("{");
 
     for (JExpression exp : initializerExpressions) {
-      astString.append(exp.toASTString(pQualified) + ", ");
+      astString.append(exp.toASTString(pAAstNodeRepresentation) + ", ");
     }
 
     if (!initializerExpressions.isEmpty()) {

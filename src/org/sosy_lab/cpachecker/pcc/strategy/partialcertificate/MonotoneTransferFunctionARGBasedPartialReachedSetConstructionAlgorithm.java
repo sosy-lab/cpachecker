@@ -37,7 +37,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
   public AbstractState[] computePartialReachedSet(
       final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (!(pReached.getFirstState() instanceof ARGState)) {
+    if (!(pReached.getFirstState() instanceof ARGState root)) {
       throw new InvalidConfigurationException(
           "May only compute partial reached set with this algorithm if an ARG is constructed and"
               + " ARG is top level state.");
@@ -45,7 +45,6 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
     ARGCPA argCpa =
         CPAs.retrieveCPAOrFail(
             pCpa, ARGCPA.class, ARGBasedPartialReachedSetConstructionAlgorithm.class);
-    ARGState root = (ARGState) pReached.getFirstState();
 
     NodeSelectionARGPass argPass = getARGPass(pReached.getPrecision(root), root, argCpa);
     argPass.passARG(root);
@@ -99,7 +98,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
               && (pNode.getChildren().size() > 1
                   || (!pNode.isCovered()
                       && (pNode.getChildren().isEmpty()
-                          || pNode.getParents().iterator().next().getChildren().size() > 1))));
+                          || pNode.getParents().getFirst().getChildren().size() > 1))));
     }
 
     @Override

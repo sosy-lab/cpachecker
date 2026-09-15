@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import com.google.common.collect.FluentIterable;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -111,7 +109,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier points to the second identifier.
+   * Checks whether the first identifier points to the second identifier.
    *
    * @param pSource the first identifier.
    * @param pTarget the second identifier.
@@ -137,7 +135,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier is known to point to the second identifier.
+   * Checks whether the first identifier is known to point to the second identifier.
    *
    * @return <code>true</code> if the first identifier definitely points to the second identifier,
    *     <code>false</code> if it might point to it or is known not to point to it.
@@ -147,7 +145,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier is known to not point to the second identifier.
+   * Checks whether the first identifier is known to not point to the second identifier.
    *
    * @return <code>true</code> if the first identifier definitely does not points to the second
    *     identifier, <code>false</code> if it might point to it or is known to point to it.
@@ -157,7 +155,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier is may point to the second identifier.
+   * Checks whether the first identifier is may point to the second identifier.
    *
    * @return <code>true</code> if the first identifier definitely points to the second identifier or
    *     might point to it, <code>false</code> if it is known not to point to it.
@@ -171,7 +169,7 @@ public class PointerState implements AbstractState {
    *
    * @return all locations known to the state.
    */
-  public Set<MemoryLocation> getKnownLocations() {
+  public ImmutableSet<MemoryLocation> getKnownLocations() {
     return FluentIterable.concat(
             pointsToMap.keySet(),
             FluentIterable.concat(
@@ -184,8 +182,8 @@ public class PointerState implements AbstractState {
    *
    * @return the points-to map of this state.
    */
-  public Map<MemoryLocation, LocationSet> getPointsToMap() {
-    return Collections.unmodifiableMap(pointsToMap);
+  public PersistentSortedMap<MemoryLocation, LocationSet> getPointsToMap() {
+    return pointsToMap;
   }
 
   @Override
@@ -193,7 +191,7 @@ public class PointerState implements AbstractState {
     if (this == pO) {
       return true;
     }
-    return pO instanceof PointerState && pointsToMap.equals(((PointerState) pO).pointsToMap);
+    return pO instanceof PointerState pointerState && pointsToMap.equals(pointerState.pointsToMap);
   }
 
   @Override

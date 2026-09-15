@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.CompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.EmptyStatement;
@@ -58,23 +58,20 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class CFAToCTranslator {
 
-  // Use original, unqualified names for variables
-  private static final boolean NAMES_QUALIFIED = false;
-
   private static class NodeAndBlock {
     private final CFANode node;
     private final CompoundStatement currentBlock;
 
-    public NodeAndBlock(CFANode pNode, CompoundStatement pCurrentBlock) {
+    NodeAndBlock(CFANode pNode, CompoundStatement pCurrentBlock) {
       node = pNode;
       currentBlock = pCurrentBlock;
     }
 
-    public CFANode getNode() {
+    CFANode getNode() {
       return node;
     }
 
-    public CompoundStatement getCurrentBlock() {
+    CompoundStatement getCurrentBlock() {
       return currentBlock;
     }
   }
@@ -184,7 +181,7 @@ public class CFAToCTranslator {
       final CompoundStatement pCurrentBlock,
       final Collection<NodeAndBlock> pEnteringBlocks) {
 
-    if (CFAUtils.enteringEdges(pCurrentNode).size() <= 1
+    if (pCurrentNode.getNumEnteringEdges() <= 1
         || pEnteringBlocks == null
         || pEnteringBlocks.size() <= 1) {
       return pCurrentBlock;
@@ -238,7 +235,7 @@ public class CFAToCTranslator {
   }
 
   private Statement createGoto(CFANode pCurrentNode, CFANode pTarget) {
-    String go = "goto " + createdStatements.get(pTarget).get(0).getLabel() + ";";
+    String go = "goto " + createdStatements.get(pTarget).getFirst().getLabel() + ";";
     return createSimpleStatement(pCurrentNode, go);
   }
 
@@ -251,8 +248,8 @@ public class CFAToCTranslator {
       return ImmutableList.of();
     }
 
-    if (pNode instanceof CFALabelNode) {
-      pBlock.addStatement(createLabel((CFALabelNode) pNode));
+    if (pNode instanceof CFALabelNode cFALabelNode) {
+      pBlock.addStatement(createLabel(cFALabelNode));
     }
 
     Collection<Pair<CFAEdge, CompoundStatement>> outgoingEdges =
@@ -296,19 +293,24 @@ public class CFAToCTranslator {
 
   private FunctionDefinition startFunction(CFunctionEntryNode pFunctionStartNode) {
     String lFunctionHeader =
-        pFunctionStartNode.getFunctionDefinition().toASTString(NAMES_QUALIFIED).replace(";", "");
+        pFunctionStartNode
+            .getFunctionDefinition()
+            .toASTString(AAstNodeRepresentation.DEFAULT)
+            .replace(";", "");
     return new FunctionDefinition(
         lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
   }
 
   private FluentIterable<CFAEdge> getRelevantLeavingEdges(CFANode pNode) {
-    return CFAUtils.leavingEdges(pNode)
+    return pNode
+        .getLeavingEdges()
         .filter(e -> !(e instanceof FunctionReturnEdge))
         .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
   }
 
   private FluentIterable<CFAEdge> getRelevantEnteringEdges(CFANode pNode) {
-    return CFAUtils.enteringEdges(pNode)
+    return pNode
+        .getEnteringEdges()
         .filter(e -> !(e instanceof FunctionReturnEdge))
         .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
   }
@@ -338,7 +340,7 @@ public class CFAToCTranslator {
       ImmutableList.Builder<Pair<CFAEdge, CompoundStatement>> branches = ImmutableList.builder();
 
       List<CFAEdge> ifAndElseEdge = new ArrayList<>(outgoingEdges);
-      if (!getRealTruthAssumption((CAssumeEdge) ifAndElseEdge.get(0))) {
+      if (!getRealTruthAssumption((CAssumeEdge) ifAndElseEdge.getFirst())) {
         // swap elements so that if-branch comes before else-branch in list
         ifAndElseEdge = swapElements(ifAndElseEdge);
       }
@@ -350,11 +352,17 @@ public class CFAToCTranslator {
         String cond;
         if (truthAssumption) {
           // must be if-branch, first in list
-          assert ifAndElseEdge.get(0) == currentEdge;
+          assert ifAndElseEdge.getFirst() == currentEdge;
           if (assumeEdge.getTruthAssumption()) {
-            cond = "if (" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + ")";
+            cond =
+                "if ("
+                    + assumeEdge.getExpression().toASTString(AAstNodeRepresentation.DEFAULT)
+                    + ")";
           } else {
-            cond = "if (!(" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + "))";
+            cond =
+                "if (!("
+                    + assumeEdge.getExpression().toASTString(AAstNodeRepresentation.DEFAULT)
+                    + "))";
           }
         } else {
           // must be else-branch, second in list
@@ -377,7 +385,7 @@ public class CFAToCTranslator {
 
     List<CFAEdge> swapped = new ArrayList<>(2);
     swapped.add(pListWithTwoElements.get(1));
-    swapped.add(pListWithTwoElements.get(0));
+    swapped.add(pListWithTwoElements.getFirst());
     return swapped;
   }
 
@@ -447,90 +455,79 @@ public class CFAToCTranslator {
     }
 
     switch (pCFAEdge.getEdgeType()) {
-      case BlankEdge:
-      case AssumeEdge:
+      case BlankEdge, AssumeEdge -> {
         // nothing to do
-        break;
-
-      case StatementEdge:
-      case ReturnStatementEdge:
-        {
-          String statementText = pCFAEdge.getCode();
-          if (statementText.matches("^__CPAchecker_TMP_[0-9]+;?$")) {
-            return ""; // ignore empty temporary variable statements;
-          }
-          return statementText + (statementText.endsWith(";") ? "" : ";");
+      }
+      case StatementEdge, ReturnStatementEdge -> {
+        String statementText = pCFAEdge.getCode();
+        if (statementText.matches("^__CPAchecker_TMP_[0-9]+;?$")) {
+          return ""; // ignore empty temporary variable statements;
         }
+        return statementText + (statementText.endsWith(";") ? "" : ";");
+      }
+      case FunctionCallEdge -> {
+        String statement = ((CFunctionCallEdge) pCFAEdge).getSummaryEdge().getCode();
+        return statement + (statement.endsWith(";") ? "" : ";");
+      }
+      case DeclarationEdge -> {
+        CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
+        String declaration;
+        // TODO adapt if String in
+        // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
+        if (lDeclarationEdge
+            .getDeclaration()
+            .toASTString(AAstNodeRepresentation.DEFAULT)
+            .contains("__CPAchecker_TMP_")) {
+          declaration =
+              lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
+        } else {
+          // TODO check if works without lDeclarationEdge.getRawStatement();
+          declaration =
+              lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
 
-      case FunctionCallEdge:
-        {
-          String statement = ((CFunctionCallEdge) pCFAEdge).getSummaryEdge().getCode();
-          return statement + (statement.endsWith(";") ? "" : ";");
-        }
+          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration varDecl) {
 
-      case DeclarationEdge:
-        {
-          CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
-          String declaration;
-          // TODO adapt if String in
-          // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
-          if (lDeclarationEdge
-              .getDeclaration()
-              .toASTString(NAMES_QUALIFIED)
-              .contains("__CPAchecker_TMP_")) {
-            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED);
-          } else {
-            // TODO check if works without lDeclarationEdge.getRawStatement();
-            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED);
-
-            if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-              CVariableDeclaration varDecl =
-                  (CVariableDeclaration) lDeclarationEdge.getDeclaration();
-              if (varDecl.getType() instanceof CArrayType
-                  && varDecl.getInitializer() instanceof CInitializerExpression) {
-                int assignAfterPos = declaration.indexOf("=") + 1;
-                declaration =
-                    declaration.substring(0, assignAfterPos)
-                        + "{"
-                        + declaration.substring(assignAfterPos, declaration.lastIndexOf(";"))
-                        + "};";
-              }
-            }
-
-            if (declaration.contains(",")) {
-              for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
-                if (predEdge
-                    .getRawStatement()
-                    .equals(lDeclarationEdge.getDeclaration().toASTString())) {
-                  declaration = "";
-                  break;
-                }
-              }
+            if (varDecl.getType() instanceof CArrayType
+                && varDecl.getInitializer() instanceof CInitializerExpression) {
+              int assignAfterPos = declaration.indexOf("=") + 1;
+              declaration =
+                  declaration.substring(0, assignAfterPos)
+                      + "{"
+                      + declaration.substring(assignAfterPos, declaration.lastIndexOf(";"))
+                      + "};";
             }
           }
 
-          if (declaration.contains("org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
-            throw new CPAException(
-                "Failed to translate CFA into program because a type could not be properly"
-                    + " resolved.");
+          if (declaration.contains(",")) {
+            for (CFAEdge predEdge : pCFAEdge.getPredecessor().getEnteringEdges()) {
+              if (predEdge
+                  .getRawStatement()
+                  .equals(lDeclarationEdge.getDeclaration().toASTString())) {
+                declaration = "";
+                break;
+              }
+            }
           }
-
-          if (lDeclarationEdge.getDeclaration().isGlobal()) {
-            globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-          } else {
-            return declaration;
-          }
-
-          break;
         }
 
-      case CallToReturnEdge:
-        //          this should not have been taken
-        throw new AssertionError("CallToReturnEdge in path: " + pCFAEdge);
+        if (declaration.contains("org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
+          throw new CPAException(
+              "Failed to translate CFA into program because a type could not be properly"
+                  + " resolved.");
+        }
 
-      default:
-        throw new AssertionError(
-            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
+        if (lDeclarationEdge.getDeclaration().isGlobal()) {
+          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+        } else {
+          return declaration;
+        }
+      }
+      case CallToReturnEdge ->
+          //          this should not have been taken
+          throw new AssertionError("CallToReturnEdge in path: " + pCFAEdge);
+      default ->
+          throw new AssertionError(
+              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
 
     return "";

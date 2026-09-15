@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util;
 
+import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -16,7 +17,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGSolverException extends CPATransferException {
 
-  private static final long serialVersionUID = -1677699207895867889L;
+  @Serial private static final long serialVersionUID = -1677699207895867889L;
 
   // Null for String msgs only
   private final @Nullable SMGState errorState;
@@ -44,6 +45,10 @@ public class SMGSolverException extends CPATransferException {
 
   public boolean isUnrecognizedCodeException() {
     return wrappedException instanceof UnrecognizedCodeException;
+  }
+
+  public UnrecognizedCodeException getUnrecognizedCodeException() {
+    return (UnrecognizedCodeException) wrappedException;
   }
 
   public InterruptedException getInterruptedException() {

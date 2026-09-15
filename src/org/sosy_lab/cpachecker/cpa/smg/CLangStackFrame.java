@@ -71,7 +71,7 @@ public final class CLangStackFrame {
   }
 
   /**
-   * Adds a SMG object pObj to a stack frame, representing variable pVariableName
+   * Adds an SMG object pObj to a stack frame, representing variable pVariableName
    *
    * <p>Throws {@link IllegalArgumentException} when some object is already present with the name
    * pVariableName

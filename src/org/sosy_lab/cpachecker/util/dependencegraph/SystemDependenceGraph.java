@@ -9,9 +9,12 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.EnumMultiset;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multiset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,14 +54,14 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   private final ImmutableList<GraphNode.ImmutableGraphNode<V, N>> graphNodes;
 
   // counters for nodes and edges per type
-  private final TypeCounter<NodeType> nodeTypeCounter;
-  private final TypeCounter<EdgeType> edgeTypeCounter;
+  private final ImmutableMultiset<NodeType> nodeTypeCounter;
+  private final ImmutableMultiset<EdgeType> edgeTypeCounter;
 
   private SystemDependenceGraph(
       ImmutableList<N> pNodes,
       ImmutableList<GraphNode.ImmutableGraphNode<V, N>> pGraphNodes,
-      TypeCounter<NodeType> pNodeTypeCounter,
-      TypeCounter<EdgeType> pEdgeTypeCounter) {
+      ImmutableMultiset<NodeType> pNodeTypeCounter,
+      ImmutableMultiset<EdgeType> pEdgeTypeCounter) {
 
     nodes = pNodes;
     graphNodes = pGraphNodes;
@@ -114,10 +117,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    */
   public static <V, N extends Node<?, ?, V>> SystemDependenceGraph<V, N> empty() {
     return new SystemDependenceGraph<>(
-        ImmutableList.of(),
-        ImmutableList.of(),
-        new TypeCounter<>(NodeType.values().length),
-        new TypeCounter<>(EdgeType.values().length));
+        ImmutableList.of(), ImmutableList.of(), ImmutableMultiset.of(), ImmutableMultiset.of());
   }
 
   /**
@@ -175,7 +175,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
     Objects.requireNonNull(pType, "pType must not be null");
 
-    return nodeTypeCounter.getCount(pType);
+    return nodeTypeCounter.count(pType);
   }
 
   /**
@@ -189,7 +189,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
     Objects.requireNonNull(pType, "pType must not be null");
 
-    return edgeTypeCounter.getCount(pType);
+    return edgeTypeCounter.count(pType);
   }
 
   /**
@@ -1051,8 +1051,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     private final List<GraphNode.MutableGraphNode<V, N>> graphNodes;
     private final Map<NodeMapKey<P, T, V>, GraphNode.MutableGraphNode<V, N>> nodeMap;
 
-    private final TypeCounter<NodeType> nodeTypeCounter;
-    private final TypeCounter<EdgeType> edgeTypeCounter;
+    private final Multiset<NodeType> nodeTypeCounter;
+    private final Multiset<EdgeType> edgeTypeCounter;
 
     private Builder(Function<Node<P, T, V>, N> pNodeCreationFunction) {
 
@@ -1062,8 +1062,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       graphNodes = new ArrayList<>();
       nodeMap = new HashMap<>();
 
-      nodeTypeCounter = new TypeCounter<>(NodeType.values().length);
-      edgeTypeCounter = new TypeCounter<>(EdgeType.values().length);
+      nodeTypeCounter = EnumMultiset.create(NodeType.class);
+      edgeTypeCounter = EnumMultiset.create(EdgeType.class);
     }
 
     private GraphNode.MutableGraphNode<V, N> newGraphNode(NodeMapKey<P, T, V> pNodeKey) {
@@ -1089,7 +1089,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         nodes.add(node);
         graphNodes.add(graphNode);
 
-        nodeTypeCounter.increment(pType);
+        nodeTypeCounter.add(pType);
       }
 
       return graphNode;
@@ -1125,7 +1125,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         pSuccessor.addUse(variable);
       }
 
-      edgeTypeCounter.increment(pType);
+      edgeTypeCounter.add(pType);
     }
 
     int getNodeCount() {
@@ -1194,10 +1194,6 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *     not belong to this SDG builder
      */
     void insertActualSummaryEdges(N pFormalInNode, N pFormalOutNode) {
-
-      Objects.requireNonNull(pFormalInNode, "pFormalInNode must not be null");
-      Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
-
       Preconditions.checkArgument(
           pFormalInNode.getType() == NodeType.FORMAL_IN,
           "pFormalInNode does not have type FORMAL_IN");
@@ -1315,8 +1311,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       return new SystemDependenceGraph<>(
           ImmutableList.copyOf(nodes),
           immutableGraphNodes,
-          nodeTypeCounter.copy(),
-          edgeTypeCounter.copy());
+          ImmutableMultiset.copyOf(nodeTypeCounter),
+          ImmutableMultiset.copyOf(edgeTypeCounter));
     }
 
     /**
@@ -1473,32 +1469,6 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
           procedure,
           statement,
           variable);
-    }
-  }
-
-  /** Used to count objects of a specific type. Used for {@link NodeType} and {@link EdgeType}. */
-  private static final class TypeCounter<T extends Enum<T>> {
-
-    private final int[] counters;
-
-    private TypeCounter(int[] pCounters) {
-      counters = pCounters;
-    }
-
-    private TypeCounter(int pTypeCount) {
-      this(new int[pTypeCount]);
-    }
-
-    private int getCount(T pType) {
-      return counters[pType.ordinal()];
-    }
-
-    private void increment(T pType) {
-      counters[pType.ordinal()]++;
-    }
-
-    private TypeCounter<T> copy() {
-      return new TypeCounter<>(Arrays.copyOf(counters, counters.length));
     }
   }
 
@@ -1675,20 +1645,11 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @see SystemDependenceGraph#createVisitOnceVisitor(ForwardsVisitor)
    * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
    */
-  public static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
+  private static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
       extends VisitOnceVisitor<N> implements ForwardsVisitor<N> {
 
     ForwardsVisitOnceVisitor(ForwardsVisitor<N> pDelegateVisitor, int pNodeCount) {
       super(true, pDelegateVisitor, pNodeCount);
-    }
-
-    /**
-     * Causes this visit-once-visitor to forget all previously visited nodes.
-     *
-     * <p>This can, but doesn't have to, be called between different SDG traversals of the same SDG.
-     */
-    public void reset() {
-      super.reset();
     }
 
     @Override

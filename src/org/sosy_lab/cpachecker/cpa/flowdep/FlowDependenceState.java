@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -112,10 +111,10 @@ public final class FlowDependenceState implements AbstractState, AbstractWrapper
     PointerState pointers = null;
     assert wrappedStates.size() == 2 : "Wrapped state has wrong size: " + wrappedStates.size();
     for (AbstractState s : wrappedStates) {
-      if (s instanceof ReachingDefState) {
-        reachdef = (ReachingDefState) s;
-      } else if (s instanceof PointerState) {
-        pointers = (PointerState) s;
+      if (s instanceof ReachingDefState reachingDefState) {
+        reachdef = reachingDefState;
+      } else if (s instanceof PointerState pointerState) {
+        pointers = pointerState;
       } else {
         throw new AssertionError("Wrong state type: " + s.getClass().getSimpleName());
       }
@@ -229,7 +228,7 @@ public final class FlowDependenceState implements AbstractState, AbstractWrapper
         CFANode start = defPoint.getDefinitionEntryLocation();
         CFANode stop = defPoint.getDefinitionExitLocation();
 
-        for (CFAEdge g : CFAUtils.leavingEdges(start)) {
+        for (CFAEdge g : start.getLeavingEdges()) {
           if (g.getSuccessor().equals(stop)) {
             useToDefinitions.put(e.getKey(), g);
             added = true;

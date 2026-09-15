@@ -55,12 +55,10 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
 
-    switch (pOther.getKind()) {
-      case REG:
-        return getSize() == pOther.getSize();
-      default:
-        return false;
-    }
+    return switch (pOther.getKind()) {
+      case REG -> getSize() == pOther.getSize();
+      default -> false;
+    };
   }
 
   @Override
@@ -78,13 +76,10 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
     int level = Math.max(getLevel(), pOther.getLevel());
 
-    switch (pOther.getKind()) {
-      case REG:
-      case OPTIONAL:
-        return copy(level);
-      default:
-        return pOther.join(this, pDestLevel);
-    }
+    return switch (pOther.getKind()) {
+      case REG, OPTIONAL -> copy(level);
+      default -> pOther.join(this, pDestLevel);
+    };
   }
 
   @Override

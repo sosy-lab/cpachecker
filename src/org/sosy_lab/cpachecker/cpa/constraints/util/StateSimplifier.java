@@ -68,12 +68,11 @@ public class StateSimplifier {
    */
   public ConstraintsState simplify(
       final ConstraintsState pState, final ValueAnalysisState pValueState) {
-    ConstraintsState newState = pState.copyOf();
-
+    ConstraintsState newState = pState;
     if (removeTrivial) {
       try {
         stats.trivialRemovalTime.start();
-        removeTrivialConstraints(pState);
+        newState = removeTrivialConstraints(newState);
       } finally {
         stats.trivialRemovalTime.stop();
       }
@@ -82,7 +81,7 @@ public class StateSimplifier {
     if (removeOutdated) {
       try {
         stats.outdatedRemovalTime.start();
-        removeOutdatedConstraints(pState, pValueState);
+        newState = removeOutdatedConstraints(newState, pValueState);
       } finally {
         stats.outdatedRemovalTime.stop();
       }
@@ -92,12 +91,15 @@ public class StateSimplifier {
   }
 
   /** Removes all trivial constraints from the given state. */
-  public void removeTrivialConstraints(final ConstraintsState pState) {
-    int sizeBefore = pState.size();
+  public ConstraintsState removeTrivialConstraints(final ConstraintsState pState) {
+    Set<Constraint> reducedConstraints = new HashSet<>(pState);
+    reducedConstraints.removeIf(this::isTrivial);
 
-    pState.removeIf(this::isTrivial);
+    stats.removedTrivial.setNextValue(pState.size() - reducedConstraints.size());
 
-    stats.removedTrivial.setNextValue(sizeBefore - pState.size());
+    // after removing constraints, the last satisfying model is still a satisfying model.
+    // but the definite assignments may not be definite anymore. So only keep the model.
+    return new ConstraintsState(reducedConstraints).copyWithSatisfyingModel(pState.getModel());
   }
 
   private boolean isTrivial(Constraint pConstraint) {
@@ -116,22 +118,19 @@ public class StateSimplifier {
    * @param pValueState the value state to use for checking whether a symbolic identifier occurs in
    *     a memory location's assignment
    */
-  public void removeOutdatedConstraints(
+  public ConstraintsState removeOutdatedConstraints(
       final ConstraintsState pState, final ValueAnalysisState pValueState) {
-    int sizeBefore = pState.size();
     final Map<ActivityInfo, Set<ActivityInfo>> symIdActivity = getInitialActivityMap(pState);
     final Set<SymbolicIdentifier> symbolicValues = getExistingSymbolicIds(pValueState);
+    Set<Constraint> reducedConstraints = new HashSet<>(pState);
 
     for (Entry<ActivityInfo, Set<ActivityInfo>> e : symIdActivity.entrySet()) {
       final ActivityInfo s = e.getKey();
       final SymbolicIdentifier currId = s.getIdentifier();
 
       switch (s.getActivity()) {
-        case DELETED:
-          pState.removeAll(s.getUsingConstraints());
-          break;
-        case ACTIVE:
-        case UNUSED:
+        case DELETED -> reducedConstraints.removeAll(s.getUsingConstraints());
+        case ACTIVE, UNUSED -> {
           if (!symbolicValues.contains(currId)) {
             boolean canBeRemoved;
             if (s.getUsingConstraints().size() < 2) {
@@ -149,16 +148,18 @@ public class StateSimplifier {
 
             if (canBeRemoved) {
               s.markDeleted();
-              pState.removeAll(s.getUsingConstraints());
+              reducedConstraints.removeAll(s.getUsingConstraints());
             }
           }
-          break;
-        default:
-          throw new AssertionError("Unhandled activity type: " + s.getActivity());
+        }
       }
     }
 
-    stats.removedOutdated.setNextValue(sizeBefore - pState.size());
+    stats.removedOutdated.setNextValue(pState.size() - reducedConstraints.size());
+
+    // after removing constraints, the last satisfying model is still a satisfying model.
+    // but the definite assignments may not be definite anymore. So only keep the model.
+    return new ConstraintsState(reducedConstraints).copyWithSatisfyingModel(pState.getModel());
   }
 
   private boolean removeOutdatedConstraints0(
@@ -175,12 +176,13 @@ public class StateSimplifier {
       }
 
       switch (t.getActivity()) {
-        case ACTIVE:
+        case ACTIVE -> {
           return false;
-        case DELETED:
+        }
+        case DELETED -> {
           // do nothing, we already know that this target is not needed
-          break;
-        case UNUSED:
+        }
+        case UNUSED -> {
           final Set<ActivityInfo> dependents = pSymIdActivity.get(t);
           dependents.removeAll(parents);
 
@@ -202,9 +204,7 @@ public class StateSimplifier {
           } else {
             t.markDeleted();
           }
-          break;
-        default:
-          throw new AssertionError("Unhandled state of ActivityInfo: " + t.getActivity());
+        }
       }
     }
 
@@ -314,27 +314,27 @@ public class StateSimplifier {
       usingConstraints.add(pConstraint);
     }
 
-    public SymbolicIdentifier getIdentifier() {
+    SymbolicIdentifier getIdentifier() {
       return identifier;
     }
 
-    public Set<Constraint> getUsingConstraints() {
+    Set<Constraint> getUsingConstraints() {
       return usingConstraints;
     }
 
-    public Activity getActivity() {
+    Activity getActivity() {
       return activity;
     }
 
-    public void disable() {
+    void disable() {
       activity = Activity.UNUSED;
     }
 
-    public void enable() {
+    void enable() {
       activity = Activity.ACTIVE;
     }
 
-    public void markDeleted() {
+    void markDeleted() {
       activity = Activity.DELETED;
     }
 

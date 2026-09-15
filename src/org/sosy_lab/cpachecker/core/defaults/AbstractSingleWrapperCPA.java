@@ -80,8 +80,8 @@ public abstract class AbstractSingleWrapperCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (wrappedCpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) wrappedCpa).collectStatistics(pStatsCollection);
+    if (wrappedCpa instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 
@@ -91,8 +91,8 @@ public abstract class AbstractSingleWrapperCPA
       return pType.cast(this);
     } else if (pType.isAssignableFrom(wrappedCpa.getClass())) {
       return pType.cast(wrappedCpa);
-    } else if (wrappedCpa instanceof WrapperCPA) {
-      return ((WrapperCPA) wrappedCpa).retrieveWrappedCpa(pType);
+    } else if (wrappedCpa instanceof WrapperCPA wrapperCPA) {
+      return wrapperCPA.retrieveWrappedCpa(pType);
     } else {
       return null;
     }

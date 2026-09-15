@@ -62,6 +62,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -78,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -99,16 +101,18 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 
-@Options(prefix = "termination")
+@Options(prefix = "termination", deprecatedPrefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
@@ -121,10 +125,47 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
       secure = true,
-      name = "violation.witness",
+      name = "violation.witness.graphml",
+      deprecatedName = "violation.witness",
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitness = Path.of("nontermination_witness.graphml");
+  private Path violationWitnessGraphml = Path.of("nontermination_witness.graphml");
+
+  @Option(
+      secure = true,
+      name = "violation.witness.yaml",
+      description = "Export termination counterexample to file in YAML format ")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate violationWitnessYaml =
+      PathTemplate.ofFormatString("Counterexample.%s.witness-2.1.yml");
+
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The template from which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  protected PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-%s.yml");
+
+  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
+  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
+  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
+  // added to make it possible to deactivate the export.
+  @Option(
+      secure = true,
+      name = "exportYamlCorrectnessWitness",
+      description = "export correctness witness in YAML format")
+  protected boolean exportYamlCorrectnessWitness = true;
+
+  @Option(
+      secure = true,
+      name = "exportSupportingInvariantsInWitness",
+      description = "export supporting invariants in the witness")
+  private boolean exportSupportingInvariantsInWitness = false;
 
   @Option(
       secure = true,
@@ -153,18 +194,28 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final Multiset<Loop> safetyAnalysisRunsPerLoop = ConcurrentHashMultiset.create();
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private final WitnessExporter witnessExporter;
+  protected final WitnessExporter witnessExporter;
+  protected final TerminationYAMLWitnessExporter terminationWitnessExporter;
+  private final CounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
+
+  private final MachineModel machineModel;
+
+  public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
+      throws InvalidConfigurationException {
+    this(pConfig, pLogger, 0, pCFA);
+  }
 
   public TerminationStatistics(
       Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
+    machineModel = pCFA.getMachineModel();
 
     witnessExporter =
         new WitnessExporter(
@@ -173,6 +224,27 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             Specification.alwaysSatisfied()
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
+    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
+      terminationWitnessExporter =
+          new TerminationYAMLWitnessExporter(
+              pConfig,
+              pCFA,
+              Specification.alwaysSatisfied()
+                  .withAdditionalProperties(
+                      ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+              pLogger,
+              exportSupportingInvariantsInWitness);
+    } else {
+      terminationWitnessExporter = null;
+    }
+
+    cexToWitnessEporter =
+        new CounterexampleToWitness(
+            pConfig,
+            pCFA,
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+            pLogger);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
 
@@ -361,7 +433,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + format(lassoTerminationTime.getMaxTime()));
     pOut.println();
 
-    int totoalTerminationArguments = terminationArguments.size();
+    int totalTerminationArguments = terminationArguments.size();
     int maxTerminationArgumentsPerLoop =
         terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
     String loopsWithMaxTerminationArguments =
@@ -371,12 +443,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             .map(l -> l.getLoopHeads().toString())
             .collect(Collectors.joining(", "));
     pOut.println(
-        "Total number of termination arguments:              "
-            + format(totoalTerminationArguments));
+        "Total number of termination arguments:              " + format(totalTerminationArguments));
     if (loops > 0) {
       pOut.println(
           "  Avg termination arguments per loop:               "
-              + div(totoalTerminationArguments, loops));
+              + div(totalTerminationArguments, loops));
     }
     pOut.println(
         "  Max termination arguments per loop:               "
@@ -385,13 +456,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + loopsWithMaxTerminationArguments);
 
     pOut.println();
-    Map<String, Integer> terminationArguementTypes = new HashMap<>();
+    Map<String, Integer> terminationArgumentTypes = new HashMap<>();
     for (TerminationArgument terminationArgument : terminationArguments.values()) {
       String name = terminationArgument.getRankingFunction().getName();
-      terminationArguementTypes.merge(name, 1, Integer::sum);
+      terminationArgumentTypes.merge(name, 1, Integer::sum);
     }
 
-    for (Entry<String, Integer> terminationArgument : terminationArguementTypes.entrySet()) {
+    for (Entry<String, Integer> terminationArgument : terminationArgumentTypes.entrySet()) {
       String name = terminationArgument.getKey();
       String whiteSpaces = " ".repeat(49 - name.length());
       pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue()));
@@ -399,7 +470,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
+    if (pResult == Result.FALSE
+        && (violationWitnessGraphml != null
+            || violationWitnessYaml != null
+            || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached.stream()
               .filter(AbstractStates::isTargetState)
@@ -410,6 +484,15 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(violations.hasNext());
       exportViolationWitness((ARGState) pReached.getFirstState(), violations.next());
       Preconditions.checkState(!violations.hasNext());
+    }
+
+    if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
+      try {
+        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+      } catch (IOException e) {
+        logger.logUserException(
+            WARNING, e, "There is a problem when writing the witness into a file.");
+      }
     }
   }
 
@@ -465,7 +548,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           return ExpressionTrees.getTrue();
         };
 
-    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX));
+    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX, nonterminatingLoop));
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
@@ -478,9 +561,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               state -> Objects.equals(state, loopStartInCEX),
               provideQuasiInvariant);
 
-      if (violationWitness != null) {
+      if (violationWitnessGraphml != null) {
         WitnessToOutputFormatsUtils.writeWitness(
-            violationWitness,
+            violationWitnessGraphml,
             compressWitness,
             pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
             logger);
@@ -493,13 +576,16 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
             logger);
       }
-    } catch (InterruptedException e) {
-      logger.logUserException(
-          WARNING, e, "Could not export termination witness due to interruption");
+
+      if (violationWitnessYaml != null) {
+        cexToWitnessEporter.export(cexInfo, violationWitnessYaml, 0);
+      }
+    } catch (InterruptedException | IOException e) {
+      logger.logUserException(WARNING, e, "Could not export termination witness.");
     }
   }
 
-  private Collection<ARGState> copyStem(
+  protected Collection<ARGState> copyStem(
       final ARGPath pStem,
       final ARGState newRoot,
       final ARGState loopStart,
@@ -529,14 +615,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     return newStates;
   }
 
-  private Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry) {
+  protected Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry, Loop pLoop) {
     CFANode loc = AbstractStates.extractLocation(pLoopEntry);
-    Preconditions.checkState(nonterminatingLoop.getLoopHeads().contains(loc));
+    Preconditions.checkState(pLoop.getLoopHeads().contains(loc));
 
     Collection<ARGState> relevantARGStates = new HashSet<>();
 
     Map<CFANode, ARGState> nodeToARGState =
-        Maps.newHashMapWithExpectedSize(nonterminatingLoop.getLoopNodes().size());
+        Maps.newHashMapWithExpectedSize(pLoop.getLoopNodes().size());
     nodeToARGState.put(loc, pLoopEntry);
     Deque<CFANode> waitlist = new ArrayDeque<>();
     waitlist.push(loc);
@@ -546,8 +632,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       ARGState pred = nodeToARGState.get(loc);
       assert pred != null;
 
-      for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
-        if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
+      for (CFAEdge leave : loc.getLeavingEdges()) {
+        if (pLoop.getLoopNodes().contains(leave.getSuccessor())) {
           ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
             succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
@@ -557,9 +643,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
           succ.addParent(pred);
 
-        } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
+        } else if (leave instanceof FunctionCallEdge functionCallEdge
+            && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          CFANode locContinueLoop = ((FunctionCallEdge) leave).getReturnNode();
+          CFANode locContinueLoop = functionCallEdge.getReturnNode();
           Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
           Pair<CFANode, CallstackState> context =
               Pair.of(
@@ -579,15 +666,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             ARGState predFun = contextToARGState.get(context);
             assert predFun != null;
 
-            for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
+            for (CFAEdge leaveFun : context.getFirst().getLeavingEdges()) {
               Pair<CFANode, CallstackState> newContext =
                   Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
-              if (leaveFun instanceof FunctionReturnEdge) {
-                if (!context
-                    .getSecond()
-                    .getCallNode()
-                    .equals(((FunctionReturnEdge) leaveFun).getCallNode())) {
+              if (leaveFun instanceof FunctionReturnEdge functionReturnEdge) {
+                if (!context.getSecond().getCallNode().equals(functionReturnEdge.getCallNode())) {
                   continue; // false context
                 }
                 newContext =
@@ -636,10 +720,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private ExpressionTree<Object> buildInvariantFrom(NonTerminationArgument pArg) {
     ExpressionTree<Object> computedQuasiInvariant = ExpressionTrees.getTrue();
-    if (pArg instanceof GeometricNonTerminationArgument) {
-      computedQuasiInvariant = buildInvariantFrom((GeometricNonTerminationArgument) pArg);
-    } else if (pArg instanceof InfiniteFixpointRepetition) {
-      computedQuasiInvariant = buildInvaraintFrom((InfiniteFixpointRepetition) pArg);
+    if (pArg instanceof GeometricNonTerminationArgument geometricNonTerminationArgument) {
+      computedQuasiInvariant = buildInvariantFrom(geometricNonTerminationArgument);
+    } else if (pArg instanceof InfiniteFixpointRepetition infiniteFixpointRepetition) {
+      computedQuasiInvariant = buildInvaraintFrom(infiniteFixpointRepetition);
     }
     return computedQuasiInvariant;
   }
@@ -653,8 +737,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
         RankVar rankVar = (RankVar) entry.getKey();
-        if (rankVar.getTerm() instanceof ApplicationTerm
-            && ((ApplicationTerm) rankVar.getTerm()).getParameters().length != 0) {
+        if (rankVar.getTerm() instanceof ApplicationTerm applicationTerm
+            && applicationTerm.getParameters().length != 0) {
           // ignore UFs
           continue;
         }
@@ -693,14 +777,19 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     Object termVal;
 
     for (Entry<Term, Term> entry : arg.getValuesAtHonda().entrySet()) {
-      if (entry.getKey() instanceof TermVariable && entry.getValue() instanceof ConstantTerm) {
-        varName = toOrigName((TermVariable) entry.getKey());
-        termVal = ((ConstantTerm) entry.getValue()).getValue();
+      if (entry.getKey() instanceof TermVariable termVariable
+          && entry.getValue() instanceof ConstantTerm constantTerm) {
+        varName = toOrigName(termVariable);
+        termVal = constantTerm.getValue();
 
         if (termVal instanceof BigDecimal) {
+          // FIXME: Conversion from BigDecimal to FloatValue is lossy and may cause rounding issues
           litexpr =
               new CFloatLiteralExpression(
-                  FileLocation.DUMMY, CNumericTypes.FLOAT, (BigDecimal) termVal);
+                  FileLocation.DUMMY,
+                  machineModel,
+                  CNumericTypes.FLOAT,
+                  FloatValue.fromString(FloatValue.Format.Float32, termVal.toString()));
         } else if (termVal instanceof BigInteger) {
           litexpr =
               CIntegerLiteralExpression.createDummyLiteral(
@@ -723,10 +812,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return CIntegerLiteralExpression.createDummyLiteral(
           rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
     } else {
+      FloatValue n = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
+      FloatValue d = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
       return new CFloatLiteralExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.FLOAT,
-          new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator())));
+          FileLocation.DUMMY, machineModel, CNumericTypes.FLOAT, n.divide(d));
     }
   }
 
@@ -769,7 +858,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       result = result.substring(1, result.length() - 1);
       List<String> t = extractArgs(result);
 
-      if (t.get(0).startsWith("*")) {
+      if (t.getFirst().startsWith("*")) {
         if (t.size() == 2) {
           return "*(" + expressionVarName(t.get(1)) + ")";
         } else if (t.size() == 3) {
@@ -777,7 +866,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         }
       }
 
-      if (t.get(0).startsWith("+")) {
+      if (t.getFirst().startsWith("+")) {
         if (t.size() == 3) {
           return "(" + expressionVarName(t.get(1)) + ")+(" + expressionVarName(t.get(2)) + ")";
         }
@@ -813,13 +902,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     for (int i = 0; i < extendedInput.length(); i++) {
       c = extendedInput.charAt(i);
       switch (c) {
-        case '(':
-          openBrackets++;
-          break;
-        case ')':
-          openBrackets--;
-          break;
-        case ' ':
+        case '(' -> openBrackets++;
+        case ')' -> openBrackets--;
+        case ' ' -> {
           if (openBrackets == 0) {
             if (bd.length() != 0) {
               args.add(bd.toString());
@@ -828,8 +913,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
             continue;
           }
-          break;
-        default:
+        }
+        default -> {}
       }
       bd.append(c);
     }

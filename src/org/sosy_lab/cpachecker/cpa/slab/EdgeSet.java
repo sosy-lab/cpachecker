@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.slab;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -21,11 +20,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * Represents a set of @link {@link CFAEdge}s where one of the elements can be marked for later
  * retrieval.
  */
-public class EdgeSet implements Serializable, Iterable<CFAEdge> {
+public final class EdgeSet implements Iterable<CFAEdge> {
 
-  private static final long serialVersionUID = 1L;
-
-  private Set<CFAEdge> edges;
+  private final Set<CFAEdge> edges;
   private CFAEdge selected;
 
   public EdgeSet(Collection<CFAEdge> edges) {
@@ -46,7 +43,7 @@ public class EdgeSet implements Serializable, Iterable<CFAEdge> {
   }
 
   /**
-   * Removes a edge from the set of edges
+   * Removes an edge from the set of edges
    *
    * @param pEdge CFAedge that will be removed
    */
@@ -58,7 +55,7 @@ public class EdgeSet implements Serializable, Iterable<CFAEdge> {
   }
 
   /**
-   * Selects a edge for later retrieval by {@link EdgeSet#choose()}.
+   * Selects an edge for later retrieval by {@link EdgeSet#choose()}.
    *
    * @param pEdge the edge to be selected
    */

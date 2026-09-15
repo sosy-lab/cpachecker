@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -135,7 +136,7 @@ public class ValueDeterminationManager {
 
     Set<Integer> visitedLocationIDs = new HashSet<>();
 
-    Set<PolicyAbstractedState> queue = new LinkedHashSet<>();
+    SequencedSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
     queue.add(mergedState);
 
     while (!queue.isEmpty()) {
@@ -221,7 +222,7 @@ public class ValueDeterminationManager {
    * @return set of reachable locations.
    */
   private Set<Integer> backwardsDfs(int startLocId, Multimap<Integer, Integer> backwEdges) {
-    Set<Integer> queue = new LinkedHashSet<>();
+    SequencedSet<Integer> queue = new LinkedHashSet<>();
     queue.add(startLocId);
     Set<Integer> out = new HashSet<>();
     while (!queue.isEmpty()) {
@@ -252,7 +253,7 @@ public class ValueDeterminationManager {
       PolicyAbstractedState newState,
       Map<Integer, PolicyAbstractedState> stateMap,
       SetMultimap<Integer, Integer> backwDepsEdges) {
-    Set<PolicyAbstractedState> queue = new LinkedHashSet<>();
+    SequencedSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
     queue.add(newState);
     while (!queue.isEmpty()) {
       Iterator<PolicyAbstractedState> it = queue.iterator();

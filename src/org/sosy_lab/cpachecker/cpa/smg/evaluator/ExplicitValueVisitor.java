@@ -53,7 +53,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
   /*
    * If there is more than one result based on the current
-   * smg State due to abstraction, store the additional smgStates
+   * SMG State due to abstraction, store the additional smgStates
    * that have to be usd to calculate a different result for the current
    * value in this list.
    *
@@ -158,8 +158,9 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         setState(symValueAndState.getSmgState());
 
         CType type1 = binaryExp.getOperand1().getExpressionType().getCanonicalType();
-        if (symValue instanceof SMGKnownExpValue && type1 instanceof CPointerType) {
-          return new NumericValue(((SMGKnownExpValue) symValue).getValue());
+        if (symValue instanceof SMGKnownExpValue sMGKnownExpValue
+            && type1 instanceof CPointerType) {
+          return new NumericValue(sMGKnownExpValue.getValue());
         }
       }
     }

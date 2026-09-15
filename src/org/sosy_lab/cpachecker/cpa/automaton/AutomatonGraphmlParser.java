@@ -22,11 +22,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -48,6 +50,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -94,6 +98,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
+import org.sosy_lab.cpachecker.util.XMLUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -125,7 +130,7 @@ public class AutomatonGraphmlParser {
   private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
       GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
 
-  private static final String THREAD_ID_VAR_NAME = Ascii.toUpperCase(KeyDef.THREADID.toString());
+  public static final String THREAD_ID_VAR_NAME = Ascii.toUpperCase(KeyDef.THREADID.toString());
 
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
@@ -285,17 +290,7 @@ public class AutomatonGraphmlParser {
   private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
-        CParser.Factory.getParser(
-            /*
-             * FIXME: Use normal logger as soon as CParser supports parsing
-             * expression trees natively, such that we can remove the workaround
-             * with the undefined __CPAchecker_ACSL_return dummy function that
-             * causes warnings to be logged.
-             */
-            LogManager.createNullLogManager(),
-            CParser.Factory.getOptions(config),
-            cfa.getMachineModel(),
-            shutdownNotifier);
+        CParserUtils.createWitnessExpressionParser(config, cfa.getMachineModel(), shutdownNotifier);
 
     AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
 
@@ -817,8 +812,7 @@ public class AutomatonGraphmlParser {
       if (unknown.isEmpty()) {
         filteredAssumptions.add(assumption);
       } else {
-        logger.log(
-            Level.WARNING, String.format(UNKNOWN_VARIABLE_WARNING_MESSAGE, assumption, unknown));
+        logger.logf(Level.WARNING, UNKNOWN_VARIABLE_WARNING_MESSAGE, assumption, unknown);
       }
     }
     return filteredAssumptions;
@@ -840,12 +834,11 @@ public class AutomatonGraphmlParser {
     if (!invalid.isEmpty()) {
       for (Map.Entry<AExpression, Collection<AIdExpression>> invalidExpression :
           invalid.asMap().entrySet()) {
-        logger.log(
+        logger.logf(
             Level.WARNING,
-            String.format(
-                UNKNOWN_VARIABLE_WARNING_MESSAGE,
-                invalidExpression.getKey(),
-                invalidExpression.getValue()));
+            UNKNOWN_VARIABLE_WARNING_MESSAGE,
+            invalidExpression.getKey(),
+            invalidExpression.getValue());
       }
       invariant =
           invariant.accept(
@@ -964,11 +957,11 @@ public class AutomatonGraphmlParser {
           newStack = new ArrayDeque<>(newStack);
           String oldFunction = newStack.pop();
           if (!oldFunction.equals(functionExit.orElseThrow())) {
-            logger.log(
+            logger.logf(
                 Level.WARNING,
-                String.format(
-                    "Trying to return from function %s, but current function on call stack is %s",
-                    functionExit.orElseThrow(), oldFunction));
+                "Trying to return from function %s, but current function on call stack is %s",
+                functionExit.orElseThrow(),
+                oldFunction);
           } else if (newStack.isEmpty()) {
             pGraphMLParserState.releaseFunctions(thread);
           }
@@ -1047,11 +1040,11 @@ public class AutomatonGraphmlParser {
       automatonName.append("_").append(idGen.getFreshId());
     }
 
-    Map<String, GraphMLState> states = new LinkedHashMap<>();
+    SequencedMap<String, GraphMLState> states = new LinkedHashMap<>();
     Multimap<GraphMLState, GraphMLTransition> enteringTransitions = LinkedHashMultimap.create();
     Multimap<GraphMLState, GraphMLTransition> leavingTransitions = LinkedHashMultimap.create();
     NumericIdProvider numericIdProvider = NumericIdProvider.create();
-    Set<GraphMLState> entryStates = new LinkedHashSet<>();
+    SequencedSet<GraphMLState> entryStates = new LinkedHashSet<>();
     for (Node transition : docDat.getTransitions()) {
       collectEdgeData(
           docDat,
@@ -1083,14 +1076,13 @@ public class AutomatonGraphmlParser {
     // Check if entry state is connected to a violation state
     if (state.getWitnessType() == WitnessType.VIOLATION_WITNESS
         && !state.isEntryConnectedToViolation()) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "There is no path from the entry state %s"
-                  + " to a state explicitly marked as violation state."
-                  + " Distance-to-violation waitlist order will not work"
-                  + " and witness validation may fail to confirm this witness.",
-              state.getEntryState()));
+          "There is no path from the entry state %s"
+              + " to a state explicitly marked as violation state."
+              + " Distance-to-violation waitlist order will not work"
+              + " and witness validation may fail to confirm this witness.",
+          state.getEntryState());
     }
 
     // Define thread-id variable, if any assignments to it exist
@@ -1110,7 +1102,13 @@ public class AutomatonGraphmlParser {
       throws WitnessParseException, IOException {
 
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
+
+    try {
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
+    } catch (ParserConfigurationException e1) {
+      throw new WitnessParseException(e1);
+    }
 
     Document doc;
     try {
@@ -1385,7 +1383,7 @@ public class AutomatonGraphmlParser {
    *
    * @param pThreadId the thread id to assign.
    */
-  private static AutomatonAction getThreadIdAssignment(int pThreadId) {
+  protected static AutomatonAction getThreadIdAssignment(int pThreadId) {
     AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
     return new AutomatonAction.Assignment(THREAD_ID_VAR_NAME, expr);
   }
@@ -1487,19 +1485,19 @@ public class AutomatonGraphmlParser {
     }
 
     if (source.isViolationState()) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Source %s of transition %s is a violation state. No outgoing edges expected.",
-              sourceStateId, transitionToString(pTransition)));
+          "Source %s of transition %s is a violation state. No outgoing edges expected.",
+          sourceStateId,
+          transitionToString(pTransition));
     }
 
     if (source.isSinkState()) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Source %s of transition %s is a sink state. No outgoing edges expected.",
-              sourceStateId, transitionToString(pTransition)));
+          "Source %s of transition %s is a sink state. No outgoing edges expected.",
+          sourceStateId,
+          transitionToString(pTransition));
     }
 
     if (source.isEntryState()) {
@@ -1579,10 +1577,11 @@ public class AutomatonGraphmlParser {
         witnessType = parsedGraphType.orElseThrow();
       } else {
         witnessType = WitnessType.VIOLATION_WITNESS;
-        logger.log(
+        logger.logf(
             Level.WARNING,
-            String.format(
-                "Unknown witness type %s, assuming %s instead.", witnessTypeToParse, witnessType));
+            "Unknown witness type %s, assuming %s instead.",
+            witnessTypeToParse,
+            witnessType);
       }
     }
     return witnessType;
@@ -1699,7 +1698,7 @@ public class AutomatonGraphmlParser {
         StringBuilder messageBuilder = new StringBuilder();
         if (invalidHashes.size() == 1) {
           messageBuilder.append("The value <");
-          messageBuilder.append(invalidHashes.iterator().next());
+          messageBuilder.append(invalidHashes.getFirst());
           messageBuilder.append(
               "> given as hash value of the program source code is not a valid SHA-256 hash value"
                   + " for any program.");
@@ -1971,7 +1970,7 @@ public class AutomatonGraphmlParser {
     @Override
     public String getTargetInformation(AutomatonExpressionArguments pArgs) {
       String own = getFollowState().isTarget() ? super.getTargetInformation(pArgs) : null;
-      Set<String> targetInformationDescriptions = new LinkedHashSet<>();
+      SequencedSet<String> targetInformationDescriptions = new LinkedHashSet<>();
 
       if (!Strings.isNullOrEmpty(own)) {
         targetInformationDescriptions.add(own);
@@ -2029,7 +2028,7 @@ public class AutomatonGraphmlParser {
       return transitions;
     }
 
-    public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
+    public ImmutableSet<NodeFlag> getNodeFlags(Element pStateNode) {
       EnumSet<NodeFlag> result = EnumSet.noneOf(NodeFlag.class);
 
       NodeList dataChilds = pStateNode.getElementsByTagName(GraphMLTag.DATA.toString());
@@ -2044,7 +2043,7 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      return result;
+      return Sets.immutableEnumSet(result);
     }
 
     private static String getAttributeValue(Node of, String attributeName, String exceptionMessage)
@@ -2070,7 +2069,7 @@ public class AutomatonGraphmlParser {
 
       Set<Node> dataNodes = findKeyedDataNode((Element) node, dataKey);
 
-      Set<String> result = new LinkedHashSet<>();
+      SequencedSet<String> result = new LinkedHashSet<>();
       for (Node n : dataNodes) {
         result.add(n.getTextContent());
       }
@@ -2078,7 +2077,7 @@ public class AutomatonGraphmlParser {
     }
 
     private static Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
-      Set<Node> result = new LinkedHashSet<>();
+      SequencedSet<Node> result = new LinkedHashSet<>();
       Set<Node> alternative = null;
       NodeList dataChilds = of.getElementsByTagName(GraphMLTag.DATA.toString());
       for (Node dataChild : asIterable(dataChilds)) {
@@ -2119,10 +2118,12 @@ public class AutomatonGraphmlParser {
   public static boolean isGraphmlAutomaton(Path pPath) throws IOException {
     SAXParser saxParser;
     try {
-      saxParser = SAXParserFactory.newInstance().newSAXParser();
+      SAXParserFactory saxFactory = XMLUtils.getSecureSaxParserFactory();
+
+      saxParser = saxFactory.newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
       throw new AssertionError(
-          "SAX parser configured incorrectly. Could not determine whether or not the file describes"
+          "SAX parser configured incorrectly. Could not determine whether the file describes"
               + " a witness automaton.",
           e);
     }
@@ -2168,7 +2169,14 @@ public class AutomatonGraphmlParser {
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
       throws InvalidConfigurationException, IOException {
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
+
+    try {
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
+    } catch (ParserConfigurationException e1) {
+      throw new WitnessParseException(e1);
+    }
+
     Document doc;
     try {
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -2243,7 +2251,7 @@ public class AutomatonGraphmlParser {
 
     private static final String PARSE_EXCEPTION_MESSAGE_PREFIX = "Cannot parse witness: ";
 
-    private static final long serialVersionUID = -6357416712866877118L;
+    @Serial private static final long serialVersionUID = -6357416712866877118L;
 
     public WitnessParseException(String pMessage) {
       super(PARSE_EXCEPTION_MESSAGE_PREFIX + pMessage);

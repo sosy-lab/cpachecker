@@ -55,8 +55,8 @@ public class DefUseCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<>();
-    if (pNode instanceof CFunctionEntryNode) {
-      List<String> parameterNames = ((CFunctionEntryNode) pNode).getFunctionParameterNames();
+    if (pNode instanceof CFunctionEntryNode cFunctionEntryNode) {
+      List<String> parameterNames = cFunctionEntryNode.getFunctionParameterNames();
 
       for (String parameterName : parameterNames) {
         DefUseDefinition newDef = new DefUseDefinition(parameterName, null);

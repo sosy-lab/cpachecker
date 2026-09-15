@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -17,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public abstract class AbstractExpression extends AbstractRightHandSide implements AExpression {
 
-  private static final long serialVersionUID = 7019956361956900L;
+  @Serial private static final long serialVersionUID = 7019956361956900L;
 
   protected AbstractExpression(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);

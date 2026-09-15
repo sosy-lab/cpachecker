@@ -117,7 +117,7 @@ enum GraphBuilder {
             }
 
             // last edge connecting it with the real successor
-            edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
+            edgeToNextState = allEdgeToNextState.getLast();
           }
 
           Optional<Collection<ARGState>> state = Optional.of(Collections.singleton(s));
@@ -207,7 +207,7 @@ enum GraphBuilder {
       visited.add(rootNode);
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+        for (CFAEdge leavingEdge : current.getLeavingEdges()) {
           CFANode successor = leavingEdge.getSuccessor();
           final Collection<ARGState> locationStates;
           boolean tryAddToWaitlist = false;
@@ -274,7 +274,7 @@ enum GraphBuilder {
       Set<CFAEdge> appended = new HashSet<>();
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+        for (CFAEdge leavingEdge : current.getLeavingEdges()) {
           CFANode successor = leavingEdge.getSuccessor();
           final Optional<Collection<ARGState>> locationStates;
           if (subProgramNodes.contains(successor)) {
@@ -289,7 +289,7 @@ enum GraphBuilder {
             appendEdge(pEdgeAppender, leavingEdge, locationStates, pValueMap);
           }
         }
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+        for (CFAEdge enteringEdge : current.getEnteringEdges()) {
           CFANode predecessor = enteringEdge.getPredecessor();
           CFANode successor = enteringEdge.getSuccessor();
           final Optional<Collection<ARGState>> locationStates;

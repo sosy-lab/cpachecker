@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * CPA that tracks which nodes are successors to cfa edges different in two {@link
+ * CPA that tracks which nodes are successors to CFA edges different in two {@link
  * org.sosy_lab.cpachecker.cfa.CFA CFAs} and reports assumptions that go towards these edges.
  */
 package org.sosy_lab.cpachecker.cpa.modifications;

@@ -56,7 +56,7 @@ public class SymbolicRegionManager implements RegionManager {
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof SymbolicRegion && f.equals(((SymbolicRegion) pObj).f);
+      return pObj instanceof SymbolicRegion other && f.equals(other.f);
     }
 
     @Override

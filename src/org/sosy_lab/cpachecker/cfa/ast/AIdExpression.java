@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AIdExpression extends AbstractLeftHandSide {
 
-  private static final long serialVersionUID = -2534849615394054260L;
+  @Serial private static final long serialVersionUID = -2534849615394054260L;
   private final String name;
   private final ASimpleDeclaration declaration;
 
@@ -36,22 +37,35 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return toASTString(pQualified);
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    if (pQualified) {
-      ASimpleDeclaration decl = getDeclaration();
-      if (decl != null) {
-        String qualName = decl.getQualifiedName();
-        if (qualName != null) {
-          return qualName.replace("::", "__");
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (pAAstNodeRepresentation) {
+      case QUALIFIED -> {
+        ASimpleDeclaration decl = getDeclaration();
+        if (decl != null) {
+          String qualName = decl.getQualifiedName();
+          if (qualName != null) {
+            yield qualName.replace("::", "__");
+          }
         }
+        yield name;
       }
-    }
-    return name;
+      case ORIGINAL_NAMES -> {
+        ASimpleDeclaration decl = getDeclaration();
+        if (decl != null) {
+          String origName = decl.getOrigName();
+          if (origName != null) {
+            yield origName;
+          }
+        }
+        yield name;
+      }
+      case DEFAULT -> name;
+    };
   }
 
   public ASimpleDeclaration getDeclaration() {

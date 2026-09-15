@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
+import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** Singleton class for the special value <code>null</code>. */
@@ -65,7 +66,7 @@ public enum NullValue implements Value {
    * </code> can't be represented by a specific number.
    */
   @Override
-  public Long asLong(CType pType) {
+  public OptionalLong asLong(CType pType) {
     throw new AssertionError("Null cannot be represented as Long");
   }
 

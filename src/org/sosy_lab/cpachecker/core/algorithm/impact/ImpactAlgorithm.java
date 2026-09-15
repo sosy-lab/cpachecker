@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.impact;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -104,9 +102,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  Time for cover:                   " + coverTime);
       out.println("Time spent by solver for reasoning: " + solver.solverTime);
       out.println();
-      out.println("Number of SMT sat checks:           " + solver.satChecks);
-      out.println("  trivial:                          " + solver.trivialSatChecks);
-      out.println("  cached:                           " + solver.cachedSatChecks);
+      out.println("Number of actual SMT sat checks:    " + solver.actualSatChecks);
+      out.println("Number of trivial SMT sat checks:   " + solver.trivialSatChecks);
+      out.println("Number of cached SMT sat checks:    " + solver.cachedSatChecks);
       out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
       if (useForcedCovering) {
         out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());
@@ -144,7 +142,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
             cfa.getVarClassification(),
             config,
             pShutdownNotifier,
-            logger);
+            logger,
+            /* pEnableCounterexampleAnalysis= */ false);
   }
 
   public AbstractState getInitialState(CFANode location) throws InterruptedException {
@@ -179,7 +178,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       Precision precision = reached.getPrecision(v);
 
       CFANode loc = extractLocation(v);
-      for (CFAEdge edge : leavingEdges(loc)) {
+      for (CFAEdge edge : loc.getLeavingEdges()) {
 
         Collection<? extends AbstractState> successors =
             cpa.getTransferRelation().getAbstractSuccessorsForEdge(predecessor, precision, edge);
@@ -315,7 +314,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         x = x.getParent();
       }
     }
-    path = Lists.reverse(path);
+    path = path.reversed();
 
     // x is common ancestor
     // path is ]x; v] (path from x to v, excluding x, including v)
@@ -334,7 +333,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       formulas.add(bfmgr.not(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
     }
 
-    path.add(0, x); // now path is [x; v] (including x and v)
+    path.addFirst(x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
     Optional<ImmutableList<BooleanFormula>> interpolantInfo = imgr.interpolate(formulas);
@@ -511,7 +510,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
     path.add(w); // root element
 
-    return Lists.reverse(path);
+    return path.reversed();
   }
 
   @Override

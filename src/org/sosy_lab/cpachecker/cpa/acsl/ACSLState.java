@@ -17,14 +17,17 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -52,8 +55,9 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
+      throws TranslationToExpressionTreeFailedException {
     return toExpressionTree();
   }
 
@@ -72,6 +76,34 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     return factory.and(representations);
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
+    throw new ReportingMethodNotImplementedException(
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
+            + " 'ACSLState'");
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
+    throw new ReportingMethodNotImplementedException(
+        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
+            + " 'ACSLState'");
   }
 
   public boolean hasAnnotations() {

@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.0"
+    uuid: "c66c3ee7-e0de-4bae-87f0-fd48fc7b961e"
+    creation_time: "2023-11-21T10:29:38+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "./simple.c"
+      input_file_hashes:
+        "./simple.c": "97265278cdbf3d456e80b67308db3a1e9b0ddca2be6450a8581510c7e5bc4295"
+      specification: "G ! overflow"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_invariant"
+        location:
+          file_name: "./simple.c"
+          line: 18
+          column: 3
+          function: "main"
+        value: "x == 0"
+        format: "c_expression"

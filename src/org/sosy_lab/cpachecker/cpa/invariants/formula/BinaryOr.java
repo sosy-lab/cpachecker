@@ -13,8 +13,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-final class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType>
-    implements NumeralFormula<ConstantType> {
+final class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType> {
 
   /**
    * Creates a new binary or operation over the given operands.

@@ -49,8 +49,10 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -84,6 +86,13 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
           "testcase.targets.optimization.strategy",
           "testcase.generate.parallel");
 
+  private static final ImmutableSet<CommonVerificationProperty> MEMORY_SPECIFICATIONS =
+      ImmutableSet.of(
+          CommonVerificationProperty.VALID_DEREF,
+          CommonVerificationProperty.VALID_FREE,
+          CommonVerificationProperty.VALID_MEMTRACK,
+          CommonVerificationProperty.VALID_MEMCLEANUP);
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
@@ -103,7 +112,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       secure = true,
       name = "config",
       required = true,
-      description = "configuration file for counterexample checks with CPAchecker")
+      description =
+          "configuration file for counterexample checks with CPAchecker. The config is only loaded"
+              + " once a CEX-check is performed and is not influenced by settings of other configs"
+              + " besides the loaded config and command-line settings.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path configFile;
 
@@ -122,6 +134,15 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
           "counterexample check should fully replace existing counterexamples with own ones, if"
               + " available")
   private boolean replaceCexWithCexFromCheck = false;
+
+  @Option(
+      secure = true,
+      name = "checkMemorySafetySubproperty",
+      description =
+          "counterexample check checks MemSafety sub-properties (valid-deref, valid-free,"
+              + " valid-memtrack) additionally to the path. This is generally only needed if there"
+              + " are multiple sub-properties.")
+  private boolean checkMemorySafetySubproperty = false;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
@@ -199,7 +220,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       }
 
       if (provideCEXInfoFromCEXCheck) {
-        CFAEdge targetEdge = pErrorState.getParents().iterator().next().getEdgeToChild(pErrorState);
+        CFAEdge targetEdge = pErrorState.getParents().getFirst().getEdgeToChild(pErrorState);
         lConfigBuilder.setOption(
             "testcase.targets.edge",
             targetEdge.getPredecessor().getNodeNumber()
@@ -216,9 +237,9 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
-              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
-      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
+              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty(), cfa);
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(lSpecification);
+      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, lSpecification);
       ReachedSet lReached = factory.createReachedSet(lCpas);
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
@@ -249,6 +270,22 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
                     .orElseThrow()
                     .getTargetPath()
                     .asStatesList());
+          }
+        }
+      }
+
+      if (checkMemorySafetySubproperty
+          && MEMORY_SPECIFICATIONS.containsAll(specification.getProperties())) {
+        Set<TargetInformation> originalError = pErrorState.getTargetInformation();
+        if (!originalError.isEmpty()) {
+          Optional<Set<TargetInformation>> foundErrors =
+              Collections3.filterByClass(lReached.stream(), ARGState.class)
+                  .filter(AbstractStates::isTargetState)
+                  .findFirst()
+                  .map(ARGState::getTargetInformation);
+          if (foundErrors.isPresent() && !foundErrors.orElseThrow().containsAll(originalError)) {
+            // Check that the first found memory error matches
+            return false;
           }
         }
       }
@@ -322,7 +359,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     if (pNewInfo.isPreciseCounterExample()) {
       // target path is only valid in temporary, local ARG computed by counterexample-check.
       // To make this counterexample usable in other parts of CPAchecker, create a new, exchangeable
-      // ARGpath
+      // ARG path
       ARGPath strippedDownPath = getExchangeableTargetPath(pNewInfo.getTargetPath());
       assert strippedDownPath.getLastState().isTarget()
           : "Last state of exchangeable target path is no target: "

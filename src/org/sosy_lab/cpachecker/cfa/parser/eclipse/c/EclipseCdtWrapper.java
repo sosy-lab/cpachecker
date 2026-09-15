@@ -30,6 +30,7 @@ import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
  * Wrapper for the Eclipse CDT parser component. Provides basic functionality to parse C code with
@@ -39,17 +40,28 @@ import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
  */
 public class EclipseCdtWrapper {
 
+  /**
+   * As a workaround for missing CDT support for _Atomic, we use a macro that replaces _Atomic with
+   * an attribute with this name. Cf. #1253
+   */
+  static final String ATOMIC_ATTRIBUTE = "__CPAchecker_Atomic__";
+
   // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
   private static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
   private final ILanguage language;
   private final IParserLogService parserLog;
+  private final IScannerInfo scannerInfo;
 
   private final ShutdownNotifier shutdownNotifier;
 
-  public EclipseCdtWrapper(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
+  public EclipseCdtWrapper(
+      final ParserOptions pOptions,
+      final MachineModel pMachineModel,
+      final ShutdownNotifier pShutdownNotifier) {
     shutdownNotifier = pShutdownNotifier;
     parserLog = new ShutdownNotifierLogAdapter(shutdownNotifier);
+    scannerInfo = new StubScannerInfo(pMachineModel);
 
     language =
         switch (pOptions.getDialect()) {
@@ -86,12 +98,7 @@ public class EclipseCdtWrapper {
       throws CFAGenerationRuntimeException, CoreException, InterruptedException {
     try {
       return language.getASTTranslationUnit(
-          pCode,
-          StubScannerInfo.instance,
-          FileContentProvider.instance,
-          null,
-          PARSER_OPTIONS,
-          parserLog);
+          pCode, scannerInfo, FileContentProvider.instance, null, PARSER_OPTIONS, parserLog);
     } finally {
       shutdownNotifier.shutdownIfNecessary();
     }
@@ -105,7 +112,7 @@ public class EclipseCdtWrapper {
 
     private final ICParserExtensionConfiguration parserConfig;
 
-    public CLanguage(final ICParserExtensionConfiguration pParserConfig) {
+    CLanguage(final ICParserExtensionConfiguration pParserConfig) {
       parserConfig = pParserConfig;
     }
 
@@ -121,9 +128,9 @@ public class EclipseCdtWrapper {
    */
   private static class StubScannerInfo implements IScannerInfo {
 
-    private static final ImmutableMap<String, String> MACROS;
+    private final ImmutableMap<String, String> macros;
 
-    static {
+    private StubScannerInfo(final MachineModel pMachineModel) {
       final ImmutableMap.Builder<String, String> macrosBuilder = ImmutableMap.builder();
 
       // _Static_assert(cond, msg) feature of C11
@@ -176,15 +183,30 @@ public class EclipseCdtWrapper {
       macrosBuilder.put("_Float64", "double");
       macrosBuilder.put("_Float64x", "long double");
 
-      MACROS = macrosBuilder.buildOrThrow();
-    }
+      // Parsing C and computing types can only be done while knowing the sizes of types,
+      // and CDT's SizeofCalculator needs these macros for that.
+      macrosBuilder.put("__SIZEOF_POINTER__", Integer.toString(pMachineModel.getSizeofPtr()));
+      macrosBuilder.put("__SIZEOF_INT__", Integer.toString(pMachineModel.getSizeofInt()));
+      macrosBuilder.put("__SIZEOF_LONG__", Integer.toString(pMachineModel.getSizeofLongInt()));
+      macrosBuilder.put(
+          "__SIZEOF_LONG_LONG__", Integer.toString(pMachineModel.getSizeofLongLongInt()));
+      macrosBuilder.put("__SIZEOF_INT128__", Integer.toString(pMachineModel.getSizeofInt128()));
+      macrosBuilder.put("__SIZEOF_SHORT__", Integer.toString(pMachineModel.getSizeofShortInt()));
+      macrosBuilder.put("__SIZEOF_BOOL__", Integer.toString(pMachineModel.getSizeofBool()));
+      macrosBuilder.put("__SIZEOF_FLOAT__", Integer.toString(pMachineModel.getSizeofFloat()));
+      macrosBuilder.put("__SIZEOF_DOUBLE__", Integer.toString(pMachineModel.getSizeofDouble()));
+      macrosBuilder.put(
+          "__SIZEOF_LONG_DOUBLE__", Integer.toString(pMachineModel.getSizeofLongDouble()));
 
-    private static final IScannerInfo instance = new StubScannerInfo();
+      macrosBuilder.put("_Atomic", "__attribute__((%s))".formatted(ATOMIC_ATTRIBUTE));
+
+      macros = macrosBuilder.buildOrThrow();
+    }
 
     @Override
     public Map<String, String> getDefinedSymbols() {
       // the externally defined pre-processor macros
-      return MACROS;
+      return macros;
     }
 
     @Override

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import java.io.Serial;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,7 +18,7 @@ import org.sosy_lab.common.annotations.SuppressForbidden;
 
 public class CompoundException extends CPAException {
 
-  private static final long serialVersionUID = -8880889342586540115L;
+  @Serial private static final long serialVersionUID = -8880889342586540115L;
 
   private final List<CPAException> exceptions;
 
@@ -38,7 +39,7 @@ public class CompoundException extends CPAException {
     List<String> messages =
         pExceptions.stream().map(Throwable::getMessage).distinct().collect(Collectors.toList());
     if (messages.size() == 1) {
-      return messages.get(0);
+      return messages.getFirst();
     }
     return "Several exceptions occured during the analysis:\n -> "
         + Joiner.on("\n -> ").join(messages);

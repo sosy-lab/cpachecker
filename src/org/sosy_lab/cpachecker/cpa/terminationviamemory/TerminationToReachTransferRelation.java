@@ -1,0 +1,197 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.terminationviamemory;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Map.Entry;
+import java.util.Optional;
+import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.Formula;
+
+public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
+  private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
+  private final ImmutableSet<Loop> allLoops;
+
+  public TerminationToReachTransferRelation(
+      FormulaManagerView pFormulaManagerView,
+      PathFormulaManager pPathFormulaManager,
+      ImmutableSet<Loop> pAllLoops) {
+    fmgr = pFormulaManagerView;
+    pfmgr = pPathFormulaManager;
+    allLoops = pAllLoops;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    TerminationToReachState terminationState = (TerminationToReachState) state;
+    TerminationToReachState newState =
+        new TerminationToReachState(
+            terminationState.getStoredValues(),
+            terminationState.getNumberOfIterations(),
+            terminationState.getPathFormulasForIteration(),
+            terminationState.getPathFormulasForPrefix(),
+            terminationState.getPathFormulaFull(),
+            Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
+            ImmutableSet.of(),
+            terminationState.getTransitionPredicates());
+    return ImmutableList.of(newState);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    LocationState locationState = getLocationState(pOtherStates);
+    CallstackState callstackState = getCallStackState(pOtherStates);
+    CFANode location = AbstractStates.extractLocation(locationState);
+    PredicateAbstractState predicateState = getPredicateState(pOtherStates);
+    TerminationToReachState terminationState = (TerminationToReachState) pState;
+
+    if (location == null) {
+      throw new UnsupportedOperationException("TransferRelation requires location information.");
+    }
+
+    if (TransitionInvariantUtils.isLoopHead(location, allLoops)) {
+      Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
+
+      ImmutableMap.Builder<
+              Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+          newStoredValues = ImmutableMap.builder();
+      ImmutableMap.Builder<Pair<LocationState, CallstackState>, Integer> newNumberOfIterations =
+          ImmutableMap.builder();
+      ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula>
+          newPathFormulaForIteration = ImmutableMap.builder();
+
+      // Set prefix path formula first
+      Optional<PathFormula> newPrefixFormula = terminationState.getPathFormulaFull();
+      PathFormula newFullFormula;
+      if (terminationState.getPathFormulaFull().isEmpty()) {
+        newFullFormula = predicateState.getPathFormula();
+      } else {
+        newFullFormula =
+            pfmgr.makeConjunction(
+                ImmutableList.of(
+                    terminationState.getPathFormulaFull().orElseThrow(),
+                    predicateState.getPathFormula()));
+      }
+
+      // Copy the information for other loops
+      for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+          entry : terminationState.getStoredValues().entrySet()) {
+        if (!entry.getKey().equals(pairKey)) {
+          newStoredValues.put(entry.getKey(), entry.getValue());
+          newNumberOfIterations.put(
+              entry.getKey(), terminationState.getNumberOfIterationsAtLoopHead(entry.getKey()));
+          if (terminationState.getPathFormulasForIteration().containsKey(entry.getKey())) {
+            newPathFormulaForIteration.put(
+                entry.getKey(), terminationState.getPathFormulasForIteration().get(entry.getKey()));
+          }
+        }
+      }
+
+      // Set the new iteration formula
+      ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
+      if (terminationState.getStoredValues().containsKey(pairKey)) {
+        newValues.putAll(terminationState.getStoredValues().get(pairKey));
+        newValues.put(
+            terminationState.getNumberOfIterationsAtLoopHead(pairKey),
+            extractLoopHeadVariables(newFullFormula));
+        newStoredValues.put(pairKey, newValues.buildOrThrow());
+        newNumberOfIterations.put(
+            pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
+        newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
+      } else {
+        newValues.put(0, extractLoopHeadVariables(newFullFormula));
+        newStoredValues.put(pairKey, newValues.buildOrThrow());
+        newNumberOfIterations.put(pairKey, 1);
+      }
+      TerminationToReachState newState =
+          new TerminationToReachState(
+              newStoredValues.buildOrThrow(),
+              newNumberOfIterations.buildOrThrow(),
+              newPathFormulaForIteration.buildOrThrow(),
+              newPrefixFormula,
+              Optional.of(newFullFormula),
+              terminationState.getPathSequence(),
+              ImmutableSet.of(),
+              terminationState.getTransitionPredicates());
+      return ImmutableList.of(newState);
+    }
+    return ImmutableList.of(pState);
+  }
+
+  private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
+    SSAMap ssaMap = pPathFormula.getSsa();
+    ImmutableSet.Builder<Formula> newStoredIndices = ImmutableSet.builder();
+    for (Formula variable : fmgr.extractVariables(pPathFormula.getFormula()).values()) {
+      newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable), ssaMap));
+    }
+    return newStoredIndices.build();
+  }
+
+  private LocationState getLocationState(Iterable<AbstractState> otherStates) {
+    for (AbstractState state : otherStates) {
+      LocationState possibleState = AbstractStates.extractStateByType(state, LocationState.class);
+      if (possibleState != null) {
+        return possibleState;
+      }
+    }
+    throw new UnsupportedOperationException(
+        "TransferRelation requires information from PredicateCPA.");
+  }
+
+  private CallstackState getCallStackState(Iterable<AbstractState> otherStates) {
+    for (AbstractState state : otherStates) {
+      CallstackState possibleState = AbstractStates.extractStateByType(state, CallstackState.class);
+      if (possibleState != null) {
+        return possibleState;
+      }
+    }
+    throw new UnsupportedOperationException(
+        "TransferRelation requires information from PredicateCPA.");
+  }
+
+  private PredicateAbstractState getPredicateState(Iterable<AbstractState> otherStates) {
+    for (AbstractState state : otherStates) {
+      PredicateAbstractState possibleState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      if (possibleState != null) {
+        return possibleState;
+      }
+    }
+    throw new UnsupportedOperationException(
+        "TransferRelation requires information from PredicateCPA.");
+  }
+}

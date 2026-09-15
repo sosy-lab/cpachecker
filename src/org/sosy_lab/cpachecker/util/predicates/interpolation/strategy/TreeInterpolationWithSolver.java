@@ -23,8 +23,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class TreeInterpolationWithSolver extends AbstractTreeInterpolation {
 
   /**
-   * This strategy uses a SMT solver that directly computes tree interpolants. The layout of the
-   * tree is explained in {@link AbstractTreeInterpolation}. Currently only SMTInterpol and Z3
+   * This strategy uses an SMT solver that directly computes tree interpolants. The layout of the
+   * tree is explained in {@link AbstractTreeInterpolation}. Currently, only SMTInterpol and Z3
    * support this.
    */
   public TreeInterpolationWithSolver(

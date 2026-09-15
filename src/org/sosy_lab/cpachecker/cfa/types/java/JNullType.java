@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import java.io.Serial;
+
 /** Special type for the Java value <code>null</code>. */
 public final class JNullType implements JReferenceType {
 
-  private static final long serialVersionUID = 3755021493601316268L;
+  @Serial private static final long serialVersionUID = 3755021493601316268L;
 
   @Override
   public String toASTString(String pDeclarator) {

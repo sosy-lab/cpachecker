@@ -32,7 +32,7 @@ public class XMLTestCaseExport {
       throws IOException {
 
     Preconditions.checkArgument(pCfa.getFileNames().size() == 1);
-    Path programFile = pCfa.getFileNames().get(0);
+    Path programFile = pCfa.getFileNames().getFirst();
 
     pWriter.append(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"

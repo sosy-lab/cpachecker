@@ -24,7 +24,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /** Implements an BAM-based predicate CPA. */
 @Options(prefix = "cpa.predicate.bam")
-public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithBAM {
+public final class BAMPredicateCPA extends PredicateCPA
+    implements ConfigurableProgramAnalysisWithBAM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BAMPredicateCPA.class).withOptions(BAMBlockOperator.class);

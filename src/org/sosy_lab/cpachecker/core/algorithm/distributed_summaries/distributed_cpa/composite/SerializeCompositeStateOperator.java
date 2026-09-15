@@ -8,37 +8,45 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
-import java.util.Map;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA.zip;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.List;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA.CpaAndState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 
 public class SerializeCompositeStateOperator implements SerializeOperator {
 
-  private final Map<
-          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-      registered;
+  private final List<ConfigurableProgramAnalysis> wrapped;
+  private final DssBlockAnalysisStatistics stats;
 
   public SerializeCompositeStateOperator(
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          pRegistered) {
-    registered = pRegistered;
+      List<ConfigurableProgramAnalysis> pWrapped, DssBlockAnalysisStatistics pStats) {
+    wrapped = pWrapped;
+    stats = pStats;
   }
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
-    BlockSummaryMessagePayload.Builder payload = new BlockSummaryMessagePayload.Builder();
-    for (AbstractState wrappedState : ((CompositeState) pState).getWrappedStates()) {
-      for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-        if (value.doesOperateOn(wrappedState.getClass())) {
-          payload = payload.addAllEntries(value.getSerializeOperator().serialize(wrappedState));
-          break;
+  public ImmutableMap<String, String> serialize(AbstractState pState) {
+    try {
+      stats.getSerializationCount().inc();
+      stats.getSerializationTime().start();
+      ContentBuilder contentBuilder = ContentBuilder.builder();
+      CompositeState compositeState = ((CompositeState) pState);
+      for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
+        if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
+          contentBuilder.putAll(dcpa.getSerializeOperator().serialize(cpaAndState.state()));
         }
       }
+      return contentBuilder.build();
+    } finally {
+      stats.getSerializationTime().stop();
     }
-    return payload.buildPayload();
   }
 }

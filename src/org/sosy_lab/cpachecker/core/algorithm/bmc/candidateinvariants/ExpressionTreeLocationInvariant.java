@@ -69,8 +69,9 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
     try {
       return expressionTree.accept(toFormulaVisitor);
     } catch (ToFormulaException e) {
-      Throwables.propagateIfPossible(
-          e.getCause(), CPATransferException.class, InterruptedException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfUnchecked(e.getCause());
       throw new UnexpectedCheckedException("expression tree to formula", e);
     }
   }

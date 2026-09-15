@@ -53,6 +53,10 @@ public enum IICOperator
       }
 
       CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
+      if (pFirstOperand.containsZero()) {
+        result = result.unionWith(SimpleInterval.singleton(BigInteger.ZERO));
+      }
+
       if (pFirstOperand.containsNegative()) {
         BigInteger negUB = pFirstOperand.closestNegativeToZero();
         SimpleInterval asPositive =

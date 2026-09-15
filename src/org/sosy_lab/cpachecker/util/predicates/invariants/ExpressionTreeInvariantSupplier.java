@@ -42,7 +42,7 @@ public class ExpressionTreeInvariantSupplier implements ExpressionTreeSupplier {
   public ExpressionTreeInvariantSupplier(AggregatedReachedSets pAggregated, CFA pCFA) {
     aggregatedReached = pAggregated;
     cfa = pCFA;
-    updateInvariants(); // at initialization we want to update the invariants the first time
+    updateInvariants(); // at initialization, we want to update the invariants the first time
   }
 
   @Override

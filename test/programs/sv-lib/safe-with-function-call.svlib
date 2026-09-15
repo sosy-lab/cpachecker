@@ -1,0 +1,39 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic LIA)
+
+(set-option :produce-witnesses true)
+
+(set-info :format-version 1.0)
+
+(define-proc
+  add-one
+  ((x Int))
+  ((result Int))
+  ()
+  (! (assign (result (+ x 1))) :tag proc-add-one))
+
+(define-proc
+  main
+  ()
+  ((|c#result| Int))
+  ((a Int) (b Int))
+  (! (sequence
+    (assign (a 0))
+    (! (while
+      (< a 6)
+      (sequence
+        (call add-one (a) (b))
+        (assign (a b)))) :tag while-loop)
+    (if (not (= a 6)) (! (sequence) :check-true false))
+    (assign (|c#result| 1))
+    (return)) :tag proc-main))
+
+(verify-call main ())
+(get-witness)

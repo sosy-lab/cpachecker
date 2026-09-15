@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-class PredicateStopOperator extends StopSepOperator implements ForcedCoveringStopOperator {
+final class PredicateStopOperator extends StopSepOperator implements ForcedCoveringStopOperator {
 
   PredicateStopOperator(AbstractDomain pD) {
     super(pD);

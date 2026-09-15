@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 
@@ -18,10 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 public sealed class JMethodType extends AbstractFunctionType implements JType
     permits JConstructorType {
 
-  private static final long serialVersionUID = 1324108617808888102L;
-
-  private static final JMethodType UNRESOLVABLE_TYPE =
-      new JMethodType(JSimpleType.getUnspecified(), new ArrayList<>(), false);
+  @Serial private static final long serialVersionUID = 1324108617808888102L;
 
   /**
    * Creates a new <code>JMethodType</code> object that stores the given information.
@@ -37,22 +35,13 @@ public sealed class JMethodType extends AbstractFunctionType implements JType
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<JType> getParameters() {
-    return (List<JType>) super.getParameters();
+  public ImmutableList<JType> getParameters() {
+    return (ImmutableList<JType>) super.getParameters();
   }
 
   @Override
   public JType getReturnType() {
     return (JType) super.getReturnType();
-  }
-
-  /**
-   * Returns a {@link JMethodType} object that describes an unresolvable method.
-   *
-   * @return a {@link JMethodType} object that describes an unresolvable method
-   */
-  public static JMethodType createUnresolvableType() {
-    return UNRESOLVABLE_TYPE;
   }
 
   @Override

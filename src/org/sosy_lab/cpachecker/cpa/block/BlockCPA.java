@@ -8,53 +8,49 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import static com.google.common.base.Preconditions.checkState;
-
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.concurrent.LazyInit;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.ForwardBlockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 public class BlockCPA extends AbstractCPA {
 
-  private BlockNode blockNode;
+  private @LazyInit BlockNode blockNode;
 
-  public BlockCPA() {
-    super("sep", "sep", new FlatLatticeDomain(), new ForwardBlockTransferRelation());
+  public BlockCPA(Configuration pConfiguration) throws InvalidConfigurationException {
+    super("sep", "sep", new FlatLatticeDomain(), new BlockTransferRelation(pConfiguration));
   }
 
   public void init(BlockNode pBlockNode) {
     assert pBlockNode != null;
     assert blockNode == null;
     blockNode = pBlockNode;
-    TransferRelation relation = getTransferRelation();
-    checkState(
-        relation instanceof BlockTransferRelation,
-        "Expected %s but got %s",
-        BlockTransferRelation.class,
-        relation.getClass());
-    ((BlockTransferRelation) relation).init(pBlockNode);
-  }
-
-  public static CPAFactory factory() {
-    return new BlockCPAFactory(AnalysisDirection.FORWARD);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new BlockState(
-        node, blockNode, AnalysisDirection.FORWARD, BlockStateType.INITIAL, false);
+        node,
+        blockNode,
+        BlockStateType.INITIAL,
+        ImmutableList.of(),
+        ImmutableList.of(),
+        SegmentedPaths.EMPTY,
+        false);
   }
 
-  public static BlockCPA create() {
-    return new BlockCPA();
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(BlockCPA.class);
   }
 }

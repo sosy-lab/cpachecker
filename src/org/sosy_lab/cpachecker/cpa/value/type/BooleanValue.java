@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.type;
 
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -56,8 +57,8 @@ public enum BooleanValue implements Value {
     } else if (pValue.isNumericValue()) {
       return valueOf((NumericValue) pValue);
 
-    } else if (pValue instanceof BooleanValue) {
-      return Optional.of((BooleanValue) pValue);
+    } else if (pValue instanceof BooleanValue booleanValue) {
+      return Optional.of(booleanValue);
 
     } else {
       return Optional.empty();
@@ -148,7 +149,7 @@ public enum BooleanValue implements Value {
    * <p>There is no use for this method in the case of boolean values.
    */
   @Override
-  public Long asLong(CType pType) {
+  public OptionalLong asLong(CType pType) {
     throw new AssertionError("This method is not implemented");
   }
 

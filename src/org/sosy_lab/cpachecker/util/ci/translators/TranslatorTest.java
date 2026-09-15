@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.sign.Sign;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -104,12 +104,12 @@ public class TranslatorTest {
   @Test
   public void testSignTranslator() {
     SignState sStateTest = SignState.TOP;
-    sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
-    sStateTest = sStateTest.assignSignToVariable("var2", SIGN.MINUS);
-    sStateTest = sStateTest.assignSignToVariable("var3", SIGN.ZERO);
-    sStateTest = sStateTest.assignSignToVariable("fun::var1", SIGN.PLUSMINUS);
-    sStateTest = sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
-    sStateTest = sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
+    sStateTest = sStateTest.assignSignToVariable("var1", Sign.PLUS);
+    sStateTest = sStateTest.assignSignToVariable("var2", Sign.MINUS);
+    sStateTest = sStateTest.assignSignToVariable("var3", Sign.ZERO);
+    sStateTest = sStateTest.assignSignToVariable("fun::var1", Sign.PLUSMINUS);
+    sStateTest = sStateTest.assignSignToVariable("fun::varB", Sign.PLUS0);
+    sStateTest = sStateTest.assignSignToVariable("fun::varC", Sign.MINUS0);
     SignRequirementsTranslator sReqTransTest =
         new SignRequirementsTranslator(LogManager.createTestLogManager());
 

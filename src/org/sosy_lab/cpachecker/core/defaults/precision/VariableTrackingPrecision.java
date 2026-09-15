@@ -78,21 +78,17 @@ public abstract class VariableTrackingPrecision implements Precision {
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pBaseline);
     RefinablePrecisionOptions options = new RefinablePrecisionOptions(config);
-    switch (options.sharing) {
-      case LOCATION:
-        return new LocalizedRefinablePrecision(pBaseline);
-      case SCOPE:
-        return new ScopedRefinablePrecision(pBaseline);
-      default:
-        throw new AssertionError("Unhandled case in switch statement");
-    }
+    return switch (options.sharing) {
+      case LOCATION -> new LocalizedRefinablePrecision(pBaseline);
+      case SCOPE -> new ScopedRefinablePrecision(pBaseline);
+    };
   }
 
   public static Predicate<Precision> isMatchingCPAClass(
       final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
     return pPrecision ->
-        pPrecision instanceof VariableTrackingPrecision
-            && ((VariableTrackingPrecision) pPrecision).getCPAClass() == cpaClass;
+        pPrecision instanceof VariableTrackingPrecision variableTrackingPrecision
+            && variableTrackingPrecision.getCPAClass() == cpaClass;
   }
 
   /**
@@ -100,7 +96,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * from some variable class, if it maintains a refinable precision, or if it contains a variable
    * blacklist.
    *
-   * @return true, if this precision allows for abstraction, else false
+   * @return whether this precision allows for abstraction
    */
   public abstract boolean allowsAbstraction();
 
@@ -114,7 +110,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param pType the type of the variable, necessary for checking if the variable should be handled
    *     (necessary for floats / doubles)
    * @param location the location of the variable
-   * @return true, if the variable has to be tracked, else false
+   * @return whether the variable has to be tracked
    */
   public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
 

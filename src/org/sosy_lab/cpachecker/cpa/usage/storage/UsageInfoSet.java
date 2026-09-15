@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import com.google.common.collect.Iterables;
+import java.io.Serial;
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.TreeSet;
@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
 public class UsageInfoSet extends TreeSet<UsageInfo> {
 
-  private static final long serialVersionUID = -5057827815596702715L;
+  @Serial private static final long serialVersionUID = -5057827815596702715L;
 
   public UsageInfoSet() {}
 
@@ -43,7 +43,7 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
   }
 
   public UsageInfo getOneExample() {
-    return Iterables.get(this, 0);
+    return getFirst();
   }
 
   public UsageInfoSet copy() {

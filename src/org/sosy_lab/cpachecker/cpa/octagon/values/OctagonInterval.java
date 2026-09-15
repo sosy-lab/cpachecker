@@ -10,8 +10,9 @@ package org.sosy_lab.cpachecker.cpa.octagon.values;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Arrays;
+import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public class OctagonInterval {
@@ -85,11 +86,11 @@ public class OctagonInterval {
 
   public boolean isInfinite() {
     boolean isInfinite = false;
-    if (low instanceof OctagonDoubleValue) {
-      isInfinite = ((OctagonDoubleValue) low).getValue().isInfinite();
+    if (low instanceof OctagonDoubleValue octagonDoubleValue) {
+      isInfinite = octagonDoubleValue.getValue().isInfinite();
     }
-    if (!isInfinite && high instanceof OctagonDoubleValue) {
-      isInfinite = ((OctagonDoubleValue) high).getValue().isInfinite();
+    if (!isInfinite && high instanceof OctagonDoubleValue octagonDoubleValue) {
+      isInfinite = octagonDoubleValue.getValue().isInfinite();
     }
     return isInfinite;
   }
@@ -173,8 +174,8 @@ public class OctagonInterval {
    * This method determines if this OctInterval is definitely less than the other OctInterval.
    *
    * @param other OctInterval to compare with
-   * @return true if the upper bound of this OctInterval is always strictly lower than the lower
-   *     bound of the other OctInterval, else false
+   * @return whether the upper bound of this OctInterval is always strictly lower than the lower
+   *     bound of the other OctInterval
    */
   public boolean isLessThan(OctagonInterval other) {
     return !isEmpty() && !other.isEmpty() && high.lessThan(other.low);
@@ -184,8 +185,8 @@ public class OctagonInterval {
    * This method determines if this OctInterval is definitely greater than the other OctInterval.
    *
    * @param other OctInterval to compare with
-   * @return true if the lower bound of this OctInterval is always strictly greater than the upper
-   *     bound of the other OctInterval, else false
+   * @return whether the lower bound of this OctInterval is always strictly greater than the upper
+   *     bound of the other OctInterval
    */
   public boolean isGreaterThan(OctagonInterval other) {
     return !isEmpty() && !other.isEmpty() && low.greaterThan(other.high);
@@ -195,8 +196,8 @@ public class OctagonInterval {
    * This method determines if this OctInterval maybe less than the other OctInterval.
    *
    * @param other OctInterval to compare with
-   * @return true if the lower bound of this OctInterval is strictly lower than the upper bound of
-   *     the other OctInterval, else false
+   * @return whether the lower bound of this OctInterval is strictly lower than the upper bound of
+   *     the other OctInterval
    */
   public boolean mayBeLessThan(OctagonInterval other) {
     return isEmpty() || (!isEmpty() && !other.isEmpty() && low.lessThan(other.high));
@@ -206,8 +207,8 @@ public class OctagonInterval {
    * This method determines if this OctInterval maybe less or equal than the other OctInterval.
    *
    * @param other OctInterval to compare with
-   * @return true if the lower bound of this OctInterval is strictly lower than the upper bound of
-   *     the other OctInterval, else false
+   * @return whether the lower bound of this OctInterval is strictly lower than the upper bound of
+   *     the other OctInterval
    */
   public boolean mayBeLessOrEqualThan(OctagonInterval other) {
     return isEmpty() || (!isEmpty() && !other.isEmpty() && low.lessEqual(other.high));
@@ -217,8 +218,8 @@ public class OctagonInterval {
    * This method determines if this OctInterval maybe greater than the other OctInterval.
    *
    * @param other OctInterval to compare with
-   * @return true if the upper bound of this OctInterval is strictly greater than the lower bound of
-   *     the other OctInterval, else false
+   * @return whether the upper bound of this OctInterval is strictly greater than the lower bound of
+   *     the other OctInterval
    */
   public boolean mayBeGreaterThan(OctagonInterval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high.greaterEqual(other.low));
@@ -228,8 +229,8 @@ public class OctagonInterval {
    * This method determines if this OctInterval maybe greater or equal than the other OctInterval.
    *
    * @param other OctInterval to compare with
-   * @return true if the upper bound of this OctInterval is strictly greater than the lower bound of
-   *     the other OctInterval, else false
+   * @return whether the upper bound of this OctInterval is strictly greater than the lower bound of
+   *     the other OctInterval
    */
   public boolean mayBeGreaterOrEqualThan(OctagonInterval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high.greaterEqual(other.low));
@@ -238,7 +239,7 @@ public class OctagonInterval {
   /**
    * This method determines if this OctInterval represents a true value.
    *
-   * @return true if this OctInterval represents values that are strictly less than 0 or greater
+   * @return whether this OctInterval represents values that are strictly less than 0 or greater
    *     than 0.
    */
   public boolean isTrue() {
@@ -315,7 +316,7 @@ public class OctagonInterval {
    * This method determines if this OctInterval intersects with another OctInterval.
    *
    * @param other the other OctInterval
-   * @return true if the OctIntervals intersect, else false
+   * @return whether the OctIntervals intersect
    */
   public boolean intersects(OctagonInterval other) {
     if (isEmpty() || other.isEmpty()) {
@@ -335,7 +336,7 @@ public class OctagonInterval {
    * is an empty OctInterval, this method will return false.
    *
    * @param other the other OctInterval
-   * @return true if this OctInterval contains the other OctInterval, else false
+   * @return whether this OctInterval contains the other OctInterval
    */
   public boolean contains(OctagonInterval other) {
     return (!isEmpty()
@@ -402,15 +403,14 @@ public class OctagonInterval {
    *     OctIntervals
    */
   public OctagonInterval times(OctagonInterval other) {
-    OctagonNumericValue<?>[] values = {
-      scalarTimes(low, other.low),
-      scalarTimes(low, other.high),
-      scalarTimes(high, other.low),
-      scalarTimes(high, other.high),
-    };
+    List<OctagonNumericValue<?>> values =
+        ImmutableList.of(
+            scalarTimes(low, other.low),
+            scalarTimes(low, other.high),
+            scalarTimes(high, other.low),
+            scalarTimes(high, other.high));
 
-    return new OctagonInterval(
-        Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+    return new OctagonInterval(Collections.min(values), Collections.max(values));
   }
 
   /**
@@ -425,12 +425,11 @@ public class OctagonInterval {
     if (other.contains(FALSE)) {
       return createUnboundOctInterval();
     } else {
-      OctagonNumericValue<?>[] values = {
-        low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high),
-      };
+      List<OctagonNumericValue<?>> values =
+          ImmutableList.of(
+              low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high));
 
-      return new OctagonInterval(
-          Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+      return new OctagonInterval(Collections.min(values), Collections.max(values));
     }
   }
 
@@ -446,7 +445,7 @@ public class OctagonInterval {
   /**
    * This method determines whether the OctInterval is empty or not.
    *
-   * @return true, if the OctInterval is empty, i.e. the lower and upper bounds are null
+   * @return whether the OctInterval is empty, i.e. the lower and upper bounds are null
    */
   public boolean isEmpty() {
     return low == null && high == null;

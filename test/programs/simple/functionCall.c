@@ -14,7 +14,7 @@ int f() {
 
 int main() {
 	int y;
-	y = f();
+	y = (f)();
 	if (y != 0) {
 ERROR:
 		goto ERROR;

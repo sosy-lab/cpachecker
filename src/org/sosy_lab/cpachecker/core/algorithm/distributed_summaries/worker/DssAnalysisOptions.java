@@ -1,0 +1,123 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
+
+import java.nio.file.Path;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
+
+@Options(prefix = "distributedSummaries")
+public class DssAnalysisOptions {
+
+  @Option(
+      name = "logging.reportFiles",
+      description = "output file for visualizing message exchange")
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path reportFiles = Path.of("block_analysis/messages");
+
+  @Option(
+      name = "logging.blockCFAFile",
+      description = "output file for visualizing the block graph")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path blockCFAFile = Path.of("block_analysis/blocks.json");
+
+  @Option(
+      name = "debug",
+      description =
+          "Whether to enable debug mode of block-summary analysis. This creates visual output for"
+              + " debugging and exports additional metadata.Creating this information consumes"
+              + " resources and should not be used for benchmarks.",
+      secure = true)
+  private boolean debug = false;
+
+  @Option(
+      name = "worker.forwardConfiguration",
+      description = "Configuration for forward analysis in computation of distributed summaries",
+      secure = true)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private Path forwardConfiguration =
+      Path.of("config/distributed-summary-synthesis/dss-block-analysis.properties");
+
+  @Option(
+      name = "worker.logDirectory",
+      description =
+          "Destination directory for the logfiles of all DssWorkers. The logfiles have the"
+              + " same name as the ID of the worker.",
+      secure = true)
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path logDirectory = Path.of("block_analysis/logfiles");
+
+  @Option(
+      description =
+          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
+              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
+              + " to a too precise precision.",
+      secure = true)
+  private boolean resetPrecisionForEveryRun = false;
+
+  @Option(
+      name = "combineVcsByHash",
+      description = "Whether to combine violation conditions at same program location",
+      secure = true)
+  private boolean combineByHash = true;
+
+  // TODO How to make sure the other Witness export does not overwrite this?
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The path to which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each witness version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-dss-%s.yml");
+
+  public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
+  }
+
+  public Path getBlockCFAFile() {
+    return blockCFAFile;
+  }
+
+  public Path getReportFiles() {
+    return reportFiles;
+  }
+
+  public boolean isDebugModeEnabled() {
+    return debug;
+  }
+
+  public boolean resetPrecisionsForEveryRun() {
+    return resetPrecisionForEveryRun;
+  }
+
+  public Path getForwardConfiguration() {
+    return forwardConfiguration;
+  }
+
+  public Path getLogDirectory() {
+    return logDirectory;
+  }
+
+  public boolean combineByHash() {
+    return combineByHash;
+  }
+
+  public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {
+    return yamlWitnessOutputFileTemplate;
+  }
+}

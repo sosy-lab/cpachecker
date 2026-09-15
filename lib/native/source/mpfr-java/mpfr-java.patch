@@ -1,0 +1,74 @@
+diff --git a/pom.xml b/pom.xml
+index 80c3fc2..bea3568 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -17,6 +17,11 @@
+       <version>4.11</version>
+       <scope>test</scope>
+     </dependency>
++    <dependency>
++      <groupId>org.sosy-lab</groupId>
++      <artifactId>common</artifactId>
++      <version>0.3000-569-g89796f98</version>
++    </dependency>
+   </dependencies>
+   
+   <reporting>
+@@ -42,6 +47,8 @@
+   <properties>
+     <mpfr.cppflags>
+     </mpfr.cppflags>
++    <mpfr.ldflags>
++    </mpfr.ldflags>
+     <mpfr.build>
+     </mpfr.build>
+     <mpfr.libs>
+@@ -128,6 +135,7 @@
+               <configureArgs>
+                 <arg>LIBS=${mpfr.libs}</arg>
+                 <arg>CPPFLAGS=${mpfr.cppflags}</arg>
++                <arg>LDFLAGS=${mpfr.ldflags}</arg>
+                 <arg>--build=${mpfr.build}</arg>
+               </configureArgs>
+             </configuration>
+diff --git a/src/main/java/org/kframework/mpfr/mpfr.java b/src/main/java/org/kframework/mpfr/mpfr.java
+index 60a3534..573a048 100644
+--- a/src/main/java/org/kframework/mpfr/mpfr.java
++++ b/src/main/java/org/kframework/mpfr/mpfr.java
+@@ -14,6 +14,7 @@ import java.nio.charset.CodingErrorAction;
+ import java.util.Arrays;
+ 
+ import org.fusesource.hawtjni.runtime.*;
++import org.sosy_lab.common.NativeLibraries;
+ 
+ import static org.fusesource.hawtjni.runtime.ArgFlag.*;
+ import static org.fusesource.hawtjni.runtime.ClassFlag.*;
+@@ -42,9 +43,8 @@ import static org.fusesource.hawtjni.runtime.MethodFlag.*;
+ final class mpfr {
+     private mpfr() {}
+     
+-    private static final Library LIBRARY = new Library("mpfr_java", mpfr.class);
+     static {
+-        LIBRARY.load();
++        NativeLibraries.loadLibrary("mpfr_java");
+         init();
+     }
+ 
+@@ -484,7 +484,7 @@ final class mpfr {
+     @JniClass(name="__mpfr_struct", flags={STRUCT, TYPEDEF})
+     static final class mpfr_t implements Serializable {
+         static {
+-            LIBRARY.load();
++            NativeLibraries.loadLibrary("mpfr_java");
+         } 
+         
+         /**
+@@ -564,7 +564,7 @@ final class mpfr {
+         private static final long serialVersionUID = -16063242942983590L;
+ 
+         static {
+-            LIBRARY.load();
++            NativeLibraries.loadLibrary("mpfr_java");
+         } 
+         
+         /**

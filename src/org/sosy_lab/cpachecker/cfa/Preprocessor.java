@@ -8,17 +8,19 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.MoreStrings;
@@ -31,6 +33,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
@@ -73,11 +76,8 @@ public abstract class Preprocessor {
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
   protected String preprocess0(Path file) throws ParserException, InterruptedException {
     // create command line
-    List<String> argList =
-        Lists.newArrayList(
-            Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().split(getCommandLine()));
-    argList.add(file.toString());
-    String[] args = argList.toArray(new String[0]);
+    FluentIterable<String> argList = getFullCommandLine(file);
+    String[] args = argList.toArray(String.class);
 
     logger.log(Level.FINE, "Running", MoreStrings.lazyString(this::getName), argList);
     try {
@@ -109,6 +109,12 @@ public abstract class Preprocessor {
     } catch (IOException e) {
       throw createCorrespondingParserException(getCapitalizedName() + " failed", e);
     }
+  }
+
+  @VisibleForTesting
+  protected final FluentIterable<String> getFullCommandLine(Path file) {
+    return from(Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().split(getCommandLine()))
+        .append(file.toString());
   }
 
   protected @Nullable Path getAndWriteDumpFile(String programCode, Path file) {
@@ -154,6 +160,24 @@ public abstract class Preprocessor {
     return Ascii.toUpperCase(getName().charAt(0)) + getName().substring(1);
   }
 
+  /**
+   * Return a command-line argument that is suitable for setting the correct architecture according
+   * to the given machine model for common C compilers and tools (gcc, cpp, clang, etc.). For
+   * example, it returns <code>-m32</code> for a 32-bit machine. This can be useful for implementing
+   * {@link #getCommandLine()}. The output may be empty.
+   *
+   * <p>Currently this is implemented only for x86.
+   */
+  protected static String getStandardCCompilerArchitectureArgument(MachineModel pMachineModel) {
+    return switch (pMachineModel) {
+      // TODO take cross-architecture verification (ARM on x86 machines etc.) into account
+      case LINUX32 -> "-m32";
+      case LINUX64 -> "-m64";
+      case ARM -> "";
+      case ARM64 -> "";
+    };
+  }
+
   private static class PreprocessorExecutor extends ProcessExecutor<IOException> {
 
     private static final int MAX_ERROR_OUTPUT_SHOWN = 10;
@@ -166,7 +190,7 @@ public abstract class Preprocessor {
 
     private volatile StringBuffer buffer;
 
-    public PreprocessorExecutor(LogManager logger, String[] args) throws IOException {
+    PreprocessorExecutor(LogManager logger, String[] args) throws IOException {
       super(logger, IOException.class, ENV_VARS, args);
     }
 

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.Callable;
@@ -84,7 +83,8 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
       executor =
-          Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+          Executors.newSingleThreadExecutor(
+              Thread.ofPlatform().daemon().name(getClass().getSimpleName() + "-thread").factory());
     }
   }
 
@@ -135,7 +135,9 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
         successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+        Throwables.throwIfUnchecked(e.getCause());
         // TransferRelation.getAbstractSuccessors() threw unexpected checked exception!
         throw new UnexpectedCheckedException("transfer relation", e.getCause());
       }
@@ -219,7 +221,9 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
         successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+        Throwables.throwIfUnchecked(e.getCause());
         // TransferRelation.strengthen() threw unexpected checked exception!
         throw new UnexpectedCheckedException("strengthen", e.getCause());
       }

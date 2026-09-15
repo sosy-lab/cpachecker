@@ -8,42 +8,87 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 
-public class DistributedCallstackCPA implements DistributedConfigurableProgramAnalysis {
+public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   static final String DELIMITER = ",  ";
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
-  private final CombineOperator combine;
-  private final ProceedOperator proceed;
+  private final CoverageOperator coverageOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
+  private final SerializePrecisionOperator serializePrecisionOperator;
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
+  private final BlockNode block;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   private final CallstackCPA callstackCPA;
+  private final CFA cfa;
 
   public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA, BlockNode pNode, AnalysisDirection pDirection) {
+      CallstackCPA pCallstackCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      BiMap<Integer, CFANode> pIdToNodeMap) {
+    block = pBlockNode;
     callstackCPA = pCallstackCPA;
-    proceed = new AlwaysProceed();
-    combine = new CombineCallstackStateOperator(pDirection, pCallstackCPA, pNode);
-    serialize = new SerializeCallstackStateOperator();
-    deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pNode);
+    cfa = pCFA;
+    serialize = new SerializeCallstackStateOperator(pIdToNodeMap.inverse());
+    deserialize =
+        new DeserializeCallstackStateOperator(pCallstackCPA, pBlockNode, pIdToNodeMap::get);
+    verificationConditionOperator =
+        new BackwardTransferViolationConditionOperator(
+            callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
+    coverageOperator = new CallstackStateCoverageOperator();
+    combinePreconditionsOperator =
+        new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
+    serializePrecisionOperator = new NoPrecisionSerializeOperator();
+    deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
+    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
+    combineViolationConditionsOperator = new CallstackStateCombineViolationConditionOperator();
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return getCPA().getInitialState(node, partition);
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return getCPA()
+        .getInitialPrecision(cfa.getAllFunctions().get(node.getFunctionName()), partition);
   }
 
   @Override
@@ -52,18 +97,33 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combine;
-  }
-
-  @Override
   public DeserializeOperator getDeserializeOperator() {
     return deserialize;
   }
 
   @Override
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
+  }
+
+  @Override
   public ProceedOperator getProceedOperator() {
-    return proceed;
+    return ProceedOperator.always();
   }
 
   @Override
@@ -72,28 +132,47 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return callstackCPA.getAbstractDomain();
+  public ConfigurableProgramAnalysis getCPA() {
+    return callstackCPA;
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return callstackCPA.getTransferRelation();
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
+    return true;
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
-    return callstackCPA.getMergeOperator();
+  public AbstractState reset(AbstractState pAbstractState) {
+    Preconditions.checkArgument(pAbstractState instanceof CallstackState);
+    return new CallstackState(
+        null, block.getInitialLocation().getFunctionName(), block.getInitialLocation());
   }
 
   @Override
-  public StopOperator getStopOperator() {
-    return callstackCPA.getStopOperator();
+  public ViolationConditionOperator getViolationConditionOperator() {
+    return verificationConditionOperator;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-      throws InterruptedException {
-    return callstackCPA.getInitialState(node, partition);
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
+  }
+
+  @Override
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
+  }
+
+  @Override
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    return proofCheckingHash((CallstackState) pAbstractState);
+  }
+
+  private static int proofCheckingHash(CallstackState pState) {
+    return Objects.hash(
+        pState.getCallNode().getNodeNumber(),
+        pState.getDepth(),
+        pState.getCurrentFunction(),
+        pState.getPreviousState() == null ? 0 : pState.getPreviousState().hashCode());
   }
 }

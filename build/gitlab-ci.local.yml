@@ -1,0 +1,373 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+spec:
+  inputs:
+    extended_tests:
+      description: "Run extended set of unit and integration tests"
+      type: boolean
+      default: false
+    tests_per_java_version:
+      description: "Run tests on several Java versions instead of just one"
+      type: boolean
+      default: false
+---
+
+include: build/gitlab-ci.yml
+
+variables:
+  npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
+  npm_config_prefer_offline: "true"
+
+.node-cache: &node-cache
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".cache/npm"
+
+
+.configuration-checks: &configuration-checks
+  extends: .check-binaries
+  script: "ant $ANT_PROPS_CHECKS configuration-checks"
+  artifacts:
+    paths:
+      - "ConfigurationChecks.html"
+      - "hs_err_pid*.log"
+    when: always
+    reports:
+      junit: "output/configuration-checks/TESTS-TestSuites.xml"
+
+configuration-checks:jdk-21:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-21
+  needs:
+    - build-dependencies
+    - build:jdk-21
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+
+configuration-checks:jdk-25:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-25
+  needs:
+    - build-dependencies
+    - build:jdk-25
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
+
+
+configuration-documentation:
+  extends: .check-binaries-default-jdk
+  script:
+    - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
+    - "ant $ANT_PROPS_CHECKS build-documentation -Ddocumentation.uptodate=false"
+    - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
+
+configuration-plot:
+  extends: .check-without-dependencies
+  script:
+    - "mkdir -p output"
+    - "touch output/AssumptionAutomaton.txt"
+    - "scripts/configViz.py > ConfigurationPlot.dot"
+    - "dot -Tsvg ConfigurationPlot.dot -O"
+  artifacts:
+    paths:
+      - "ConfigurationPlot.dot.svg"
+
+
+forbidden-apis:
+  extends: .check-binaries-default-jdk
+  script: "ant $ANT_PROPS_CHECKS forbiddenapis"
+
+
+check-code-patterns:
+  extends: .check-without-dependencies
+  script: "build/check-code-patterns.sh"
+  image: ubuntu:22.04
+
+
+python-unit-tests:
+  # The tests run CPAchecker, so they need the respective image and dependencies.
+  extends: .check-binaries-default-jdk
+  script: "python3 -m unittest discover scripts"
+
+
+javascript-build:
+  extends: .check-without-dependencies
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
+  script:
+    - npm run build
+    - git diff --stat --exit-code
+  artifacts:
+    paths:
+      -  src/org/sosy_lab/cpachecker/core/counterexample/build
+    when: on_failure
+  <<: *node-cache
+
+javascript-unit-tests:
+  extends: .check-without-dependencies
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
+  script:
+    - npm test
+  cache:
+    paths:
+    - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
+  artifacts:
+    paths:
+      - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report.html
+    when: always
+  <<: *node-cache
+
+javascript-eslint:
+  extends: .check-without-dependencies
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
+  script:
+    - npm run lint
+  <<: *node-cache
+
+
+build-docker:test:java-node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
+    IMAGE: /test:java-node
+
+build-docker:test:node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.node
+    IMAGE: /test:node
+
+build-docker:dev-base:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.dev-base
+    IMAGE: ":dev-base"
+
+# Build container images and push to Docker Hub
+.build-docker-hub:
+  extends: .build-docker
+  before_script:
+    - !reference [.build-docker, before_script]
+    - podman login docker.io --username "$DOCKER_HUB_USER" --password "$DOCKER_HUB_TOKEN"
+  script:
+    - !reference [.build-docker, script]
+    - podman push $CI_REGISTRY_IMAGE$IMAGE docker.io/sosylab/cpachecker$IMAGE
+  environment: deploy/docker
+  rules:
+    - if: $DOCKER_HUB_USER == null
+      when: never
+    - if: $DOCKER_HUB_TOKEN == null
+      when: never
+
+build-docker:release:
+  stage: images
+  extends: .build-docker-hub
+  variables:
+    DOCKERFILE: build/Dockerfile.release
+    IMAGE: ":4.2.2"
+  script:
+    - !reference [.build-docker-hub, script]
+    # also push image to :latest
+    - podman push $CI_REGISTRY_IMAGE$IMAGE $CI_REGISTRY_IMAGE:latest
+    - podman push $CI_REGISTRY_IMAGE$IMAGE docker.io/sosylab/cpachecker:latest
+  rules:
+    - !reference [.build-docker-hub, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+
+javascript-e2e-tests:
+  extends: .check-binaries-default-jdk
+  image: ${CI_REGISTRY_IMAGE}/test:java-node
+  before_script:
+      # generate example report
+    - bin/cpachecker -predicateAnalysis test/programs/simple/SSAMap-bug.c
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
+    - "npx webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
+  script:
+    - npm run e2e-test
+  cache:
+    paths:
+    - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
+  artifacts:
+    paths:
+      - output/Counterexample.1.html
+      - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
+    when: always
+
+
+# Checks for Python code
+.base_ruff:
+  extends: .check-without-dependencies
+  image: ghcr.io/astral-sh/ruff:0.16-alpine
+  before_script:
+    - ruff --version
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".ruff_cache"
+
+check-format-python:
+  extends: .base_ruff
+  script:
+    - "ruff format --check --diff"
+
+ruff:
+  extends: .base_ruff
+  script:
+    - "ruff check || true"
+    - "ruff check --output-format=gitlab > code-quality-report.json"
+  artifacts:
+    reports:
+      codequality: code-quality-report.json
+
+
+build-tar:
+  extends: .check-binaries-default-jdk
+  script: "ant $ANT_PROPS_CHECKS dist-unix -Dnamet=cpachecker"
+  artifacts:
+    paths:
+      - "cpachecker.tar.bz2"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+deploy-docker:
+  stage: deploy
+  dependencies:
+    - build-tar
+  needs:
+    - build-tar
+  extends: .build-docker-hub
+  variables:
+    DOCKERFILE: build/Dockerfile.dev
+    IMAGE: ":dev"
+    BUILD_CONTEXT: "."
+  rules:
+    - !reference [.build-docker-hub, rules]
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+
+# Unit tests are split into basic and extended tests, and coverage is disabled.
+unit-tests:jdk-21:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    paths:
+      - "UnitTests.html"
+    reports:
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+      when: never
+    - if: $[[ inputs.extended_tests ]] == true
+      when: never
+    - when: on_success
+
+unit-tests-extended:jdk-21:
+  extends: unit-tests:jdk-21
+  script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExtendedTests=true"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.extended_tests ]] == true
+
+unit-tests:jdk-25:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    paths:
+      - "UnitTests.html"
+    reports:
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
+
+
+# Separate jobs for integration tests
+.integration-tests:
+  script: "ant $ANT_PROPS_CHECKS integration-tests"
+  artifacts:
+    paths:
+      - "IntegrationTests.html"
+    reports:
+      junit: "output/integration-tests/TESTS-TestSuites.xml"
+
+integration-tests:jdk-21:
+  extends:
+    - unit-tests:jdk-21
+    - .integration-tests
+
+integration-tests-extended:jdk-21:
+  extends:
+    - unit-tests-extended:jdk-21
+    - .integration-tests
+  script: "ant $ANT_PROPS_CHECKS integration-tests -DenableExtendedTests=true"
+
+integration-tests:jdk-25:
+  extends:
+    - unit-tests:jdk-25
+    - .integration-tests
+
+
+# Parallelize Refaster job
+refaster:
+  parallel:
+    matrix:
+      # Must list all directories of https://gitlab.com/sosy-lab/software/refaster/-/tree/java21/src/org/sosy_lab/refaster/rules here
+      - REFASTER_SOURCE_DIR: [common, guava, java, java_collection, truth]
+  variables:
+    REFASTER_SOURCE_PATTERN: "**/$REFASTER_SOURCE_DIR/**/*.java"
+
+
+# Override Java version for some jobs
+image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+
+.check-binaries-default-jdk:
+  dependencies:
+    - build-dependencies
+    - build:jdk-21
+  needs:
+    - build-dependencies
+    - build:jdk-21
+
+
+# Disable Java 17 jobs
+build-docker:test:jdk-17:
+  rules:
+    - when: never
+
+build:jdk-17:
+  rules:
+    - when: never
+
+build-ecj:jdk-17:
+  rules:
+    - when: never
+
+unit-tests:jdk-17:
+  rules:
+    - when: never
+
+# Disable some checks because they are not used for CPAchecker
+javadoc:
+  rules:
+    - when: never

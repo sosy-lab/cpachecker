@@ -12,19 +12,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 /** Exception thrown when a CPA cannot handle some code attached to a CFAEdge. */
 public class UnrecognizedCodeException extends CPATransferException {
 
-  private static final long serialVersionUID = 6425746398197035741L;
+  @Serial private static final long serialVersionUID = 6425746398197035741L;
   private static final CharMatcher SEMICOLON = CharMatcher.is(';');
 
   /** parent state can be filled in later to get additional info about the problematic part. */
@@ -61,14 +63,12 @@ public class UnrecognizedCodeException extends CPATransferException {
     if (lang == null) {
       return "Unrecognized code";
     }
-    switch (lang) {
-      case C:
-        return "Unrecognized C code";
-      case JAVA:
-        return "Unrecognized Java code";
-      default:
-        throw new AssertionError();
-    }
+    return switch (lang) {
+      case C -> "Unrecognized C code";
+      case JAVA -> "Unrecognized Java code";
+      case SVLIB -> "Unrecognized SV-LIB code";
+      default -> throw new AssertionError();
+    };
   }
 
   private static Language getLanguage(AAstNode astNode) {
@@ -76,6 +76,8 @@ public class UnrecognizedCodeException extends CPATransferException {
       return Language.C;
     } else if (astNode instanceof JAstNode) {
       return Language.JAVA;
+    } else if (astNode instanceof SvLibAstNode) {
+      return Language.SVLIB;
     }
     throw new AssertionError();
   }

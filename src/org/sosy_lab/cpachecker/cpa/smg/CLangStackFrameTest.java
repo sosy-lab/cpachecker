@@ -79,7 +79,7 @@ public class CLangStackFrameTest {
   @Test
   public void CLangFrameGetObjectsTest() {
     Set<SMGObject> objects = sf.getAllObjects();
-    // Test that there is an return value object at
+    // Test that there is a return value object at
     assertThat(objects).hasSize(1);
 
     sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));

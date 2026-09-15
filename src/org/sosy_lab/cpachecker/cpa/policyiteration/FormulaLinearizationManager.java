@@ -27,6 +27,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
@@ -63,7 +64,7 @@ public class FormulaLinearizationManager {
 
             // Pattern matching on (NOT (= A B)).
             if (split.size() == 2) {
-              return bfmgr.or(bfmgr.not(split.get(0)), bfmgr.not(split.get(1)));
+              return bfmgr.or(bfmgr.not(split.getFirst()), bfmgr.not(split.get(1)));
             }
             return super.visitNot(pOperand);
           }
@@ -71,7 +72,8 @@ public class FormulaLinearizationManager {
   }
 
   /** Annotate disjunctions with choice variables. */
-  public BooleanFormula annotateDisjunctions(BooleanFormula input) throws InterruptedException {
+  public BooleanFormula annotateDisjunctions(BooleanFormula input)
+      throws InterruptedException, SolverException {
     input = fmgr.applyTactic(input, Tactic.NNF);
     return bfmgr.transformRecursively(
         input,
@@ -87,7 +89,7 @@ public class FormulaLinearizationManager {
   private BooleanFormula annotateDisjunction(List<BooleanFormula> args) {
     assert !args.isEmpty();
     if (args.size() == 1) {
-      return args.get(0);
+      return args.getFirst();
     } else {
       BooleanFormula choiceVar = bfmgr.makeVariable(getFreshVarName());
       int pivot = args.size() / 2;
@@ -126,7 +128,7 @@ public class FormulaLinearizationManager {
 
   /** Removes UFs and ITEs from the formula, effectively making it's semantics "concave". */
   public BooleanFormula convertToPolicy(BooleanFormula f, Model pModel)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
 
     statistics.ackermannizationTimer.start();
     f = fmgr.applyTactic(f, Tactic.NNF);

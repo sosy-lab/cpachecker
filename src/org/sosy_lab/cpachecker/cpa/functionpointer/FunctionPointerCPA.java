@@ -11,10 +11,13 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -29,13 +32,15 @@ public class FunctionPointerCPA extends AbstractCPA
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
-  private FunctionPointerCPA(LogManager pLogger, Configuration pConfig)
+  private FunctionPointerCPA(LogManager pLogger, Configuration pConfig, CFA cfa)
       throws InvalidConfigurationException {
     super(
         "sep",
         "sep",
         DelegateAbstractDomain.<FunctionPointerState>getInstance(),
-        new FunctionPointerTransferRelation(pLogger, pConfig));
+        cfa.getLanguage() == Language.C
+            ? new FunctionPointerTransferRelation(pLogger, pConfig)
+            : IdentityTransferRelation.INSTANCE);
   }
 
   @Override

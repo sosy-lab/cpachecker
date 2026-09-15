@@ -42,7 +42,7 @@ public final class DominanceUtils {
     return createNodeIterable(
         pNode,
         false,
-        node -> node instanceof FunctionEntryNode,
+        FunctionEntryNode.class::isInstance,
         node -> !(node instanceof FunctionExitNode) && !pIgnoreSet.contains(node));
   }
 
@@ -52,7 +52,7 @@ public final class DominanceUtils {
     return createNodeIterable(
         pNode,
         true,
-        node -> node instanceof FunctionExitNode,
+        FunctionExitNode.class::isInstance,
         node -> !(node instanceof FunctionEntryNode) && !pIgnoreSet.contains(node));
   }
 

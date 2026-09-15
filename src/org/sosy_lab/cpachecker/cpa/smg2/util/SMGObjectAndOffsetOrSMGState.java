@@ -59,7 +59,7 @@ public class SMGObjectAndOffsetOrSMGState {
     return new SMGObjectAndOffsetOrSMGState(pObject, new NumericValue(pOffset));
   }
 
-  public static SMGObjectAndOffsetOrSMGState of(SMGObjectAndOffset objAndOffset) {
+  public static SMGObjectAndOffsetOrSMGState of(SMGObjectAndOffsetMaybeNestingLvl objAndOffset) {
     Preconditions.checkNotNull(objAndOffset);
     return new SMGObjectAndOffsetOrSMGState(
         objAndOffset.getSMGObject(), objAndOffset.getOffsetForObject());

@@ -13,6 +13,7 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -20,25 +21,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
 public final class CEnumType implements CComplexType {
 
-  private static final long serialVersionUID = -986078271714119880L;
+  @Serial private static final long serialVersionUID = -986078271714119880L;
 
   private final CSimpleType compatibleType;
   private final ImmutableList<CEnumerator> enumerators;
   private final String name;
   private final String origName;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
   private int hashCache = 0;
 
   public CEnumType(
-      final boolean pConst,
-      final boolean pVolatile,
+      final CTypeQualifiers pQualifiers,
       final CSimpleType pCompatibleType,
       final List<CEnumerator> pEnumerators,
       final String pName,
       final String pOrigName) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    qualifiers = checkNotNull(pQualifiers);
     compatibleType = checkNotNull(pCompatibleType);
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName.intern();
@@ -46,13 +44,8 @@ public final class CEnumType implements CComplexType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -102,14 +95,7 @@ public final class CEnumType implements CComplexType {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
+    lASTString.append(qualifiers.toASTStringPrefix());
     lASTString.append("enum ");
     lASTString.append(name);
 
@@ -123,7 +109,7 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public String toString() {
-    return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + "enum " + name;
+    return qualifiers.toASTStringPrefix() + "enum " + name;
   }
 
   @Override
@@ -134,7 +120,7 @@ public final class CEnumType implements CComplexType {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(isConst, isVolatile, name);
+      hashCache = Objects.hash(qualifiers, name);
     }
     return hashCache;
   }
@@ -143,6 +129,10 @@ public final class CEnumType implements CComplexType {
    * Be careful, this method compares the CType as it is to the given object, typedefs won't be
    * resolved. If you want to compare the type without having typedefs in it use
    * #getCanonicalType().equals()
+   *
+   * <p>Note that this method also compares the enumerators (and their values). Two enum types will
+   * be treated as equal only if they match exactly. (This differs from {@link
+   * CCompositeType#equals(Object)} currently, cf. #1376.)
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -151,8 +141,7 @@ public final class CEnumType implements CComplexType {
     }
 
     return obj instanceof CEnumType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && Objects.equals(name, other.name)
         && Objects.equals(enumerators, other.enumerators);
   }
@@ -164,28 +153,31 @@ public final class CEnumType implements CComplexType {
     }
 
     return obj instanceof CEnumType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
         && Objects.equals(enumerators, other.enumerators);
   }
 
   @Override
   public CEnumType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+  public CEnumType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
+    if (qualifiers.equals(newQualifiers)) {
+      return this;
+    }
+    return new CEnumType(newQualifiers, compatibleType, enumerators, name, origName);
+  }
+
+  @Override
+  public CEnumType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
       return this;
     }
     return new CEnumType(
-        isConst || pForceConst,
-        isVolatile || pForceVolatile,
-        compatibleType,
-        enumerators,
-        name,
-        origName);
+        pNewQualifiers, getCompatibleType(), getEnumerators(), getName(), getOrigName());
   }
 }

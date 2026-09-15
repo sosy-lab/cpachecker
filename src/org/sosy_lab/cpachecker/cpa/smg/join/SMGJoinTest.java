@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -38,6 +37,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGJoinTest {
   private static final CFunctionType functionType =
@@ -64,7 +65,7 @@ public class SMGJoinTest {
         new SMGState(
             LogManager.createTestLogManager(),
             MachineModel.LINUX32,
-            new SMGOptions(Configuration.defaultConfiguration()));
+            new SMGOptions(TestUtils.configurationForTest().build()));
     smg1 = new CLangSMG(MachineModel.LINUX64);
     smg2 = new CLangSMG(MachineModel.LINUX64);
   }

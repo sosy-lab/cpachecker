@@ -14,20 +14,28 @@ import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.ValueAndObjectSet;
 
 public class SMGProveNequality {
 
-  private final SMG smg;
+  private final SMGState state;
+  private final SMGOptions options;
 
-  public SMGProveNequality(SMG pSMG) {
-    smg = pSMG;
+  public SMGProveNequality(SMGState pState, SMGOptions pOptions) {
+    state = pState;
+    options = pOptions;
   }
 
   /**
@@ -39,12 +47,9 @@ public class SMGProveNequality {
    * @param value2 the second address
    * @return true if the prove of not equality succeeded, false if both are potentially equal.
    */
-  public boolean proveInequality(SMGValue value1, SMGValue value2) {
-    checkArgument(
-        value1.getNestingLevel() == 0 && value2.getNestingLevel() == 0,
-        "%s or %s is not on level 0",
-        value1,
-        value2);
+  public boolean proveInequality(SMGValue value1, SMGValue value2) throws SMGSolverException {
+    SMG smg = state.getMemoryModel().getSmg();
+    // The nesting level should always be 0, as we only compare materialized SMGs
     if (value1.equals(value2)) {
       return false;
     }
@@ -72,8 +77,20 @@ public class SMGProveNequality {
     if (targetEdge1.pointsTo().equals(targetEdge2.pointsTo())) {
       return checkEdgeLabelsForEqualTargets(targetEdge1, targetEdge2);
     }
+
     // OutOfBounds check
-    if (checkIfEdgePointsOutOfBounds(targetEdge1) || checkIfEdgePointsOutOfBounds(targetEdge2)) {
+    if (checkPointsToEdgeOutOfBounds(targetEdge1) || checkPointsToEdgeOutOfBounds(targetEdge2)) {
+      if (targetEdge1.pointsTo().isZero() || targetEdge2.pointsTo().isZero()) {
+        // Out-of-bounds and a null pointer, may be equal
+        // TODO: add case where we are only 1 object beyond the size, as that's defined and can not
+        // be equal null!
+        return false;
+      }
+      if (!options.isOverapproximatePointerArithmeticsOutOfBoundsEquality()) {
+        // TODO: make the result of this method a status style system like in merge! We can't
+        // discern between "can be both" and not equal currently.
+        return !checkPointsToEdgesOutOfBoundsEquality(targetEdge1, targetEdge2);
+      }
       return false;
     }
     // 0 and a valid address of an object
@@ -85,9 +102,108 @@ public class SMGProveNequality {
     return smg.isValid(targetEdge1.pointsTo()) && smg.isValid(targetEdge2.pointsTo());
   }
 
-  private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge) {
-    return pToEdge.getOffset().compareTo(pToEdge.pointsTo().getSize()) > 0
-        || pToEdge.getOffset().signum() < 0;
+  /**
+   * Checks whether the {@link SMGPointsToEdge}s, with at least one being out-of-bounds, for their
+   * (possibly distinct targeting objects) equality. This checks whether there is enough space
+   * after/before the pointer and its memory for the other memory, for example:
+   *
+   * <p>int * ptr1 = malloc(2*sizeof(int));
+   *
+   * <p>int * ptr2 = malloc(2*sizeof(int));
+   *
+   * <p>assert((ptr1 + 2) == (ptr2 + 1)); // Always false
+   *
+   * <p>assert((ptr1 + 2) == ptr2); // Can be true or false
+   *
+   * <p>Since we may cast the addresses to numbers and then do the checks above, we can even do
+   * things like:
+   *
+   * <p>assert((((unsigned long) ptr1) - 1) == (unsigned long) ptr2); // Always false, as the memory
+   * of ptr2 is too large!
+   *
+   * <p>assert((((unsigned long) ptr1) - 2) == (unsigned long) ptr2); // Can be true or false
+   *
+   * @return {@code true} if the 2 {@link SMGPointsToEdge}s CAN be equal (but may also be inequal),
+   *     {@code false} if they are guaranteed to be not equal.
+   */
+  protected boolean checkPointsToEdgesOutOfBoundsEquality(
+      SMGPointsToEdge pte1, SMGPointsToEdge pte2) {
+    SMGObject targetObj1 = pte1.pointsTo();
+    SMGObject targetObj2 = pte2.pointsTo();
+    Value targetObjSize1 = pte1.pointsTo().getSize();
+    Value targetObjSize2 = pte2.pointsTo().getSize();
+    Value pointerOffset1 = pte1.getOffset();
+    Value pointerOffset2 = pte2.getOffset();
+
+    checkArgument(targetObj1 != targetObj2); // Should be handled already
+    checkArgument(!targetObj1.isZero() && !targetObj2.isZero());
+    if (!targetObjSize1.isUnknown()
+        && !targetObjSize2.isUnknown()
+        && !pointerOffset1.isUnknown()
+        && !pointerOffset2.isUnknown()) {
+      if (targetObjSize1 instanceof NumericValue numObjSize1
+          && pointerOffset1 instanceof NumericValue numPointerOffset1
+          && pointerOffset2 instanceof NumericValue numPointerOffset2
+          && targetObjSize2 instanceof NumericValue numObjSize2) {
+
+        BigInteger bigIntObjSize1 = numObjSize1.bigIntegerValue();
+        BigInteger bigIntObjSize2 = numObjSize2.bigIntegerValue();
+        BigInteger bigIntPointerOffset1 = numPointerOffset1.bigIntegerValue();
+        BigInteger bigIntPointerOffset2 = numPointerOffset2.bigIntegerValue();
+        BigInteger offsetMinusSize1 = bigIntPointerOffset1.subtract(bigIntObjSize1);
+        BigInteger offsetMinusSize2 = bigIntPointerOffset2.subtract(bigIntObjSize2);
+
+        if (offsetMinusSize1.compareTo(bigIntPointerOffset2) >= 0
+            || offsetMinusSize2.compareTo(bigIntPointerOffset1) >= 0) {
+          // TODO: use enum instead of bool
+          return true; // Can be equal or not equal
+        }
+        return false; // Guaranteed to be not-equal!
+
+      } else if (options.trackPredicates()) {
+        // Use SMT solver
+        // TODO: memory layout check (as with the numerics above)
+        throw new UnsupportedOperationException(
+            "Precise solver based pointer equality is not yet implemented");
+      }
+    }
+
+    // Unknown -> Overapproximate, may be equal or inequal
+    return true;
+  }
+
+  protected boolean checkPointsToEdgeOutOfBounds(SMGPointsToEdge pte) throws SMGSolverException {
+    SMGObject targetObj = pte.pointsTo();
+
+    if (targetObj.isZero()) {
+      return false; // The null pointer is not out of bounds
+    } else if (targetObj.getSize() instanceof NumericValue size
+        && size.bigIntegerValue().equals(BigInteger.ZERO)
+        && targetObj.getOffset().equals(BigInteger.ZERO)
+        && pte.getOffset() instanceof NumericValue offset
+        && offset.bigIntegerValue().equals(BigInteger.ZERO)) {
+      // PTEs with offset 0 (initial pointer) towards regions with 0 size (we use those for function
+      // pointers internally, but also may be a malloc(0) pointer) do not point out-of-bounds
+      return false;
+    }
+
+    // Unknown -> Overapproximate
+    if (!pte.pointsTo().getSize().isUnknown() && !pte.getOffset().isUnknown()) {
+      if (targetObj.getSize() instanceof NumericValue targetObjSize
+          && pte.getOffset() instanceof NumericValue pToEdgeOffset) {
+
+        // Just "out of bounds" -> overapproximate
+        return pToEdgeOffset.bigIntegerValue().compareTo(targetObjSize.bigIntegerValue()) >= 0
+            || pToEdgeOffset.bigIntegerValue().signum() < 0;
+      } else if (options.trackPredicates()) {
+        // At least one symbolic, use SMT solver if possible
+        return state
+            .checkBoundariesOfMemoryAccessWithSolver(
+                targetObj, pte.getOffset(), new NumericValue(BigInteger.ZERO), null)
+            .isSAT();
+      }
+    }
+    return true;
   }
 
   private boolean checkEdgeLabelsForEqualTargets(
@@ -106,35 +222,36 @@ public class SMGProveNequality {
   }
 
   /**
-   * Implementation of Appendix E Algorithm 12. Traverse all 0+DLLs and collect all visited
-   * SMGObjects as well as the final reached value.
+   * Implementation of Appendix E Algorithm 12. Traverse only 0+DLLs and collect all visited
+   * SMGObjects as well as the final reached initialPointerValue.
    *
-   * @param value - the first address value representation.
-   * @return the finally reached value and the set of all visited objects.
+   * @param initialPointerValue - the first address initialPointerValue representation.
+   * @return the finally reached initialPointerValue and the set of all visited objects.
    */
-  public ValueAndObjectSet lookThrough(SMGValue value) {
+  public ValueAndObjectSet lookThrough(SMGValue initialPointerValue) {
+    SMG smg = state.getMemoryModel().getSmg();
     Set<SMGObject> reachedSet = new HashSet<>();
-    SMGValue retValue = value;
-    Optional<SMGPointsToEdge> ptoOptional = smg.getPTEdge(value);
+    SMGValue retValue = initialPointerValue;
+    Optional<SMGPointsToEdge> ptoOptional = smg.getPTEdge(initialPointerValue);
     while (ptoOptional.isPresent() && !ptoOptional.orElseThrow().pointsTo().isZero()) {
       SMGPointsToEdge pointerEdge = ptoOptional.orElseThrow();
       SMGObject nextObject = pointerEdge.pointsTo();
       if (pointerEdge.targetSpecifier() == SMGTargetSpecifier.IS_REGION) {
         break;
       }
-      checkArgument(nextObject instanceof SMGDoublyLinkedListSegment);
+      checkArgument(nextObject instanceof SMGSinglyLinkedListSegment);
 
-      SMGDoublyLinkedListSegment dlls = (SMGDoublyLinkedListSegment) nextObject;
-      if (dlls.getMinLength() != 0) {
+      SMGSinglyLinkedListSegment lls = (SMGSinglyLinkedListSegment) nextObject;
+      if (lls.getMinLength() != 0) {
         // not a 0+DLLS
         break;
       }
 
       reachedSet.add(nextObject);
       if (pointerEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-        retValue = findHVETargetValue(dlls, dlls.getNextOffset(), smg.getSizeOfPointer());
+        retValue = findHVETargetValue(lls, lls.getNextOffset(), smg.getSizeOfPointer());
 
-      } else {
+      } else if (nextObject instanceof SMGDoublyLinkedListSegment dlls) {
         checkArgument(
             pointerEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER),
             "Inconsisntent SMG found: DLLS pointer with SMGTargetSpecifier: %s",
@@ -147,15 +264,16 @@ public class SMGProveNequality {
   }
 
   /**
-   * Utility function to find the edge for a given dlls at a given offset with a given size.
+   * Utility function to find the edge for a given lls at a given offset with a given size.
    *
-   * @param dlls the DLLS
+   * @param dlls the LLS
    * @param pOffset the offset
    * @param pSize the size
    * @return the value address (pointer) at a given offset of a dlls.
    */
   private SMGValue findHVETargetValue(
-      SMGDoublyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
+      SMGSinglyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
+    SMG smg = state.getMemoryModel().getSmg();
     Optional<SMGHasValueEdge> hveOptional =
         smg.getHasValueEdgeByPredicate(
             dlls, edge -> edge.getOffset().equals(pOffset) && edge.getSizeInBits().equals(pSize));

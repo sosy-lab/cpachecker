@@ -26,6 +26,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class BitvectorManagerTest {
@@ -63,7 +64,7 @@ public class BitvectorManagerTest {
 
   @Before
   public void init() throws InvalidConfigurationException {
-    Configuration config = Configuration.defaultConfiguration();
+    Configuration config = TestUtils.configurationForTest().build();
     logger = LogManager.createTestLogManager();
 
     rmgr = new BDDManagerFactory(config, logger).createRegionManager();
@@ -96,7 +97,7 @@ public class BitvectorManagerTest {
 
   private void assertEqual(Region[] r1, Region[] r2) {
     assertThat(r1).hasLength(r2.length);
-    assertWithMessage(toString(r1) + " != " + toString(r2)).that(r2).isEqualTo(r1);
+    assertWithMessage("%s != %s", toString(r1), toString(r2)).that(r2).isEqualTo(r1);
   }
 
   private void assertDistinct(Region[] r1, Region[] r2) {

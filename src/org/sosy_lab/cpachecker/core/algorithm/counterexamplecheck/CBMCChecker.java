@@ -143,7 +143,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       cbmcArgs.add("--no-built-in-assertions"); // do not check for memory safety etc.
 
       // Our paths are loop-free, but CBMC adds loops in stdlib functions like memcmp.
-      // CBMC would endlessly unroll them, so its better to break the loops.
+      // CBMC would endlessly unroll them, so it's better to break the loops.
       cbmcArgs.add("--unwind");
       cbmcArgs.add("100");
       cbmcArgs.add("--partial-loops");
@@ -170,13 +170,15 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     if (!cbmc.producedErrorOutput()) {
       switch (exitCode) {
-        case 0: // Verification successful (Path is infeasible)
+        case 0 -> {
+          // Verification successful (Path is infeasible)
           return false;
-
-        case 10: // Verification failed (Path is feasible)
+        }
+        case 10 -> {
+          // Verification failed (Path is feasible)
           return true;
-
-        default:
+        }
+        default -> {}
       }
 
     } else {
@@ -192,22 +194,18 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   }
 
   private List<String> getParamForMachineModel() {
-    switch (machineModel) {
-      case LINUX32:
-        return ImmutableList.of("--i386-linux"); // shortcut for "--arch i386 --os linux"
-      case LINUX64:
-        // We want to use "--arch x86_64 --os linux", but "--os" is currently broken:
-        // https://github.com/diffblue/cbmc/issues/5267
-        // At least in CBMC 5.12 we can set the OS to Linux with "--i386-linux" and overwrite the
-        // arch with "--arch":
-        // https://github.com/diffblue/cbmc/blob/cbmc-5.12/src/util/config.cpp#L842-L872
-        return ImmutableList.of("--i386-linux", "--arch", "x86_64");
-      case ARM:
-        // Same as for LINUX64
-        return ImmutableList.of("--i386-linux", "--arch", "arm");
-      default:
-        throw new AssertionError("Unknown machine model value " + machineModel);
-    }
+    return switch (machineModel) {
+      case LINUX32 -> ImmutableList.of("--i386-linux");
+      case LINUX64 -> // We want to use "--arch x86_64 --os linux", but "--os" is currently broken:
+          // https://github.com/diffblue/cbmc/issues/5267
+          // At least in CBMC 5.12 we can set the OS to Linux with "--i386-linux" and overwrite the
+          // arch with "--arch":
+          // https://github.com/diffblue/cbmc/blob/cbmc-5.12/src/util/config.cpp#L842-L872
+          ImmutableList.of("--i386-linux", "--arch", "x86_64");
+      case ARM -> // Same as for LINUX64
+          ImmutableList.of("--i386-linux", "--arch", "arm");
+      default -> throw new AssertionError("Unknown machine model value " + machineModel);
+    };
   }
 
   @Override

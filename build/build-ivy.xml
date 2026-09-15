@@ -22,7 +22,7 @@ SPDX-License-Identifier: Apache-2.0
     -->
 
     <!-- These properties can be overridden from including file. -->
-    <property name="ivy.target_version" value="2.5.1"/> <!-- Change version number here to use a newer version of Ivy. -->
+    <property name="ivy.target_version" value="2.5.2"/> <!-- Change version number here to use a newer version of Ivy. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
     <property name="ivy.repo.url" value="https://www.sosy-lab.org/ivy"/>
     <property name="ivy.lib.dir" value="lib/java"/>

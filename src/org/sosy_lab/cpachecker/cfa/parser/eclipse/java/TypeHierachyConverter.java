@@ -46,10 +46,12 @@ class TypeHierachyConverter {
 
   public final LogManager logger;
   public final THTypeConverter typeConverter;
+  private final THTypeTable typeTable;
 
   public TypeHierachyConverter(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
     typeConverter = new THTypeConverter(pTypeTable);
+    typeTable = pTypeTable;
   }
 
   /**
@@ -65,7 +67,7 @@ class TypeHierachyConverter {
 
     if (methodBinding == null) {
       logger.log(Level.WARNING, md.getName(), "can't be resolved.");
-      return JMethodDeclaration.createUnresolvedMethodDeclaration();
+      return typeTable.getUnresolvableMethodDeclaration();
     }
 
     String methodName = NameConverter.convertName(methodBinding);
@@ -101,7 +103,7 @@ class TypeHierachyConverter {
 
     } else {
 
-      // A Method is also abstract if its a member of an interface
+      // A Method is also abstract if it's a member of an interface
       boolean isAbstract = mb.isAbstract() || md.resolveBinding().getDeclaringClass().isInterface();
 
       JMethodType methodType =
@@ -167,7 +169,9 @@ class TypeHierachyConverter {
     IVariableBinding vB = vdf.resolveBinding();
 
     checkNotNull(
-        vdf, "Can't resolve binding of field declaration " + vdf.getName().getFullyQualifiedName());
+        vdf,
+        "Can't resolve binding of field declaration %s",
+        vdf.getName().getFullyQualifiedName());
 
     String qualifiedName = NameConverter.convertName(vB);
     String simpleName = vB.getName();
@@ -192,13 +196,13 @@ class TypeHierachyConverter {
     IMethodBinding methodBinding = md.resolveBinding();
 
     if (methodBinding == null) {
-      return JClassType.createUnresolvableType();
+      return typeTable.getUnresolvableClassType();
     }
 
     ITypeBinding typeBinding = methodBinding.getDeclaringClass();
 
     if (typeBinding == null) {
-      return JClassType.createUnresolvableType();
+      return typeTable.getUnresolvableClassType();
     }
 
     return typeConverter.convertClassOrInterfaceType(typeBinding);
@@ -207,10 +211,10 @@ class TypeHierachyConverter {
   private JClassType convertClassOfConstructor(MethodDeclaration md) {
     JClassOrInterfaceType type = convertDeclaringClassType(md);
 
-    if (type instanceof JClassType) {
-      return (JClassType) type;
+    if (type instanceof JClassType jClassType) {
+      return jClassType;
     } else {
-      return JClassType.createUnresolvableType();
+      return typeTable.getUnresolvableClassType();
     }
   }
 
@@ -262,7 +266,9 @@ class TypeHierachyConverter {
         l.getStartPosition(),
         l.getLength(),
         co.getLineNumber(l.getStartPosition()),
-        co.getLineNumber(l.getLength() + l.getStartPosition()));
+        co.getLineNumber(l.getLength() + l.getStartPosition()),
+        co.getColumnNumber(l.getStartPosition()),
+        co.getColumnNumber(l.getLength() + l.getStartPosition()));
   }
 
   public JClassOrInterfaceType convertClassOrInterfaceType(ITypeBinding pTypeBinding) {

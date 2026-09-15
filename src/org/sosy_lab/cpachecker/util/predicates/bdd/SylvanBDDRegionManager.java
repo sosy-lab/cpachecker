@@ -466,11 +466,6 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitBoundVar(BooleanFormula var, int deBruijnIdx) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Long visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       return unwrap(atomToRegion.apply(pAtom));
     }

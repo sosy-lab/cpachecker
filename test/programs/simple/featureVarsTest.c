@@ -6,6 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern int __SELECTED_FEATURE_Sign;
+extern int __SELECTED_FEATURE_Forward;
+extern int __SELECTED_FEATURE_Verify;
+
 int featureModelValid() {
   if (! __SELECTED_FEATURE_Verify)
 	  if (__SELECTED_FEATURE_Forward)

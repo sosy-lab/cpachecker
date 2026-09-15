@@ -49,6 +49,8 @@ public class ToBitvectorFormulaVisitor
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
+  private final boolean useQualifiedNames;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
    * by using the given formula manager, and evaluation visitor.
@@ -59,9 +61,17 @@ public class ToBitvectorFormulaVisitor
    */
   public ToBitvectorFormulaVisitor(
       FormulaManagerView pFmgr, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    this(pFmgr, pEvaluationVisitor, true);
+  }
+
+  public ToBitvectorFormulaVisitor(
+      FormulaManagerView pFmgr,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
+      boolean pUseQualifiedNames) {
     bfmgr = pFmgr.getBooleanFormulaManager();
     bvfmgr = pFmgr.getBitvectorFormulaManager();
     evaluationVisitor = pEvaluationVisitor;
+    useQualifiedNames = pUseQualifiedNames;
   }
 
   /**
@@ -95,11 +105,11 @@ public class ToBitvectorFormulaVisitor
    * @return a bit vector formula representing the given value as a bit vector with the given size.
    */
   private BitvectorFormula asBitVectorFormula(TypeInfo pTypeInfo, Number pValue) {
-    if (!(pTypeInfo instanceof BitVectorInfo && pValue instanceof BigInteger)) {
+    if (!(pTypeInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger value)) {
       return null;
     }
-    int size = ((BitVectorInfo) pTypeInfo).getSize();
-    BigInteger value = (BigInteger) pValue;
+    int size = bitVectorInfo.getSize();
+
     // Get only the [size] least significant bits
     BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);
     boolean negative = value.signum() < 0;
@@ -188,7 +198,7 @@ public class ToBitvectorFormulaVisitor
     if (numerator == null || denominator == null) {
       return evaluate(pModulo, pEnvironment);
     }
-    return bvfmgr.modulo(numerator, denominator, true);
+    return bvfmgr.remainder(numerator, denominator, true);
   }
 
   @Override
@@ -229,10 +239,12 @@ public class ToBitvectorFormulaVisitor
       Variable<CompoundInterval> pVariable,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     TypeInfo typeInfo = pVariable.getTypeInfo();
-    if (typeInfo instanceof BitVectorInfo) {
+    if (typeInfo instanceof BitVectorInfo bitVectorInfo) {
       return bvfmgr.makeVariable(
-          ((BitVectorInfo) typeInfo).getSize(),
-          pVariable.getMemoryLocation().getExtendedQualifiedName());
+          bitVectorInfo.getSize(),
+          useQualifiedNames
+              ? pVariable.getMemoryLocation().getExtendedQualifiedName()
+              : pVariable.getMemoryLocation().getIdentifier());
     }
     return null;
   }
@@ -245,11 +257,10 @@ public class ToBitvectorFormulaVisitor
     if (sourceFormula == null) {
       return sourceFormula;
     }
-    TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    TypeInfo targetInfo = pCast.getTypeInfo();
-    if (sourceInfo instanceof BitVectorInfo && targetInfo instanceof BitVectorInfo) {
-      int sourceSize = ((BitVectorInfo) sourceInfo).getSize();
-      int targetSize = ((BitVectorInfo) targetInfo).getSize();
+    if (pCast.getCasted().getTypeInfo() instanceof BitVectorInfo sourceInfo
+        && pCast.getTypeInfo() instanceof BitVectorInfo targetInfo) {
+      int sourceSize = sourceInfo.getSize();
+      int targetSize = targetInfo.getSize();
       if (sourceSize < targetSize) {
         return bvfmgr.extend(sourceFormula, targetSize - sourceSize, targetInfo.isSigned());
       }

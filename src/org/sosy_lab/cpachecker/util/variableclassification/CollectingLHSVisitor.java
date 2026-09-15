@@ -46,6 +46,9 @@ final class CollectingLHSVisitor
         r.getFirst(),
         r.getSecond()
             .withDependencies(
+                e.getArrayExpression()
+                    .accept(CollectingRHSVisitor.create(cfa, VariableOrField.unknown())))
+            .withDependencies(
                 e.getSubscriptExpression().accept(CollectingRHSVisitor.create(cfa, r.getFirst()))));
   }
 
@@ -92,10 +95,10 @@ final class CollectingLHSVisitor
 
   @Override
   protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e) {
-    if (e instanceof CUnaryExpression
-        && UnaryOperator.AMPER == ((CUnaryExpression) e).getOperator()) {
+    if (e instanceof CUnaryExpression cUnaryExpression
+        && UnaryOperator.AMPER == cUnaryExpression.getOperator()) {
       // TODO dependency between address and variable?
-      return ((CUnaryExpression) e).getOperand().accept(this);
+      return cUnaryExpression.getOperand().accept(this);
     }
 
     throw new AssertionError(

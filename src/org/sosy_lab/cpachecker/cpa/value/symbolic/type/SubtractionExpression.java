@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -15,7 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** SymbolicExpression representing subtraction. */
 public final class SubtractionExpression extends BinarySymbolicExpression {
 
-  private static final long serialVersionUID = -2240019127521654817L;
+  @Serial private static final long serialVersionUID = -2240019127521654817L;
 
   SubtractionExpression(
       SymbolicExpression pOperand1,
@@ -41,6 +42,16 @@ public final class SubtractionExpression extends BinarySymbolicExpression {
       final Type pCalculationType,
       final AbstractState pAbstractState) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
+  }
+
+  public static SubtractionExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+
+    return new SubtractionExpression(
+        pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   @Override

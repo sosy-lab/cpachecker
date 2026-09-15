@@ -73,9 +73,11 @@ public class CounterexampleCheckAlgorithm
       secure = true,
       name = "checker",
       description =
-          "Which model checker to use for verifying counterexamples as a second check.\n"
-              + "Currently CBMC or CPAchecker with a different config or the concrete execution \n"
-              + "checker can be used.")
+          """
+          Which model checker to use for verifying counterexamples as a second check.
+          Currently CBMC or CPAchecker with a different config or the concrete execution\s
+          checker can be used.\
+          """)
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
   @Option(
@@ -192,6 +194,8 @@ public class CounterexampleCheckAlgorithm
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
       throws InterruptedException {
 
+    // TODO: also print the config that is used for the CEX check. (loaded when CPA is built in
+    //  checkErrorPaths())
     logger.log(
         Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
     final boolean feasibility;
@@ -249,12 +253,12 @@ public class CounterexampleCheckAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(this);
-    if (checker instanceof StatisticsProvider) {
-      ((StatisticsProvider) checker).collectStatistics(pStatsCollection);
+    if (checker instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 
@@ -280,15 +284,15 @@ public class CounterexampleCheckAlgorithm
 
   @Override
   public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.register(pReachedSetUpdateListener);
     }
   }
 
   @Override
   public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.unregister(pReachedSetUpdateListener);
     }
   }
 }

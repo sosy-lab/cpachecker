@@ -42,10 +42,10 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
       throws InvalidConfigurationException {
     super(algorithm, pCpa, config, pSpecification, logger, pShutdownNotifier, cfa);
 
-    if (!(pCpa instanceof BAMCPA)) {
+    if (!(pCpa instanceof BAMCPA bAMCPA)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM counterexample check");
     }
-    cpa = (BAMCPA) pCpa;
+    cpa = bAMCPA;
   }
 
   @Override

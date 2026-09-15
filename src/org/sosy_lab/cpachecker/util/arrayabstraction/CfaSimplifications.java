@@ -18,7 +18,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.sosy_lab.common.configuration.Configuration;
@@ -86,7 +86,7 @@ final class CfaSimplifications {
         continue;
       }
 
-      Set<ArrayAccess> remainingArrayAccesses =
+      SequencedSet<ArrayAccess> remainingArrayAccesses =
           new LinkedHashSet<>(ArrayAccess.findArrayAccesses(edge));
 
       // finished array access ---> substitute for finished array access
@@ -154,8 +154,8 @@ final class CfaSimplifications {
               substitution
                   .computeIfAbsent(edge, key -> new HashMap<>())
                   .put(current, substituteExpression);
-              if (edge instanceof FunctionCallEdge) {
-                FunctionSummaryEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
+              if (edge instanceof FunctionCallEdge functionCallEdge) {
+                FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
                 assert summaryEdge != null : "Missing summary edge for call edge";
                 substitution
                     .computeIfAbsent(summaryEdge, key -> new HashMap<>())
@@ -187,8 +187,8 @@ final class CfaSimplifications {
                   .collect(ImmutableMap.toImmutableMap(extractExpression, Map.Entry::getValue));
 
           // TODO: add support for more edges/statements that can contain writing array accesses
-          if (edge instanceof CStatementEdge) {
-            CStatement statement = ((CStatementEdge) edge).getStatement();
+          if (edge instanceof CStatementEdge cStatementEdge) {
+            CStatement statement = cStatementEdge.getStatement();
             if (statement instanceof CExpressionAssignmentStatement assignStatement) {
               CAstNode rhs =
                   assignStatement
@@ -250,7 +250,7 @@ final class CfaSimplifications {
               optTargetUpdateOperation.orElseThrow();
           CSimpleDeclaration targetDeclaration = targetUpdateOperation.getDeclaration();
 
-          // the index cannot cannot be eliminated
+          // the index cannot be eliminated
           if (targetDeclaration.equals(loop.getIndex().getVariableDeclaration())) {
             continue;
           }
@@ -458,8 +458,7 @@ final class CfaSimplifications {
 
     private final Map<CSimpleDeclaration, CExpression> substitution;
 
-    public IdExpressionSubstitutingCAstNodeVisitor(
-        Map<CSimpleDeclaration, CExpression> pSubstitution) {
+    IdExpressionSubstitutingCAstNodeVisitor(Map<CSimpleDeclaration, CExpression> pSubstitution) {
       substitution = pSubstitution;
     }
 

@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -90,13 +89,12 @@ public final class ModificationsState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "is_modified":
-        return hasModification;
-      default:
-        throw new InvalidQueryException(
-            "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
-    }
+    return switch (pProperty) {
+      case "is_modified" -> hasModification;
+      default ->
+          throw new InvalidQueryException(
+              "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
+    };
   }
 
   @Override
@@ -104,7 +102,7 @@ public final class ModificationsState
     StringBuilder sb = new StringBuilder();
     if (hasModification) {
       sb.append("Misfit: ");
-      FluentIterable<CFAEdge> edgesInOrig = CFAUtils.enteringEdges(locationInOriginalCfa);
+      FluentIterable<CFAEdge> edgesInOrig = locationInOriginalCfa.getEnteringEdges();
       sb.append("{");
       for (CFAEdge e : edgesInOrig) {
         sb.append(e);

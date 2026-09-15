@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.collect.ImmutableMap;
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -17,9 +16,10 @@ import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -32,13 +32,13 @@ public final class SMGInformation {
 
   // Mapping needed to restore program variables
   private final PersistentMap<String, CType> variableToTypeMap;
-  private final Map<String, BigInteger> variableNameAndSizeInBits;
+  private final Map<String, Value> variableNameAndSizeInBits;
   private final PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
   private final PersistentStack<CFunctionDeclarationAndOptionalValue> stackDeclarations;
 
   SMGInformation(
       final PersistentMap<MemoryLocation, ValueAndValueSize> pAssignments,
-      final Map<String, BigInteger> pVariableNameAndSizeInBits,
+      final Map<String, Value> pVariableNameAndSizeInBits,
       final PersistentMap<String, CType> pVariableToTypeMap,
       final PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations) {
     nonHeapAssignments = pAssignments;
@@ -82,7 +82,7 @@ public final class SMGInformation {
   }
 
   /** Returns a map from qualified variable name to their sizes in bits. */
-  public Map<String, BigInteger> getSizeInformationForVariablesMap() {
+  public Map<String, Value> getSizeInformationForVariablesMap() {
     return variableNameAndSizeInBits;
   }
 

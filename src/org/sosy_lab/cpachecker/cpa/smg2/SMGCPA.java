@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -57,20 +56,17 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
-import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
-import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
+import org.sosy_lab.cpachecker.cpa.value.ToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -95,8 +91,11 @@ public class SMGCPA
       secure = true,
       name = "merge",
       toUppercase = true,
-      values = "SEP",
-      description = "which merge operator to use for the SMGCPA")
+      values = {"SEP", "PREDATOR-MERGE"},
+      description =
+          "Which merge operator to use for the SMGCPA. 'PREDATOR-MERGE' uses the merge operation"
+              + " described for the Predator verification tool; appendix C 'The Join Algorithms',"
+              + " page 28 in https://doi.org/10.1007/978-3-642-38856-9_13.")
   private String mergeType = "SEP";
 
   @Option(secure = true, description = "get an initial precision from file")
@@ -117,43 +116,38 @@ public class SMGCPA
   private final CFA cfa;
   private final SMGOptions options;
   private final SMGCPAExportOptions exportOptions;
-  private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
   private final ShutdownNotifier shutdownNotifier;
 
   private VariableTrackingPrecision precision;
   private boolean refineablePrecisionSet = false;
 
-  private final SMGStatistics stats = new SMGStatistics();
-  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final ToValuePrecisionConverter predToValPrec;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
   private final SMGCPAStatistics statistics;
 
-  private final SMGConstraintsSolver constraintsSolver;
+  private final ConstraintsSolver constraintsSolver;
   private final Solver solver;
-
-  private final ConstraintsStatistics contraintsStats = new ConstraintsStatistics();
 
   private final SMGCPAExpressionEvaluator evaluator;
 
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
-    options = new SMGOptions(pConfig);
 
     config = pConfig;
     cfa = pCfa;
+    options = new SMGOptions(pConfig, cfa);
     machineModel = cfa.getMachineModel();
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     precision = initializePrecision(config, cfa);
-    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    predToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
-    statistics = new SMGCPAStatistics(this, config);
-    precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
+    statistics = new SMGCPAStatistics();
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
 
     blockOperator = new BlockOperator();
@@ -169,7 +163,7 @@ public class SMGCPA
         initializeCToFormulaConverter(
             formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver =
-        new SMGConstraintsSolver(solver, formulaManager, converter, contraintsStats, options);
+        new ConstraintsSolver(pConfig, machineModel, solver, formulaManager, converter, statistics);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel, logger, exportOptions, options, constraintsSolver);
@@ -181,7 +175,7 @@ public class SMGCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+    pStatsCollection.add(statistics);
   }
 
   @Override
@@ -194,10 +188,20 @@ public class SMGCPA
     return new AdditionalInfoExtractor().createExtendedInfo(pPath);
   }
 
+  /*
+   * Creates a ConcreteStatePath, that contain the concrete values of the given
+   * variables along the given ARGPath. The ConcreteStatePath  is used to
+   * calculate the concrete values of the variables along the generated counterexample path.
+   *
+   * pPath: A counterexample path, generated from the ARGCPA. The
+   *     concrete values of variables along this path should be calculated.
+   * return: A ConcreteStatePath along the CFAEdges of the ARGPath
+   *     that contain concrete values for the variables along the path.
+   */
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
     try {
-      return new SMGConcreteErrorPathAllocator(config, logger, machineModel)
+      return new SMGConcreteErrorPathAllocator(config, logger, machineModel, options, statistics)
           .allocateAssignmentsToPath(pPath);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -222,39 +226,32 @@ public class SMGCPA
         evaluator);
   }
 
-  public SMGConstraintsSolver getSolver() {
+  public ConstraintsSolver getSolver() {
     return constraintsSolver;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown mergetype for SMGCPA");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "PREDATOR-MERGE" -> new SMGMergeOperator(statistics, options);
+      default -> throw new AssertionError("unknown merge-type " + mergeType + " for SMGCPA");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-        // TODO END_BLOCK
-      case "NEVER":
-        return StopNeverOperator.getInstance();
-      case "SEP":
-        return new StopSepOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown stoptype for SMGCPA");
-    }
+    return switch (stopType) {
+      case "NEVER" -> StopNeverOperator.getInstance();
+      case "SEP" -> new StopSepOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown stop-type " + stopType + " for SMGCPA");
+    };
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator);
+    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator, statistics);
     return initState;
   }
 
@@ -265,8 +262,7 @@ public class SMGCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new SMGPrecisionAdjustment(
-        statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+    return new SMGPrecisionAdjustment(statistics, cfa, options, precisionAdjustmentStatistics);
   }
 
   public LogManagerWithoutDuplicates getLogger() {
@@ -330,17 +326,14 @@ public class SMGCPA
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
-      if (currentLine.trim().isEmpty()) {
-        continue;
-
-      } else if (currentLine.endsWith(":")) {
+      if (currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
 
-      } else {
+      } else if (!currentLine.trim().isEmpty()) {
         mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }
@@ -373,8 +366,8 @@ public class SMGCPA
       MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
-    FormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new FormulaEncodingWithPointerAliasingOptions(pConfig);
+    CFormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new CFormulaEncodingWithPointerAliasingOptions(pConfig);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, formulaOptions);
 
@@ -391,5 +384,13 @@ public class SMGCPA
 
   public SMGCPAExpressionEvaluator getEvaluator() {
     return evaluator;
+  }
+
+  public SMGOptions getSMGOptions() {
+    return options;
+  }
+
+  public SMGCPAStatistics getStatistics() {
+    return statistics;
   }
 }

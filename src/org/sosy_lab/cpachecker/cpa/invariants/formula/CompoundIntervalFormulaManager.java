@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -144,36 +143,20 @@ public class CompoundIntervalFormulaManager {
         && ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
   }
 
-  public boolean definitelyImplies(
-      Iterable<BooleanFormula<CompoundInterval>> pFormulas,
-      BooleanFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, new HashMap<>(), false);
-  }
-
   private boolean definitelyImplies(
-      Iterable<BooleanFormula<CompoundInterval>> pFormulas,
+      Collection<BooleanFormula<CompoundInterval>> pFormulas,
       BooleanFormula<CompoundInterval> pFormula,
       boolean pOverflowCheck) {
     return definitelyImplies(pFormulas, pFormula, new HashMap<>(), pOverflowCheck);
   }
 
   private boolean definitelyImplies(
-      Iterable<BooleanFormula<CompoundInterval>> pFormulas,
+      Collection<BooleanFormula<CompoundInterval>> pFormulas,
       BooleanFormula<CompoundInterval> pFormula,
       Map<MemoryLocation, NumeralFormula<CompoundInterval>> pBaseEnvironment,
       boolean pDisableOverflowCheck) {
     Map<MemoryLocation, NumeralFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
-    if (pFormula instanceof Collection<?>) {
-      return definitelyImplies(
-          (Collection<BooleanFormula<CompoundInterval>>) pFormulas,
-          pFormula,
-          true,
-          newMap,
-          false,
-          pDisableOverflowCheck);
-    }
-    return definitelyImplies(
-        ImmutableSet.copyOf(pFormulas), pFormula, true, newMap, false, pDisableOverflowCheck);
+    return definitelyImplies(pFormulas, pFormula, true, newMap, false, pDisableOverflowCheck);
   }
 
   /**
@@ -183,11 +166,11 @@ public class CompoundIntervalFormulaManager {
    *
    * @param pInformationBaseFormulas the information base as formulas.
    * @param pFormula the formula that is checked for being implied by the information base.
-   * @param pExtend whether or not the information base should be further extended by splitting the
+   * @param pExtend whether the information base should be further extended by splitting the
    *     formulas into their conjunctive parts.
    * @param pInformationBaseEnvironment the information base as an environment.
-   * @param pEnvironmentComplete whether or not the environment already contains all information
-   *     that can be gained from the formulas information base.
+   * @param pEnvironmentComplete whether the environment already contains all information that can
+   *     be gained from the formulas information base.
    * @return {@code true} if the information base definitely implies the given formula.
    */
   private boolean definitelyImplies(

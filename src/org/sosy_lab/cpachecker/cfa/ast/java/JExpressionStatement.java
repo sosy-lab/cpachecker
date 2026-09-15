@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -22,14 +23,14 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  *   StatementExpression ;
  * </pre>
  *
- * Note that this class is only used for side effect free expressions. For assignments with side
+ * Note that this class is only used for side-effect free expressions. For assignments with side
  * effect free right hand sides, we use {@link JExpressionAssignmentStatement}. For method
  * invocations we use {@link JMethodInvocationStatement} And for method assignments, we use {@link
  * JMethodInvocationAssignmentStatement}.
  */
 public final class JExpressionStatement extends AExpressionStatement implements JStatement {
 
-  private static final long serialVersionUID = -6963392437624456487L;
+  @Serial private static final long serialVersionUID = -6963392437624456487L;
 
   public JExpressionStatement(FileLocation pFileLocation, JExpression pExpression) {
     super(pFileLocation, pExpression);

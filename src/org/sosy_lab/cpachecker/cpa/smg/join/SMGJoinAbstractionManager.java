@@ -82,9 +82,9 @@ public class SMGJoinAbstractionManager {
   private Optional<GenericAbstractionCandidateTemplate> calculateTemplateAbstraction(
       Map<Integer, List<SMGAbstractionCandidate>> pAlreadyFoundCandidates) {
 
-    if (destObject instanceof GenericAbstraction) {
+    if (destObject instanceof GenericAbstraction genericAbstraction) {
       GenericAbstractionCandidateTemplate template =
-          ((GenericAbstraction) destObject).createCandidateTemplate(machineModel);
+          genericAbstraction.createCandidateTemplate(machineModel);
       return Optional.of(template);
     } else if (pAlreadyFoundCandidates.isEmpty()) {
       return calculateSimpleTemplateAbstractionFromObject();
@@ -96,11 +96,9 @@ public class SMGJoinAbstractionManager {
   private Optional<GenericAbstractionCandidateTemplate>
       calculateSimpleTemplateAbstractionFromObject() {
 
-    if (!(destObject instanceof SMGRegion)) {
+    if (!(destObject instanceof SMGRegion root)) {
       return Optional.empty();
     }
-
-    SMGRegion root = (SMGRegion) destObject;
 
     SMGHasValueEdges fieldsOfObject1 = SMGUtils.getFieldsOfObject(smgObject1, inputSMG1);
     SMGHasValueEdges fieldsOfObject2 = SMGUtils.getFieldsOfObject(smgObject2, inputSMG2);
@@ -192,8 +190,8 @@ public class SMGJoinAbstractionManager {
     offsets.addAll(offsetToHve2Map.keySet());
 
     /*
-     * Assign each pointer to shared pointer, if both smg contain this pointer,
-     * non shared pointer, if only one smg contains the pointer, ans shared value, if
+     * Assign each pointer to shared pointer, if both SMGs contain this pointer,
+     * non shared pointer, if only one SMG contains the pointer, ans shared value, if
      * the shared value is no pointer.
      *
      */
@@ -233,10 +231,10 @@ public class SMGJoinAbstractionManager {
           Map<Integer, List<SMGAbstractionCandidate>> pAlreadyFoundCandidates) {
 
     SMGAbstractionCandidate template =
-        pAlreadyFoundCandidates.values().iterator().next().iterator().next();
+        pAlreadyFoundCandidates.values().iterator().next().getFirst();
 
-    if (template instanceof GenericAbstractionCandidate) {
-      return Optional.of(((GenericAbstractionCandidate) template).createTemplate(machineModel));
+    if (template instanceof GenericAbstractionCandidate genericAbstractionCandidate) {
+      return Optional.of(genericAbstractionCandidate.createTemplate(machineModel));
     } else {
       return Optional.empty();
     }

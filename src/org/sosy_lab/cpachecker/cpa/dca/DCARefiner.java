@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -70,8 +69,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStronglyConnectedComponent;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.InterpolationAutomaton;
@@ -80,19 +79,16 @@ import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.graph.GraphUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -104,7 +100,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -133,7 +128,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
   private final FormulaManagerView formulaManagerView;
   private final InterpolationManager interpolationManager;
   private final InterpolationAutomatonBuilder itpAutomatonBuilder;
-  private final PredicateAbstractionManager predicateAbstractionManager;
   private final PathChecker pathChecker;
 
   private int curRefinementIteration = 0;
@@ -238,36 +232,26 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
             cfa.getVarClassification(),
             pConfig,
             pNotifier,
-            pLogger);
+            pLogger,
+            /* pEnableCounterexampleAnalysis= */ true);
 
     SymbolicRegionManager regionManager = new SymbolicRegionManager(solver);
     AbstractionManager abstractionManager =
         new AbstractionManager(regionManager, pConfig, pLogger, solver);
-    PredicateAbstractionManagerOptions abstractionOptions =
-        new PredicateAbstractionManagerOptions(pConfig);
-    PredicateAbstractionsStorage abstractionStorage;
+    PredicateAbstractionManager predicateAbstractionManager;
     try {
-      abstractionStorage =
-          new PredicateAbstractionsStorage(
-              abstractionOptions.getReuseAbstractionsFrom(),
-              logger,
-              solver.getFormulaManager(),
-              null);
+      predicateAbstractionManager =
+          new PredicateAbstractionManager(
+              abstractionManager,
+              pathFormulaManager,
+              solver,
+              pConfig,
+              pLogger,
+              pNotifier,
+              TrivialInvariantSupplier.INSTANCE);
     } catch (PredicateParsingFailedException e) {
       throw new InvalidConfigurationException(e.getMessage(), e);
     }
-    predicateAbstractionManager =
-        new PredicateAbstractionManager(
-            abstractionManager,
-            pathFormulaManager,
-            solver,
-            abstractionOptions,
-            new WeakeningOptions(pConfig),
-            abstractionStorage,
-            pLogger,
-            pNotifier,
-            new PredicateAbstractionStatistics(),
-            TrivialInvariantSupplier.INSTANCE);
 
     itpAutomatonBuilder =
         new InterpolationAutomatonBuilder(
@@ -334,28 +318,29 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     logger.logf(Level.INFO, "Current iteration: %d", curRefinementIteration);
 
     shutdownNotifier.shutdownIfNecessary();
-    Set<StronglyConnectedComponent> SCCs =
+    Set<ARGStronglyConnectedComponent> SCCs =
         GraphUtils.retrieveSCCs(reached).stream()
             .filter(x -> x.getNodes().size() > 1)
-            .filter(StronglyConnectedComponent::hasTargetStates)
+            .filter(ARGStronglyConnectedComponent::hasTargetStates)
             .collect(ImmutableSet.toImmutableSet());
 
     logger.logf(Level.INFO, "Found %d SCC(s) with target-states", SCCs.size());
 
     boolean terminationFunctionFound = false;
 
-    for (StronglyConnectedComponent scc : SCCs) {
+    for (ARGStronglyConnectedComponent scc : SCCs) {
 
       shutdownNotifier.shutdownIfNecessary();
-      List<List<ARGState>> sscCycles = GraphUtils.retrieveSimpleCycles(scc.getNodes(), reached);
+      List<ImmutableList<ARGState>> sscCycles =
+          GraphUtils.retrieveSimpleCycles(scc.nodesAsList(), reached);
       logger.logf(Level.INFO, "Found %d cycle(s) in current SCC", sscCycles.size());
 
-      for (List<ARGState> cycle : sscCycles) {
+      for (ImmutableList<ARGState> cycle : sscCycles) {
         logger.logf(Level.INFO, "Analyzing cycle: %s\n", lazyPrintNodes(cycle));
         assert cycle.stream().anyMatch(ARGState::isTarget) : "Cycle does not contain a target";
 
         shutdownNotifier.shutdownIfNecessary();
-        ARGState firstNodeInCycle = cycle.iterator().next();
+        ARGState firstNodeInCycle = cycle.getFirst();
         ARGPath stemPath = ARGUtils.getShortestPathTo(firstNodeInCycle);
         ARGPath loopPath = new ARGPath(cycle);
         assert loopPath.asStatesList().equals(cycle)
@@ -396,7 +381,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   firstNodeInCycle,
                   loopPath.asStatesList(),
                   stemPathFormula.getSsa(),
-                  Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
+                  stemPathFormulaList.getLast().getPointerTargetSet(),
                   AbstractionPosition.NONE);
           PathFormula loopPathFormula =
               loopPathFormulaList.isEmpty()
@@ -457,7 +442,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
               FluentIterable.from(loopStructure.getAllLoops())
                   .filter(x -> x.getLoopNodes().containsAll(cfaNodesOfCurrentCycle))
                   .toList();
-          Loop loop = loops.iterator().next();
+          Loop loop = loops.getFirst();
 
           Set<CVariableDeclaration> varDeclarations = variables.getDeclarations(loop);
           ImmutableMap<String, CVariableDeclaration> varDeclarationsForName =
@@ -484,7 +469,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                     BlockFormulas.createFromPathFormulas(stemAndLoopPathFormulaList),
                     transformedImmutableListCopy(
                         stemAndLoopStates, PredicateAbstractState::getPredicateState),
-                    Optional.of(stemAndLoopPath));
+                    stemAndLoopPath);
             CounterexampleInfo cexInfo =
                 pathChecker.handleFeasibleCounterexample(cexTraceInfo, stemAndLoopPath);
 
@@ -570,7 +555,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                 BlockFormulas.createFromPathFormulas(pathFormulaList),
                 transformedImmutableListCopy(
                     path.asStatesList(), PredicateAbstractState::getPredicateState),
-                Optional.of(path));
+                path);
         CounterexampleInfo cexInfo = pathChecker.handleFeasibleCounterexample(cexTraceInfo, path);
 
         path.getLastState().addCounterexampleInformation(cexInfo);

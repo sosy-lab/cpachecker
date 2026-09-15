@@ -36,43 +36,41 @@ public class BestFirstEvaluationFunctionFactory {
 
   public static BestFirstEvaluationFunction createEvaluationFunction(
       BestFirstEvaluationFunctions function) {
-    switch (function) {
-      case BREADTH_FIRST:
-        return new BestFirstEvaluationFunction() {
-          @Override
-          public int computePriority(
-              Set<Integer> partition, int priority, WeightedNode node, WeightedGraph wGraph) {
-            return priority + 1; // expand next level nodes, when this level complete
-          }
-        };
-
-      case DEPTH_FIRST:
-        return new BestFirstEvaluationFunction() {
-          @Override
-          public int computePriority(
-              Set<Integer> partition, int priority, WeightedNode node, WeightedGraph wGraph) {
-            // expand next level nodes, as next step (assumption: PriorityQueue preserves order of
-            // inserting)
-            return priority - 1;
-          }
-        };
-
-      default:
-        return new BestFirstEvaluationFunction() {
-          @Override
-          public int computePriority(
-              Set<Integer> partition, int priority, WeightedNode node, WeightedGraph wGraph) {
-            /*
-             * if node not in partition it has cost of its weight for the actual partition ==> node-weight is gain
-             * all of its successors which are not in the partition right now ==>  cost
-             */
-            Set<Integer> successors = wGraph.getIntSuccessors(node); // successors of this node
-            successors.removeAll(partition); // successors, that are not in given partition
-            int gain = node.getWeight();
-            // chance +/- since least priority is chosen first
-            return WeightedGraph.computeWeight(successors, wGraph) - gain;
-          }
-        };
-    }
+    return switch (function) {
+      case BREADTH_FIRST ->
+          new BestFirstEvaluationFunction() {
+            @Override
+            public int computePriority(
+                Set<Integer> partition, int priority, WeightedNode node, WeightedGraph wGraph) {
+              return priority + 1; // expand next level nodes, when this level complete
+            }
+          };
+      case DEPTH_FIRST ->
+          new BestFirstEvaluationFunction() {
+            @Override
+            public int computePriority(
+                Set<Integer> partition, int priority, WeightedNode node, WeightedGraph wGraph) {
+              // expand next level nodes, as next step (assumption: PriorityQueue preserves order of
+              // inserting)
+              return priority - 1;
+            }
+          };
+      default ->
+          new BestFirstEvaluationFunction() {
+            @Override
+            public int computePriority(
+                Set<Integer> partition, int priority, WeightedNode node, WeightedGraph wGraph) {
+              /*
+               * if node not in partition it has cost of its weight for the actual partition ==> node-weight is gain
+               * all of its successors which are not in the partition right now ==>  cost
+               */
+              Set<Integer> successors = wGraph.getIntSuccessors(node); // successors of this node
+              successors.removeAll(partition); // successors, that are not in given partition
+              int gain = node.getWeight();
+              // chance +/- since least priority is chosen first
+              return WeightedGraph.computeWeight(successors, wGraph) - gain;
+            }
+          };
+    };
   }
 }

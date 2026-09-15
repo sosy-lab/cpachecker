@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -31,7 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,8 +53,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate.bam")
-public class BAMPredicateReducer
-    extends GenericReducer<PredicateAbstractState, PredicatePrecision> {
+final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, PredicatePrecision> {
 
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
@@ -81,7 +81,7 @@ public class BAMPredicateReducer
       secure = true)
   private boolean useAbstractionReduction = true;
 
-  public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
+  BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     pmgr = cpa.getPathFormulaManager();
@@ -139,7 +139,7 @@ public class BAMPredicateReducer
 
       // check whether ABS=>PRED, because only then we can guarantee that
       // ( ( exists PRED: f(ABS,PRED) ) and PRED ) == f(ABS,PRED),
-      // which is required for a valid (and precise) reduction and expansion afterwards
+      // which is required for a valid (and precise) reduction and expansion afterward
       boolean abstractionImpliesPredicate = false;
       try {
         abstractionImpliesPredicate = rmgr.entails(abstraction, predicate.getAbstractVariable());
@@ -161,7 +161,7 @@ public class BAMPredicateReducer
    * the following requirements:
    *
    * <ul>
-   *   <li>contain variables never used outside of the block, also transitively.
+   *   <li>contain variables never used outside the block, also transitively.
    *   <li>do not encode pointers, addresses, return variables.
    * </ul>
    *
@@ -171,9 +171,9 @@ public class BAMPredicateReducer
   private Set<AbstractionPredicate> getRelevantPredicates(
       Block pContext, Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
-    final Set<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
-    Set<String> relevantVariables = new LinkedHashSet<>();
-    Set<AbstractionPredicate> irrelevantPredicates = new LinkedHashSet<>();
+    final SequencedSet<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
+    SequencedSet<String> relevantVariables = new LinkedHashSet<>();
+    SequencedSet<AbstractionPredicate> irrelevantPredicates = new LinkedHashSet<>();
 
     // get predicates that are directly relevant
     for (AbstractionPredicate predicate : predicates) {
@@ -190,8 +190,8 @@ public class BAMPredicateReducer
     // predicates that are important because they contain variables used in relevant predicates.
     while (!relevantVariables.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
-      Set<String> newRelevantVariables = new LinkedHashSet<>();
-      Set<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
+      SequencedSet<String> newRelevantVariables = new LinkedHashSet<>();
+      SequencedSet<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
       for (AbstractionPredicate predicate : irrelevantPredicates) { // shrinking with each iteration
         Set<String> variables = getVariables(predicate);
         if (isAnyVariableRelevant(relevantVariables, variables)) {
@@ -308,8 +308,8 @@ public class BAMPredicateReducer
           : "TODO: need to handle location-instance-specific predicates in"
               + " ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
-       * several times along a error path and the index would always start from 0 again.
-       * Thus we ignore LocationInstancePredicates and hope nobody is using them.
+       * several times along an error path and the index would always start from 0 again.
+       * Thus, we ignore LocationInstancePredicates and hope nobody is using them.
        * TODO can we assure this?
        */
 
@@ -440,7 +440,7 @@ public class BAMPredicateReducer
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
-      final CType type = expandedSSA.getType(var);
+      final Type type = expandedSSA.getType(var);
       if (var.startsWith(calledFunction + "::") && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
         assert entrySsaWithRet.containsVariable(var)
@@ -484,8 +484,8 @@ public class BAMPredicateReducer
     PathFormula executedFunction =
         pmgr.makeAnd(functionCallWithSSA, expandedState.getAbstractionFormula().asFormula());
 
-    // after function-execution we have to re-use the previous indices (fromouter scope),
-    // thus lets change the SSAmap.
+    // after function-execution we have to re-use the previous indices (from outer scope),
+    // thus let's change the SSAmap.
     PathFormula executedFunctionWithSSA =
         executedFunction.withContext(newSummSsa, executedFunction.getPointerTargetSet());
 
@@ -533,7 +533,7 @@ public class BAMPredicateReducer
 
   /**
    * rootSSA might not contain correct indices for the local variables of calling function-scope. so
-   * lets build a new SSA from: - local variables from rootSSA, -> update indices (their indices
+   * let's build a new SSA from: - local variables from rootSSA, -> update indices (their indices
    * will have "holes") - local variables from expandedSSA, -> ignore indices (their indices are the
    * "holes") - global variables from expandedSSA, -> update indices (we have to keep them) - the
    * local return variables from expandedState. -> update indices (we have to keep them, there can
@@ -554,7 +554,7 @@ public class BAMPredicateReducer
 
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
       // var was used and maybe overridden inside the block
-      final CType type = expandedSSA.getType(var);
+      final Type type = expandedSSA.getType(var);
       if (var.contains("::")
           && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 
@@ -582,7 +582,7 @@ public class BAMPredicateReducer
         // If MAX(expIndex, rootIndex) is not expIndex,
         // we are in the rebuilding-phase of the recursive BAM-algorithm and leave a cached block.
         // in this case the index is irrelevant and can be set to expIndex (TODO really?).
-        // Otherwise (the important case, MAX == expIndex)
+        // Otherwise (the important case, MAX == expIndex),
         // we are in the refinement step and build the CEX-path.
         rootBuilder.setIndex(var, type, expandedSSA.getIndex(var));
       }

@@ -145,10 +145,10 @@ public class SMGPrecision extends RefinablePrecision {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return super.equals(other)
-        && other instanceof SMGPrecision
-        && rawPrecision.equals(((SMGPrecision) other).rawPrecision);
+  public boolean equals(Object pObj) {
+    return super.equals(pObj)
+        && pObj instanceof SMGPrecision other
+        && rawPrecision.equals(other.rawPrecision);
   }
 
   @Override

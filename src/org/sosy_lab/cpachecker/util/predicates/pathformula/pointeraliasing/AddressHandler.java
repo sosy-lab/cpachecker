@@ -22,7 +22,7 @@ import org.sosy_lab.java_smt.api.Formula;
 
 /**
  * Handles common address-related operations on expressions, e.g., getting the value represented by
- * an {@code Expression}, dereferencing an {@code Expression}, and applying offsets an to {@code
+ * an {@code Expression}, dereferencing an {@code Expression}, and applying offsets to {@code
  * AliasedLocation}.
  */
 final class AddressHandler {
@@ -218,8 +218,9 @@ final class AddressHandler {
             conv.makeDereference(
                 type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
       }
-      case UNALIASED_LOCATION -> Optional.of(
-          conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
+      case UNALIASED_LOCATION ->
+          Optional.of(
+              conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
       case DET_VALUE -> Optional.of(expression.asValue().getValue());
       case NONDET -> Optional.empty();
     };

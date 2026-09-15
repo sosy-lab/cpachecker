@@ -12,6 +12,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 
 /**
@@ -237,7 +238,7 @@ public class CollectFormulasVisitor<T>
      * are of size one, a new modifiable set is created for the result.
      */
     if (a.size() == 1 && b.size() == 1) {
-      Set<T> result = new LinkedHashSet<>(a);
+      SequencedSet<T> result = new LinkedHashSet<>(a);
       result.addAll(b);
       return result;
     }

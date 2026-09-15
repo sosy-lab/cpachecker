@@ -49,7 +49,7 @@ public class InIntervalChecker extends PerElementPropertyChecker {
   public boolean satisfiesProperty(AbstractState pElemToCheck)
       throws UnsupportedOperationException {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
-    if (node instanceof CFALabelNode && ((CFALabelNode) node).getLabel().equals(label)) {
+    if (node instanceof CFALabelNode cFALabelNode && cFALabelNode.getLabel().equals(label)) {
       IntervalAnalysisState state =
           AbstractStates.extractStateByType(pElemToCheck, IntervalAnalysisState.class);
       if (state != null) {

@@ -31,8 +31,14 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -49,8 +55,6 @@ public class CExpressionTransformer extends ExpressionTransformer
 
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
-
-  private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
   public CExpressionTransformer(
       final String pFunctionName,
@@ -86,59 +90,12 @@ public class CExpressionTransformer extends ExpressionTransformer
     final Type expressionType = pIastBinaryExpression.getExpressionType();
     final Type calculationType = pIastBinaryExpression.getCalculationType();
 
-    switch (pIastBinaryExpression.getOperator()) {
-      case PLUS:
-        return factory.add(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case MINUS:
-        return factory.minus(
-            operand1Expression, operand2Expression, expressionType, calculationType);
-      case MULTIPLY:
-        return factory.multiply(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case DIVIDE:
-        return factory.divide(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case MODULO:
-        return factory.modulo(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case SHIFT_LEFT:
-        return factory.shiftLeft(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case SHIFT_RIGHT:
-        return factory.shiftRightSigned(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case BINARY_AND:
-        return factory.binaryAnd(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case BINARY_OR:
-        return factory.binaryOr(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case BINARY_XOR:
-        return factory.binaryXor(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case EQUALS:
-        return factory.equal(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case NOT_EQUALS:
-        return factory.notEqual(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case LESS_THAN:
-        return factory.lessThan(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case LESS_EQUAL:
-        return factory.lessThanOrEqual(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case GREATER_THAN:
-        return factory.greaterThan(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(
-            operand1Expression, operand2Expression, calculationType, calculationType);
-      default:
-        throw new AssertionError(
-            "Unhandled binary operation " + pIastBinaryExpression.getOperator());
-    }
+    return BinarySymbolicExpression.of(
+        operand1Expression,
+        operand2Expression,
+        expressionType,
+        calculationType,
+        pIastBinaryExpression.getOperator());
   }
 
   @Override
@@ -148,20 +105,19 @@ public class CExpressionTransformer extends ExpressionTransformer
     final Type expressionType = pIastUnaryExpression.getExpressionType();
 
     switch (operator) {
-      case MINUS:
-      case TILDE:
-        {
-          SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
+      case MINUS, TILDE -> {
+        SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
 
-          if (operand == null) {
-            return null;
-          } else {
-            return transformUnaryArithmetic(operator, operand, expressionType);
-          }
+        if (operand == null) {
+          return null;
+        } else {
+          return transformUnaryArithmetic(operator, operand, expressionType);
         }
-
-      default:
-        return null; // TODO: amper, alignof, sizeof with own expressions
+      }
+      default -> {
+        return null;
+        // TODO: amper, alignof, sizeof with own expressions
+      }
     }
   }
 
@@ -169,16 +125,12 @@ public class CExpressionTransformer extends ExpressionTransformer
       final CUnaryExpression.UnaryOperator pOperator,
       final SymbolicExpression pOperand,
       final Type pExpressionType) {
-    switch (pOperator) {
-      case MINUS:
-        return factory.negate(pOperand, pExpressionType);
-      case TILDE:
-        return factory.binaryNot(pOperand, pExpressionType);
-      case AMPER:
-        return factory.addressOf(pOperand, pExpressionType);
-      default:
-        throw new AssertionError("No arithmetic operator: " + pOperator);
-    }
+    return switch (pOperator) {
+      case MINUS -> NegationExpression.of(pOperand, pExpressionType);
+      case TILDE -> BinaryNotExpression.of(pOperand, pExpressionType);
+      case AMPER -> AddressOfExpression.of(pOperand, pExpressionType);
+      default -> throw new AssertionError("No arithmetic operator: " + pOperator);
+    };
   }
 
   @Override
@@ -253,7 +205,7 @@ public class CExpressionTransformer extends ExpressionTransformer
     } else if (valueState.contains(memLoc)) {
       Value value = valueState.getValueFor(memLoc);
 
-      return factory.asConstant(value, pExpression.getExpressionType());
+      return ConstantSymbolicExpression.of(value, pExpression.getExpressionType());
     } else {
       return null;
     }
@@ -268,7 +220,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       return null;
 
     } else {
-      return factory.pointer(operand, pPointerExpression.getExpressionType());
+      return PointerExpression.of(operand, pPointerExpression.getExpressionType());
     }
   }
 
@@ -292,7 +244,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       return null;
 
     } else {
-      return factory.cast(operand, pIastCastExpression.getCastType());
+      return CastExpression.of(operand, pIastCastExpression.getCastType());
     }
   }
 

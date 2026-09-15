@@ -50,16 +50,12 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private InputState getAbstractSuccessorForEdge(CFAEdge pEdge) {
-    switch (pEdge.getEdgeType()) {
-      case DeclarationEdge:
-        return handleDeclarationEdge((ADeclarationEdge) pEdge);
-      case StatementEdge:
-        return handleStatementEdge((AStatementEdge) pEdge);
-      case FunctionCallEdge:
-        return handleFunctionCallEdge((FunctionCallEdge) pEdge);
-      default:
-        return InputState.empty();
-    }
+    return switch (pEdge.getEdgeType()) {
+      case DeclarationEdge -> handleDeclarationEdge((ADeclarationEdge) pEdge);
+      case StatementEdge -> handleStatementEdge((AStatementEdge) pEdge);
+      case FunctionCallEdge -> handleFunctionCallEdge((FunctionCallEdge) pEdge);
+      default -> InputState.empty();
+    };
   }
 
   private static InputState handleDeclarationEdge(ADeclarationEdge pEdge) {
@@ -75,11 +71,11 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
     AStatement statement = pEdge.getStatement();
     if (statement instanceof AAssignment assignment) {
       ALeftHandSide lhs = assignment.getLeftHandSide();
-      if (!(lhs instanceof AIdExpression)) {
+      if (!(lhs instanceof AIdExpression aIdExpression)) {
         // Unhandled left-hand side
         return InputState.empty();
       }
-      String lhsVariable = ((AIdExpression) lhs).getDeclaration().getQualifiedName();
+      String lhsVariable = aIdExpression.getDeclaration().getQualifiedName();
       if (assignment instanceof AFunctionCallAssignmentStatement callAssignment) {
         AFunctionCallExpression callExpression = callAssignment.getRightHandSide();
         AExpression functionNameExpression = callExpression.getFunctionNameExpression();

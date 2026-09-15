@@ -8,14 +8,34 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+/**
+ * Extension of ConfigurableProgramAnalysis with serialization and deserialization capabilities for
+ * distributed analysis.
+ *
+ * <p>DistributedConfigurableProgramAnalysis enables standard CPAs to participate in DSS by
+ * providing operators to serialize abstract states into messages that can be transmitted between
+ * workers, and to deserialize received messages back into abstract states to start a new analysis
+ * with this information as initial state(s).
+ */
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
+
+  record StateAndPrecision(AbstractState state, Precision precision) {}
+
+  String MULTIPLE_STATES_KEY = "states";
 
   /**
    * Operator that knows how to serialize the abstract states from {@link
@@ -26,14 +46,6 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   SerializeOperator getSerializeOperator();
 
   /**
-   * Operator that knows how to combine several abstract states from {@link
-   * DistributedConfigurableProgramAnalysis#getAbstractStateClass()}.
-   *
-   * @return Combine operator for a distributed CPA.
-   */
-  CombineOperator getCombineOperator();
-
-  /**
    * Operator that knows how to deserialize a message to abstract states of type {@link
    * DistributedConfigurableProgramAnalysis#getAbstractStateClass()}.
    *
@@ -41,12 +53,26 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   DeserializeOperator getDeserializeOperator();
 
+  SerializePrecisionOperator getSerializePrecisionOperator();
+
+  DeserializePrecisionOperator getDeserializePrecisionOperator();
+
+  CombinePrecisionOperator getCombinePrecisionOperator();
+
+  CombineViolationConditionsOperator getCombineViolationConditionsOperator();
+
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
    *
    * @return Proceed operator for a distributed CPA.
    */
   ProceedOperator getProceedOperator();
+
+  ViolationConditionOperator getViolationConditionOperator();
+
+  CoverageOperator getCoverageOperator();
+
+  CombinePreconditionsOperator getCombineOperator();
 
   /**
    * The abstract state this distributed analysis works n.
@@ -56,10 +82,57 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   Class<? extends AbstractState> getAbstractStateClass();
 
   /**
+   * Returns the underlying {@link ConfigurableProgramAnalysis} of this distributed analysis.
+   *
+   * @return underlying CPA
+   */
+  ConfigurableProgramAnalysis getCPA();
+
+  /**
+   * Check whether the given abstract state is the most general block entry state. Meaning that it
+   * is the state that is used to represent the entry of a block from where the whole state space of
+   * the block can be reached.
+   *
+   * <p>For analysis like the {@link org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA} this is the
+   * top element, for location-based CPAs like the {@link
+   * org.sosy_lab.cpachecker.cpa.location.LocationCPA} this is the {@link
+   * org.sosy_lab.cpachecker.cpa.location.LocationState} with the {@link
+   * org.sosy_lab.cpachecker.cfa.model.CFANode} of the block entry.
+   *
+   * @param pAbstractState Abstract state to check whether it is the most general block entry state.
+   * @return {@code true} if the given abstract state is the most general block entry state,
+   */
+  boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
+
+  /**
+   * Return a hash that represents the location-part of the given abstract state, for this CPA's
+   * domain. Examples for CPAs tracking location information are the {@link
+   * org.sosy_lab.cpachecker.cpa.location.LocationCPA}, the {@link
+   * org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA}, and the {@link
+   * org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA}.
+   *
+   * <p>Different program locations should provide different hashes, and equal program locations
+   * must provide the same hash. If a CPA does not track any location information, this method must
+   * always return the same value.
+   *
+   * @param pAbstractState Any abstract state.
+   * @return an identifier for unique program points.
+   */
+  int computeProgramPointHash(AbstractState pAbstractState);
+
+  /**
+   * Reset the given abstract state to the initial value iff the abstract state is mutable.
+   *
+   * @param pAbstractState The abstract state to reset.
+   * @return the reset abstract state, or the same instance if it is immutable.
+   */
+  AbstractState reset(AbstractState pAbstractState);
+
+  /**
    * Check whether this distributed CPA can work with {@code pClass}.
    *
    * @param pClass Decide whether this DCPA can work with this class.
-   * @return Returns whether this DCPA accepts {@code pClass}
+   * @return whether this DCPA accepts {@code pClass}
    */
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);

@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentMultimap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 
 /**
  * A graph-based representation of memory-structures. The most important part is the bipartite
@@ -432,7 +432,7 @@ public sealed class SMG implements UnmodifiableSMG permits CLangSMG {
    * IllegalArgumentException} if pObject is not present in the SMG.
    *
    * @param pObject An object.
-   * @return True if Object is valid, False if it is invalid.
+   * @return whether the object is valid.
    */
   @Override
   public final boolean isObjectValid(SMGObject pObject) {
@@ -578,8 +578,8 @@ public sealed class SMG implements UnmodifiableSMG permits CLangSMG {
       Preconditions.checkArgument(
           !pt_edges.containsEdgeWithValue(fresh)
               || fresh.equals(SMGZeroValue.INSTANCE)
-              || (old instanceof SMGKnownAddressValue
-                  && !isObjectValid(((SMGKnownAddressValue) old).getObject())));
+              || (old instanceof SMGKnownAddressValue sMGKnownAddressValue
+                  && !isObjectValid(sMGKnownAddressValue.getObject())));
       pt_edges =
           pt_edges.addAndCopy(
               new SMGEdgePointsTo(

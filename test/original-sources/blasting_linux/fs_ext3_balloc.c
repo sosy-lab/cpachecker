@@ -1,10 +1,8 @@
+// Copyright (C) 1992, 1993, 1994, 1995 Remy Card (card@masi.ibp.fr), Laboratoire MASI - Institut Blaise Pascal, Universite Pierre et Marie Curie (Paris VI)
+//
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  *  linux/fs/ext3/balloc.c
- *
- * Copyright (C) 1992, 1993, 1994, 1995
- * Remy Card (card@masi.ibp.fr)
- * Laboratoire MASI - Institut Blaise Pascal
- * Universite Pierre et Marie Curie (Paris VI)
  *
  *  Enhanced block allocation by Stephen Tweedie (sct@redhat.com), 1993
  *  Big-endian to little-endian byte-swapping/bitmaps by
@@ -897,7 +895,7 @@ retry:
 	 * to make sure there is at least a free block inside this region.
 	 *
 	 * searching the first free bit on the block bitmap and copy of
-	 * last committed bitmap alternatively, until we found a allocatable
+	 * last committed bitmap alternatively, until we found an allocatable
 	 * block. Search start from the start block of the reservable space
 	 * we just found.
 	 */

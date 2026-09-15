@@ -12,15 +12,16 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class CInitializerList extends AbstractInitializer implements CInitializer, CAstNode {
+public final class CInitializerList extends AbstractInitializer implements CInitializer {
 
-  private static final long serialVersionUID = 6601820489208683306L;
-  private final List<CInitializer> initializerList;
+  @Serial private static final long serialVersionUID = 6601820489208683306L;
+  private final ImmutableList<CInitializer> initializerList;
 
   public CInitializerList(
       final FileLocation pFileLocation, final List<CInitializer> pInitializerList) {
@@ -28,17 +29,19 @@ public final class CInitializerList extends AbstractInitializer implements CInit
     initializerList = ImmutableList.copyOf(pInitializerList);
   }
 
-  public List<CInitializer> getInitializers() {
+  public ImmutableList<CInitializer> getInitializers() {
     return initializerList;
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append("{ ");
     Joiner.on(", ")
-        .appendTo(lASTString, transform(initializerList, cinit -> cinit.toASTString(pQualified)));
+        .appendTo(
+            lASTString,
+            transform(initializerList, cinit -> cinit.toASTString(pAAstNodeRepresentation)));
     lASTString.append(" }");
 
     return lASTString.toString();

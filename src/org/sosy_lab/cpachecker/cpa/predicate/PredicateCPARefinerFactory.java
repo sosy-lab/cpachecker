@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * Factory for {@link PredicateCPARefiner}, the base class for most refiners for the PredicateCPA.
  */
 @Options(prefix = "cpa.predicate.refinement")
-public class PredicateCPARefinerFactory {
+public final class PredicateCPARefinerFactory {
 
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
@@ -108,7 +108,7 @@ public class PredicateCPARefinerFactory {
   }
 
   /**
-   * Create a {@link PredicateCPARefiner}. This factory can be reused afterwards.
+   * Create a {@link PredicateCPARefiner}. This factory can be reused afterward.
    *
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
@@ -138,7 +138,14 @@ public class PredicateCPARefinerFactory {
 
     InterpolationManager interpolationManager =
         new InterpolationManager(
-            pfmgr, solver, loopStructure, variableClassification, config, shutdownNotifier, logger);
+            pfmgr,
+            solver,
+            loopStructure,
+            variableClassification,
+            config,
+            shutdownNotifier,
+            logger,
+            /* pEnableCounterexampleAnalysis= */ true);
 
     PathChecker pathChecker =
         new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);

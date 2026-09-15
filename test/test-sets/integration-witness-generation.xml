@@ -5,7 +5,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -18,18 +18,30 @@ SPDX-License-Identifier: Apache-2.0
   produced by this test-set definition using ../util/generate_witness_validation_testdef.py
   -->
 
-  <option name="-heap">6000M</option>
+  <option name="--no-output-files"/>
+  <option name="--heap">6000M</option>
 
-  <resultfiles>**.graphml*</resultfiles>
-  <option name="-setprop">cpa.arg.compressWitness=true</option>
-  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <resultfiles>**/witness*.*</resultfiles>
+
+  <!-- Enable v1 witnesses unless we decide to stop testing them. -->
+  <option name="--option">counterexample.export.graphml=witness.graphml</option>
+  <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
+  <option name="--option">cpa.arg.compressWitness=true</option>
+  <option name="--option">counterexample.export.compressWitness=true</option>
+
+  <option name="--option">witness.failOnUnmatchedInvariants=true</option>
 
   <rundefinition>
-    <option name="-svcomp24"/>
+    <option name="--svcomp27"/>
   </rundefinition>
 
+  <tasks name="simple">
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
   <tasks name="ConcurrencySafety-Main">
-    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- exclude some files to keep the integration set smaller.
          We actually want to use only a whitelist of files matching
@@ -55,14 +67,25 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-ext/*</exclude>
     <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
     <exclude>../programs/benchmarks/ldv*/*</exclude>
+    <exclude>../programs/benchmarks/goblint-regression/13-privatized_04-priv_multi_true.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/pthread-deagle/arithmetic_prog_ok.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/pthread-deagle/circular_buffer_ok.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/bench-exp1x3.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/bench-exp2x4.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/bench-exp2x6.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/bench-exp3x3-opt.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-subst.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-trans.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/chl-node-symm.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/chl-node-trans.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/clever.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/loop-tiling-eq.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/mult-comm.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
     <exclude>../programs/benchmarks/weaver/parallel-barrier-loop.wvr.yml</exclude> <!-- flapping timeout/OOM -->
-    <exclude>../programs/benchmarks/weaver/popl20-figure1.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/popl20-figure1-alt.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
+    <exclude>../programs/benchmarks/weaver/popl20-figure1.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/popl20-nonblocking-cntr-alt.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
+    <exclude>../programs/benchmarks/weaver/popl20-more-sum-array-hom.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/test-easy1.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
   </tasks>
   <tasks name="BitVectorsOverflows">
@@ -72,20 +95,24 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/termination-numeric/*.yml</include>
   </tasks>
     <tasks name="HeapReach">
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/*</exclude> <!-- only timeout -->
+    <exclude>../programs/benchmarks/list-ext2-properties/list_and_tree_cnstr-2.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/list-ext2-properties/simple_and_skiplist_2lvl-2.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/list-ext3-properties/sll_length_check-2.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/list-simple/sll2n_remove_all_reverse.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/heap-data/shared_mem1.yml</exclude> <!-- flapping timeout / Exception -->
     <exclude>../programs/benchmarks/heap-manipulation/bubble_sort_linux-2.yml</exclude> <!-- flapping timeout / Exception -->
+    <exclude>../programs/benchmarks/heap-manipulation/merge_sort-2.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/heap-manipulation/sll_to_dll_rev-2.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="HeapMemSafety">
-    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <!-- exclude files where several properties are available -->
+    <exclude>../programs/benchmarks/ldv-regression/*.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/list-ext_flag.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/test-0214_1.yml</exclude> <!-- flapping timeout/OOM -->
@@ -96,7 +123,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-memsafety/ArraysOfVariableLength2.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="Floats">
-    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/floats-cdfpl/newton*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/sine_3*</exclude> <!-- flapping timeout -->
@@ -118,22 +145,43 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1130a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1131a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/neural-networks/cartpole_14_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/cartpole_36_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/cartpole_8_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c864_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v34_c34_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v34_c34_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="ControlFlow">
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.1*.yml</exclude> <!-- large runtime -->
     <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_3.cil.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout/memout -->
   </tasks>
   <tasks name="Recursive">
-    <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/recursive/recHanoi03-2.yml</exclude> <!-- flapping timeout/memout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_25-1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_25-1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/recursive-simple/id_o1000.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/verifythis/elimination_max_rec_onepoint.yml</exclude> <!-- flapping timeout/recursion -->
-    <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
+    <option name="--option">cpa.callstack.skipVoidRecursion=false</option>
+  </tasks>
+  <!-- Recursive programs for which no state at the exit node of main is computed, cf. #1539.
+       These use our own property files, so they need their own tasks. -->
+  <tasks name="RecursiveWithoutMainExit">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="RecursiveWithoutMainExitOverflows">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
   </tasks>
 </benchmark>

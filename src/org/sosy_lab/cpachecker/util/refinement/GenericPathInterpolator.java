@@ -17,8 +17,10 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,9 +59,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements PathInterpolator<I> {
 
-  @Option(
-      secure = true,
-      description = "whether or not to perform path slicing before interpolation")
+  @Option(secure = true, description = "whether to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
   @Option(
@@ -195,7 +195,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
     pErrorPathPrefix = sliceErrorPath(pErrorPathPrefix);
 
-    Map<ARGState, I> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
+    SequencedMap<ARGState, I> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
 
     PathIterator pathIterator = pErrorPathPrefix.pathIterator();
     Deque<S> callstack = new ArrayDeque<>();
@@ -262,7 +262,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
             .getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
+    List<@Nullable CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {
@@ -340,7 +340,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * This method propagates the interpolant "false" to all states that are in the original error
    * path, but are not anymore in the (shorter) prefix.
    *
-   * <p>The property that every state on the path beneath the first state with an false interpolant
+   * <p>The property that every state on the path beneath the first state with a false interpolant
    * is needed by some code in ValueAnalysisInterpolationTree a subclass of {@link
    * InterpolationTree}, i.e., for global refinement. This property could also be enforced there,
    * but interpolant creation should only happen during interpolation, and not in the data structure
@@ -381,7 +381,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   /**
    * This method checks if refinement selection is enabled.
    *
-   * @return true, if if refinement selection is enabled, else false
+   * @return whether refinement selection is enabled
    */
   protected boolean isRefinementSelectionEnabled() {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
@@ -395,7 +395,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * the initial program state.
    *
    * @param pErrorPathPrefix the error path prefix to be sliced
-   * @return true, if slicing is possible, else, false
+   * @return whether slicing is possible
    */
   protected boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
     return pathSlicing

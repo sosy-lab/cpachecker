@@ -34,7 +34,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * <p>If the negated path is not infeasible, the counterexample is considered relevant (because no
  * interpolants can be computed).
  */
-public class UnsatCoreCounterexampleFilter
+public final class UnsatCoreCounterexampleFilter
     extends AbstractNegatedPathCounterexampleFilter<ImmutableList<BooleanFormula>> {
 
   private final LogManager logger;

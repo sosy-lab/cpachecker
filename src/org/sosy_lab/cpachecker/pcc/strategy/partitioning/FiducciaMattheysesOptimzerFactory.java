@@ -20,11 +20,9 @@ public class FiducciaMattheysesOptimzerFactory {
   }
 
   public static FiducciaMattheysesOptimizer createFMOptimizer(OptimizationCriteria criterion) {
-    switch (criterion) {
-      case EDGECUT:
-        return new EdgeCutOptimizer();
-      default:
-        return new NodeCutOptimizer();
-    }
+    return switch (criterion) {
+      case EDGECUT -> new EdgeCutOptimizer();
+      default -> new NodeCutOptimizer();
+    };
   }
 }

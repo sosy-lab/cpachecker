@@ -57,10 +57,11 @@ public class ValueReadWriteTest extends SMGCPATest0 {
               BigInteger.valueOf((long) i * (long) INT_SIZE_IN_BITS),
               BigInteger.valueOf(INT_SIZE_IN_BITS),
               null,
+              true,
               true);
       assertThat(readAndState).hasSize(1);
-      currentState = readAndState.get(0).getState();
-      Value readValue = readAndState.get(0).getValue();
+      currentState = readAndState.getFirst().getState();
+      Value readValue = readAndState.getFirst().getValue();
       assertThat(readValue.asNumericValue().bigIntegerValue())
           .isEqualTo(INT_ARRAY_VALUES[i].asNumericValue().bigIntegerValue());
     }
@@ -134,10 +135,15 @@ public class ValueReadWriteTest extends SMGCPATest0 {
       throws SMGException {
     List<ValueAndSMGState> readAndState =
         currentState.readValue(
-            objectToRead, BigInteger.valueOf(offset), BigInteger.valueOf(sizeInBits), null, true);
+            objectToRead,
+            BigInteger.valueOf(offset),
+            BigInteger.valueOf(sizeInBits),
+            null,
+            true,
+            true);
     assertThat(readAndState).hasSize(expectedNumOfEdges);
-    currentState = readAndState.get(0).getState();
-    Value readValue1 = readAndState.get(0).getValue();
+    currentState = readAndState.getFirst().getState();
+    Value readValue1 = readAndState.getFirst().getValue();
     assertThat(readValue1.isNumericValue()).isTrue();
 
     assertThat(readValue1.asNumericValue().bigIntegerValue().intValueExact())

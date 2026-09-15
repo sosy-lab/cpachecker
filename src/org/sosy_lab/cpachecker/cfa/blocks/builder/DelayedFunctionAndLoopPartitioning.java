@@ -52,7 +52,7 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
 
     // TODO: currently a call edge must not be branch as otherwise we may find the error locations
     // multiple times within a single run as the analysis does explore all branches to depth 1 even
-    // if in one branch a error is found
+    // if in one branch an error is found
 
     assert functionNode.getNumLeavingEdges() == 1;
     CFANode currentNode = functionNode.getLeavingEdge(0).getSuccessor(); // skip initial blank edge

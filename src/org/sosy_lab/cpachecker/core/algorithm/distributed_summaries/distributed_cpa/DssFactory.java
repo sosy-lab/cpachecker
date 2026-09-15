@@ -1,0 +1,309 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+
+public class DssFactory {
+
+  static final class TypeAndLocationCache {
+
+    private static final Map<CFA, ImmutableMap<String, Type>> cachedVariableAndFunctionToTypeMap =
+        new LinkedHashMap<>();
+    private static final Map<CFA, ImmutableBiMap<Integer, CFANode>> integerToNodeMap =
+        new LinkedHashMap<>();
+
+    private TypeAndLocationCache() {}
+
+    static synchronized ImmutableMap<String, Type> getOrCreateTypeMap(
+        CFA pCFA,
+        Configuration pConfiguration,
+        LogManager pLogManager,
+        ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException, CPATransferException, InterruptedException {
+      ImmutableMap<String, Type> cached = cachedVariableAndFunctionToTypeMap.get(pCFA);
+      if (cached == null) {
+        // computeIfAbsent cannot be used here because getTypeMap throws checked exceptions that the
+        // functional interface cannot propagate.
+        cached =
+            ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
+        cachedVariableAndFunctionToTypeMap.put(pCFA, cached);
+      }
+      return cached;
+    }
+
+    /**
+     * Get a mapping from variable and function names to their types.
+     *
+     * @param pCfa CFA to get the mapping for
+     * @param pConfiguration configuration to create the solver for the path formula manager
+     * @param pLogManager log manager to create the solver for the path formula manager
+     * @param pShutdownNotifier shutdown notifier to create the solver for the path formula manager
+     * @return a mapping from variable and function names to their types
+     * @throws InvalidConfigurationException if the configuration is invalid for the solver
+     * @throws CPATransferException if the path formula manager cannot create a path formula for the
+     *     given CFA
+     * @throws InterruptedException if the thread is interrupted while creating the path formula
+     */
+    private static Map<String, Type> getTypeMap(
+        CFA pCfa,
+        Configuration pConfiguration,
+        LogManager pLogManager,
+        ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException, CPATransferException, InterruptedException {
+      try (Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier)) {
+        PathFormulaManagerImpl pfm =
+            new PathFormulaManagerImpl(
+                solver.getFormulaManager(),
+                pConfiguration,
+                pLogManager,
+                pShutdownNotifier,
+                pCfa,
+                AnalysisDirection.FORWARD);
+        PathFormula pathFormula = pfm.makeEmptyPathFormula();
+        for (CFAEdge edge : pCfa.edges()) {
+          try {
+            pathFormula = pfm.makeAnd(pathFormula, edge);
+          } catch (UnsupportedCodeException e) {
+            // this code might never be executed, so we continue.
+          }
+        }
+        return Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType);
+      }
+    }
+
+    static synchronized BiMap<Integer, CFANode> getOrCreateLocationMapping(CFA pCFA) {
+      if (!integerToNodeMap.containsKey(pCFA)) {
+        ImmutableMap<Integer, CFANode> nodeMap =
+            ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
+
+        int minCfaNodeNumber = nodeMap.keySet().stream().min(Integer::compareTo).orElseThrow();
+
+        // All node IDs are shifted such that they start from 0
+        BiMap<Integer, CFANode> cfaNodeIdMap = HashBiMap.create();
+
+        for (Map.Entry<Integer, CFANode> entry : nodeMap.entrySet()) {
+          int index = entry.getKey() - minCfaNodeNumber;
+          cfaNodeIdMap.put(index, entry.getValue());
+        }
+        integerToNodeMap.put(pCFA, ImmutableBiMap.copyOf(cfaNodeIdMap));
+      }
+      return integerToNodeMap.get(pCFA);
+    }
+  }
+
+  private DssFactory() {}
+
+  /**
+   * Register corresponding DCPA to a CPA
+   *
+   * @param pCPA underlying CPA
+   * @param pBlockNode block node for which the new DCPA is responsible
+   * @return DCPA for pCPA
+   */
+  public static DistributedConfigurableProgramAnalysis distribute(
+      ConfigurableProgramAnalysis pCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      DssAnalysisOptions pOptions,
+      DssMessageFactory pMessageFactory,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
+    return switch (pCPA) {
+      case PredicateCPA predicateCPA ->
+          distribute(
+              predicateCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pLogManager,
+              pShutdownNotifier,
+              TypeAndLocationCache.getOrCreateLocationMapping(pCFA),
+              TypeAndLocationCache.getOrCreateTypeMap(
+                  pCFA, pConfiguration, pLogManager, pShutdownNotifier));
+      case CallstackCPA callstackCPA ->
+          distribute(
+              callstackCPA,
+              pBlockNode,
+              pCFA,
+              TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
+      case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
+      case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
+      case ARGCPA argCPA ->
+          distribute(
+              argCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      case CompositeCPA compositeCPA ->
+          distribute(
+              compositeCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      case LocationCPA locationCPA ->
+          distribute(
+              locationCPA, pBlockNode, TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
+      case null /*TODO check if null is necessary*/, default -> null;
+    };
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      BlockCPA pBlockCPA, BlockNode pBlockNode, DssAnalysisOptions pOptions) {
+    return new DistributedBlockCPA(pBlockCPA, pBlockNode, pOptions);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      LocationCPA pLocationCPA, BlockNode pNode, BiMap<Integer, CFANode> pNodeMap) {
+    return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      PredicateCPA pPredicateCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      DssAnalysisOptions pOptions,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      BiMap<Integer, CFANode> pCfaNodeIdMap,
+      ImmutableMap<String, Type> pVariableAndFunctionToTypeMap)
+      throws InvalidConfigurationException {
+    return new DistributedPredicateCPA(
+        pPredicateCPA,
+        pBlockNode,
+        pCFA,
+        pConfiguration,
+        pOptions,
+        pLogManager,
+        pShutdownNotifier,
+        pCfaNodeIdMap,
+        pVariableAndFunctionToTypeMap);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      CallstackCPA pCallstackCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      BiMap<Integer, CFANode> pIdToNodeMap) {
+    return new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pCFA, pIdToNodeMap);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      FunctionPointerCPA pFunctionPointerCPA, BlockNode pNode) {
+    return new DistributedFunctionPointerCPA(pFunctionPointerCPA, pNode);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      CompositeCPA pCompositeCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      DssAnalysisOptions pOptions,
+      DssMessageFactory pMessageFactory,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
+    ImmutableMap.Builder<
+            Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+        builder = ImmutableMap.builder();
+    for (ConfigurableProgramAnalysis wrappedCPA : pCompositeCPA.getWrappedCPAs()) {
+      DistributedConfigurableProgramAnalysis dcpa =
+          distribute(
+              wrappedCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      if (dcpa == null) {
+        continue;
+      }
+      builder.put(wrappedCPA.getClass(), dcpa);
+    }
+    return new DistributedCompositeCPA(
+        pLogManager, pCompositeCPA, pBlockNode, builder.buildOrThrow());
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ARGCPA pARGCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      DssAnalysisOptions pOptions,
+      DssMessageFactory pMessageFactory,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
+    return new DistributedARGCPA(
+        pARGCPA,
+        distribute(
+            Iterables.getOnlyElement(pARGCPA.getWrappedCPAs()),
+            pBlockNode,
+            pCFA,
+            pConfiguration,
+            pOptions,
+            pMessageFactory,
+            pLogManager,
+            pShutdownNotifier));
+  }
+}

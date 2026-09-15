@@ -75,18 +75,22 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
       NondeterminismNonAbstractionState pState, CFAEdge pEdge) {
     Objects.requireNonNull(pState);
     switch (pEdge.getEdgeType()) {
-      case DeclarationEdge:
+      case DeclarationEdge -> {
         return handleDeclaration(pState, (ADeclarationEdge) pEdge);
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         return handleStatement(pState, (AStatementEdge) pEdge);
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         return handleReturnStatement(pState, (AReturnStatementEdge) pEdge);
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         return handleFunctionCall(pState, (FunctionCallEdge) pEdge);
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         return handleAssumption(pState, (AssumeEdge) pEdge);
-      default:
-        break;
+      }
+      default -> {}
     }
     return pState;
   }
@@ -110,11 +114,11 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
     }
     if (statement instanceof AAssignment assignment) {
       ALeftHandSide lhs = assignment.getLeftHandSide();
-      if (!(lhs instanceof AIdExpression)) {
+      if (!(lhs instanceof AIdExpression aIdExpression)) {
         // Unhandled left-hand side
         return new NondeterminismNonAbstractionState();
       }
-      String lhsVariable = ((AIdExpression) lhs).getDeclaration().getQualifiedName();
+      String lhsVariable = aIdExpression.getDeclaration().getQualifiedName();
       if (assignment instanceof AExpressionAssignmentStatement exprAssignment) {
         return handleAssignment(pState, lhsVariable, exprAssignment.getRightHandSide());
       }

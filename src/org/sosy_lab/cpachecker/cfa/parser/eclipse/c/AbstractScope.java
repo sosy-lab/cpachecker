@@ -24,8 +24,8 @@ abstract class AbstractScope implements Scope {
   private static final String SUFFIX_SEPARATOR = "__";
   protected final String currentFile;
 
-  AbstractScope(String currentFile) {
-    this.currentFile = currentFile;
+  AbstractScope(String pCurrentFile) {
+    currentFile = pCurrentFile;
   }
 
   @Override

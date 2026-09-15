@@ -35,17 +35,16 @@ public class GlobalGraphPartitionerHeuristicFactory {
       final LogManager pLogger,
       final GlobalPartitioningHeuristics pHeuristic)
       throws InvalidConfigurationException {
-    switch (pHeuristic) {
-      case RANDOM:
-        return new RandomBalancedWeightedGraphPartitioner();
-      case DFS:
-        return new BestFirstWeightedBalancedGraphPartitioner(
-            pConfig, pLogger, BestFirstEvaluationFunctions.DEPTH_FIRST);
-      case BFS:
-        return new BestFirstWeightedBalancedGraphPartitioner(
-            pConfig, pLogger, BestFirstEvaluationFunctions.BREADTH_FIRST);
-      default: // BEST_IMPROVEMENT_FIRST
-        return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger);
-    }
+    return switch (pHeuristic) {
+      case RANDOM -> new RandomBalancedWeightedGraphPartitioner();
+      case DFS ->
+          new BestFirstWeightedBalancedGraphPartitioner(
+              pConfig, pLogger, BestFirstEvaluationFunctions.DEPTH_FIRST);
+      case BFS ->
+          new BestFirstWeightedBalancedGraphPartitioner(
+              pConfig, pLogger, BestFirstEvaluationFunctions.BREADTH_FIRST);
+      default -> // BEST_IMPROVEMENT_FIRST
+          new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger);
+    };
   }
 }

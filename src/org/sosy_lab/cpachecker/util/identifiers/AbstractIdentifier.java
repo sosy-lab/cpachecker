@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Collection;
 
 public sealed interface AbstractIdentifier extends Comparable<AbstractIdentifier>
-    permits BinaryIdentifier, ConstantIdentifier, GeneralIdentifier, SingleIdentifier {
+    permits BinaryIdentifier, ConstantIdentifier, SingleIdentifier {
 
   @Override
   boolean equals(Object other);
@@ -24,7 +24,7 @@ public sealed interface AbstractIdentifier extends Comparable<AbstractIdentifier
 
   boolean isGlobal();
 
-  AbstractIdentifier cloneWithDereference(int dereference);
+  AbstractIdentifier cloneWithDereference(int pDereference);
 
   int getDereference();
 

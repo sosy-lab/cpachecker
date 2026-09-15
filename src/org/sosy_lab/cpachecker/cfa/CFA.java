@@ -8,19 +8,22 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public interface CFA extends CfaNetwork {
@@ -49,8 +52,8 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getMainFunctionEntry();
   }
 
-  default Optional<ASTStructure> getASTStructure() {
-    return getMetadata().getASTStructure();
+  default AstCfaRelation getAstCfaRelation() {
+    return getMetadata().getAstCfaRelation();
   }
 
   default Optional<LoopStructure> getLoopStructure() {
@@ -75,6 +78,10 @@ public interface CFA extends CfaNetwork {
 
   default List<Path> getFileNames() {
     return getMetadata().getFileNames();
+  }
+
+  default Optional<ImmutableListMultimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
+    return getMetadata().getEdgesToAnnotations();
   }
 
   /**

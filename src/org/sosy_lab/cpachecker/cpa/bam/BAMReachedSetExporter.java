@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -91,11 +92,11 @@ class BAMReachedSetExporter implements Statistics {
 
     if (superArgFile != null) {
 
-      final Set<UnmodifiableReachedSet> allReachedSets =
+      final SequencedSet<UnmodifiableReachedSet> allReachedSets =
           new LinkedHashSet<>(bamcpa.getData().getCache().getAllCachedReachedStates());
       allReachedSets.add(mainReachedSet);
 
-      final Set<ARGState> rootStates = new LinkedHashSet<>();
+      final SequencedSet<ARGState> rootStates = new LinkedHashSet<>();
       final Multimap<ARGState, ARGState> connections = LinkedHashMultimap.create();
 
       for (final UnmodifiableReachedSet reachedSet : allReachedSets) {
@@ -148,7 +149,7 @@ class BAMReachedSetExporter implements Statistics {
 
   private Set<ARGState> getUsedRootStates(
       final UnmodifiableReachedSet mainReachedSet, final Multimap<ARGState, ARGState> connections) {
-    final Set<UnmodifiableReachedSet> finished = new LinkedHashSet<>();
+    final SequencedSet<UnmodifiableReachedSet> finished = new LinkedHashSet<>();
     final Deque<UnmodifiableReachedSet> waitlist = new ArrayDeque<>();
     waitlist.add(mainReachedSet);
     while (!waitlist.isEmpty()) {
@@ -161,7 +162,7 @@ class BAMReachedSetExporter implements Statistics {
       waitlist.addAll(referencedReachedSets);
     }
 
-    final Set<ARGState> rootStates = new LinkedHashSet<>();
+    final SequencedSet<ARGState> rootStates = new LinkedHashSet<>();
     for (UnmodifiableReachedSet reachedSet : finished) {
       rootStates.add((ARGState) reachedSet.getFirstState());
     }
@@ -170,7 +171,7 @@ class BAMReachedSetExporter implements Statistics {
 
   /**
    * This method iterates over all reachable states from rootState and searches for connections to
-   * other reachedSets (a set of all those other reachedSets is returned). As side-effect we collect
+   * other reachedSets (a set of all those other reachedSets is returned). As side effect we collect
    * a Multimap of all connections: - from a state (in current reachedSet) to its reduced state (in
    * other rechedSet) and - from a foreign state (in other reachedSet) to its expanded state(s) (in
    * current reachedSet).
@@ -178,7 +179,7 @@ class BAMReachedSetExporter implements Statistics {
   private Set<ReachedSet> getConnections(
       final ARGState rootState, final Multimap<ARGState, ARGState> connections) {
     final BAMDataManager data = bamcpa.getData();
-    final Set<ReachedSet> referencedReachedSets = new LinkedHashSet<>();
+    final SequencedSet<ReachedSet> referencedReachedSets = new LinkedHashSet<>();
     final Set<ARGState> finished = new HashSet<>();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(rootState);

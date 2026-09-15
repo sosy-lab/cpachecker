@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -67,7 +66,7 @@ public class UCBRefinementManager {
     List<ARGState> trace = new ArrayList<>(abstractionStatesTrace);
     // Add root to the trace in order to compute WPs correctly as 'abstractionStatesTrace'
     // does not contain the root element.
-    trace.add(0, allStatesTrace.getFirstState());
+    trace.addFirst(allStatesTrace.getFirstState());
 
     // Compute weakest preconditions on the error trace
     // If the list is empty then the trace is feasible,
@@ -153,7 +152,7 @@ public class UCBRefinementManager {
 
     BooleanFormula res = bfmgr.makeFalse();
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(src)) {
+    for (CFAEdge edge : src.getLeavingEdges()) {
       CFANode next = edge.getSuccessor();
 
       BooleanFormula wp = bfmgr.makeFalse();
@@ -186,8 +185,7 @@ public class UCBRefinementManager {
     logger.log(Level.FINEST, "Calculate UCB predicates for the spurious trace suffix.");
 
     // We transform every wp into ucb in-place
-    List<BooleanFormula> ucbs = new ArrayList<>(wpres);
-    Collections.reverse(ucbs);
+    List<BooleanFormula> ucbs = new ArrayList<>(wpres.reversed());
 
     // WPs list does not contain the first (= false) and the last (= true) nodes,
     // while the pTrace contains the whole path, i.e. from the root to the error node

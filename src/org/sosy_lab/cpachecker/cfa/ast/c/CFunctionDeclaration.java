@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -32,7 +33,23 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
           ImmutableList.of(),
           ImmutableSet.of());
 
-  private static final long serialVersionUID = 5485363555708455537L;
+  // Declarations for __VERIFIER_atomic_begin/end
+  public static final CFunctionDeclaration ATOMIC_BEGIN_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "__VERIFIER_atomic_begin",
+          ImmutableList.of(),
+          ImmutableSet.of());
+  public static final CFunctionDeclaration ATOMIC_END_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "__VERIFIER_atomic_end",
+          ImmutableList.of(),
+          ImmutableSet.of());
+
+  @Serial private static final long serialVersionUID = 5485363555708455537L;
 
   /** GNU C function attributes used by CPAchecker. */
   public enum FunctionAttribute {
@@ -70,8 +87,8 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<CParameterDeclaration> getParameters() {
-    return (List<CParameterDeclaration>) super.getParameters();
+  public ImmutableList<CParameterDeclaration> getParameters() {
+    return (ImmutableList<CParameterDeclaration>) super.getParameters();
   }
 
   @Override

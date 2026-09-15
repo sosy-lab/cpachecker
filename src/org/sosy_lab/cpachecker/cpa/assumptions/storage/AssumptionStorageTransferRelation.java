@@ -85,8 +85,8 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     boolean stop = false;
 
     for (AbstractState element : AbstractStates.asFlatIterable(pOthers)) {
-      if (element instanceof AssumptionReportingState) {
-        List<CExpression> assumptions = ((AssumptionReportingState) element).getAssumptions();
+      if (element instanceof AssumptionReportingState assumptionReportingState) {
+        List<CExpression> assumptions = assumptionReportingState.getAssumptions();
         for (CExpression inv : assumptions) {
           BooleanFormula invFormula =
               converter.makePredicate(inv, pEdge, function, SSAMap.emptySSAMap().builder());

@@ -49,8 +49,8 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
     if (result != 0) {
       return result;
     }
-    if (pO instanceof LockIdentifierWithVariable) {
-      return varName.compareTo(((LockIdentifierWithVariable) pO).varName);
+    if (pO instanceof LockIdentifierWithVariable other) {
+      return varName.compareTo(other.varName);
     } else {
       return 1;
     }

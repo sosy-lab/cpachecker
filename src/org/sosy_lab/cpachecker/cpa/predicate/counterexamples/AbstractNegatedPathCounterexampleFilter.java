@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
-import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -59,10 +59,10 @@ abstract class AbstractNegatedPathCounterexampleFilter<T>
   @Override
   protected Optional<T> getCounterexampleRepresentation(CounterexampleInfo counterexample)
       throws InterruptedException {
-    List<CFAEdge> edges = counterexample.getTargetPath().getInnerEdges();
+    List<@Nullable CFAEdge> edges = counterexample.getTargetPath().getInnerEdges();
 
     int cutPoint = edges.size() - 1; // Position of last AssumeEdge in path
-    for (CFAEdge edge : Lists.reverse(edges)) {
+    for (CFAEdge edge : edges.reversed()) {
       if (edge instanceof AssumeEdge) {
         break;
       }

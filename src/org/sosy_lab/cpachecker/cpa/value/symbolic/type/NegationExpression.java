@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -15,7 +18,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** {@link UnarySymbolicExpression} representing negation of a value. */
 public final class NegationExpression extends UnarySymbolicExpression {
 
-  private static final long serialVersionUID = 6785934572402802380L;
+  @Serial private static final long serialVersionUID = 6785934572402802380L;
 
   public NegationExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
@@ -31,6 +34,16 @@ public final class NegationExpression extends UnarySymbolicExpression {
   private NegationExpression(
       final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
     super(pOperand, pType, pAbstractState);
+  }
+
+  public static SymbolicExpression of(SymbolicExpression pFormula, Type pType) {
+    checkNotNull(pFormula);
+    if (pFormula instanceof NegationExpression negationExpression) {
+      return negationExpression.getOperand();
+
+    } else {
+      return new NegationExpression(pFormula, pType);
+    }
   }
 
   @Override

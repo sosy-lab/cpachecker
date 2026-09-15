@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import com.google.common.collect.FluentIterable;
 import com.google.errorprone.annotations.DoNotCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 
 /** A CFANode that marks the end of a path. */
 public final class CFATerminationNode extends CFANode {
-
-  private static final long serialVersionUID = -8328879108494506389L;
 
   public CFATerminationNode(AFunctionDeclaration pFunction) {
     super(pFunction);
@@ -49,5 +48,19 @@ public final class CFATerminationNode extends CFANode {
   @DoNotCall // safe to call but useless
   public FunctionSummaryEdge getLeavingSummaryEdge() {
     return null;
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public FluentIterable<CFAEdge> getLeavingEdges() {
+    return FluentIterable.of();
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public FluentIterable<CFAEdge> getAllLeavingEdges() {
+    return FluentIterable.of();
   }
 }

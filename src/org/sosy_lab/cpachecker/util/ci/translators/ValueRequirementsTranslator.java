@@ -18,6 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -47,10 +48,10 @@ public class ValueRequirementsTranslator
     for (Entry<MemoryLocation, ValueAndType> e : pRequirement.getConstants()) {
       MemoryLocation memLoc = e.getKey();
       Value integerValue = e.getValue().getValue();
-      if (!integerValue.isNumericValue()
-          || !(integerValue.asNumericValue().getNumber() instanceof Integer
-              || integerValue.asNumericValue().getNumber() instanceof Long
-              || integerValue.asNumericValue().getNumber() instanceof BigInteger)) {
+      if (!(integerValue instanceof NumericValue numIntValue)
+          || !(numIntValue.getNumber() instanceof Integer
+              || numIntValue.getNumber() instanceof Long
+              || numIntValue.getNumber() instanceof BigInteger)) {
         logger.log(
             Level.SEVERE,
             "The value "
@@ -64,7 +65,7 @@ public class ValueRequirementsTranslator
               "(= "
                   + getVarWithIndex(memLoc.getExtendedQualifiedName(), pIndices)
                   + " "
-                  + integerValue.asNumericValue().getNumber()
+                  + numIntValue.getNumber()
                   + ")");
         }
       }

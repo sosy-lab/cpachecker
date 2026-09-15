@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
@@ -45,8 +44,6 @@ class TypeHierachyCreator extends ASTVisitor {
   private static final boolean VISIT_CHILDREN = true;
 
   private static final boolean SKIP_CHILDREN = false;
-
-  private static final int FIRST = 0;
 
   private final LogManager logger;
   private final THTypeTable typeTable;
@@ -89,7 +86,6 @@ class TypeHierachyCreator extends ASTVisitor {
     fileOfCU = fileName;
   }
 
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public void createTypeHierachy(List<JavaFileAST> pJavaProgram) throws JParserException {
     Path oldFileOfCU = fileOfCU;
 
@@ -127,7 +123,7 @@ class TypeHierachyCreator extends ASTVisitor {
 
     Set<JFieldDeclaration> decl = converter.convert(fD, fileOfCU);
 
-    VariableDeclarationFragment vdf = (VariableDeclarationFragment) fD.fragments().get(FIRST);
+    VariableDeclarationFragment vdf = (VariableDeclarationFragment) fD.fragments().getFirst();
 
     // TODO Add declaring class to JFielddeclaration
     IVariableBinding variableBinding = vdf.resolveBinding();
@@ -166,10 +162,10 @@ class TypeHierachyCreator extends ASTVisitor {
       if (typeBinding.isTopLevel()) {
         boolean isPublic = false;
         for (Object mod : node.modifiers()) {
-          if (!(mod instanceof Modifier)) {
+          if (!(mod instanceof Modifier modifier)) {
             continue;
           }
-          if (((Modifier) mod).isPublic()) {
+          if (modifier.isPublic()) {
             isPublic = true;
             break;
           }

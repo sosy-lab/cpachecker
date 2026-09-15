@@ -87,10 +87,10 @@ public abstract sealed class SingleIdentifier implements AbstractIdentifier
   @Override
   public int compareTo(AbstractIdentifier pO) {
     // FIXME cf. #1110
-    if (!(pO instanceof SingleIdentifier)) {
+    if (!(pO instanceof SingleIdentifier other)) {
       return 1;
     } else {
-      SingleIdentifier other = (SingleIdentifier) pO;
+
       int result = name.compareTo(other.name);
       if (result != 0) {
         return result;

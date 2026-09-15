@@ -9,64 +9,76 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
-import java.io.Serializable;
+import com.google.common.collect.ImmutableListMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * CFA metadata stores additional data about a CFA and may contain all data that isn't necessary for
  * the actual graph representation of a program.
  */
-public final class CfaMetadata implements Serializable {
-
-  private static final long serialVersionUID = -4976424764995656485L;
+public final class CfaMetadata {
 
   private final MachineModel machineModel;
-  private final Language language;
-  // `fileNames` isn't `final` due to serialization, but shouldn't be reassigned anywhere else
-  private transient ImmutableList<Path> fileNames;
+  private final Language cfaLanguage;
+  private final Language inputLanguage;
+  private final ImmutableList<Path> fileNames;
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
-  private final @Nullable ASTStructure astStructure;
+  private final AstCfaRelation astCFARelation;
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
+  private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
+  private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
+
+  private final @Nullable CfaTransformationMetadata transformationMetadata;
 
   private CfaMetadata(
       MachineModel pMachineModel,
-      Language pLanguage,
+      Language pCFALanguage,
+      Language pInputLanguage,
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
-      @Nullable ASTStructure pASTStructure,
+      @Nullable AstCfaRelation pAstCfaRelation,
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
-      @Nullable LiveVariables pLiveVariables) {
+      @Nullable LiveVariables pLiveVariables,
+      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
+      @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
+      @Nullable CfaTransformationMetadata pCfaTransformationMetadata) {
     machineModel = checkNotNull(pMachineModel);
-    language = checkNotNull(pLanguage);
+    cfaLanguage = checkNotNull(pCFALanguage);
+    inputLanguage = checkNotNull(pInputLanguage);
     fileNames = ImmutableList.copyOf(pFileNames);
     mainFunctionEntry = checkNotNull(pMainFunctionEntry);
     connectedness = checkNotNull(pConnectedness);
 
-    astStructure = pASTStructure;
+    astCFARelation = pAstCfaRelation;
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
+    edgesToAnnotations = pEdgesToAnnotations;
+    svLibCfaMetadata = pSvLibCfaMetadata;
+    transformationMetadata = pCfaTransformationMetadata;
   }
 
   /**
@@ -76,7 +88,8 @@ public final class CfaMetadata implements Serializable {
    *
    * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
    *     types)
-   * @param pLanguage the programming language of the CFA (e.g., C, Java, etc.)
+   * @param pCFALanguage the programming language of the CFA (e.g., C, Java, etc.)
+   * @param pInputLanguage the input language of the CFA (e.g., C, Java, etc.)
    * @param pFileNames the source code files from which the CFA was created
    * @param pMainFunctionEntry the entry point of the program represented by the CFA
    * @param pConnectedness specifies whether the CFA is a supergraph
@@ -86,16 +99,21 @@ public final class CfaMetadata implements Serializable {
    */
   public static CfaMetadata forMandatoryAttributes(
       MachineModel pMachineModel,
-      Language pLanguage,
+      Language pCFALanguage,
+      Language pInputLanguage,
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
     return new CfaMetadata(
         pMachineModel,
-        pLanguage,
+        pCFALanguage,
+        pInputLanguage,
         pFileNames,
         pMainFunctionEntry,
         pConnectedness,
+        null,
+        null,
+        null,
         null,
         null,
         null,
@@ -111,25 +129,23 @@ public final class CfaMetadata implements Serializable {
     return machineModel;
   }
 
-  /**
-   * Returns a copy of this metadata instance, but with the specified machine model.
-   *
-   * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
-   *     types)
-   * @return a copy of this metadata instance, but with the specified machine model
-   * @throws NullPointerException if {@code pMachineModel == null}
-   */
-  public CfaMetadata withMachineModel(MachineModel pMachineModel) {
-    return new CfaMetadata(
-        checkNotNull(pMachineModel),
-        language,
-        fileNames,
-        mainFunctionEntry,
-        connectedness,
-        astStructure,
-        loopStructure,
-        variableClassification,
-        liveVariables);
+  public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
+    CfaMetadata newMetadata =
+        new CfaMetadata(
+            machineModel,
+            cfaLanguage,
+            inputLanguage,
+            fileNames,
+            mainFunctionEntry,
+            connectedness,
+            astCFARelation,
+            loopStructure,
+            variableClassification,
+            liveVariables,
+            edgesToAnnotations,
+            svLibCfaMetadata,
+            pTransformationMetadata);
+    return newMetadata;
   }
 
   /**
@@ -138,7 +154,16 @@ public final class CfaMetadata implements Serializable {
    * @return the programming language of the CFA (e.g., C, Java, etc.)
    */
   public Language getLanguage() {
-    return language;
+    return cfaLanguage;
+  }
+
+  /**
+   * Returns the input language of the CFA.
+   *
+   * @return the input language of the CFA (e.g., C, Java, etc.)
+   */
+  public Language getInputLanguage() {
+    return inputLanguage;
   }
 
   /**
@@ -148,6 +173,10 @@ public final class CfaMetadata implements Serializable {
    */
   public ImmutableList<Path> getFileNames() {
     return fileNames;
+  }
+
+  public @Nullable CfaTransformationMetadata getTransformationMetadata() {
+    return transformationMetadata;
   }
 
   /**
@@ -171,14 +200,18 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withMainFunctionEntry(FunctionEntryNode pMainFunctionEntry) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         checkNotNull(pMainFunctionEntry),
         connectedness,
-        astStructure,
+        astCFARelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
   }
 
   /**
@@ -200,25 +233,29 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withConnectedness(CfaConnectedness pConnectedness) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         checkNotNull(pConnectedness),
-        astStructure,
+        astCFARelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
   }
 
   /**
-   * Returns the AST structure for the CFA, if it's stored in this metadata instance.
+   * Returns the relation between the AST and the CFA, if it's stored in this metadata instance.
    *
    * @return If this metadata instance contains the AST structure for the CFA, an optional
    *     containing the AST structure is returned. Otherwise, if this metadata instance does not
    *     contain the AST structure for the CFA, an empty optional is returned.
    */
-  public Optional<ASTStructure> getASTStructure() {
-    return Optional.ofNullable(astStructure);
+  public AstCfaRelation getAstCfaRelation() {
+    return astCFARelation;
   }
 
   /**
@@ -235,21 +272,62 @@ public final class CfaMetadata implements Serializable {
   /**
    * Returns a copy of this metadata instance, but with the specified AST structure.
    *
-   * @param pASTStructure the AST structure to store in the returned metadata instance (use {@code
+   * @param pAstCfaRelation the AST structure to store in the returned metadata instance (use {@code
    *     null} to create an instance without AST structure)
    * @return a copy of this metadata instance, but with the specified AST structure
    */
-  public CfaMetadata withASTStructure(@Nullable ASTStructure pASTStructure) {
+  public CfaMetadata withAstCfaRelation(@Nullable AstCfaRelation pAstCfaRelation) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
-        pASTStructure,
+        pAstCfaRelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
+  }
+
+  /**
+   * Returns the SV-LIB specific CFA metadata, if it's stored in this metadata instance.
+   *
+   * @return If this metadata instance contains the SV-LIB-specific CFA metadata, an optional
+   *     containing the SV-LIB-specific CFA metadata is returned. Otherwise, if this metadata
+   *     instance doesn't contain the SV-LIB-specific CFA metadata, an empty optional is returned.
+   */
+  public Optional<SvLibCfaMetadata> getSvLibCfaMetadata() {
+    return Optional.ofNullable(svLibCfaMetadata);
+  }
+
+  /**
+   * Returns a copy of this metadata instance, but with the specified SvLibCfaMetadata.
+   *
+   * @param pSvLibCfaMetadata the SvLibCfaMetadata to store in the returned metadata instance (use
+   *     {@code null} to create an instance without SvLibCfaMetadata)
+   * @return a copy of this metadata instance, but with the specified AST structure
+   */
+  public CfaMetadata withSvLibCfaMetadata(@Nullable SvLibCfaMetadata pSvLibCfaMetadata) {
+    Preconditions.checkArgument(
+        inputLanguage == Language.SVLIB ? pSvLibCfaMetadata != null : pSvLibCfaMetadata == null);
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        edgesToAnnotations,
+        pSvLibCfaMetadata,
+        transformationMetadata);
   }
 
   /**
@@ -262,14 +340,18 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withLoopStructure(@Nullable LoopStructure pLoopStructure) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
-        astStructure,
+        astCFARelation,
         pLoopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
   }
 
   /**
@@ -294,14 +376,18 @@ public final class CfaMetadata implements Serializable {
       @Nullable VariableClassification pVariableClassification) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
-        astStructure,
+        astCFARelation,
         loopStructure,
         pVariableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
   }
 
   /**
@@ -325,46 +411,74 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withLiveVariables(@Nullable LiveVariables pLiveVariables) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
-        astStructure,
+        astCFARelation,
         loopStructure,
         variableClassification,
-        pLiveVariables);
+        pLiveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
   }
 
-  /** Serializes CFA metadata. */
-  private void writeObject(java.io.ObjectOutputStream pObjectOutputStream) throws IOException {
-    pObjectOutputStream.defaultWriteObject();
-
-    // some `Path` implementations are not serializable, so we serialize paths as list of strings
-    List<String> stringFileNames = transformedImmutableListCopy(fileNames, Path::toString);
-    pObjectOutputStream.writeObject(stringFileNames);
+  /**
+   * Returns the map from edges to ACSL annotations for the CFA, if the information is stored in
+   * this metadata instance.
+   *
+   * @return If this metadata instance contains the map from edges to ACSL annotations for the CFA,
+   *     an optional containing the map is returned. Otherwise, if this metadata instance doesn't
+   *     contain the map for the CFA, an empty optional is returned.
+   */
+  public Optional<ImmutableListMultimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
+    return Optional.ofNullable(edgesToAnnotations);
   }
 
-  /** Deserializes CFA metadata. */
-  private void readObject(java.io.ObjectInputStream pObjectInputStream)
-      throws IOException, ClassNotFoundException {
-    pObjectInputStream.defaultReadObject();
-
-    @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
-    List<String> stringFileNames = (List<String>) pObjectInputStream.readObject();
-    fileNames = transformedImmutableListCopy(stringFileNames, Path::of);
+  /**
+   * Returns a copy of this metadata instance, but with the specified map from edges to ACSL
+   * annotations.
+   *
+   * @param pedgesToAnnotations the map to store in the returned metadata instance (use {@code null}
+   *     to create an instance without map)
+   * @return a copy of this metadata instance, but with the specified map from edges to ACSL
+   *     annotations
+   */
+  public CfaMetadata withEdgesToAnnotations(
+      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pedgesToAnnotations) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        pedgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata);
   }
 
   @Override
@@ -374,26 +488,34 @@ public final class CfaMetadata implements Serializable {
     }
     return pObject instanceof CfaMetadata other
         && machineModel == other.machineModel
-        && language == other.language
+        && cfaLanguage == other.cfaLanguage
+        && inputLanguage == other.inputLanguage
         && Objects.equals(fileNames, other.fileNames)
         && Objects.equals(mainFunctionEntry, other.mainFunctionEntry)
         && connectedness == other.connectedness
         && Objects.equals(loopStructure, other.loopStructure)
         && Objects.equals(variableClassification, other.variableClassification)
-        && Objects.equals(liveVariables, other.liveVariables);
+        && Objects.equals(liveVariables, other.liveVariables)
+        && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
+        && Objects.equals(astCFARelation, other.astCFARelation)
+        && Objects.equals(svLibCfaMetadata, other.svLibCfaMetadata)
+        && Objects.equals(transformationMetadata, other.transformationMetadata);
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("machineModel", machineModel)
-        .add("language", language)
+        .add("language", cfaLanguage)
+        .add("inputLanguage", inputLanguage)
         .add("fileNames", fileNames)
         .add("mainFunctionEntry", mainFunctionEntry)
         .add("connectedness", connectedness)
         .add("loopStructure", loopStructure)
         .add("variableClassification", variableClassification)
         .add("liveVariables", liveVariables)
+        .add("edgesToAnnotations", edgesToAnnotations)
+        .add("transformationMetadata", transformationMetadata)
         .toString();
   }
 }

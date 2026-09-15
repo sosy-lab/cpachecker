@@ -8,15 +8,17 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
+import java.io.Serial;
+
 /**
  * Super class for all exceptions thrown by CPA operators.
  *
- * <p>TODO This exception should probably be abstract, and specialized sub-classes should be used
- * for specific reasons.
+ * <p>TODO This exception should probably be abstract, and specialized subclasses should be used for
+ * specific reasons.
  */
 public class CPAException extends Exception {
 
-  private static final long serialVersionUID = 6846683924964869559L;
+  @Serial private static final long serialVersionUID = 6846683924964869559L;
 
   public CPAException(String msg) {
     super(msg);

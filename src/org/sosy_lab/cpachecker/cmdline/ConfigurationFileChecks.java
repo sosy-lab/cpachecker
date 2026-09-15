@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
@@ -56,12 +55,10 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
@@ -69,7 +66,8 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Test that the bundled configuration files are all valid. */
 @RunWith(Parameterized.class)
@@ -82,7 +80,8 @@ public class ConfigurationFileChecks {
               + " read precision from file.*|.*The SMT solver MATHSAT5 is not available on this"
               + " machine because of missing libraries \\(no optimathsat5j in"
               + " java\\.library\\.path.*|.*The SMT solver Z3 is not available on this machine"
-              + " because of missing libraries .* version `GLIBCXX_3.4.26' not found.*",
+              + " because of missing libraries .* version"
+              + " `(GLIBCXX_3\\.4\\.26|GLIBC_2\\.34|GLIBC_2\\.38)' not found.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
@@ -117,7 +116,7 @@ public class ConfigurationFileChecks {
           // always set by this test
           "java.sourcepath",
           "differential.program",
-          // handled by code outside of CPAchecker class
+          // handled by code outside CPAchecker class
           "output.disable",
           "report.export",
           "statistics.print",
@@ -131,7 +130,7 @@ public class ConfigurationFileChecks {
           "overflow.config",
           "datarace.config",
           "termination.config",
-          "termination.violation.witness",
+          "termination.violation.witness.graphml",
           // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
           "witness.validation.correctness.acsl",
@@ -141,6 +140,8 @@ public class ConfigurationFileChecks {
           "pcc.strategy",
           "pcc.cmc.configFiles",
           "pcc.cmc.file",
+          // only handled if a witness in witness format 2.0 (YAML) is provided with -witness
+          "witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "cpa.automaton.treatErrorsAsTargets",
@@ -166,12 +167,22 @@ public class ConfigurationFileChecks {
           "cpa.predicate.refinement.performInitialStaticRefinement",
           // options set with inject(...,...)
           "pcc.proof",
-          "pcc.partial.stopAddingAtReachedSetSize");
+          "pcc.partial.stopAddingAtReachedSetSize",
+          // options for delegating based on the programming language
+          "java.config",
+          "c.config",
+          "llvm.config",
+          "svlib.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C, Java, or LLVM IR?")
+    @Option(
+        secure = true,
+        description =
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
     private Language language = Language.C;
 
     @Option(
@@ -212,8 +223,9 @@ public class ConfigurationFileChecks {
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
+  private static final String SPECIFICATION_OPTION = "specification";
   private static final Path CONFIG_DIR = Path.of("config");
-  private static final Path SPEC_DIR = CONFIG_DIR.resolve("specification");
+  private static final Path SPEC_DIR = CONFIG_DIR.resolve(SPECIFICATION_OPTION);
   private static final Path OUTPUT_DIR = Path.of("output");
 
   @Parameters(name = "{0}")
@@ -238,7 +250,7 @@ public class ConfigurationFileChecks {
   @SuppressWarnings("CheckReturnValue")
   public void parse() throws URISyntaxException {
     try {
-      parse(configFile).build();
+      Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException e) {
       assertWithMessage(
               "Error during parsing of configuration file %s : %s", configFile, e.getMessage())
@@ -246,17 +258,14 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private static ConfigurationBuilder parse(Object pConfigFile)
-      throws IOException, InvalidConfigurationException, URISyntaxException {
-    Path configFile;
-    if (pConfigFile instanceof Path) {
-      configFile = (Path) pConfigFile;
-    } else if (pConfigFile instanceof URL) {
-      configFile = Path.of(((URL) pConfigFile).toURI());
+  private Path configFileAsPath() throws URISyntaxException {
+    if (configFile instanceof Path path) {
+      return path;
+    } else if (configFile instanceof URL uRL) {
+      return Path.of(uRL.toURI());
     } else {
-      throw new AssertionError("Unexpected config file " + pConfigFile);
+      throw new AssertionError("Unexpected config file " + configFile);
     }
-    return Configuration.builder().loadFromFile(configFile);
   }
 
   @Rule public final Expect expect = Expect.create();
@@ -265,7 +274,7 @@ public class ConfigurationFileChecks {
   public void checkUndesiredOptions() {
     Configuration config;
     try {
-      config = parse(configFile).build();
+      config = Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assumeNoException(e);
       throw new AssertionError(e);
@@ -280,7 +289,7 @@ public class ConfigurationFileChecks {
     // for specific use cases (e.g., SV-COMP).
     // If you add config files for specific use cases (and this is clear from the config's name!),
     // you can whitelist it here.
-    // Otherwise consider changing the default value of the option if the value makes sense in
+    // Otherwise, consider changing the default value of the option if the value makes sense in
     // general, or remove it from the config file.
 
     checkOption(config, "analysis.entryFunction");
@@ -384,26 +393,33 @@ public class ConfigurationFileChecks {
     config.inject(options);
 
     @SuppressWarnings("deprecation")
-    final String spec = config.getProperty("specification");
+    final @Nullable String spec = config.getProperty(SPECIFICATION_OPTION);
     @SuppressWarnings("deprecation")
     final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")
     final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
-    final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
+    final boolean isTestGenerationConfig =
+        basePath.toString().contains("testCaseGeneration")
+            || basePath.toString().contains("testcomp");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
-    if (options.language == Language.JAVA) {
+    if (options.language == Language.SVLIB) {
+      // For SV-LIB Programs the specification is inside the program itself, so we do not need to
+      // check anything
+      assertThat(spec).isEqualTo("specification/correct-annotations.spc");
+    } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
       assertThat(spec).contains("specification/BDDCPAErrorLocation.spc");
     } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
       assertThat(spec).endsWith("specification/null-deref.spc");
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
+        || Ascii.toLowerCase(basePath.toString()).contains("termination")
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
         || basePath.toString().contains("validation-termination")) {
-      assertThat(spec).isEmpty();
+      assertThat(Strings.nullToEmpty(spec)).isEmpty();
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
         assertThat(spec).endsWith("specification/sv-comp-overflow.spc");
@@ -431,6 +447,20 @@ public class ConfigurationFileChecks {
           assertThat(spec).contains("specification/memorysafety.spc");
         }
       }
+    } else if (cpas.contains("cpa.smg2.SMGCPA")
+        || Ascii.toLowerCase(basePath.toString()).contains("memorysafety")
+        || Ascii.toLowerCase(basePath.toString()).contains("memorycleanup")) {
+      if (isSvcompConfig) {
+        assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
+      } else {
+        if (spec.contains("sv-comp-memorycleanup")) {
+          assertThat(spec).contains("specification/sv-comp-memorycleanup.spc");
+        } else if (spec.contains("memorycleanup")) {
+          assertThat(spec).contains("specification/memorycleanup.spc");
+        } else if (spec.contains("memorysafety")) {
+          assertThat(spec).contains("specification/memorysafety.spc");
+        }
+      }
     } else if (basePath.toString().startsWith("ldv")) {
       assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
     } else if (isSvcompConfig) {
@@ -453,6 +483,7 @@ public class ConfigurationFileChecks {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
@@ -466,7 +497,7 @@ public class ConfigurationFileChecks {
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
               Path.of("importFaults.properties"),
-              Path.of("distributed-block-summaries"));
+              Path.of("distributed-summary-synthesis"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -478,7 +509,17 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
-    final boolean isJava = options.language == Language.JAVA;
+    if (Strings.isNullOrEmpty(config.getProperty(SPECIFICATION_OPTION))
+        && configFile instanceof Path configFilePath
+        && (Iterables.contains(configFilePath, Path.of("components"))
+            || configFilePath.endsWith("ltl.properties"))) {
+      // Some configs require a specification due to the use of $specification.
+      // For config/components/ we do not want to hard-code a specification in the config file,
+      // but we still want to instantiate the config for testing here. So provide a dummy spec.
+      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
+      configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/Assertion.spc");
+      config = configBuilder.build();
+    }
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
@@ -494,14 +535,30 @@ public class ConfigurationFileChecks {
       return;
     }
 
+    // exclude files not meant to be run
+    if (configFile instanceof Path) {
+      assume()
+          .that((Iterable<?>) configFile)
+          .containsNoneOf(
+              // Configs containing this name randomly sample paths from the program
+              // by default they do not terminate, which makes this test fail due to
+              // a timeout. If the analysis is improved such that already
+              // seen paths are not considered twice, this test can be re-enabled.
+              Path.of("describerr-portfolio.properties"),
+              Path.of("parallel-randomSampling.properties"),
+              Path.of("randomSampling.properties"),
+              Path.of("randomTesting.properties"),
+              // All configurations based on sequentialization reject the default empty
+              // program used in this test, they requires a
+              Path.of("sequentializeProgram.properties"),
+              Path.of("sequentialization-concurrency--memorysafety.properties"),
+              Path.of("sequentialization-concurrency--overflow.properties"),
+              Path.of("sequentialization-concurrency.properties"));
+    }
+
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
-    } catch (IllegalArgumentException e) {
-      if (isJava) {
-        assume().withMessage("Java frontend has a bug and cannot be run twice").fail();
-      }
-      throw e;
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);
@@ -511,13 +568,11 @@ public class ConfigurationFileChecks {
         .withMessage(
             "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
             formatLogRecords(logHandler.getStoredLogRecords()))
-        .about(streams())
         .that(getSevereMessages(options, logHandler))
         .isEmpty();
 
     assume()
         .withMessage("messages indicating missing input files")
-        .about(streams())
         .that(
             logHandler.getStoredLogRecords().stream()
                 .map(LogRecord::getMessage)
@@ -552,17 +607,10 @@ public class ConfigurationFileChecks {
 
   private Configuration createConfigurationForTestInstantiation() {
     try {
-      FileTypeConverter fileTypeConverter =
-          FileTypeConverter.create(
-              Configuration.builder()
-                  .setOption("rootDirectory", tempFolder.getRoot().toString())
-                  .build());
-      Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-
-      return parse(configFile)
-          .addConverter(FileOption.class, fileTypeConverter)
+      return TestUtils.configurationForTestWithOutput(tempFolder)
+          .loadFromFile(configFileAsPath())
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
-          .setOption("differential.program", createEmptyProgram(false))
+          .setOption("differential.program", createEmptyProgram(Language.C))
           .setOption("statistics.memory", "false")
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
@@ -571,8 +619,8 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private String createEmptyProgram(boolean pIsJava) throws IOException {
-    return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
+  private String createEmptyProgram(Language pLanguage) throws IOException {
+    return TestCfaUtils.getEmptyProgram(tempFolder, pLanguage);
   }
 
   private Stream<String> getSevereMessages(
@@ -601,6 +649,7 @@ public class ConfigurationFileChecks {
               LogRecord result = underlyingIterator.next();
               if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
                 if (result.getMessage().endsWith("finished successfully.")) {
+                  // TODO: log/return the config that triggers this!
                   oneComponentSuccessful = true;
                   underlyingIterator =
                       Iterators.filter(

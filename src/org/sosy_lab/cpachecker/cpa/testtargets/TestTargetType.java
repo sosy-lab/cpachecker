@@ -21,7 +21,7 @@ public enum TestTargetType {
   ASSUME {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion() {
-      return edge -> edge instanceof AssumeEdge;
+      return AssumeEdge.class::isInstance;
     }
 
     @Override
@@ -45,9 +45,9 @@ public enum TestTargetType {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion() {
       return edge ->
-          edge instanceof CStatementEdge
-              && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
-              && ((CFunctionCall) ((CStatementEdge) edge).getStatement())
+          edge instanceof CStatementEdge cStatementEdge
+              && cStatementEdge.getStatement() instanceof CFunctionCall cFunctionCall
+              && cFunctionCall
                   .getFunctionCallExpression()
                   .getFunctionNameExpression()
                   .toASTString()
@@ -68,15 +68,15 @@ public enum TestTargetType {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion(final String funName) {
       return edge ->
-          (edge instanceof CStatementEdge
-                  && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
-                  && ((CFunctionCall) ((CStatementEdge) edge).getStatement())
+          (edge instanceof CStatementEdge cStatementEdge
+                  && cStatementEdge.getStatement() instanceof CFunctionCall cFunctionCall
+                  && cFunctionCall
                       .getFunctionCallExpression()
                       .getFunctionNameExpression()
                       .toASTString()
                       .equals(funName))
-              || (edge instanceof CFunctionCallEdge
-                  && ((CFunctionCallEdge) edge)
+              || (edge instanceof CFunctionCallEdge cFunctionCallEdge
+                  && cFunctionCallEdge
                       .getFunctionCallExpression()
                       .getFunctionNameExpression()
                       .toASTString()

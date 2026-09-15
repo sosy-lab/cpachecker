@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -22,6 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -68,6 +70,14 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
 
   @Before
   public void init() throws Exception {
+    assume()
+        .withMessage(
+            "Solver %s does not completely support the tested features, like dumping and parsing"
+                + " formulas",
+            solverToUse())
+        .that(solverToUse())
+        .isNotEqualTo(Solvers.BITWUZLA);
+
     FormulaManagerView fmv = mgrv;
     PathFormulaManager pfmgr =
         new PathFormulaManagerImpl(
@@ -77,7 +87,8 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
             shutdownNotifierToUse(),
             MachineModel.LINUX32,
             Optional.empty(),
-            AnalysisDirection.FORWARD);
+            AnalysisDirection.FORWARD,
+            Language.C);
     pReqTrans = new PredicateRequirementsTranslator(fmv);
 
     SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();

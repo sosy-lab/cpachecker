@@ -57,7 +57,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
   private final ErrorConditions errorConditions;
 
   public CtoWpConverter(
-      FormulaEncodingOptions pOptions,
+      CFormulaEncodingOptions pOptions,
       FormulaManagerView pFmgr,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification,
@@ -87,34 +87,36 @@ public class CtoWpConverter extends CtoFormulaConverter {
     String functionName = pEdge.getPredecessor().getFunctionName();
 
     switch (pEdge.getEdgeType()) {
-      case StatementEdge:
+      case StatementEdge -> {
         return makePreconditionForStatement((CStatementEdge) pEdge, pPostcond, functionName);
-      case ReturnStatementEdge:
-        {
-          final var edge = (CReturnStatementEdge) pEdge;
-          return makePreconditionForReturn(edge.asAssignment(), edge, pPostcond, functionName);
+      }
+      case ReturnStatementEdge -> {
+        final var edge = (CReturnStatementEdge) pEdge;
+        return makePreconditionForReturn(edge.asAssignment(), edge, pPostcond, functionName);
+      }
+      case DeclarationEdge -> {
+        final CDeclarationEdge edge = (CDeclarationEdge) pEdge;
+        if (edge.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+          return makePreconditionForVarDeclaration(
+              edge, cVariableDeclaration, pPostcond, functionName);
+        } else {
+          return pPostcond;
         }
-      case DeclarationEdge:
-        {
-          final CDeclarationEdge edge = (CDeclarationEdge) pEdge;
-          if (edge.getDeclaration() instanceof CVariableDeclaration) {
-            return makePreconditionForVarDeclaration(
-                edge, (CVariableDeclaration) edge.getDeclaration(), pPostcond, functionName);
-          } else {
-            return pPostcond;
-          }
-        }
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         return makePreconditionForAssumption((CAssumeEdge) pEdge, pPostcond, functionName);
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         return makePreconditionForFunctionCall((CFunctionCallEdge) pEdge, pPostcond, functionName);
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         return makePreconditionForFunctionExit(
             ((CFunctionReturnEdge) pEdge).getSummaryEdge(), pPostcond);
-      case BlankEdge:
+      }
+      case BlankEdge -> {
         return pPostcond;
-      default:
-        throw new UnrecognizedCFAEdgeException(pEdge);
+      }
+      default -> throw new UnrecognizedCFAEdgeException(pEdge);
     }
   }
 
@@ -127,13 +129,13 @@ public class CtoWpConverter extends CtoFormulaConverter {
       throws UnrecognizedCodeException {
 
     CStatement stmt = pEdge.getStatement();
-    if (stmt instanceof CAssignment) {
-      return makePreconditionForAssignment((CAssignment) stmt, pEdge, pPostcond, pFunction);
+    if (stmt instanceof CAssignment cAssignment) {
+      return makePreconditionForAssignment(cAssignment, pEdge, pPostcond, pFunction);
 
     } else {
-      if (stmt instanceof CFunctionCallStatement) {
+      if (stmt instanceof CFunctionCallStatement cFunctionCallStatement) {
         return makePreconditionForFunctionCallStatement(
-            pEdge, (CFunctionCallStatement) stmt, pPostcond, pFunction);
+            pEdge, cFunctionCallStatement, pPostcond, pFunction);
       } else if (!(stmt instanceof CExpressionStatement)) {
         throw new UnrecognizedCodeException("Unknown statement", pEdge, stmt);
       }

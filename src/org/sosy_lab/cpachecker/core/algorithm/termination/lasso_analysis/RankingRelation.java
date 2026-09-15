@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
@@ -68,13 +68,41 @@ public class RankingRelation {
   public CExpression asCExpression() {
     assert !rankingRelationFormulas.isEmpty();
     return rankingRelations.stream()
-        .reduce((a, b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BINARY_OR))
+        .reduce((a, b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BITWISE_OR))
         .orElseGet(() -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(ZERO, ONE, EQUALS));
   }
 
   public BooleanFormula asFormula() {
     assert !rankingRelationFormulas.isEmpty();
     return formulaManagerView.getBooleanFormulaManager().or(rankingRelationFormulas);
+  }
+
+  public BooleanFormula asApproximatedScopedFormula(
+      final String pFunctionScope, final FormulaManagerView pFormulaManagerView) {
+    Collection<BooleanFormula> filteredRankingRelationFormulae =
+        rankingRelationFormulas.stream()
+            .filter(
+                rankF ->
+                    formulaManagerView.extractVariableNames(rankF).stream()
+                        .allMatch(
+                            name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")))
+            .toList();
+    if (filteredRankingRelationFormulae.isEmpty()) {
+      return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+    }
+
+    return pFormulaManagerView.translateFrom(
+        formulaManagerView.renameFreeVariablesAndUFs(
+            formulaManagerView.getBooleanFormulaManager().or(filteredRankingRelationFormulae),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            }),
+        formulaManagerView);
   }
 
   public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pFormulaManagerView) {

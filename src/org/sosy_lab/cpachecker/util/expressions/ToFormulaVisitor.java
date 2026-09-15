@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -67,23 +68,23 @@ public class ToFormulaVisitor
       throws ToFormulaException {
     AExpression expression = pLeafExpression.getExpression();
     final CFAEdge edge;
-    if (expression instanceof CExpression) {
+    if (expression instanceof CExpression cExpression) {
       edge =
           new CAssumeEdge(
               "",
               FileLocation.DUMMY,
               CFANode.newDummyCFANode(),
               CFANode.newDummyCFANode(),
-              (CExpression) expression,
+              cExpression,
               pLeafExpression.assumeTruth());
-    } else if (expression instanceof JExpression) {
+    } else if (expression instanceof JExpression jExpression) {
       edge =
           new JAssumeEdge(
               "",
               FileLocation.DUMMY,
               CFANode.newDummyCFANode(),
               CFANode.newDummyCFANode(),
-              (JExpression) expression,
+              jExpression,
               pLeafExpression.assumeTruth());
     } else {
       throw new AssertionError("Unsupported expression type.");
@@ -117,7 +118,7 @@ public class ToFormulaVisitor
    */
   public static class ToFormulaException extends Exception {
 
-    private static final long serialVersionUID = -3849941975554955994L;
+    @Serial private static final long serialVersionUID = -3849941975554955994L;
 
     private ToFormulaException(Exception pCause) {
       super(pCause);

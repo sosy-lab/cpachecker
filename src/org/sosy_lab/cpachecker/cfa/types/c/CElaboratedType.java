@@ -12,31 +12,29 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class CElaboratedType implements CComplexType {
 
-  private static final long serialVersionUID = -3566628634889842927L;
+  @Serial private static final long serialVersionUID = -3566628634889842927L;
   private final ComplexTypeKind kind;
   private String name;
   private final String origName;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   private int hashCache = 0;
 
   private @Nullable CComplexType realType = null;
 
   public CElaboratedType(
-      boolean pConst,
-      final boolean pVolatile,
+      final CTypeQualifiers pQualifiers,
       final ComplexTypeKind pKind,
       final String pName,
       final String pOrigName,
       final @Nullable CComplexType pRealType) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    qualifiers = checkNotNull(pQualifiers);
     kind = checkNotNull(pKind);
     name = pName.intern();
     origName = pOrigName.intern();
@@ -100,14 +98,7 @@ public final class CElaboratedType implements CComplexType {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
+    lASTString.append(qualifiers.toASTStringPrefix());
     lASTString.append(kind.toASTString());
     lASTString.append(" ");
     lASTString.append(name);
@@ -123,13 +114,8 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -161,7 +147,7 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(isConst, isVolatile, kind, name, realType);
+      hashCache = Objects.hash(qualifiers, kind, name, realType);
     }
     return hashCache;
   }
@@ -178,8 +164,7 @@ public final class CElaboratedType implements CComplexType {
     }
 
     return obj instanceof CElaboratedType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && Objects.equals(name, other.name)
         && Objects.equals(realType, other.realType);
@@ -192,28 +177,30 @@ public final class CElaboratedType implements CComplexType {
     }
 
     return obj instanceof CElaboratedType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
         && Objects.equals(realType, other.realType);
   }
 
   @Override
-  public CType getCanonicalType() {
-    return getCanonicalType(false, false);
+  public CType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
+    if (realType == null) {
+      if (qualifiers.equals(newQualifiers)) {
+        return this;
+      }
+      return new CElaboratedType(newQualifiers, kind, name, origName, null);
+    } else {
+      return realType.getCanonicalType(newQualifiers);
+    }
   }
 
   @Override
-  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if (realType == null) {
-      if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
-        return this;
-      }
-      return new CElaboratedType(
-          isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
-    } else {
-      return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
+  public CElaboratedType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
+      return this;
     }
+    return new CElaboratedType(pNewQualifiers, getKind(), getName(), getOrigName(), getRealType());
   }
 }
