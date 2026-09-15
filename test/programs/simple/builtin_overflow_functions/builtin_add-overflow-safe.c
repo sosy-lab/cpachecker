@@ -17,6 +17,23 @@ void __VERIFIER_assert(int condition) {
 // This program is safe for unreach-label, valid-memsafety, and no-overflow in ILP32 and LP64
 int main(void) {
 
+  int add_address_result;
+  int add_address_overflow = __builtin_add_overflow(1, 2, &add_address_result);
+
+  // 1 + 2 = 3; the ordinary address-of result pointer stores the result and reports no overflow.
+  __VERIFIER_assert(add_address_result == 3);
+  __VERIFIER_assert(add_address_overflow == 0);
+
+
+  int add_pointer_result;
+  int *add_pointer = &add_pointer_result;
+  int add_pointer_overflow = __builtin_add_overflow(1, 2, add_pointer);
+
+  // The pointer-variable result destination has the same result and overflow flag as &add_pointer_result.
+  __VERIFIER_assert(add_pointer_result == 3);
+  __VERIFIER_assert(add_pointer_overflow == 0);
+
+
   // Constant test values are initialized directly and never modified.
   const char char_min = -128;
   const char char_max = 127;
