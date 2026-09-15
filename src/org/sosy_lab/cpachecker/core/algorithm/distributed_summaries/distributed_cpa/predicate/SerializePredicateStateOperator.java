@@ -11,12 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Map;
-import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -52,6 +49,10 @@ public class SerializePredicateStateOperator implements SerializeOperator {
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
+    return serializePayload(pState).asContentMap();
+  }
+
+  private DssPredicateStatePayload serializePayload(AbstractState pState) {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     BooleanFormula booleanFormula;
@@ -73,39 +74,40 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     String serializedFormula = formulaManagerView.dumpFormula(booleanFormula).toString();
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     String pts;
-    StringBuilder serializedSSAMap = new StringBuilder();
+    ImmutableMap.Builder<String, DssSSAVariablePayload> variableToPayloadBuilder =
+        ImmutableMap.builder();
     try {
-      ImmutableMap.Builder<String, String> variableToIndexTypeBuilder = ImmutableMap.builder();
       for (String variable : ssaMap.allVariables()) {
         if (variableTypes.containsKey(variable)) {
-          variableToIndexTypeBuilder.put(
-              variable, ssaMap.getIndex(variable) + " " + variableTypes.get(variable));
-        } else {
-          variableToIndexTypeBuilder.put(
+          variableToPayloadBuilder.put(
               variable,
-              ssaMap.getIndex(variable)
-                  + " "
-                  + DssSerializeObjectUtil.serialize(ssaMap.getType(variable)));
+              new DssSSAVariablePayload(
+                  ssaMap.getIndex(variable), variableTypes.get(variable).toString()));
+        } else {
+          variableToPayloadBuilder.put(
+              variable,
+              new DssSSAVariablePayload(
+                  ssaMap.getIndex(variable),
+                  DssSerializeObjectUtil.serialize(ssaMap.getType(variable))));
         }
       }
-      JSON.writeJSONString(variableToIndexTypeBuilder.buildOrThrow(), serializedSSAMap);
       pts = DssSerializeObjectUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     } finally {
       SerializationInfoStorage.clear();
     }
+    ImmutableMap<String, DssSSAVariablePayload> ssaPayloadMap =
+        variableToPayloadBuilder.buildOrThrow();
 
     final BooleanFormula booleanFormulaForLambda = booleanFormula;
 
-    return ContentBuilder.builder()
-        .pushLevel(DssComponentKey.serializedNameFor(PredicateAbstractState.class))
-        .put(STATE_KEY, serializedFormula)
-        .put(SSA_KEY, serializedSSAMap.toString())
-        .put(PTS_KEY, pts)
+    return new DssPredicateStatePayload(
+        serializedFormula,
+        ssaPayloadMap,
+        pts,
         // currently, the toString() crashes in some circumstances
         // TODO find permanent solution
-        .putIf(writeReadableFormulas, READABLE_KEY, () -> booleanFormulaForLambda.toString())
-        .build();
+        writeReadableFormulas ? booleanFormulaForLambda.toString() : null);
   }
 }

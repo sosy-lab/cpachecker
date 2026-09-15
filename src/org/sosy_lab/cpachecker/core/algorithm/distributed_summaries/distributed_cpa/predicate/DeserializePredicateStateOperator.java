@@ -8,13 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -24,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -51,10 +44,6 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
 
   private final ImmutableMap<String, Type> variableTypes;
   private final Map<String, CType> numericTypes;
-
-  // ObjectMapper is expensive in initialization, but thread safe;
-  // so we can reuse.
-  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   public DeserializePredicateStateOperator(
       PredicateCPA pPredicateCPA,
@@ -89,39 +78,26 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex)
       throws InterruptedException {
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
-    ContentReader predicateContent =
-        pMessage.getAbstractStateContent(PredicateAbstractState.class, pStateIndex);
     try {
-      String serializedSsaMap = predicateContent.get(SerializePredicateStateOperator.SSA_KEY);
-      Preconditions.checkNotNull(serializedSsaMap, "SSA Map must be provided");
-
-      // parse JSON string into Map<String, Integer> using Jackson
-      Map<String, String> ssaMapContents;
-      try {
-        ssaMapContents = objectMapper.readValue(serializedSsaMap, new TypeReference<>() {});
-      } catch (IOException e) {
-        throw new IllegalStateException("Failed to parse SSA map JSON", e);
-      }
-      Preconditions.checkNotNull(ssaMapContents, "Parsed SSA map must not be null");
+      DssPredicateStatePayload payload =
+          DssPredicateStatePayload.fromContentMap(pMessage.getStates().get(pStateIndex));
 
       SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
-      for (Entry<String, String> entry : ssaMapContents.entrySet()) {
-        List<String> indexAndType = Splitter.on(" ").limit(2).splitToList(entry.getValue());
-        Type type =
-            variableTypes.getOrDefault(entry.getKey(), numericTypes.get(indexAndType.getLast()));
+      for (Entry<String, DssSSAVariablePayload> entry : payload.ssaMap().entrySet()) {
+        int index = entry.getValue().index();
+        String serializedType = entry.getValue().serializedType();
+        Type type = variableTypes.getOrDefault(entry.getKey(), numericTypes.get(serializedType));
         if (type == null) {
-          type = DssSerializeObjectUtil.deserialize(indexAndType.getLast(), Type.class);
+          type = DssSerializeObjectUtil.deserialize(serializedType, Type.class);
         }
-        ssaMapBuilder.setIndex(entry.getKey(), type, Integer.parseInt(indexAndType.getFirst()));
+        ssaMapBuilder.setIndex(entry.getKey(), type, index);
       }
 
-      String serializedPts = predicateContent.get(SerializePredicateStateOperator.PTS_KEY);
-      Preconditions.checkNotNull(serializedPts, "Pointer target set (PTS) must be provided");
+      String serializedPts = payload.pts();
       PointerTargetSet pts =
           DssSerializeObjectUtil.deserialize(serializedPts, PointerTargetSet.class);
 
-      String serializedState = predicateContent.get(STATE_KEY);
-      Preconditions.checkNotNull(serializedState, "State must be provided");
+      String serializedState = payload.formula();
 
       PathFormula abstraction =
           PredicateOperatorUtil.getPathFormula(
