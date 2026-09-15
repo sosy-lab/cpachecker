@@ -909,8 +909,7 @@ public class ARGUtils {
               List<CFAEdge> allEdges = s.getEdgesToChild(child);
               Preconditions.checkState(
                   !allEdges.isEmpty(),
-                  "No CFA connection from %s to %s, cannot produce an"
-                      + " automaton for this path",
+                  "No CFA connection from %s to %s, cannot produce an" + " automaton for this path",
                   s,
                   child);
               if (allEdges.size() > 1) {
