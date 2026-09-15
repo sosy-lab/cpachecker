@@ -591,7 +591,7 @@ public class SMGCPABuiltins {
 
     OverflowFunctionReturnAndCastCalculationResult resultExpressions =
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
-            functionName, a, b, typeOfResBelowPointer, pCfaEdge);
+            functionName, a, b, typeOfResBelowPointer);
 
     CExpression castCalculationResult = resultExpressions.castCalculationResult();
     CExpression overflowComparison = resultExpressions.functionReturn();
@@ -661,17 +661,12 @@ public class SMGCPABuiltins {
           String fullFunctionName,
           final CExpression a,
           final CExpression b,
-          final CType typeOfResBelowPointer,
-          CFAEdge pCFAEdge)
-          throws UnrecognizedCodeException {
+          final CType typeOfResBelowPointer) {
 
-    assert fullFunctionName.startsWith("__builtin_");
-    assert fullFunctionName.endsWith("_overflow");
-    // Cut off common parts for checks, i.e. "__builtin_" and "_overflow"
-    final String coreFunctionName = fullFunctionName.substring(10, fullFunctionName.length() - 9);
-
-    final BinaryOperator operator =
-        getOperatorFromFunctionName(fullFunctionName, pCFAEdge, coreFunctionName);
+    checkArgument(fullFunctionName.startsWith("__builtin_"));
+    checkArgument(fullFunctionName.endsWith("_overflow"));
+    final BinaryOperator operator = BuiltinOverflowFunctions.getOperator(fullFunctionName);
+    final Optional<CSimpleType> fixedType = BuiltinOverflowFunctions.getType(fullFunctionName);
 
     final CType typeOfA = a.getExpressionType().getCanonicalType();
     final CType typeOfB = b.getExpressionType().getCanonicalType();
@@ -679,9 +674,7 @@ public class SMGCPABuiltins {
     CExpression castAExpr = a;
     CExpression castBExpr = b;
 
-    if (coreFunctionName.equals("add")
-        || coreFunctionName.equals("mul")
-        || coreFunctionName.equals("sub")) {
+    if (fixedType.isEmpty()) {
       // __builtin_add_overflow or __builtin_sub_overflow or __builtin_mul_overflow
       // Allows arbitrary integral types for operands and the result type must be pointer to some
       //  integral type other than enumerated or boolean type
@@ -693,39 +686,10 @@ public class SMGCPABuiltins {
       // fixed type functions, i.e. all arguments need the same numeric type
       checkArgument(CTypes.isIntegerType(typeOfA));
       checkArgument(CTypes.isIntegerType(typeOfB));
-      if (coreFunctionName.startsWith("s")) {
-        // signed fixed type functions
-        if (coreFunctionName.endsWith("ll")) {
-          castAExpr = castIfNecessary(a, CNumericTypes.LONG_LONG_INT);
-          castBExpr = castIfNecessary(b, CNumericTypes.LONG_LONG_INT);
-          checkArgument(typeOfResBelowPointer == CNumericTypes.LONG_LONG_INT);
-        } else if (coreFunctionName.endsWith("l")) {
-          castAExpr = castIfNecessary(a, CNumericTypes.LONG_INT);
-          castBExpr = castIfNecessary(b, CNumericTypes.LONG_INT);
-          checkArgument(typeOfResBelowPointer == CNumericTypes.LONG_INT);
-        } else {
-          castAExpr = castIfNecessary(a, CNumericTypes.INT);
-          castBExpr = castIfNecessary(b, CNumericTypes.INT);
-          checkArgument(typeOfResBelowPointer == CNumericTypes.INT);
-        }
-      } else {
-        checkArgument(
-            coreFunctionName.startsWith("u"), "Unexpected function name: %s", fullFunctionName);
-        // unsigned fixed type functions
-        if (coreFunctionName.endsWith("ll")) {
-          castAExpr = castIfNecessary(a, CNumericTypes.UNSIGNED_LONG_LONG_INT);
-          castBExpr = castIfNecessary(b, CNumericTypes.UNSIGNED_LONG_LONG_INT);
-          checkArgument(typeOfResBelowPointer == CNumericTypes.UNSIGNED_LONG_LONG_INT);
-        } else if (coreFunctionName.endsWith("l")) {
-          castAExpr = castIfNecessary(a, CNumericTypes.UNSIGNED_LONG_INT);
-          castBExpr = castIfNecessary(b, CNumericTypes.UNSIGNED_LONG_INT);
-          checkArgument(typeOfResBelowPointer == CNumericTypes.UNSIGNED_LONG_INT);
-        } else {
-          castAExpr = castIfNecessary(a, CNumericTypes.UNSIGNED_INT);
-          castBExpr = castIfNecessary(b, CNumericTypes.UNSIGNED_INT);
-          checkArgument(typeOfResBelowPointer == CNumericTypes.UNSIGNED_INT);
-        }
-      }
+      CSimpleType parameterType = fixedType.orElseThrow().getCanonicalType();
+      checkArgument(typeOfResBelowPointer.getCanonicalType().equals(parameterType));
+      castAExpr = castIfNecessary(a, parameterType);
+      castBExpr = castIfNecessary(b, parameterType);
     }
 
     return buildGccOverflowFunctionCalculationAndResult(
@@ -800,7 +764,7 @@ public class SMGCPABuiltins {
     final String modifiedFunctionName = functionName.substring(0, functionName.length() - 2);
     OverflowFunctionReturnAndCastCalculationResult overflowBoolCalcResAndState =
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
-            modifiedFunctionName, a, b, typeOfArgumentC, pCfaEdge);
+            modifiedFunctionName, a, b, typeOfArgumentC);
     CExpression overflowComparison = overflowBoolCalcResAndState.functionReturn();
 
     List<ValueAndSMGState> overflowComparisonResults =
@@ -940,13 +904,13 @@ public class SMGCPABuiltins {
     //      __typeof__ (a) c1 = __builtin_sub/add_overflow (a, b, &s); \
     OverflowFunctionReturnAndCastCalculationResult c1AndS =
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
-            usedFunctionName, aArgumentCExpr, bArgumentCExpr, type, pCfaEdge);
+            usedFunctionName, aArgumentCExpr, bArgumentCExpr, type);
 
     //      __typeof__ (a) c2 = __builtin_sub/add_overflow (s, carry_in, &s); \
     CExpression c1 = c1AndS.functionReturn();
     OverflowFunctionReturnAndCastCalculationResult c2AndS =
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
-            usedFunctionName, c1AndS.castCalculationResult(), carryInArgumentCExpr, type, pCfaEdge);
+            usedFunctionName, c1AndS.castCalculationResult(), carryInArgumentCExpr, type);
 
     CExpression c2 = c2AndS.functionReturn();
     // s is the return of the function
