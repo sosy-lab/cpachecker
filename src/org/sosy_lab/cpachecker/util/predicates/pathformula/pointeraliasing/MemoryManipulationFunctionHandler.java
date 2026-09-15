@@ -178,7 +178,7 @@ class MemoryManipulationFunctionHandler {
           pNondetMemoryCall);
     }
 
-    CExpression objectPointer = params.get(0);
+    CExpression objectPointer = params.getFirst();
     CExpression regionSize = params.get(1);
 
     Optional<CExpression> nondetValue = Optional.empty();
