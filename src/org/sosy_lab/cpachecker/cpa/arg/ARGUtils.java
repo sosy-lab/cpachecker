@@ -653,12 +653,10 @@ public class ARGUtils {
     return true;
   }
 
-  private static final String VIOLATION_ASSERTION = "ASSERT !CHECK(\"internalStateIsTarget\") ";
-
   /**
    * Produce an automaton in the format for the AutomatonCPA from a given path. The automaton
    * matches exactly the edges along the path. If there is a target state, it is signaled as an
-   * error state in the automaton, provided that the specification automaton also considers it one.
+   * error state in the automaton.
    *
    * @param sb Where to write the automaton to
    * @param pRootState The root of the ARG
@@ -667,6 +665,73 @@ public class ARGUtils {
    *     automaton, may be null
    */
   public static void producePathAutomaton(
+      Appendable sb,
+      ARGState pRootState,
+      Set<ARGState> pPathStates,
+      String name,
+      @Nullable CounterexampleInfo pCounterExample)
+      throws IOException {
+
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
+
+    if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
+      valueMap = pCounterExample.getExactVariableValues();
+    }
+
+    sb.append("CONTROL AUTOMATON " + name + "\n\n");
+    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
+
+    int multiEdgeCount = 0; // see below
+
+    for (ARGState s : ImmutableList.sortedCopyOf(pPathStates)) {
+
+      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
+
+      for (ARGState child : s.getChildren()) {
+        if (child.isCovered()) {
+          child = child.getCoveringState();
+          assert !child.isCovered();
+        }
+
+        if (pPathStates.contains(child)) {
+          List<CFAEdge> allEdges = s.getEdgesToChild(child);
+          if (allEdges.size() > 1) {
+            // The successor state might have several incoming MultiEdges.
+            // In this case the state names like ARG<successor>_0 would occur
+            // several times.
+            // So we add this counter to the state names to make them unique.
+            multiEdgeCount++;
+          }
+          CFAEdge edge = handleMultiEdgeMatch(sb, s, child, allEdges, multiEdgeCount);
+
+          if (child.isTarget()) {
+            sb.append("ERROR");
+          } else {
+            addAssumption(valueMap, s, edge, sb);
+            sb.append("GOTO ARG" + child.getStateId());
+          }
+          sb.append(";\n");
+        }
+      }
+      sb.append("    TRUE -> STOP;\n\n");
+    }
+    sb.append("END AUTOMATON\n");
+  }
+
+  private static final String VIOLATION_ASSERTION = "ASSERT !CHECK(\"internalStateIsTarget\") ";
+
+  /**
+   * Produce an automaton in the format for the AutomatonCPA from a given path, used to restrict the
+   * exploration of a counterexample-check to that path. If there is a target state, it is signaled
+   * as an error state in the automaton only if the specification automaton is also violated.
+   *
+   * @param sb Where to write the automaton to
+   * @param pRootState The root of the ARG
+   * @param pPathStates The states along the path
+   * @param pCounterExample Given to try to write exact variable assignment values into the
+   *     automaton, may be null
+   */
+  public static void produceCounterexampleAutomaton(
       Appendable sb,
       ARGState pRootState,
       Set<ARGState> pPathStates,
@@ -700,55 +765,14 @@ public class ARGUtils {
         }
 
         List<CFAEdge> allEdges = s.getEdgesToChild(child);
-        CFAEdge edge;
-
-        if (allEdges.isEmpty()) {
-          // this is a missing edge, e.g., caused by SSCCPA
-          edge = new DummyCFAEdge(extractLocation(s), extractLocation(child));
-
-        } else if (allEdges.size() == 1) {
-          edge = Iterables.getOnlyElement(allEdges);
-
-          // this is a dynamic multi edge
-        } else {
+        if (allEdges.size() > 1) {
           // The successor state might have several incoming MultiEdges.
           // In this case the state names like ARG<successor>_0 would occur
           // several times.
-          // So we add this counter to the state names to make them unique.
+          // So we add this counter to the state names to make them unique..
           multiEdgeCount++;
-
-          // first, write edge entering the list
-          int i = 0;
-          sb.append("    MATCH \"");
-          escape(allEdges.get(i).getRawStatement(), sb);
-          sb.append("\" -> ");
-          sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-          sb.append(";\n");
-
-          // inner part (without first and last edge)
-          for (; i < allEdges.size() - 1; i++) {
-            sb.append(
-                "STATE USEFIRST ARG"
-                    + child.getStateId()
-                    + "_"
-                    + i
-                    + "_"
-                    + multiEdgeCount
-                    + " :\n");
-            sb.append("    MATCH \"");
-            escape(allEdges.get(i).getRawStatement(), sb);
-            sb.append("\" -> ");
-            sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-            sb.append(";\n");
-          }
-
-          // last edge connecting it with the real successor
-          edge = allEdges.get(i);
-          sb.append(
-              "STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
         }
-
-        handleMatchCase(sb, edge);
+        CFAEdge edge = handleMultiEdgeMatch(sb, s, child, allEdges, multiEdgeCount);
 
         if (child.isTarget()) {
           sb.append(VIOLATION_ASSERTION);
@@ -883,57 +907,14 @@ public class ARGUtils {
 
             if (pPathStates.contains(child)) {
               List<CFAEdge> allEdges = s.getEdgesToChild(child);
-              CFAEdge edge;
-
-              if (allEdges.size() == 1) {
-                edge = Iterables.getOnlyElement(allEdges);
-
-                // this is a dynamic multi edge
-              } else {
+              if (allEdges.size() > 1) {
                 // The successor state might have several incoming MultiEdges.
                 // In this case the state names like ARG<successor>_0 would occur
                 // several times.
                 // So we add this counter to the state names to make them unique.
                 multiEdgeCount++;
-
-                // first, write edge entering the list
-                int i = 0;
-                sb.append("    MATCH \"");
-                escape(allEdges.get(i).getRawStatement(), sb);
-                sb.append("\" -> ");
-                sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-                sb.append(";\n");
-
-                // inner part (without first and last edge)
-                for (; i < allEdges.size() - 1; i++) {
-                  sb.append(
-                      "STATE USEFIRST ARG"
-                          + child.getStateId()
-                          + "_"
-                          + i
-                          + "_"
-                          + multiEdgeCount
-                          + " :\n");
-                  sb.append("    MATCH \"");
-                  escape(allEdges.get(i).getRawStatement(), sb);
-                  sb.append("\" -> ");
-                  sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
-                  sb.append(";\n");
-                }
-
-                // last edge connecting it with the real successor
-                edge = allEdges.get(i);
-                sb.append(
-                    "STATE USEFIRST ARG"
-                        + child.getStateId()
-                        + "_"
-                        + i
-                        + "_"
-                        + multiEdgeCount
-                        + " :\n");
               }
-
-              handleMatchCase(sb, edge);
+              handleMultiEdgeMatch(sb, s, child, allEdges, multiEdgeCount);
 
               if (child.isTarget()) {
                 sb.append("ERROR");
@@ -967,6 +948,46 @@ public class ARGUtils {
     }
 
     sb.append("END AUTOMATON\n");
+  }
+
+  /**
+   * Writes the {@code MATCH "..." ->} for the edge(s) from {@code s} to {@code child}, resolving a
+   * multi edge into a chain of intermediate {@code STATE} blocks, and returns the final edge to
+   * match into {@code child} itself.
+   *
+   * @param multiEdgeId The id to disambiguate the intermediate states of this multi edge from those
+   *     of any other multi edge into the same {@code child}.
+   */
+  private static CFAEdge handleMultiEdgeMatch(
+      Appendable sb, ARGState s, ARGState child, List<CFAEdge> allEdges, int multiEdgeId)
+      throws IOException {
+    CFAEdge edge;
+
+    if (allEdges.isEmpty()) {
+      // this is a missing edge, e.g., caused by SSCCPA
+      edge = new DummyCFAEdge(extractLocation(s), extractLocation(child));
+    } else if (allEdges.size() == 1) {
+      edge = Iterables.getOnlyElement(allEdges);
+    } else {
+      // this is a dynamic multi edge
+      int lastIndex = allEdges.size() - 1;
+      for (int i = 0; i < lastIndex; i++) {
+        if (i > 0) {
+          sb.append(
+              "STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeId + " :\n");
+        }
+        handleMatchCase(sb, allEdges.get(i));
+        sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeId);
+        sb.append(";\n");
+      }
+
+      edge = allEdges.get(lastIndex);
+      sb.append(
+          "STATE USEFIRST ARG" + child.getStateId() + "_" + lastIndex + "_" + multiEdgeId + " :\n");
+    }
+
+    handleMatchCase(sb, edge);
+    return edge;
   }
 
   private static void handleFunctionCall(Appendable sb, ARGState callState, ARGState returnState)

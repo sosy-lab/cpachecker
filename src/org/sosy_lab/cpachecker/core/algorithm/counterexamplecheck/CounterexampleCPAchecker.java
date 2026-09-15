@@ -331,7 +331,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
         counterexampleFormat.toString());
     if (counterexampleFormat == CounterexampleFormat.AUTOMATON) {
       try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
-        ARGUtils.producePathAutomaton(
+        ARGUtils.produceCounterexampleAutomaton(
             w,
             pRootState,
             pErrorPathStates,
