@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +60,9 @@ public class ARGPathPreservationTest {
 
   @Test
   public void coveragePreservesBothPrefixesWithoutAMerge() throws Exception {
-    assertThat(stop(true, true).stop(incoming, ImmutableList.of(reached), SingletonPrecision.getInstance()))
+    assertThat(
+            stop(true, true)
+                .stop(incoming, ImmutableList.of(reached), SingletonPrecision.getInstance()))
         .isTrue();
     assertThat(reached.getParents()).containsExactly(left, right);
     assertThat(right.getChildren()).containsExactly(reached);
@@ -70,7 +71,9 @@ public class ARGPathPreservationTest {
 
   @Test
   public void rejectedCoverageDoesNotChangeProvenance() throws Exception {
-    assertThat(stop(false, true).stop(incoming, ImmutableList.of(reached), SingletonPrecision.getInstance()))
+    assertThat(
+            stop(false, true)
+                .stop(incoming, ImmutableList.of(reached), SingletonPrecision.getInstance()))
         .isFalse();
     assertThat(reached.getParents()).containsExactly(left);
     assertThat(incoming.getParents()).containsExactly(right);
@@ -78,7 +81,9 @@ public class ARGPathPreservationTest {
 
   @Test
   public void ordinaryCoverageKeepsItsExistingBehaviour() throws Exception {
-    assertThat(stop(true, false).stop(incoming, ImmutableList.of(reached), SingletonPrecision.getInstance()))
+    assertThat(
+            stop(true, false)
+                .stop(incoming, ImmutableList.of(reached), SingletonPrecision.getInstance()))
         .isTrue();
     assertThat(reached.getParents()).containsExactly(left);
     assertThat(incoming.isCovered()).isTrue();
@@ -88,14 +93,18 @@ public class ARGPathPreservationTest {
   @Test
   public void coveringAnAncestorCannotLoseLoopIterations() throws Exception {
     ARGState backEdge = state(((State) root.getWrappedState()).node(), incoming);
-    assertThat(stop(true, true).stop(backEdge, ImmutableList.of(root), SingletonPrecision.getInstance()))
+    assertThat(
+            stop(true, true)
+                .stop(backEdge, ImmutableList.of(root), SingletonPrecision.getInstance()))
         .isFalse();
     assertThat(root.getParents()).isEmpty();
   }
 
   @Test
   public void cannotSharePathsBetweenDifferentLocations() throws Exception {
-    assertThat(stop(true, true).stop(incoming, ImmutableList.of(left), SingletonPrecision.getInstance()))
+    assertThat(
+            stop(true, true)
+                .stop(incoming, ImmutableList.of(left), SingletonPrecision.getInstance()))
         .isFalse();
   }
 
@@ -131,7 +140,9 @@ public class ARGPathPreservationTest {
     assertThat(merged.getParents()).containsExactly(left, right);
     assertThat(child.getParents()).containsExactly(merged);
     assertThat(incoming.getMergedWith()).isSameInstanceAs(merged);
-    assertThat(stop(true, true).stop(incoming, ImmutableList.of(merged), SingletonPrecision.getInstance()))
+    assertThat(
+            stop(true, true)
+                .stop(incoming, ImmutableList.of(merged), SingletonPrecision.getInstance()))
         .isTrue();
     assertThat(merged.getParents()).containsExactly(left, right);
   }
@@ -155,7 +166,9 @@ public class ARGPathPreservationTest {
     reached.addParentWithPaths(left, ImmutableList.of(ImmutableList.copyOf(first)));
     ARGState another = state(to, left);
     another.addParentWithPaths(left, ImmutableList.of(ImmutableList.copyOf(second)));
-    assertThat(stop(true, true).stop(another, ImmutableList.of(reached), SingletonPrecision.getInstance()))
+    assertThat(
+            stop(true, true)
+                .stop(another, ImmutableList.of(reached), SingletonPrecision.getInstance()))
         .isTrue();
     assertThat(reached.getPathsFromParent(left)).containsExactly(first, second);
 
