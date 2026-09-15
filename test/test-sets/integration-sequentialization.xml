@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="180 s" hardtimelimit="180 s" memlimit="7 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">5000M</option>
+  <option name="--sequentialization-concurrency"/>
+
+  <rundefinition/>
+
+  <!-- Configs with different nondeterminismSource per property. -->
+  <!-- These are similar to the SV-COMP configs, except that no partial order reduction is used. -->
+  <tasks name="C.unreach-call.NUM_STATEMENTS">
+    <option name="--option">analysis.algorithm.MPOR.nondeterminismSource=NUM_STATEMENTS</option>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.NEXT_THREAD">
+    <option name="--option">analysis.algorithm.MPOR.nondeterminismSource=NEXT_THREAD</option>
+    <option name="--option">analysis.algorithm.MPOR.selectionEncodingForThreads=SWITCH_CASE</option>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.no-overflow.NEXT_THREAD_AND_NUM_STATEMENTS">
+    <option name="--option">analysis.algorithm.MPOR.nondeterminismSource=NEXT_THREAD_AND_NUM_STATEMENTS</option>
+    <option name="--option">analysis.algorithm.MPOR.selectionEncodingForThreads=SWITCH_CASE</option>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+
+</benchmark>
