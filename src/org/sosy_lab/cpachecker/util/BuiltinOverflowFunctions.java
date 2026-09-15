@@ -137,14 +137,19 @@ public class BuiltinOverflowFunctions {
   }
 
   /**
-   * resolve the type of the built-yin overflow function. This is important since the input
-   * parameters have to be casted in case their type differs
+   * Returns the declared arithmetic type of a fixed-type overflow builtin, or an empty optional for
+   * a generic or predicate variant. Requires a name recognized by {@link
+   * #isBuiltinOverflowFunction(String)}.
    */
   public static Optional<CSimpleType> getType(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).type;
   }
 
+  /**
+   * Returns PLUS, MINUS, or MULTIPLY for a name recognized by {@link
+   * #isBuiltinOverflowFunction(String)}.
+   */
   public static BinaryOperator getOperator(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).operator;
@@ -174,17 +179,29 @@ public class BuiltinOverflowFunctions {
     return OVERFLOW_CARRY_BORROW_FUNCTIONS.contains(pFunctionName);
   }
 
-  /* Functions without prefix and suffix have arbitrary argument types */
+  /**
+   * Returns whether a recognized overflow builtin accepts arbitrary integral operand types instead
+   * of converting its operands to a fixed parameter type.
+   */
   public static boolean isFunctionWithArbitraryArgumentTypes(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return !functions.get(pFunctionName).type.isPresent();
   }
 
+  /**
+   * Returns whether a recognized overflow builtin is a predicate variant without a result write.
+   * This does not describe side effects in its argument expressions.
+   */
   public static boolean isFunctionWithoutSideEffect(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).hasNoSideEffects;
   }
 
+  /**
+   * Returns the two arithmetic parameter types and result-pointer type of a fixed-type overflow
+   * builtin, or an empty list for a generic or predicate variant. Requires a name recognized by
+   * {@link #isBuiltinOverflowFunction(String)}.
+   */
   public static List<CType> getParameterTypes(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     Optional<CSimpleType> type = functions.get(pFunctionName).type;
