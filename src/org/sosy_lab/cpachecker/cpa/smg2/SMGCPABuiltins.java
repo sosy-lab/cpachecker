@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -596,7 +597,7 @@ public class SMGCPABuiltins {
     CExpression overflowComparison = resultExpressions.functionReturn();
 
     // Assign the cast calculation result
-    Collection<SMGState> assignedStates =
+    List<SMGState> assignedStates =
         SMGTransferRelation.handleAssignment(
             initialState, pCfaEdge, resPointerExpr, castCalculationResult, evaluator, logger);
     checkState(assignedStates.size() == 1);
@@ -827,7 +828,8 @@ public class SMGCPABuiltins {
       final CFunctionCallExpression cFCExpression,
       final CFAEdge pCfaEdge)
       throws CPATransferException {
-    CType type = cFCExpression.getExpressionType();
+    // These builtins have no CFunctionDeclaration, so the call expression type is not reliable.
+    CType type = BuiltinOverflowFunctions.getCarryBorrowArithmeticType(functionName);
     ImmutableList<CExpression> parameters = cFCExpression.getParameterExpressions();
 
     // Sanity checks first
@@ -837,32 +839,33 @@ public class SMGCPABuiltins {
     checkState(parameters.size() == 4);
     CExpression aArgumentCExpr = parameters.getFirst();
     CExpression bArgumentCExpr = parameters.get(1);
-    CPointerExpression carryInArgumentCExpr = (CPointerExpression) parameters.get(2);
-    CPointerExpression carryOutArgumentCExpr = (CPointerExpression) parameters.get(3);
-    // Should these fail, then we need to add casts
-    checkState(aArgumentCExpr.getExpressionType() == type);
-    checkState(bArgumentCExpr.getExpressionType() == type);
+    CExpression carryInArgumentCExpr = parameters.get(2);
+    CExpression carryOutArgumentCExpr = parameters.get(3);
+    // Convert the three scalar arguments to their declared parameter type.
+    aArgumentCExpr = castIfNecessary(aArgumentCExpr, type);
+    bArgumentCExpr = castIfNecessary(bArgumentCExpr, type);
+    carryInArgumentCExpr = castIfNecessary(carryInArgumentCExpr, type);
     checkState(
-        carryInArgumentCExpr.getExpressionType() instanceof CPointerType paramTwoPtr
-            && paramTwoPtr.getType() == type);
-    checkState(
-        carryOutArgumentCExpr.getExpressionType() instanceof CPointerType paramThreePtr
-            && paramThreePtr.getType() == type);
+        carryOutArgumentCExpr.getExpressionType().getCanonicalType()
+                instanceof CPointerType outputPointerType
+            && outputPointerType.getType().getCanonicalType().equals(type.getCanonicalType()));
     if (functionName.endsWith("ll")) {
       // __builtin_subcll or __builtin_addcll
       // Return type, as well as all input types are: unsigned long long int
-      checkState(type == CNumericTypes.UNSIGNED_LONG_LONG_INT);
+      checkState(
+          type.getCanonicalType().equals(CNumericTypes.UNSIGNED_LONG_LONG_INT.getCanonicalType()));
     } else if (functionName.endsWith("l")) {
       // __builtin_subcl or __builtin_addcl
       // Note: the website has the wrong types for these functions for carry_in! The headers
       // clearly define them as equal to the other types!
       // Return type, as well as all input types are: unsigned long int
-      checkState(type == CNumericTypes.UNSIGNED_LONG_INT);
+      checkState(
+          type.getCanonicalType().equals(CNumericTypes.UNSIGNED_LONG_INT.getCanonicalType()));
     } else {
       checkArgument(functionName.endsWith("c"));
       // __builtin_subc or __builtin_addc
       // Return type, as well as all input types are: unsigned int
-      checkState(type == CNumericTypes.UNSIGNED_INT);
+      checkState(type.getCanonicalType().equals(CNumericTypes.UNSIGNED_INT.getCanonicalType()));
     }
 
     // We can calculate these using the definition of GCC:
@@ -901,32 +904,40 @@ public class SMGCPABuiltins {
 
     //      *(carry_out) = c1 | c2; \
     CBinaryExpression c1LogicalOrC2Expr =
-        new CBinaryExpression(
-            FileLocation.DUMMY, CNumericTypes.BOOL, type, c1, c2, BinaryOperator.BITWISE_OR);
+        new CBinaryExpressionBuilder(machineModel, logger)
+            .buildBinaryExpression(
+                castIfNecessary(c1, type), castIfNecessary(c2, type), BinaryOperator.BITWISE_OR);
     // c1LogicalOrC2Expr is assigned to *carry_out
     CExpressionAssignmentStatement carryOutAssignment =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, carryOutArgumentCExpr, c1LogicalOrC2Expr);
+            FileLocation.DUMMY,
+            new CPointerExpression(
+                carryOutArgumentCExpr.getFileLocation(),
+                ((CPointerType) carryOutArgumentCExpr.getExpressionType().getCanonicalType())
+                    .getType()
+                    .getCanonicalType(),
+                carryOutArgumentCExpr),
+            c1LogicalOrC2Expr);
 
     // TODO: extract CExpression based part into its own method, as it can be used outside of SMG2!
     // return CExprAndCExpr.of(s, carryOutAssignment);
 
-    Collection<SMGState> assignedStates =
+    List<ValueAndSMGState> functionResultValuesAndStates =
+        s.accept(new SMGCPAValueVisitor(evaluator, initialState, pCfaEdge, logger));
+    checkState(functionResultValuesAndStates.size() == 1);
+    Value functionResult = functionResultValuesAndStates.getFirst().getValue();
+    SMGState currentState = functionResultValuesAndStates.getFirst().getState();
+
+    List<SMGState> assignedStates =
         SMGTransferRelation.handleAssignment(
-            initialState,
+            currentState,
             pCfaEdge,
             carryOutAssignment.getLeftHandSide(),
             carryOutAssignment.getRightHandSide(),
             evaluator,
             logger);
     checkState(assignedStates.size() == 1);
-    SMGState currentState = assignedStates.iterator().next();
-
-    List<ValueAndSMGState> functionResultValuesAndStates =
-        s.accept(new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger));
-    checkState(functionResultValuesAndStates.size() == 1);
-    Value functionResult = functionResultValuesAndStates.getFirst().getValue();
-    currentState = functionResultValuesAndStates.getFirst().getState();
+    currentState = assignedStates.getFirst();
 
     checkState(currentState.getSize() == initialState.getSize());
 
