@@ -46,8 +46,9 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
  *       handle-equality assume at a join). Feeding an already-<i>violating</i> state through one of
  *       them returned an empty collection — OverflowCPA reports a violation precisely by producing
  *       no successors — which POR then read as "infeasible branch" and dropped the violation. See
- *       {@code ConcurrentTransferRelation#applyBookkeepingEdge}. Guarded by {@code overflow_unsafe.c},
- *       whose second {@code pthread_create} is what destroyed the flagged state.
+ *       {@code ConcurrentTransferRelation#applyBookkeepingEdge}. Guarded by {@code
+ *       overflow_unsafe.c}, whose second {@code pthread_create} is what destroyed the flagged
+ *       state.
  * </ul>
  */
 @RunWith(Parameterized.class)

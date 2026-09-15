@@ -21,14 +21,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ThreadSpecificCPA extends AbstractSingleWrapperCPA {
 
-  public ThreadSpecificCPA(
-      Configuration pConfig,
-      CFA pCfa,
-      LogManager pLogger) throws InvalidConfigurationException, CPAException, InterruptedException {
-    super(CompositeCPA.factory()
-        .setConfiguration(Configuration.defaultConfiguration())
-        .setChildren(List.of(LocationCPA.create(pCfa, pConfig), new CallstackCPA(pConfig, pLogger)))
-        .set(pCfa, CFA.class)
-        .createInstance());
+  public ThreadSpecificCPA(Configuration pConfig, CFA pCfa, LogManager pLogger)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    super(
+        CompositeCPA.factory()
+            .setConfiguration(Configuration.defaultConfiguration())
+            .setChildren(
+                List.of(LocationCPA.create(pCfa, pConfig), new CallstackCPA(pConfig, pLogger)))
+            .set(pCfa, CFA.class)
+            .createInstance());
   }
 }

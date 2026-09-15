@@ -46,9 +46,9 @@ public class ConcurrentState extends AbstractSingleWrapperState
     implements AbstractState, AbstractStateWithLocations, AbstractStateWithThreads, Graphable {
 
   /**
-   * Shared by reference across every {@link ConcurrentState} of one analysis run (including across CEGAR
-   * refinement rounds), so successive shuffles draw fresh values instead of each state restarting
-   * the sequence; only the initial seed is fixed, for reproducibility.
+   * Shared by reference across every {@link ConcurrentState} of one analysis run (including across
+   * CEGAR refinement rounds), so successive shuffles draw fresh values instead of each state
+   * restarting the sequence; only the initial seed is fixed, for reproducibility.
    */
   protected final Random random;
 
@@ -65,9 +65,10 @@ public class ConcurrentState extends AbstractSingleWrapperState
    * Fast-path hint from a handle variable's qualified name to the pid it was last assigned by
    * {@code pthread_create(&name, ...)}, for the common case where the handle is a plain variable
    * (not an array element, struct field, ...). Excluded from {@link #equals}/{@link #hashCode} — it
-   * is pure optimization, never load-bearing for correctness (see {@link ConcurrentTransferRelation}'s
-   * join dispatch, which falls back to the general candidate-branching mechanism whenever no hint
-   * applies), so two states that agree on everything else may still merge/cover regardless of it.
+   * is pure optimization, never load-bearing for correctness (see {@link
+   * ConcurrentTransferRelation}'s join dispatch, which falls back to the general
+   * candidate-branching mechanism whenever no hint applies), so two states that agree on everything
+   * else may still merge/cover regardless of it.
    */
   protected final ImmutableMap<String, Integer> handleHints;
 
@@ -92,11 +93,13 @@ public class ConcurrentState extends AbstractSingleWrapperState
     random = pRandom;
   }
 
-  protected ConcurrentState update(AbstractState pWrappedState,
-                                   ImmutableMap<Integer, ThreadState> pThreads,
-                                   ImmutableSet<Integer> pLivePids,
-                                   ImmutableMap<String, Integer> pHandleHints) {
-    return new ConcurrentState(pWrappedState, cfa, logger, pThreads, pLivePids, pHandleHints, random);
+  protected ConcurrentState update(
+      AbstractState pWrappedState,
+      ImmutableMap<Integer, ThreadState> pThreads,
+      ImmutableSet<Integer> pLivePids,
+      ImmutableMap<String, Integer> pHandleHints) {
+    return new ConcurrentState(
+        pWrappedState, cfa, logger, pThreads, pLivePids, pHandleHints, random);
   }
 
   public ImmutableMap<Integer, ThreadState> threads() {
@@ -153,11 +156,12 @@ public class ConcurrentState extends AbstractSingleWrapperState
             : livePids;
     final ImmutableMap<String, Integer> newHandleHints =
         pHandleQualifiedName
-            .map(pS ->
-                ImmutableMap.<String, Integer>builder()
-                    .putAll(handleHints)
-                    .put(pS, newPid)
-                    .buildKeepingLast())
+            .map(
+                pS ->
+                    ImmutableMap.<String, Integer>builder()
+                        .putAll(handleHints)
+                        .put(pS, newPid)
+                        .buildKeepingLast())
             .orElse(handleHints);
     return update(getWrappedState(), newThreads, newLivePids, newHandleHints);
   }
@@ -167,8 +171,8 @@ public class ConcurrentState extends AbstractSingleWrapperState
    * until it has finished. Which candidate a given {@code pthread_join} call actually targets is
    * resolved by the transfer relation — either directly, via {@link #getHandleHint} for the common
    * case of a plain handle variable, or by branching over every live candidate and keeping only the
-   * ones the wrapped analysis finds feasible (see ConcurrentTransferRelation's join dispatch) — not by
-   * this method.
+   * ones the wrapped analysis finds feasible (see ConcurrentTransferRelation's join dispatch) — not
+   * by this method.
    */
   Optional<ConcurrentState> joinThread(int pPid) {
     if (!canJoin(pPid)) {
@@ -191,7 +195,8 @@ public class ConcurrentState extends AbstractSingleWrapperState
 
   /**
    * Whether a {@code pthread_join} call could actually proceed from this state right now — must
-   * mirror {@link ConcurrentTransferRelation}'s join dispatch exactly (see the call site's comment).
+   * mirror {@link ConcurrentTransferRelation}'s join dispatch exactly (see the call site's
+   * comment).
    */
   private boolean isJoinCurrentlyEnabled(AFunctionCall pJoinCall) {
     var params = pJoinCall.getFunctionCallExpression().getParameterExpressions();
@@ -308,7 +313,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
         if (cloned instanceof AStatementEdge statementEdge
             && statementEdge.getStatement() instanceof AFunctionCall functionCall
             && functionCall.getFunctionCallExpression().getFunctionNameExpression()
-            instanceof AIdExpression functionName
+                instanceof AIdExpression functionName
             && ThreadFunctions.isJoinFunction(functionName.getName())
             && !isJoinCurrentlyEnabled(functionCall)) {
           continue;
@@ -332,9 +337,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
    */
   @SuppressWarnings("unused") // parameters and exception exist for the overriding implementation
   ImmutableCollection<CFAEdge> getEdgesToExplore(
-      ConcurrentPrecision precision,
-      BasicBlockAggregator basicBlock)
-      throws CPATransferException {
+      ConcurrentPrecision precision, BasicBlockAggregator basicBlock) throws CPATransferException {
     return getOutgoingEdges();
   }
 
@@ -367,8 +370,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
               int tid = entry2.getKey();
               ThreadState pState = entry2.getValue();
               ThreadState cState = child.threads().get(tid);
-              if (cState != null
-                  && !pState.getLocationNode().equals(cState.getLocationNode())) {
+              if (cState != null && !pState.getLocationNode().equals(cState.getLocationNode())) {
                 var edges = pState.getEdgesToChild(cState);
                 if (edges != null) {
                   allEdges.addAll(edges);

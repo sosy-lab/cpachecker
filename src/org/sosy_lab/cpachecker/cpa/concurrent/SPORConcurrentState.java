@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * A static partial order reduction algorithm. A similar approach is described
- * <a href="https://link.springer.com/chapter/10.1007/978-3-319-63121-9_26">here</a>.
+ * A static partial order reduction algorithm. A similar approach is described <a
+ * href="https://link.springer.com/chapter/10.1007/978-3-319-63121-9_26">here</a>.
  */
 class SPORConcurrentState extends ConcurrentState {
 
@@ -68,7 +68,8 @@ class SPORConcurrentState extends ConcurrentState {
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLivePids,
       ImmutableMap<String, Integer> pHandleHints) {
-    return new SPORConcurrentState(pWrappedState, cfa, logger, pThreads, pLivePids, pHandleHints, random);
+    return new SPORConcurrentState(
+        pWrappedState, cfa, logger, pThreads, pLivePids, pHandleHints, random);
   }
 
   /**
@@ -77,8 +78,7 @@ class SPORConcurrentState extends ConcurrentState {
    */
   @Override
   public ImmutableCollection<CFAEdge> getEdgesToExplore(
-      ConcurrentPrecision precision,
-      BasicBlockAggregator basicBlock) throws CPATransferException {
+      ConcurrentPrecision precision, BasicBlockAggregator basicBlock) throws CPATransferException {
     if (sourceSet == null) {
       ImmutableCollection<CFAEdge> minimalSourceSet = ImmutableList.of();
       final var allOutgoingEdges = getOutgoingEdges();
@@ -123,12 +123,12 @@ class SPORConcurrentState extends ConcurrentState {
           !firstActions.isEmpty()
               && mutexState != null
               && firstActions.stream()
-              .allMatch(
-                  e -> {
-                    Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(e);
-                    return lockMutex.isPresent() && mutexState.isMutexBlockedFor(lockMutex.get(),
-                        pid);
-                  });
+                  .allMatch(
+                      e -> {
+                        Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(e);
+                        return lockMutex.isPresent()
+                            && mutexState.isMutexBlockedFor(lockMutex.get(), pid);
+                      });
       if (!allBlocked) {
         sourceSetFirstActions.add(ImmutableList.copyOf(firstActions));
       }
@@ -183,7 +183,10 @@ class SPORConcurrentState extends ConcurrentState {
   }
 
   private boolean dependent(
-      CFAEdge sourceSetEdge, CFAEdge edge, ConcurrentPrecision precision, BasicBlockAggregator basicBlock)
+      CFAEdge sourceSetEdge,
+      CFAEdge edge,
+      ConcurrentPrecision precision,
+      BasicBlockAggregator basicBlock)
       throws CPATransferException {
     if (edgePidMap.get(sourceSetEdge).equals(edgePidMap.get(edge))) {
       return true;
@@ -205,8 +208,8 @@ class SPORConcurrentState extends ConcurrentState {
     BiPredicate<CFAEdge, MutexState> goFurther;
     if (basicBlock != null && basicBlock.isValidMultiEdgeStart(edge.getPredecessor())) {
       goFurther =
-          (pCFAEdge, pMutexState) -> basicBlock.isValidMultiEdgeComponent(edge.getPredecessor(),
-              pCFAEdge);
+          (pCFAEdge, pMutexState) ->
+              basicBlock.isValidMultiEdgeComponent(edge.getPredecessor(), pCFAEdge);
     } else {
       goFurther = (pCFAEdge, pMutexState) -> false;
     }
@@ -225,10 +228,12 @@ class SPORConcurrentState extends ConcurrentState {
       initialMutexState = currentInitialMutexState;
       pid = getEdgePid(edge);
       final BiPredicate<CFAEdge, MutexState> originalGoFurther = goFurther;
-      goFurther = (pCFAEdge, pMutexState) ->
-          (pMutexState != null && (!pMutexState.getLockedMutexes().isEmpty()
-              || pid.equals(pMutexState.getAtomicHolder())))
-              || originalGoFurther.test(pCFAEdge, pMutexState);
+      goFurther =
+          (pCFAEdge, pMutexState) ->
+              (pMutexState != null
+                      && (!pMutexState.getLockedMutexes().isEmpty()
+                          || pid.equals(pMutexState.getAtomicHolder())))
+                  || originalGoFurther.test(pCFAEdge, pMutexState);
     } else {
       initialMutexState = null;
       pid = null;
@@ -246,7 +251,8 @@ class SPORConcurrentState extends ConcurrentState {
       BiPredicate<CFAEdge, MutexState> goFurther,
       MutexState initialMutexState,
       Integer pid,
-      boolean visitStartedThreadFunction) throws CPATransferException {
+      boolean visitStartedThreadFunction)
+      throws CPATransferException {
     EdgeDefUseData uses = EdgeDefUseData.empty();
     final List<CFAEdge> exploredEdges = new ArrayList<>();
     final List<Pair<CFAEdge, MutexState>> toExplore =
@@ -329,7 +335,9 @@ class SPORConcurrentState extends ConcurrentState {
   }
 
   private boolean intersect(
-      Iterable<MemoryLocation> access1, Iterable<MemoryLocation> access2, ConcurrentPrecision precision) {
+      Iterable<MemoryLocation> access1,
+      Iterable<MemoryLocation> access2,
+      ConcurrentPrecision precision) {
     for (var o1 : access1) {
       for (var o2 : access2) {
         if (o1.getExtendedQualifiedName().equals(o2.getExtendedQualifiedName())) {
@@ -341,5 +349,4 @@ class SPORConcurrentState extends ConcurrentState {
     }
     return false;
   }
-
 }

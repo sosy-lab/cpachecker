@@ -212,10 +212,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
-    // ConcurrentState. The newly created thread is the one whose PID is present in the current state but
+    // ConcurrentState. The newly created thread is the one whose PID is present in the current
+    // state but
     // not in the previous one.
     ConcurrentState concurrentState = extractStateByType(pState, ConcurrentState.class);
-    ConcurrentState previousConcurrentState = extractStateByType(pPreviousState, ConcurrentState.class);
+    ConcurrentState previousConcurrentState =
+        extractStateByType(pPreviousState, ConcurrentState.class);
     if (concurrentState != null && previousConcurrentState != null) {
       for (Integer pid : concurrentState.threads().keySet()) {
         if (!previousConcurrentState.threads().containsKey(pid)) {
@@ -243,7 +245,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
-    // ConcurrentState. Since it clones the CFA per thread, the location nodes are thread-specific and thus
+    // ConcurrentState. Since it clones the CFA per thread, the location nodes are thread-specific
+    // and thus
     // uniquely identify the thread that just moved to the successor of the edge.
     ConcurrentState concurrentState = extractStateByType(pState, ConcurrentState.class);
     if (concurrentState != null) {

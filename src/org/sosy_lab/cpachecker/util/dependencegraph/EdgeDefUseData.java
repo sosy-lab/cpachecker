@@ -453,11 +453,14 @@ public final class EdgeDefUseData {
         owner.accept(this);
         if (owner instanceof CIdExpression cIdExpression
             && ((cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration
-            && (!onlyGlobals || cVariableDeclaration.isGlobal()))
-            || (!onlyGlobals && cIdExpression.getDeclaration() instanceof CParameterDeclaration))) {
-          MemoryLocation memLoc = MemoryLocation.forIdentifier(
-              cIdExpression.getDeclaration().getQualifiedName() + "."
-                  + pIastFieldReference.getFieldName());
+                    && (!onlyGlobals || cVariableDeclaration.isGlobal()))
+                || (!onlyGlobals
+                    && cIdExpression.getDeclaration() instanceof CParameterDeclaration))) {
+          MemoryLocation memLoc =
+              MemoryLocation.forIdentifier(
+                  cIdExpression.getDeclaration().getQualifiedName()
+                      + "."
+                      + pIastFieldReference.getFieldName());
           Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
           set.add(memLoc);
         }

@@ -73,8 +73,8 @@ public final class ThreadFunctions {
    * Checks that a {@code pthread_create} call has the expected 4 arguments. The thread handle
    * argument itself (params.get(0)) is not further restricted: any pointer-typed expression is
    * accepted, and its identity is established at runtime via a synthetic thread-id write (see
-   * OrderingConsistencyTransferRelation#handleCreate / ConcurrentTransferRelation's create dispatch), not
-   * by statically resolving a variable name here.
+   * OrderingConsistencyTransferRelation#handleCreate / ConcurrentTransferRelation's create
+   * dispatch), not by statically resolving a variable name here.
    */
   public static void checkCreateParams(List<? extends AExpression> params) {
     checkState(params.size() == 4, "Malformed pthread_create (not 4 params): %s", params);
@@ -135,11 +135,11 @@ public final class ThreadFunctions {
    * A string key identifying the storage location a {@code pthread_create}/{@code pthread_join}
    * handle addresses, or null if that cannot be determined purely syntactically. Used by both
    * {@link ConcurrentTransferRelation} (to populate/consult the fast-path join hint) and {@link
-   * ConcurrentState#isJoinCurrentlyEnabled} (which must decide, consistently with the transfer relation,
-   * whether a join is actually enabled without introducing any synthetic branching) — the two call
-   * sites must agree on what counts as a resolvable handle, or a join could be offered by one and
-   * rejected by the other, silently dropping every schedule that reaches that state (see git
-   * history for the resulting soundness bug this exact mismatch caused).
+   * ConcurrentState#isJoinCurrentlyEnabled} (which must decide, consistently with the transfer
+   * relation, whether a join is actually enabled without introducing any synthetic branching) — the
+   * two call sites must agree on what counts as a resolvable handle, or a join could be offered by
+   * one and rejected by the other, silently dropping every schedule that reaches that state (see
+   * git history for the resulting soundness bug this exact mismatch caused).
    *
    * <p>Beyond a plain variable ({@code t}), this also resolves array elements and struct fields
    * reached through a chain of <b>literal</b> array indices and <b>non-pointer</b> field accesses

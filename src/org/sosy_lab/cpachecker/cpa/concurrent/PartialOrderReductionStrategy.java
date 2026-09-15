@@ -15,9 +15,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-/**
- * Interface for a partial order reduction algorithm that guides the state space exploration.
- */
+/** Interface for a partial order reduction algorithm that guides the state space exploration. */
 public interface PartialOrderReductionStrategy {
 
   ConcurrentState getDynamicThreadState(

@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 /**
  * Clones the entire CFA (nodes and edges) for a specific thread ID, renaming all variable
- * references with the thread-ID prefix using {@link ConcurrentAstCloner}. The cloning is performed lazily
- * on first access for each thread ID and then cached.
+ * references with the thread-ID prefix using {@link ConcurrentAstCloner}. The cloning is performed
+ * lazily on first access for each thread ID and then cached.
  *
  * <p>For {@link CFunctionEntryNode}s, the function declaration is also cloned so that parameter
  * declarations carry the renamed qualified names.

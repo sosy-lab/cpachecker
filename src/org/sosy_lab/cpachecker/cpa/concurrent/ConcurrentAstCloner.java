@@ -387,7 +387,8 @@ class ConcurrentAstCloner {
       boolean accessIsWrite = isLhs;
       if (globalRenamer != null) {
         CIdExpression replacement =
-            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
+            globalRenamer.replaceAliasedAccess(
+                exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }
@@ -405,7 +406,8 @@ class ConcurrentAstCloner {
       boolean accessIsWrite = isLhs;
       if (globalRenamer != null) {
         CIdExpression replacement =
-            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
+            globalRenamer.replaceAliasedAccess(
+                exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }
@@ -440,7 +442,8 @@ class ConcurrentAstCloner {
       boolean accessIsWrite = isLhs;
       if (globalRenamer != null) {
         CIdExpression replacement =
-            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
+            globalRenamer.replaceAliasedAccess(
+                exp, accessIsWrite, ConcurrentAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }

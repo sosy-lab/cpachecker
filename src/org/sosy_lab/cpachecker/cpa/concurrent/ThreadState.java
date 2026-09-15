@@ -14,7 +14,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public final class ThreadState extends AbstractSingleWrapperState implements AbstractStateWithLocation {
+public final class ThreadState extends AbstractSingleWrapperState
+    implements AbstractStateWithLocation {
 
   // direct reference to location state as it is needed frequently
   private final AbstractStateWithLocation locationState;

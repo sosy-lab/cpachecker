@@ -85,9 +85,9 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private final Random random;
 
   /**
-   * Thread-specific precision is not implemented properly yet, as thread-specific CPAs do not use
-   * a precision for current analyses. The wrapper precision of the POR CPA should be extended to
-   * also include thread-specific precisions (similarly to this transfer relation), if needed.
+   * Thread-specific precision is not implemented properly yet, as thread-specific CPAs do not use a
+   * precision for current analyses. The wrapper precision of the POR CPA should be extended to also
+   * include thread-specific precisions (similarly to this transfer relation), if needed.
    */
   private final Precision threadSpecificUnitPrecision;
 
@@ -118,8 +118,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
     threadSpecificCPA = pThreadSpecificCPA;
     threadSpecificTransferRelation = threadSpecificCPA.getTransferRelation();
     threadSpecificUnitPrecision =
-        threadSpecificCPA.getInitialPrecision(CFANode.newDummyCFANode(),
-            StateSpacePartition.getDefaultPartition());
+        threadSpecificCPA.getInitialPrecision(
+            CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
 
     cfa = pCfa;
     por = pPor;
@@ -143,7 +143,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
       throw new CPATransferException("Precision is not ConcurrentPrecision");
     }
 
-    Collection<CFAEdge> sourceSet = pConcurrentState.getEdgesToExplore(pConcurrentPrecision, basicBlockAggregator);
+    Collection<CFAEdge> sourceSet =
+        pConcurrentState.getEdgesToExplore(pConcurrentPrecision, basicBlockAggregator);
     List<AbstractState> allSuccessors = new ArrayList<>();
     for (CFAEdge edge : sourceSet) {
       allSuccessors.addAll(getAbstractSuccessorsForEdge(state, precision, edge));
@@ -183,7 +184,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
           Collection<ConcurrentState> successorStates = new ArrayList<>(currentStates.size());
 
           for (ConcurrentState currentState : currentStates) {
-            getAbstractSuccessorsForEdge(currentState, pConcurrentPrecision, cfaEdge, pid, successorStates);
+            getAbstractSuccessorsForEdge(
+                currentState, pConcurrentPrecision, cfaEdge, pid, successorStates);
           }
 
           // if there are no successors for the current edge, we do not need to continue
@@ -222,7 +224,11 @@ public class ConcurrentTransferRelation implements TransferRelation {
   }
 
   private void getAbstractSuccessorsForEdge(
-      ConcurrentState state, ConcurrentPrecision precision, CFAEdge cfaEdge, int pid, Collection<ConcurrentState> result)
+      ConcurrentState state,
+      ConcurrentPrecision precision,
+      CFAEdge cfaEdge,
+      int pid,
+      Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> wrappedSuccessors =
         applyEdgeWithForgetting(precision, state.getWrappedState(), cfaEdge, pid);
@@ -260,12 +266,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
         afterWrite = initializeThreadLocals(precision, afterWrite, newPid, cfaEdge, pid);
         Optional<String> handleName =
             ThreadFunctions.canonicalHandleAddressKey((CExpression) params.getFirst());
-        finishEdge(
-            addNewThread(state, threadFunc, handleName),
-            cfaEdge,
-            pid,
-            afterWrite,
-            result);
+        finishEdge(addNewThread(state, threadFunc, handleName), cfaEdge, pid, afterWrite, result);
         return;
       }
 
@@ -278,7 +279,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
         // array indices / non-pointer field accesses — see
         // ThreadFunctions#canonicalHandleLvalueKey)
         // and a single create
-        // call already unambiguously paired that same key with a pid (see ConcurrentState#handleHints).
+        // call already unambiguously paired that same key with a pid (see
+        // ConcurrentState#handleHints).
         // Joining directly here, without any synthetic assume edge, avoids polluting the wrapped
         // analysis's own reasoning (and, for predicate abstraction, CEGAR's interpolation) with an
         // identity fact about the handle that has nothing to do with the program's actual
@@ -351,7 +353,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
 
         String description = "Thread exit dummy edge";
         CFAEdge exitEdge =
-            new BlankEdge(description, cfaEdge.getFileLocation(), currentNode, clonedExitNode, description);
+            new BlankEdge(
+                description, cfaEdge.getFileLocation(), currentNode, clonedExitNode, description);
 
         Collection<? extends AbstractState> threadSpecificSuccessors =
             threadSpecificTransferRelation.getAbstractSuccessorsForEdge(
@@ -385,7 +388,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
     }
 
     final Collection<? extends AbstractState> nextThreadSpecificStates =
-        threadSpecificTransferRelation.getAbstractSuccessorsForEdge(threadState.getWrappedState(), threadSpecificUnitPrecision, cfaEdge);
+        threadSpecificTransferRelation.getAbstractSuccessorsForEdge(
+            threadState.getWrappedState(), threadSpecificUnitPrecision, cfaEdge);
     final List<ConcurrentState> successors = new ArrayList<>();
     for (AbstractState nextThreadSpecificState : nextThreadSpecificStates) {
       if (!(nextThreadSpecificState instanceof CompositeState nextWrappedState)) {
@@ -430,19 +434,20 @@ public class ConcurrentTransferRelation implements TransferRelation {
 
   /**
    * Runs {@code edge} through the wrapped transfer relation, first temporarily forgetting any value
-   * the reduction currently treats as ignorable (see {@link ConcurrentPrecision#canIgnoreVariable}): a
-   * domain that tracks concrete/precise values (e.g. ValueAnalysisCPA) could otherwise decide the
-   * edge's outcome (an assume's direction, in particular) from a value the reduction assumed did
-   * not need cross-thread ordering, silently baking in whichever single interleaving happened to be
-   * explored instead of exploring every possibility the way an analysis with no information at all
-   * would (e.g. predicate abstraction with no predicate on the variable). Forgetting makes every
-   * domain behave like the latter for precisely the variables POR is treating as independent.
+   * the reduction currently treats as ignorable (see {@link
+   * ConcurrentPrecision#canIgnoreVariable}): a domain that tracks concrete/precise values (e.g.
+   * ValueAnalysisCPA) could otherwise decide the edge's outcome (an assume's direction, in
+   * particular) from a value the reduction assumed did not need cross-thread ordering, silently
+   * baking in whichever single interleaving happened to be explored instead of exploring every
+   * possibility the way an analysis with no information at all would (e.g. predicate abstraction
+   * with no predicate on the variable). Forgetting makes every domain behave like the latter for
+   * precisely the variables POR is treating as independent.
    *
    * <p>Also registers {@code pid} as {@code edge}'s executing thread on any {@link MutexState}
    * component: MutexCPA's transfer relation requires a PID for every edge it processes (see {@code
    * MutexTransferRelation}), and a synthetic edge built on the fly (the thread-handle write/assume
-   * edges) is not one ConcurrentState's normal edge-enumeration already registered. Re-registering the
-   * real edge here too is a harmless no-op (same value it already has).
+   * edges) is not one ConcurrentState's normal edge-enumeration already registered. Re-registering
+   * the real edge here too is a harmless no-op (same value it already has).
    */
   private Collection<? extends AbstractState> applyEdgeWithForgetting(
       ConcurrentPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
@@ -552,19 +557,23 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * {@code __thread} variable, writing that variable's initial value to the <b>child's</b> private
    * copy. Returns the states resulting from applying all of them in sequence to {@code pStates}.
    *
-   * <p>Without this, privatizing a {@code __thread} variable (see {@link ConcurrentAstCloner}) would make
-   * things worse rather than better: the child's copy is a variable no edge on its path ever
-   * assigns, so the wrapped analysis treats it as indeterminate and an {@code assert(data == 0)}
-   * fails on a value the child can never actually hold. Only the main thread's clone contains the
-   * file-scope declaration edge that carries the initializer; a spawned thread enters at its start
-   * routine and never passes it.
+   * <p>Without this, privatizing a {@code __thread} variable (see {@link ConcurrentAstCloner})
+   * would make things worse rather than better: the child's copy is a variable no edge on its path
+   * ever assigns, so the wrapped analysis treats it as indeterminate and an {@code assert(data ==
+   * 0)} fails on a value the child can never actually hold. Only the main thread's clone contains
+   * the file-scope declaration edge that carries the initializer; a spawned thread enters at its
+   * start routine and never passes it.
    *
    * <p>The assignments happen on the <b>creating</b> thread's edge (as {@code pid}'s bookkeeping),
    * which is sound precisely because the target is private to the child: no other thread can
    * observe it, so where in the schedule the write lands cannot matter.
    */
   private List<AbstractState> initializeThreadLocals(
-      ConcurrentPrecision precision, List<AbstractState> pStates, int newPid, CFAEdge cfaEdge, int pid)
+      ConcurrentPrecision precision,
+      List<AbstractState> pStates,
+      int newPid,
+      CFAEdge cfaEdge,
+      int pid)
       throws CPATransferException, InterruptedException {
     List<AbstractState> states = pStates;
     for (CVariableDeclaration threadLocal : threadLocalGlobals) {
@@ -627,9 +636,9 @@ public class ConcurrentTransferRelation implements TransferRelation {
 
   /**
    * A synthetic {@code T{pid}_x = <initial value>;} edge for one {@code __thread} variable. The
-   * left-hand side is built as the very declaration {@link ConcurrentAstCloner} renames {@code pDecl} to
-   * for thread {@code pid} — same qualified name, same non-global flag — so that this write and the
-   * child's own reads of the variable are the same symbol to the wrapped analysis.
+   * left-hand side is built as the very declaration {@link ConcurrentAstCloner} renames {@code
+   * pDecl} to for thread {@code pid} — same qualified name, same non-global flag — so that this
+   * write and the child's own reads of the variable are the same symbol to the wrapped analysis.
    */
   private CFAEdge threadLocalInitEdge(CVariableDeclaration pDecl, int pid, CFAEdge edge)
       throws UnsupportedCodeException {
@@ -694,7 +703,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
       final ConcurrentState old,
       boolean addToLivePids,
       final String functionName,
-      Optional<String> handleName) throws InterruptedException {
+      Optional<String> handleName)
+      throws InterruptedException {
     CFANode functionCallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
@@ -702,9 +712,12 @@ public class ConcurrentTransferRelation implements TransferRelation {
     // Compute the PID for the new thread so we can get its cloned entry node
     int newPid = old.threads().size();
     CFANode clonedEntryNode = ConcurrentEdgeCloner.getClonedNode(functionCallNode, newPid, cfa);
-    AbstractState initialWrappedState = threadSpecificCPA.getInitialState(clonedEntryNode, StateSpacePartition.getDefaultPartition());
+    AbstractState initialWrappedState =
+        threadSpecificCPA.getInitialState(
+            clonedEntryNode, StateSpacePartition.getDefaultPartition());
     if (!(initialWrappedState instanceof CompositeState composite)) {
-      throw new IllegalStateException("Thread-specific CPA's initial state is not a CompositeState");
+      throw new IllegalStateException(
+          "Thread-specific CPA's initial state is not a CompositeState");
     }
     ThreadState initialThreadState = new ThreadState(composite);
     return old.addNewThread(addToLivePids, handleName, initialThreadState);

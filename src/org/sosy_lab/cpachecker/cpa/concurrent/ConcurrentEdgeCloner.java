@@ -34,11 +34,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 /**
- * Edge cloner for POR. Most methods delegate to {@link ConcurrentCfaCloner}, which clones the entire CFA
- * (nodes and edges) per thread ID. {@link #cloneSingleEdge} instead rebuilds one edge in isolation,
- * keeping its original endpoint nodes and optionally renaming every global-variable access to a
- * fresh name via a {@link GlobalAccessRenamer} ("concurrent SSA"); the result is not wired into the
- * CFA.
+ * Edge cloner for POR. Most methods delegate to {@link ConcurrentCfaCloner}, which clones the
+ * entire CFA (nodes and edges) per thread ID. {@link #cloneSingleEdge} instead rebuilds one edge in
+ * isolation, keeping its original endpoint nodes and optionally renaming every global-variable
+ * access to a fresh name via a {@link GlobalAccessRenamer} ("concurrent SSA"); the result is not
+ * wired into the CFA.
  */
 public final class ConcurrentEdgeCloner {
 
@@ -152,7 +152,8 @@ public final class ConcurrentEdgeCloner {
         pEdge.getFunctionName());
   }
 
-  private static CFAEdge cloneSingleStatementEdge(CStatementEdge pEdge, ConcurrentAstCloner pCloner) {
+  private static CFAEdge cloneSingleStatementEdge(
+      CStatementEdge pEdge, ConcurrentAstCloner pCloner) {
     return new CStatementEdge(
         pEdge.getRawStatement(),
         pCloner.cloneAst(pEdge.getStatement()),
@@ -161,7 +162,8 @@ public final class ConcurrentEdgeCloner {
         pEdge.getSuccessor());
   }
 
-  private static CFAEdge cloneSingleDeclarationEdge(CDeclarationEdge pEdge, ConcurrentAstCloner pCloner) {
+  private static CFAEdge cloneSingleDeclarationEdge(
+      CDeclarationEdge pEdge, ConcurrentAstCloner pCloner) {
     return new CDeclarationEdge(
         pEdge.getRawStatement(),
         pEdge.getFileLocation(),

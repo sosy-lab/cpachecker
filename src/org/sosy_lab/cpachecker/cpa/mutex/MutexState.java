@@ -141,13 +141,14 @@ public class MutexState implements AbstractState {
       updatedHolders = ImmutableSet.of(holderPid);
     }
 
-    return Optional.of(new MutexState(
-        initializedMutexes,
-        ImmutableMap.<MutexLock, ImmutableSet<Integer>>builder()
-            .putAll(lockedMutexes)
-            .put(mutex, updatedHolders)
-            .buildKeepingLast(),
-        atomicHolder));
+    return Optional.of(
+        new MutexState(
+            initializedMutexes,
+            ImmutableMap.<MutexLock, ImmutableSet<Integer>>builder()
+                .putAll(lockedMutexes)
+                .put(mutex, updatedHolders)
+                .buildKeepingLast(),
+            atomicHolder));
   }
 
   /** Returns a new state with the given mutex marked as unlocked. */
