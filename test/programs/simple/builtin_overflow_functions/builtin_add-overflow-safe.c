@@ -42,18 +42,20 @@ int main(void) {
   const unsigned char uchar_max = 255U;
   const short int short_min = -32768;
   const short int short_max = 32767;
-  const int int_min = (-2147483647 - 1);
+  const int int_min = -2147483648LL;
   const int int_max = 2147483647;
   const unsigned int uint_max = 4294967295U;
-  const long long int ll_min = (-9223372036854775807LL - 1LL);
+  // GCC converts the explicit unsigned sign-bit value to LLONG_MIN.
+  const long long int ll_min = (long long int)9223372036854775808ULL;
   const long long int ll_max = 9223372036854775807LL;
   const unsigned long long int ull_max = 18446744073709551615ULL;
-  const unsigned long int add_ulong_max = ~0UL;
-  const long int add_long_max = (long int)((~0UL) >> 1);
-  const long int add_long_min = (-((long int)((~0UL) >> 1)) - 1L);
-  const long int saddl_max = (long int)((~0UL) >> 1);
-  const long int saddl_min = (-((long int)((~0UL) >> 1)) - 1L);
-  const unsigned long int uaddl_max = ~0UL;
+  const unsigned long int add_ulong_max = sizeof(long int) == 4U ? 4294967295UL : 18446744073709551615UL;
+  const long int add_long_max = sizeof(long int) == 4U ? 2147483647L : 9223372036854775807L;
+  // GCC's unsigned-to-signed conversion gives LONG_MIN for the explicit sign-bit value.
+  const long int add_long_min = sizeof(long int) == 4U ? (long int)2147483648UL : (long int)9223372036854775808UL;
+  const long int saddl_max = add_long_max;
+  const long int saddl_min = add_long_min;
+  const unsigned long int uaddl_max = add_ulong_max;
 
 
   // long is 32 bits in ILP32 and 64 bits in LP64, so this builtin case has model-dependent expected results.
@@ -359,7 +361,7 @@ int main(void) {
   // ILP32: 2147483647L + -1L = 2147483646, which fits the destination range; stored result = 2147483646L and overflow = 0.
   // LP64: 9223372036854775807L + -1L = 9223372036854775806, which fits the destination range; stored result = 9223372036854775806L and
   // overflow = 0.
-  __VERIFIER_assert(saddl_max_m1_res == ((long int)((~0UL) >> 1)) - 1L);
+  __VERIFIER_assert(saddl_max_m1_res == saddl_max - 1L);
 
   __VERIFIER_assert(saddl_max_m1_ov == 0);
 
@@ -370,7 +372,7 @@ int main(void) {
 
   // ILP32: saddl_min + 1L = saddl_min + 1L, which fits the destination range; stored result = -2147483647L and overflow = 0.
   // LP64: saddl_min + 1L = saddl_min + 1L, which fits the destination range; stored result = -9223372036854775807L and overflow = 0.
-  __VERIFIER_assert(saddl_min_1_res == ((-((long int)((~0UL) >> 1)) - 1L)) + 1L);
+  __VERIFIER_assert(saddl_min_1_res == saddl_min + 1L);
 
   __VERIFIER_assert(saddl_min_1_ov == 0);
 
@@ -561,7 +563,7 @@ int main(void) {
 
   unsigned long int uaddl_maxm1_1_res;
   int uaddl_maxm1_1_ov;
-  uaddl_maxm1_1_ov = __builtin_uaddl_overflow((~0UL) - 1UL, 1UL, &uaddl_maxm1_1_res);
+  uaddl_maxm1_1_ov = __builtin_uaddl_overflow(uaddl_max - 1UL, 1UL, &uaddl_maxm1_1_res);
 
   // ILP32: 4294967294UL + 1UL = 4294967295, which fits the destination range; stored result = 4294967295UL and overflow = 0.
   // LP64: 18446744073709551614UL + 1UL = 18446744073709551615, which fits the destination range; stored result = 18446744073709551615UL and
@@ -600,7 +602,7 @@ int main(void) {
   // ILP32: 4294967295UL + 4294967295UL = 8589934590, outside the destination range; stored result = 4294967294UL and overflow = 1.
   // LP64: 18446744073709551615UL + 18446744073709551615UL = 36893488147419103230, outside the destination range; stored result =
   // 18446744073709551614UL and overflow = 1.
-  __VERIFIER_assert(uaddl_max_max_res == (~0UL) - 1UL);
+  __VERIFIER_assert(uaddl_max_max_res == uaddl_max - 1UL);
 
   __VERIFIER_assert(uaddl_max_max_ov == 1);
 
