@@ -822,7 +822,7 @@ public class SMGCPABuiltins {
   // TODO: discuss w Philipp
   public static final CSimpleType GnuInt128 =
       new CSimpleType(
-          CTypeQualifiers.NONE, CBasicType.INT128, false, false, false, false, false, false, true);
+          CTypeQualifiers.NONE, CBasicType.INT128, false, false, true, false, false, false, false);
 
   /**
    * Promotes a and b to INT128, and applies the binaryOperator o on a and b in this form: a o b
