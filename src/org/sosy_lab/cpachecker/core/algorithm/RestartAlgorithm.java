@@ -302,10 +302,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   + singleConfigFileName
                   + " could not be read";
           if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
-            logger.log(Level.WARNING, message);
-          } else {
-            logger.logUserException(Level.WARNING, e, message);
+            logger.logDebugException(e);
+            shutdownNotifier.shutdownIfNecessary();
           }
+          logger.logUserException(Level.WARNING, e, message);
           continue;
         }
 
