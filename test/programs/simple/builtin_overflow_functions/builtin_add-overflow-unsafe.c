@@ -18,6 +18,22 @@ void __VERIFIER_assert(int condition) {
 int main(void) {
   int all_expected_checks_fail = 0;
 
+  int add_address_result;
+  int add_address_overflow = __builtin_add_overflow(1, 2, &add_address_result);
+
+  // 1 + 2 = 3; the ordinary address-of result pointer stores the result and reports no overflow.
+  all_expected_checks_fail = all_expected_checks_fail || (add_address_result != 3);
+  all_expected_checks_fail = all_expected_checks_fail || (add_address_overflow != 0);
+
+
+  int add_pointer_result;
+  int *add_pointer = &add_pointer_result;
+  int add_pointer_overflow = __builtin_add_overflow(1, 2, add_pointer);
+
+  // The pointer-variable result destination has the same result and overflow flag as &add_pointer_result.
+  all_expected_checks_fail = all_expected_checks_fail || (add_pointer_result != 3);
+  all_expected_checks_fail = all_expected_checks_fail || (add_pointer_overflow != 0);
+
 
   // Fixed typed test values are initialized directly and never modified.
   const char char_min = -128;
