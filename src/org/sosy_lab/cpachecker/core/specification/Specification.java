@@ -406,9 +406,14 @@ public final class Specification {
   }
 
   /**
-   * Gets the set of properties that were read from the property files that were used to create this
-   * instance. Note that there can be additional automata read from specification files and
-   * witnesses.
+   * Returns the properties read from SV-COMP property-file input, and possibly additional
+   * properties representing automata read from specifications and witnesses.
+   *
+   * <p>Specifications written in CPAchecker's internal automaton language do not contain
+   * properties, so this set may be empty.
+   *
+   * <p>Neither presence nor absence of a property is a source for an analysis result; obtain
+   * results from the reporting analysis.
    */
   public Set<Property> getProperties() {
     return properties;
