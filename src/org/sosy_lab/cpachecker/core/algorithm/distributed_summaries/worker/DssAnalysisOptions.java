@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import static com.google.common.base.Verify.verify;
+
 import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -155,6 +157,7 @@ public class DssAnalysisOptions {
   }
 
   public boolean combinePreconditionsByHash() {
+    verify(blockAnalysisType == DssBlockAnalysisType.ALWAYS_REPLACE);
     return combinePreconditionsByHash;
   }
 
