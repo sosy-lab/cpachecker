@@ -822,12 +822,12 @@ public class SMGCPABuiltins {
    *       long int b, unsigned long long int carry_in, unsigned long long int *carry_out)}
    * </ul>
    */
-  private List<ValueAndSMGState> handleGccBuiltinCarryBorrowFunctions(
-      final String functionName,
-      final SMGState initialState,
-      final CFunctionCallExpression cFCExpression,
-      final CFAEdge pCfaEdge)
-      throws CPATransferException {
+  private static OverflowFunctionReturnAndCastCalculationResult
+      buildGccBuiltinCarryBorrowExpressions(
+          final String functionName,
+          final CFunctionCallExpression cFCExpression,
+          final CBinaryExpressionBuilder pExpressionBuilder)
+          throws CPATransferException {
     // These builtins have no CFunctionDeclaration, so the call expression type is not reliable.
     CType type = BuiltinOverflowFunctions.getCarryBorrowArithmeticType(functionName);
     ImmutableList<CExpression> parameters = cFCExpression.getParameterExpressions();
@@ -904,26 +904,37 @@ public class SMGCPABuiltins {
 
     //      *(carry_out) = c1 | c2; \
     CBinaryExpression c1LogicalOrC2Expr =
-        new CBinaryExpressionBuilder(machineModel, logger)
-            .buildBinaryExpression(
-                castIfNecessary(c1, type), castIfNecessary(c2, type), BinaryOperator.BITWISE_OR);
-    // c1LogicalOrC2Expr is assigned to *carry_out
+        pExpressionBuilder.buildBinaryExpression(
+            castIfNecessary(c1, type), castIfNecessary(c2, type), BinaryOperator.BITWISE_OR);
+    return new OverflowFunctionReturnAndCastCalculationResult(c1LogicalOrC2Expr, s);
+  }
+
+  /** Evaluates the carry/borrow expressions and applies the output assignment within SMGCPA. */
+  private List<ValueAndSMGState> handleGccBuiltinCarryBorrowFunctions(
+      final String functionName,
+      final SMGState initialState,
+      final CFunctionCallExpression cFCExpression,
+      final CFAEdge pCfaEdge)
+      throws CPATransferException {
+    OverflowFunctionReturnAndCastCalculationResult overflowAndCalculationResult =
+        buildGccBuiltinCarryBorrowExpressions(
+            functionName, cFCExpression, new CBinaryExpressionBuilder(machineModel, logger));
+    CExpression carryOutArgumentCExpr = cFCExpression.getParameterExpressions().get(3);
+    CType carryOutType =
+        ((CPointerType) carryOutArgumentCExpr.getExpressionType().getCanonicalType())
+            .getType()
+            .getCanonicalType();
     CExpressionAssignmentStatement carryOutAssignment =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY,
             new CPointerExpression(
-                carryOutArgumentCExpr.getFileLocation(),
-                ((CPointerType) carryOutArgumentCExpr.getExpressionType().getCanonicalType())
-                    .getType()
-                    .getCanonicalType(),
-                carryOutArgumentCExpr),
-            c1LogicalOrC2Expr);
-
-    // TODO: extract CExpression based part into its own method, as it can be used outside of SMG2!
-    // return CExprAndCExpr.of(s, carryOutAssignment);
+                carryOutArgumentCExpr.getFileLocation(), carryOutType, carryOutArgumentCExpr),
+            overflowAndCalculationResult.functionReturn());
 
     List<ValueAndSMGState> functionResultValuesAndStates =
-        s.accept(new SMGCPAValueVisitor(evaluator, initialState, pCfaEdge, logger));
+        overflowAndCalculationResult
+            .castCalculationResult()
+            .accept(new SMGCPAValueVisitor(evaluator, initialState, pCfaEdge, logger));
     checkState(functionResultValuesAndStates.size() == 1);
     Value functionResult = functionResultValuesAndStates.getFirst().getValue();
     SMGState currentState = functionResultValuesAndStates.getFirst().getState();
@@ -3941,8 +3952,7 @@ public class SMGCPABuiltins {
     private OverflowFunctionReturnAndCastCalculationResult {
       checkNotNull(functionReturn);
       checkNotNull(castCalculationResult);
-      checkArgument(
-          functionReturn.getExpressionType().getCanonicalType().equals(CNumericTypes.BOOL));
+      checkArgument(CTypes.isIntegerType(functionReturn.getExpressionType().getCanonicalType()));
     }
   }
 }
