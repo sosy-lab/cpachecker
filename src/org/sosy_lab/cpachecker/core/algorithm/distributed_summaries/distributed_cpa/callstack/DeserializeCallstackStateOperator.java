@@ -9,11 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
 import com.google.common.base.Function;
-import com.google.common.base.Splitter;
-import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -36,27 +33,21 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex) {
-    ContentReader content = pMessage.getAbstractStateContent(CallstackState.class, pStateIndex);
-    String stateJson = content.get(STATE_KEY);
-    assert stateJson != null;
-    // states of a block analysis that did not know its callstack must stay unrestricted
-    boolean allowAllTransfers =
-        Boolean.parseBoolean(
-            content.getOrDefault(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, "false"));
-    if (stateJson.isBlank()) {
+    DssCallstackStatePayload statePayload =
+        DssCallstackStatePayload.fromContentMap(pMessage.getStates().get(pStateIndex));
+    if (statePayload.states().isEmpty()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
-      return parentCPA.createState(null, location.getFunctionName(), location, allowAllTransfers);
+      return parentCPA.createState(
+          null, location.getFunctionName(), location, statePayload.allowAllTransfers());
     }
-    List<String> parts = Splitter.on(DistributedCallstackCPA.DELIMITER).splitToList(stateJson);
     CallstackState current = null;
-    for (String part : parts) {
-      List<String> properties = Splitter.on(".").limit(2).splitToList(part);
+    for (DssCallstackEntryPayload entryPayload : statePayload.states()) {
       current =
           parentCPA.createState(
               current,
-              properties.get(1),
-              Objects.requireNonNull(converter.apply(Integer.parseInt(properties.getFirst()))),
-              allowAllTransfers);
+              entryPayload.function(),
+              Objects.requireNonNull(converter.apply(entryPayload.nodeId())),
+              statePayload.allowAllTransfers());
     }
     return current;
   }

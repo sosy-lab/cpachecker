@@ -8,15 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
-import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -30,28 +28,25 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
+    return serializePayload(pCallstackState).asContentMap();
+  }
+
+  private DssCallstackStatePayload serializePayload(AbstractState pCallstackState) {
     boolean allowAllTransfers = DistributedCallstackCPA.allowsAllTransfers(pCallstackState);
-    String result;
     if (allowAllTransfers) {
       // the sending block did not know its callstack, so the stack carries no information:
       // the receiving block starts with a fresh stack at its own initial location
-      result = "";
-    } else {
-      List<String> states = new ArrayList<>();
-      CallstackState callstackState = (CallstackState) pCallstackState;
-      while (callstackState != null) {
-        states.add(
-            nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
-        callstackState = callstackState.getPreviousState();
-      }
-      Collections.reverse(states);
-      result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+      return new DssCallstackStatePayload(true, ImmutableList.of());
     }
-    return ContentBuilder.builder()
-        .pushLevel(DssComponentKey.serializedNameFor(CallstackState.class))
-        .put(SerializeOperator.STATE_KEY, result)
-        // the receiving block has to know whether the sending block knew its callstack
-        .put(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, Boolean.toString(allowAllTransfers))
-        .build();
+    List<DssCallstackEntryPayload> states = new ArrayList<>();
+    CallstackState callstackState = (CallstackState) pCallstackState;
+    while (callstackState != null) {
+      states.add(
+          new DssCallstackEntryPayload(
+              nodeToId.get(callstackState.getCallNode()), callstackState.getCurrentFunction()));
+      callstackState = callstackState.getPreviousState();
+    }
+    Collections.reverse(states);
+    return new DssCallstackStatePayload(false, ImmutableList.copyOf(states));
   }
 }
