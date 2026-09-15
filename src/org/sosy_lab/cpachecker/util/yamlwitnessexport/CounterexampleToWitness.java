@@ -548,19 +548,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       //  is the property violation."
       // meaning that due to free causing the violation, and it being a C standard function, we
       // treat it like any other violation.
-      // Example (free(ptr) fails for valid-free) : return /* dummy */ (foo(), free(ptr), 0);
-      // Here we target the first '(' from the left, as C11 §6.4.9 and §5.1.1.2 tell us that
-      // comments do not belong to statements and expressions, as they are removed.
-      // 'return ...;' is the statement (i.e. the target location of the statement would be 'r',
-      // if it were a target location), while '(foo(), free(ptr), 0)' is the
-      // expression (C11 §6.8.6.4). C11 §6.8 says that "A full expression is an expression that
-      // is not part of another expression or of a declarator. Each of the following is a
-      // full expression:  ... the (optional) expression in a return statement.", so
-      // '(foo(), free(ptr), 0)' is a full expression. C11 §6.5.1 confirms that the entire outer
-      // brackets form a full expression. But what about the comma operator? It is defined in
-      // C11 §6.5.17 such that "there is a sequence point between its evaluation and that of the
-      // right operand.", but still, 'free(ptr)' can't be a full expression according to §6.8.
-      // Hence, the full expression previous full expression starts at the first '(' from the left.
       default -> defaultTargetWaypoint(pEdge, pAstCfaRelation);
     };
   }
