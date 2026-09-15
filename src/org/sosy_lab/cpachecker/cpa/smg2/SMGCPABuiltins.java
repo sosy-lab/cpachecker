@@ -665,7 +665,8 @@ public class SMGCPABuiltins {
     checkArgument(fullFunctionName.startsWith("__builtin_"));
     checkArgument(fullFunctionName.endsWith("_overflow"));
     final BinaryOperator operator = BuiltinOverflowFunctions.getOperator(fullFunctionName);
-    final Optional<CSimpleType> fixedType = BuiltinOverflowFunctions.getType(fullFunctionName);
+    final Optional<CSimpleType> fixedType =
+        BuiltinOverflowFunctions.getFixedArithmeticType(fullFunctionName);
 
     final CType typeOfA = a.getExpressionType().getCanonicalType();
     final CType typeOfB = b.getExpressionType().getCanonicalType();
