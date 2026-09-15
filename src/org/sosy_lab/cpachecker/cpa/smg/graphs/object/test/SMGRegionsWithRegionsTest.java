@@ -19,7 +19,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -36,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class SMGRegionsWithRegionsTest {
@@ -74,7 +74,7 @@ public class SMGRegionsWithRegionsTest {
     state =
         new SMGState(
             LogManager.createTestLogManager(),
-            new SMGOptions(Configuration.defaultConfiguration()),
+            new SMGOptions(TestUtils.configurationForTest().build()),
             smg,
             0,
             PersistentBiMap.of());

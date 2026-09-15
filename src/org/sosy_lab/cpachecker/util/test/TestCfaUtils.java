@@ -48,6 +48,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 /** Various utilities for creating a CFA or parts of it for tests. */
 public class TestCfaUtils {
 
+  /** A function that never returns, so that the branch calling it reaches no exit node. */
+  private static final String ABORT_DECLARATION =
+      "extern void abort(void) __attribute__((__noreturn__));\n";
+
   public static CIdExpression makeVariable(String varName, CSimpleType varType) {
     FileLocation loc = FileLocation.DUMMY;
     CVariableDeclaration decl =
@@ -145,6 +149,27 @@ public class TestCfaUtils {
     }
 
     return mapping.get(cfa.getMainFunction().getExitNode().orElseThrow());
+  }
+
+  /**
+   * Convert the given C expression to a {@link PathFormula}. The expression is used as an
+   * assumption in a new program whose main function starts with the given declarations.
+   */
+  @SafeVarargs
+  public static PathFormula toFormula(
+      String declarations,
+      String expression,
+      PathFormulaManager pfmgr,
+      Map.Entry<String, String>... options)
+      throws Exception {
+    @SuppressWarnings("varargs")
+    CFA cfa =
+        makeCfaFromString(
+            ABORT_DECLARATION
+                + getProgram(declarations + "\nif (!(" + expression + ")) {\n  abort();\n}"),
+            options);
+
+    return toPathFormula(cfa, SSAMap.emptySSAMap(), pfmgr, true);
   }
 
   private static String getProgram(String functionBody) {

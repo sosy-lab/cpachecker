@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGTransferRelation
@@ -203,12 +204,11 @@ public class SMGTransferRelation
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = null;
 
-    Solver smtSolver =
-        Solver.create(
-            Configuration.defaultConfiguration(), pLogger, ShutdownNotifier.createDummy());
+    Configuration config = TestUtils.configurationForTest().build();
+    Solver smtSolver = Solver.create(config, pLogger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
     CFormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new CFormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
+        new CFormulaEncodingWithPointerAliasingOptions(config);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, formulaOptions);
 
@@ -225,7 +225,7 @@ public class SMGTransferRelation
 
     solver =
         new ConstraintsSolver(
-            Configuration.defaultConfiguration(),
+            config,
             pMachineModel,
             smtSolver,
             formulaManager,

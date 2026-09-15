@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 // TODO: run with more machine models
 /* Test all SMGCPAValueVisitor visits. Some will be tested indirectly, for example value creation. */
@@ -165,10 +166,7 @@ public class SMGCPAValueVisitorTest {
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
     Configuration defaultOptionsNoPreciseRead =
-        Configuration.builder()
-            .copyFrom(Configuration.defaultConfiguration())
-            .setOption("cpa.smg2.preciseSMGRead", "false")
-            .build();
+        TestUtils.configurationForTest().setOption("cpa.smg2.preciseSMGRead", "false").build();
     options = new SMGOptions(defaultOptionsNoPreciseRead, null);
 
     // null, null is fine as long as builtin functions are not used!
@@ -181,7 +179,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
-    Configuration config = Configuration.defaultConfiguration();
+    Configuration config = TestUtils.configurationForTest().build();
     Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
     CFormulaEncodingWithPointerAliasingOptions formulaOptions =
@@ -210,7 +208,7 @@ public class SMGCPAValueVisitorTest {
         SMGState.of(
             MACHINE_MODEL,
             logger,
-            new SMGOptions(Configuration.defaultConfiguration(), null),
+            new SMGOptions(TestUtils.configurationForTest().build(), null),
             evaluator,
             new SMGCPAStatistics());
 
