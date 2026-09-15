@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Optional;
@@ -214,6 +215,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
      * identifiers are kept. The return value says whether this input completed with reachable
      * exits.
      */
+    @CanIgnoreReturnValue
     private boolean run(AbstractState pInput, ImmutableSet<Object> pGroups, RunMode pMode)
         throws CPAException, InterruptedException {
       DssBlockAnalysisResult result =
