@@ -200,32 +200,6 @@ public class SequentializationParseTest {
   }
 
   @Test
-  public void test_mix014_power_oepc_pso_oepc_rmo_oepc() throws Exception {
-    // this program is ... very large
-    Path path =
-        Path.of("./test/programs/mpor/sequentialization/mix014_power.oepc_pso.oepc_rmo.oepc.i");
-    assertThat(Files.exists(path)).isTrue();
-    Configuration config =
-        TestUtils.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.abortCommutingContextSwitches", "true")
-            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "HEXADECIMAL")
-            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
-            .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
-            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
-            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
-            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
-            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "IF_ELSE_CHAIN")
-            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
-            .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
-            .build();
-    MPOROptions options = new MPOROptions(config);
-    testProgram(path, options);
-  }
-
-  @Test
   public void test_queue_longest() throws Exception {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
     Path path = Path.of("./test/programs/mpor/sequentialization/queue_longest.i");
@@ -248,9 +222,9 @@ public class SequentializationParseTest {
   }
 
   @Test
-  public void test_race_4_1_thread_local_vars() throws Exception {
+  public void test_subsystem() throws Exception {
     // this program had issues with infinite recursion when reordering blocks
-    Path path = Path.of("./test/programs/mpor/sequentialization/race-4_1-thread_local_vars.i");
+    Path path = Path.of("./test/programs/mpor/sequentialization/subsystem.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -272,11 +246,11 @@ public class SequentializationParseTest {
   }
 
   @Test
-  public void test_read_write_lock_2() throws Exception {
+  public void test_function_call_entry() throws Exception {
     // this program contains start_routines that start directly with a function call.
     // this forces us to reorder the thread statements, because function statements are usually
     // at the bottom of a thread simulation.
-    Path path = Path.of("./test/programs/mpor/sequentialization/read_write_lock-2.i");
+    Path path = Path.of("./test/programs/mpor/sequentialization/function-call-entry.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()

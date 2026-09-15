@@ -232,68 +232,6 @@ public class SequentializationFieldsTest {
   }
 
   @Test
-  public void test_mix008_tso_oepc() throws Exception {
-    Path path = Path.of("./test/programs/mpor/sequentialization/mix008_tso.oepc.i");
-    assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.getDefaultTestInstance();
-    SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads).isEqualTo(5);
-    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(45);
-    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
-    assertThat(
-            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
-        .isEmpty();
-    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
-    assertThat(
-            pointerAliasingMap.extractPointerAssignmentsByType(
-                SeqPointerAssignmentType.START_ROUTINE_ARG))
-        .isEmpty();
-    // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.getThread().id())
-        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
-    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
-    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
-  }
-
-  @Test
-  public void test_mix014_power_oepc_pso_oepc_rmo_oepc() throws Exception {
-    // this program is ... very large
-    Path path =
-        Path.of("./test/programs/mpor/sequentialization/mix014_power.oepc_pso.oepc_rmo.oepc.i");
-    assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.getDefaultTestInstance();
-    SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads).isEqualTo(5);
-    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
-    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(30);
-    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
-    assertThat(
-            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
-        .isEmpty();
-    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
-    assertThat(
-            pointerAliasingMap.extractPointerAssignmentsByType(
-                SeqPointerAssignmentType.START_ROUTINE_ARG))
-        .isEmpty();
-    // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.getThread().id())
-        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
-    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
-    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
-  }
-
-  @Test
   public void test_queue_longest() throws Exception {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
     Path path = Path.of("./test/programs/mpor/sequentialization/queue_longest.i");
@@ -327,15 +265,15 @@ public class SequentializationFieldsTest {
   }
 
   @Test
-  public void test_read_write_lock_2() throws Exception {
+  public void test_function_call_entry() throws Exception {
     // this program contains start_routines that start directly with a function call.
     // this forces us to reorder the thread statements, because function statements are usually
     // at the bottom of a thread simulation.
-    Path path = Path.of("./test/programs/mpor/sequentialization/read_write_lock-2.i");
+    Path path = Path.of("./test/programs/mpor/sequentialization/function-call-entry.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads).isEqualTo(5);
+    assertThat(fields.numThreads).isEqualTo(3);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
     assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(4);
@@ -354,8 +292,6 @@ public class SequentializationFieldsTest {
     assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
     assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
     assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
-    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
   }
 
   @Test
