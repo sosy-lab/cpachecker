@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -389,9 +390,7 @@ public final class DssBlockAnalysis {
     CompositeState composite = (CompositeState) root.getWrappedState();
     return new ARGState(
         new CompositeState(
-            composite.getWrappedStates().stream()
-                .map(state -> state instanceof BlockState ? pBlockState : state)
-                .collect(ImmutableList.toImmutableList())),
+            transformedImmutableListCopy(composite.getWrappedStates(), state->state instanceof BlockState ? pBlockState : state)),
         null);
   }
 
@@ -703,24 +702,14 @@ public final class DssBlockAnalysis {
   /** Snapshot paths reaching the given states without eagerly enumerating them. */
   Set<ArgPathAndCondition> pathsFromOrigin(Collection<@NonNull ARGState> pStates) {
     DssBlockPathGraph graph = new DssBlockPathGraph((ARGState) reachedSet.getFirstState(), pStates);
-    return pStates.stream()
-        .map(state -> new ArgPathAndCondition(graph, state, null))
-        .collect(ImmutableSet.toImmutableSet());
+    return transformedImmutableSetCopy(pStates, state->new ArgPathAndCondition(graph, state, null));
   }
 
   /** Snapshot paths together with the exact violation condition attached to each ghost state. */
   Set<ArgPathAndCondition> pathsWithCondition(Collection<@NonNull ARGState> pViolations) {
     DssBlockPathGraph graph =
         new DssBlockPathGraph((ARGState) reachedSet.getFirstState(), pViolations);
-    return pViolations.stream()
-        .map(
-            state ->
-                new ArgPathAndCondition(
-                    graph,
-                    state,
-                    (ARGState)
-                        Iterables.getOnlyElement(blockStateOf(state).getViolationConditions())))
-        .collect(ImmutableSet.toImmutableSet());
+    return transformedImmutableSetCopy(pViolations, state->new ArgPathAndCondition(graph, state, (ARGState)Iterables.getOnlyElement(blockStateOf(state).getViolationConditions())));
   }
 
   /**

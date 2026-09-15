@@ -77,14 +77,14 @@ public class DssCallstackEffectTest {
   public void balancedCallsAtDifferentSitesHaveTheSameGuard() throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromString("void f() {} int main() { f(); f(); }");
     var calls = CFAUtils.allEdges(cfa).filter(FunctionCallEdge.class).toList();
-    DssCallstackEffect first = effect(ImmutableList.of(calls.get(0), returnFor(cfa, calls.get(0))));
+    DssCallstackEffect first = effect(ImmutableList.of(calls.getFirst(), returnFor(cfa, calls.getFirst())));
     DssCallstackEffect second =
         effect(ImmutableList.of(calls.get(1), returnFor(cfa, calls.get(1))));
     assertThat(first).isEqualTo(second);
     assertThat(first.hashCode()).isEqualTo(second.hashCode());
     assertThat(first).isNotEqualTo(DssCallstackEffect.EMPTY);
     for (int i = 0; i < 100; i++) {
-      first = first.append(calls.get(0)).append(returnFor(cfa, calls.get(0)));
+      first = first.append(calls.getFirst()).append(returnFor(cfa, calls.getFirst()));
     }
     assertThat(first).isEqualTo(second);
   }
@@ -162,7 +162,7 @@ public class DssCallstackEffectTest {
         TestCfaUtils.makeCfaFromString(
             "extern void a(); extern void b(); int main() { a(); b(); }");
     var statements = CFAUtils.allEdges(cfa).filter(CStatementEdge.class).toList();
-    CStatementEdge first = statements.get(0);
+    CStatementEdge first = statements.getFirst();
     CStatementEdge other =
         new CStatementEdge(
             "b()",

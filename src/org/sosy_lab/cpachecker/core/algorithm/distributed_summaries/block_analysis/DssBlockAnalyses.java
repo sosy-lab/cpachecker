@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -106,14 +107,11 @@ public final class DssBlockAnalyses {
       IdentityHashMap<BlockState, AbstractState> blockStateToState = indexByBlockState(pReachedSet);
       ListMultimap<BlockState, AbstractState> predecessorToStates =
           sortGhostStatesByPredecessor(extractBlockStatesAtGhostLocation(pReachedSet));
-      for (BlockState blockState : blockStateToState.keySet()) {
-        checkState(blockState.getType() == BlockStateType.FINAL);
-        advanceViolationConditions(
-            blockState,
-            predecessorToStates.get(blockState),
-            blockStateToState.get(blockState),
-            pReachedSet);
-      }
+      for (Map.Entry<BlockState, AbstractState> entry : blockStateToState.entrySet()) {
+BlockState blockState = entry.getKey();
+checkState(blockState.getType() == BlockStateType.FINAL);
+advanceViolationConditions(blockState, predecessorToStates.get(blockState), entry.getValue(), pReachedSet);
+}
     }
 
     return new DssBlockAnalysisResult(pReachedSet, status);
