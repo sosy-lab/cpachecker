@@ -1823,6 +1823,14 @@ public class SMGCPAValueVisitor
     if (functionNameExp instanceof CIdExpression cIdExpression) {
       String calledFunctionName = cIdExpression.getName();
 
+      if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)
+          || BuiltinOverflowFunctions.isBuiltinOverflowCarryBorrowFunction(calledFunctionName)) {
+        return evaluator
+            .getBuiltinFunctionHandler()
+            .handleFunctionCallWithoutBody(
+                pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
+      }
+
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
 
         CType functionType = BuiltinFunctions.getFunctionType(calledFunctionName);
@@ -1859,25 +1867,7 @@ public class SMGCPAValueVisitor
         List<Value> parameterValues = parameterValuesBuilder.build();
 
         // TODO: split this mess into functions
-        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
-          /*
-           * Problem: this method needs an AbstractExpressionValueVisitor as input (this)
-           * but this class is not correctly abstracted such that we can inherit it here
-           * (because it essentially is the same except for 1 method that would need to be
-           * abstract)
-           *
-           * return BuiltinOverflowFunctions.evaluateFunctionCall(
-           *   pIastFunctionCallExpression, this, machineModel, logger);
-           */
-          return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown result of unhandled builtin function "
-                      + calledFunctionName
-                      + " ",
-                  cfaEdge));
-
-        } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
+        if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
