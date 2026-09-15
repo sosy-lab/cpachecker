@@ -25,3 +25,5 @@ type_tests/*.yml
 pointer_arithmetics/*.yml
 function_pointers/*.yml
 mathFunctions/*.yml
+memsafety/deref_tests/*.yml
+memsafety/free_memory/*.yml
