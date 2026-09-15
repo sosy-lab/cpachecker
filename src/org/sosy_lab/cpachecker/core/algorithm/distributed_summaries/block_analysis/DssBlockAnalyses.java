@@ -108,10 +108,11 @@ public final class DssBlockAnalyses {
       ListMultimap<BlockState, AbstractState> predecessorToStates =
           sortGhostStatesByPredecessor(extractBlockStatesAtGhostLocation(pReachedSet));
       for (Map.Entry<BlockState, AbstractState> entry : blockStateToState.entrySet()) {
-BlockState blockState = entry.getKey();
-checkState(blockState.getType() == BlockStateType.FINAL);
-advanceViolationConditions(blockState, predecessorToStates.get(blockState), entry.getValue(), pReachedSet);
-}
+        BlockState blockState = entry.getKey();
+        checkState(blockState.getType() == BlockStateType.FINAL);
+        advanceViolationConditions(
+            blockState, predecessorToStates.get(blockState), entry.getValue(), pReachedSet);
+      }
     }
 
     return new DssBlockAnalysisResult(pReachedSet, status);

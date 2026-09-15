@@ -77,7 +77,8 @@ public class DssCallstackEffectTest {
   public void balancedCallsAtDifferentSitesHaveTheSameGuard() throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromString("void f() {} int main() { f(); f(); }");
     var calls = CFAUtils.allEdges(cfa).filter(FunctionCallEdge.class).toList();
-    DssCallstackEffect first = effect(ImmutableList.of(calls.getFirst(), returnFor(cfa, calls.getFirst())));
+    DssCallstackEffect first =
+        effect(ImmutableList.of(calls.getFirst(), returnFor(cfa, calls.getFirst())));
     DssCallstackEffect second =
         effect(ImmutableList.of(calls.get(1), returnFor(cfa, calls.get(1))));
     assertThat(first).isEqualTo(second);

@@ -390,7 +390,9 @@ public final class DssBlockAnalysis {
     CompositeState composite = (CompositeState) root.getWrappedState();
     return new ARGState(
         new CompositeState(
-            transformedImmutableListCopy(composite.getWrappedStates(), state->state instanceof BlockState ? pBlockState : state)),
+            transformedImmutableListCopy(
+                composite.getWrappedStates(),
+                state -> state instanceof BlockState ? pBlockState : state)),
         null);
   }
 
@@ -702,14 +704,21 @@ public final class DssBlockAnalysis {
   /** Snapshot paths reaching the given states without eagerly enumerating them. */
   Set<ArgPathAndCondition> pathsFromOrigin(Collection<@NonNull ARGState> pStates) {
     DssBlockPathGraph graph = new DssBlockPathGraph((ARGState) reachedSet.getFirstState(), pStates);
-    return transformedImmutableSetCopy(pStates, state->new ArgPathAndCondition(graph, state, null));
+    return transformedImmutableSetCopy(
+        pStates, state -> new ArgPathAndCondition(graph, state, null));
   }
 
   /** Snapshot paths together with the exact violation condition attached to each ghost state. */
   Set<ArgPathAndCondition> pathsWithCondition(Collection<@NonNull ARGState> pViolations) {
     DssBlockPathGraph graph =
         new DssBlockPathGraph((ARGState) reachedSet.getFirstState(), pViolations);
-    return transformedImmutableSetCopy(pViolations, state->new ArgPathAndCondition(graph, state, (ARGState)Iterables.getOnlyElement(blockStateOf(state).getViolationConditions())));
+    return transformedImmutableSetCopy(
+        pViolations,
+        state ->
+            new ArgPathAndCondition(
+                graph,
+                state,
+                (ARGState) Iterables.getOnlyElement(blockStateOf(state).getViolationConditions())));
   }
 
   /**
