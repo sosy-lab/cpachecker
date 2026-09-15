@@ -19,24 +19,12 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition/>
 
-  <!-- Configs with different nondeterminismSource per property. -->
-  <!-- These are similar to the SV-COMP configs, except that no partial order reduction is used. -->
-  <tasks name="C.unreach-call.NUM_STATEMENTS">
-    <option name="--option">analysis.algorithm.MPOR.nondeterminismSource=NUM_STATEMENTS</option>
-    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
+  <!-- Different nondeterminismSource is used per property so that programs are not sequentialized with the same settings multiple times. -->
   <tasks name="C.valid-memsafety.NEXT_THREAD">
     <option name="--option">analysis.algorithm.MPOR.nondeterminismSource=NEXT_THREAD</option>
     <option name="--option">analysis.algorithm.MPOR.selectionEncodingForThreads=SWITCH_CASE</option>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
-  </tasks>
-  <tasks name="C.no-overflow.NEXT_THREAD_AND_NUM_STATEMENTS">
-    <option name="--option">analysis.algorithm.MPOR.nondeterminismSource=NEXT_THREAD_AND_NUM_STATEMENTS</option>
-    <option name="--option">analysis.algorithm.MPOR.selectionEncodingForThreads=SWITCH_CASE</option>
-    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 
 </benchmark>
