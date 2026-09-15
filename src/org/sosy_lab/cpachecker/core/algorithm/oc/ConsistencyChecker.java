@@ -51,9 +51,9 @@ import org.sosy_lab.java_smt.api.Model;
  *       </ul>
  * </ul>
  *
- * <p>A cycle in the closed graph is an inconsistency. Its <em>reason</em> — the conjunction of the
- * selector variables and guards of the edges the cycle consists of — is returned as a conflict to
- * be excluded from the following solver queries.
+ * <p>A cycle in the closed graph is an inconsistency. Its <em>reason</em> — the conjunction of
+ * the selector variables and guards of the edges the cycle consists of — is returned as a
+ * conflict to be excluded from the following solver queries.
  */
 final class ConsistencyChecker {
 

@@ -219,7 +219,8 @@ public class MutexState implements AbstractState {
   }
 
   /** Returns the updated mutex state or empty if the operation is blocked by a mutex. */
-  public Optional<MutexState> update(CFAEdge edge, int pid, ImmutableMap<String, String> mutexCandidates) {
+  public Optional<MutexState> update(
+      CFAEdge edge, int pid, ImmutableMap<String, String> mutexCandidates) {
     // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
     if (MutexFunctions.isAtomicBegin(edge)) {
       if (isAtomicBlockedFor(pid)) {
