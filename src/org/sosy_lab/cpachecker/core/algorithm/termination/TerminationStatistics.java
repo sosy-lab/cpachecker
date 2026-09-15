@@ -13,9 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.collectArgumentsForNestedLoops;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.processRankingFunction;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.processSupportingInvariant;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
 import com.google.common.base.Function;
@@ -23,16 +20,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ConcurrentHashMultiset;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricNonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
@@ -115,9 +109,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 
 @Options(prefix = "termination", deprecatedPrefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
@@ -166,13 +159,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       secure = true,
       name = "exportYamlCorrectnessWitness",
       description = "export correctness witness in YAML format")
-  private boolean exportYamlCorrectnessWitness = true;
+  protected boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
       name = "exportSupportingInvariantsInWitness",
       description = "export supporting invariants in the witness")
-  private boolean exportSupportingInvariantsInWitness = true;
+  private boolean exportSupportingInvariantsInWitness = false;
 
   @Option(
       secure = true,
@@ -205,7 +198,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   protected final WitnessExporter witnessExporter;
   protected final TerminationYAMLWitnessExporter terminationWitnessExporter;
-  private final CounterexampleToWitnessV2 cexToWitnessEporter;
+  private final CounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
@@ -239,13 +232,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               Specification.alwaysSatisfied()
                   .withAdditionalProperties(
                       ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-              pLogger);
+              pLogger,
+              exportSupportingInvariantsInWitness);
     } else {
       terminationWitnessExporter = null;
     }
 
     cexToWitnessEporter =
-        new CounterexampleToWitnessV2(
+        new CounterexampleToWitness(
             pConfig,
             pCFA,
             Specification.alwaysSatisfied()
@@ -492,10 +486,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(!violations.hasNext());
     }
 
-    if (pResult == Result.TRUE) {
+    if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
       try {
-        terminationWitnessExporter.export(
-            convertRankingFuncToTransInv(terminationArguments), yamlWitnessOutputFileTemplate);
+        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
@@ -590,33 +583,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     } catch (InterruptedException | IOException e) {
       logger.logUserException(WARNING, e, "Could not export termination witness.");
     }
-  }
-
-  private ImmutableList<AbstractInvariantEntry> convertRankingFuncToTransInv(
-      Multimap<Loop, TerminationArgument> pTerminationArguments) {
-    ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
-
-    for (Loop loop : pTerminationArguments.keySet()) {
-      CFANode loopHead = loop.getLoopNodes().getFirst();
-      CFAEdge incomingLoopEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
-      for (TerminationArgument argument : pTerminationArguments.get(loop)) {
-        if (exportSupportingInvariantsInWitness) {
-          // First construct reachability invariants that support the termination argument.
-          for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-            entries.add(
-                processSupportingInvariant(supportingInvariant, loopHead, incomingLoopEdge));
-          }
-        }
-      }
-      // Construct transition invariants from ranking function
-      entries.add(
-          processRankingFunction(
-              collectArgumentsForNestedLoops(
-                  loop, pTerminationArguments.keySet(), pTerminationArguments),
-              loopHead,
-              incomingLoopEdge));
-    }
-    return entries.build();
   }
 
   protected Collection<ARGState> copyStem(

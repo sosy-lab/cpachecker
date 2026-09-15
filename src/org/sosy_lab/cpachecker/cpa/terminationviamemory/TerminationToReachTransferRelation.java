@@ -14,8 +14,10 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -24,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -34,11 +37,15 @@ import org.sosy_lab.java_smt.api.Formula;
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
+  private final ImmutableSet<Loop> allLoops;
 
   public TerminationToReachTransferRelation(
-      FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager) {
+      FormulaManagerView pFormulaManagerView,
+      PathFormulaManager pPathFormulaManager,
+      ImmutableSet<Loop> pAllLoops) {
     fmgr = pFormulaManagerView;
     pfmgr = pPathFormulaManager;
+    allLoops = pAllLoops;
   }
 
   @Override
@@ -46,12 +53,17 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-
-    // We have proved that all the loops on the path are terminating and there was at least one
-    if (terminationState.isTerminating() && !terminationState.getStoredValues().isEmpty()) {
-      return ImmutableList.of();
-    }
-    return ImmutableList.of(state);
+    TerminationToReachState newState =
+        new TerminationToReachState(
+            terminationState.getStoredValues(),
+            terminationState.getNumberOfIterations(),
+            terminationState.getPathFormulasForIteration(),
+            terminationState.getPathFormulasForPrefix(),
+            terminationState.getPathFormulaFull(),
+            Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
+            ImmutableSet.of(),
+            terminationState.getTransitionPredicates());
+    return ImmutableList.of(newState);
   }
 
   @Override
@@ -70,8 +82,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
-    terminationState.visitNode(location);
-    if (terminationState.isLoopHead(location)) {
+
+    if (TransitionInvariantUtils.isLoopHead(location, allLoops)) {
       Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
 
       ImmutableMap.Builder<
@@ -83,19 +95,16 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
           newPathFormulaForIteration = ImmutableMap.builder();
 
       // Set prefix path formula first
-      Optional<PathFormula> newPrefixFormula;
-      Optional<PathFormula> newFullFormula;
+      Optional<PathFormula> newPrefixFormula = terminationState.getPathFormulaFull();
+      PathFormula newFullFormula;
       if (terminationState.getPathFormulaFull().isEmpty()) {
-        newFullFormula = Optional.of(predicateState.getPathFormula());
-        newPrefixFormula = Optional.empty();
+        newFullFormula = predicateState.getPathFormula();
       } else {
-        newPrefixFormula = terminationState.getPathFormulaFull();
         newFullFormula =
-            Optional.of(
-                pfmgr.makeConjunction(
-                    ImmutableList.of(
-                        terminationState.getPathFormulaFull().orElseThrow(),
-                        predicateState.getPathFormula())));
+            pfmgr.makeConjunction(
+                ImmutableList.of(
+                    terminationState.getPathFormulaFull().orElseThrow(),
+                    predicateState.getPathFormula()));
       }
 
       // Copy the information for other loops
@@ -118,23 +127,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newValues.putAll(terminationState.getStoredValues().get(pairKey));
         newValues.put(
             terminationState.getNumberOfIterationsAtLoopHead(pairKey),
-            extractLoopHeadVariables(newFullFormula.orElseThrow()));
+            extractLoopHeadVariables(newFullFormula));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
-
-        if (terminationState.getPathFormulasForIteration().containsKey(pairKey)) {
-          newPathFormulaForIteration.put(
-              pairKey,
-              pfmgr.makeConjunction(
-                  ImmutableList.of(
-                      terminationState.getPathFormulasForIteration().get(pairKey),
-                      predicateState.getPathFormula())));
-        } else {
-          newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
-        }
+        newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
       } else {
-        newValues.put(0, extractLoopHeadVariables(newFullFormula.orElseThrow()));
+        newValues.put(0, extractLoopHeadVariables(newFullFormula));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
@@ -144,11 +143,10 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow(),
               newPrefixFormula,
-              newFullFormula,
-              terminationState.getPossiblyNonterminatingLoopHeads(),
-              terminationState.getAllLoops(),
-              terminationState.visitedNodes());
-      newState.visitNode(location);
+              Optional.of(newFullFormula),
+              terminationState.getPathSequence(),
+              ImmutableSet.of(),
+              terminationState.getTransitionPredicates());
       return ImmutableList.of(newState);
     }
     return ImmutableList.of(pState);

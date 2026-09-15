@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -69,7 +70,8 @@ public class AssumptionAutomatonGenerator {
     return uncoveredAncestors;
   }
 
-  public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes)
+  public void writeAutomaton(
+      final ARGState root, final List<ARGState> incompleteNodes, final MachineModel machineModel)
       throws CPAException {
     assert notCovered(incompleteNodes);
 
@@ -82,7 +84,8 @@ public class AssumptionAutomatonGenerator {
           new HashSet<>(incompleteNodes),
           0,
           true,
-          false);
+          false,
+          machineModel);
     } catch (IOException e) {
       logger.log(
           Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");

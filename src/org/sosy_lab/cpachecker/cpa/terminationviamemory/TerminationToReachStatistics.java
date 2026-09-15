@@ -11,129 +11,100 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.logging.Level.WARNING;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Objects;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
-import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2d1;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 @Options(prefix = "terminationtoreach")
-public class TerminationToReachStatistics extends ARGStatistics implements Statistics {
-  @Option(secure = true, name = "validation", description = "do not produce witness for validation")
-  private boolean validation = false;
+public class TerminationToReachStatistics extends TerminationStatistics implements Statistics {
+  @Option(
+      secure = true,
+      name = "violation.witness",
+      description = "Export termination counterexample to file as GraphML automaton ")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitness = Path.of("witness.graphml");
 
   @Option(
       secure = true,
-      name = "yamlWitness",
-      description =
-          "The template from which the different "
-              + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected PathTemplate yamlWitnessOutputFileTemplate = PathTemplate.ofFormatString("witness.yml");
+      name = "violation.witness.dot",
+      description = "Export termination counterexample to file as dot/graphviz automaton ")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitnessDot = Path.of("witness.dot");
 
-  private final TerminationYAMLWitnessExporter terminationWitnessExporter;
+  @Option(
+      secure = true,
+      name = "compressWitness",
+      description = "compress the produced violation-witness automata using GZIP compression.")
+  private boolean compressWitness = false;
+
+  @Option(secure = true, name = "validation", description = "do not produce witness for validation")
+  private boolean validation = false;
 
   private ImmutableSet<Loop> nonterminatingLoops = null;
-  private FormulaManagerView fmgr;
-  private BooleanFormulaManagerView bfmgr;
-  private CounterexampleToWitnessV2 nonterminationWitnessExporter;
-  private Scope scope;
 
-  public TerminationToReachStatistics(
-      Configuration pConfig, LogManager pLogger, CFA pCFA, ConfigurableProgramAnalysis pCPA)
+  public TerminationToReachStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    super(
-        pConfig,
-        pLogger,
-        pCPA,
-        Specification.alwaysSatisfied()
-            .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-        pCFA);
+    super(pConfig, pLogger, pCFA);
     pConfig.inject(this);
-    scope = new CProgramScope(pCFA, pLogger);
-    terminationWitnessExporter =
-        new TerminationYAMLWitnessExporter(
-            pConfig,
-            pCFA,
-            Specification.alwaysSatisfied()
-                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-            pLogger);
-    nonterminationWitnessExporter =
-        new CounterexampleToWitnessV2d1(
-            pConfig,
-            pCFA,
-            Specification.alwaysSatisfied()
-                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-            pLogger);
   }
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    if (!validation && pResult == Result.FALSE) {
-      int uniqueId = 0;
-      for (CounterexampleInfo info : getAllCounterexamples(pReached).values()) {
-        try {
-          nonterminationWitnessExporter.export(info, yamlWitnessOutputFileTemplate, uniqueId);
-        } catch (IOException e) {
-          logger.logUserException(
-              WARNING, e, "There is a problem when writing the witness into a file.");
-        }
-        uniqueId++;
+    if (!validation
+        && pResult == Result.FALSE
+        && (violationWitness != null || violationWitnessDot != null)) {
+      Iterator<ARGState> violations =
+          pReached.stream()
+              .filter(AbstractStates::isTargetState)
+              .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
+              .filter(s -> s.isTarget())
+              .iterator();
+      Preconditions.checkState(violations.hasNext());
+      exportTrivialWitness((ARGState) pReached.getFirstState(), violations.next());
+      Preconditions.checkState(!violations.hasNext());
+    }
+
+    if (!validation
+        && exportYamlCorrectnessWitness
+        && yamlWitnessOutputFileTemplate != null
+        && pResult == Result.TRUE) {
+      try {
+        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+      } catch (IOException e) {
+        logger.logUserException(
+            WARNING, e, "There is a problem when writing the witness into a file.");
       }
     }
-
-    if (!validation && pResult == Result.TRUE) {
-      exportTerminationWitness(pReached);
-    }
-  }
-
-  public void setFormulaManager(FormulaManagerView pFmgr) {
-    fmgr = pFmgr;
-  }
-
-  public void setBooleanFormulaManager(BooleanFormulaManagerView pBfmgr) {
-    bfmgr = pBfmgr;
   }
 
   @Override
@@ -147,87 +118,57 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
     nonterminatingLoops = pLoop;
   }
 
-  private void exportTerminationWitness(UnmodifiableReachedSet pReached) {
-    Map<FileLocation, InvariantEntry> transitionInvariants = new HashMap<>();
-    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
-    for (AbstractState state :
-        pReached.stream()
-            .filter(
-                state ->
-                    AbstractStates.extractStateByType(state, TerminationToReachState.class)
-                        .getCandidateTransitionInvariant()
-                        .isPresent())
-            .collect(ImmutableSet.toImmutableSet())) {
-      TerminationToReachState terminationState =
-          AbstractStates.extractStateByType(state, TerminationToReachState.class);
-      CFANode location =
-          AbstractStates.extractStateByType(state, LocationState.class).getLocationNode();
-      String transitionInvariantAsC;
+  private void exportTrivialWitness(final ARGState root, final ARGState loopStart) {
+    ARGState loopStartInCEX =
+        new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);
 
-      PartitionedRelationFormula formula =
-          terminationState.getCandidateTransitionInvariant().orElseThrow();
-      formula.extendPrevVarsWithPrefixSuffix("::at(", ", AnyPrev)");
-      formula.extendCurrVarsWithPrefixSuffix("", "");
-      // Transforming the candidate transition invariant from formula to C expression
-      // and wrapping the previous variables into \\at(x, AnyPrev)
-      try {
-        transitionInvariantAsC =
-            TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-                    formula.getFormula(), bfmgr, fmgr, scope)
-                .replace("::at", "\\at");
-        transitionInvariantAsC =
-            TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
-      } catch (CPAException e) {
-        transitionInvariantAsC = "true";
-      }
+    ARGState newRoot = new ARGState(root.getWrappedState(), null);
+    Collection<ARGState> cexStates =
+        copyStem(ARGPath.builder().build(loopStart), newRoot, loopStart, loopStartInCEX);
 
-      Optional<IterationElement> iterationElement =
-          astCfaRelation.getTightestIterationStructureForNode(location);
-      if (iterationElement.isPresent()) {
-        FileLocation fileLocation = iterationElement.orElseThrow().getCompleteElement().location();
-        if (transitionInvariants.containsKey(fileLocation)) {
-          if (!transitionInvariants.get(fileLocation).getValue().contains(transitionInvariantAsC)) {
-            transitionInvariantAsC =
-                transitionInvariantAsC + " || " + transitionInvariants.get(fileLocation).getValue();
-            transitionInvariants.remove(fileLocation, transitionInvariants.get(fileLocation));
-            LocationRecord locationEntry =
-                LocationRecord.createLocationRecordAtStart(
-                    iterationElement.orElseThrow().getCompleteElement().location(),
-                    location.getFunction().getFileLocation().getFileName().toString(),
-                    location.getFunctionName());
+    ExpressionTree<Object> quasiInvariant = ExpressionTrees.getTrue();
 
-            transitionInvariants.put(
-                fileLocation,
-                new InvariantEntry(
-                    transitionInvariantAsC,
-                    InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
-                    YAMLWitnessExpressionType.EXT_C,
-                    locationEntry));
+    Function<? super ARGState, ExpressionTree<Object>> provideQuasiInvariant =
+        (ARGState argState) -> {
+          if (Objects.equals(argState, loopStartInCEX)) {
+            return quasiInvariant;
           }
-        } else {
-          LocationRecord locationEntry =
-              LocationRecord.createLocationRecordAtStart(
-                  iterationElement.orElseThrow().getCompleteElement().location(),
-                  location.getFunction().getFileLocation().getFileName().toString(),
-                  location.getFunctionName());
+          return ExpressionTrees.getTrue();
+        };
 
-          transitionInvariants.put(
-              fileLocation,
-              new InvariantEntry(
-                  transitionInvariantAsC,
-                  InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
-                  YAMLWitnessExpressionType.EXT_C,
-                  locationEntry));
-        }
-      }
+    for (Loop loop : nonterminatingLoops) {
+      cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX, loop));
     }
+
+    Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
+
     try {
-      terminationWitnessExporter.export(
-          transitionInvariants.values().stream().collect(ImmutableList.toImmutableList()),
-          yamlWitnessOutputFileTemplate);
-    } catch (IOException e) {
+      final Witness witness =
+          witnessExporter.generateTerminationErrorWitness(
+              newRoot,
+              relevantStates,
+              BiPredicates.bothSatisfy(relevantStates),
+              state -> Objects.equals(state, loopStartInCEX),
+              provideQuasiInvariant);
+
+      if (violationWitness != null) {
+        WitnessToOutputFormatsUtils.writeWitness(
+            violationWitness,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+            logger);
+      }
+
+      if (violationWitnessDot != null) {
+        WitnessToOutputFormatsUtils.writeWitness(
+            violationWitnessDot,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+            logger);
+      }
+    } catch (InterruptedException e) {
       logger.logUserException(
-          WARNING, e, "There is a problem when writing the witness into a file.");
+          WARNING, e, "Could not export termination witness due to interruption");
     }
   }
 }

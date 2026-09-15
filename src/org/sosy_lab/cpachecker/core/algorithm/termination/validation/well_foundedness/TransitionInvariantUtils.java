@@ -13,8 +13,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -53,15 +55,16 @@ public class TransitionInvariantUtils {
     }
   }
 
-  public static final String TRANS_INV_KEYWORD = "__TransInv";
-  public static final String PREV_KEYWORD = "__TransInv@1";
-  public static final String CURR_KEYWORD = "__TransInv@2";
-  public static final String CURR2_KEYWORD = "__TransInv@3";
+  public static final String TRANS_INV_KEYWORD = "__TransInv_";
+  public static final String PREV_KEYWORD = TRANS_INV_KEYWORD + "PREV";
+  public static final String CURR_KEYWORD = TRANS_INV_KEYWORD + "MID";
+  public static final String CURR2_KEYWORD = TRANS_INV_KEYWORD + "CURR";
 
-  public static String removeTransInvKeyWord(String pFormula) {
-    pFormula = pFormula.replace("__CPACHECKER_", "");
-    pFormula = pFormula.replace("__PREV", "");
-    return pFormula.replace(TRANS_INV_KEYWORD, "");
+  public static String removeKeyWordAfterTransInv(String pFormula) {
+    if (!pFormula.contains(TRANS_INV_KEYWORD)) {
+      return pFormula;
+    }
+    return pFormula.replace(PREV_KEYWORD, "").replace(CURR_KEYWORD, "").replace(CURR2_KEYWORD, "");
   }
 
   /**
@@ -93,6 +96,10 @@ public class TransitionInvariantUtils {
         .anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
   }
 
+  public static boolean isLoopHead(CFANode pCFANode, ImmutableSet<Loop> pLoops) {
+    return pLoops.stream().anyMatch(loop -> loop.getLoopHeads().contains(pCFANode));
+  }
+
   public static CSimpleDeclaration getPrevDeclaration(
       String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     return Iterables.getOnlyElement(
@@ -102,13 +109,10 @@ public class TransitionInvariantUtils {
   }
 
   public static String transformFormulaToStringWithTrivialReplacement(
-      BooleanFormula pFormula,
-      BooleanFormulaManagerView bfmgr,
-      FormulaManagerView fmgr,
-      Scope pScope)
+      BooleanFormula pFormula, BooleanFormulaManagerView bfmgr, FormulaManagerView fmgr)
       throws CPAException {
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
-    if (bfmgr.isTrue(pFormula) || containsPointerVariables(pFormula, fmgr, pScope)) {
+    if (bfmgr.isTrue(pFormula)) {
       return "1";
     } else if (bfmgr.isFalse(pFormula)) {
       return "0";
@@ -118,22 +122,6 @@ public class TransitionInvariantUtils {
     } catch (SolverException | InterruptedException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }
-  }
-
-  private static boolean containsPointerVariables(
-      BooleanFormula pFormula, FormulaManagerView fmgr, Scope pScope) {
-    try {
-      for (String variable : fmgr.extractVariables(pFormula).keySet()) {
-        String varWithoutFunc = removeFunctionFromVarsName(variable);
-        if (pScope.variableNameInUse(varWithoutFunc)
-            && pScope.lookupVariable(varWithoutFunc).toString().contains("*")) {
-          return true;
-        }
-      }
-    } catch (NullPointerException e) {
-      return false;
-    }
-    return false;
   }
 
   /**
@@ -217,21 +205,6 @@ public class TransitionInvariantUtils {
       }
     }
     return equivalence;
-  }
-
-  public static ImmutableMap<Formula, Formula> getSubMap(
-      ImmutableSet<Formula> variables, String prefix, String suffix, FormulaManagerView fmgr) {
-    return variables.stream()
-        .collect(
-            ImmutableMap.toImmutableMap(
-                var -> var,
-                var ->
-                    fmgr.makeVariable(
-                        fmgr.getFormulaType(var),
-                        prefix
-                            + TransitionInvariantUtils.removeTransInvKeyWord(
-                                fmgr.uninstantiate(var).toString())
-                            + suffix)));
   }
 
   public static String removeFunctionFromVarsName(String pFormula) {

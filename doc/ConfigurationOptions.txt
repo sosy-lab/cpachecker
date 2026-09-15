@@ -4057,20 +4057,17 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
-# There might be programs with unsigned integer overflow, anddue to the
-# overflow, they are non-terminating.This option enforces the transition
+# There might be programs with unsigned integer overflow, and due to the
+# overflow, they are non-terminating. This option enforces the transition
 # invariants to have constraints to limit the mathematical integers.
 cpa.terminationviamemory.addConstraintsToPreventOverflows = false
 
-# Some bitwise operations or modulo are UFs in integer encoding, andthey
-# might lead to unsound results. If integer encoding is set,we also have to
+# Some bitwise operations or modulo are UFs in integer encoding, and they
+# might lead to unsound results. If integer encoding is set, we also have to
 # use this option.
 cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 
-# Allows the analysis to also check for infinite loops caused by recursion.
-cpa.terminationviamemory.considerRecursion = false
-
-# Disables checks for fix-point with transition invariants and performsplain
+# Disables checks for fix-point with transition invariants and performs plain
 # BMC.
 cpa.terminationviamemory.performBMC = false
 
@@ -4093,6 +4090,13 @@ cpa.threading.allowMultipleLHS = false
 # 'useClonedFunctions=true', we need at least N cloned functions. The option
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
 cpa.threading.maxNumberOfThreads = 5
+
+# stop state-space-exploration once main is left. Setting this option to true
+# is always possible for verification, since one can find an interleaving
+# where main is not yet exited. However for validation it should be set to
+# false, since the witness may require main to exit first and then before the
+# teardown of all threads to continue with some other thread.
+cpa.threading.stopStateSpaceExplorationOnMainExit = true
 
 # in case of witness validation we need to check all possible function calls
 # of cloned CFAs.
@@ -5704,7 +5708,7 @@ termination.config = no default value
 termination.considerRecursion = false
 
 # export supporting invariants in the witness
-termination.exportSupportingInvariantsInWitness = true
+termination.exportSupportingInvariantsInWitness = false
 
 # export correctness witness in YAML format
 termination.exportYamlCorrectnessWitness = true
@@ -5794,13 +5798,17 @@ termination.violation.witness.yaml = "Counterexample.%s.witness-2.1.yml"
 # number.
 termination.yamlProofWitness = "witness-%s.yml"
 
+# compress the produced violation-witness automata using GZIP compression.
+terminationtoreach.compressWitness = false
+
 # do not produce witness for validation
 terminationtoreach.validation = false
 
-# The template from which the different versions of the correctness witnesses
-# will be exported. Each version replaces the string '%s' with its version
-# number.
-terminationtoreach.yamlWitness = "witness.yml"
+# Export termination counterexample to file as GraphML automaton 
+terminationtoreach.violation.witness = "witness.graphml"
+
+# Export termination counterexample to file as dot/graphviz automaton 
+terminationtoreach.violation.witness.dot = "witness.dot"
 
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
@@ -6087,5 +6095,22 @@ witness.yamlexporter.analyseWitnessQuality = false
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
 
+# Export function contracts, i.e. the requires and ensures clauses describing
+# the behavior of a function, into the correctness witness which is exported
+# from the ARG. Function contracts are not part of every witness format
+# version, see witness.yamlexporter.witnessVersions.
+witness.yamlexporter.exportFunctionContracts = false
+
+# Export location invariants, i.e. invariants which hold whenever a specific
+# location in the program is reached, into the correctness witness which is
+# exported from the ARG. Currently these are only exported for the locations
+# at which a function is called.
+witness.yamlexporter.exportLocationInvariants = true
+
+# Export loop invariants, i.e. invariants which hold whenever the head of a
+# loop is reached, into the correctness witness which is exported from the
+# ARG.
+witness.yamlexporter.exportLoopInvariants = true
+
 # The version for which to export the witness.
-witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
+witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]

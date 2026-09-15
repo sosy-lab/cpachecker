@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR2_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PREV_KEYWORD;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.getSubMap;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -40,21 +39,19 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.terminationviamemory")
@@ -63,25 +60,16 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
   private final InterpolationManager itpMgr;
-  private final PathFormulaManager pthfmgr;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
   private final LogManager logger;
-  private final ImmutableSet<ExpressionTreeLocationInvariant> candidateInvariants;
-  private final boolean validation;
-
-  private final String DUMMY_PREFIX = "";
-  private static final long MAX_INT = 4294967295L;
-  private static final long MIN_INT = -4294967295L;
-
-  private final ImmutableSet<String> UFs =
-      ImmutableSet.of("Integer_/_", "_%_", "_>>_", "_<<_", "_&_", "_!!_", "_~_", "_^_");
+  private final ImmutableSet<Loop> allLoops;
 
   @Option(
       secure = true,
       description =
-          "There might be programs with unsigned integer overflow, and"
-              + "due to the overflow, they are non-terminating."
+          "There might be programs with unsigned integer overflow, and "
+              + "due to the overflow, they are non-terminating. "
               + "This option enforces the transition invariants to "
               + "have constraints to limit the mathematical integers.")
   private boolean addConstraintsToPreventOverflows = false;
@@ -89,15 +77,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   @Option(
       secure = true,
       description =
-          "Some bitwise operations or modulo are UFs in integer encoding, and"
-              + "they might lead to unsound results. If integer encoding is set,"
+          "Some bitwise operations or modulo are UFs in integer encoding, and "
+              + "they might lead to unsound results. If integer encoding is set, "
               + "we also have to use this option.")
   private boolean checkUFsInIntegerEncoding = false;
 
   @Option(
       secure = true,
       description =
-          "Disables checks for fix-point with transition invariants and performs" + "plain BMC.")
+          "Disables checks for fix-point with transition invariants and performs " + "plain BMC.")
   private boolean performBMC = false;
 
   public TerminationToReachPrecisionAdjustment(
@@ -108,10 +96,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr,
       InterpolationManager pItpMgr,
-      PathFormulaManager pPfmgr,
       Configuration pConfiguration,
-      boolean pValidation,
-      ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants)
+      ImmutableSet<Loop> pAllLoops)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     solver = pSolver;
@@ -121,9 +107,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     fmgr = pFmgr;
     logger = plogger;
     itpMgr = pItpMgr;
-    pthfmgr = pPfmgr;
-    candidateInvariants = pCandidateInvariants;
-    validation = pValidation;
+    allLoops = pAllLoops;
   }
 
   @Override
@@ -144,11 +128,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
     Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
 
-    if (terminationState.isLoopHead(location)
-        && !terminationState.isLoopTerminating(location)
+    if (TransitionInvariantUtils.isLoopHead(location, allLoops)
         && terminationState.getStoredValues().containsKey(keyPair)) {
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
-        boolean isTargetStateReachable;
         boolean isOverapproximating = false;
         PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
         SSAMap largestIndices =
@@ -157,74 +139,57 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         PartitionedRelationFormula iterationFormula =
             new PartitionedRelationFormula(
                 terminationState.getPathFormulasForIteration().get(keyPair).getFormula(), fmgr);
-        ImmutableMap<Integer, BooleanFormula> sameStateFormulas =
+        ImmutableList<BooleanFormula> sameStateFormulas =
             buildCycleFormula(
                 terminationState.getStoredValues().get(keyPair),
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
+
+        // Compute all the transition predicates that hold for the current state
+        ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
+            ImmutableSet.builder();
+        ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
+            ImmutableSet.builder();
+        for (PartitionedRelationFormula transitionPredicate :
+            terminationState.getTransitionPredicates()) {
+          if (isTransitionInvariant(transitionPredicate, iterationFormula, location)) {
+            builderTransitionInvariants.add(transitionPredicate);
+          }
+        }
 
         // If the BMC queries are UNSAT, we try to compute transition invariant
         // We strengthen the transition invariant with the prefix formula
         PartitionedRelationFormula candidateTransInv =
             new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
         while (true) {
-          // First, check that the BMC check is UNSATs
-          BooleanFormula latestSameStateFormula = bfmgr.makeTrue();
-          for (Entry<Integer, BooleanFormula> sameStateFormula : sameStateFormulas.entrySet()) {
-            try {
-              // Construct formula:
-              // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
-              if (isOverapproximating) {
-                // Construct formula instantiated to x__PREV = x__CURR2
-                PartitionedRelationFormula sameStateFormulaRelation =
-                    new PartitionedRelationFormula(sameStateFormula.getValue(), fmgr);
-                sameStateFormulaRelation.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
-                sameStateFormulaRelation.extendCurrVarsWithPrefixSuffix(
-                    DUMMY_PREFIX, CURR2_KEYWORD);
-                latestSameStateFormula = sameStateFormulaRelation.getFormula();
-
-                // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
-                candidateTransInv.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
-                candidateTransInv.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
-
-                // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
-                iterationFormula.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
-                iterationFormula.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR2_KEYWORD);
-
-                isTargetStateReachable =
-                    !solver.isUnsat(
-                        bfmgr.and(
-                            candidateTransInv.getFormula(),
-                            iterationFormula.getFormula(),
-                            latestSameStateFormula));
-              } else {
-                isTargetStateReachable =
-                    !solver.isUnsat(
-                        bfmgr.and(
-                            prefixPathFormula.getFormula(),
-                            iterationFormula.getFormula(),
-                            sameStateFormula.getValue()));
-              }
-            } catch (SolverException e) {
-              logger.logDebugException(e);
-              return Optional.of(result);
-            }
-            if (isTargetStateReachable) {
+          // Check for a lasso in the current unrolling
+          try {
+            if (isNonterminatingLoop(
+                sameStateFormulas,
+                isOverapproximating,
+                isOverapproximating ? Optional.of(candidateTransInv) : Optional.empty(),
+                iterationFormula,
+                prefixPathFormula)) {
               if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
                 terminationState.makeTarget();
-                terminationState.setNumberOfUnrollingsInTarget(sameStateFormula.getKey());
                 result = result.withAbstractState(terminationState);
                 statistics.setNonterminatingLoop(
                     cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
                 result = result.withAction(Action.BREAK);
+                return Optional.of(result);
               }
-              return Optional.of(result);
+              if (isOverapproximating) {
+                return Optional.of(result);
+              }
             }
-            latestSameStateFormula = sameStateFormula.getValue();
-            if (isOverapproximating) {
-              break;
-            }
+          } catch (SolverException e) {
+            logger.logDebugException(e);
+            return Optional.of(result);
           }
+
+          // Get the latest formula checking for the same states
+          BooleanFormula latestSameStateFormula =
+              getTheLatestSameStateFormula(sameStateFormulas, isOverapproximating);
 
           // If the user sets the algorithm to perform only BMC, then it does not try to reach the
           // fix-point
@@ -235,67 +200,51 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
           if (isOverapproximating
               && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
-            terminationState.setTerminatingIfAllNodesVisited(locationState.getLocationNode());
-            terminationState.setCandidateTransitionInvariant(candidateTransInv);
-            return Optional.of(result.withAbstractState(terminationState));
+            // Set the computed candidateTransInv to the terminationState
+            builderTransitionPredicates.add(candidateTransInv);
+            builderTransitionPredicates.addAll(terminationState.getTransitionPredicates());
+            builderTransitionInvariants.add(candidateTransInv);
+
+            TerminationToReachState newTerminationState =
+                new TerminationToReachState(
+                    terminationState.getStoredValues(),
+                    terminationState.getNumberOfIterations(),
+                    terminationState.getPathFormulasForIteration(),
+                    terminationState.getPathFormulasForPrefix(),
+                    terminationState.getPathFormulaFull(),
+                    terminationState.getPathSequence(),
+                    builderTransitionInvariants.build(),
+                    builderTransitionPredicates.build());
+            return Optional.of(result.withAbstractState(newTerminationState));
           }
 
-          BooleanFormula interpolant;
-          candidateTransInv.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
-          candidateTransInv.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
-          BooleanFormula invariantFromWitness = bfmgr.makeTrue();
-          if (validation) {
-            invariantFromWitness =
-                collectCandidateTransitionInvariants(
-                    location, terminationState.getPathFormulasForIteration().get(keyPair));
-            invariantFromWitness = translateVarsFromWitness(invariantFromWitness);
-          }
-          try {
-            // If BMC check is UNSAT, try to overapproximate the transition invariant
-            BooleanFormula firstStep =
-                isOverapproximating
-                    ? candidateTransInv.getFormula()
-                    : prefixPathFormula.getFormula();
-            interpolant =
-                itpMgr
-                    .interpolate(
-                        ImmutableList.of(
-                            bfmgr.and(firstStep, iterationFormula.getFormula()),
-                            latestSameStateFormula))
-                    .orElseThrow()
-                    .getFirst();
-          } catch (CPAException e) {
-            break;
-          }
+          candidateTransInv = candidateTransInv.withPrevVarsSuffixed(PREV_KEYWORD);
+          candidateTransInv = candidateTransInv.withCurrVarsSuffixed(CURR_KEYWORD);
 
-          // Instantiate the new interpolant to T(x__PREV, x__CURR)
-          PartitionedRelationFormula newInterpolant =
-              new PartitionedRelationFormula(interpolant, fmgr);
-          newInterpolant.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
-          newInterpolant.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
-          PartitionedRelationFormula partitionedInvariantFromWitness =
-              new PartitionedRelationFormula(invariantFromWitness, fmgr);
-          partitionedInvariantFromWitness.extendPrevVarsWithPrefixSuffix(
-              DUMMY_PREFIX, PREV_KEYWORD);
-          partitionedInvariantFromWitness.extendCurrVarsWithPrefixSuffix(
-              DUMMY_PREFIX, CURR_KEYWORD);
+          PartitionedRelationFormula newInterpolant;
+          newInterpolant =
+              computeNewRelationalInterpolant(
+                  isOverapproximating,
+                  candidateTransInv,
+                  iterationFormula,
+                  prefixPathFormula,
+                  latestSameStateFormula,
+                  callstackState);
+
           try {
-            if (containsOnlyIrrelevantVariables(interpolant, callstackState)
-                || solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
-              break;
+            if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
+              return Optional.of(result);
             }
-          } catch (SolverException | InterruptedException e) {
-            break;
+          } catch (SolverException e) {
+            logger.logDebugException(e);
+            return Optional.of(result);
           }
 
           // Trying to reach the fix-point
           // We can also strengthen the candidate transition invariant with the prefix formula
           candidateTransInv =
               new PartitionedRelationFormula(
-                  bfmgr.and(
-                      partitionedInvariantFromWitness.getFormula(),
-                      bfmgr.or(candidateTransInv.getFormula(), newInterpolant.getFormula())),
-                  fmgr);
+                  bfmgr.or(candidateTransInv.getFormula(), newInterpolant.getFormula()), fmgr);
           isOverapproximating = true;
         }
       }
@@ -303,68 +252,147 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return Optional.of(result);
   }
 
-  private BooleanFormula collectCandidateTransitionInvariants(
-      CFANode pLocation, PathFormula pIterationFormula) throws InterruptedException {
-    BooleanFormula candidateTransitionInvariant = bfmgr.makeTrue();
-    for (ExpressionTreeLocationInvariant invariant : candidateInvariants) {
-      if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
-        continue;
-      }
+  /**
+   * This function goes over all the saved states at the current loop head in the previous
+   * iterations. It checks whether with the current path formula, the program can reach the same
+   * state twice.
+   *
+   * @return false if there is no lasso in the current unrollings of the loops, true if the program
+   *     is nonterminating and the algorithm found a lasso
+   */
+  private boolean isNonterminatingLoop(
+      ImmutableList<BooleanFormula> sameStateFormulas,
+      // tells us whether we are already computing a fix-point with abstraction
+      boolean isOverapproximating,
+      Optional<PartitionedRelationFormula> pCandidateTransInv,
+      PartitionedRelationFormula iterationFormula,
+      PathFormula prefixPathFormula)
+      throws InterruptedException, SolverException {
 
-      if (invariant.getLocation().equals(pLocation)) {
-        BooleanFormula invariantFormula;
-        try {
-          if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
-            invariantFormula = bfmgr.makeTrue();
-          } else {
-            invariantFormula = invariant.getFormula(fmgr, pthfmgr, pIterationFormula);
-          }
-        } catch (CPATransferException e) {
-          invariantFormula = bfmgr.makeTrue();
-        }
-        candidateTransitionInvariant = bfmgr.and(candidateTransitionInvariant, invariantFormula);
+    for (BooleanFormula sameStateFormula : sameStateFormulas) {
+      boolean isTargetStateReachable;
+      // Construct formula:
+      // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
+      if (isOverapproximating) {
+        PartitionedRelationFormula candidateTransInv = pCandidateTransInv.orElseThrow();
+
+        // Construct formula instantiated to x__PREV = x__CURR2
+        PartitionedRelationFormula sameStateFormulaRelation =
+            new PartitionedRelationFormula(sameStateFormula, fmgr);
+        sameStateFormulaRelation = sameStateFormulaRelation.withPrevVarsSuffixed(PREV_KEYWORD);
+        sameStateFormulaRelation = sameStateFormulaRelation.withCurrVarsSuffixed(CURR2_KEYWORD);
+
+        // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
+        candidateTransInv = candidateTransInv.withPrevVarsSuffixed(PREV_KEYWORD);
+        candidateTransInv = candidateTransInv.withCurrVarsSuffixed(CURR_KEYWORD);
+
+        // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
+        iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
+        iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
+
+        isTargetStateReachable =
+            !solver.isUnsat(
+                bfmgr.and(
+                    candidateTransInv.getFormula(),
+                    iterationFormula.getFormula(),
+                    sameStateFormulaRelation.getFormula()));
+      } else {
+        isTargetStateReachable =
+            !solver.isUnsat(
+                bfmgr.and(
+                    prefixPathFormula.getFormula(),
+                    iterationFormula.getFormula(),
+                    sameStateFormula));
+      }
+      if (isTargetStateReachable) {
+        return true;
       }
     }
-    return candidateTransitionInvariant;
+    return false;
+  }
+
+  /**
+   * This method gets the latest same state formula instantiated for the fix-point check if we are
+   * abstracting already.
+   */
+  private BooleanFormula getTheLatestSameStateFormula(
+      ImmutableList<BooleanFormula> sameStateFormulas, boolean isOverapproximating) {
+    BooleanFormula latestSameStateFormula = sameStateFormulas.getLast();
+    if (isOverapproximating) {
+      // Construct formula instantiated to x__PREV = x__CURR2
+      PartitionedRelationFormula sameStateFormulaRelation =
+          new PartitionedRelationFormula(latestSameStateFormula, fmgr);
+      sameStateFormulaRelation = sameStateFormulaRelation.withPrevVarsSuffixed(PREV_KEYWORD);
+      sameStateFormulaRelation = sameStateFormulaRelation.withCurrVarsSuffixed(CURR2_KEYWORD);
+      latestSameStateFormula = sameStateFormulaRelation.getFormula();
+    }
+    return latestSameStateFormula;
+  }
+
+  /**
+   * This method computes a new relational interpolant overapproximating paths with one more step of
+   * the concrete transition system.
+   */
+  private PartitionedRelationFormula computeNewRelationalInterpolant(
+      boolean isOverapproximating,
+      PartitionedRelationFormula candidateTransInv,
+      PartitionedRelationFormula iterationFormula,
+      PathFormula prefixPathFormula,
+      BooleanFormula latestSameStateFormula,
+      CallstackState callstackState)
+      throws CPAException, InterruptedException {
+
+    BooleanFormula firstStep = prefixPathFormula.getFormula();
+    if (isOverapproximating) {
+      // If this is more then first unrolling, we replace the prefix formula with
+      // the previously computed candidate transition invariant
+      firstStep = candidateTransInv.getFormula();
+      // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
+      iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
+      iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
+    }
+    BooleanFormula interpolant;
+
+    interpolant =
+        itpMgr
+            .interpolate(
+                ImmutableList.of(
+                    bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
+            .orElseThrow()
+            .getFirst();
+    if (containsOnlyIrrelevantVariables(interpolant, callstackState)) {
+      return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
+    }
+
+    // Instantiate the new interpolant to T(x__PREV, x__CURR)
+    PartitionedRelationFormula newInterpolant = new PartitionedRelationFormula(interpolant, fmgr);
+    newInterpolant = newInterpolant.withPrevVarsSuffixed(PREV_KEYWORD);
+    newInterpolant = newInterpolant.withCurrVarsSuffixed(CURR_KEYWORD);
+    return newInterpolant;
   }
 
   private boolean isSound(Formula pFormula) {
-    if (!checkUFsInIntegerEncoding) {
-      return true;
-    }
-
-    for (String function : fmgr.extractFunctionNames(pFormula)) {
-      if (UFs.contains(function)) {
-        return false;
-      }
-    }
-    return true;
+    return !checkUFsInIntegerEncoding || !fmgr.hasUninterpretedFunction(pFormula);
   }
 
   private BooleanFormula restrictFormulaVariablesWithIntRange(
       BooleanFormula pFormula, CFANode pLocation) {
     for (Formula variable : fmgr.extractVariables(pFormula).values()) {
       String pureVarName =
-          TransitionInvariantUtils.removeTransInvKeyWord(
+          TransitionInvariantUtils.removeKeyWordAfterTransInv(
               TransitionInvariantUtils.removeFunctionFromVarsName(
-                  fmgr.extractVariableNames(fmgr.uninstantiate(variable)).stream()
-                      .findAny()
-                      .orElseThrow()));
+                  Iterables.getOnlyElement(
+                      fmgr.extractVariableNames(fmgr.uninstantiate(variable)))));
       for (AbstractSimpleDeclaration varDecl :
           cfa.getAstCfaRelation().getVariablesAndParametersInScope(pLocation).orElseThrow()) {
         if (varDecl.getName().equals(pureVarName)
-            && (varDecl.getType() instanceof CSimpleType
-                && !cfa.getMachineModel().isSigned(((CSimpleType) varDecl.getType())))) {
+            && (varDecl.getType() instanceof CSimpleType sType
+                && !cfa.getMachineModel().isSigned(sType))) {
           pFormula =
               bfmgr.and(
                   pFormula,
-                  fmgr.makeGreaterOrEqual(
-                      fmgr.makeNumber(FormulaType.IntegerType, MAX_INT), variable, true));
-          pFormula =
-              bfmgr.and(
-                  pFormula,
-                  fmgr.makeLessOrEqual(
-                      fmgr.makeNumber(FormulaType.IntegerType, MIN_INT), variable, true));
+                  CtoFormulaTypeUtils.makeRangeConstraint(
+                      fmgr, variable, sType, cfa.getMachineModel()));
         }
       }
     }
@@ -374,34 +402,35 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   /**
    * It can happen that the transition invariant contains only variables outside the loop or
    * function. In that case, we have to not use the invariant as it might be potentially unsound.
+   * The reason why it is potentially unsound is that there could be a function call inside a loop
+   * that decreases or alternates some variable local for that function. The interpolant could
+   * express this property, but the actual state at the loop head in the loop does not change.
+   * Therefore, there needs to be at least one variable that is local for the function, where the
+   * loop is, such that we check that some variable actually decreases/increases.
    */
   private boolean containsOnlyIrrelevantVariables(
       BooleanFormula pInvariant, CallstackState pCallstackState) {
-    for (Entry<String, Formula> varNames : fmgr.extractVariables(pInvariant).entrySet()) {
-      if (varNames.getKey().startsWith(pCallstackState.getCurrentFunction())
-          || fmgr.getFormulaType(varNames.getValue()).isArrayType()) {
-        return false;
-      }
-    }
-    return true;
+    return CFAUtils.filterVariablesOfFunction(
+            ImmutableSortedSet.copyOf(fmgr.extractVariables(pInvariant).keySet()),
+            pCallstackState.getCurrentFunction())
+        .isEmpty();
   }
 
   private boolean isTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
-      CFANode pLocation) {
-    boolean isTransitionInvariant;
-
+      CFANode pLocation)
+      throws InterruptedException {
     // The goal is to construct formula of the following form:
-    // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR)
+    // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR2)
 
     // Construct T(x__PREV, x__CURR)
-    candidateTransitionInvariant.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
-    candidateTransitionInvariant.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
+    candidateTransitionInvariant = candidateTransitionInvariant.withPrevVarsSuffixed(PREV_KEYWORD);
+    candidateTransitionInvariant = candidateTransitionInvariant.withCurrVarsSuffixed(CURR_KEYWORD);
     BooleanFormula firstStepInTransInv = candidateTransitionInvariant.getFormula();
 
     // Construct T(x__PREV, x__CURR2)
-    candidateTransitionInvariant.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR2_KEYWORD);
+    candidateTransitionInvariant = candidateTransitionInvariant.withCurrVarsSuffixed(CURR2_KEYWORD);
     BooleanFormula secondStepInTransInv = candidateTransitionInvariant.getFormula();
 
     if (addConstraintsToPreventOverflows) {
@@ -410,39 +439,32 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     }
 
     // Construct Tr(x__CURR, x__CURR2)
-    iterationFormula.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
-    iterationFormula.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR2_KEYWORD);
+    iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
+    iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
 
     try {
-      isTransitionInvariant =
-          solver.implies(
-              bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv);
+      // Check Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
+      candidateTransitionInvariant =
+          candidateTransitionInvariant.withPrevVarsSuffixed(CURR_KEYWORD);
 
-      // Check Init(x__CURR) and Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
-      candidateTransitionInvariant.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
-
-      isTransitionInvariant =
-          isTransitionInvariant
-              && solver.implies(
-                  iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
-    } catch (SolverException | InterruptedException e) {
+      return solver.implies(
+              bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv)
+          && solver.implies(
+              iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
+    } catch (SolverException e) {
       logger.logDebugException(e);
       return false;
     }
-    if (isTransitionInvariant) {
-      return true;
-    }
-    return false;
   }
 
-  private ImmutableMap<Integer, BooleanFormula> buildCycleFormula(
+  private ImmutableList<BooleanFormula> buildCycleFormula(
       Map<Integer, ImmutableSet<Formula>> storedValues, SSAMap pLatestValues, int pMaxIndex) {
     return buildComparingFormulas(storedValues, pMaxIndex, pLatestValues);
   }
 
-  private ImmutableMap<Integer, BooleanFormula> buildComparingFormulas(
+  private ImmutableList<BooleanFormula> buildComparingFormulas(
       Map<Integer, ImmutableSet<Formula>> storedValues, int pMaxIndex, SSAMap pLatestValues) {
-    ImmutableMap.Builder<Integer, BooleanFormula> comparingFormulas = ImmutableMap.builder();
+    ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
     for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
       if (savedVariables.getKey().intValue() >= pMaxIndex) {
         continue;
@@ -455,33 +477,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 fmgr.assignment(
                     fmgr.instantiate(fmgr.uninstantiate(oldVariable), pLatestValues), oldVariable));
       }
-      comparingFormulas.put(savedVariables.getKey(), comparingFormula);
+      comparingFormulas.add(comparingFormula);
     }
-    return comparingFormulas.buildOrThrow();
-  }
-
-  /**
-   * This method translates the variables from the formula parsed from witness. The parser, names
-   * the previous variables with __CPACHECKER_x__PREV, we need to translate them to the names used
-   * in this analysis. Therefore, this method translates __CPACHECKER_x__PREV -> x__TransInv
-   */
-  private BooleanFormula translateVarsFromWitness(BooleanFormula formula) {
-    ImmutableSet<Formula> parsedPrevVariables =
-        fmgr.extractVariables(formula).entrySet().stream()
-            .filter(e -> e.getKey().contains("__CPACHECKER"))
-            .map(e -> e.getValue())
-            .collect(ImmutableSet.toImmutableSet());
-    ImmutableMap<Formula, Formula> subMapPrev =
-        getSubMap(parsedPrevVariables, "", TransitionInvariantUtils.PREV_KEYWORD, fmgr);
-    ImmutableSet<Formula> parsedCurrVariables =
-        fmgr.extractVariables(formula).entrySet().stream()
-            .filter(e -> !e.getKey().contains("__CPACHECKER"))
-            .map(e -> e.getValue())
-            .collect(ImmutableSet.toImmutableSet());
-    ImmutableMap<Formula, Formula> subMapCurr =
-        getSubMap(parsedCurrVariables, "", TransitionInvariantUtils.CURR_KEYWORD, fmgr);
-    formula = fmgr.substitute(formula, subMapPrev);
-    formula = fmgr.substitute(formula, subMapCurr);
-    return formula;
+    return comparingFormulas.build();
   }
 }

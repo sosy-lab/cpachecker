@@ -217,7 +217,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     String varDeclaration;
     String loopCondition =
         TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-            pFormula, bfmgr, fmgr, scope);
+            pFormula, bfmgr, fmgr);
     String exitCondition =
         cfa
             .getAstCfaRelation()
@@ -238,7 +238,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
           loopCondition
               + " && "
               + TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-                  invariant, bfmgr, fmgr, scope);
+                  invariant, bfmgr, fmgr);
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
