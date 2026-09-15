@@ -508,9 +508,7 @@ class ASTTypeConverter {
       // CDT drops the _Atomic attribute here, so this only fires if CDT ever stops dropping it.
       return new CPointerType(
           CTypeQualifiers.create(
-              hasUnexpectedCPAcheckerAttributeForAtomic(p) || pAtomic,
-              p.isConst(),
-              p.isVolatile()),
+              hasUnexpectedCPAcheckerAttributeForAtomic(p) || pAtomic, p.isConst(), p.isVolatile()),
           type);
 
     } else {

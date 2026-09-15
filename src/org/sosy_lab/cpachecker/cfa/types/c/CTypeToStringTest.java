@@ -297,8 +297,7 @@ public class CTypeToStringTest {
     // As element type of an array.
     CType arrayType = parseGlobalType("int *_Atomic v[2];").getCanonicalType();
     assertThat(arrayType).isInstanceOf(CArrayType.class);
-    assertThat(((CArrayType) arrayType).getType().getCanonicalType())
-        .isEqualTo(atomicPointerToInt);
+    assertThat(((CArrayType) arrayType).getType().getCanonicalType()).isEqualTo(atomicPointerToInt);
 
     // As member of a struct.
     CType structType =
