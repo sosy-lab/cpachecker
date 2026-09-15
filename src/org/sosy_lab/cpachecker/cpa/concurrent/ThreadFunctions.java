@@ -36,12 +36,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
@@ -230,14 +228,15 @@ public final class ThreadFunctions {
    * single-assignment injection the callers perform could not initialize it and would silently
    * leave it indeterminate — reporting a violation that cannot happen, or worse, missing one.
    *
-   * @throws UnsupportedCodeException if the declaration is an aggregate, has an incomplete type, is
-   *     {@code extern}, or its initializer is not a literal
+   * @throws UnsupportedCodeException if the declaration is not of scalar type (C11 § 6.2.5 (21),
+   *     cf. {@link CTypes#isScalarType(CType)}), is {@code extern}, or its initializer is not a
+   *     literal
    */
   public static CExpression threadLocalInitValue(
       CVariableDeclaration pDeclaration, MachineModel pMachineModel, @Nullable CFAEdge pEdge)
       throws UnsupportedCodeException {
     CType type = pDeclaration.getType();
-    if (!isScalar(type)) {
+    if (!CTypes.isScalarType(type)) {
       throw new UnsupportedCodeException(
           "thread-local variable of non-scalar type: " + pDeclaration.getQualifiedName(), pEdge);
     }
@@ -260,14 +259,6 @@ public final class ThreadFunctions {
     throw new UnsupportedCodeException(
         "thread-local variable with a non-literal initializer: " + pDeclaration.getQualifiedName(),
         pEdge);
-  }
-
-  /** Whether an object of this type is one value, as opposed to a region of several cells. */
-  private static boolean isScalar(CType pType) {
-    CType canonical = pType.getCanonicalType();
-    return !(canonical instanceof CArrayType
-        || canonical instanceof CCompositeType
-        || canonical instanceof CElaboratedType);
   }
 
   private static Optional<String> canonicalLvalueKey(CLeftHandSide lvalue) {
