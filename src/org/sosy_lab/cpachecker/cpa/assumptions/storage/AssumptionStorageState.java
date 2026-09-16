@@ -8,31 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
-import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
-
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.function.Function;
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Abstract state for the Collector CPA. Encapsulate a symbolic formula */
-public class AssumptionStorageState
-    implements AbstractState, ExpressionTreeReportingState, Serializable {
+public class AssumptionStorageState implements AbstractState, Serializable {
 
   @Serial private static final long serialVersionUID = -3738604180058424317L;
 
@@ -133,70 +121,6 @@ public class AssumptionStorageState
   @Override
   public int hashCode() {
     return assumption.hashCode() + 17 * stopFormula.hashCode();
-  }
-
-  /**
-   * The condition under which the analysis did not stop at this state.
-   *
-   * <p>The assumption this state represents is the conjunction of its assumption and its stop
-   * formula, which characterizes the states the analysis gave up on. Its negation therefore
-   * describes the states which still need to be checked for the analysis to analyze the full
-   * state-space.
-   */
-  private BooleanFormula statesRemainingToBeChecked() {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    return bfmgr.not(bfmgr.and(assumption, stopFormula));
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
-      throws InterruptedException, TranslationToExpressionTreeFailedException {
-    return ExpressionTrees.fromFormula(
-        statesRemainingToBeChecked(),
-        fmgr,
-        name ->
-            !name.contains(FUNCTION_DELIMITER)
-                || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER),
-        Function.identity(),
-        pMachineModel);
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope,
-      CFANode pLocation,
-      AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables,
-      MachineModel pMachineModel)
-      throws InterruptedException, TranslationToExpressionTreeFailedException {
-    return ExpressionTrees.fromFormula(
-        statesRemainingToBeChecked(),
-        fmgr,
-        name ->
-            (!name.contains(FUNCTION_DELIMITER)
-                    || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
-                && pAstCfaRelation
-                    .getVariablesAndParametersInScope(pLocation)
-                    .orElseThrow()
-                    .anyMatch(
-                        var ->
-                            (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
-                                    .equals(name)
-                                || var.getName().equals(name))
-                && !name.contains("__CPAchecker_"),
-        name -> useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name,
-        pMachineModel);
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope,
-      AIdExpression pFunctionReturnVariable,
-      MachineModel pMachineModel)
-      throws ReportingMethodNotImplementedException {
-    throw new ReportingMethodNotImplementedException(
-        "The assumption storage does not describe the return value of a function.");
   }
 
   public AssumptionStorageState reset() {

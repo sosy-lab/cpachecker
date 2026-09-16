@@ -331,12 +331,16 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
     boolean backTranslationSuccessful = true;
 
     for (ARGState argState : pArgStates) {
-      ImmutableList.Builder<ExpressionTree<Object>> describeState = ImmutableList.builder();
-      // The assumption storage does not describe the state, it describes whether the analysis
-      // explored everything that reaches it. Where it did not, nothing can be claimed about the
-      // location, so this weakens the description of the state instead of strengthening it.
-      ImmutableList.Builder<ExpressionTree<Object>> analysisIsIncomplete = ImmutableList.builder();
+      // The analysis gave up at this state, so the states it reached do not describe everything
+      // that can happen at this location and nothing may be claimed about it.
+      if (AbstractStates.asIterable(argState)
+          .filter(AssumptionStorageState.class)
+          .anyMatch(AssumptionStorageState::isStop)) {
+        expressionPerState.add(ExpressionTrees.getTrue());
+        continue;
+      }
 
+      ImmutableList.Builder<ExpressionTree<Object>> describeState = ImmutableList.builder();
       for (ExpressionTreeReportingState state :
           AbstractStates.asIterable(argState).filter(ExpressionTreeReportingState.class)) {
         ExpressionTree<Object> expression;
@@ -347,15 +351,10 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
           expression = ExpressionTrees.getTrue();
           backTranslationSuccessful = false;
         }
-        if (state instanceof AssumptionStorageState) {
-          analysisIsIncomplete.add(expression);
-        } else {
-          describeState.add(expression);
-        }
+        describeState.add(expression);
       }
 
-      expressionPerState.add(
-          Or.of(And.of(describeState.build()), Or.of(analysisIsIncomplete.build())));
+      expressionPerState.add(And.of(describeState.build()));
     }
 
     ExpressionTree<Object> overapproximationOfState = Or.of(expressionPerState.build());
