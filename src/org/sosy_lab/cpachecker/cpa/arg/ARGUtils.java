@@ -695,6 +695,11 @@ public class ARGUtils {
 
         if (pPathStates.contains(child)) {
           List<CFAEdge> allEdges = s.getEdgesToChild(child);
+          if (allEdges.isEmpty()) {
+            // this is a missing edge, e.g., caused by SSCCPA
+            allEdges =
+                ImmutableList.of(new DummyCFAEdge(extractLocation(s), extractLocation(child)));
+          }
           if (allEdges.size() > 1) {
             // The successor state might have several incoming MultiEdges.
             // In this case the state names like ARG<successor>_0 would occur
@@ -702,7 +707,7 @@ public class ARGUtils {
             // So we add this counter to the state names to make them unique.
             multiEdgeCount++;
           }
-          CFAEdge edge = handleMultiEdgeMatch(sb, s, child, allEdges, multiEdgeCount);
+          CFAEdge edge = handleMultiEdgeMatch(sb, child, allEdges, multiEdgeCount);
 
           if (child.isTarget()) {
             sb.append("ERROR");
@@ -765,6 +770,10 @@ public class ARGUtils {
         }
 
         List<CFAEdge> allEdges = s.getEdgesToChild(child);
+        if (allEdges.isEmpty()) {
+          // this is a missing edge, e.g., caused by SSCCPA
+          allEdges = ImmutableList.of(new DummyCFAEdge(extractLocation(s), extractLocation(child)));
+        }
         if (allEdges.size() > 1) {
           // The successor state might have several incoming MultiEdges.
           // In this case the state names like ARG<successor>_0 would occur
@@ -772,7 +781,7 @@ public class ARGUtils {
           // So we add this counter to the state names to make them unique..
           multiEdgeCount++;
         }
-        CFAEdge edge = handleMultiEdgeMatch(sb, s, child, allEdges, multiEdgeCount);
+        CFAEdge edge = handleMultiEdgeMatch(sb, child, allEdges, multiEdgeCount);
 
         if (child.isTarget()) {
           sb.append(VIOLATION_ASSERTION);
@@ -907,11 +916,6 @@ public class ARGUtils {
 
             if (pPathStates.contains(child)) {
               List<CFAEdge> allEdges = s.getEdgesToChild(child);
-              Preconditions.checkState(
-                  !allEdges.isEmpty(),
-                  "No CFA connection from %s to %s, cannot produce an" + " automaton for this path",
-                  s,
-                  child);
               if (allEdges.size() > 1) {
                 // The successor state might have several incoming MultiEdges.
                 // In this case the state names like ARG<successor>_0 would occur
@@ -919,7 +923,7 @@ public class ARGUtils {
                 // So we add this counter to the state names to make them unique.
                 multiEdgeCount++;
               }
-              handleMultiEdgeMatch(sb, s, child, allEdges, multiEdgeCount);
+              handleMultiEdgeMatch(sb, child, allEdges, multiEdgeCount);
 
               if (child.isTarget()) {
                 sb.append("ERROR");
@@ -956,22 +960,19 @@ public class ARGUtils {
   }
 
   /**
-   * Writes the {@code MATCH "..." ->} for the edge(s) from {@code s} to {@code child}, resolving a
-   * multi edge into a chain of intermediate {@code STATE} blocks, and returns the final edge to
-   * match into {@code child} itself.
+   * Writes the {@code MATCH "..." ->} for a non-empty list of consecutive edges from a state to its
+   * {@code child}, resolving a multi edge into a chain of intermediate {@code STATE} blocks, and
+   * returns the final edge to match into {@code child} itself.
    *
    * @param multiEdgeId The id to disambiguate the intermediate states of this multi edge from those
    *     of any other multi edge into the same {@code child}.
    */
   private static CFAEdge handleMultiEdgeMatch(
-      Appendable sb, ARGState s, ARGState child, List<CFAEdge> allEdges, int multiEdgeId)
-      throws IOException {
+      Appendable sb, ARGState child, List<CFAEdge> allEdges, int multiEdgeId) throws IOException {
+    Preconditions.checkArgument(!allEdges.isEmpty());
     CFAEdge edge;
 
-    if (allEdges.isEmpty()) {
-      // this is a missing edge, e.g., caused by SSCCPA
-      edge = new DummyCFAEdge(extractLocation(s), extractLocation(child));
-    } else if (allEdges.size() == 1) {
+    if (allEdges.size() == 1) {
       edge = Iterables.getOnlyElement(allEdges);
     } else {
       // this is a dynamic multi edge
