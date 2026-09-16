@@ -19,10 +19,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -44,13 +42,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -329,43 +327,38 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
           pStateToAbstraction)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    FluentIterable<ExpressionTreeReportingState> reportingStates =
-        FluentIterable.from(pArgStates)
-            .transformAndConcat(AbstractStates::asIterable)
-            .filter(ExpressionTreeReportingState.class);
-    List<List<ExpressionTreeResult>> expressionsPerClass = new ArrayList<>();
+    ImmutableList.Builder<ExpressionTree<Object>> expressionPerState = ImmutableList.builder();
+    boolean backTranslationSuccessful = true;
 
-    for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
-      List<ExpressionTreeResult> expressionsMatchingClass = new ArrayList<>();
-      for (ExpressionTreeReportingState state : reportingStates) {
-        if (stateClass.isAssignableFrom(state.getClass())) {
-          ExpressionTreeResult expressionTreeResult;
-          try {
-            expressionTreeResult = new ExpressionTreeResult(pStateToAbstraction.apply(state), true);
-          } catch (TranslationToExpressionTreeFailedException e) {
-            logger.logDebugException(e, "Could not translate state to expression tree");
-            expressionTreeResult = new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
-          }
-          expressionsMatchingClass.add(expressionTreeResult);
+    for (ARGState argState : pArgStates) {
+      ImmutableList.Builder<ExpressionTree<Object>> describeState = ImmutableList.builder();
+      // The assumption storage does not describe the state, it describes whether the analysis
+      // explored everything that reaches it. Where it did not, nothing can be claimed about the
+      // location, so this weakens the description of the state instead of strengthening it.
+      ImmutableList.Builder<ExpressionTree<Object>> analysisIsIncomplete = ImmutableList.builder();
+
+      for (ExpressionTreeReportingState state :
+          AbstractStates.asIterable(argState).filter(ExpressionTreeReportingState.class)) {
+        ExpressionTree<Object> expression;
+        try {
+          expression = pStateToAbstraction.apply(state);
+        } catch (TranslationToExpressionTreeFailedException e) {
+          logger.logDebugException(e, "Could not translate state to expression tree");
+          expression = ExpressionTrees.getTrue();
+          backTranslationSuccessful = false;
+        }
+        if (state instanceof AssumptionStorageState) {
+          analysisIsIncomplete.add(expression);
+        } else {
+          describeState.add(expression);
         }
       }
-      expressionsPerClass.add(expressionsMatchingClass);
+
+      expressionPerState.add(
+          Or.of(And.of(describeState.build()), Or.of(analysisIsIncomplete.build())));
     }
 
-    ExpressionTree<Object> overapproximationOfState =
-        And.of(
-            FluentIterable.from(expressionsPerClass)
-                .transform(
-                    elementsForClass ->
-                        FluentIterable.from(elementsForClass)
-                            .transform(ExpressionTreeResult::expressionTree))
-                .transform(Or::of));
-    boolean backTranslationSuccessful =
-        expressionsPerClass.stream()
-            .allMatch(
-                elementsForClass ->
-                    elementsForClass.stream()
-                        .allMatch(ExpressionTreeResult::backTranslationSuccessful));
+    ExpressionTree<Object> overapproximationOfState = Or.of(expressionPerState.build());
 
     // Filter out CPAchecker internal variables from the over-approximation of the states
     // This transformation is NOT correct for all possible cases, since if multiple internal
