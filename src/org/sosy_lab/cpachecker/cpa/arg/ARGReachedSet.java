@@ -227,8 +227,29 @@ public class ARGReachedSet {
 
     dumpSubgraph(root);
 
-    // Destroy all states except the root, such that a later usage of one of them fails fast.
-    // This detaches the root from the rest of the ARG as a side effect.
+    // destroy the states only if assertions are enabled
+    assert destroyAllStatesExceptRoot(root);
+
+    // Delete every connection from the root
+    for (ARGState child : ImmutableList.copyOf(root.getChildren())) {
+      child.removeFromARG();
+    }
+
+    for (ARGState covered : ImmutableList.copyOf(root.getCoveredByThis())) {
+      covered.removeFromARG();
+    }
+
+    mReached.clear();
+    mReached.add(root, newPrecision);
+  }
+
+  /**
+   * Destroy all states except the root, such that a later usage of one of them fails fast.
+   *
+   * @param root Which state not to destroy
+   * @return true so that this method can be used in an assertion
+   */
+  private boolean destroyAllStatesExceptRoot(ARGState root) {
     for (AbstractState state : mReached) {
       ARGState argState = (ARGState) state;
       if (argState.isDestroyed()) {
@@ -244,15 +265,7 @@ public class ARGReachedSet {
         argState.removeFromARG();
       }
     }
-
-    // The root might have children that were never added to the reached set,
-    // e.g., siblings of a target state that the analysis stopped at (cf. ARGUtils#checkARG).
-    for (ARGState child : ImmutableList.copyOf(root.getChildren())) {
-      child.removeFromARG();
-    }
-
-    mReached.clear();
-    mReached.add(root, newPrecision);
+    return true;
   }
 
   /**
