@@ -172,8 +172,10 @@ public class ARGReachedSet {
    * Remove all states from the ARG and the reached set except for the first state, and re-add that
    * state to the waitlist. The precision of the first state is not changed.
    *
-   * <p>Fails if there are multiple root states, as all except the first state would be removed and
-   * this is likely not the behavior wanted by the callers.
+   * <p>Usually the first state is the only root of the ARG, but there can be further roots (e.g.,
+   * for a backwards analysis that starts at all program sinks). Their trees are removed as well,
+   * and callers in such a situation likely want to keep them. This case is therefore not supported
+   * and an assertion checks that the first state is the only root.
    *
    * @throws InterruptedException can be thrown in subclass
    */
@@ -185,8 +187,10 @@ public class ARGReachedSet {
    * Remove all states from the ARG and the reached set except for the first state, and re-add that
    * state to the waitlist with a precision that is adapted with respect to the supplied precision
    *
-   * <p>Fails if there are multiple root states, as all except the first state would be removed and
-   * this is likely not the behavior wanted by the callers.
+   * <p>Usually the first state is the only root of the ARG, but there can be further roots (e.g.,
+   * for a backwards analysis that starts at all program sinks). Their trees are removed as well,
+   * and callers in such a situation likely want to keep them. This case is therefore not supported
+   * and an assertion checks that the first state is the only root.
    *
    * @param pPrecision the new precision to apply at the first state
    * @param pPrecisionType the type of the precision
@@ -221,7 +225,8 @@ public class ARGReachedSet {
     assert from(mReached)
             .transform(s -> (ARGState) s)
             .allMatch(s -> s.equals(root) || !s.getParents().isEmpty())
-        : "Removing all states except the first is likely not what is wanted when the ReachedSet has multiple roots";
+        : "Removing all states except the first is likely not what is wanted when the ReachedSet"
+            + " has multiple roots";
 
     Precision newPrecision = adaptPrecision(root, pPrecisions, pPrecTypes);
 

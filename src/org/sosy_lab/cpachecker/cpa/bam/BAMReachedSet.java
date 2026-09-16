@@ -94,7 +94,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   /**
    * We must not simply clear the reached set here, because the BAM caches would keep the removed
    * states of the sub-reached-sets. Thus we remove the subtrees below the root one by one.
-   * TODO modify the cache directly?
+   *
+   * <p>TODO: modify the cache directly?
    */
   @Override
   public void removeAllExceptFirstStateWithPrecision(
