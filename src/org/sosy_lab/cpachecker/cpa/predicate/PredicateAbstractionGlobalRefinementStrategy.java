@@ -178,7 +178,7 @@ final class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinemen
     if (pRefinementRoot.getParents().isEmpty()) {
       // the refinement root is the root of the ARG, which cannot be removed,
       // so we restart the exploration from it (this is the case if restartAfterRefinement is set)
-      reached.restartFromRootWithPrecision(precisions, precisionTypes);
+      reached.removeAllExceptFirstStateWithPrecision(precisions, precisionTypes);
     } else {
       reached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
     }

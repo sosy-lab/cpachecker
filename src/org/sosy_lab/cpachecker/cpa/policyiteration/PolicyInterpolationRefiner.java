@@ -287,6 +287,6 @@ public class PolicyInterpolationRefiner implements Refiner {
   }
 
   private void forceRestart(ReachedSet reached) throws InterruptedException {
-    new ARGReachedSet(reached).restartFromRoot();
+    new ARGReachedSet(reached).removeAllExceptFirstState();
   }
 }

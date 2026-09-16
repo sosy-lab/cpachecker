@@ -97,7 +97,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
    * TODO modify the cache directly?
    */
   @Override
-  public void restartFromRootWithPrecision(
+  public void removeAllExceptFirstStateWithPrecision(
       List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
       throws InterruptedException {
     ARGState root = path.getFirstState();

@@ -113,7 +113,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
-    reached.restartFromRootWithPrecision(
+    reached.removeAllExceptFirstStateWithPrecision(
         mergeValuePrecisionsForSubgraph(root, reached),
         VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
   }

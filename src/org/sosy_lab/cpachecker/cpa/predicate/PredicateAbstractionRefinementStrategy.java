@@ -409,7 +409,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     if (pRefinementRoot.getParents().isEmpty()) {
       // the refinement root is the root of the ARG, which cannot be removed,
       // so we restart the exploration from it
-      pReached.restartFromRootWithPrecision(precisions, precisionTypes);
+      pReached.removeAllExceptFirstStateWithPrecision(precisions, precisionTypes);
     } else {
       pReached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
     }

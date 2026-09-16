@@ -251,7 +251,7 @@ final class PredicateStaticRefiner extends StaticRefiner
 
       shutdownNotifier.shutdownIfNecessary();
       argUpdateTime.start();
-      pReached.restartFromRootWithPrecision(
+      pReached.removeAllExceptFirstStateWithPrecision(
           newPrecision, Predicates.instanceOf(PredicatePrecision.class));
       argUpdateTime.stop();
 

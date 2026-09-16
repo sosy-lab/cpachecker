@@ -169,39 +169,45 @@ public class ARGReachedSet {
   }
 
   /**
-   * Remove all states from the ARG and the reached set except for the root (the first state), and
-   * re-add the root to the waitlist. The precision of the root is not changed.
+   * Remove all states from the ARG and the reached set except for the first state, and re-add that
+   * state to the waitlist. The precision of the first state is not changed.
+   *
+   * <p>Fails if there are multiple root states, as all except the first state would be removed and
+   * this is likely not the behavior wanted by the callers.
    *
    * @throws InterruptedException can be thrown in subclass
    */
-  public void restartFromRoot() throws InterruptedException {
-    restartFromRootWithPrecision(ImmutableList.of(), ImmutableList.of());
+  public void removeAllExceptFirstState() throws InterruptedException {
+    removeAllExceptFirstStateWithPrecision(ImmutableList.of(), ImmutableList.of());
   }
 
   /**
-   * Remove all states from the ARG and the reached set except for the root (the first state), and
-   * re-add the root to the waitlist with a precision that is adapted with respect to the supplied
-   * precision
+   * Remove all states from the ARG and the reached set except for the first state, and re-add that
+   * state to the waitlist with a precision that is adapted with respect to the supplied precision
    *
-   * @param pPrecision the new precision to apply at the root
+   * <p>Fails if there are multiple root states, as all except the first state would be removed and
+   * this is likely not the behavior wanted by the callers.
+   *
+   * @param pPrecision the new precision to apply at the first state
    * @param pPrecisionType the type of the precision
    * @throws InterruptedException can be thrown in subclass
    */
-  public void restartFromRootWithPrecision(
+  public void removeAllExceptFirstStateWithPrecision(
       Precision pPrecision, Predicate<? super Precision> pPrecisionType)
       throws InterruptedException {
-    restartFromRootWithPrecision(ImmutableList.of(pPrecision), ImmutableList.of(pPrecisionType));
+    removeAllExceptFirstStateWithPrecision(
+        ImmutableList.of(pPrecision), ImmutableList.of(pPrecisionType));
   }
 
   /**
-   * Like {@link #restartFromRootWithPrecision(Precision, Predicate)}, but if multiple precisions
-   * are given, adapt all matching sub-precisions of a WrappedPrecision.
+   * Like {@link #removeAllExceptFirstStateWithPrecision(Precision, Predicate)}, but if multiple
+   * precisions are given, adapt all matching sub-precisions of a WrappedPrecision.
    *
    * @param pPrecisions the new precisions
    * @param pPrecTypes the types of the precisions
    * @throws InterruptedException can be thrown in subclass
    */
-  public void restartFromRootWithPrecision(
+  public void removeAllExceptFirstStateWithPrecision(
       List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
       throws InterruptedException {
 
@@ -211,12 +217,11 @@ public class ARGReachedSet {
     Preconditions.checkArgument(pPrecisions.size() == pPrecTypes.size());
 
     ARGState root = (ARGState) mReached.getFirstState();
-    // TODO this flags changed behavior, either it is possible and we need to handle it, or it is
-    // impossible and we can remove this assertion
+
     assert from(mReached)
             .transform(s -> (ARGState) s)
             .allMatch(s -> s.equals(root) || !s.getParents().isEmpty())
-        : "Restarting from a single root would silently drop the other root states of the ARG.";
+        : "Removing all states except the first is likely not what is wanted when the ReachedSet has multiple roots";
 
     Precision newPrecision = adaptPrecision(root, pPrecisions, pPrecTypes);
 

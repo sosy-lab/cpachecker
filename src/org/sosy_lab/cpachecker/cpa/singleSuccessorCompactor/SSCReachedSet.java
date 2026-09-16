@@ -48,7 +48,7 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
    * the states of the path. Thus we remove the subtrees below the root one by one.
    */
   @Override
-  public void restartFromRootWithPrecision(
+  public void removeAllExceptFirstStateWithPrecision(
       List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
       throws InterruptedException {
     ARGState root = path.getFirstState();

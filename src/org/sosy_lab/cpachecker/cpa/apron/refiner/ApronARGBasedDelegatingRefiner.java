@@ -211,7 +211,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       //  return false;
     }
 
-    reached.restartFromRootWithPrecision(
+    reached.removeAllExceptFirstStateWithPrecision(
         apronPrecision.withIncrement(increment),
         VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 
