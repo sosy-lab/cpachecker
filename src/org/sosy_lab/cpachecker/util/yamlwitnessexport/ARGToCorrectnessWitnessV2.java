@@ -19,12 +19,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -54,9 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Tran
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -205,9 +200,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
 
     // The entries are created only once, even when several versions are exported
-    CollectedInvariants invariants =
-        createInvariantEntries(
-            pRootState, exportedTypes, locationsWithIncompleteStates(pReachedSet));
+    CollectedInvariants invariants = createInvariantEntries(pRootState, exportedTypes);
 
     ImmutableSet.Builder<YAMLWitnessVersion> versionsWithFailedTranslation = ImmutableSet.builder();
     for (Entry<YAMLWitnessVersion, ImmutableSet<WitnessInvariantType>> version :
@@ -429,10 +422,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
    * @return the created entries
    * @throws InterruptedException if the execution is interrupted
    */
-  CollectedInvariants createInvariantEntries(
-      ARGState pRootState,
-      Set<WitnessInvariantType> pTypes,
-      Set<CFANode> pLocationsWithIncompleteStates)
+  CollectedInvariants createInvariantEntries(ARGState pRootState, Set<WitnessInvariantType> pTypes)
       throws InterruptedException, ReportingMethodNotImplementedException {
     CollectedARGStates statesCollector = argStatesCollector.getRelevantStates(pRootState);
 
@@ -444,7 +434,6 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       collectInvariants(
           statesCollector.loopInvariants(),
           InvariantRecordType.LOOP_INVARIANT,
-          pLocationsWithIncompleteStates,
           entries,
           typesWithFailedTranslation);
     }
@@ -453,7 +442,6 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       collectInvariants(
           statesCollector.functionCallInvariants(),
           InvariantRecordType.LOCATION_INVARIANT,
-          pLocationsWithIncompleteStates,
           entries,
           typesWithFailedTranslation);
     }
@@ -489,21 +477,12 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
   private void collectInvariants(
       Multimap<CFANode, ARGState> pStates,
       InvariantRecordType pType,
-      Set<CFANode> pLocationsWithIncompleteStates,
       ImmutableListMultimap.Builder<WitnessInvariantType, AbstractInvariantEntry> pEntries,
       ImmutableSet.Builder<WitnessInvariantType> pTypesWithFailedTranslation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     WitnessInvariantType invariantType = WitnessInvariantType.of(pType).orElseThrow();
     boolean translationSuccessful = true;
     for (CFANode node : pStates.keySet()) {
-      if (pLocationsWithIncompleteStates.contains(node)) {
-        logger.logf(
-            Level.FINE,
-            "The analysis did not explore every state reaching node %s, skipping its %s",
-            node,
-            invariantType);
-        continue;
-      }
       Optional<FileLocation> location = locationOfInvariant(node, pType);
       if (location.isEmpty()) {
         logger.logf(
@@ -521,44 +500,6 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
     if (!translationSuccessful) {
       pTypesWithFailedTranslation.add(invariantType);
     }
-  }
-
-  /**
-   * The locations at which the analysis may not have explored every state that reaches them.
-   *
-   * <p>The invariant of a location is the disjunction of the states the analysis reached there,
-   * which over-approximates only if every state reaching the location was explored. An analysis
-   * such as BMC unrolls a loop only up to the current bound and stops at the loop head once that
-   * bound is exceeded, so the states it reached are only those of the first k iterations. This
-   * affects the loop head itself and every location a path cut off there could have continued to.
-   */
-  private ImmutableSet<CFANode> locationsWithIncompleteStates(UnmodifiableReachedSet pReachedSet) {
-    ImmutableSet.Builder<CFANode> cutOffLocations = ImmutableSet.builder();
-    for (AbstractState state : pReachedSet) {
-      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
-      LoopBoundState loopBound = AbstractStates.extractStateByType(state, LoopBoundState.class);
-      CFANode location = AbstractStates.extractLocation(state);
-      // mustDumpAssumptionForAvoidance tells us that the analysis stopped at this state because it
-      // reached the maximal loop iteration, which is why the state has no successors
-      if (argState != null
-          && loopBound != null
-          && location != null
-          && argState.getChildren().isEmpty()
-          && loopBound.mustDumpAssumptionForAvoidance()) {
-        cutOffLocations.add(location);
-      }
-    }
-
-    Set<CFANode> incomplete = new HashSet<>(cutOffLocations.build());
-    Deque<CFANode> toVisit = new ArrayDeque<>(incomplete);
-    while (!toVisit.isEmpty()) {
-      for (CFANode successor : CFAUtils.allSuccessorsOf(toVisit.poll())) {
-        if (incomplete.add(successor)) {
-          toVisit.add(successor);
-        }
-      }
-    }
-    return ImmutableSet.copyOf(incomplete);
   }
 
   /**
