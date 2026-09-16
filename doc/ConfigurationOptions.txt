@@ -340,6 +340,13 @@ analysis.algorithm.MPOR.comments = false
 # statement being unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
+# Whether the const CPAchecker_TMP auxiliary variables should be declared
+# globally (true) or inside the thread simulation functions (false). For some
+# backends like CBMC it should be set to true, otherwise the programs cannot
+# be parsed. For CPAchecker it is set to false by default, otherwise it can
+# produce incorrect results.
+analysis.algorithm.MPOR.declareConstAuxiliaryVariablesGlobally = false
+
 # Prefer the execution of threads that commute, i.e., they are not in
 # conflict with any other thread. Enabling this option together with
 # abortCommutingContextSwitches is unsound, because the next thread is chosen
@@ -398,12 +405,12 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
-# How the partial order reduction defines whether threads commute based on
-# their current locations and their reachable memory location accesses.
-# READ_AND_WRITE reduces the state space more than ACCESS_ONLY, but
-# introduces additional overhead (i.e., number of variables, assignments, and
-# expression evaluations).
-analysis.algorithm.MPOR.partialOrderReductionMode = NONE
+# The precision of the partial order reduction instrumentation, i.e., how
+# close the reduction is to the state space of the input program.
+# READ_AND_WRITE is more precise because it reduces the state space more than
+# ACCESS_ONLY, but it adds more overhead (i.e., more variables, more
+# assignments, and more expression evaluations).
+analysis.algorithm.MPOR.partialOrderReductionPrecision = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # Prune and simplify bit vector evaluation expressions based on perfect
@@ -1200,6 +1207,12 @@ cfa.pathForExportingVariablesInScopeWithTheirType = no default value
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = no default value
+
+# Remove all trivial loops (with only blank edges) in the CFA and replace
+# them with program termination. This is not valid for properties like
+# termination and valid-memcleanup, but more efficient for standard
+# reachability properties. Cf. #1713.
+cfa.removeTrivialLoops = false
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
@@ -2924,7 +2937,7 @@ cpa.predicate.maxPreciseStrFunctionSize = 100
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
-cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"}
+cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
 
 # Memory allocation functions of which all parameters but the first should be
 # ignored.
@@ -3262,6 +3275,10 @@ cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
+
+# Set of functions that deterministically provide new memory on the heap,
+# i.e. they always return valid pointer.
+cpa.predicate.successfulMemoryAllocationFunctions = {"alloca", "__builtin_alloca"}
 
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
@@ -4040,6 +4057,20 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# There might be programs with unsigned integer overflow, and due to the
+# overflow, they are non-terminating. This option enforces the transition
+# invariants to have constraints to limit the mathematical integers.
+cpa.terminationviamemory.addConstraintsToPreventOverflows = false
+
+# Some bitwise operations or modulo are UFs in integer encoding, and they
+# might lead to unsound results. If integer encoding is set, we also have to
+# use this option.
+cpa.terminationviamemory.checkUFsInIntegerEncoding = false
+
+# Disables checks for fix-point with transition invariants and performs plain
+# BMC.
+cpa.terminationviamemory.performBMC = false
+
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 
@@ -4059,6 +4090,13 @@ cpa.threading.allowMultipleLHS = false
 # 'useClonedFunctions=true', we need at least N cloned functions. The option
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
 cpa.threading.maxNumberOfThreads = 5
+
+# stop state-space-exploration once main is left. Setting this option to true
+# is always possible for verification, since one can find an interleaving
+# where main is not yet exited. However for validation it should be set to
+# false, since the witness may require main to exit first and then before the
+# teardown of all threads to continue with some other thread.
+cpa.threading.stopStateSpaceExplorationOnMainExit = true
 
 # in case of witness validation we need to check all possible function calls
 # of cloned CFAs.
@@ -5670,7 +5708,7 @@ termination.config = no default value
 termination.considerRecursion = false
 
 # export supporting invariants in the witness
-termination.exportSupportingInvariantsInWitness = true
+termination.exportSupportingInvariantsInWitness = false
 
 # export correctness witness in YAML format
 termination.exportYamlCorrectnessWitness = true
@@ -6057,5 +6095,22 @@ witness.yamlexporter.analyseWitnessQuality = false
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
 
+# Export function contracts, i.e. the requires and ensures clauses describing
+# the behavior of a function, into the correctness witness which is exported
+# from the ARG. Function contracts are not part of every witness format
+# version, see witness.yamlexporter.witnessVersions.
+witness.yamlexporter.exportFunctionContracts = false
+
+# Export location invariants, i.e. invariants which hold whenever a specific
+# location in the program is reached, into the correctness witness which is
+# exported from the ARG. Currently these are only exported for the locations
+# at which a function is called.
+witness.yamlexporter.exportLocationInvariants = true
+
+# Export loop invariants, i.e. invariants which hold whenever the head of a
+# loop is reached, into the correctness witness which is exported from the
+# ARG.
+witness.yamlexporter.exportLoopInvariants = true
+
 # The version for which to export the witness.
-witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
+witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]

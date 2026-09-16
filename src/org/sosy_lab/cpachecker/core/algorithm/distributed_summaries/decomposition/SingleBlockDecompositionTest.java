@@ -15,8 +15,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 @RunWith(Parameterized.class)
 public class SingleBlockDecompositionTest {
@@ -31,7 +31,7 @@ public class SingleBlockDecompositionTest {
   @Test
   public void testSingleBlockDecomposition() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA(path);
+    CFA cfa = TestCfaUtils.makeCfaFromFile(path);
 
     DssBlockDecomposition decomposition = new SingleBlockDecomposition();
 

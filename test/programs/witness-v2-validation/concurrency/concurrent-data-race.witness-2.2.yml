@@ -1,0 +1,66 @@
+# This file is part of the SV-Witnesses repository as regression test:
+# https://gitlab.com/sosy-lab/benchmarking/sv-witnesses
+#
+# SPDX-FileCopyrightText: 2025 The SV-Witnesses Community
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: "2.2"
+    uuid: "c2d3e4f5-a6b7-4890-bcde-f01234567890"
+    creation_time: "2025-10-01T13:00:00Z"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./concurrent-data-race.c"
+      input_file_hashes:
+        "./concurrent-data-race.c": "f4f657126c15d43da20c40fb3af1c7a4864ce85120244d63e5fd18572b66f4ca"
+      specification: "G ! data-race"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            # registers t1_func as thread 1 (1st function_enter'd pthread_create)
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 27
+              column: 19
+              function: "main"
+    - segment:
+        - waypoint:
+            # registers t2_func as thread 2 (2nd function_enter'd pthread_create)
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 28
+              column: 19
+              function: "main"
+    - segment:
+        # multi-follow final segment: the two conflicting accesses (both targets)
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 1
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 16
+              column: 5
+              function: "t1_func"
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 2
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 21
+              column: 5
+              function: "t2_func"

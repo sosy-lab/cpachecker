@@ -58,7 +58,9 @@ Developers who wish to have a few basic integration tests
 written as JUnit tests for their convenience may also add them.
 However, in order to not let local execution or CI pipelines take too much time,
 such tests must be disabled by default by calling
-`CPATestRunner.skipUnlessExtendedTestsEnabled()` (ideally from a `@BeforeClass` method).
+`IntegrationTestRunner.skipUnlessExtendedTestsEnabled()`
+(ideally from a `@BeforeClass` method).
+As above, the test class should be named `*IntegrationTest`.
 One can run them by setting the system property `enableExtendedTests`,
 e.g., with `ant tests -DenableExtendedTests=true`.
 

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGCPATest0 {
 
@@ -94,9 +95,8 @@ public class SMGCPATest0 {
 
   static {
     try {
-      mergeOp =
-          new SMGMergeOperator(
-              new SMGCPAStatistics(), new SMGOptions(Configuration.defaultConfiguration(), null));
+      Configuration config = TestUtils.configurationForTest().build();
+      mergeOp = new SMGMergeOperator(new SMGCPAStatistics(), new SMGOptions(config, null));
     } catch (InvalidConfigurationException exception) {
       throw new RuntimeException(exception);
     }
@@ -126,7 +126,7 @@ public class SMGCPATest0 {
 
     materializer = new SMGCPAMaterializer(logger, new SMGCPAStatistics());
 
-    smgOptions = new SMGOptions(Configuration.defaultConfiguration(), null);
+    smgOptions = new SMGOptions(TestUtils.configurationForTest().build(), null);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel,
@@ -156,11 +156,11 @@ public class SMGCPATest0 {
   public static ConstraintsSolver makeTestSolver(
       MachineModel machineModel, LogManagerWithoutDuplicates logger)
       throws InvalidConfigurationException {
-    Solver smtSolver =
-        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
+    Configuration config = TestUtils.configurationForTest().build();
+    Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
     CFormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new CFormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
+        new CFormulaEncodingWithPointerAliasingOptions(config);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, machineModel, formulaOptions);
 
@@ -176,12 +176,7 @@ public class SMGCPATest0 {
             AnalysisDirection.FORWARD);
 
     return new ConstraintsSolver(
-        Configuration.defaultConfiguration(),
-        machineModel,
-        smtSolver,
-        formulaManager,
-        converter,
-        new ConstraintsStatistics());
+        config, machineModel, smtSolver, formulaManager, converter, new ConstraintsStatistics());
   }
 
   public void assertThatPointersPointToEqualAbstractedList(
@@ -741,7 +736,7 @@ public class SMGCPATest0 {
     MachineModel machineModel = MachineModel.LINUX32;
     LogManagerWithoutDuplicates logger =
         new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
-    SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration(), null);
+    SMGOptions smgOptions = new SMGOptions(TestUtils.configurationForTest().build(), null);
     SMGCPAExpressionEvaluator evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel,
