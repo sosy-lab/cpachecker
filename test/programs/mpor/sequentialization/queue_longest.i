@@ -6,6 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Original file:
+// https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/pthread/queue_longest.i?ref_type=tags
+
 extern int __VERIFIER_nondet_int(void);
 extern void abort(void);
 

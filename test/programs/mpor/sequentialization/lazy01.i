@@ -6,6 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Original file:
+// https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/pthread/lazy01.i?ref_type=tags
+
 extern void abort(void);
 
 extern void __assert_fail (const char *__assertion, const char *__file,

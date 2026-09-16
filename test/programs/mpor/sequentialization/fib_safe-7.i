@@ -7,6 +7,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-or-later
 
+// Original file:
+// https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/pthread/fib_safe-7.i?ref_type=tags
+
 extern void __assert_fail (const char *__assertion, const char *__file,
       unsigned int __line, const char *__function)
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));

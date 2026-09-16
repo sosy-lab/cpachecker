@@ -5,6 +5,9 @@
 //
 // SPDX-License-Identifier: MIT
 
+// Original file:
+// https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/goblint-regression/28-race_reach_45-escape_racing.i?ref_type=tags
+
 typedef struct __pthread_internal_slist
 {
   struct __pthread_internal_slist *__next;

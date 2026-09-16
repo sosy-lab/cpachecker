@@ -5,6 +5,9 @@
 //
 // SPDX-License-Identifier: MIT
 
+// Original file:
+// https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/goblint-regression/13-privatized_04-priv_multi_true.i?ref_type=tags
+
 extern void __assert_fail (const char *__assertion, const char *__file,
       unsigned int __line, const char *__function)
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
