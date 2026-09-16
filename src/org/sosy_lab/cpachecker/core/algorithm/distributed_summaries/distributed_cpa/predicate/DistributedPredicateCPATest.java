@@ -215,6 +215,53 @@ public class DistributedPredicateCPATest {
   }
 
   @Test
+  public void testEmptyPrecisionSerialization() throws Exception {
+
+    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    PredicateCPA cpa = createPredicateCpa(cfa);
+
+    // The empty precision is what every block starts out with, so it is round-tripped constantly.
+    // It used to come back holding the "false" predicate as a global one: the serializer writes the
+    // global key unconditionally, joining no predicates into "", and the deserializer split "" into
+    // a single blank element that AbstractionManager.parsePredicate maps to false. Since
+    // PredicatePrecision propagates globals into every function and location key, that single
+    // spurious predicate poisoned the entire precision.
+    DistributedConfigurableProgramAnalysisTestBase.checkPrecisionSerialization(
+        cpa, PredicatePrecision.empty(), cfa, DssMessageType.POST_CONDITION);
+  }
+
+  @Test
+  public void testPrecisionWithoutGlobalPredicatesSerialization() throws Exception {
+
+    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    PredicateCPA cpa = createPredicateCpa(cfa);
+
+    PathFormula pathFormula = advancePathFormula(cpa, cfa, EDGES_PAST_DECLARATIONS);
+    FormulaManagerView formulaManagerView = cpa.getSolver().getFormulaManager();
+    AbstractionPredicate localPredicate =
+        cpa.getAbstractionManager()
+            .makePredicate(
+                formulaManagerView.uninstantiate(
+                    formulaManagerView
+                        .getBooleanFormulaManager()
+                        .toConjunctionArgs(pathFormula.getFormula(), true)
+                        .iterator()
+                        .next()));
+
+    // A non-empty precision that nevertheless has no global predicates: same empty-global-key
+    // problem as above, but here the spurious "false" would also be mixed in with real predicates.
+    PredicatePrecision precision =
+        new PredicatePrecision(
+            ImmutableListMultimap.of(),
+            ImmutableListMultimap.of(cfa.getMainFunction(), localPredicate),
+            ImmutableListMultimap.of(),
+            ImmutableSet.of());
+
+    DistributedConfigurableProgramAnalysisTestBase.checkPrecisionSerialization(
+        cpa, precision, cfa, DssMessageType.POST_CONDITION);
+  }
+
+  @Test
   public void testAbstractionStateWithPointerTargetSetSerialization() throws Exception {
 
     // The DSS default config disables the SMT aliasing memory model
