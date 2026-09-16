@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedConfigurableProgramAnalysisTestBase {
@@ -55,7 +56,7 @@ public class DistributedConfigurableProgramAnalysisTestBase {
       throws InvalidConfigurationException, IOException, InterruptedException, CPAException {
     Configuration config =
         TestUtils.configurationForTest()
-            .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
+            .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
             .build();
     DssAnalysisOptions options = new DssAnalysisOptions(config);
     DssMessageFactory messageFactory = new DssMessageFactory(options);
@@ -105,7 +106,7 @@ public class DistributedConfigurableProgramAnalysisTestBase {
 
   public static void testSerialization(String programPath, ConfigurableProgramAnalysis cpa)
       throws Exception {
-    CFA cfa = TestUtil.buildTestCFA(programPath);
+    CFA cfa = TestCfaUtils.makeCfaFromFile(programPath);
     testSerialization(cfa, cpa);
   }
 

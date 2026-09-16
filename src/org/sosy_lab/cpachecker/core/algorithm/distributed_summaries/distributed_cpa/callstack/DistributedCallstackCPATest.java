@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -23,7 +23,7 @@ public class DistributedCallstackCPATest {
   @Test
   public void testCallStackSerializationOnFile() throws Exception {
     Configuration config =
-        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(DssTestUtils.DSS_CONFIGURATION_FILE).build();
     ConfigurableProgramAnalysis cpa =
         CallstackCPA.factory()
             .setConfiguration(config)

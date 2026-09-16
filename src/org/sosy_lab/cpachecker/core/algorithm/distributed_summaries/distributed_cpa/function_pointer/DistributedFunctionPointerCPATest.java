@@ -13,7 +13,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidT
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NullTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedFunctionPointerCPATest {
@@ -30,8 +31,8 @@ public class DistributedFunctionPointerCPATest {
   public void testFunctionPointerSerializationOnFile() throws Exception {
 
     Configuration config =
-        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
-    CFA cfa = TestUtil.buildTestCFA("test/programs/dss/simple-function-pointer.c");
+        TestUtils.configurationForTest().loadFromFile(DssTestUtils.DSS_CONFIGURATION_FILE).build();
+    CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/dss/simple-function-pointer.c");
     ConfigurableProgramAnalysis cpa =
         FunctionPointerCPA.factory()
             .setConfiguration(config)
@@ -47,8 +48,8 @@ public class DistributedFunctionPointerCPATest {
   public void testAllCombinations() throws Exception {
 
     Configuration config =
-        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
-    CFA cfa = TestUtil.buildTestCFA("test/programs/dss/simple-function-pointer.c");
+        TestUtils.configurationForTest().loadFromFile(DssTestUtils.DSS_CONFIGURATION_FILE).build();
+    CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/dss/simple-function-pointer.c");
     ConfigurableProgramAnalysis cpa =
         FunctionPointerCPA.factory()
             .setConfiguration(config)
@@ -77,8 +78,8 @@ public class DistributedFunctionPointerCPATest {
   public void testEmpty() throws Exception {
 
     Configuration config =
-        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
-    CFA cfa = TestUtil.buildTestCFA("test/programs/dss/simple-function-pointer.c");
+        TestUtils.configurationForTest().loadFromFile(DssTestUtils.DSS_CONFIGURATION_FILE).build();
+    CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/dss/simple-function-pointer.c");
     ConfigurableProgramAnalysis cpa =
         FunctionPointerCPA.factory()
             .setConfiguration(config)

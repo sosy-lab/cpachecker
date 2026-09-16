@@ -24,7 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -57,7 +58,7 @@ public class DistributedPredicateCPATest {
   private static PredicateCPA createPredicateCpa(CFA cfa, ImmutableMap<String, String> extraOptions)
       throws Exception {
     ConfigurationBuilder configBuilder =
-        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE);
+        TestUtils.configurationForTest().loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE);
     extraOptions.forEach(configBuilder::setOption);
     Configuration config = configBuilder.build();
     LogManager logs = LogManager.createTestLogManager();
@@ -98,7 +99,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testPredicateSerializationOnFile() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA("test/programs/dss/predicate_loop_invariant.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/dss/predicate_loop_invariant.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa);
@@ -107,7 +108,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testAbstractionStateSerialization() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     PathFormula emptyPf = cpa.getPathFormulaManager().makeEmptyPathFormula();
@@ -140,7 +141,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testAbstractionStateWithPredicateSerialization() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     PathFormula pathFormula = advancePathFormula(cpa, cfa, EDGES_PAST_DECLARATIONS);
@@ -162,7 +163,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testNonAbstractionStateSerialization() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     PathFormula pathFormula = advancePathFormula(cpa, cfa, EDGES_PAST_DECLARATIONS);
@@ -182,7 +183,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testPrecisionSerialization() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     PathFormula pathFormula = advancePathFormula(cpa, cfa, EDGES_PAST_DECLARATIONS);
@@ -217,7 +218,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testEmptyPrecisionSerialization() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     // The empty precision is what every block starts out with, so it is round-tripped constantly.
@@ -233,7 +234,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testPrecisionWithoutGlobalPredicatesSerialization() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     PathFormula pathFormula = advancePathFormula(cpa, cfa, EDGES_PAST_DECLARATIONS);
@@ -271,7 +272,7 @@ public class DistributedPredicateCPATest {
     // Java-serialization blob (see SerializePredicateStateOperator.PTS_KEY) and is therefore the
     // most fragile part of the wire format.
     // Kept so when pointerAliasing is supported in the future, we do not get any surprises
-    CFA cfa = TestUtil.buildTestCFA("test/programs/dss/predicate_pointer_write.c");
+    CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/dss/predicate_pointer_write.c");
     PredicateCPA cpa =
         createPredicateCpa(cfa, ImmutableMap.of("cpa.predicate.handlePointerAliasing", "true"));
 
