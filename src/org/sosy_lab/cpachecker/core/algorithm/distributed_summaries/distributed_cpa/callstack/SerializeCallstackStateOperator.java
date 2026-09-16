@@ -45,7 +45,7 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
         .pushLevel(CallstackState.class.getName())
         .put(SerializeOperator.STATE_KEY, result)
         // the receiving block has to know whether the sending block knew its callstack
-        .put(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, Boolean.toString(canBeTopState))
+        .put(DistributedCallstackCPA.CAN_BE_TOP_STATE_KEY, Boolean.toString(canBeTopState))
         .build();
   }
 }

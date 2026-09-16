@@ -38,7 +38,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
   public BlockTransferRelation(Configuration pConfiguration, UniqueIdGenerator pIdGenerator)
       throws InvalidConfigurationException {
-    this.idGenerator = pIdGenerator;
+    idGenerator = pIdGenerator;
     pConfiguration.inject(this);
   }
 
@@ -80,36 +80,34 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
         Sets.intersection(node.getLeavingEdges().toSet(), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)) {
-      if (cfaEdge
-          .getSuccessor()
-          .equals(blockState.getBlockNode().getViolationConditionLocation())) {
+      if (!blockState.getViolationConditions().isEmpty()
+          && cfaEdge
+              .getSuccessor()
+              .equals(blockState.getBlockNode().getViolationConditionLocation())) {
         ImmutableList.Builder<BlockState> successors = ImmutableList.builder();
-        for (AbstractState vc : blockState.getViolationConditions()) {
+        for (AbstractState vc : blockState.getPendingViolationConditions()) {
           successors.add(
-              new BlockState(
-                  blockState.getBlockNode().getId() + "#" + idGenerator.getFreshId(),
-                  blockState,
-                  cfaEdge.getSuccessor(),
-                  blockState.getBlockNode(),
+              blockState.successor(
+                  freshId(blockState),
+                  cfaEdge,
                   getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-                  ImmutableList.of(vc),
-                  blockState.getHistory(),
-                  blockState.getWitness()));
+                  ImmutableList.of(vc)));
         }
         return successors.build();
       }
       return ImmutableList.of(
-          new BlockState(
-              blockState.getBlockNode().getId() + "#" + idGenerator.getFreshId(),
-              blockState,
-              cfaEdge.getSuccessor(),
-              blockState.getBlockNode(),
+          blockState.successor(
+              freshId(blockState),
+              cfaEdge,
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-              blockState.getViolationConditions(),
-              blockState.getHistory(),
-              blockState.getWitness()));
+              blockState.getViolationConditions()));
     }
     return ImmutableList.of();
+  }
+
+  /** A block-wide unique id for a state that succeeds the given one. */
+  private String freshId(BlockState pPredecessor) {
+    return pPredecessor.getBlockNode().getId() + "#" + idGenerator.getFreshId();
   }
 
   private static BlockStateType getBlockStateTypeOfLocation(BlockNode pBlockNode, CFANode pNode) {

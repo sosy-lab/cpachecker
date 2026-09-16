@@ -45,8 +45,8 @@ public record AnalysisResult(
   }
 
   /**
-   * A round that found violations. Its summaries are dropped, because the violations have to be
-   * resolved before a postcondition of this block means anything.
+   * A round that publishes only violations, for example an initial speculative exploration whose
+   * entry state is not known to be reachable.
    */
   static AnalysisResult ofViolationConditions(Set<ArgPathAndCondition> pViolationConditions) {
     return new AnalysisResult(ImmutableSet.of(), pViolationConditions, false);

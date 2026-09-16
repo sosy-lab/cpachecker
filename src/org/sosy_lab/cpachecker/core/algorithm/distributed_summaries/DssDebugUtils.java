@@ -924,19 +924,18 @@ public final class DssDebugUtils {
     List<List<String>> violationRows = new ArrayList<>();
     index = 0;
     for (ArgPathAndCondition violation : pResult.violationConditions()) {
-      ARGPath path = violation.path();
       violationRows.add(
-          ImmutableList.of(
-              Integer.toString(index++),
-              oneLine(path.getFirstState()) + " ~> " + oneLine(path.getLastState()),
-              Integer.toString(path.size()),
-              violation.condition() == null ? "<none>" : oneLine(violation.condition())));
+          ImmutableList.<String>builder()
+              .add(Integer.toString(index++))
+              .addAll(describePaths(violation))
+              .add(violation.condition() == null ? "<none>" : oneLine(violation.condition()))
+              .build());
     }
     String violationsBody =
         violationRows.isEmpty()
             ? "<none>"
             : table(
-                ImmutableList.of("#", "path (first ~> last)", "states", "condition"),
+                ImmutableList.of("#", "path (first ~> last)", "states", "paths", "condition"),
                 violationRows);
 
     String body =
@@ -951,6 +950,30 @@ public final class DssDebugUtils {
             + "):\n"
             + indent("  ", violationsBody);
     return box("AnalysisResult", body);
+  }
+
+  /**
+   * The path, state-count and path-count cells of one violation-condition row. Only the first path
+   * is spelled out, so the count says how many more the condition stands for.
+   *
+   * <p>A condition holds a snapshot of the ARG rather than materialized paths, and enumerating them
+   * walks that snapshot and rejects a target it does not contain. That walk can therefore throw,
+   * which a renderer must not do, so a failure becomes a marker in the table instead.
+   */
+  private static ImmutableList<String> describePaths(ArgPathAndCondition pViolation) {
+    try {
+      FluentIterable<ARGPath> paths = FluentIterable.from(pViolation.paths());
+      if (paths.isEmpty()) {
+        return ImmutableList.of("<no path>", "-", "0");
+      }
+      ARGPath first = paths.get(0);
+      return ImmutableList.of(
+          oneLine(first.getFirstState()) + " ~> " + oneLine(first.getLastState()),
+          Integer.toString(first.size()),
+          Integer.toString(paths.size()));
+    } catch (RuntimeException e) {
+      return ImmutableList.of("<unrenderable: " + e + ">", "-", "-");
+    }
   }
 
   // ===================================================================================

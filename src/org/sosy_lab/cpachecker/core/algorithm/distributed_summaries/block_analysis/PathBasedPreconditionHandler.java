@@ -8,16 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -33,8 +29,6 @@ import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
@@ -83,8 +77,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     // how
     // many other blocks the loop passes through in between -- see shouldConsiderPath and store(),
     // which appends to a path's history on receipt instead of on send for the same reason.
-    AbstractState startState = pAnalysis.makeStartState(!analysis.getBlock().isRoot());
-    blockStateOf(startState).addHistory(analysis.getBlock());
+    AbstractState startState =
+        pAnalysis.withBlockInHistory(pAnalysis.makeStartState(!analysis.getBlock().isRoot()));
     BlockGraphPath startPath = BlockGraphPath.of(analysis.getBlock().getId());
     preconditions.put(
         startPath,
@@ -94,35 +88,14 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   }
 
   @Override
-  public Collection<DssMessage> runInitialAnalysis()
-      throws CPAException, InterruptedException, SolverException {
-
-    StateAndPrecision initialTopState =
-        Iterables.getOnlyElement(
-            FluentIterable.from(preconditions.values()).transformAndConcat(StatesByPath::states));
-
-    DssBlockAnalysisResult result =
-        analysis.runInitialBlockAnalysis(initialTopState.state(), initialTopState.precision());
-
-    ImmutableList.Builder<DssMessage> initialMessages = ImmutableList.builder();
-    if (!result.getFinalLocationStates().isEmpty()) {
-      initialMessages.addAll(analysis.reportPostconditions(analysis.finalLocationStatesOf(result)));
-    }
-    if (!result.getAllViolations().isEmpty()) {
-      initialMessages.addAll(analysis.reportFirstViolationConditions(result.getAllViolations()));
-    }
-    return initialMessages.build();
-  }
-
-  @Override
   public DssMessageProcessing store(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
     pathsToAnalyze.clear();
     analysis.getLogger().log(Level.INFO, "Running forward analysis with new precondition");
-    ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
     // Recorded here, by the receiver, rather than by the sender before it serializes its
     // postcondition: see the constructor for why this block has to end up in its own history.
-    received.forEach(sap -> sap.getBlockState().addHistory(analysis.getBlock()));
+    ImmutableList<@NonNull StateAndPrecision> received =
+        analysis.withBlockInHistory(analysis.deserialize(pReceived));
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStorePreconditionStatesTimer().start();
     try {
@@ -300,41 +273,23 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   }
 
   @Override
-  public Collection<DssMessage> analyze()
-      throws SolverException, InterruptedException, CPAException {
-    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    AnalysisResult round = explore(Optional.empty());
-    if (!round.violationConditions().isEmpty()) {
-      messages.addAll(analysis.reportViolationConditions(round.violationConditions()));
-    }
-    if (!round.summaries().isEmpty()) {
-      messages.addAll(analysis.reportPostconditions(round.summaries()));
-    }
-    return messages.build();
-  }
-
-  @Override
-  public Collection<DssMessage> analyzeFor(String pViolationConditionSender)
-      throws SolverException, InterruptedException, CPAException {
-    checkArgument(
-        !analysis.getViolationConditionHandler().isEmptyFor(pViolationConditionSender),
-        "No violation condition found for sender ID: %s",
-        pViolationConditionSender);
-    ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
-    AnalysisResult round = explore(Optional.of(pViolationConditionSender));
-    if (!round.summaries().isEmpty()) {
-      messages.addAll(analysis.reportPostconditions(round.summaries()));
-    }
-    if (!round.violationConditions().isEmpty()) {
-      messages.addAll(analysis.reportViolationConditions(round.violationConditions()));
-    }
-    return messages.build();
-  }
-
-  @Override
   public ImmutableList<@NonNull StateAndPrecision> getKnownPreconditions() {
     return FluentIterable.from(preconditions.values())
         .transformAndConcat(StatesByPath::states)
+        .toList();
+  }
+
+  /**
+   * The preconditions the block still has to be explored from, i.e., those of the paths that the
+   * last update added or changed.
+   *
+   * <p>Read by {@link PathBasedExplorationEngine}. The grouping by path is what decides which
+   * preconditions these are, but it does not matter for exploring them, so they are handed out
+   * flattened.
+   */
+  ImmutableList<@NonNull StateAndPrecision> getPreconditionsToAnalyze() {
+    return FluentIterable.from(pathsToAnalyze)
+        .transformAndConcat(path -> preconditions.get(path).states())
         .toList();
   }
 
@@ -409,39 +364,5 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
             + "):\n"
             + DssDebugUtils.indent("  ", pathsToAnalyzeBody);
     return DssDebugUtils.box("Block " + analysis.getBlock().getId(), body);
-  }
-
-  /**
-   * Runs the CPA under an error condition, i.e., if the current block contains a block-end edge,
-   * the error condition will be attached to that edge. In case this makes the path formula
-   * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
-   *
-   * @param pSender restricts the exploration to the violation conditions of one block, if given
-   */
-  private AnalysisResult explore(Optional<String> pSender)
-      throws CPAException, InterruptedException {
-    ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
-    ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
-
-    for (BlockGraphPath path : pathsToAnalyze) {
-      for (StateAndPrecision precondition : ImmutableList.copyOf(preconditions.get(path).states)) {
-
-        DssBlockAnalysisResult result =
-            analysis.runBlockAnalysis(
-                analysis.getDcpa().reset(precondition.state()),
-                precondition.precision(),
-                analysis.getViolationConditionHandler().statesOf(pSender));
-
-        summaries.addAll(analysis.summariesOf(result));
-
-        // TODO we only want to combine violations with the same precondition id
-        if (!result.getAllViolations().isEmpty()) {
-          violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
-          violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-        }
-      }
-    }
-    return new AnalysisResult(
-        analysis.deduplicateStatesAndPrecisions(summaries.build()), violations.build());
   }
 }

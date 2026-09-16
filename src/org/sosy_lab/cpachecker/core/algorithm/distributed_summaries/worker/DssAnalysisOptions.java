@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import static com.google.common.base.Verify.verify;
+
 import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -61,21 +63,25 @@ public class DssAnalysisOptions {
   private Path logDirectory = Path.of("block_analysis/logfiles");
 
   @Option(
+      name = "debug.readableFormulas",
+      description =
+          "Whether the messages of a debug run carry every predicate formula a second time in the"
+              + " notation of the solver. That notation is not the one the message is built from,"
+              + " so it has to be rendered separately, which costs more than the whole rest of a"
+              + " block analysis. Has no effect unless debug mode is enabled.",
+      secure = true)
+  private boolean readableFormulas = false;
+
+  @Option(
       name = "worker.logLevel",
       toUppercase = true,
       description =
-          "Log level of the logfile of every DssWorker. Using ALL might slowdown the analysis"
-              + " noticeably",
+          "Level of the per-worker logfiles. The block analyses log their SMT formulas at ALL, and"
+              + " rendering a formula as a string is expensive enough to dominate the runtime of a"
+              + " block analysis, so set this to ALL only when those formulas are what you are"
+              + " looking for.",
       secure = true)
-  private Level logLevel = Level.INFO;
-
-  @Option(
-      description =
-          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
-              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
-              + " to a too precise precision.",
-      secure = true)
-  private boolean doResetPrecisionsForEveryRun = false;
+  private Level logLevel = Level.FINE;
 
   @Option(
       description =
@@ -130,10 +136,6 @@ public class DssAnalysisOptions {
     return debug;
   }
 
-  public boolean doResetPrecisionsForEveryRun() {
-    return doResetPrecisionsForEveryRun;
-  }
-
   public Path getForwardConfiguration() {
     return forwardConfiguration;
   }
@@ -146,11 +148,17 @@ public class DssAnalysisOptions {
     return logLevel;
   }
 
+  /** Whether serialized predicate states carry a solver-rendered copy of their formula. */
+  public boolean writeReadableFormulas() {
+    return debug && readableFormulas;
+  }
+
   public boolean combineViolationConditionsByHash() {
     return combineViolationConditionsByHash;
   }
 
   public boolean combinePreconditionsByHash() {
+    verify(blockAnalysisType == DssBlockAnalysisType.ALWAYS_REPLACE);
     return combinePreconditionsByHash;
   }
 

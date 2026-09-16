@@ -252,6 +252,8 @@ final class PredicateStaticRefiner extends StaticRefiner
       shutdownNotifier.shutdownIfNecessary();
       argUpdateTime.start();
       for (ARGState refinementRoot : ImmutableList.copyOf(root.getChildren())) {
+        // In a shared ARG, one child of the root can also be a descendant of another child.
+        // Removing the latter already removes the former and updates the root's precision.
         if (!refinementRoot.isDestroyed()) {
           pReached.removeSubtree(
               refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));

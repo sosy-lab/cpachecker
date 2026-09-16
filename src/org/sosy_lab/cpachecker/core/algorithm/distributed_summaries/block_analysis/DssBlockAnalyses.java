@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
@@ -19,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -76,6 +76,9 @@ public final class DssBlockAnalyses {
     IdentityHashMap<BlockState, AbstractState> blockStateToState = new IdentityHashMap<>();
     for (AbstractState state : pReachedSet) {
       BlockState blockState = AbstractStates.extractStateByType(state, BlockState.class);
+      if (blockState.getType() != BlockStateType.FINAL) {
+        continue;
+      }
       checkState(
           blockStateToState.put(blockState, state) == null,
           "Multiple states of the reached set contain the block state %s",
@@ -104,13 +107,11 @@ public final class DssBlockAnalyses {
       IdentityHashMap<BlockState, AbstractState> blockStateToState = indexByBlockState(pReachedSet);
       ListMultimap<BlockState, AbstractState> predecessorToStates =
           sortGhostStatesByPredecessor(extractBlockStatesAtGhostLocation(pReachedSet));
-      for (BlockState blockState : predecessorToStates.keySet()) {
+      for (Map.Entry<BlockState, AbstractState> entry : blockStateToState.entrySet()) {
+        BlockState blockState = entry.getKey();
         checkState(blockState.getType() == BlockStateType.FINAL);
         advanceViolationConditions(
-            blockState,
-            predecessorToStates.get(blockState),
-            blockStateToState.get(blockState),
-            pReachedSet);
+            blockState, predecessorToStates.get(blockState), entry.getValue(), pReachedSet);
       }
     }
 
@@ -118,8 +119,8 @@ public final class DssBlockAnalyses {
   }
 
   /**
-   * Narrows the violation conditions of one block-end state to those not yet processed and decides
-   * whether that state still has to be explored.
+   * Refreshes the processing records of one block-end state and decides whether that state still
+   * has to be explored. The abstract value stays immutable.
    *
    * <p>The state is taken off the waitlist once no condition is left to process. If no condition of
    * this state was processed, the state remains untouched: the analysis may have stopped because a
@@ -136,21 +137,11 @@ public final class DssBlockAnalyses {
                 a ->
                     AbstractStates.extractStateByType(a, BlockState.class).getViolationConditions())
             .toSet();
-    ImmutableList.Builder<AbstractState> remainingBuilder = ImmutableList.builder();
-    for (AbstractState violationCondition : pBlockState.getViolationConditions()) {
-      if (!processedViolationConditions.contains(violationCondition)) {
-        remainingBuilder.add(violationCondition);
-      }
-    }
-    ImmutableList<AbstractState> remainingConditions = remainingBuilder.build();
-
-    if (remainingConditions.size() == pBlockState.getViolationConditions().size()) {
-      return;
-    }
-    if (remainingConditions.isEmpty()) {
+    pBlockState.setProcessedViolationConditions(processedViolationConditions);
+    if (!pBlockState.getViolationConditions().isEmpty()
+        && pBlockState.getPendingViolationConditions().isEmpty()) {
       pReachedSet.removeOnlyFromWaitlist(pStateInReachedSet);
     }
-    pBlockState.setViolationConditions(remainingConditions);
   }
 
   static class DssBlockAnalysisResult {

@@ -33,6 +33,14 @@ public class ARGMergeJoin implements MergeOperator {
   @Options(prefix = "cpa.arg")
   static class MergeOptions {
 
+    @Option(
+        secure = true,
+        description =
+            "Preserve incoming paths as shared ARG suffixes on coverage as well as merging. "
+                + "Reject operations that would create cycles. Intended for analyses that "
+                + "derive conditions from all paths through an acyclic block.")
+    boolean preservePaths = false;
+
     MergeOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -96,6 +104,11 @@ public class ARGMergeJoin implements MergeOperator {
         argElement1.getChildren().isEmpty(),
         "First parameter %s of merge operator unexpectedly already has children",
         argElement1);
+
+    if (options.preservePaths && !ARGPathPreservation.canSharePaths(argElement1, argElement2)) {
+      // Check before invoking wrapped merges: predicate merge has side effects.
+      return pElement2;
+    }
 
     if (!argElement2.mayCover()) {
       // elements that may not cover should also not be used for merge
@@ -176,7 +189,7 @@ public class ARGMergeJoin implements MergeOperator {
 
     // and also replace argElement1 with it
     for (ARGState parentOfElement1 : argElement1.getParents()) {
-      mergedElement.addParent(parentOfElement1);
+      mergedElement.copyIncomingPathsFrom(argElement1, parentOfElement1);
     }
 
     // argElement1 is the current successor, it does not have any children yet and covered nodes yet

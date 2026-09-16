@@ -42,7 +42,7 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
     // states of a block analysis that did not know its callstack must stay unrestricted
     boolean canBeTopState =
         Boolean.parseBoolean(
-            content.getOrDefault(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, "false"));
+            content.getOrDefault(DistributedCallstackCPA.CAN_BE_TOP_STATE_KEY, "false"));
     if (stateJson.isBlank()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
       return parentCPA.createState(null, location.getFunctionName(), location, canBeTopState);

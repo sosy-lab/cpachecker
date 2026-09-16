@@ -23,8 +23,10 @@ import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SequencedCollection;
 import java.util.Set;
@@ -52,6 +54,10 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   // To enforce set semantics, do not add elements except through addparent()!
   private final SequencedCollection<ARGState> children = new ArrayList<>(1);
   private final SequencedCollection<ARGState> parents = new ArrayList<>(1);
+
+  // Allocated only for analyses that record transfer traces. Distinct CFA paths may connect the
+  // same pair of ARG nodes, so a set of parents alone is not enough to preserve provenance.
+  private @Nullable Map<ARGState, ImmutableList<ImmutableList<CFAEdge>>> incomingPaths;
 
   private ARGState mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -101,6 +107,51 @@ public class ARGState extends AbstractSerializableSingleWrapperState
       pOtherParent.children.add(this);
     } else {
       assert pOtherParent.children.contains(this);
+    }
+  }
+
+  void addParentWithPaths(ARGState pParent, Iterable<ImmutableList<CFAEdge>> pPaths) {
+    addParent(pParent);
+    if (incomingPaths == null) {
+      incomingPaths = new HashMap<>();
+    }
+    List<ImmutableList<CFAEdge>> alternatives =
+        new ArrayList<>(incomingPaths.getOrDefault(pParent, ImmutableList.of()));
+    for (ImmutableList<CFAEdge> path : pPaths) {
+      if (alternatives.stream().noneMatch(existing -> sameEdges(existing, path))) {
+        alternatives.add(path);
+      }
+    }
+    incomingPaths.put(pParent, ImmutableList.copyOf(alternatives));
+  }
+
+  private static boolean sameEdges(List<CFAEdge> pFirst, List<CFAEdge> pSecond) {
+    // CFAEdge.equals compares endpoints only, even for edges with different statements.
+    if (pFirst.size() != pSecond.size()) {
+      return false;
+    }
+    for (int i = 0; i < pFirst.size(); i++) {
+      if (pFirst.get(i) != pSecond.get(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** The recorded alternatives, including all edges hidden by composite edge aggregation. */
+  public ImmutableList<ImmutableList<CFAEdge>> getPathsFromParent(ARGState pParent) {
+    checkArgument(parents.contains(pParent), "Expected an ARG parent");
+    if (incomingPaths != null && incomingPaths.containsKey(pParent)) {
+      return incomingPaths.get(pParent);
+    }
+    return ImmutableList.of(ImmutableList.copyOf(pParent.getEdgesToChild(this)));
+  }
+
+  void copyIncomingPathsFrom(ARGState pSource, ARGState pParent) {
+    if (pSource.incomingPaths != null && pSource.incomingPaths.containsKey(pParent)) {
+      addParentWithPaths(pParent, pSource.incomingPaths.get(pParent));
+    } else {
+      addParent(pParent);
     }
   }
 
@@ -486,6 +537,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     for (ARGState child : children) {
       assert child.parents.contains(this);
       child.parents.remove(this);
+      if (child.incomingPaths != null) {
+        child.incomingPaths.remove(this);
+      }
     }
     children.clear();
 
@@ -495,6 +549,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
       parent.children.remove(this);
     }
     parents.clear();
+    incomingPaths = null;
   }
 
   /**
@@ -517,15 +572,19 @@ public class ARGState extends AbstractSerializableSingleWrapperState
       assert child.parents.contains(this) : "Inconsistent ARG at " + this;
       child.parents.remove(this);
       child.addParent(replacement);
+      if (child.incomingPaths != null && child.incomingPaths.containsKey(this)) {
+        child.addParentWithPaths(replacement, child.incomingPaths.remove(this));
+      }
     }
     children.clear();
 
     for (ARGState parent : parents) {
       assert parent.children.contains(this) : "Inconsistent ARG at " + this;
       parent.children.remove(this);
-      replacement.addParent(parent);
+      replacement.copyIncomingPathsFrom(this, parent);
     }
     parents.clear();
+    incomingPaths = null;
 
     if (mCoveredByThis != null) {
       if (replacement.mCoveredByThis == null) {
@@ -581,6 +640,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     if (parents.contains(pOtherParent)) {
       assert pOtherParent.children.contains(this);
       parents.remove(pOtherParent);
+      if (incomingPaths != null) {
+        incomingPaths.remove(pOtherParent);
+      }
       pOtherParent.children.remove(this);
     } else {
       assert !pOtherParent.children.contains(this) : "Problem detected!";
