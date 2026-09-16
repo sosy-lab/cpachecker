@@ -2062,9 +2062,6 @@ cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 cpa.block.domain = IDENTITY
   enum:     [IDENTITY, VALUE]
 
-# whether to travel over the ghost edge
-cpa.block.transfer.standardVcs = true
-
 # depth of recursion bound
 cpa.callstack.depth = 0
 

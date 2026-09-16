@@ -136,18 +136,6 @@ public class BlockStateTest {
     BlockState first = interior("B#1", state);
     assertThat(first).isNotEqualTo(first.withHistory(block));
     assertThat(first).isNotEqualTo(first.withViolationConditions(ImmutableList.of(state)));
-    BlockState restricted =
-        new BlockState(
-            "B#2",
-            state,
-            block.getInitialLocation(),
-            block,
-            BlockStateType.MID,
-            ImmutableList.of(),
-            BlockGraphPath.of(),
-            SegmentedPaths.EMPTY,
-            SegmentedPaths.deserialize("N1N2"));
-    assertThat(first).isNotEqualTo(restricted);
   }
 
   @Test

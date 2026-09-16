@@ -77,7 +77,7 @@ public class BlockCPA extends AbstractCPA {
     super("sep", "sep", null);
     pConfiguration.inject(this);
     idGenerator = new UniqueIdGenerator();
-    transferRelation = new BlockTransferRelation(pConfiguration, idGenerator);
+    transferRelation = new BlockTransferRelation(idGenerator);
   }
 
   public boolean usesValueDomain() {

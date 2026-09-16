@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -70,55 +69,7 @@ public class BlockState
   private final ImmutableList<? extends AbstractState> violationConditions;
   private final SegmentedPaths witness;
 
-  private final Optional<SegmentedPaths> witnessCheckPathState;
-
   private final BlockStateObligations obligations = new BlockStateObligations();
-
-  public BlockState(
-      String pId,
-      BlockState pPredecessor,
-      CFANode pNode,
-      BlockNode pTargetNode,
-      BlockStateType pType,
-      ImmutableList<? extends AbstractState> pViolationConditions,
-      BlockGraphPath pHistory,
-      SegmentedPaths pWitness,
-      SegmentedPaths pWitnessCheckPathState) {
-    this(
-        pId,
-        pPredecessor,
-        pNode,
-        pTargetNode,
-        pType,
-        pViolationConditions,
-        pHistory,
-        pWitness,
-        pWitnessCheckPathState,
-        null);
-  }
-
-  private BlockState(
-      String pId,
-      BlockState pPredecessor,
-      CFANode pNode,
-      BlockNode pTargetNode,
-      BlockStateType pType,
-      ImmutableList<? extends AbstractState> pViolationConditions,
-      BlockGraphPath pHistory,
-      SegmentedPaths pWitness,
-      SegmentedPaths pWitnessCheckPathState,
-      @Nullable CFAEdge pIncomingEdge) {
-    id = pId;
-    predecessor = pPredecessor;
-    incomingEdge = pIncomingEdge;
-    node = pNode;
-    type = pType;
-    blockNode = pTargetNode;
-    violationConditions = pViolationConditions;
-    history = pHistory;
-    witness = pWitness;
-    witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
-  }
 
   public BlockState(
       String pId,
@@ -141,6 +92,27 @@ public class BlockState
         null);
   }
 
+  private BlockState(
+      String pId,
+      BlockState pPredecessor,
+      CFANode pNode,
+      BlockNode pTargetNode,
+      BlockStateType pType,
+      ImmutableList<? extends AbstractState> pViolationConditions,
+      BlockGraphPath pHistory,
+      SegmentedPaths pWitness,
+      @Nullable CFAEdge pIncomingEdge) {
+    id = pId;
+    predecessor = pPredecessor;
+    incomingEdge = pIncomingEdge;
+    node = pNode;
+    type = pType;
+    blockNode = pTargetNode;
+    violationConditions = pViolationConditions;
+    history = pHistory;
+    witness = pWitness;
+  }
+
   public String getUniqueId() {
     return id;
   }
@@ -151,16 +123,7 @@ public class BlockState
       BlockStateType pType,
       ImmutableList<? extends AbstractState> pConditions) {
     return new BlockState(
-        pId,
-        this,
-        pEdge.getSuccessor(),
-        blockNode,
-        pType,
-        pConditions,
-        history,
-        witness,
-        witnessCheckPathState.orElse(null),
-        pEdge);
+        pId, this, pEdge.getSuccessor(), blockNode, pType, pConditions, history, witness, pEdge);
   }
 
   @Override
@@ -218,30 +181,12 @@ public class BlockState
   private BlockState copy(
       ImmutableList<? extends AbstractState> pConditions, BlockGraphPath pHistory) {
     return new BlockState(
-        id,
-        predecessor,
-        node,
-        blockNode,
-        type,
-        pConditions,
-        pHistory,
-        witness,
-        witnessCheckPathState.orElse(null),
-        incomingEdge);
+        id, predecessor, node, blockNode, type, pConditions, pHistory, witness, incomingEdge);
   }
 
   /** Reuse the abstract value in a new exploration without reusing processing records. */
   public BlockState reset() {
-    return new BlockState(
-        id,
-        null,
-        node,
-        blockNode,
-        type,
-        ImmutableList.of(),
-        history,
-        witness,
-        witnessCheckPathState.orElse(null));
+    return new BlockState(id, null, node, blockNode, type, ImmutableList.of(), history, witness);
   }
 
   /** Conditions whose ghost successors still need to be processed for this occurrence. */
@@ -344,7 +289,6 @@ public class BlockState
   public boolean isCovered(BlockState that) {
     return this == that
         || (Objects.equals(node, that.node)
-            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
             && type == that.type
             && blockNode == that.getBlockNode());
   }
@@ -369,21 +313,14 @@ public class BlockState
             && node.equals(other.node)
             && violationConditions.equals(other.violationConditions)
             && history.equals(other.history)
-            && witness.equals(other.witness)
-            && witnessCheckPathState.equals(other.witnessCheckPathState));
+            && witness.equals(other.witness));
   }
 
   @Override
   public int hashCode() {
     return type == BlockStateType.MID
         ? Objects.hash(
-            node,
-            System.identityHashCode(blockNode),
-            type,
-            violationConditions,
-            history,
-            witness,
-            witnessCheckPathState)
+            node, System.identityHashCode(blockNode), type, violationConditions, history, witness)
         : System.identityHashCode(this);
   }
 

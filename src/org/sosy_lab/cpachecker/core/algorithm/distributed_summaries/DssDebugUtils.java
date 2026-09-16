@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
+import static org.sosy_lab.common.collect.Collections3.listAndSurroundingElements;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -335,8 +337,8 @@ public final class DssDebugUtils {
           + " violationConditions="
           + blockState.getViolationConditions().size()
           + (blockState.isTarget() ? " TARGET" : "")
-          + " callStackMistmatch="
-          + blockState.getHinderedByCallstack();
+          + " hinderedByCallstack="
+          + blockState.getHinderedByCallstack().size();
     }
     if (pComponent instanceof CallstackState callstackState) {
       return renderCallstack(callstackState) + " (depth " + callstackState.getDepth() + ")";
@@ -925,11 +927,10 @@ public final class DssDebugUtils {
     index = 0;
     for (ArgPathAndCondition violation : pResult.violationConditions()) {
       violationRows.add(
-          ImmutableList.<String>builder()
-              .add(Integer.toString(index++))
-              .addAll(describePaths(violation))
-              .add(violation.condition() == null ? "<none>" : oneLine(violation.condition()))
-              .build());
+          listAndSurroundingElements(
+              Integer.toString(index++),
+              describePaths(violation),
+              violation.condition() == null ? "<none>" : oneLine(violation.condition())));
     }
     String violationsBody =
         violationRows.isEmpty()
