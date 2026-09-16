@@ -79,6 +79,30 @@ public abstract class LanguageToSmtConverter<T extends Type> {
     return idx;
   }
 
+  /**
+   * The index one step below the current one, creating index 1 if there is none.
+   *
+   * <p>Backward analysis flips the direction in which SSA indices grow, so an assignment writes the
+   * index preceding the current one. This mirrors {@link #getExistingOrNewIndex(String, Type,
+   * SSAMapBuilder)} for that direction and must only be used for backward formula construction.
+   *
+   * @return the previous index of the variable
+   */
+  protected int getPreviousIndex(String name, T type, SSAMapBuilder ssa) {
+    int idx = ssa.getPreviousIndex(name);
+    if (idx == 0) {
+      return LanguageToSmtConverter.VARIABLE_UNINITIALIZED;
+    } else if (idx < 0) {
+      idx = LanguageToSmtConverter.VARIABLE_UNINITIALIZED;
+
+      // Store the index for the same reason as in getExistingOrNewIndex: a name that appears in a
+      // formula must be in the SSAMap so that instantiate() adds indices for it.
+      ssa.setIndex(name, type, idx);
+    }
+
+    return idx;
+  }
+
   public abstract FormulaType<?> getFormulaTypeFromType(T type);
 
   public abstract PathFormula makeAnd(
