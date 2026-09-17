@@ -29,3 +29,6 @@ were taken from the 2025 SV-Benchmarks version
 All preprocessed `.i` files were simplified and 
 unnecessary type and function definitions were removed
 s.t. file sizes are kept to a minimum.
+The property paths of all `.yml` files were
+changed to point towards the property files
+in the CPAchecker repository.

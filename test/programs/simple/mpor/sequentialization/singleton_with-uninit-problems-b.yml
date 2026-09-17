@@ -1,0 +1,23 @@
+# This file is part of the SV-Benchmarks collection of verification tasks:
+# https://github.com/sosy-lab/sv-benchmarks
+#
+# SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
+# SPDX-FileCopyrightText: The CSeq project
+#
+# SPDX-License-Identifier: Apache-2.
+
+# Original file:
+# https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/pthread/singleton_with-uninit-problems-b.yml?ref_type=tags
+
+format_version: '2.0'
+
+# old file name: singleton_with-uninit-problems_true-unreach-call.i
+input_files: 'singleton_with-uninit-problems-b.i'
+
+properties:
+  - property_file: ../../../../config/properties/no-data-race.prp
+    expected_verdict: false
+
+options:
+  language: C
+  data_model: ILP32

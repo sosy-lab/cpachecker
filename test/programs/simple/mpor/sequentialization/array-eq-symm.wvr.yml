@@ -1,0 +1,30 @@
+# This file is part of the SV-Benchmarks collection of verification tasks:
+# https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks
+#
+# SPDX-FileCopyrightText: 2021 F. Schuessele <schuessf@informatik.uni-freiburg.de>
+# SPDX-FileCopyrightText: 2021 D. Klumpp <klumpp@informatik.uni-freiburg.de>
+#
+# SPDX-License-Identifier: LicenseRef-BSD-3-Clause-Attribution-Vandikas
+
+# Original file:
+# https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/weaver/array-eq-symm.wvr.yml?ref_type=tags
+
+format_version: '2.0'
+
+input_files: 'array-eq-symm.wvr.c'
+
+properties:
+  - property_file: ../../../../config/properties/unreach-call.prp
+    expected_verdict: true
+  - property_file: ../../../../config/properties/valid-memsafety.prp
+    expected_verdict: true
+  - property_file: ../../../../config/properties/no-overflow.prp
+    expected_verdict: true
+  - property_file: ../../../../config/properties/no-data-race.prp
+    expected_verdict: true
+  - property_file: ../../../../config/properties/coverage-branches.prp
+
+options:
+  language: C
+  data_model: ILP32
+

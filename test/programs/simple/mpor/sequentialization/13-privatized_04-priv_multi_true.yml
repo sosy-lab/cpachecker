@@ -1,0 +1,27 @@
+# This file is part of the SV-Benchmarks collection of verification tasks:
+# https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks
+#
+# SPDX-FileCopyrightText: 2005-2021 University of Tartu & Technische Universität München
+#
+# SPDX-License-Identifier: MIT
+
+# Original file:
+# https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/goblint-regression/13-privatized_04-priv_multi_true.yml?ref_type=tags
+
+format_version: '2.0'
+
+input_files: '13-privatized_04-priv_multi_true.i'
+
+properties:
+  - property_file: ../../../../config/properties/unreach-call.prp
+    expected_verdict: true
+  - property_file: ../../../../config/properties/valid-memsafety.prp
+    expected_verdict: true
+  - property_file: ../../../../config/properties/no-overflow.prp
+    expected_verdict: true
+  - property_file: ../../../../config/properties/no-data-race.prp
+    expected_verdict: true
+
+options:
+  language: C
+  data_model: ILP32
