@@ -1,0 +1,10 @@
+# Concurrent programs with known expected verdicts.
+atomic/atomic.yml
+atomic/atomic_operations_complex.yml
+atomic/compoundassignment_atomic.yml
+atomic/compoundassignment_nonatomic.yml
+atomic/postincrement_atomic.yml
+atomic/postincrement_nonatomic.yml
+atomic/preincrement_atomic.yml
+atomic/preincrement_nonatomic.yml
+mpor/sequentialization/*.yml
