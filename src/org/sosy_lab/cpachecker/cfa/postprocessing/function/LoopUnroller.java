@@ -132,7 +132,7 @@ public class LoopUnroller {
     cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
     try {
       loopStructure = LoopStructure.getLoopStructure(cfa);
-    } catch (ParserException pE) {
+    } catch (ParserException e) {
       logger.log(Level.WARNING, "Can not parse loop structure, no unrolling done");
       return false;
     }
@@ -150,7 +150,7 @@ public class LoopUnroller {
       if (loopIterations.isEmpty()) {
         continue;
       }
-      unrollLoopExactly(cfa, loop, loopIterations.getAsInt());
+      unrollLoopExactly(cfa, loop, loopIterations.orElseThrow());
       unrolledSomething = true;
     }
     return unrolledSomething;
@@ -398,7 +398,7 @@ public class LoopUnroller {
   }
 
   /**
-   * The qualified name of a local variable of the given function, built the same way as {@link
+   * The qualified name of a local variable of the given function, built the same way as {@code
    * org.sosy_lab.cpachecker.cfa.parser.eclipse.c.FunctionScope#createQualifiedName(String, String)}
    * does it.
    *
@@ -452,7 +452,7 @@ public class LoopUnroller {
 
     // Unrolling a loop replaces all of its nodes, so a loop that is nested inside a loop we already
     // unrolled does not exist anymore (and its copies are not loops in the first place).
-    CFANode someLoopNode = pLoop.getLoopNodes().first();
+    CFANode someLoopNode = pLoop.getLoopNodes().getFirst();
     if (!pCfa.getFunctionNodes(someLoopNode.getFunctionName()).containsAll(pLoop.getLoopNodes())) {
       return logGiveUpUnrolling(pLoop, "skipped nested loop");
     }
@@ -1118,7 +1118,7 @@ public class LoopUnroller {
    * <p>There is nothing to reuse for this. An analysis that tracks values cannot run here at all,
    * because {@link org.sosy_lab.cpachecker.cfa.CFACreator} only builds the supergraph after the
    * post-processings. {@link MachineModel#getMinimalIntegerValue} and its counterpart are the
-   * primitives that everyone builds such a check from, and the other place that needs it, {@link
+   * primitives that everyone builds such a check from, and the other place that needs it, {@code
    * org.sosy_lab.cpachecker.cpa.value.AssigningValueVisitor}, compares against them by hand as
    * well.
    */
