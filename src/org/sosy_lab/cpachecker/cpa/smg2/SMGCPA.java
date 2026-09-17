@@ -87,16 +87,7 @@ public class SMGCPA
       description = "which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
 
-  @Option(
-      secure = true,
-      name = "merge",
-      toUppercase = true,
-      values = {"SEP", "PREDATOR-MERGE"},
-      description =
-          "Which merge operator to use for the SMGCPA. 'PREDATOR-MERGE' uses the merge operation"
-              + " described for the Predator verification tool; appendix C 'The Join Algorithms',"
-              + " page 28 in https://doi.org/10.1007/978-3-642-38856-9_13.")
-  private String mergeType = "SEP";
+  private final boolean isMergeSep;
 
   @Option(secure = true, description = "get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -167,6 +158,8 @@ public class SMGCPA
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel, logger, exportOptions, options, constraintsSolver);
+
+    isMergeSep = options.getMergeOptions().isMergeSep();
   }
 
   public static CPAFactory factory() {
@@ -232,11 +225,11 @@ public class SMGCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return switch (mergeType) {
-      case "SEP" -> MergeSepOperator.getInstance();
-      case "PREDATOR-MERGE" -> new SMGMergeOperator(statistics, options);
-      default -> throw new AssertionError("unknown merge-type " + mergeType + " for SMGCPA");
-    };
+    if (isMergeSep) {
+      return MergeSepOperator.getInstance();
+    } else {
+      return new SMGMergeOperator(statistics, options);
+    }
   }
 
   @Override
