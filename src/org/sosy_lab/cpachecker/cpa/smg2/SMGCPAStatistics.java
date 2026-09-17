@@ -63,9 +63,16 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
   private final StatTimer totalErrorPathsAllocationTime =
       new StatTimer("Time spend on allocating concrete error paths");
 
-  private final StatTimer totalMergeTime = new StatTimer("Time spend on merging states");
+  private final StatTimer totalMergeOpTime = new StatTimer("Total time spend on merging operator");
+  private final StatTimer totalActualMergeTimeWithoutChecks =
+      new StatTimer(
+          "Total time spend on merging states (i.e. SMGs and SPCs) without precondition checks");
+  private StatCounter failedMergesDueToPrecicionLoss =
+      new StatCounter("Number of merges failed due to precision loss (partially set by options)");
   private StatCounter successfulMerges = new StatCounter("Number of successful merges");
-  private StatCounter mergeAttempts = new StatCounter("Number of merges attempted");
+  private StatCounter mergeOperatorCalls = new StatCounter("Number of merge operator applications");
+  private StatCounter mergeAttemptsAfterChecks =
+      new StatCounter("Number of actual merge attempts after preconditions have been met");
 
   private StatCounter assumptions = new StatCounter("Number of assumptions");
   private StatCounter deterministicAssumptions =
@@ -115,22 +122,42 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
         totalZeroPlusMaterializationTime.getConsumedTime());
     writer.put(
         "Max time spent on 0+ materialization: ", totalZeroPlusMaterializationTime.getMaxTime());
-    writer.put("Number of lists abstracted in total: ", listAbstractions.getValue());
     writer.put(
-        "Number of exceptions ignored during list abstraction in total: ",
+        "Number of lists abstracted in precision adjustment in total: ",
+        listAbstractions.getValue());
+    writer.put(
+        "Number of exceptions ignored during list abstraction in precision adjustment in total"
+            + " (debug only): ",
         exceptionsIgnoredDuringListAbstractions.getValue());
-    writer.put("Total time spent on list abstraction: ", totalAbstractionTime.getConsumedTime());
-    writer.put("Max time spent on list abstraction: ", totalAbstractionTime.getMaxTime());
     writer.put(
-        "Total time spent on searching for list abstractions: ",
+        "Total time spent on list abstraction in precision adjustment: ",
+        totalAbstractionTime.getConsumedTime());
+    writer.put(
+        "Max time spent on list abstraction in precision adjustment: ",
+        totalAbstractionTime.getMaxTime());
+    writer.put(
+        "Total time spent on searching for list abstractions in precision adjustment: ",
         totalListSearchTime.getConsumedTime());
     writer.put(
-        "Max time spent on searching a single list abstractions: ",
+        "Max time spent on searching a list abstraction in precision adjustment: ",
         totalListSearchTime.getMaxTime());
 
-    writer.put("Total time spent on merging states: ", totalMergeTime.getConsumedTime());
-    writer.put("Max time spent on merging two states: ", totalMergeTime.getMaxTime());
-    writer.put("Number of merge attempts: ", mergeAttempts);
+    writer.put("Total time spent in merge operator: ", totalMergeOpTime.getConsumedTime());
+    writer.put("Max time spent in merge operator: ", totalMergeOpTime.getMaxTime());
+    writer.put(
+        "Total time spent on merging states, excluding precondition checks: ",
+        totalActualMergeTimeWithoutChecks.getConsumedTime());
+    writer.put(
+        "Max time spent on merging two states, excluding precondition checks: ",
+        totalActualMergeTimeWithoutChecks.getMaxTime());
+
+    writer.put("Number of merge operator applications: ", mergeOperatorCalls);
+    writer.put(
+        "Number of actual merge attempts after preconditions have been met: ",
+        mergeAttemptsAfterChecks);
+    writer.put(
+        "Number of failed merges due to precision loss (partially set by options): ",
+        failedMergesDueToPrecicionLoss);
     writer.put("Number of successful merges: ", successfulMerges);
 
     writer.put(
@@ -236,16 +263,28 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     return iterations.intValue();
   }
 
-  StatTimer getMergeTime() {
-    return totalMergeTime;
+  StatTimer getTotalMergeOperatorTime() {
+    return totalMergeOpTime;
+  }
+
+  StatTimer getTimeForMergeWithoutPreprocessingAndChecks() {
+    return totalActualMergeTimeWithoutChecks;
   }
 
   void incrementNumberOfSuccessfulMerges() {
     successfulMerges.inc();
   }
 
-  void incrementMergeAttempts() {
-    mergeAttempts.inc();
+  void incrementMergeOperatorCalls() {
+    mergeOperatorCalls.inc();
+  }
+
+  void incrementMergeAttemptsAfterPreconditions() {
+    mergeAttemptsAfterChecks.inc();
+  }
+
+  void incrementFailedMergesDueToPrecisionLoss() {
+    failedMergesDueToPrecicionLoss.inc();
   }
 
   int getCurrentLevelOfDeterminism() {
