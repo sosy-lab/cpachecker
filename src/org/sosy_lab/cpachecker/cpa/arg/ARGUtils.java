@@ -671,6 +671,7 @@ public class ARGUtils {
       String name,
       @Nullable CounterexampleInfo pCounterExample)
       throws IOException {
+
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
@@ -693,8 +694,8 @@ public class ARGUtils {
 
         if (pPathStates.contains(child)) {
           List<CFAEdge> allEdges = s.getEdgesToChild(child);
-
           CFAEdge edge;
+
           if (allEdges.size() > 1) {
             // this is a dynamic multi edge
             // The successor state might have several incoming MultiEdges.
@@ -768,8 +769,8 @@ public class ARGUtils {
         }
 
         List<CFAEdge> allEdges = s.getEdgesToChild(child);
-
         CFAEdge edge;
+
         if (allEdges.size() > 1) {
           // this is a dynamic multi edge
           // The successor state might have several incoming MultiEdges.
