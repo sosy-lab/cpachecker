@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -915,14 +916,57 @@ public class ARGUtils {
 
             if (pPathStates.contains(child)) {
               List<CFAEdge> allEdges = s.getEdgesToChild(child);
-              if (allEdges.size() > 1) {
+              CFAEdge edge;
+
+              if (allEdges.size() == 1) {
+                edge = Iterables.getOnlyElement(allEdges);
+
+                // this is a dynamic multi edge
+              } else {
                 // The successor state might have several incoming MultiEdges.
                 // In this case the state names like ARG<successor>_0 would occur
                 // several times.
                 // So we add this counter to the state names to make them unique.
                 multiEdgeCount++;
+
+                // first, write edge entering the list
+                int i = 0;
+                sb.append("    MATCH \"");
+                escape(allEdges.get(i).getRawStatement(), sb);
+                sb.append("\" -> ");
+                sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
+                sb.append(";\n");
+
+                // inner part (without first and last edge)
+                for (; i < allEdges.size() - 1; i++) {
+                  sb.append(
+                      "STATE USEFIRST ARG"
+                          + child.getStateId()
+                          + "_"
+                          + i
+                          + "_"
+                          + multiEdgeCount
+                          + " :\n");
+                  sb.append("    MATCH \"");
+                  escape(allEdges.get(i).getRawStatement(), sb);
+                  sb.append("\" -> ");
+                  sb.append("GOTO ARG" + child.getStateId() + "_" + (i + 1) + "_" + multiEdgeCount);
+                  sb.append(";\n");
+                }
+
+                // last edge connecting it with the real successor
+                edge = allEdges.get(i);
+                sb.append(
+                    "STATE USEFIRST ARG"
+                        + child.getStateId()
+                        + "_"
+                        + i
+                        + "_"
+                        + multiEdgeCount
+                        + " :\n");
               }
-              handleMultiEdge(sb, child, allEdges, multiEdgeCount);
+
+              handleMatchCase(sb, edge);
 
               if (child.isTarget()) {
                 sb.append("ERROR");
