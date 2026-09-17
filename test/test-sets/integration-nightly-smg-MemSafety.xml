@@ -66,6 +66,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="C.valid-memsafety.Concurrency">
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
