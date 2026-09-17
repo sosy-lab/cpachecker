@@ -13,7 +13,8 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus;
 
 public class StatesMergedAndMergeStatus {
-  private final SMGState newState;
+
+  private final SMGState leftMergeStateFromTransfer;
   private final SMGState stateFromReached;
   private final SMGMergeStatus status;
 
@@ -22,7 +23,7 @@ public class StatesMergedAndMergeStatus {
     Preconditions.checkNotNull(newSMGState);
     Preconditions.checkNotNull(smgStateFromReached);
     Preconditions.checkNotNull(pStatus);
-    newState = newSMGState;
+    leftMergeStateFromTransfer = newSMGState;
     stateFromReached = smgStateFromReached;
     status = pStatus;
   }
@@ -32,15 +33,15 @@ public class StatesMergedAndMergeStatus {
     return new StatesMergedAndMergeStatus(newSMGState, smgStateFromReached, pStatus);
   }
 
-  /** Left state from merge, i.e. the new successor state. */
-  public SMGState getNewState() {
-    return newState;
+  /**
+   * Left input state e´ in merge, i.e. the new successor state that was the result of applying the
+   * transfer relation.
+   */
+  public SMGState getLeftMergeStateFromTransfer() {
+    return leftMergeStateFromTransfer;
   }
 
-  /**
-   * Right state from merge, i.e. the state from reached. This state should no longer be in reached
-   * for a returned merged state that is distinct to this one.
-   */
+  /** Right input state e´´ used in merge, i.e. the state from reached. */
   public SMGState getStateFromReached() {
     return stateFromReached;
   }
