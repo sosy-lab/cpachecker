@@ -52,7 +52,7 @@ public class ContentReader {
    */
   @CanIgnoreReturnValue
   public ContentReader pushLevel(String pLevel) {
-    level.push(pLevel);
+    level.addLast(pLevel);
     return this;
   }
 
@@ -64,7 +64,7 @@ public class ContentReader {
   @CanIgnoreReturnValue
   public ContentReader popLevel() {
     if (!level.isEmpty()) {
-      level.pop();
+      level.removeLast();
     }
     return this;
   }
