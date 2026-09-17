@@ -73,7 +73,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectLanguageNotC() throws Exception {
-    String inputFile = "test/programs/mpor/input_rejections/HelloJava.java";
+    String inputFile = "./test/programs/simple/mpor/input_rejections/HelloJava.java";
     CParserException exception =
         assertThrows(CParserException.class, () -> TestCfaUtils.makeCfaFromFile(inputFile));
     assertThat(exception).isNotNull();
@@ -82,13 +82,14 @@ public class InputRejectionTest {
   @Test
   public void testRejectDuplicateStructMemberNames() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/duplicate-struct-member-names.c");
+        Path.of("./test/programs/simple/mpor/input_rejections/duplicate-struct-member-names.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
   }
 
   @Test
   public void testRejectNotParallel() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
+    Path inputFilePath =
+        Path.of("./test/programs/simple/mpor/input_rejections/sequential-program.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.NOT_CONCURRENT);
   }
 
@@ -96,45 +97,48 @@ public class InputRejectionTest {
   public void testRejectUnsupportedFunction() throws Exception {
     // this program uses pthread_getspecific
     Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/unsupported-function-pthread_key_create.c");
+        Path.of(
+            "./test/programs/simple/mpor/input_rejections/unsupported-function-pthread_key_create.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.UNSUPPORTED_FUNCTION);
   }
 
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread_t-array.c");
+    Path inputFilePath = Path.of("./test/programs/simple/mpor/input_rejections/pthread_t-array.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
   }
 
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/pthread-function-return-value.c");
+        Path.of("./test/programs/simple/mpor/input_rejections/pthread-function-return-value.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
   }
 
   @Test
   public void testRejectPthreadCreateLoop() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread-create-loop.c");
+    Path inputFilePath =
+        Path.of("./test/programs/simple/mpor/input_rejections/pthread-create-loop.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_CREATE_LOOP);
   }
 
   @Test
   public void testRejectDirectRecursion() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/direct-recursion.c");
+    Path inputFilePath = Path.of("./test/programs/simple/mpor/input_rejections/direct-recursion.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectIndirectRecursion() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/indirect-recursion.c");
+    Path inputFilePath =
+        Path.of("./test/programs/simple/mpor/input_rejections/indirect-recursion.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectFunctionPointerAssignment() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/function-pointer-assignment.c");
+        Path.of("./test/programs/simple/mpor/input_rejections/function-pointer-assignment.c");
     testExpectedRejectionWhenBuildingProgram(
         MPOROptions.getDefaultTestInstance(),
         TestUtils.configurationForTest().build(),
@@ -145,7 +149,7 @@ public class InputRejectionTest {
   @Test
   public void testRejectFunctionPointerParameter() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/function-pointer-parameter.c");
+        Path.of("./test/programs/simple/mpor/input_rejections/function-pointer-parameter.c");
     testExpectedRejectionWhenBuildingProgram(
         MPOROptions.getDefaultTestInstance(),
         TestUtils.configurationForTest().build(),
@@ -155,7 +159,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectPointerWrite() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pointer-write.c");
+    Path inputFilePath = Path.of("./test/programs/simple/mpor/input_rejections/pointer-write.c");
     // create test config and MPOROptions instance
     Configuration config =
         TestUtils.configurationForTest()
@@ -169,7 +173,7 @@ public class InputRejectionTest {
   @Test
   public void testRejectPointerWriteBinaryExpression() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/pointer-write-binary-expression.c");
+        Path.of("./test/programs/simple/mpor/input_rejections/pointer-write-binary-expression.c");
     testExpectedRejectionWhenBuildingProgram(
         MPOROptions.getDefaultTestInstance(),
         TestUtils.configurationForTest().build(),
