@@ -3588,24 +3588,33 @@ cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = -1
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
-# Abstraction of all detected linked lists at loop heads.
+# Abstraction of all detected linked lists of minimum length set by option
+# 'listAbstractionMinimumLengthThreshold' at all locations set to abstract.
+# This is independent of (list-)abstraction via merging.
 cpa.smg2.abstraction.abstractLinkedLists = true
 
 # Abstraction of program variables via CEGAR.
 cpa.smg2.abstraction.abstractProgramVariables = false
 
-# restrict abstraction computations to branching points
+# If true, abstraction via precision adjustment is performed for all
+# branching points of the CFA.
 cpa.smg2.abstraction.alwaysAtBranch = false
 
-# restrict abstraction computations to function calls/returns
-cpa.smg2.abstraction.alwaysAtFunction = false
-
-# restrict abstraction computations to join points
+# If true, abstraction via precision adjustment is performed for all join
+# points of the CFA.
 cpa.smg2.abstraction.alwaysAtJoin = false
 
-# If enabled, abstraction computations at loop-heads are enabled. List
-# abstraction has to be enabled for this.
-cpa.smg2.abstraction.alwaysAtLoop = false
+# If true, abstraction via precision adjustment is performed at loop-heads.
+# Option 
+cpa.smg2.abstraction.alwaysAtLoopHeads = true
+
+# If true, abstraction via precision adjustment is performed for all function
+# calls (function entry edges in the CFA).
+cpa.smg2.abstraction.alwaysOnFunctionEntry = false
+
+# If true, abstraction via precision adjustment is performed for all function
+# returns.
+cpa.smg2.abstraction.alwaysOnFunctionExit = false
 
 # threshold for level of determinism, in percent, up-to which abstraction
 # computations are performed (and iteration threshold was reached)
@@ -3645,8 +3654,9 @@ cpa.smg2.abstraction.iterationThreshold = -1
 # listAbstractionMinimumLengthThreshold.
 cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 25
 
-# The minimum list segments directly following each other with the same value
-# needed to abstract them.Minimum is 2.
+# The minimum list segments directly following each other, with matching
+# values needed to abstract them. Minimum allowed values is 2. Only works for
+# abstraction based on option 'usePrecisionAdjustmentForShapeAbstraction'.
 cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
 
 # restrict liveness abstractions to nodes with more than one entering and/or
@@ -3655,6 +3665,19 @@ cpa.smg2.abstraction.onlyAtNonLinearCFA = false
 
 # Periodically removes unused constraints from the state.
 cpa.smg2.abstraction.removeUnusedConstraints = false
+
+# Selects whether we want to use our custom SMG fix-point algorithm located
+# in the SMG based precision-adjustment to detect shape abstractions. Careful
+# when combining with merge based abstraction, as this might prevent merge
+# from abstracting correctly. But since the merge operator can not abstract
+# shapes in recursive stack frames, using any '*_ON_RECURSION' setting is
+# safe with merge based abstraction. ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT is
+# only used for locations enabled in options 'cpa.smg2.abstraction', for
+# example 'alwaysAtLoopHeads'. All '*ON_RECURSION' options are automatically
+# always enabled at their described locations.
+cpa.smg2.abstraction.usePrecisionAdjustmentForShapeAbstraction = ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT
+  enum:     [NEVER, FUNCTION_ENTRY_ON_RECURSION, FUNCTION_EXIT_ON_RECURSION,
+             FUNCTION_ENTRY_AND_EXIT_ON_RECURSION, ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT]
 
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
@@ -3840,22 +3863,24 @@ cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg2.memoryErrors = false
 
-# Which merge operator to use for the SMGCPA. 'PREDATOR-MERGE' uses the merge
-# operation described for the Predator verification tool; appendix C 'The
-# Join Algorithms', page 28 in https://doi.org/10.1007/978-3-642-38856-9_13.
-cpa.smg2.merge = "SEP"
-  allowed values: [SEP, PREDATOR-MERGE]
-
-# Apply merge operator only on ends of code blocks.
-cpa.smg2.merge.exclusivelyBlockEnds = false
-
 # Apply merge operator only on equal code block ends if true. Only applied if
 # exclusivelyBlockEnds=true.
-cpa.smg2.merge.exclusivelyEqualBlockEnds = false
+cpa.smg2.merge.exclusivelyEqualLocations = false
 
 # Apply merge operator only on states with at least one input state including
 # an abstracted list.
 cpa.smg2.merge.exclusivelyWithAbstractionPresent = false
+
+# Which merge policy to apply. This option sets a default policy that is
+# applied on each location. This is overridden by the following options at
+# their specified locations:  'cpa.smg2.merge.policyOnLoopClosing',
+# 'cpa.smg2.merge.policyOnFunctionExit', 'cpa.smg2.merge.policyOnLoopHead'.
+# Setting this option, as well as 'cpa.smg2.merge.policyOnLoopClosing',
+# 'cpa.smg2.merge.policyOnFunctionExit' and 'cpa.smg2.merge.policyOnLoopHead'
+# to SEP, switches this CPA to use MERGE-SEP exclusivly.
+cpa.smg2.merge.generalPolicy = SEP
+  enum:     [SEP, ISOMORPHISM_ONLY, ENTAILMENT_ONLY, ENTAILMENT_WITH_ABSTRACTION,
+             MERGE_WITHOUT_ABSTRACTION, MERGE_WITH_ABSTRACTION]
 
 # When true, concrete values can be overapproximated when merging, e.g. when
 # merged with a symbolic value, or another, but distinct concrete value.
@@ -3865,10 +3890,26 @@ cpa.smg2.merge.overapproximateConcreteValues = false
 # merging.
 cpa.smg2.merge.overapproximateSymbolicConstraints = false
 
-# Apply merge operator based on Predators join algorithm to determine
-# subsumtion of abstracted lists in the stop operator more precisely. Can be
-# costly.
-cpa.smg2.merge.useMergeForAbstractionDetectionInStopOperator = false
+# Which merge policy to apply when leaving a function. This overrides the
+# policy set by option 'cpa.smg2.merge.generalPolicy' at function exits if
+# not empty. For Merge-SEP see option 'cpa.smg2.merge.generalPolicy'.
+cpa.smg2.merge.policyOnFunctionExit = no default value
+  enum:     [SEP, ISOMORPHISM_ONLY, ENTAILMENT_ONLY, ENTAILMENT_WITH_ABSTRACTION,
+             MERGE_WITHOUT_ABSTRACTION, MERGE_WITH_ABSTRACTION]
+
+# Which merge policy to apply when leaving a loop. This overrides the policy
+# set by option 'cpa.smg2.merge.generalPolicy' at loop-leaving locations if
+# not empty. For Merge-SEP see option 'cpa.smg2.merge.generalPolicy'.
+cpa.smg2.merge.policyOnLoopClosing = no default value
+  enum:     [SEP, ISOMORPHISM_ONLY, ENTAILMENT_ONLY, ENTAILMENT_WITH_ABSTRACTION,
+             MERGE_WITHOUT_ABSTRACTION, MERGE_WITH_ABSTRACTION]
+
+# Which merge policy to apply on loop-heads. This overrides the policy set by
+# option 'cpa.smg2.merge.generalPolicy' at loop-heads if not empty. For
+# Merge-SEP see option 'cpa.smg2.merge.generalPolicy'.
+cpa.smg2.merge.policyOnLoopHead = no default value
+  enum:     [SEP, ISOMORPHISM_ONLY, ENTAILMENT_ONLY, ENTAILMENT_WITH_ABSTRACTION,
+             MERGE_WITHOUT_ABSTRACTION, MERGE_WITH_ABSTRACTION]
 
 # Whether to perform SAT checks only for the last added constraint
 cpa.smg2.minimalSatCheck = true
@@ -3951,6 +3992,33 @@ cpa.smg2.satCheckStrategy = AT_ASSUME
 # which stop operator to use for the SMGCPA
 cpa.smg2.stop = "SEP"
   allowed values: [SEP, NEVER, END_BLOCK]
+
+# Which stop policy (this always checks MergePolicy ENTAILMENT_ONLY) to apply
+# when deciding stop in the stop-operator:
+# NO_MERGE: Tries to argue about stop by comparing the 2 states for
+# entailment without using the merge procedure and the merge-status.
+# TRY_MERGE_FOR_SHAPE_ABSTRACTION_ONLY (default): Equal to NO_MERGE, except
+# for deciding entailment for shape-abstractions, in which case the
+# merge-status of a merge of the 2 states in stop is used to argue only about
+# shape. This is more accurate for shape-abstractions than NO_MERGE.
+# PREVIOUS_MERGE_INFO_ONLY: Tries to utilize information from previous merges
+# in merge operator to decide stop. If that is not possible, falls back to
+# the default stop check (i.e. NO_MERGE)
+# MERGE_EXCLUSIVLY: Behaves as TRY_MERGE, except that should a previous merge
+# status indicate that the 2 states are definetly not entailed, stop takes a
+# shortcut, returning false.
+# TRY_MERGE_SMART: Behaves as TRY_MERGE, except that should a previous merge
+# status indicate that the 2 states are definetly not entailed, stop takes a
+# shortcut, returning false.
+# TRY_MERGE: Tries to utilize information from previous merges to decide
+# stop. If that is not possible, the states are checked for stop using the
+# merge precedure (but no merged state is used or stored!).Should this check
+# also not yield strong enough information, falls back to the default stop
+# check (i.e. NO_MERGE).
+cpa.smg2.stop.stopOperatorPolicy = TRY_MERGE_FOR_SHAPE_ABSTRACTION_ONLY
+  enum:     [NO_MERGE, TRY_MERGE_FOR_SHAPE_ABSTRACTION_ONLY,
+             PREVIOUS_MERGE_INFO_ONLY_WITH_FALLBACK_TO_NO_MERGE, MERGE_EXCLUSIVLY,
+             TRY_MERGE_SMART, TRY_MERGE]
 
 # Enable track predicates for possible memory safety error on SMG state
 cpa.smg2.trackErrorPredicates = false
