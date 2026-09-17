@@ -60,7 +60,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="MemSafety-Concurrency-Sequentialized">
     <option name="--option">analysis.preprocessing.MPOR=true</option>
-    <includesfile>../programs/simple/concurrent.set</includesfile>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 

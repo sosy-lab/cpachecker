@@ -122,7 +122,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="ReachSafety-Concurrency-Sequentialized">
     <option name="--option">analysis.preprocessing.MPOR=true</option>
-    <includesfile>../programs/simple/concurrent.set</includesfile>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
 </benchmark>
