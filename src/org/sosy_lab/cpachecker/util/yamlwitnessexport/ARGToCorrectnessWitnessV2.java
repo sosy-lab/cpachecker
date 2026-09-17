@@ -330,16 +330,15 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
     ImmutableList.Builder<ExpressionTree<Object>> expressionPerState = ImmutableList.builder();
     boolean backTranslationSuccessful = true;
 
-    for (ARGState argState : pArgStates) {
+    if (FluentIterable.from(pArgStates)
+        .transformAndConcat(AbstractStates::asIterable)
+        .filter(AssumptionStorageState.class)
+        .anyMatch(AssumptionStorageState::isStop)) {
       // The analysis gave up at this state, so the states it reached do not describe everything
       // that can happen at this location and nothing may be claimed about it.
-      if (AbstractStates.asIterable(argState)
-          .filter(AssumptionStorageState.class)
-          .anyMatch(AssumptionStorageState::isStop)) {
-        expressionPerState.add(ExpressionTrees.getTrue());
-        continue;
-      }
-
+      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
+    }
+    for (ARGState argState : pArgStates) {
       ImmutableList.Builder<ExpressionTree<Object>> describeState = ImmutableList.builder();
       for (ExpressionTreeReportingState state :
           AbstractStates.asIterable(argState).filter(ExpressionTreeReportingState.class)) {
