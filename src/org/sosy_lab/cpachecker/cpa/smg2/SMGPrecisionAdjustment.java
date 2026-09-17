@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGMergeOptions.MergePolicy;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
@@ -178,7 +179,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
               resultState, abstractionOptions.getAbstractConcreteValuesAboveThreshold());
     }
 
-    if (abstractionOptions.abstractLinkedLists() && checkAbstractListAt(location)) {
+    if (abstractionOptions.checkAbstractLinkedListsInPrecisionAdjustmentFor(
+        location, resultState)) {
       // Abstract Lists at loop heads
       try {
         resultState =
@@ -204,15 +206,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       resultState = resultState.removeOldConstraints();
     }
 
-    if (checkAbstractListAt(location)) {
-      resultState = resultState.withBlockEnd(location.getLocationNode());
+    // We want the state to auto-reset to SEP
+    checkState(resultState.getMergePolicy() == MergePolicy.SEP);
+    MergePolicy newMergePolicy = options.getMergeOptions().getMergePolicyForLocation(location);
+    if (newMergePolicy != MergePolicy.SEP) {
+      resultState.setMergePolicy(newMergePolicy);
     }
 
     return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
-  }
-
-  private boolean isLoopHead(LocationState location) {
-    return maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode());
   }
 
   @SuppressWarnings("unused")
@@ -285,10 +286,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
     return Optional.empty();
-  }
-
-  private boolean checkAbstractListAt(LocationState location) {
-    return abstractionOptions.abstractAtFunction(location) || isLoopHead(location);
   }
 
   /**
@@ -386,11 +383,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       final SMGState state, LocationState location, VariableTrackingPrecision precision) {
 
     SMGState currentState = state;
-    if (abstractionOptions.abstractAtEachLocation()
-        || abstractionOptions.abstractAtBranch(location)
-        || abstractionOptions.abstractAtJoin(location)
-        || abstractionOptions.abstractAtFunction(location)
-        || abstractionOptions.abstractAtLoop(location)) {
+    if (abstractionOptions.checkAbstractInPrecAdjustmentFor(location)) {
 
       if (abstractionOptions.abstractProgramVariables()) {
         for (MemoryLocation memoryLocation :
@@ -402,6 +395,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
           }
         }
       }
+
       if (precision instanceof SMGPrecision smgPrecision
           && abstractionOptions.abstractHeapValues()) {
         currentState = currentState.enforceHeapValuePrecision(smgPrecision.getTrackedHeapValues());
