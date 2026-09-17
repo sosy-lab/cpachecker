@@ -1006,8 +1006,7 @@ public class ARGUtils {
     assert allEdges.size() > 1;
     CFAEdge edge;
 
-    int lastIndex = allEdges.size() - 1;
-    for (int i = 0; i < lastIndex; i++) {
+    for (int i = 0; i < allEdges.size() - 1; i++) {
       if (i > 0) {
         sb.append(
             "STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
@@ -1017,12 +1016,12 @@ public class ARGUtils {
       sb.append(";\n");
     }
 
-    edge = allEdges.get(lastIndex);
+    edge = allEdges.getLast();
     sb.append(
         "STATE USEFIRST ARG"
             + child.getStateId()
             + "_"
-            + lastIndex
+            + (allEdges.size() - 1)
             + "_"
             + multiEdgeCount
             + " :\n");
