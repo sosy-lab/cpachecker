@@ -21,7 +21,6 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
@@ -29,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
  * A class to validate specific properties that should hold on components of the sequentialization,
@@ -52,7 +52,10 @@ public class SequentializationValidator {
       try {
         // validate that the program can be parsed and a cfa can be created
         CFACreator cfaCreator =
-            MPORUtil.buildTestCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
+            new CFACreator(
+                TestUtils.configurationForTest().build(),
+                pUtils.logger(),
+                pUtils.shutdownNotifier());
         Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
       } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
         throw new IllegalArgumentException(

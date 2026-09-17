@@ -6,17 +6,105 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <pthread.h>
-#include <stdlib.h>
+typedef unsigned int size_t;
+extern void *malloc (size_t __size) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) ;
+
+extern void __VERIFIER_atomic_begin(void);
+extern void __VERIFIER_atomic_end(void);
+extern int  __VERIFIER_nondet_int(void);
+
+typedef unsigned long int pthread_t;
+typedef struct __pthread_internal_slist
+{
+  struct __pthread_internal_slist *__next;
+} __pthread_slist_t;
+struct __pthread_rwlock_arch_t
+{
+  unsigned int __readers;
+  unsigned int __writers;
+  unsigned int __wrphase_futex;
+  unsigned int __writers_futex;
+  unsigned int __pad3;
+  unsigned int __pad4;
+  unsigned char __flags;
+  unsigned char __shared;
+  signed char __rwelision;
+  unsigned char __pad2;
+  int __cur_writer;
+};
+union pthread_attr_t
+{
+  char __size[36];
+  long int __align;
+};
+typedef union
+{
+  char __size[4];
+  int __align;
+} pthread_mutexattr_t;
+typedef union
+{
+  struct __pthread_rwlock_arch_t __data;
+  char __size[32];
+  long int __align;
+} pthread_rwlock_t;
+struct __pthread_mutex_s
+{
+  int __lock ;
+  unsigned int __count;
+  int __owner;
+  int __kind;
+  unsigned int __nusers;
+  __extension__ union
+  {
+  struct { short __espins; short __eelision; } __elision_data;
+    __pthread_slist_t __list;
+  };
+};
+typedef union pthread_attr_t pthread_attr_t;
+typedef union
+{
+  struct __pthread_mutex_s __data;
+  char __size[24];
+  long int __align;
+} pthread_mutex_t;
+extern int pthread_create (pthread_t *__restrict __newthread,
+      const pthread_attr_t *__restrict __attr,
+      void *(*__start_routine) (void *),
+      void *__restrict __arg) __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1, 3)));
+extern void pthread_exit (void *__retval) __attribute__ ((__noreturn__));
+extern int pthread_join (pthread_t __th, void **__thread_return);
+extern int pthread_mutex_init (pthread_mutex_t *__mutex,
+          const pthread_mutexattr_t *__mutexattr)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int pthread_mutex_destroy (pthread_mutex_t *__mutex)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int pthread_mutex_lock (pthread_mutex_t *__mutex)
+     __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
+extern int pthread_mutex_unlock (pthread_mutex_t *__mutex)
+     __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
+
+enum
+{
+  PTHREAD_MUTEX_TIMED_NP,
+  PTHREAD_MUTEX_RECURSIVE_NP,
+  PTHREAD_MUTEX_ERRORCHECK_NP,
+  PTHREAD_MUTEX_ADAPTIVE_NP
+  ,
+  PTHREAD_MUTEX_NORMAL = PTHREAD_MUTEX_TIMED_NP,
+  PTHREAD_MUTEX_RECURSIVE = PTHREAD_MUTEX_RECURSIVE_NP,
+  PTHREAD_MUTEX_ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK_NP,
+  PTHREAD_MUTEX_DEFAULT = PTHREAD_MUTEX_NORMAL
+};
 
 int x;
 int x = 1;
 pthread_mutex_t mutexA;
 pthread_mutex_t mutexB;
 pthread_mutex_t mutexC;
-// PTHREAD_COND_INITIALIZER is excluded because it is resolved differently based on the JDK version.
+// PTHREAD_{COND, RWLOCK}_INITIALIZER are excluded because they are resolved with system headers which results in flaky tests.
 //pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+//pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 struct __anonstruct_PQUEUE_63 {
     int occupied ;
     pthread_mutex_t inner_mutex ;
@@ -29,8 +117,8 @@ struct __anonstruct_PQUEUE_64 {
 typedef struct __anonstruct_PQUEUE_64 PQUEUE_PTR;
 PQUEUE struct_with_mutex;
 PQUEUE another_struct_with_mutex;
-PQUEUE struct_with_mutex_explicit = { .inner_mutex = PTHREAD_MUTEX_INITIALIZER };
-PQUEUE struct_with_mutex_implicit = { 0, PTHREAD_MUTEX_INITIALIZER };
+PQUEUE struct_with_mutex_explicit = { .inner_mutex = { { 0, 0, 0, PTHREAD_MUTEX_TIMED_NP, 0, { { 0, 0 } } } } };
+PQUEUE struct_with_mutex_implicit = { 0, { { 0, 0, 0, PTHREAD_MUTEX_TIMED_NP, 0, { { 0, 0 } } } } };
 PQUEUE_PTR struct_with_mutex_ptr;
 PQUEUE_PTR yet_another_struct_with_mutex_ptr;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);

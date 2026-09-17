@@ -6,6 +6,9 @@
 //
 // SPDX-License-Identifier: LicenseRef-BSD-3-Clause-Attribution-Vandikas
 
+// Original file:
+// https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/weaver/array-eq-symm.wvr.c?ref_type=tags
+
 typedef unsigned long int pthread_t;
 
 union pthread_attr_t
