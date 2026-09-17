@@ -15,13 +15,13 @@ format_version: '2.0'
 input_files: 'fib_safe-7.i'
 
 properties:
-  - property_file: ../../../../config/properties/unreach-call.prp
+  - property_file: ../../../config/properties/unreach-call.prp
     expected_verdict: true
-  - property_file: ../../../../config/properties/valid-memsafety.prp
+  - property_file: ../../../config/properties/valid-memsafety.prp
     expected_verdict: true
-  - property_file: ../../../../config/properties/no-overflow.prp
+  - property_file: ../../../config/properties/no-overflow.prp
     expected_verdict: true
-  - property_file: ../../../../config/properties/no-data-race.prp
+  - property_file: ../../../config/properties/no-data-race.prp
     expected_verdict: true
 
 options:

@@ -14,11 +14,11 @@ format_version: '2.0'
 input_files: '36-apron_41-threadenter-no-locals_unknown_1_pos.i'
 
 properties:
-  - property_file: ../../../../config/properties/unreach-call.prp
+  - property_file: ../../../config/properties/unreach-call.prp
     expected_verdict: false
-  - property_file: ../../../../config/properties/no-data-race.prp
+  - property_file: ../../../config/properties/no-data-race.prp
     expected_verdict: true
-  - property_file: ../../../../config/properties/coverage-branches.prp
+  - property_file: ../../../config/properties/coverage-branches.prp
 
 options:
   language: C
