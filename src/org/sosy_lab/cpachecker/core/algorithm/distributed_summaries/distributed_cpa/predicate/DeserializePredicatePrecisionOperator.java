@@ -11,15 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Function;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -51,79 +48,63 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
   }
 
   private Multimap<LocationInstance, AbstractionPredicate> parseLocationInstances(
-      ContentReader contentReader) {
-    contentReader.pushLevel(SerializePredicatePrecisionOperator.DSS_MESSAGE_LOCATION_INSTANCES_KEY);
-    Map<String, String> locationInstanceMap = contentReader.getContent();
+      ImmutableMap<DssLocationInstancePayload, ImmutableSet<String>> pLocalInstances) {
     ImmutableListMultimap.Builder<LocationInstance, AbstractionPredicate> locationInstances =
         ImmutableListMultimap.builder();
-    locationInstanceMap.forEach(
-        (nodeNumberAndLocationInstance, serializedPredicates) -> {
-          List<String> splitNodeNumberAndLocationInstance =
-              Splitter.on(",").splitToList(nodeNumberAndLocationInstance);
+    pLocalInstances.forEach(
+        (locationInstancePayload, serializedPredicates) -> {
           LocationInstance locationInstance =
               new LocationInstance(
-                  nodeMapping.apply(
-                      Integer.parseInt(splitNodeNumberAndLocationInstance.getFirst())),
-                  Integer.parseInt(splitNodeNumberAndLocationInstance.get(1)));
-          for (String precision : Splitter.on(" , ").split(serializedPredicates)) {
+                  nodeMapping.apply(locationInstancePayload.nodeId()),
+                  locationInstancePayload.instance());
+          for (String precision : serializedPredicates) {
             locationInstances.put(locationInstance, abstractionManager.parsePredicate(precision));
           }
         });
-    contentReader.popLevel();
     return locationInstances.build();
   }
 
   private Multimap<CFANode, AbstractionPredicate> parseLocalPredicates(
-      ContentReader contentReader) {
-    contentReader.pushLevel(SerializePredicatePrecisionOperator.DSS_MESSAGE_LOCAL_PREDICATES_KEY);
-    Map<String, String> localPredicatesMap = contentReader.getContent();
+      ImmutableMap<Integer, ImmutableSet<String>> pLocalPredicates) {
     ImmutableListMultimap.Builder<CFANode, AbstractionPredicate> localPredicates =
         ImmutableListMultimap.builder();
-    localPredicatesMap.forEach(
+    pLocalPredicates.forEach(
         (location, serializedPrecisions) -> {
-          for (String precision : Splitter.on(" , ").split(serializedPrecisions)) {
+          for (String precision : serializedPrecisions) {
             localPredicates.put(
-                Objects.requireNonNull(nodeMapping.apply(Integer.parseInt(location))),
+                Objects.requireNonNull(nodeMapping.apply(location)),
                 abstractionManager.parsePredicate(precision));
           }
         });
-    contentReader.popLevel();
     return localPredicates.build();
   }
 
   private Multimap<String, AbstractionPredicate> parseFunctionPredicates(
-      ContentReader contentReader) {
-    contentReader.pushLevel(
-        SerializePredicatePrecisionOperator.DSS_MESSAGE_FUNCTION_PREDICATES_KEY);
+      ImmutableMap<String, ImmutableSet<String>> pFunctionPredicates) {
     ImmutableListMultimap.Builder<String, AbstractionPredicate> functionPredicates =
         ImmutableListMultimap.builder();
-    Map<String, String> functionPredicatesMap = contentReader.getContent();
-    functionPredicatesMap.forEach(
+    pFunctionPredicates.forEach(
         (function, serializedPredicates) -> {
-          for (String predicate : Splitter.on(" , ").split(serializedPredicates)) {
+          for (String predicate : serializedPredicates) {
             functionPredicates.put(function, abstractionManager.parsePredicate(predicate));
           }
         });
-    contentReader.popLevel();
     return functionPredicates.build();
   }
 
-  private ImmutableSet<AbstractionPredicate> parseGlobals(ContentReader contentReader) {
-    String serializedPredicates =
-        contentReader.get(SerializePredicatePrecisionOperator.DSS_MESSAGE_GLOBAL_KEY);
+  private ImmutableSet<AbstractionPredicate> parseGlobals(ImmutableSet<String> pGlobalPredicates) {
     return transformedImmutableSetCopy(
-        Splitter.on(" , ").splitToList(serializedPredicates),
-        predicate -> abstractionManager.parsePredicate(predicate));
+        pGlobalPredicates, predicate -> abstractionManager.parsePredicate(predicate));
   }
 
   @Override
   public Precision deserializePrecision(DssMessageWithStates pMessage, int pStateIndex) {
-    ContentReader contentReader =
-        pMessage.getPrecisionContent(PredicatePrecision.class, pStateIndex);
+    DssPredicatePrecisionPayload payload =
+        DssPredicatePrecisionPayload.fromContentMap(pMessage.getStates().get(pStateIndex));
     return new PredicatePrecision(
-        parseLocationInstances(contentReader),
-        parseLocalPredicates(contentReader),
-        parseFunctionPredicates(contentReader),
-        parseGlobals(contentReader));
+        parseLocationInstances(payload.locationInstances()),
+        parseLocalPredicates(payload.localPredicates()),
+        parseFunctionPredicates(payload.functionPredicates()),
+        parseGlobals(payload.globalPredicates()));
   }
 }

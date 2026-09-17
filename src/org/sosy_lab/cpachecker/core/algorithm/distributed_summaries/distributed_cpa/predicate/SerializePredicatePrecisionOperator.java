@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -53,6 +51,10 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
 
   @Override
   public ImmutableMap<String, String> serializePrecision(Precision pPrecision) {
+    return serializePrecisionPayload(pPrecision).asContentMap();
+  }
+
+  private DssPredicatePrecisionPayload serializePrecisionPayload(Precision pPrecision) {
     if (!(pPrecision instanceof PredicatePrecision predicatePrecision)) {
       throw new AssertionError(
           "Cannot serialize a precision that is not of type "
@@ -61,54 +63,50 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
               + pPrecision.getClass()
               + ")");
     }
-    ContentBuilder contentBuilder =
-        ContentBuilder.builder()
-            .pushLevel(DssComponentKey.serializedNameFor(PredicatePrecision.class));
 
-    contentBuilder.pushLevel(DSS_MESSAGE_LOCATION_INSTANCES_KEY);
-    Multimap<String, String> locationInstancePredicates = ArrayListMultimap.create();
+    Multimap<DssLocationInstancePayload, String> locationInstancePredicatesMultimap =
+        ArrayListMultimap.create();
     predicatePrecision
         .getLocationInstancePredicates()
         .forEach(
             (l, p) ->
-                locationInstancePredicates.put(
-                    nodeToId.get(l.getLocation()) + "," + l.getInstance(),
+                locationInstancePredicatesMultimap.put(
+                    new DssLocationInstancePayload(nodeToId.get(l.getLocation()), l.getInstance()),
                     serializeAbstractionPredicate(p)));
-    for (String key : locationInstancePredicates.keySet()) {
-      contentBuilder.put(key, Joiner.on(" , ").join(locationInstancePredicates.get(key)));
-    }
-    contentBuilder.popLevel();
+    ImmutableMap.Builder<DssLocationInstancePayload, ImmutableSet<String>>
+        locationInstancePredicates = ImmutableMap.builder();
+    locationInstancePredicatesMultimap
+        .asMap()
+        .forEach((l, p) -> locationInstancePredicates.put(l, ImmutableSet.copyOf(p)));
 
-    contentBuilder.pushLevel(DSS_MESSAGE_LOCAL_PREDICATES_KEY);
-    Multimap<String, String> localPredicates = ArrayListMultimap.create();
+    Multimap<Integer, String> localPredicatesMultimap = ArrayListMultimap.create();
     predicatePrecision
         .getLocalPredicates()
         .forEach(
             (l, p) ->
-                localPredicates.put(
-                    Integer.toString(nodeToId.get(l)), serializeAbstractionPredicate(p)));
-    for (String key : localPredicates.keySet()) {
-      contentBuilder.put(key, Joiner.on(" , ").join(localPredicates.get(key)));
-    }
-    contentBuilder.popLevel();
+                localPredicatesMultimap.put(nodeToId.get(l), serializeAbstractionPredicate(p)));
+    ImmutableMap.Builder<Integer, ImmutableSet<String>> localPredicates = ImmutableMap.builder();
+    localPredicatesMultimap
+        .asMap()
+        .forEach((l, p) -> localPredicates.put(l, ImmutableSet.copyOf(p)));
 
-    contentBuilder.pushLevel(DSS_MESSAGE_FUNCTION_PREDICATES_KEY);
-    Multimap<String, String> functionPredicates = ArrayListMultimap.create();
+    Multimap<String, String> functionPredicatesMultimap = ArrayListMultimap.create();
     predicatePrecision
         .getFunctionPredicates()
-        .forEach((l, p) -> functionPredicates.put(l, serializeAbstractionPredicate(p)));
-    for (String key : functionPredicates.keySet()) {
-      contentBuilder.put(key, Joiner.on(" , ").join(functionPredicates.get(key)));
-    }
-    contentBuilder.popLevel();
+        .forEach((l, p) -> functionPredicatesMultimap.put(l, serializeAbstractionPredicate(p)));
+    ImmutableMap.Builder<String, ImmutableSet<String>> functionPredicates = ImmutableMap.builder();
+    functionPredicatesMultimap
+        .asMap()
+        .forEach((l, p) -> functionPredicates.put(l, ImmutableSet.copyOf(p)));
 
-    contentBuilder.put(
-        DSS_MESSAGE_GLOBAL_KEY,
-        Joiner.on(" , ")
-            .join(
-                transformedImmutableSetCopy(
-                    predicatePrecision.getGlobalPredicates(),
-                    this::serializeAbstractionPredicate)));
-    return contentBuilder.build();
+    ImmutableSet<String> globalPredicates =
+        transformedImmutableSetCopy(
+            predicatePrecision.getGlobalPredicates(), this::serializeAbstractionPredicate);
+
+    return new DssPredicatePrecisionPayload(
+        locationInstancePredicates.build(),
+        localPredicates.build(),
+        functionPredicates.build(),
+        globalPredicates);
   }
 }
