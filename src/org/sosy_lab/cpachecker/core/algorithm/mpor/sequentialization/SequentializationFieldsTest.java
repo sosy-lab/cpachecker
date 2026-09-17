@@ -39,8 +39,7 @@ public class SequentializationFieldsTest {
   @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {
     // this program contains multiple loops whose condition only contains local variables
-    Path path =
-        Path.of("./test/programs/simple/concurrent/13-privatized_04-priv_multi_true.i");
+    Path path = Path.of("./test/programs/simple/concurrent/13-privatized_04-priv_multi_true.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -66,8 +65,7 @@ public class SequentializationFieldsTest {
   @Test
   public void test_28_race_reach_45_escape_racing() throws Exception {
     // this program contains a start_routine argument passed via pthread_create
-    Path path =
-        Path.of("./test/programs/simple/concurrent/28-race_reach_45-escape_racing.i");
+    Path path = Path.of("./test/programs/simple/concurrent/28-race_reach_45-escape_racing.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -336,8 +334,7 @@ public class SequentializationFieldsTest {
   @Test
   public void test_singleton_with_uninit_problems_b() throws Exception {
     // this program has thread creations inside a non-main thread
-    Path path =
-        Path.of("./test/programs/simple/concurrent/singleton_with-uninit-problems-b.i");
+    Path path = Path.of("./test/programs/simple/concurrent/singleton_with-uninit-problems-b.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
