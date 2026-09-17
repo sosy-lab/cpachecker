@@ -100,6 +100,11 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
     }
     contentBuilder.popLevel();
 
+    // The global key is written even when there are no global predicates, i.e. with an empty value.
+    // Skipping it (as the three sections above do) would make an entirely empty precision serialize
+    // to zero keys, and DssMessage.getPrecisionContent rejects empty content, so every block's
+    // initial precision would fail to deserialize. DeserializePredicatePrecisionOperator therefore
+    // filters out empty entries instead.
     contentBuilder.put(
         DSS_MESSAGE_GLOBAL_KEY,
         Joiner.on(" , ")
