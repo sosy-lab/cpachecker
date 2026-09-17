@@ -58,12 +58,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
-  <tasks name="MemSafety-Concurrent">
-    <option name="--option">analysis.preprocessing.MPOR=true</option>
-    <includesfile>../programs/simple/concurrent.set</includesfile>
-    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
-  </tasks>
-
   <columns>
     <column title="reached">Size of reached set</column>
     <column title="transfer">Time for transfer relation</column>
