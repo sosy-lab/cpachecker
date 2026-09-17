@@ -4,7 +4,7 @@
 # SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
 # SPDX-FileCopyrightText: The CSeq project
 #
-# SPDX-License-Identifier: Apache-2.
+# SPDX-License-Identifier: Apache-2.0
 
 # Original file:
 # https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/blob/svcomp25/c/pthread/singleton_with-uninit-problems-b.yml?ref_type=tags
