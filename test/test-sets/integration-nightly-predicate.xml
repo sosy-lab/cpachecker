@@ -72,6 +72,11 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/XCSP.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="C.unreach-call.Concurrency-Sequentialized">
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
   <tasks name="C.unreach-call.Combinations">
     <includesfile>../programs/benchmarks/Combinations.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
