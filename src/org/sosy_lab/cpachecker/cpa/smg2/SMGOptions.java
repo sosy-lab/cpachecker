@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGMergeOptions.isFunctionExitLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -24,11 +25,15 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+@SuppressWarnings("all")
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
 
@@ -577,15 +582,35 @@ public class SMGOptions {
 
   private final SMGAbstractionOptions abstractionOptions;
   private final SMGMergeOptions mergeOptions;
+  private final SMGStopOptions stopOptions;
 
   public SMGOptions(Configuration config, @Nullable CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
-    abstractionOptions = new SMGAbstractionOptions(config, cfa);
-    mergeOptions = new SMGMergeOptions(config, cfa);
+    ImmutableSet<CFANode> loopHeads = ImmutableSet.of();
+    if (cfa != null && cfa.getAllLoopHeads().isPresent()) {
+      loopHeads = cfa.getAllLoopHeads().orElseThrow();
+    }
+    ImmutableSet<CFANode> loopLeavingEdges = ImmutableSet.of();
+    if (cfa != null && cfa.getLoopStructure().isPresent()) {
+      ImmutableSet.Builder<CFANode> loopLeavingEdgesBuilder = ImmutableSet.builder();
+      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+        for (CFAEdge outgoingEdge : loop.getOutgoingEdges()) {
+          loopLeavingEdgesBuilder.add(outgoingEdge.getSuccessor());
+        }
+      }
+      loopLeavingEdges = loopLeavingEdgesBuilder.build();
+    }
+    abstractionOptions = new SMGAbstractionOptions(config, cfa, loopHeads);
+    mergeOptions = new SMGMergeOptions(config, loopHeads, loopLeavingEdges);
+    stopOptions = new SMGStopOptions(config);
   }
 
   public SMGMergeOptions getMergeOptions() {
     return mergeOptions;
+  }
+
+  public SMGStopOptions getStopOptions() {
+    return stopOptions;
   }
 
   public SMGAbstractionOptions getAbstractionOptions() {
@@ -806,25 +831,171 @@ public class SMGOptions {
     return overapproximatePointerArithmeticsOutOfBoundsEquality;
   }
 
+  @Options(prefix = "cpa.smg2.stop")
+  public static class SMGStopOptions {
+
+    public SMGStopOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    public enum StopPolicy {
+      /**
+       * Tries to argue about stop by comparing the 2 states for entailment without using the merge
+       * procedure and the merge-status.
+       */
+      // TODO: wouldn't SEP be more accurate?
+      NO_MERGE,
+      /**
+       * Equal to NO_MERGE, except for deciding entailment for shape-abstractions, in which case the
+       * merge-status of a merge of the 2 states in stop is used to argue only about shape. This is
+       * more accurate for shape-abstractions than NO_MERGE.
+       */
+      TRY_MERGE_FOR_SHAPE_ABSTRACTION_ONLY,
+      /**
+       * Tries to utilize information from previous merges in merge operator to decide stop. If that
+       * is not possible, falls back to the default stop check (i.e. NO_MERGE).
+       */
+      PREVIOUS_MERGE_INFO_ONLY_WITH_FALLBACK_TO_NO_MERGE,
+      /**
+       * Only utilize information from merges (by merging the 2 states and checking the
+       * merge-status) to decide stop. Previous merges are not taken into account.
+       */
+      MERGE_EXCLUSIVLY,
+      /**
+       * Behaves as TRY_MERGE, except that should a previous merge status indicate that the 2 states
+       * are definetly not entailed, stop takes a shortcut, returning false.
+       */
+      TRY_MERGE_SMART,
+      /**
+       * Tries to utilize information from previous merges to decide stop. If that is not possible,
+       * the states are checked for stop using the merge precedure (but no merged state is used or
+       * stored!). Should this check also not yield strong enough information, falls back to the
+       * default stop check (i.e. NO_MERGE).
+       */
+      TRY_MERGE
+    }
+
+    @Option(
+        secure = true,
+        name = "stopOperatorPolicy",
+        description =
+            "Which stop policy (this always checks MergePolicy ENTAILMENT_ONLY) to apply when"
+                + " deciding stop in the stop-operator:\n"
+                + "NO_MERGE: Tries to argue about stop by comparing the 2 states for entailment"
+                + " without using the merge procedure and the merge-status.\n"
+                + "TRY_MERGE_FOR_SHAPE_ABSTRACTION_ONLY (default): Equal to NO_MERGE, except for"
+                + " deciding entailment for shape-abstractions, in which case the merge-status of a"
+                + " merge of the 2 states in stop is used to argue only about shape. This is more"
+                + " accurate for shape-abstractions than NO_MERGE.\n"
+                + "PREVIOUS_MERGE_INFO_ONLY: Tries to utilize information from previous merges in"
+                + " merge operator to decide stop. If that is not possible, falls back to the"
+                + " default stop check (i.e. NO_MERGE)\n"
+                + "MERGE_EXCLUSIVLY: Behaves as TRY_MERGE, except that should a previous merge"
+                + " status indicate that the 2 states are definetly not entailed, stop takes a"
+                + " shortcut, returning false.\n"
+                + "TRY_MERGE_SMART: Behaves as TRY_MERGE, except that should a previous merge"
+                + " status indicate that the 2 states are definetly not entailed, stop takes a"
+                + " shortcut, returning false.\n"
+                + "TRY_MERGE: Tries to utilize information from previous merges to decide stop. If"
+                + " that is not possible, the states are checked for stop using the merge precedure"
+                + " (but no merged state is used or stored!).Should this check also not yield"
+                + " strong enough information, falls back to the default stop check (i.e."
+                + " NO_MERGE).")
+    private StopPolicy policyForStopOperator = StopPolicy.TRY_MERGE_FOR_SHAPE_ABSTRACTION_ONLY;
+
+    public StopPolicy getPolicyForStopOperator() {
+      return policyForStopOperator;
+    }
+  }
+
   @Options(prefix = "cpa.smg2.merge")
   public static class SMGMergeOptions {
 
+    // TODO: include value behavior in this? Or make another option for them?
+    //  I am leaning towards new option.
+    public enum MergePolicy {
+      SEP,
+      /** We merge states only if they are isomorph. No abstraction is ever performed. */
+      ISOMORPHISM_ONLY,
+      /**
+       * We merge states only if they are isomorph, or one entails the other. No abstraction is ever
+       * performed.
+       */
+      ENTAILMENT_ONLY,
+      /**
+       * We merge states only if they are isomorph, or one entails the other. Abstraction is allowed
+       * within the bounds of entailment.
+       */
+      ENTAILMENT_WITH_ABSTRACTION,
+      /**
+       * We try to merge states (s1 and s2) irregardless of entailment or isomorphism, i.e. states
+       * that are semantically incomparable in the form: s1 ⊆ merge_result ⊇ s2 ∧ s1 ⊉ s2 ∧ s1 ⊈ s2.
+       * Merging may still fail to preserve soundness. No abstraction is performed while merging.
+       */
+      MERGE_WITHOUT_ABSTRACTION,
+      /**
+       * We try to merge states (s1 and s2) irregardless of entailment or isomorphism, i.e. states
+       * that are semantically incomparable in the form: s1 ⊆ merge_result ⊇ s2 ∧ s1 ⊉ s2 ∧ s1 ⊈ s2.
+       * Merging may still fail to preserve soundness. This includes abstraction while merging.
+       */
+      MERGE_WITH_ABSTRACTION
+    }
+
+    boolean isMergeSep() throws InvalidConfigurationException {
+      if (generalMergePolicy == null) {
+        throw new InvalidConfigurationException(
+            "Option cpa.smg2.merge.generalPolicy may not be empty!");
+      }
+      return generalMergePolicy == MergePolicy.SEP
+          && (mergePolicyOnLoopClosingEdges == null
+              || mergePolicyOnLoopClosingEdges == MergePolicy.SEP)
+          && (mergePolicyOnLoopHead == null || mergePolicyOnLoopHead == MergePolicy.SEP)
+          && (mergePolicyOnFunctionExit == null || mergePolicyOnFunctionExit == MergePolicy.SEP);
+    }
+
     @Option(
         secure = true,
+        name = "generalPolicy",
         description =
-            "Apply merge operator based on Predators join algorithm to determine subsumtion of"
-                + " abstracted lists in the stop operator more precisely. Can be costly.")
-    private boolean useMergeForAbstractionDetectionInStopOperator = false;
+            "Which merge policy to apply. This option sets a default policy that is applied on each"
+                + " location. This is overridden by the following options at their specified"
+                + " locations:  'cpa.smg2.merge.policyOnLoopClosing',"
+                + " 'cpa.smg2.merge.policyOnFunctionExit', 'cpa.smg2.merge.policyOnLoopHead'."
+                + " Setting this option, as well as 'cpa.smg2.merge.policyOnLoopClosing',"
+                + " 'cpa.smg2.merge.policyOnFunctionExit' and 'cpa.smg2.merge.policyOnLoopHead' to"
+                + " SEP, switches this CPA to use MERGE-SEP exclusivly.")
+    private MergePolicy generalMergePolicy = MergePolicy.SEP;
 
     @Option(
         secure = true,
-        name = "exclusivelyBlockEnds",
-        description = "Apply merge operator only on ends of code blocks.")
-    private boolean mergeOnlyOnBlockEnd = false;
+        name = "policyOnLoopClosing",
+        description =
+            "Which merge policy to apply when leaving a loop. This overrides the policy set by"
+                + " option 'cpa.smg2.merge.generalPolicy' at loop-leaving locations if not empty."
+                + " For Merge-SEP see option 'cpa.smg2.merge.generalPolicy'.")
+    private MergePolicy mergePolicyOnLoopClosingEdges;
 
     @Option(
         secure = true,
-        name = "exclusivelyEqualBlockEnds",
+        name = "policyOnLoopHead",
+        description =
+            "Which merge policy to apply on loop-heads. This overrides the policy set by option"
+                + " 'cpa.smg2.merge.generalPolicy' at loop-heads if not empty. For Merge-SEP see"
+                + " option 'cpa.smg2.merge.generalPolicy'.")
+    private MergePolicy mergePolicyOnLoopHead;
+
+    @Option(
+        secure = true,
+        name = "policyOnFunctionExit",
+        description =
+            "Which merge policy to apply when leaving a function. This overrides the policy set by"
+                + " option 'cpa.smg2.merge.generalPolicy' at function exits if not empty. For"
+                + " Merge-SEP see option 'cpa.smg2.merge.generalPolicy'.")
+    private MergePolicy mergePolicyOnFunctionExit;
+
+    @Option(
+        secure = true,
+        name = "exclusivelyEqualLocations",
         description =
             "Apply merge operator only on equal code block ends if true. Only applied if"
                 + " exclusivelyBlockEnds=true.")
@@ -853,18 +1024,39 @@ public class SMGOptions {
                 + " a symbolic value, or another, but distinct concrete value.")
     private boolean overapproximateConcreteValues = false;
 
-    @SuppressWarnings("unused")
-    public SMGMergeOptions(Configuration config, @Nullable CFA pCfa)
+    private final ImmutableSet<CFANode> loopHeads;
+    private final ImmutableSet<CFANode> loopLeavingEdges;
+
+    public SMGMergeOptions(
+        Configuration config,
+        ImmutableSet<CFANode> pLoopHeads,
+        ImmutableSet<CFANode> pLoopLeavingEdges)
         throws InvalidConfigurationException {
       config.inject(this);
+      loopHeads = pLoopHeads;
+      loopLeavingEdges = pLoopLeavingEdges;
     }
 
-    public boolean mergeOnlyOnBlockEnd() {
-      return mergeOnlyOnBlockEnd;
+    public MergePolicy getMergePolicyForLocation(LocationState location) {
+      if (mergePolicyOnLoopHead != null && loopHeads.contains(location.getLocationNode())) {
+        return mergePolicyOnLoopHead;
+      } else if (mergePolicyOnLoopClosingEdges != null && isLoopLeavingLocation(location)) {
+        return mergePolicyOnLoopClosingEdges;
+      } else if (mergePolicyOnFunctionExit != null && isFunctionExitLocation(location)) {
+        return mergePolicyOnFunctionExit;
+      }
+      checkState(
+          generalMergePolicy != null, "Option cpa.smg2.merge.generalPolicy may not be empty!");
+      return generalMergePolicy;
     }
 
-    public boolean mergeOnlyEqualBlockEnds() {
-      return mergeOnlyEqualBlockEnds;
+    private boolean isLoopLeavingLocation(LocationState location) {
+      // TODO: check whether this contains all of these edges!
+      return loopLeavingEdges.contains(location);
+    }
+
+    static boolean isFunctionExitLocation(LocationState location) {
+      return location.getLocationNode() instanceof FunctionExitNode;
     }
 
     public boolean mergeOnlyWithAbstractionPresent() {
@@ -875,8 +1067,8 @@ public class SMGOptions {
       return overapproximateSymbolicConstraints;
     }
 
-    public boolean useMergeInStop() {
-      return useMergeForAbstractionDetectionInStopOperator;
+    public boolean isAllowSymbolicValueRenaming() {
+      return false; // allowSymbolicRenamings;
     }
 
     public boolean isOverapproximateConcreteValues() {
@@ -887,23 +1079,61 @@ public class SMGOptions {
   @Options(prefix = "cpa.smg2.abstraction")
   public static class SMGAbstractionOptions {
 
-    @Option(secure = true, description = "restrict abstraction computations to branching points")
-    private boolean alwaysAtBranch = false;
-
-    @Option(secure = true, description = "restrict abstraction computations to join points")
-    private boolean alwaysAtJoin = false;
-
-    @Option(
-        secure = true,
-        description = "restrict abstraction computations to function calls/returns")
-    private boolean alwaysAtFunction = false;
+    public enum PrecisionAdjustmentShapeAbstraction {
+      NEVER,
+      FUNCTION_ENTRY_ON_RECURSION,
+      FUNCTION_EXIT_ON_RECURSION,
+      FUNCTION_ENTRY_AND_EXIT_ON_RECURSION,
+      ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT
+    }
 
     @Option(
         secure = true,
         description =
-            "If enabled, abstraction computations at loop-heads are enabled. List abstraction has"
-                + " to be enabled for this.")
-    private boolean alwaysAtLoop = false;
+            "Selects whether we want to use our custom SMG fix-point algorithm located in the SMG"
+                + " based precision-adjustment to detect shape abstractions. Careful when combining"
+                + " with merge based abstraction, as this might prevent merge from abstracting"
+                + " correctly. But since the merge operator can not abstract shapes in recursive"
+                + " stack frames, using any '*_ON_RECURSION' setting is safe with merge based"
+                + " abstraction. ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT is only used for locations"
+                + " enabled in options 'cpa.smg2.abstraction', for example 'alwaysAtLoopHeads'. All"
+                + " '*ON_RECURSION' options are automatically always enabled at their described"
+                + " locations.")
+    private PrecisionAdjustmentShapeAbstraction usePrecisionAdjustmentForShapeAbstraction =
+        PrecisionAdjustmentShapeAbstraction.ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT;
+
+    @Option(
+        secure = true,
+        description =
+            "If true, abstraction via precision adjustment is performed for all branching points of"
+                + " the CFA.")
+    private boolean alwaysAtBranch = false;
+
+    @Option(
+        secure = true,
+        description =
+            "If true, abstraction via precision adjustment is performed for all join points of the"
+                + " CFA.")
+    private boolean alwaysAtJoin = false;
+
+    @Option(
+        secure = true,
+        description =
+            "If true, abstraction via precision adjustment is performed for all function calls"
+                + " (function entry edges in the CFA).")
+    private boolean alwaysOnFunctionEntry = false;
+
+    @Option(
+        secure = true,
+        description =
+            "If true, abstraction via precision adjustment is performed for all function returns.")
+    private boolean alwaysOnFunctionExit = false;
+
+    @Option(
+        secure = true,
+        description =
+            "If true, abstraction via precision adjustment is performed at loop-heads. Option ")
+    private boolean alwaysAtLoopHeads = true;
 
     @Option(
         secure = true,
@@ -951,8 +1181,9 @@ public class SMGOptions {
         secure = true,
         name = "listAbstractionMinimumLengthThreshold",
         description =
-            "The minimum list segments directly following each other with the same value needed to"
-                + " abstract them.Minimum is 2.")
+            "The minimum list segments directly following each other, with matching values needed"
+                + " to abstract them. Minimum allowed values is 2. Only works for abstraction based"
+                + " on option 'usePrecisionAdjustmentForShapeAbstraction'.")
     private int listAbstractionMinimumLengthThreshold = 4;
 
     @Option(
@@ -982,8 +1213,11 @@ public class SMGOptions {
     @Option(
         secure = true,
         name = "abstractLinkedLists",
-        description = "Abstraction of all detected linked lists at loop heads.")
-    private boolean abstractLinkedLists = true;
+        description =
+            "Abstraction of all detected linked lists of minimum length set by option"
+                + " 'listAbstractionMinimumLengthThreshold' at all locations set to abstract. This"
+                + " is independent of (list-)abstraction via merging.")
+    private boolean abstractLinkedListsInPrecAdjustment = true;
 
     @Option(
         secure = true,
@@ -1019,18 +1253,13 @@ public class SMGOptions {
       IGNORE
     }
 
-    private final @Nullable ImmutableSet<CFANode> loopHeads;
+    private final ImmutableSet<CFANode> loopHeads;
 
-    public SMGAbstractionOptions(Configuration config, @Nullable CFA pCfa)
+    public SMGAbstractionOptions(
+        Configuration config, @Nullable CFA pCfa, ImmutableSet<CFANode> pLoopHeads)
         throws InvalidConfigurationException {
       config.inject(this);
-
-      if (alwaysAtLoop && pCfa != null && pCfa.getAllLoopHeads().isPresent()) {
-        // Gather loop heads for abstraction if requested to abstract at loop heads
-        loopHeads = pCfa.getAllLoopHeads().orElseThrow();
-      } else {
-        loopHeads = null;
-      }
+      loopHeads = pLoopHeads;
     }
 
     public boolean getCleanUpUnusedConstraints() {
@@ -1045,8 +1274,29 @@ public class SMGOptions {
       return abstractProgramVariables;
     }
 
-    public boolean abstractLinkedLists() {
-      return abstractLinkedLists;
+    public boolean checkAbstractLinkedListsInPrecisionAdjustmentFor(
+        LocationState loc, final SMGState currentState) {
+      return switch (usePrecisionAdjustmentForShapeAbstraction) {
+        case NEVER -> false;
+        case FUNCTION_ENTRY_AND_EXIT_ON_RECURSION ->
+            (checkAbstractOnFunctionExitFor(loc) || checkAbstractOnFunctionEntryFor(loc))
+                && currentState.hasRecursionOfDepthGreaterEqual(
+                    getListAbstractionMinimumLengthThreshold());
+        case FUNCTION_EXIT_ON_RECURSION ->
+            checkAbstractOnFunctionExitFor(loc)
+                && currentState.hasRecursionOfDepthGreaterEqual(
+                    getListAbstractionMinimumLengthThreshold());
+        case FUNCTION_ENTRY_ON_RECURSION ->
+            checkAbstractOnFunctionEntryFor(loc)
+                && currentState.hasRecursionOfDepthGreaterEqual(
+                    getListAbstractionMinimumLengthThreshold());
+        case ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT -> checkAbstractInPrecAdjustmentFor(loc);
+      };
+    }
+
+    public boolean isUsePrecAdjustmentAbstraction() {
+      return usePrecisionAdjustmentForShapeAbstraction
+          == PrecisionAdjustmentShapeAbstraction.ALWAYS_AT_LOCATIONS_SET_TO_ABSTRACT;
     }
 
     public int getAbstractConcreteValuesAboveThreshold() {
@@ -1073,23 +1323,6 @@ public class SMGOptions {
       listAbstractionMinimumLengthThreshold++;
     }
 
-    /**
-     * This method determines whether to abstract at each location.
-     *
-     * @return whether an abstraction should be computed at each location
-     */
-    boolean abstractAtEachLocation() {
-      return !alwaysAtBranch && !alwaysAtJoin && !alwaysAtFunction && !alwaysAtLoop;
-    }
-
-    boolean abstractAtBranch(LocationState location) {
-      return alwaysAtBranch && location.getLocationNode().getNumLeavingEdges() > 1;
-    }
-
-    boolean abstractAtJoin(LocationState location) {
-      return alwaysAtJoin && location.getLocationNode().getNumEnteringEdges() > 1;
-    }
-
     public int getIterationThreshold() {
       return iterationThreshold;
     }
@@ -1106,15 +1339,40 @@ public class SMGOptions {
       return onlyAtNonLinearCFA;
     }
 
-    public boolean abstractAtFunction(LocationState location) {
-      return alwaysAtFunction
+    /**
+     * This method determines whether to abstract at each location.
+     *
+     * @return whether an abstraction should be computed at each location
+     */
+    boolean checkAbstractInPrecAdjustmentFor(LocationState location) {
+      return checkAbstractAtLoopHeadFor(location)
+          || checkAbstractOnFunctionExitFor(location)
+          || checkAbstractOnFunctionEntryFor(location)
+          || checkAbstractAtBranchingLocationFor(location)
+          || checkAbstractAtJoiningLocationFor(location);
+    }
+
+    private boolean checkAbstractAtBranchingLocationFor(LocationState location) {
+      return alwaysAtBranch && location.getLocationNode().getNumLeavingEdges() > 1;
+    }
+
+    private boolean checkAbstractAtJoiningLocationFor(LocationState location) {
+      return alwaysAtJoin && location.getLocationNode().getNumEnteringEdges() > 1;
+    }
+
+    private boolean checkAbstractOnFunctionEntryFor(LocationState location) {
+      return alwaysOnFunctionEntry
           && (location.getLocationNode() instanceof FunctionEntryNode
               || location.getLocationNode().getEnteringSummaryEdge() != null);
     }
 
-    boolean abstractAtLoop(LocationState location) {
-      checkState(!alwaysAtLoop || loopHeads != null);
-      return alwaysAtLoop && loopHeads.contains(location.getLocationNode());
+    private boolean checkAbstractOnFunctionExitFor(LocationState location) {
+      // TODO: check this for summary edges!
+      return alwaysOnFunctionExit && isFunctionExitLocation(location);
+    }
+
+    private boolean checkAbstractAtLoopHeadFor(LocationState location) {
+      return alwaysAtLoopHeads && loopHeads.contains(location.getLocationNode());
     }
 
     public AbstractionErrorHandling errorHandling() {
