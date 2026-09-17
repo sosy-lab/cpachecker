@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">11000M</option>
+
+  <rundefinition name="Overflow-Portfolio">
+    <option name="--overflowAnalysis"/>
+  </rundefinition>
+
+  <tasks name="C.no-overflow.Concurrency">
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+
+</benchmark>
