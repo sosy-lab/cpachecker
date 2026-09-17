@@ -671,6 +671,40 @@ public class ARGUtils {
       String name,
       @Nullable CounterexampleInfo pCounterExample)
       throws IOException {
+    producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample, false);
+  }
+
+  /**
+   * Produce an automaton in the format for the AutomatonCPA from a given path, used to restrict the
+   * exploration of a counterexample-check to that path. If there is a target state, it is signaled
+   * as an error state in the automaton only if the specification automaton is also violated.
+   *
+   * @param sb Where to write the automaton to
+   * @param pRootState The root of the ARG
+   * @param pPathStates The states along the path
+   * @param pCounterExample Given to try to write exact variable assignment values into the
+   *     automaton, may be null
+   */
+  public static void produceCounterexampleAutomaton(
+      Appendable sb,
+      ARGState pRootState,
+      Set<ARGState> pPathStates,
+      String name,
+      @Nullable CounterexampleInfo pCounterExample)
+      throws IOException {
+    producePathAutomaton(sb, pRootState, pPathStates, name, pCounterExample, true);
+  }
+
+  private static final String VIOLATION_ASSERTION = "ASSERT !CHECK(\"internalStateIsTarget\") ";
+
+  private static void producePathAutomaton(
+      Appendable sb,
+      ARGState pRootState,
+      Set<ARGState> pPathStates,
+      String name,
+      @Nullable CounterexampleInfo pCounterExample,
+      boolean forCounterexample)
+      throws IOException {
 
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
@@ -687,6 +721,12 @@ public class ARGUtils {
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
 
       for (ARGState child : s.getChildren()) {
+        if (forCounterexample && !pPathStates.contains(child)) {
+          // We only want to follow the path of the counterexample,
+          // so we ignore all children that are not on this path.
+          continue;
+        }
+
         if (child.isCovered()) {
           child = child.getCoveringState();
           assert !child.isCovered();
@@ -710,87 +750,18 @@ public class ARGUtils {
           handleMatchCase(sb, edge);
 
           if (child.isTarget()) {
-            sb.append("ERROR");
+            if (forCounterexample) {
+              sb.append(VIOLATION_ASSERTION);
+              sb.append("GOTO ARG" + child.getStateId());
+            } else {
+              sb.append("ERROR");
+            }
           } else {
             addAssumption(valueMap, s, edge, sb);
             sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
         }
-      }
-      sb.append("    TRUE -> STOP;\n\n");
-    }
-    sb.append("END AUTOMATON\n");
-  }
-
-  private static final String VIOLATION_ASSERTION = "ASSERT !CHECK(\"internalStateIsTarget\") ";
-
-  /**
-   * Produce an automaton in the format for the AutomatonCPA from a given path, used to restrict the
-   * exploration of a counterexample-check to that path. If there is a target state, it is signaled
-   * as an error state in the automaton only if the specification automaton is also violated.
-   *
-   * @param sb Where to write the automaton to
-   * @param pRootState The root of the ARG
-   * @param pPathStates The states along the path
-   * @param pCounterExample Given to try to write exact variable assignment values into the
-   *     automaton, may be null
-   */
-  public static void produceCounterexampleAutomaton(
-      Appendable sb,
-      ARGState pRootState,
-      Set<ARGState> pPathStates,
-      String name,
-      @Nullable CounterexampleInfo pCounterExample)
-      throws IOException {
-
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
-
-    if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
-      valueMap = pCounterExample.getExactVariableValues();
-    }
-
-    createAutomatonHeader(sb, name, pRootState);
-
-    int multiEdgeCount = 0; // see below
-
-    for (ARGState s : ImmutableList.sortedCopyOf(pPathStates)) {
-
-      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
-
-      for (ARGState child : s.getChildren()) {
-        if (!pPathStates.contains(child)) {
-          continue;
-        }
-
-        if (child.isCovered()) {
-          child = child.getCoveringState();
-          assert !child.isCovered();
-        }
-
-        List<CFAEdge> allEdges = s.getEdgesToChild(child);
-        CFAEdge edge;
-
-        if (allEdges.size() > 1) {
-          // this is a dynamic multi edge
-          // The successor state might have several incoming MultiEdges.
-          // In this case the state names like ARG<successor>_0 would occur
-          // several times.
-          // So we add this counter to the state names to make them unique.
-          multiEdgeCount++;
-          edge = handleMultiEdge(sb, child, allEdges, multiEdgeCount);
-        } else {
-          edge = resolveSingleEdge(s, child, allEdges);
-        }
-        handleMatchCase(sb, edge);
-
-        if (child.isTarget()) {
-          sb.append(VIOLATION_ASSERTION);
-        } else {
-          addAssumption(valueMap, s, edge, sb);
-        }
-        sb.append("GOTO ARG" + child.getStateId());
-        sb.append(";\n");
       }
       sb.append("    TRUE -> STOP;\n\n");
     }
