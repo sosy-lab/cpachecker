@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--overflowAnalysis"/>
   </rundefinition>
 
-  <tasks name="C.no-overflow.Concurrency">
+  <tasks name="C.no-overflow.Concurrency-Sequentialized">
     <option name="--option">analysis.preprocessing.MPOR=true</option>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
