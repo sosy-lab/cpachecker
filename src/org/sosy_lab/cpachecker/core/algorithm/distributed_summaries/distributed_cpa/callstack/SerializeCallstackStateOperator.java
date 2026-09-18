@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,11 +26,7 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
   }
 
   @Override
-  public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
-    return serializePayload(pCallstackState).asContentMap();
-  }
-
-  private DssCallstackStatePayload serializePayload(AbstractState pCallstackState) {
+  public DssCallstackStatePayload serialize(AbstractState pCallstackState) {
     boolean allowAllTransfers = DistributedCallstackCPA.allowsAllTransfers(pCallstackState);
     if (allowAllTransfers) {
       // the sending block did not know its callstack, so the stack carries no information:

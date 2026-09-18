@@ -33,7 +33,6 @@ public record DssPredicatePrecisionPayload(
     return DssComponentKey.PREDICATE_PRECISION;
   }
 
-  @Override
   public ImmutableMap<String, String> asContentMap() {
     ContentBuilder contentBuilder =
         ContentBuilder.builder()

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DssFunctionPointerEntry.TargetKind;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -19,11 +18,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 public class SerializeFunctionPointerStateOperator implements SerializeOperator {
 
   @Override
-  public ImmutableMap<String, String> serialize(AbstractState pState) {
-    return serializePayload(pState).asContentMap();
-  }
-
-  private DssFunctionPointerStatePayload serializePayload(AbstractState pState) {
+  public DssFunctionPointerStatePayload serialize(AbstractState pState) {
     FunctionPointerState state = (FunctionPointerState) pState;
     FunctionPointerState.Builder builder = state.createBuilder();
     ImmutableList.Builder<DssFunctionPointerEntry> entries =

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
-import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,7 +23,7 @@ public class SerializeARGStateOperator implements SerializeOperator {
   }
 
   @Override
-  public ImmutableMap<String, String> serialize(AbstractState pState) {
+  public DssStatePayload serialize(AbstractState pState) {
     return wrapped.getSerializeOperator().serialize(((ARGState) pState).getWrappedState());
   }
 }

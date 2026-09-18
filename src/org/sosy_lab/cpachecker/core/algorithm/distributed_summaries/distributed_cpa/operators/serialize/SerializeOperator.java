@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize;
 
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface SerializeOperator {
@@ -24,5 +24,5 @@ public interface SerializeOperator {
    *     reconstruct the state from this map. It should only know about the keys defined in this
    *     interface.
    */
-  ImmutableMap<String, String> serialize(AbstractState pState);
+  DssStatePayload serialize(AbstractState pState);
 }

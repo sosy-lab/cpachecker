@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -45,11 +44,7 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState;
 public class SerializeBlockStateOperator implements SerializeOperator {
 
   @Override
-  public ImmutableMap<String, String> serialize(AbstractState pState) {
-    return serializePayload(pState).asContentMap();
-  }
-
-  private DssBlockStatePayload serializePayload(AbstractState pState) {
+  public DssBlockStatePayload serialize(AbstractState pState) {
     if (!(pState instanceof BlockState b)) {
       throw new IllegalArgumentException(
           String.format("Expected state of type %s, got %s", BlockState.class, pState.getClass()));

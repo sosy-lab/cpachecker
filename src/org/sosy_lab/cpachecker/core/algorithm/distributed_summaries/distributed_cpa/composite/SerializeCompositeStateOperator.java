@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA.zip;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA.CpaAndState;
@@ -33,18 +33,18 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
   }
 
   @Override
-  public ImmutableMap<String, String> serialize(AbstractState pState) {
+  public DssCompositeStatePayload serialize(AbstractState pState) {
     try {
       stats.getSerializationCount().inc();
       stats.getSerializationTime().start();
-      ContentBuilder contentBuilder = ContentBuilder.builder();
+      ImmutableList.Builder<DssStatePayload> components = ImmutableList.builder();
       CompositeState compositeState = ((CompositeState) pState);
       for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
         if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
-          contentBuilder.putAll(dcpa.getSerializeOperator().serialize(cpaAndState.state()));
+          components.add(dcpa.getSerializeOperator().serialize(cpaAndState.state()));
         }
       }
-      return contentBuilder.build();
+      return new DssCompositeStatePayload(components.build());
     } finally {
       stats.getSerializationTime().stop();
     }

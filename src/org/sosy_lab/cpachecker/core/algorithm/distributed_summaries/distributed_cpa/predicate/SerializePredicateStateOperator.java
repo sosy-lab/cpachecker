@@ -48,11 +48,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
   }
 
   @Override
-  public ImmutableMap<String, String> serialize(AbstractState pState) {
-    return serializePayload(pState).asContentMap();
-  }
-
-  private DssPredicateStatePayload serializePayload(AbstractState pState) {
+  public DssPredicateStatePayload serialize(AbstractState pState) {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     BooleanFormula booleanFormula;

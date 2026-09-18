@@ -27,7 +27,6 @@ public record DssBlockStatePayload(String blockId, String witness, ImmutableList
     return DssComponentKey.BLOCK_STATE;
   }
 
-  @Override
   public ImmutableMap<String, String> asContentMap() {
     String suffix = " W:" + witness();
     suffix = suffix + (history().isEmpty() ? "" : " H:" + Joiner.on(",").join(history()));
