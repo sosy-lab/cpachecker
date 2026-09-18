@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">1500M</option>
+
+  <rundefinition/>
+
+  <!-- The predicate and value variants run over disjoint task sets, because BenchExec
+       does not allow the same task twice within one benchmark definition. -->
+
+  <tasks name="por-pred">
+    <option name="--por-pred"/>
+    <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+
+    <include>../programs/por/single_thread_safe.yml</include>
+    <include>../programs/por/two_threads_safe.yml</include>
+    <include>../programs/por/two_threads_unsafe.yml</include>
+    <include>../programs/por/three_threads_unsafe.yml</include>
+    <include>../programs/por/mutex_unprotected_unsafe.yml</include>
+    <include>../programs/por/c11_mutex_safe.yml</include>
+    <include>../programs/por/atomic_swap_safe.yml</include>
+    <include>../programs/por/atomic_split_unsafe.yml</include>
+    <include>../programs/por/function.yml</include>
+    <include>../programs/por/singleton.yml</include>
+    <include>../programs/por/array_handle_safe.yml</include>
+    <include>../programs/por/array_handle_unsafe.yml</include>
+    <include>../programs/por/escaping_local_safe.yml</include>
+    <include>../programs/por/escaping_local_unsafe.yml</include>
+  </tasks>
+
+  <tasks name="por-value">
+    <option name="--por-value-cegar"/>
+    <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+
+    <include>../programs/por/two_threads_join_safe.yml</include>
+    <include>../programs/por/mutex_protected_safe.yml</include>
+    <include>../programs/por/local_vars_only_safe.yml</include>
+    <include>../programs/por/atomic_increment_safe.yml</include>
+    <include>../programs/por/pthread_exit_safe.yml</include>
+    <include>../programs/por/loop_handle_safe.yml</include>
+    <include>../programs/por/loop_handle_unsafe.yml</include>
+    <include>../programs/por/interior_pointer_safe.yml</include>
+    <include>../programs/por/interior_pointer_unsafe.yml</include>
+    <include>../programs/por/pointer_field_mutex_safe.yml</include>
+    <include>../programs/por/distinct_mutexes_unsafe.yml</include>
+    <include>../programs/por/pointer_write_safe.yml</include>
+    <include>../programs/por/atomic_float_safe.yml</include>
+    <include>../programs/por/atomic_float_unsafe.yml</include>
+  </tasks>
+
+  <tasks name="por-pred-overflow">
+    <option name="--por-pred-overflow"/>
+    <propertyfile>../../config/properties/no-overflow.prp</propertyfile>
+
+    <include>../programs/por/overflow_safe.yml</include>
+    <include>../programs/por/overflow_unsafe.yml</include>
+  </tasks>
+
+  <tasks name="por-value-overflow">
+    <option name="--por-value-overflow"/>
+    <propertyfile>../../config/properties/no-overflow.prp</propertyfile>
+
+    <include>../programs/por/overflow_after_join_unsafe.yml</include>
+    <include>../programs/por/overflow_stale_lookahead_unsafe.yml</include>
+  </tasks>
+
+  <columns>
+    <column title="#reached">Size of reached set</column>
+  </columns>
+
+</benchmark>

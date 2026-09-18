@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">1500M</option>
+
+  <rundefinition/>
+
+  <tasks name="reachability">
+    <option name="--orderingConsistency"/>
+    <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+
+    <include>../programs/por/single_thread_safe.yml</include>
+    <include>../programs/por/two_threads_safe.yml</include>
+    <include>../programs/por/two_threads_join_safe.yml</include>
+    <include>../programs/por/two_threads_unsafe.yml</include>
+    <include>../programs/por/three_threads_unsafe.yml</include>
+    <include>../programs/por/mutex_unprotected_unsafe.yml</include>
+    <include>../programs/por/c11_mutex_safe.yml</include>
+    <include>../programs/por/atomic_swap_safe.yml</include>
+    <include>../programs/por/atomic_split_unsafe.yml</include>
+    <include>../programs/por/pthread_exit_safe.yml</include>
+    <include>../programs/por/function.yml</include>
+    <include>../programs/por/singleton.yml</include>
+    <include>../programs/por/oc_branch_create.yml</include>
+    <include>../programs/por/oc_loop_safe.yml</include>
+    <include>../programs/por/oc_array_safe.yml</include>
+    <include>../programs/por/oc_array_index_unsafe.yml</include>
+    <include>../programs/por/oc_heap_struct_unsafe.yml</include>
+    <include>../programs/por/array_handle_safe.yml</include>
+    <include>../programs/por/array_handle_unsafe.yml</include>
+    <include>../programs/por/loop_handle_safe.yml</include>
+    <include>../programs/por/loop_handle_unsafe.yml</include>
+    <include>../programs/por/escaping_local_safe.yml</include>
+    <include>../programs/por/escaping_local_unsafe.yml</include>
+    <include>../programs/por/interior_pointer_safe.yml</include>
+    <include>../programs/por/interior_pointer_unsafe.yml</include>
+    <include>../programs/por/pointer_field_mutex_safe.yml</include>
+    <include>../programs/por/distinct_mutexes_unsafe.yml</include>
+  </tasks>
+
+  <tasks name="data-race">
+    <option name="--orderingConsistency"/>
+    <propertyfile>../../config/properties/no-data-race.prp</propertyfile>
+
+    <include>../programs/por/atomic_float_ptr_safe.yml</include>
+    <include>../programs/por/atomic_float_ptr_unsafe.yml</include>
+    <include>../programs/por/loop_handle_datarace_safe.yml</include>
+    <include>../programs/por/loop_handle_datarace_unsafe.yml</include>
+    <include>../programs/por/struct_assign_datarace_safe.yml</include>
+    <include>../programs/por/struct_assign_datarace_unsafe.yml</include>
+    <include>../programs/por/atomic_struct_datarace_safe.yml</include>
+  </tasks>
+
+  <columns>
+    <column title="#reached">Size of reached set</column>
+  </columns>
+
+</benchmark>
