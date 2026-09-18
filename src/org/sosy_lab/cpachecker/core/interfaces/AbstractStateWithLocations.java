@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -54,15 +54,11 @@ public interface AbstractStateWithLocations extends AbstractState {
 
   /**
    * Get the CFA edges that this state's CPA considers to lead from this state to {@code pChild}.
-   *
-   * <p>An empty list means {@code pChild} is reached without taking any edge, i.e., both states are
-   * at the same location(s). {@code null} means this CPA cannot answer, either because it does not
-   * know the connection or because it is not unique, so callers must read it as "no answer" rather
-   * than "no edges". The default implementation returns {@code null}, so CPAs that cannot answer
-   * need not implement it.
+   * Returns an empty list if there are no such edges, if the connection is not unique, or if this
+   * CPA cannot determine it; the default implementation always does so.
    */
   @SuppressWarnings("unused")
-  default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
-    return null;
+  default List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
+    return ImmutableList.of();
   }
 }

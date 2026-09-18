@@ -353,7 +353,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
   }
 
   @Override
-  public @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
+  public List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
     if (pChild instanceof ConcurrentState child) {
       ThreadState parentThreadState = null;
       ThreadState childThreadState = null;
@@ -371,10 +371,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
               ThreadState pState = entry2.getValue();
               ThreadState cState = child.threads().get(tid);
               if (cState != null && !pState.getLocationNode().equals(cState.getLocationNode())) {
-                var edges = pState.getEdgesToChild(cState);
-                if (edges != null) {
-                  allEdges.addAll(edges);
-                }
+                allEdges.addAll(pState.getEdgesToChild(cState));
               }
             }
             return allEdges.build();
@@ -393,8 +390,8 @@ public class ConcurrentState extends AbstractSingleWrapperState
             ThreadState pState = entry.getValue();
             ThreadState cState = child.threads().get(threadId);
             if (cState != null) {
-              var edges = pState.getEdgesToChild(cState);
-              if (edges != null && !edges.isEmpty()) {
+              List<CFAEdge> edges = pState.getEdgesToChild(cState);
+              if (!edges.isEmpty()) {
                 return edges;
               }
             }
@@ -405,7 +402,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
 
       return parentThreadState.getEdgesToChild(childThreadState);
     }
-    return null;
+    return ImmutableList.of();
   }
 
   @Override

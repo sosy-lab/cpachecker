@@ -279,7 +279,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
             List<CFAEdge> originalEdges =
                 AbstractStates.getEdgesToChild(
                     iterator.getAbstractState(), iterator.getNextAbstractState());
-            if (originalEdges != null && !originalEdges.isEmpty()) {
+            if (!originalEdges.isEmpty()) {
               startNode = originalEdges.getFirst().getPredecessor();
               endNode = originalEdges.getLast().getSuccessor();
             }

@@ -142,36 +142,36 @@ public final class AbstractStates {
 
   /**
    * Get the CFA edges from {@code pParent} to {@code pChild} as far as their location information
-   * allows, or {@code null} if neither state provides it or the connection is not unique (cf.
-   * {@link AbstractStateWithLocations#getEdgesToChild(AbstractStateWithLocations)}).
+   * allows, or an empty list if neither state provides it or the connection is not unique (cf.
+   * {@link AbstractStateWithLocations#getEdgesToChild(AbstractStateWithLocations)}). The
+   * single-location view is tried first, the multi-location one only if it yields no edges.
    */
-  public static @Nullable List<CFAEdge> getEdgesToChild(
-      AbstractState pParent, AbstractState pChild) {
+  public static List<CFAEdge> getEdgesToChild(AbstractState pParent, AbstractState pChild) {
     List<CFAEdge> resultWithLocation = getEdgesToChildWithLocation(pParent, pChild);
-    if (resultWithLocation != null) {
+    if (!resultWithLocation.isEmpty()) {
       return resultWithLocation;
     }
 
     return getEdgesToChildWithLocations(pParent, pChild);
   }
 
-  private static @Nullable List<CFAEdge> getEdgesToChildWithLocation(
+  private static List<CFAEdge> getEdgesToChildWithLocation(
       AbstractState pParent, AbstractState pChild) {
     AbstractStateWithLocation parent = extractStateByType(pParent, AbstractStateWithLocation.class);
     AbstractStateWithLocation child = extractStateByType(pChild, AbstractStateWithLocation.class);
     if (parent == null || child == null) {
-      return null;
+      return ImmutableList.of();
     }
     return parent.getEdgesToChild(child);
   }
 
-  private static @Nullable List<CFAEdge> getEdgesToChildWithLocations(
+  private static List<CFAEdge> getEdgesToChildWithLocations(
       AbstractState pParent, AbstractState pChild) {
     AbstractStateWithLocations parent =
         extractStateByType(pParent, AbstractStateWithLocations.class);
     AbstractStateWithLocations child = extractStateByType(pChild, AbstractStateWithLocations.class);
     if (parent == null || child == null) {
-      return null;
+      return ImmutableList.of();
     }
     return parent.getEdgesToChild(child);
   }

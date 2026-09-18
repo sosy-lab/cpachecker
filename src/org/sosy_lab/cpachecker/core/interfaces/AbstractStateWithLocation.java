@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -49,27 +48,25 @@ public interface AbstractStateWithLocation extends AbstractStateWithLocations {
   }
 
   @Override
-  default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
+  default List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
     if (pChild instanceof AbstractStateWithLocation child) {
       return getEdgesToChild(child);
     }
-    return null;
+    return ImmutableList.of();
   }
 
   /**
-   * Get the CFA edges to {@code pChild} by following the unique chain of leaving edges. Same
-   * contract as {@link #getEdgesToChild(AbstractStateWithLocations)}: an empty list means both
-   * states are at the same location, {@code null} that no unique chain connects them.
+   * Get the CFA edges to {@code pChild} by following the unique chain of leaving edges, or an empty
+   * list if both states are at the same location or no unique chain connects them.
    */
-  default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocation pChild) {
+  default List<CFAEdge> getEdgesToChild(AbstractStateWithLocation pChild) {
     ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
     CFANode currentLoc = getLocationNode();
     CFANode childLoc = pChild.getLocationNode();
 
     while (!currentLoc.equals(childLoc)) {
-      // No unique chain of edges, so we cannot answer.
       if (currentLoc.getNumLeavingEdges() != 1) {
-        return null;
+        return ImmutableList.of();
       }
 
       final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);

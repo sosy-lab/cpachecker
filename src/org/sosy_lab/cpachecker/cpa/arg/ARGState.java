@@ -15,7 +15,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
@@ -185,8 +184,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     // multiedges, it is guaranteed that there is exactly one path and no other
     // leaving edges from the parent to the child
     if (singleEdge == null) {
-      List<CFAEdge> edges = AbstractStates.getEdgesToChild(this, pChild);
-      return edges == null ? ImmutableList.of() : edges;
+      return AbstractStates.getEdgesToChild(this, pChild);
     } else {
       return Collections.singletonList(singleEdge);
     }
