@@ -689,25 +689,6 @@ public final class DssBlockAnalysis {
     return summaries.build();
   }
 
-  /**
-   * The states at the final location that no ghost successor was spawned from, paired with the
-   * precision they were found in.
-   *
-   * <p>Deliberately narrower than {@link #finalLocationStatesOf(DssBlockAnalysisResult)}: a
-   * block-end state that has ARG children has already been continued under a violation condition,
-   * and the path-based exploration publishes only the ends it did not continue. Every other caller
-   * wants {@code finalLocationStatesOf} -- suppressing a reachable block end turns into an
-   * unreachable-block-end message to the successors, i.e. a wrong proof.
-   */
-  ImmutableList<StateAndPrecision> leafSummariesOf(DssBlockAnalysisResult pResult) {
-    ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
-    for (ARGState summary :
-        pResult.getFinalLocationStates().stream().filter(a -> a.getChildren().isEmpty()).toList()) {
-      summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
-    }
-    return summaries.build();
-  }
-
   private Collection<DssMessage> reportPostconditions(
       Collection<@NonNull StateAndPrecision> pSummaries) {
     if (pSummaries.isEmpty()) {

@@ -78,7 +78,7 @@ final class PathBasedExplorationEngine implements DssExplorationEngine {
               precondition.precision(),
               violationConditions.statesOf(pViolationConditionSender));
 
-      summaries.addAll(analysis.leafSummariesOf(result));
+      summaries.addAll(analysis.finalLocationStatesOf(result));
 
       // TODO we only want to combine violations with the same precondition id
       if (!result.getAllViolations().isEmpty()) {
