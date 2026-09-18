@@ -1513,8 +1513,8 @@ class ASTConverter {
 
   private boolean areCompatibleTypes(CType a, CType b) {
     // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
-    a = a.getCanonicalType().withoutQualifiers();
-    b = b.getCanonicalType().withoutQualifiers();
+    a = a.getCanonicalType().asUnqualified();
+    b = b.getCanonicalType().asUnqualified();
     if (a.equals(b)) {
       return true;
     }
@@ -3234,7 +3234,7 @@ class ASTConverter {
       if (pDeclarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
-      return canonicalType.withoutQualifiers().equals(CNumericTypes.CHAR);
+      return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
     }
     return false;
   }
