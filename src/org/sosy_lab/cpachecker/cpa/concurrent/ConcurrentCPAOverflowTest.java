@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
-import static org.junit.Assume.assumeTrue;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
 import com.google.common.collect.ImmutableList;
@@ -25,7 +24,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
 
 /**
  * Integration tests for the POR CPA checking the <b>no-overflow</b> property, as opposed to {@link
@@ -73,8 +71,7 @@ public class ConcurrentCPAOverflowTest {
         ImmutableList.of(
             Pair.of("overflow_safe.c", true),
             Pair.of("overflow_unsafe.c", false),
-            Pair.of("overflow_after_join_unsafe.c", false),
-            Pair.of("overflow_stale_lookahead_unsafe.c", false));
+            Pair.of("overflow_after_join_unsafe.c", false));
 
     return configs.stream()
         .flatMap(
@@ -97,8 +94,6 @@ public class ConcurrentCPAOverflowTest {
 
   @Test
   public void testPorOverflow() throws Exception {
-    String knownBug = KnownConcurrencyIssues.reasonFor(configuration, fileName);
-    assumeTrue("KNOWN ISSUE (see KnownConcurrencyIssues): " + knownBug, knownBug == null);
     IntegrationTestResult results =
         IntegrationTestRunner.run(getConfig(configuration), TEST_DIR + fileName);
     if (expectedSafe) {
