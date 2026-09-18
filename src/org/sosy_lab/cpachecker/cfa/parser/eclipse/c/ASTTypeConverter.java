@@ -572,7 +572,7 @@ class ASTTypeConverter {
     if (candidates.isEmpty()) {
       return false;
     }
-    unhandledAtomicOccurrences.remove(candidates.first());
+    unhandledAtomicOccurrences.remove(candidates.getFirst());
     return true;
   }
 
