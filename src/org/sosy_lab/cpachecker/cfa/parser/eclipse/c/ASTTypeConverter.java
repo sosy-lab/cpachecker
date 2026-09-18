@@ -496,7 +496,11 @@ class ASTTypeConverter {
     return new CElaboratedType(convertCTypeQualifiers(d), type, name, origName, realType);
   }
 
-  /** returns a pointerType, that wraps the type. */
+  /**
+   * Returns a pointerType that wraps the type, ignoring any {@code _Atomic} right of the {@code *}.
+   * Only for contexts where that is unsupported (currently function return types); {@link
+   * CFABuilder}'s final check reports those.
+   */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
     return convert(po, type, /* pAtomic= */ false);
   }
@@ -507,11 +511,13 @@ class ASTTypeConverter {
    * from a pointer operator, so this information cannot be read from the pointer directly and has
    * to be recovered separately (cf. {@link #isAtomicPointerOperator}, #1670).
    */
-  CPointerType convert(final IASTPointerOperator po, final CType type, final boolean pAtomic) {
+  private CPointerType convert(
+      final IASTPointerOperator po, final CType type, final boolean pAtomic) {
     if (po instanceof IASTPointer p) {
+      // CDT drops the _Atomic attribute here, so this only fires if CDT ever stops dropping it.
       return new CPointerType(
           CTypeQualifiers.create(
-              pAtomic || hasCPAcheckerAttributeForAtomic(p), p.isConst(), p.isVolatile()),
+              hasUnexpectedCPAcheckerAttributeForAtomic(p) || pAtomic, p.isConst(), p.isVolatile()),
           type);
 
     } else {
@@ -563,7 +569,11 @@ class ASTTypeConverter {
             true,
             new FileLocation(fileName, regionEnd, 0, 0, 0, 0, 0),
             false);
-    return candidates.pollFirst() != null;
+    if (candidates.isEmpty()) {
+      return false;
+    }
+    unhandledAtomicOccurrences.remove(candidates.first());
+    return true;
   }
 
   /** returns a pointerType, that wraps all the converted types. */
