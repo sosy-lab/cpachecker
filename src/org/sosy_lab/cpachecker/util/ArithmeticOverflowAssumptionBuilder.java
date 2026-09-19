@@ -80,9 +80,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
 
   @Option(
       description =
-          "Only check live variables for overflow, as compiler can remove dead variables.",
+          "Only check live variables for overflow and ignore overflows in dead variables.",
       secure = true)
-  private boolean useLiveness = true;
+  private boolean useLiveness = false;
 
   @Option(description = "Track overflows in left-shift operations.", secure = true)
   private boolean trackLeftShifts = true;

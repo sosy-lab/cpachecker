@@ -5134,9 +5134,9 @@ overflow.trackMultiplications = true
 # Track overflows in binary expressions involving pointers.
 overflow.trackPointers = false
 
-# Only check live variables for overflow, as compiler can remove dead
+# Only check live variables for overflow and ignore overflows in dead
 # variables.
-overflow.useLiveness = true
+overflow.useLiveness = false
 
 # List of files with configurations to use. Files can be suffixed with
 # ::refinable to enable iterative refinement of the analysis precision (one
