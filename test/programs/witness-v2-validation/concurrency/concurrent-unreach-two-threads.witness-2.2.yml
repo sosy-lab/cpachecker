@@ -24,7 +24,7 @@
       input_files:
         - "./concurrent-unreach-two-threads.c"
       input_file_hashes:
-        "./concurrent-unreach-two-threads.c": "8bb9a6bf9a829dac005ec0ba64b402e49215126215a24a641b27d2cbd0ab4d5a"
+        "./concurrent-unreach-two-threads.c": "d743fac3133c121dba08cc661e5f6ddcf80f014c9e24f82ed115679105cb51c7"
       specification: "G ! call(reach_error())"
       data_model: "ILP32"
       language: "C"
@@ -32,13 +32,13 @@
     - segment:
         - waypoint:
             # registers writer as thread 1 (1st function_enter'd pthread_create). The
-            # creation of `idle` on line 34 is deliberately not mentioned.
+            # creation of `idle` on line 50 is deliberately not mentioned.
             type: function_enter
             action: follow
             thread_id: 0
             location:
               file_name: "./concurrent-unreach-two-threads.c"
-              line: 35
+              line: 51
               column: 17
               function: "main"
     - segment:
@@ -52,7 +52,7 @@
               format: c_expression
             location:
               file_name: "./concurrent-unreach-two-threads.c"
-              line: 29
+              line: 45
               column: 3
               function: "writer"
     - segment:
@@ -66,7 +66,7 @@
               format: c_expression
             location:
               file_name: "./concurrent-unreach-two-threads.c"
-              line: 36
+              line: 52
               column: 3
               function: "main"
     - segment:
@@ -76,6 +76,6 @@
             thread_id: 0
             location:
               file_name: "./concurrent-unreach-two-threads.c"
-              line: 36
+              line: 52
               column: 15
               function: "main"
