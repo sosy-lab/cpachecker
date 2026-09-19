@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
  * fallback, since it only costs reduction power (POR/OC then explore more interleavings than
  * strictly necessary around that lock) and never hides a real interleaving.
  */
-public record MutexLock(String handle, MutexLockType type) {
+public record MutexLock(MutexHandle handle, MutexLockType type) {
   public MutexLock {
     checkNotNull(handle);
     checkNotNull(type);

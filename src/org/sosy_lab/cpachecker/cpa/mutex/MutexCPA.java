@@ -51,10 +51,10 @@ public class MutexCPA extends AbstractCPA {
     super("sep", "sep", new MutexTransferRelation(collectMutexHandleCandidates(pCFA)));
   }
 
-  private static ImmutableMap<String, String> collectMutexHandleCandidates(CFA pCFA) {
+  private static ImmutableMap<MutexHandle, MutexHandle> collectMutexHandleCandidates(CFA pCFA) {
     Set<String> variableDeclarations = new HashSet<>();
     Map<String, Integer> assignmentCounts = new HashMap<>();
-    Map<String, String> aliases = new HashMap<>();
+    Map<MutexHandle, MutexHandle> aliases = new HashMap<>();
 
     for (CFAEdge edge : pCFA.edges()) {
       if (edge instanceof CDeclarationEdge declarationEdge) {
@@ -81,7 +81,9 @@ public class MutexCPA extends AbstractCPA {
                 && UnaryOperator.AMPER.equals(unaryRhs.getOperator())
                 && unaryRhs.getOperand() instanceof CIdExpression aliased) {
               assignmentCounts.merge(decl.getQualifiedName(), 1, Integer::sum);
-              aliases.put(decl.getQualifiedName(), aliased.getDeclaration().getQualifiedName());
+              aliases.put(
+                  new MutexHandle(decl.getQualifiedName()),
+                  new MutexHandle(aliased.getDeclaration().getQualifiedName()));
             } else {
               // unsupported candidate
               assignmentCounts.put(decl.getQualifiedName(), 2);
@@ -91,12 +93,12 @@ public class MutexCPA extends AbstractCPA {
       }
     }
 
-    ImmutableMap.Builder<String, String> candidates = ImmutableMap.builder();
+    ImmutableMap.Builder<MutexHandle, MutexHandle> candidates = ImmutableMap.builder();
     for (String name : variableDeclarations) {
       int count = assignmentCounts.getOrDefault(name, -1);
       if (0 <= count && count <= 1) {
-        String original = aliases.getOrDefault(name, name);
-        candidates.put(name, original);
+        MutexHandle handle = new MutexHandle(name);
+        candidates.put(handle, aliases.getOrDefault(handle, handle));
       }
     }
     return candidates.build();

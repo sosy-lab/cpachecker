@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexHandle;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -221,7 +222,7 @@ class SPORConcurrentState extends ConcurrentState {
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
       MutexState currentInitialMutexState = MutexState.EMPTY;
       if (currentMutexState != null) {
-        for (String initializedMutex : currentMutexState.getInitializedMutexes()) {
+        for (MutexHandle initializedMutex : currentMutexState.getInitializedMutexes()) {
           currentInitialMutexState = currentInitialMutexState.withInit(initializedMutex);
         }
       }

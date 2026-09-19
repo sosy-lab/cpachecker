@@ -137,9 +137,9 @@ public class MutexStateTest {
 
   @Test
   public void twoReadersOnSameRwlockDoNotCrash() {
-    MutexLock read = new MutexLock("rwlock", MutexLockType.READ);
+    MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
 
-    MutexState state = MutexState.EMPTY.withInit("rwlock");
+    MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
     state = state.withLock(read, 1).get();
     // A 2nd concurrent reader used to throw IllegalArgumentException("Multiple entries with
     // same key") because withLock's builder put()'d the already-putAll()'d key again.
@@ -150,9 +150,9 @@ public class MutexStateTest {
 
   @Test
   public void unlockingOneReaderKeepsTheOtherLocked() {
-    MutexLock read = new MutexLock("rwlock", MutexLockType.READ);
+    MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
 
-    MutexState state = MutexState.EMPTY.withInit("rwlock");
+    MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
     state = state.withLock(read, 1).get();
     state = state.withLock(read, 2).get();
     state = state.withUnlock(read, 1);
@@ -160,14 +160,17 @@ public class MutexStateTest {
     assertThat(state.getHolders(read)).containsExactly(2);
     assertThat(state.isMutexBlockedFor(read, 2)).isFalse();
     assertThat(state.isMutexBlockedFor(read, 3)).isFalse();
-    assertThat(state.isMutexBlockedFor(new MutexLock("rwlock", MutexLockType.WRITE), 3)).isTrue();
+    assertThat(
+            state.isMutexBlockedFor(
+                new MutexLock(new MutexHandle("rwlock"), MutexLockType.WRITE), 3))
+        .isTrue();
   }
 
   @Test
   public void unlockingLastReaderRemovesTheEntry() {
-    MutexLock read = new MutexLock("rwlock", MutexLockType.READ);
+    MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
 
-    MutexState state = MutexState.EMPTY.withInit("rwlock");
+    MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
     state = state.withLock(read, 1).get();
     state = state.withUnlock(read, 1);
 
@@ -183,9 +186,9 @@ public class MutexStateTest {
     // actually clears the lock the earlier lock call set.
     CVariableDeclaration cacheDecl = variable("cache", PROBLEM_TYPE);
 
-    Optional<String> lockKey =
+    Optional<MutexHandle> lockKey =
         MutexFunctions.extractMutexName(addressOfArrayFieldAccess(cacheDecl, 0, "refs_mutex"));
-    Optional<String> unlockKey =
+    Optional<MutexHandle> unlockKey =
         MutexFunctions.extractMutexName(addressOfArrayFieldAccess(cacheDecl, 0, "refs_mutex"));
 
     assertThat(lockKey).isPresent();

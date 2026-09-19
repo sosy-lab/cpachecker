@@ -75,14 +75,14 @@ public final class MutexFunctions {
 
   private MutexFunctions() {}
 
-  public static Optional<String> extractMutexName(AExpression expr) {
+  public static Optional<MutexHandle> extractMutexName(AExpression expr) {
     if (expr instanceof CUnaryExpression unary
         && unary.getOperator() == UnaryOperator.AMPER
         && unary.getOperand() instanceof CIdExpression id) {
-      return Optional.of(id.getName());
+      return Optional.of(new MutexHandle(id.getName()));
     }
     if (expr instanceof CIdExpression id) {
-      return Optional.of(id.getName());
+      return Optional.of(new MutexHandle(id.getName()));
     }
     return Optional.empty();
   }
@@ -189,7 +189,7 @@ public final class MutexFunctions {
         if (lockType != null) {
           var params = funcCall.getFunctionCallExpression().getParameterExpressions();
           if (!params.isEmpty()) {
-            Optional<String> handle = extractMutexName(params.getFirst());
+            Optional<MutexHandle> handle = extractMutexName(params.getFirst());
             if (handle.isEmpty()) {
               throw new UnsupportedOperationException("Cannot statically determine mutex handle.");
             }

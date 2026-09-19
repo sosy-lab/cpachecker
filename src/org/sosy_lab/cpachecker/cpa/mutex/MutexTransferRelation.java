@@ -26,9 +26,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 class MutexTransferRelation extends SingleEdgeTransferRelation {
 
-  private final ImmutableMap<String, String> mutexHandleCandidates;
+  private final ImmutableMap<MutexHandle, MutexHandle> mutexHandleCandidates;
 
-  MutexTransferRelation(ImmutableMap<String, String> pMutexHandleCandidates) {
+  MutexTransferRelation(ImmutableMap<MutexHandle, MutexHandle> pMutexHandleCandidates) {
     mutexHandleCandidates = pMutexHandleCandidates;
   }
 
