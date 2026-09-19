@@ -14,7 +14,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
-import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -178,32 +177,16 @@ public class MutexStateTest {
   }
 
   @Test
-  public void arrayFieldMutex_lockAndUnlockSiteResolveToSameKey() {
-    // Mirrors real code like `pthread_mutex_lock(&(cache[i]).refs_mutex)`, but with a
-    // compile-time-constant index, e.g. `&cache[0].refs_mutex`: the lock and unlock call sites
-    // each parse their own (structurally identical, but not object-identical) argument
-    // expression, and MutexFunctions must resolve both to the same canonical key so the unlock
-    // actually clears the lock the earlier lock call set.
+  public void arrayFieldMutex_isNotResolved_evenWithConstantIndex() {
+    // `&cache[0].refs_mutex`: extractMutexName only canonicalises a plain identifier and the
+    // address of one, so a field of an array element is not resolved even though its index is a
+    // compile-time constant. Such a handle is therefore never a mutex-handle candidate, and the
+    // lock/unlock pair is not tracked rather than tracked imprecisely.
     CVariableDeclaration cacheDecl = variable("cache", PROBLEM_TYPE);
 
-    Optional<MutexHandle> lockKey =
-        MutexFunctions.extractMutexName(addressOfArrayFieldAccess(cacheDecl, 0, "refs_mutex"));
-    Optional<MutexHandle> unlockKey =
-        MutexFunctions.extractMutexName(addressOfArrayFieldAccess(cacheDecl, 0, "refs_mutex"));
-
-    assertThat(lockKey).isPresent();
-    assertThat(unlockKey).isEqualTo(lockKey);
-
-    MutexLock lock = new MutexLock(lockKey.get(), MutexLockType.BOTH);
-    MutexLock unlock = new MutexLock(unlockKey.get(), MutexLockType.BOTH);
-    assertThat(unlock).isEqualTo(lock);
-
-    MutexState state = MutexState.EMPTY.withInit(lockKey.get());
-    state = state.withLock(lock, 1).get();
-    assertThat(state.isLocked(lock)).isTrue();
-
-    state = state.withUnlock(unlock, 1);
-    assertThat(state.isLocked(lock)).isFalse();
+    assertThat(
+            MutexFunctions.extractMutexName(addressOfArrayFieldAccess(cacheDecl, 0, "refs_mutex")))
+        .isEmpty();
   }
 
   @Test
@@ -215,30 +198,23 @@ public class MutexStateTest {
 
     // A runtime-computed index (e.g. a loop variable) can denote a different storage location on
     // every evaluation, so no canonical key can be computed statically.
-    assertThat(MutexFunctions.extractMutexName(symbolicMutexExpr)).isNull();
+    assertThat(MutexFunctions.extractMutexName(symbolicMutexExpr)).isEmpty();
   }
 
   @Test
-  public void unresolvableMutexCall_yieldsNoMutexLock_notANullHandleOne() {
-    // Regression test for the crash this fix addresses: `pthread_mutex_lock(&(cache[i]).mutex)`
-    // (sv-benchmarks goblint-regression/28-race_reach_73-funloop_hard_racefree.i) used to make
-    // getMutexLockForFunctionSet build `new MutexLock(null, BOTH)`, which then blew up later with
-    // a NullPointerException in MutexState#withUnlock
-    // (entry.getKey().handle().equals(mutex.handle()) on a null handle).
+  public void unresolvableMutexCall_isRejected() {
+    // `pthread_mutex_lock(&(cache[i]).refs_mutex)` with a runtime index: the handle cannot be
+    // determined statically. The mutex CPA does not silently treat such an edge as a non-mutex
+    // operation, which would drop the lock; it refuses it instead, so a caller that reaches one
+    // without pre-filtering it through the handle candidates fails loudly.
     CVariableDeclaration cacheDecl = variable("cache", PROBLEM_TYPE);
     CVariableDeclaration indexDecl = variable("i", CNumericTypes.INT);
     CExpression symbolicMutexExpr =
         addressOfSymbolicIndexArrayFieldAccess(cacheDecl, indexDecl, "refs_mutex");
     CFAEdge lockEdge = functionCallEdge("pthread_mutex_lock", symbolicMutexExpr);
 
-    // The sound fallback: this edge is simply not recognized as a mutex operation at all, rather
-    // than producing a MutexLock with a null handle.
-    assertThat(MutexFunctions.getLockMutex(lockEdge)).isEmpty();
-    assertThat(MutexFunctions.isLockCall(lockEdge)).isFalse();
-
-    // MutexState#update must likewise treat it as a no-op (edge not recognized), not crash.
-    MutexState state = MutexState.EMPTY;
-    assertThat(state.update(lockEdge, 1, null).get()).isEqualTo(state);
+    assertThrows(UnsupportedOperationException.class, () -> MutexFunctions.getLockMutex(lockEdge));
+    assertThrows(UnsupportedOperationException.class, () -> MutexFunctions.isLockCall(lockEdge));
   }
 
   @Test
