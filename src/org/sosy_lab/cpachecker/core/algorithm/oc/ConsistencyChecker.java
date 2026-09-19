@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -18,14 +20,12 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.CsPair;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.PoEdge;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.RfPair;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.WsPair;
 import org.sosy_lab.cpachecker.cpa.oc.EventKind;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model;
 
@@ -58,19 +58,20 @@ import org.sosy_lab.java_smt.api.Model;
  */
 final class ConsistencyChecker {
 
-  /** One edge of the event graph; a null reason means the edge always holds (program order). */
-  private record Edge(int from, int to, @Nullable BooleanFormula reason) {}
+  /**
+   * One edge of the event graph. {@code reasons} are the conditions under which the edge is
+   * present, to be read conjunctively; an empty list means the edge always holds.
+   */
+  record Edge(int from, int to, ImmutableList<BooleanFormula> reasons) {}
 
   private final OcEncoder encoder;
-  private final BooleanFormulaManagerView bfmgr;
   private final int eventCount;
   private final List<List<Edge>> outgoing;
   private final Set<Long> presentEdges = new HashSet<>();
   private BitSet[] reachable;
 
-  private ConsistencyChecker(OcEncoder pEncoder, BooleanFormulaManagerView pBfmgr) {
+  private ConsistencyChecker(OcEncoder pEncoder) {
     encoder = pEncoder;
-    bfmgr = pBfmgr;
     eventCount = pEncoder.getEvents().size();
     outgoing = new ArrayList<>(eventCount);
     for (int i = 0; i < eventCount; i++) {
@@ -78,27 +79,27 @@ final class ConsistencyChecker {
     }
   }
 
-  /** Returns the reasons of all inconsistencies of the model, or an empty list if consistent. */
-  static List<BooleanFormula> findConflicts(
-      OcEncoder pEncoder, Model pModel, BooleanFormulaManagerView pBfmgr) {
-    ConsistencyChecker checker = new ConsistencyChecker(pEncoder, pBfmgr);
+  /**
+   * The cycles of the closed event graph, each as the list of edges it consists of, or an empty
+   * list if the model is consistent. The caller turns a cycle into a conflict clause by conjoining
+   * the {@link Edge#reasons()} of its edges; this class needs no solver context of its own.
+   */
+  static ImmutableList<ImmutableList<Edge>> findCycles(OcEncoder pEncoder, Model pModel) {
+    ConsistencyChecker checker = new ConsistencyChecker(pEncoder);
     return checker.run(pModel);
   }
 
-  private List<BooleanFormula> run(Model pModel) {
-    boolean[] enabled = new boolean[eventCount];
-    for (MemoryEvent event : encoder.getEvents()) {
-      enabled[event.id()] = isTrue(pModel.evaluate(encoder.getFullGuard(event)));
-    }
+  private ImmutableList<ImmutableList<Edge>> run(Model pModel) {
+    ImmutableSet<MemoryEvent> enabled = encoder.enabledIn(pModel);
 
     // Only enabled events are part of this model's execution; edges touching a disabled event are
     // not real happens-before and must not enter the graph. Every edge's reason must fully imply
     // its presence (including the enabled-ness of its endpoints), so the conflict clause it feeds
     // excludes only models that genuinely contain the cycle.
     for (PoEdge edge : encoder.getProgramOrderDagEdges()) {
-      int from = edge.from().id();
-      int to = edge.to().id();
-      if (enabled[from] && enabled[to]) {
+      if (enabled.contains(edge.from()) && enabled.contains(edge.to())) {
+        int from = edge.from().id();
+        int to = edge.to().id();
         addEdge(new Edge(from, to, guardsOf(from, to)));
       }
     }
@@ -106,33 +107,46 @@ final class ConsistencyChecker {
     for (OcEncoder.CrossPoEdge cross : encoder.getCrossPoEdges()) {
       int from = cross.from().id();
       int to = cross.to().id();
-      if (enabled[from] && enabled[to]) {
+      if (enabled.contains(cross.from()) && enabled.contains(cross.to())) {
         addEdge(
             new Edge(
-                from, to, bfmgr.and(encoder.getFullGuard(cross.guardEvent()), guardsOf(from, to))));
+                from,
+                to,
+                ImmutableList.<BooleanFormula>builder()
+                    .add(encoder.getFullGuard(cross.guardEvent()))
+                    .addAll(guardsOf(from, to))
+                    .build()));
       }
     }
     List<RfPair> activeRf = new ArrayList<>();
     for (RfPair rf : encoder.getRfPairs()) {
       if (isTrue(pModel.evaluate(rf.variable()))) {
-        addEdge(new Edge(rf.write().id(), rf.read().id(), rf.variable()));
+        addEdge(new Edge(rf.write().id(), rf.read().id(), ImmutableList.of(rf.variable())));
         activeRf.add(rf);
       }
     }
     for (WsPair ws : encoder.getWsPairs()) {
       if (isTrue(pModel.evaluate(ws.var12()))) {
-        addEdge(new Edge(ws.write1().id(), ws.write2().id(), ws.var12()));
+        addEdge(new Edge(ws.write1().id(), ws.write2().id(), ImmutableList.of(ws.var12())));
       }
       if (isTrue(pModel.evaluate(ws.var21()))) {
-        addEdge(new Edge(ws.write2().id(), ws.write1().id(), ws.var21()));
+        addEdge(new Edge(ws.write2().id(), ws.write1().id(), ImmutableList.of(ws.var21())));
       }
     }
     for (CsPair cs : encoder.getCsPairs()) {
       if (isTrue(pModel.evaluate(cs.var12()))) {
-        addEdge(new Edge(cs.section1().unlock().id(), cs.section2().lock().id(), cs.var12()));
+        addEdge(
+            new Edge(
+                cs.section1().unlock().id(),
+                cs.section2().lock().id(),
+                ImmutableList.of(cs.var12())));
       }
       if (isTrue(pModel.evaluate(cs.var21()))) {
-        addEdge(new Edge(cs.section2().unlock().id(), cs.section1().lock().id(), cs.var21()));
+        addEdge(
+            new Edge(
+                cs.section2().unlock().id(),
+                cs.section1().lock().id(),
+                ImmutableList.of(cs.var21())));
       }
     }
 
@@ -148,23 +162,29 @@ final class ConsistencyChecker {
         int write = writeEvent.id();
         int read = rf.read().id();
         for (MemoryEvent other : sameCellWrites.get(write)) {
-          if (!enabled[other.id()]) {
+          if (!enabled.contains(other)) {
             continue;
           }
-          BooleanFormula sideCondition = encoder.getFullGuard(other);
+          ImmutableList.Builder<BooleanFormula> sideBuilder = ImmutableList.builder();
+          sideBuilder.add(encoder.getFullGuard(other));
           if (writeEvent.isRegionAccess()) {
             // in the aliasing regime, "same cell" additionally means equal addresses
             if (!sameCellInModel(other, writeEvent, addressValues)) {
               continue;
             }
-            sideCondition = bfmgr.and(sideCondition, encoder.sameAddress(other, writeEvent));
+            sideBuilder.add(encoder.sameAddress(other, writeEvent));
           }
+          ImmutableList<BooleanFormula> sideCondition = sideBuilder.build();
           if (reachable[other.id()].get(read) && !hasEdge(other.id(), write)) {
             addEdge(
                 new Edge(
                     other.id(),
                     write,
-                    bfmgr.and(rf.variable(), pathReason(other.id(), read), sideCondition)));
+                    ImmutableList.<BooleanFormula>builder()
+                        .add(rf.variable())
+                        .addAll(pathReasons(other.id(), read))
+                        .addAll(sideCondition)
+                        .build()));
             changed = true;
           }
           if (reachable[write].get(other.id()) && !hasEdge(read, other.id())) {
@@ -172,25 +192,40 @@ final class ConsistencyChecker {
                 new Edge(
                     read,
                     other.id(),
-                    bfmgr.and(rf.variable(), pathReason(write, other.id()), sideCondition)));
+                    ImmutableList.<BooleanFormula>builder()
+                        .add(rf.variable())
+                        .addAll(pathReasons(write, other.id()))
+                        .addAll(sideCondition)
+                        .build()));
             changed = true;
           }
         }
       }
     }
 
-    Set<BooleanFormula> conflicts = new LinkedHashSet<>();
+    Set<ImmutableList<BooleanFormula>> seen = new LinkedHashSet<>();
+    ImmutableList.Builder<ImmutableList<Edge>> cycles = ImmutableList.builder();
     for (int event = 0; event < eventCount; event++) {
       if (reachable[event].get(event)) {
-        conflicts.add(cycleReason(event));
+        ImmutableList<Edge> cycle = path(event, event);
+        if (seen.add(reasonsOf(cycle))) {
+          cycles.add(cycle);
+        }
       }
     }
-    return new ArrayList<>(conflicts);
+    return cycles.build();
+  }
+
+  /** The conditions of all edges of {@code pEdges}, to be read conjunctively. */
+  static ImmutableList<BooleanFormula> reasonsOf(List<Edge> pEdges) {
+    return pEdges.stream()
+        .flatMap(edge -> edge.reasons().stream())
+        .collect(ImmutableList.toImmutableList());
   }
 
   /** The presence condition of a program-order edge: both of its endpoints are enabled. */
-  private BooleanFormula guardsOf(int pFrom, int pTo) {
-    return bfmgr.and(encoder.getFullGuard(pFrom), encoder.getFullGuard(pTo));
+  private ImmutableList<BooleanFormula> guardsOf(int pFrom, int pTo) {
+    return ImmutableList.of(encoder.getFullGuard(pFrom), encoder.getFullGuard(pTo));
   }
 
   private void addEdge(Edge pEdge) {
@@ -235,7 +270,12 @@ final class ConsistencyChecker {
    * Conjunction of the reasons of the edges of one path from pFrom to pTo (there must be one).
    * Reasons of derived edges already contain the reasons of the paths they were derived from.
    */
-  private BooleanFormula pathReason(int pFrom, int pTo) {
+  private ImmutableList<BooleanFormula> pathReasons(int pFrom, int pTo) {
+    return reasonsOf(path(pFrom, pTo));
+  }
+
+  /** The edges of one path from pFrom to pTo (there must be one). */
+  private ImmutableList<Edge> path(int pFrom, int pTo) {
     Edge[] parent = new Edge[eventCount];
     Deque<Integer> worklist = new ArrayDeque<>();
     BitSet visited = new BitSet(eventCount);
@@ -260,21 +300,14 @@ final class ConsistencyChecker {
       }
     }
 
-    List<BooleanFormula> reasons = new ArrayList<>();
+    List<Edge> edges = new ArrayList<>();
     int node = pTo;
     do {
       Edge edge = parent[node];
-      if (edge.reason() != null) {
-        reasons.add(edge.reason());
-      }
+      edges.add(edge);
       node = edge.from();
     } while (node != pFrom);
-    return bfmgr.and(reasons);
-  }
-
-  /** The reason of a (non-empty) cycle from pEvent back to itself. */
-  private BooleanFormula cycleReason(int pEvent) {
-    return pathReason(pEvent, pEvent);
+    return ImmutableList.copyOf(edges).reverse();
   }
 
   private ImmutableListMultimap<Integer, MemoryEvent> sameCellWrites() {

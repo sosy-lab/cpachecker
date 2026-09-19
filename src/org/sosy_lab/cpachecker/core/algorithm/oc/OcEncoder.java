@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.oc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimaps;
 import java.util.ArrayDeque;
@@ -20,6 +21,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
@@ -99,7 +102,7 @@ final class OcEncoder {
   private final boolean withOrderingBooleans;
 
   private final ImmutableList<MemoryEvent> events;
-  private final BooleanFormula[] fullGuards;
+  private final ImmutableMap<MemoryEvent, BooleanFormula> fullGuards;
   private final List<PoEdge> poEdges = new ArrayList<>();
   private final List<CrossPoEdge> crossPoEdges = new ArrayList<>();
   private final BitSet[] definiteReach;
@@ -132,6 +135,20 @@ final class OcEncoder {
   }
 
   /**
+   * The events that are enabled in the given model, i.e. whose full guard the model satisfies. The
+   * encoder owns the guards, so callers ask it rather than re-evaluating them.
+   */
+  ImmutableSet<MemoryEvent> enabledIn(Model pModel) {
+    ImmutableSet.Builder<MemoryEvent> enabled = ImmutableSet.builder();
+    for (MemoryEvent event : events) {
+      if (Boolean.TRUE.equals(pModel.evaluate(getFullGuard(event)))) {
+        enabled.add(event);
+      }
+    }
+    return enabled.build();
+  }
+
+  /**
    * The real program-order DAG edges (predecessor to event), as opposed to {@link #getPoEdges()}
    * which are consecutive pairs of an arbitrary linearization and therefore also connect
    * mutually-exclusive branch events. The consistency checker must use these so it never treats two
@@ -156,11 +173,11 @@ final class OcEncoder {
   }
 
   BooleanFormula getFullGuard(int pEventId) {
-    return fullGuards[pEventId];
+    return fullGuards.get(registry.getEvent(pEventId));
   }
 
   BooleanFormula getFullGuard(MemoryEvent pEvent) {
-    return fullGuards[pEvent.id()];
+    return fullGuards.get(pEvent);
   }
 
   ImmutableList<RfPair> getRfPairs() {
@@ -191,7 +208,7 @@ final class OcEncoder {
    * threads finished within the bound would contradict the cut guards by construction and unsoundly
    * "prove" the bound sufficient.
    */
-  List<BooleanFormula> getJoinConstraints() {
+  ImmutableList<BooleanFormula> getJoinConstraints() {
     List<BooleanFormula> constraints = new ArrayList<>();
     ImmutableListMultimap<Integer, MemoryEvent> exitsByInstance =
         events.stream()
@@ -207,7 +224,7 @@ final class OcEncoder {
         constraints.add(bfmgr.implication(getFullGuard(join), bfmgr.or(exitGuards)));
       }
     }
-    return constraints;
+    return ImmutableList.copyOf(constraints);
   }
 
   /** The error property: some error event is enabled. Asserted only for the violation check. */
@@ -300,7 +317,7 @@ final class OcEncoder {
   }
 
   /** Constraints shared by both solving modes. */
-  List<BooleanFormula> getBaseConstraints() {
+  ImmutableList<BooleanFormula> getBaseConstraints() {
     List<BooleanFormula> constraints = new ArrayList<>(registry.getPathConstraints());
 
     for (RfPair rf : rfPairs) {
@@ -394,33 +411,33 @@ final class OcEncoder {
                 bfmgr.or(cs.var12(), cs.var21())));
       }
     }
-    return constraints;
+    return ImmutableList.copyOf(constraints);
   }
 
   /** Eager integer-clock ordering constraints (used by the CLOCKS mode). */
-  List<BooleanFormula> getClockConstraints() {
+  ImmutableList<BooleanFormula> getClockConstraints() {
     var imgr = fmgr.getIntegerFormulaManager();
-    IntegerFormula[] clocks = new IntegerFormula[events.size()];
+    Map<MemoryEvent, IntegerFormula> clocks = new LinkedHashMap<>();
     for (MemoryEvent event : events) {
-      clocks[event.id()] = imgr.makeVariable("__oc_clk_" + event.id());
+      clocks.put(event, imgr.makeVariable("__oc_clk_" + event.id()));
     }
 
     List<BooleanFormula> constraints = new ArrayList<>();
     for (PoEdge edge : poEdges) {
-      constraints.add(imgr.lessThan(clocks[edge.from().id()], clocks[edge.to().id()]));
+      constraints.add(imgr.lessThan(clocks.get(edge.from()), clocks.get(edge.to())));
     }
     for (CrossPoEdge cross : crossPoEdges) {
       constraints.add(
           bfmgr.implication(
-              fullGuards[cross.guardEvent().id()],
-              imgr.lessThan(clocks[cross.from().id()], clocks[cross.to().id()])));
+              getFullGuard(cross.guardEvent()),
+              imgr.lessThan(clocks.get(cross.from()), clocks.get(cross.to()))));
     }
 
     ImmutableListMultimap<Object, MemoryEvent> writesByCell = writesByCell();
     for (RfPair rf : rfPairs) {
       constraints.add(
           bfmgr.implication(
-              rf.variable(), imgr.lessThan(clocks[rf.write().id()], clocks[rf.read().id()])));
+              rf.variable(), imgr.lessThan(clocks.get(rf.write()), clocks.get(rf.read()))));
       for (MemoryEvent other : writesByCell.get(cellKey(rf.write()))) {
         if (other.id() == rf.write().id()) {
           continue;
@@ -434,8 +451,8 @@ final class OcEncoder {
             bfmgr.implication(
                 premise,
                 bfmgr.or(
-                    imgr.lessThan(clocks[other.id()], clocks[rf.write().id()]),
-                    imgr.lessThan(clocks[rf.read().id()], clocks[other.id()]))));
+                    imgr.lessThan(clocks.get(other), clocks.get(rf.write())),
+                    imgr.lessThan(clocks.get(rf.read()), clocks.get(other)))));
       }
     }
 
@@ -453,11 +470,11 @@ final class OcEncoder {
                   sameMutex(cs.section1().lock(), cs.section2().lock())),
               bfmgr.or(
                   imgr.lessThan(
-                      clocks[cs.section1().unlock().id()], clocks[cs.section2().lock().id()]),
+                      clocks.get(cs.section1().unlock()), clocks.get(cs.section2().lock())),
                   imgr.lessThan(
-                      clocks[cs.section2().unlock().id()], clocks[cs.section1().lock().id()]))));
+                      clocks.get(cs.section2().unlock()), clocks.get(cs.section1().lock())))));
     }
-    return constraints;
+    return ImmutableList.copyOf(constraints);
   }
 
   /**
@@ -642,10 +659,10 @@ final class OcEncoder {
     }
   }
 
-  private BooleanFormula[] computeFullGuards() {
+  private ImmutableMap<MemoryEvent, BooleanFormula> computeFullGuards() {
     ImmutableList<ThreadInstance> instances = registry.getInstances();
     BooleanFormula[] creationGuards = new BooleanFormula[instances.size()];
-    BooleanFormula[] guards = new BooleanFormula[events.size()];
+    ImmutableMap.Builder<MemoryEvent, BooleanFormula> guards = ImmutableMap.builder();
     for (ThreadInstance instance : instances) {
       if (instance.getId() == ThreadInstance.MAIN_INSTANCE_ID) {
         creationGuards[instance.getId()] = bfmgr.makeTrue();
@@ -660,11 +677,11 @@ final class OcEncoder {
       }
       for (MemoryEvent event : events) {
         if (event.instanceId() == instance.getId()) {
-          guards[event.id()] = bfmgr.and(creationGuards[instance.getId()], event.pathGuard());
+          guards.put(event, bfmgr.and(creationGuards[instance.getId()], event.pathGuard()));
         }
       }
     }
-    return guards;
+    return guards.buildOrThrow();
   }
 
   /**

@@ -303,14 +303,16 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
     statistics.encodingTimer.start();
     OcEncoder encoder;
-    List<BooleanFormula> constraints;
+    ImmutableList<BooleanFormula> constraints;
     try {
       encoder =
           new OcEncoder(registry, solver.getFormulaManager(), encoding == EncodingMode.REFINEMENT);
-      constraints = encoder.getBaseConstraints();
+      ImmutableList.Builder<BooleanFormula> constraintBuilder = ImmutableList.builder();
+      constraintBuilder.addAll(encoder.getBaseConstraints());
       if (encoding == EncodingMode.CLOCKS) {
-        constraints.addAll(encoder.getClockConstraints());
+        constraintBuilder.addAll(encoder.getClockConstraints());
       }
+      constraints = constraintBuilder.build();
       statistics.rfCount = encoder.getRfPairs().size();
       statistics.wsCount = encoder.getWsPairs().size();
       statistics.csCount = encoder.getCsPairs().size();
@@ -963,15 +965,15 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         return false;
       }
       statistics.refinementIterations++;
-      List<BooleanFormula> conflicts;
+      ImmutableList<ImmutableList<ConsistencyChecker.Edge>> cycles;
       try (Model model = pProver.getModel()) {
-        conflicts = ConsistencyChecker.findConflicts(pEncoder, model, pBfmgr);
+        cycles = ConsistencyChecker.findCycles(pEncoder, model);
       }
-      if (conflicts.isEmpty()) {
+      if (cycles.isEmpty()) {
         return true;
       }
-      for (BooleanFormula conflict : conflicts) {
-        pProver.addConstraint(pBfmgr.not(conflict));
+      for (ImmutableList<ConsistencyChecker.Edge> cycle : cycles) {
+        pProver.addConstraint(pBfmgr.not(pBfmgr.and(ConsistencyChecker.reasonsOf(cycle))));
         statistics.conflictClauses++;
       }
     }
