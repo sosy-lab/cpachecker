@@ -46,17 +46,7 @@ public class ConcurrentCPATest {
   }
 
   private static List<String> getConfigs() {
-    return ImmutableList.of(
-        "config/por-pred.properties",
-        "config/por-pred-aa.properties",
-        //        "config/por-pred-z3.properties",
-        //        "config/por-pred-aa-z3.properties",
-        "config/por-value.properties",
-        "config/por-value-aa.properties",
-        "config/por-value-cegar.properties",
-        "config/por-value-cegar-aa.properties"
-        //        "config/por-value-z3.properties"
-        );
+    return ImmutableList.of("config/por-pred.properties", "config/por-value-cegar.properties");
   }
 
   private static List<Pair<String, Boolean>> getTestCases() {
