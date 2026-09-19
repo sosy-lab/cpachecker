@@ -148,6 +148,36 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     zeroOffsetTerm = null;
   }
 
+  /**
+   * Creates a control event (no memory access, no mutex) chained after the state's last events.
+   * These are {@code ABORT}, {@code THREAD_EXIT} and {@code ERROR}.
+   */
+  private MemoryEvent addControlEvent(
+      OrderingConsistencyState pState, EventKind pKind, @Nullable CFAEdge pEdge) {
+    return addEventAfter(
+        pState, pKind, null, null, null, null, MemoryEvent.NO_INSTANCE, null, null, pEdge);
+  }
+
+  /** Creates a lock or unlock event for the given mutex, chained after the state's last events. */
+  private MemoryEvent addMutexEvent(
+      OrderingConsistencyState pState, EventKind pKind, String pMutexId, @Nullable CFAEdge pEdge) {
+    return addEventAfter(
+        pState, pKind, null, null, null, pMutexId, MemoryEvent.NO_INSTANCE, null, null, pEdge);
+  }
+
+  /**
+   * Creates a create or join event referring to another thread instance, chained after the state's
+   * last events.
+   */
+  private MemoryEvent addThreadEvent(
+      OrderingConsistencyState pState,
+      EventKind pKind,
+      int pOtherInstanceId,
+      @Nullable CFAEdge pEdge) {
+    return addEventAfter(
+        pState, pKind, null, null, null, null, pOtherInstanceId, null, null, pEdge);
+  }
+
   /** Creates an event chained in program order after all of the state's last events. */
   private MemoryEvent addEventAfter(
       OrderingConsistencyState pState,
@@ -236,17 +266,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
     if (callee.isPresent() && PROGRAM_EXIT_FUNCTIONS.contains(callee.get())) {
       // the whole program dies here; the event blocks any pthread_join of this instance
-      addEventAfter(
-          pState,
-          EventKind.ABORT,
-          null,
-          null,
-          null,
-          null,
-          MemoryEvent.NO_INSTANCE,
-          null,
-          null,
-          pEdge);
+      addControlEvent(pState, EventKind.ABORT, pEdge);
       return;
     }
     if (callee.isPresent() && ThreadFunctions.isCreateFunction(callee.get())) {
@@ -265,17 +285,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       // at the function-return edge below. A body that never returns (abort/error inside) keeps
       // the section open to the path leaf, like an unclosed __VERIFIER_atomic_begin.
       MemoryEvent lockEvent =
-          addEventAfter(
-              pState,
-              EventKind.LOCK,
-              null,
-              null,
-              null,
-              MemoryEvent.ATOMIC_BLOCK_MUTEX,
-              MemoryEvent.NO_INSTANCE,
-              null,
-              null,
-              pEdge);
+          addMutexEvent(pState, EventKind.LOCK, MemoryEvent.ATOMIC_BLOCK_MUTEX, pEdge);
       handleRegularEdge(
           withAtomicSection(pState, ImmutableList.of(lockEvent.id()), 1),
           pPrecision,
@@ -290,17 +300,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       for (int i = firstNew; i < pSuccessors.size(); i++) {
         OrderingConsistencyState successor = (OrderingConsistencyState) pSuccessors.get(i);
         MemoryEvent unlockEvent =
-            addEventAfter(
-                successor,
-                EventKind.UNLOCK,
-                null,
-                null,
-                null,
-                MemoryEvent.ATOMIC_BLOCK_MUTEX,
-                MemoryEvent.NO_INSTANCE,
-                null,
-                null,
-                pEdge);
+            addMutexEvent(successor, EventKind.UNLOCK, MemoryEvent.ATOMIC_BLOCK_MUTEX, pEdge);
         pSuccessors.set(i, withAtomicSection(successor, ImmutableList.of(unlockEvent.id()), -1));
       }
       return;
@@ -359,33 +359,12 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   }
 
   private void addThreadExitEvent(OrderingConsistencyState pState, @Nullable CFAEdge pEdge) {
-    addEventAfter(
-        pState,
-        EventKind.THREAD_EXIT,
-        null,
-        null,
-        null,
-        null,
-        MemoryEvent.NO_INSTANCE,
-        null,
-        null,
-        pEdge);
+    addControlEvent(pState, EventKind.THREAD_EXIT, pEdge);
   }
 
   private void handleError(
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors) {
-    MemoryEvent event =
-        addEventAfter(
-            pState,
-            EventKind.ERROR,
-            null,
-            null,
-            null,
-            null,
-            MemoryEvent.NO_INSTANCE,
-            null,
-            null,
-            pEdge);
+    MemoryEvent event = addControlEvent(pState, EventKind.ERROR, pEdge);
     pSuccessors.add(
         new OrderingConsistencyState(
             pState.getInstanceId(),
@@ -435,9 +414,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     boolean isNew = existing.isEmpty();
     ThreadInstance instance = existing.orElseGet(() -> registry.newInstance(key));
 
-    MemoryEvent createEvent =
-        addEventAfter(
-            pState, EventKind.CREATE, null, null, null, null, instance.getId(), null, null, pEdge);
+    MemoryEvent createEvent = addThreadEvent(pState, EventKind.CREATE, instance.getId(), pEdge);
     registry.addCreateEvent(instance.getId(), createEvent.id());
 
     // a fresh literal identifying this instance is written through the (arbitrary) handle pointer
@@ -670,9 +647,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
       BooleanFormula branchGuard = bfmgr.and(pState.getGuard(), assumeFormula.getFormula());
       OrderingConsistencyState branchState = withGuardAndEvents(pState, branchGuard, lastEventIds);
-      MemoryEvent joinEvent =
-          addEventAfter(
-              branchState, EventKind.JOIN, null, null, null, null, candidate, null, null, pEdge);
+      MemoryEvent joinEvent = addThreadEvent(branchState, EventKind.JOIN, candidate, pEdge);
       addSuccessor(
           pSuccessors,
           pState,
