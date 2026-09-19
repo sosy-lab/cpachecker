@@ -925,11 +925,12 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * branch.
    */
   private CFAEdge displayEdge(MemoryEvent event, Model model) {
-    OcExplorationRegistry.AssumeBranch branch = ocCpa.getRegistry().getAssumeBranch(event.id());
-    if (branch != null) {
-      return Boolean.TRUE.equals(model.evaluate(branch.condition()))
-          ? branch.firstEdge()
-          : branch.secondEdge();
+    Optional<OcExplorationRegistry.AssumeBranch> branch =
+        ocCpa.getRegistry().getAssumeBranch(event.id());
+    if (branch.isPresent()) {
+      return Boolean.TRUE.equals(model.evaluate(branch.orElseThrow().condition()))
+          ? branch.orElseThrow().firstEdge()
+          : branch.orElseThrow().secondEdge();
     }
     return event.edge();
   }

@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -83,9 +84,9 @@ public class MutexState implements AbstractState {
     return lockedMutexes.get(mutex);
   }
 
-  /** Returns the PID of the thread currently in an atomic block, or {@code null}. */
-  public @Nullable Integer getAtomicHolder() {
-    return atomicHolder;
+  /** Returns the PID of the thread currently in an atomic block, if there is one. */
+  public OptionalInt getAtomicHolder() {
+    return atomicHolder == null ? OptionalInt.empty() : OptionalInt.of(atomicHolder);
   }
 
   /**

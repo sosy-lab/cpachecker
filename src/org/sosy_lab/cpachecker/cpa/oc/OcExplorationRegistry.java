@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -123,8 +124,8 @@ public final class OcExplorationRegistry {
   }
 
   /** The branch a condition-read event belongs to, or null if the event is not a condition read. */
-  public @Nullable AssumeBranch getAssumeBranch(int pEventId) {
-    return assumeBranches.get(pEventId);
+  public Optional<AssumeBranch> getAssumeBranch(int pEventId) {
+    return Optional.ofNullable(assumeBranches.get(pEventId));
   }
 
   /**
@@ -307,9 +308,9 @@ public final class OcExplorationRegistry {
     return ImmutableList.copyOf(events.values());
   }
 
-  /** Returns the already known instance for the given key, or null. */
-  public @Nullable ThreadInstance getInstance(InstanceKey pKey) {
-    return instancesByKey.get(pKey);
+  /** Returns the already known instance for the given key, if there is one. */
+  public Optional<ThreadInstance> getInstance(InstanceKey pKey) {
+    return Optional.ofNullable(instancesByKey.get(pKey));
   }
 
   public ThreadInstance getInstance(int pId) {

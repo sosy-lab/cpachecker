@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.stream.Collectors;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -114,8 +113,9 @@ public class ConcurrentState extends AbstractSingleWrapperState
    * The fast-path candidate hint for a handle's qualified name, if any (see {@link #handleHints}),
    * or null.
    */
-  public @Nullable Integer getHandleHint(String qualifiedName) {
-    return handleHints.get(qualifiedName);
+  public OptionalInt getHandleHint(String qualifiedName) {
+    Integer hint = handleHints.get(qualifiedName);
+    return hint == null ? OptionalInt.empty() : OptionalInt.of(hint);
   }
 
   /**
@@ -288,8 +288,9 @@ public class ConcurrentState extends AbstractSingleWrapperState
       ThreadState threadState = entry.getValue();
 
       // Atomic block filtering: if another thread holds the atomic block, this thread is blocked.
-      Integer atomicHolder = mutexState != null ? mutexState.getAtomicHolder() : null;
-      if (atomicHolder != null && atomicHolder != pid) {
+      OptionalInt atomicHolder =
+          mutexState != null ? mutexState.getAtomicHolder() : OptionalInt.empty();
+      if (atomicHolder.isPresent() && atomicHolder.getAsInt() != pid) {
         continue;
       }
 

@@ -431,9 +431,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
 
     InstanceKey key = new InstanceKey(pState.getInstanceId(), function, ordinal);
-    ThreadInstance existing = registry.getInstance(key);
-    boolean isNew = existing == null;
-    ThreadInstance instance = existing != null ? existing : registry.newInstance(key);
+    Optional<ThreadInstance> existing = registry.getInstance(key);
+    boolean isNew = existing.isEmpty();
+    ThreadInstance instance = existing.orElseGet(() -> registry.newInstance(key));
 
     MemoryEvent createEvent =
         addEventAfter(

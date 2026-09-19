@@ -20,8 +20,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Random;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -253,9 +253,10 @@ public class ConcurrentTransferRelation implements TransferRelation {
                   writeThreadHandleEdge((CExpression) params.getFirst(), newPid, cfaEdge),
                   pid));
         }
-        CFAEdge argumentInitEdge =
+        Optional<CFAEdge> argumentInit =
             threadArgumentInitEdge(threadFunc, (CExpression) params.get(3), newPid, cfaEdge);
-        if (argumentInitEdge != null) {
+        if (argumentInit.isPresent()) {
+          CFAEdge argumentInitEdge = argumentInit.orElseThrow();
           List<AbstractState> afterArgumentInit = new ArrayList<>(afterWrite.size());
           for (AbstractState wrapped : afterWrite) {
             afterArgumentInit.addAll(
@@ -291,9 +292,9 @@ public class ConcurrentTransferRelation implements TransferRelation {
         // does not apply to (e.g. a runtime-computed array index).
         Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
         if (handleKey.isPresent()) {
-          Integer hint = state.getHandleHint(handleKey.get());
-          if (hint != null && state.livePids().contains(hint)) {
-            Optional<ConcurrentState> joined = state.joinThread(hint);
+          OptionalInt hint = state.getHandleHint(handleKey.get());
+          if (hint.isPresent() && state.livePids().contains(hint.getAsInt())) {
+            Optional<ConcurrentState> joined = state.joinThread(hint.getAsInt());
             if (joined.isPresent()) {
               finishEdge(joined.get(), cfaEdge, pid, wrappedSuccessors, result);
             }
@@ -603,14 +604,14 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * routine declares no parameter (binding is then meaningless and the old behavior — an unbound
    * parameter — remains).
    */
-  private @Nullable CFAEdge threadArgumentInitEdge(
+  private Optional<CFAEdge> threadArgumentInitEdge(
       String pThreadFunc, CExpression pArgument, int pNewPid, CFAEdge pEdge) {
     FunctionEntryNode entry = cfa.getFunctionHead(pThreadFunc);
     if (entry == null || entry.getFunctionParameters().isEmpty()) {
-      return null;
+      return Optional.empty();
     }
     if (!(entry.getFunctionParameters().getFirst() instanceof CParameterDeclaration origParam)) {
-      return null;
+      return Optional.empty();
     }
     CParameterDeclaration childParam =
         new CParameterDeclaration(
@@ -626,12 +627,13 @@ public class ConcurrentTransferRelation implements TransferRelation {
         .equals(origParam.getType().getCanonicalType())) {
       rhs = new CCastExpression(FileLocation.DUMMY, origParam.getType(), pArgument);
     }
-    return new CStatementEdge(
-        "",
-        new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, rhs),
-        FileLocation.DUMMY,
-        pEdge.getPredecessor(),
-        pEdge.getSuccessor());
+    return Optional.of(
+        new CStatementEdge(
+            "",
+            new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, rhs),
+            FileLocation.DUMMY,
+            pEdge.getPredecessor(),
+            pEdge.getSuccessor()));
   }
 
   /**

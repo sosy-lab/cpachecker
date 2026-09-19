@@ -232,7 +232,7 @@ class SPORConcurrentState extends ConcurrentState {
           (pCFAEdge, pMutexState) ->
               (pMutexState != null
                       && (!pMutexState.getLockedMutexes().isEmpty()
-                          || pid.equals(pMutexState.getAtomicHolder())))
+                          || pMutexState.getAtomicHolder().orElse(-1) == pid))
                   || originalGoFurther.test(pCFAEdge, pMutexState);
     } else {
       initialMutexState = null;
