@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.PoEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -528,18 +529,19 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         dot.append("  }\n");
       }
 
-      for (int[] edge : pEncoder.getProgramOrderDagEdges()) {
-        if (enabled.contains(edge[0]) && enabled.contains(edge[1])) {
-          dot.append(String.format("  e%d -> e%d [label=\"po\"];%n", edge[0], edge[1]));
+      for (PoEdge edge : pEncoder.getProgramOrderDagEdges()) {
+        if (enabled.contains(edge.from().id()) && enabled.contains(edge.to().id())) {
+          dot.append(
+              String.format("  e%d -> e%d [label=\"po\"];%n", edge.from().id(), edge.to().id()));
         }
       }
       for (var cross : pEncoder.getCrossPoEdges()) {
-        if (enabled.contains(cross.from()) && enabled.contains(cross.to())) {
-          String kind = byId.get(cross.from()).kind() == EventKind.CREATE ? "create" : "join";
+        if (enabled.contains(cross.from().id()) && enabled.contains(cross.to().id())) {
+          String kind = cross.from().kind() == EventKind.CREATE ? "create" : "join";
           dot.append(
               String.format(
                   "  e%d -> e%d [label=\"%s\", style=dashed, color=blue, constraint=false];%n",
-                  cross.from(), cross.to(), kind));
+                  cross.from().id(), cross.to().id(), kind));
         }
       }
       for (var rf : pEncoder.getRfPairs()) {
@@ -832,13 +834,13 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       successors.put(id, new LinkedHashSet<>());
       indegree.put(id, 0);
     }
-    List<int[]> hbEdges = new ArrayList<>(pEncoder.getProgramOrderDagEdges());
+    List<PoEdge> hbEdges = new ArrayList<>(pEncoder.getProgramOrderDagEdges());
     for (var cross : pEncoder.getCrossPoEdges()) {
-      hbEdges.add(new int[] {cross.from(), cross.to()});
+      hbEdges.add(new PoEdge(cross.from(), cross.to()));
     }
     for (var rf : pEncoder.getRfPairs()) {
       if (Boolean.TRUE.equals(pModel.evaluate(rf.variable()))) {
-        hbEdges.add(new int[] {rf.write().id(), rf.read().id()});
+        hbEdges.add(new PoEdge(rf.write(), rf.read()));
       }
     }
     // coherence (write-serialization) and from-read edges make the linearization respect the order
@@ -864,21 +866,21 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         to = ws.write1();
       }
       if (from != null && to != null) {
-        hbEdges.add(new int[] {from.id(), to.id()});
+        hbEdges.add(new PoEdge(from, to));
         for (var rf : pEncoder.getRfPairs()) {
           if (rf.write().id() == from.id()
               && byId.containsKey(rf.read().id())
               && Boolean.TRUE.equals(pModel.evaluate(rf.variable()))) {
-            hbEdges.add(new int[] {rf.read().id(), to.id()});
+            hbEdges.add(new PoEdge(rf.read(), to));
           }
         }
       }
     }
-    for (int[] edge : hbEdges) {
-      if (byId.containsKey(edge[0])
-          && byId.containsKey(edge[1])
-          && successors.get(edge[0]).add(edge[1])) {
-        indegree.merge(edge[1], 1, Integer::sum);
+    for (PoEdge edge : hbEdges) {
+      int from = edge.from().id();
+      int to = edge.to().id();
+      if (byId.containsKey(from) && byId.containsKey(to) && successors.get(from).add(to)) {
+        indegree.merge(to, 1, Integer::sum);
       }
     }
     // Kahn's algorithm; ties broken by event id so the trace is deterministic

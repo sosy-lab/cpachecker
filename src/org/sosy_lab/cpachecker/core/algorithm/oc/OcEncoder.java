@@ -88,7 +88,10 @@ final class OcEncoder {
    * thread instance may be created or joined from mutually exclusive branches, so these edges must
    * not be unconditional).
    */
-  record CrossPoEdge(int from, int to, int guardEventId) {}
+  record CrossPoEdge(MemoryEvent from, MemoryEvent to, MemoryEvent guardEvent) {}
+
+  /** An edge of the program order, from the earlier event to the later one. */
+  record PoEdge(MemoryEvent from, MemoryEvent to) {}
 
   private final OcExplorationRegistry registry;
   private final FormulaManagerView fmgr;
@@ -97,7 +100,7 @@ final class OcEncoder {
 
   private final ImmutableList<MemoryEvent> events;
   private final BooleanFormula[] fullGuards;
-  private final List<int[]> poEdges = new ArrayList<>();
+  private final List<PoEdge> poEdges = new ArrayList<>();
   private final List<CrossPoEdge> crossPoEdges = new ArrayList<>();
   private final BitSet[] definiteReach;
   private final ImmutableList<RfPair> rfPairs;
@@ -134,18 +137,18 @@ final class OcEncoder {
    * mutually-exclusive branch events. The consistency checker must use these so it never treats two
    * events that are never co-enabled as ordered.
    */
-  List<int[]> getProgramOrderDagEdges() {
-    List<int[]> edges = new ArrayList<>();
+  ImmutableList<PoEdge> getProgramOrderDagEdges() {
+    ImmutableList.Builder<PoEdge> edges = ImmutableList.builder();
     for (MemoryEvent event : events) {
       for (int predecessorId : registry.getPoPredecessors().get(event.id())) {
-        edges.add(new int[] {predecessorId, event.id()});
+        edges.add(new PoEdge(registry.getEvent(predecessorId), event));
       }
     }
-    return edges;
+    return edges.build();
   }
 
-  List<int[]> getPoEdges() {
-    return poEdges;
+  ImmutableList<PoEdge> getPoEdges() {
+    return ImmutableList.copyOf(poEdges);
   }
 
   List<CrossPoEdge> getCrossPoEdges() {
@@ -403,14 +406,14 @@ final class OcEncoder {
     }
 
     List<BooleanFormula> constraints = new ArrayList<>();
-    for (int[] edge : poEdges) {
-      constraints.add(imgr.lessThan(clocks[edge[0]], clocks[edge[1]]));
+    for (PoEdge edge : poEdges) {
+      constraints.add(imgr.lessThan(clocks[edge.from().id()], clocks[edge.to().id()]));
     }
     for (CrossPoEdge cross : crossPoEdges) {
       constraints.add(
           bfmgr.implication(
-              fullGuards[cross.guardEventId()],
-              imgr.lessThan(clocks[cross.from()], clocks[cross.to()])));
+              fullGuards[cross.guardEvent().id()],
+              imgr.lessThan(clocks[cross.from().id()], clocks[cross.to().id()])));
     }
 
     ImmutableListMultimap<Object, MemoryEvent> writesByCell = writesByCell();
@@ -535,7 +538,7 @@ final class OcEncoder {
       ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
     for (List<MemoryEvent> linear : pLinearizations.values()) {
       for (int i = 0; i + 1 < linear.size(); i++) {
-        poEdges.add(new int[] {linear.get(i).id(), linear.get(i + 1).id()});
+        poEdges.add(new PoEdge(linear.get(i), linear.get(i + 1)));
       }
     }
     ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
@@ -548,13 +551,13 @@ final class OcEncoder {
         if (event.kind() == EventKind.CREATE) {
           for (MemoryEvent root : other) {
             if (predecessors.get(root.id()).isEmpty()) {
-              crossPoEdges.add(new CrossPoEdge(event.id(), root.id(), event.id()));
+              crossPoEdges.add(new CrossPoEdge(event, root, event));
             }
           }
         } else {
           for (MemoryEvent sink : other) {
             if (pChildren.get(sink.id()).isEmpty()) {
-              crossPoEdges.add(new CrossPoEdge(sink.id(), event.id(), event.id()));
+              crossPoEdges.add(new CrossPoEdge(sink, event, event));
             }
           }
         }
@@ -569,13 +572,13 @@ final class OcEncoder {
    * lose optional rf/ws pruning, not correctness), and all sinks of an instance before every join
    * of that instance.
    */
-  private List<int[]> buildDefiniteOrderEdges(
+  private List<PoEdge> buildDefiniteOrderEdges(
       ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
-    List<int[]> edges = new ArrayList<>();
+    List<PoEdge> edges = new ArrayList<>();
     ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
     for (MemoryEvent event : events) {
       for (int predecessorId : predecessors.get(event.id())) {
-        edges.add(new int[] {predecessorId, event.id()});
+        edges.add(new PoEdge(registry.getEvent(predecessorId), event));
       }
     }
     for (ThreadInstance instance : registry.getInstances()) {
@@ -590,7 +593,7 @@ final class OcEncoder {
         int createEventId = instance.getCreateEventIds().getFirst();
         for (MemoryEvent root : instanceEvents) {
           if (predecessors.get(root.id()).isEmpty()) {
-            edges.add(new int[] {createEventId, root.id()});
+            edges.add(new PoEdge(registry.getEvent(createEventId), root));
           }
         }
       }
@@ -598,7 +601,7 @@ final class OcEncoder {
         if (pChildren.get(sink.id()).isEmpty()) {
           for (MemoryEvent join : events) {
             if (join.kind() == EventKind.JOIN && join.otherInstanceId() == instance.getId()) {
-              edges.add(new int[] {sink.id(), join.id()});
+              edges.add(new PoEdge(sink, join));
             }
           }
         }
@@ -607,22 +610,22 @@ final class OcEncoder {
     return edges;
   }
 
-  private BitSet[] computeReachability(List<int[]> pEdges) {
+  private BitSet[] computeReachability(List<PoEdge> pEdges) {
     int n = events.size();
     BitSet[] reach = new BitSet[n];
     for (int i = 0; i < n; i++) {
       reach[i] = new BitSet(n);
     }
-    for (int[] edge : pEdges) {
-      reach[edge[0]].set(edge[1]);
+    for (PoEdge edge : pEdges) {
+      reach[edge.from().id()].set(edge.to().id());
     }
     boolean changed = true;
     while (changed) {
       changed = false;
-      for (int[] edge : pEdges) {
-        BitSet source = reach[edge[0]];
+      for (PoEdge edge : pEdges) {
+        BitSet source = reach[edge.from().id()];
         int before = source.cardinality();
-        source.or(reach[edge[1]]);
+        source.or(reach[edge.to().id()]);
         if (source.cardinality() != before) {
           changed = true;
         }

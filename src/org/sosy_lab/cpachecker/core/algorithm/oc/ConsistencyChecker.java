@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.CsPair;
+import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.PoEdge;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.RfPair;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.WsPair;
 import org.sosy_lab.cpachecker.cpa.oc.EventKind;
@@ -94,21 +95,21 @@ final class ConsistencyChecker {
     // not real happens-before and must not enter the graph. Every edge's reason must fully imply
     // its presence (including the enabled-ness of its endpoints), so the conflict clause it feeds
     // excludes only models that genuinely contain the cycle.
-    for (int[] edge : encoder.getProgramOrderDagEdges()) {
-      if (enabled[edge[0]] && enabled[edge[1]]) {
-        addEdge(new Edge(edge[0], edge[1], guardsOf(edge[0], edge[1])));
+    for (PoEdge edge : encoder.getProgramOrderDagEdges()) {
+      int from = edge.from().id();
+      int to = edge.to().id();
+      if (enabled[from] && enabled[to]) {
+        addEdge(new Edge(from, to, guardsOf(from, to)));
       }
     }
     // create/join ordering holds only when the creating/joining event is enabled
     for (OcEncoder.CrossPoEdge cross : encoder.getCrossPoEdges()) {
-      if (enabled[cross.from()] && enabled[cross.to()]) {
+      int from = cross.from().id();
+      int to = cross.to().id();
+      if (enabled[from] && enabled[to]) {
         addEdge(
             new Edge(
-                cross.from(),
-                cross.to(),
-                bfmgr.and(
-                    encoder.getFullGuard(cross.guardEventId()),
-                    guardsOf(cross.from(), cross.to()))));
+                from, to, bfmgr.and(encoder.getFullGuard(cross.guardEvent()), guardsOf(from, to))));
       }
     }
     List<RfPair> activeRf = new ArrayList<>();
