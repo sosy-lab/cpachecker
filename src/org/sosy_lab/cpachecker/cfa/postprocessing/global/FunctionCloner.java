@@ -21,35 +21,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstCloner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
@@ -92,7 +68,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  * <p>There should not be any functioncall- or return-edges. Currently only the language C is
  * supported.
  */
-class FunctionCloner implements CFAVisitor {
+class FunctionCloner extends CAstCloner implements CFAVisitor {
 
   private static final String ONLY_C_SUPPORTED = "only C supported";
   private static final String SUPERGRAPH_BUILD_TOO_EARLY =
@@ -103,7 +79,6 @@ class FunctionCloner implements CFAVisitor {
   private final Map<CFANode, CFANode> nodeCache = new HashMap<>();
   private final IdentityHashMap<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
   private final IdentityHashMap<Type, Type> typeCache = new IdentityHashMap<>();
-  private final CExpressionCloner expCloner = new CExpressionCloner();
   private final CTypeCloner typeCloner = new CTypeCloner();
 
   private final String oldFunctionName;
@@ -289,155 +264,20 @@ class FunctionCloner implements CFAVisitor {
     return (T) newNode;
   }
 
-  @SuppressWarnings("unchecked")
-  private @Nullable <T extends AAstNode> T cloneAst(final T ast) {
+  @Override
+  protected @Nullable AAstNode lookupCache(final AAstNode ast) {
+    return astCache.get(ast);
+  }
 
-    if (ast == null) {
-      return null;
-    }
-
-    if (astCache.containsKey(ast)) {
-      return (T) astCache.get(ast);
-    }
-
-    final AAstNode newAst = cloneAstDirect(ast);
-
+  @Override
+  protected void storeInCache(final AAstNode ast, final AAstNode newAst) {
     astCache.put(ast, newAst);
-
-    return (T) newAst;
   }
 
-  /** returns a new list with cloned elements */
-  private <T extends AAstNode> List<T> cloneAstList(final List<T> astList) {
-    final List<T> list = new ArrayList<>(astList.size());
-    for (T ast : astList) {
-      list.add(cloneAst(ast));
-    }
-    return list;
-  }
-
-  /** returns a deep copy of the ast-node, and changes old functionname to new one, if needed. */
-  private AAstNode cloneAstDirect(AAstNode ast) {
-    final FileLocation loc = ast.getFileLocation();
-
-    return switch (ast) {
-      // CRightHandSide sub classes
-      case CExpression cExpression -> cExpression.accept(expCloner);
-
-      case CFunctionCallExpression func ->
-          new CFunctionCallExpression(
-              loc,
-              cloneType(func.getExpressionType()),
-              cloneAst(func.getFunctionNameExpression()),
-              cloneAstList(func.getParameterExpressions()),
-              cloneAst(func.getDeclaration()));
-
-      // CInitializer sub classes
-      case CInitializerExpression cInitializerExpression ->
-          new CInitializerExpression(loc, cloneAst(cInitializerExpression.getExpression()));
-      case CInitializerList cInitializerList ->
-          new CInitializerList(loc, cloneAstList(cInitializerList.getInitializers()));
-      case CDesignatedInitializer di ->
-          new CDesignatedInitializer(
-              loc, cloneAstList(di.getDesignators()), cloneAst(di.getRightHandSide()));
-
-      // CSimpleDeclaration sub classes
-      case CVariableDeclaration decl -> {
-        CVariableDeclaration newDecl =
-            new CVariableDeclaration(
-                loc,
-                decl.isGlobal(),
-                decl.getCStorageClass(),
-                cloneType(decl.getType()),
-                decl.getName(),
-                decl.getOrigName(),
-                changeQualifiedName(decl.getQualifiedName()),
-                null);
-        // cache the declaration, then clone the initializer and add it.
-        // this is needed for the following code: int x = x;
-        astCache.put(ast, newDecl);
-        newDecl.addInitializer(cloneAst(decl.getInitializer()));
-        yield newDecl;
-      }
-      case CFunctionDeclaration decl -> {
-        List<CParameterDeclaration> l = new ArrayList<>(decl.getParameters().size());
-        for (CParameterDeclaration param : decl.getParameters()) {
-          l.add(cloneAst(param));
-        }
-        yield new CFunctionDeclaration(
-            loc,
-            cloneType(decl.getType()),
-            changeName(decl.getName()),
-            decl.getOrigName(),
-            l,
-            decl.getAttributes());
-      }
-      case CComplexTypeDeclaration decl ->
-          new CComplexTypeDeclaration(loc, decl.isGlobal(), cloneType(decl.getType()));
-
-      case CTypeDefDeclaration decl ->
-          new CTypeDefDeclaration(
-              loc,
-              decl.isGlobal(),
-              cloneType(decl.getType()),
-              decl.getName(),
-              changeQualifiedName(decl.getQualifiedName()));
-
-      case CParameterDeclaration decl -> {
-        // we do not cache CParameterDeclaration, but clone it directly,
-        // because its equals- and hashcode-Method are insufficient for caching
-        // TODO do we need to cache it?
-        CParameterDeclaration newDecl =
-            new CParameterDeclaration(loc, cloneType(decl.getType()), decl.getName());
-        newDecl.setQualifiedName(changeQualifiedName(decl.getQualifiedName()));
-        yield newDecl;
-      }
-      case CEnumerator decl ->
-          new CEnumerator(
-              loc, decl.getName(), changeQualifiedName(decl.getQualifiedName()), decl.getValue());
-
-      // CStatement sub classes
-      case CFunctionCallAssignmentStatement stat ->
-          new CFunctionCallAssignmentStatement(
-              loc, cloneAst(stat.getLeftHandSide()), cloneAst(stat.getRightHandSide()));
-      case CExpressionAssignmentStatement stat ->
-          new CExpressionAssignmentStatement(
-              loc, cloneAst(stat.getLeftHandSide()), cloneAst(stat.getRightHandSide()));
-      case CFunctionCallStatement cFunctionCallStatement ->
-          new CFunctionCallStatement(
-              loc, cloneAst(cFunctionCallStatement.getFunctionCallExpression()));
-      case CExpressionStatement cExpressionStatement ->
-          new CExpressionStatement(loc, cloneAst(cExpressionStatement.getExpression()));
-
-      case CReturnStatement cReturnStatement -> {
-        Optional<CExpression> returnExp = cReturnStatement.getReturnValue();
-        if (returnExp.isPresent()) {
-          returnExp = Optional.of(cloneAst(returnExp.orElseThrow()));
-        }
-        Optional<CAssignment> returnAssignment = cReturnStatement.asAssignment();
-        if (returnAssignment.isPresent()) {
-          returnAssignment = Optional.of(cloneAst(returnAssignment.orElseThrow()));
-        }
-        yield new CReturnStatement(loc, returnExp, returnAssignment);
-      }
-
-      // CDesignator sub classes
-      case CArrayDesignator cArrayDesignator ->
-          new CArrayDesignator(loc, cloneAst(cArrayDesignator.getSubscriptExpression()));
-      case CArrayRangeDesignator cArrayRangeDesignator ->
-          new CArrayRangeDesignator(
-              loc,
-              cloneAst(cArrayRangeDesignator.getFloorExpression()),
-              cloneAst(cArrayRangeDesignator.getCeilExpression()));
-      case CFieldDesignator cFieldDesignator ->
-          new CFieldDesignator(loc, cFieldDesignator.getFieldName());
-
-      default -> throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
-    };
-  }
-
+  /** every type is cloned, because the functionname can be part of it. */
+  @Override
   @SuppressWarnings("unchecked")
-  private @Nullable <T extends Type> T cloneType(T type) {
+  protected @Nullable <T extends Type> T cloneType(final @Nullable T type) {
 
     if (type == null) {
       return null;
@@ -462,96 +302,19 @@ class FunctionCloner implements CFAVisitor {
     throw new AssertionError("unhandled Type " + type + " of " + type.getClass());
   }
 
-  /**
-   * clones CExpressions and calls cloneAst on non-expression-content. Note: caching sub-expressions
-   * is useless because of the location, that is different for each expression.
-   */
-  private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, NoException> {
+  @Override
+  protected String changeFunctionName(final String name) {
+    return changeName(name);
+  }
 
-    @Override
-    protected CExpression visitDefault(CExpression exp) {
-      return exp;
-    }
+  @Override
+  protected String changeQualifiedName(final CSimpleDeclaration decl) {
+    return changeQualifiedName(decl.getQualifiedName());
+  }
 
-    @Override
-    public CExpression visit(CBinaryExpression exp) {
-      return new CBinaryExpression(
-          exp.getFileLocation(),
-          exp.getExpressionType(),
-          exp.getCalculationType(),
-          exp.getOperand1().accept(this),
-          exp.getOperand2().accept(this),
-          exp.getOperator());
-    }
-
-    @Override
-    public CExpression visit(CCastExpression exp) {
-      return new CCastExpression(
-          exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
-    }
-
-    @Override
-    public CExpression visit(CUnaryExpression exp) {
-      return new CUnaryExpression(
-          exp.getFileLocation(),
-          cloneType(exp.getExpressionType()),
-          exp.getOperand().accept(this),
-          exp.getOperator());
-    }
-
-    @Override
-    public CExpression visit(CArraySubscriptExpression exp) {
-      return new CArraySubscriptExpression(
-          exp.getFileLocation(),
-          cloneType(exp.getExpressionType()),
-          exp.getArrayExpression().accept(this),
-          exp.getSubscriptExpression().accept(this));
-    }
-
-    @Override
-    public CExpression visit(CFieldReference exp) {
-      return new CFieldReference(
-          exp.getFileLocation(),
-          cloneType(exp.getExpressionType()),
-          exp.getFieldName(),
-          exp.getFieldOwner().accept(this),
-          exp.isPointerDereference());
-    }
-
-    @Override
-    public CExpression visit(CIdExpression exp) {
-      // check for self-recursion --> replace self-calling functioncalls with new self-calling
-      // functioncalls
-      if (exp.getExpressionType() instanceof CFunctionType) {
-        return new CIdExpression(
-            exp.getFileLocation(),
-            cloneType(exp.getExpressionType()),
-            changeName(exp.getName()),
-            cloneAst(exp.getDeclaration()));
-      } else {
-        return new CIdExpression(
-            exp.getFileLocation(),
-            cloneType(exp.getExpressionType()),
-            exp.getName(),
-            cloneAst(exp.getDeclaration()));
-      }
-    }
-
-    @Override
-    public CExpression visit(CPointerExpression exp) {
-      return new CPointerExpression(
-          exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
-    }
-
-    @Override
-    public CExpression visit(CComplexCastExpression exp) {
-      return new CComplexCastExpression(
-          exp.getFileLocation(),
-          cloneType(exp.getExpressionType()),
-          exp.getOperand().accept(this),
-          exp.getType(),
-          exp.isRealCast());
-    }
+  @Override
+  protected String changeTypeQualifiedName(final CSimpleDeclaration decl) {
+    return changeQualifiedName(decl.getQualifiedName());
   }
 
   private class CTypeCloner extends DefaultCTypeVisitor<CType, NoException> {
