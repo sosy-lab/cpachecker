@@ -11,6 +11,6 @@
 // stack-related address with zero usable bytes, which must not be dereferenced.
 int main(void) {
   void *ptr = __builtin_alloca(0);
-  (void)ptr;
+  (void)&*ptr; // &* is a no-op
   return 0;
 }
