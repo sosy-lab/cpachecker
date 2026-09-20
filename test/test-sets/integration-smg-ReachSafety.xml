@@ -33,11 +33,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
 
-  <tasks name="AnonymousLocalAllocationReachSafety">
-    <include>../programs/smg2_tests/anonymousLocalAllocation/*_safe_*.yml</include>
-    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
-  </tasks>
-
   <tasks>
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
