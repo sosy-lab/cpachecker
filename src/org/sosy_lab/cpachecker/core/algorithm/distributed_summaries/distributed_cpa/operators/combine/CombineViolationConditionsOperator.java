@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine;
 
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface CombineViolationConditionsOperator {
 
-  AbstractState combineViolationConditionsAtSameProgramHash(Collection<AbstractState> states)
+  AbstractState combineViolationConditionsAtSameProgramHash(
+      Optional<AbstractState> origin, Collection<AbstractState> states)
       throws InterruptedException, CPAException;
 }

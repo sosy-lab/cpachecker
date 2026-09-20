@@ -290,17 +290,7 @@ public class AutomatonGraphmlParser {
   private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
-        CParser.Factory.getParser(
-            /*
-             * FIXME: Use normal logger as soon as CParser supports parsing
-             * expression trees natively, such that we can remove the workaround
-             * with the undefined __CPAchecker_ACSL_return dummy function that
-             * causes warnings to be logged.
-             */
-            LogManager.createNullLogManager(),
-            CParser.Factory.getOptions(config),
-            cfa.getMachineModel(),
-            shutdownNotifier);
+        CParserUtils.createWitnessExpressionParser(config, cfa.getMachineModel(), shutdownNotifier);
 
     AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
 
@@ -1393,7 +1383,7 @@ public class AutomatonGraphmlParser {
    *
    * @param pThreadId the thread id to assign.
    */
-  public static AutomatonAction getThreadIdAssignment(int pThreadId) {
+  protected static AutomatonAction getThreadIdAssignment(int pThreadId) {
     AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
     return new AutomatonAction.Assignment(THREAD_ID_VAR_NAME, expr);
   }

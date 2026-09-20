@@ -134,10 +134,7 @@ class FrameSet implements AutoCloseable {
     if (!oldFrame.remove(pClause)) {
       throw new IllegalArgumentException(pClause + " not found in frame " + pFrameIndex);
     }
-    for (CandidateInvariant clauseComponent :
-        CandidateInvariantCombination.getConjunctiveParts(pClause)) {
-      oldFrame.remove(clauseComponent);
-    }
+    oldFrame.removeAll(CandidateInvariantCombination.getConjunctiveParts(pClause));
     if (oldFrame.isEmpty()) {
       emptyFrames.add(pFrameIndex);
     }

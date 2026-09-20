@@ -169,7 +169,7 @@ interface AutomatonExpression<T> {
     }
 
     /** Return failure message or {@code null} if {@code cannotEvaluate() == false} */
-    public String getFailureMessage() {
+    String getFailureMessage() {
       return failureMessage;
     }
 

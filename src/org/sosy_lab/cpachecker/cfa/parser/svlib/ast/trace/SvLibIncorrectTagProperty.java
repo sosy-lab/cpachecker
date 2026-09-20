@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import java.io.Serial;
 import java.util.Optional;
@@ -62,7 +64,7 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
     return "(incorrect-annotation "
         + (svLibTagReference.isPresent() ? svLibTagReference.orElseThrow().getTagName() : "")
         + " "
-        + Joiner.on(" ").join(violatedProperties.stream().map(SvLibAstNode::toASTString).toList())
+        + from(violatedProperties).transform(SvLibAstNode::toASTString).join(Joiner.on(" "))
         + ")";
   }
 

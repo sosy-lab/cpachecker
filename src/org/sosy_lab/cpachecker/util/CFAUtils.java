@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -81,7 +80,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -328,21 +326,6 @@ public class CFAUtils {
             .getLeavingEdges()
             .filter(e -> !e.equals(edge))
             .filter(AssumeEdge.class));
-  }
-
-  /** Returns the function name from a CFA edge if it contains a function call, or empty. */
-  public static Optional<String> getFunctionCallName(CFAEdge edge) {
-    if (edge instanceof CFunctionCallEdge callEdge) {
-      return Optional.of(callEdge.getSuccessor().getFunctionName());
-    }
-    if (edge instanceof AStatementEdge sEdge
-        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
-      AExpression funcNameExpr = funcCall.getFunctionCallExpression().getFunctionNameExpression();
-      if (funcNameExpr instanceof AIdExpression funcName) {
-        return Optional.of(funcName.getName());
-      }
-    }
-    return Optional.empty();
   }
 
   /**
@@ -811,45 +794,14 @@ public class CFAUtils {
           }
         }
       }
-      if (currentEdge.getSuccessor().getLeavingEdges().size() > 1) {
+      if (currentEdge.getSuccessor().getNumLeavingEdges() != 1
+          || currentEdge.getPredecessor().getNumEnteringEdges() > 1) {
+        // stop on branchings, CFA end, and incoming edges (loops)
         break;
       }
       currentEdge = Iterables.getOnlyElement(currentEdge.getSuccessor().getLeavingEdges());
     }
     return rGlobalVariables.build();
-  }
-
-  public static boolean compareFunctionCallAndStatementEdges(CFAEdge pFirst, CFAEdge pOther) {
-    return pFirst instanceof CStatementEdge pStatementEdge
-        && pOther instanceof CFunctionCallEdge pCallEdge
-        && pStatementEdge.getStatement() instanceof CFunctionCallStatement pStatement
-        && pStatement
-            .getFunctionCallExpression()
-            .getParameterExpressions()
-            .toString()
-            .equals(pCallEdge.getFunctionCallExpression().getParameterExpressions().toString())
-        && pStatement
-            .getFunctionCallExpression()
-            .getExpressionType()
-            .equals(pCallEdge.getFunctionCallExpression().getExpressionType())
-        && pStatement
-            .getFunctionCallExpression()
-            .getDeclaration()
-            .getOrigName()
-            .equals(pCallEdge.getFunctionCallExpression().getDeclaration().getOrigName());
-  }
-
-  public static boolean equalityModuloNodes(CFAEdge pFirst, CFAEdge pOther) {
-    // Only necessary to compare CFA edges of cloned CFAs (done for concurrency), where the nodes
-    // themselves differ and so cannot be compared directly.
-    //
-    // This is only an approximation: file location, edge class (or the statement/call-edge
-    // rewrite pair), and raw statement text, not true AST equality.
-    return Objects.equals(pFirst.getFileLocation(), pOther.getFileLocation())
-        && (Objects.equals(pFirst.getClass(), pOther.getClass())
-            || compareFunctionCallAndStatementEdges(pFirst, pOther)
-            || compareFunctionCallAndStatementEdges(pOther, pFirst))
-        && Objects.equals(pFirst.getRawStatement(), pOther.getRawStatement());
   }
 
   /**
@@ -864,6 +816,21 @@ public class CFAUtils {
   public static FluentIterable<AExpression> traverseLeftHandSideRecursively(ALeftHandSide root) {
     return (FluentIterable<AExpression>)
         (FluentIterable<?>) FluentIterable.from(AST_LHS_TRAVERSER.depthFirstPreOrder(root));
+  }
+
+  /** Returns the function name from a CFA edge if it contains a function call, or empty. */
+  public static Optional<String> getFunctionCallName(CFAEdge edge) {
+    if (edge instanceof CFunctionCallEdge callEdge) {
+      return Optional.of(callEdge.getSuccessor().getFunctionName());
+    }
+    if (edge instanceof AStatementEdge sEdge
+        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
+      AExpression funcNameExpr = funcCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (funcNameExpr instanceof AIdExpression funcName) {
+        return Optional.of(funcName.getName());
+      }
+    }
+    return Optional.empty();
   }
 
   private static final Traverser<AAstNode> AST_LHS_TRAVERSER =

@@ -16,20 +16,19 @@ import logging
 import os
 import shutil
 import threading
-
-from requests import HTTPError
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import benchexec
 import benchexec.tooladapter
+from requests import HTTPError
+
 from . import vcloudutil
 from .webclient import (
-    WebInterface,
-    WebClientError,
-    UserAbortError,
-    handle_result,
     RESULT_FILE_STDERR,
+    UserAbortError,
+    WebClientError,
+    WebInterface,
+    handle_result,
 )
 
 """
@@ -81,8 +80,6 @@ def get_system_info():
 
 
 def execute_benchmark(benchmark, output_handler):
-    global _webclient
-
     if benchmark.tool_name != _webclient.tool_name():
         logging.warning("The web client does only support %s.", _webclient.tool_name())
         return 1
@@ -125,8 +122,6 @@ def stop():
 
 
 def _submitRunsParallel(runSet, benchmark, output_handler):
-    global _webclient
-
     logging.info("Submitting runs...")
 
     meta_information = json.dumps(
@@ -194,15 +189,13 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
             except HTTPError as e:
                 output_handler.set_error("VerifierCloud problem", runSet)
                 raise WebClientError(
-                    'Could not submit run {}, got error "{}"'.format(
-                        run.identifier, e.strerror
-                    )
+                    f'Could not submit run {run.identifier}, got error "{e.strerror}"'
                 )
 
             finally:
                 submissonCounter += 1
     finally:
-        for future in submission_futures.keys():
+        for future in submission_futures:
             future.cancel()  # for example in case of interrupt
 
     threadlocal_webclient = _webclient
@@ -214,7 +207,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
 
 def _log_future_exception(result):
     if result.exception() is not None:
-        logging.warning("Error during result processing.", exc_info=True)
+        logging.warning("Error during result processing.", exc_info=True)  # noqa: LOG014 TODO unclear whether exc_info does something
 
 
 def _handle_results(result_futures, output_handler, benchmark, run_set):
@@ -253,7 +246,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     def _open_output_log(output_path=None):
         nonlocal log_present
         log_present = True
-        log_file = open(run.log_file, "wb")
+        log_file = open(run.log_file, "wb")  # noqa: SIM115
         log_header = (
             " ".join(run.cmdline())
             + "\n\n\n--------------------------------------------------------------------------------\n"

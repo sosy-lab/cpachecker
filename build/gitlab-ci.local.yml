@@ -21,15 +21,8 @@ spec:
 include: build/gitlab-ci.yml
 
 variables:
-  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
-
-.pip-cache: &pip-cache
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - ".cache/pip"
 
 .node-cache: &node-cache
   cache:
@@ -227,7 +220,7 @@ javascript-e2e-tests:
 # Checks for Python code
 .base_ruff:
   extends: .check-without-dependencies
-  image: ghcr.io/astral-sh/ruff:0.15-alpine
+  image: ghcr.io/astral-sh/ruff:0.16-alpine
   before_script:
     - ruff --version
   cache:
@@ -240,14 +233,14 @@ check-format-python:
   script:
     - "ruff format --check --diff"
 
-flake8:
-  extends: .check-without-dependencies
-  image: python:3.8
-  before_script:
-    - "pip install 'flake8<6' flake8-awesome"
+ruff:
+  extends: .base_ruff
   script:
-    - flake8
-  <<: *pip-cache
+    - "ruff check || true"
+    - "ruff check --output-format=gitlab > code-quality-report.json"
+  artifacts:
+    reports:
+      codequality: code-quality-report.json
 
 
 build-tar:

@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -156,7 +157,12 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           "memset", "memset");
 
   private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
-      ImmutableSet.of("memcpy", "memmove", "memset");
+      ImmutableSet.<String>builder()
+          .add("memcpy", "memmove", "memset")
+          // the atomic builtins that write to the object their pointer argument designates,
+          // i.e. all of them except __atomic_load_n and the fences
+          .addAll(BuiltinAtomicFunctions.getSideEffectFunctionNames())
+          .build();
 
   // names for special variables needed to deal with functions
   @Deprecated
@@ -230,7 +236,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = pCompositeType.withoutQualifiers();
+    CCompositeType compositeType = pCompositeType.asUnqualified();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -765,15 +771,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
-      final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
-      final Formula lowerBound =
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
-      final Formula upperBound =
-          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
 
       constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
-      constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
+      constraints.addConstraint(
+          CtoFormulaTypeUtils.makeRangeConstraint(fmgr, variable, sType, machineModel));
     }
   }
 
@@ -1960,7 +1962,10 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     String result = null;
     if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
-    } else if (functionName.startsWith("__atomic_")) {
+    } else if (functionName.startsWith("__atomic_")
+        && !BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
+      // Atomic builtins we do not encode must be rejected rather than treated as pure external
+      // functions: silently ignoring an atomic store would yield a wrong verdict.
       result = "atomic operations";
     } else if (StandardFunctions.C11_MATH_H_FUNCTIONS.contains(functionName)) {
       // Some of these functions are actually supported, but handled before this check here.

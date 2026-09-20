@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -20,11 +19,8 @@ import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.sosy_lab.common.ProcessExecutor;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -79,16 +75,9 @@ public abstract class AbstractTranslationTest {
    *
    * @param program program to parse
    */
-  protected static void checkProgramValid(final Path program)
-      throws InterruptedException, InvalidConfigurationException {
-    final LogManager logger = LogManager.createTestLogManager();
-    final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
-    final Configuration parseConfig =
-        Configuration.builder().setOption("analysis.useLoopStructure", "false").build();
-    final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
-
+  protected static void checkProgramValid(final Path program) throws InterruptedException {
     try {
-      cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(program.toString()));
+      TestCfaUtils.makeCfaFromFile(program.toString());
 
     } catch (IOException | ParserException e) {
       throw new AssertionError(e);

@@ -25,7 +25,7 @@ public class DssResultMessage extends DssMessage {
 
   @Override
   boolean isValid(Map<String, String> pContent) {
-    return pContent.size() == 1
+    return (pContent.size() == 1)
         && pContent.containsKey(DSS_MESSAGE_RESULT_KEY)
         && pContent.get(DSS_MESSAGE_RESULT_KEY) != null
         && !pContent.get(DSS_MESSAGE_RESULT_KEY).isEmpty();

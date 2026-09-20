@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -66,12 +67,11 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       ConstraintsSolver pSolver,
       SMGState currentState,
       CFAEdge edge,
-      LogManagerWithoutDuplicates pLogger,
+      LogManager pLogger,
       boolean pTruthValue,
-      SMGOptions pOptions,
       Collection<String> booleanVariables,
       String pCallerFunctionName) {
-    super(pEvaluator, currentState, edge, pLogger, pOptions);
+    super(pEvaluator, currentState, edge, pLogger);
     booleans = booleanVariables;
     truthValue = pTruthValue;
     solver = pSolver;
@@ -90,25 +90,18 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     // Array and composite type comparisons are filtered out by the parser!
 
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
-    LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
+    LogManager logger = super.getInitialVisitorLogger();
     CFAEdge edge = super.getInitialVisitorCFAEdge();
     SMGState initialState = super.getInitialVisitorState();
 
     ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState leftValueAndState :
-        lVarInBinaryExp.accept(
-            new SMGCPAValueVisitor(
-                evaluator, initialState, edge, logger, getInitialVisitorOptions()))) {
+        lVarInBinaryExp.accept(new SMGCPAValueVisitor(evaluator, initialState, edge, logger))) {
       Value leftValue = leftValueAndState.getValue();
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
-              new SMGCPAValueVisitor(
-                  evaluator,
-                  leftValueAndState.getState(),
-                  edge,
-                  logger,
-                  getInitialVisitorOptions()))) {
+              new SMGCPAValueVisitor(evaluator, leftValueAndState.getState(), edge, logger))) {
         Value rightValue = rightValueAndState.getValue();
         SMGState currentState = rightValueAndState.getState();
 
@@ -171,9 +164,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         for (SMGState handledState : handledStates) {
           // The states are set such that now we get the values we want in the value visitor
           finalValueAndStateBuilder.addAll(
-              pE.accept(
-                  new SMGCPAValueVisitor(
-                      evaluator, handledState, edge, logger, getInitialVisitorOptions())));
+              pE.accept(new SMGCPAValueVisitor(evaluator, handledState, edge, logger)));
         }
       }
     }
@@ -503,7 +494,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       SMGState currentState)
       throws CPATransferException {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
-    LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
+    LogManager logger = super.getInitialVisitorLogger();
     CFAEdge edge = super.getInitialVisitorCFAEdge();
 
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
@@ -522,7 +513,6 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                 edge,
                 logger,
                 truthValue,
-                getInitialVisitorOptions(),
                 booleans,
                 callerFunctionName));
       }
@@ -541,7 +531,6 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                 edge,
                 logger,
                 truthValue,
-                getInitialVisitorOptions(),
                 booleans,
                 callerFunctionName));
       }
@@ -617,8 +606,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               super.getInitialVisitorEvaluator(),
               currentState,
               super.getInitialVisitorCFAEdge(),
-              super.getInitialVisitorLogger(),
-              getInitialVisitorOptions());
+              super.getInitialVisitorLogger());
       // The exception is only thrown if an invalid statement is detected i.e. usage of undeclared
       // variable. Invalid input like constants are returned as empty optional
       return expression.accept(av);
@@ -761,7 +749,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         ConstraintFactory.getInstance(
             pOldState,
             getInitialVisitorEvaluator().getMachineModel(),
-            getInitialVisitorLogger(),
+            (LogManagerWithoutDuplicates) getInitialVisitorLogger(),
             getInitialVisitorOptions(),
             getInitialVisitorEvaluator(),
             pEdge);
