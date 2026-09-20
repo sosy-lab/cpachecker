@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGMergeOptions.MergePolicy;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstantSymbolicExpressionLocator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
@@ -157,7 +158,7 @@ public class SymbolicProgramConfiguration {
   private static final ValueWrapper valueWrapper = new ValueWrapper();
 
   // Throws exception on reading this object (i.e. because we know we can't handle this)
-  private Set<SMGObject> readBlacklist;
+  private final Set<SMGObject> readBlacklist;
 
   private final SMGOptions options;
 
@@ -227,7 +228,10 @@ public class SymbolicProgramConfiguration {
    *     merge status.
    */
   public Optional<MergedSPCAndMergeStatus> merge(
-      SymbolicProgramConfiguration pOther, MachineModel pMachineModel) throws SMGException {
+      SymbolicProgramConfiguration pOther,
+      final MergePolicy maxAllowedPrecisionLoss,
+      MachineModel pMachineModel)
+      throws SMGException {
 
     Set<SMGObject> newReadBlackList =
         ImmutableSet.<SMGObject>builder()
@@ -244,7 +248,8 @@ public class SymbolicProgramConfiguration {
     }
 
     // Rebuild the SMG according to the SMG paper
-    Optional<MergedSPCAndMergeStatus> maybeMergedSMGs = mergeSPC(this, pOther, pMachineModel);
+    Optional<MergedSPCAndMergeStatus> maybeMergedSMGs =
+        mergeSPC(this, pOther, maxAllowedPrecisionLoss, pMachineModel);
 
     if (maybeMergedSMGs.isEmpty()) {
       return Optional.empty();
@@ -272,9 +277,10 @@ public class SymbolicProgramConfiguration {
 
   // We join the SPCs here, (Algorithm 10: joinSPCs)
   private static Optional<MergedSPCAndMergeStatus> mergeSPC(
-      SymbolicProgramConfiguration thisSMG,
-      SymbolicProgramConfiguration otherSMG,
-      MachineModel pMachineModel)
+      final SymbolicProgramConfiguration thisSMG,
+      final SymbolicProgramConfiguration otherSMG,
+      final MergePolicy maxAllowedPrecisionLoss,
+      final MachineModel pMachineModel)
       throws SMGException {
     if (!thisSMG.externalObjectAllocation.isEmpty()
         || !otherSMG.externalObjectAllocation.isEmpty()) {
@@ -454,6 +460,7 @@ public class SymbolicProgramConfiguration {
               mergedSPC,
               newMergedObj,
               mergeStatus,
+              maxAllowedPrecisionLoss,
               mapping1,
               mapping2,
               0);
@@ -545,6 +552,60 @@ public class SymbolicProgramConfiguration {
     }
   }
 
+  // Tries to merge the 2 objects o1 and o2 into a single list abstraction.
+  // This works on a single SMG (SPC), not two!
+  // Potential targets to abstract are identified by so-called candidate SLS/DLS entries,
+  // that consist of an object 𝑜𝑐 and next, prev, and head offsets such that 𝑜𝑐 has a
+  // neighboring
+  // object with which it can be merged into a DLS that is linked through the given offsets.
+  // TODO: this does more or less exactly what we do in prec-adjustment! Also, it makes more sense
+  //  to not have this in merge, if there is only 1 state involved!
+  @SuppressWarnings("unused")
+  private Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> mergeSubSMGsForAbstraction(
+      SMGObject o1, SMGObject o2, BigInteger hfo, BigInteger nfo, Optional<BigInteger> pfo) {
+    // Note on notation:
+    // hfo: head offset,
+    // pfo: offset of pointer to previous list element,
+    // nfo: offset of pointer to next list element,
+    // H is has-value-edges, and e.g. a = H(o1, pfo, ptr), a is a value from the
+    // has-value-edge in object o1 at offset pfo, that is pointer sized.
+
+    // 1. Let 𝑎𝑝 := 𝐻 (𝑜1, pfo, ptr), 𝑎𝑛 := 𝐻 (𝑜2 , nfo, ptr), 𝑎1 := 𝐻 (𝑜1, nfo, ptr),
+    // and 𝑎2 := 𝐻 (𝑜2, pfo, ptr).
+
+    // 2. Replace each has-value edge of 𝐻 leading from 𝑜1 or 𝑜2 and labeled by (nfo, ptr) or
+    // (pfo, ptr) by a has-value edge leading to 0 and having the same label.
+
+    // 3. Extend O with a fresh valid SLS/DLS 𝑑 and label it with the head, next, and prev offsets
+    // hfo, nfo, and pfo, the minimum length len(𝑜1) + len(𝑜2), with the level of 𝑜1, and the
+    // size of 𝑜1 (level and size should be equal to o2 I think).
+
+    // 4. If kind(𝑜1) = kind(𝑜2), let 𝑙_𝑑𝑖𝑓𝑓 := 0.
+    // Otherwise; let 𝑙_𝑑𝑖𝑓𝑓 := (kind(𝑜1) = dls) ? 1 : −1.
+
+    // 5. Let 𝑟𝑒𝑠 := joinSubSMGs(≃, 𝐺1, 𝐺2, 𝐺, {(𝑜1, 𝑑)}, {(𝑜2, 𝑑)}, 𝑜1, 𝑜2,𝑑,
+    // 𝑙_𝑑𝑖𝑓𝑓).
+    // If 𝑟 𝑒𝑠 = ⊥, return ⊥.
+    // Otherwise; let (𝑠, _, _, 𝐺, 𝑚1, 𝑚2) := 𝑟𝑒𝑠.
+
+    // 6. If 𝐺 contains any cycle consisting of 0+ DLSs only, return ⊥.
+
+    // 7. Drop the temporarily created has-value edges of 𝐻 leading from 𝑜1 and 𝑜2 to 0 and
+    // labeled by (nfo, ptr) or (pfo, ptr) and restore the original has-value edges from
+    // 𝑜1 with offset pfo via its ptr to 𝑎𝑝, 𝑜1 with offset nfo via its ptr to 𝑎1,
+    // 𝑜2 with offset pfo via its ptr to 𝑎2, and 𝑜2 with offset nfo via its ptr to 𝑎𝑛.
+
+    // 8. If kind(𝑜1 ) = kind(𝑜2 ) = reg, increase by one the level of each object and value that
+    // appears in the image of 𝑚1 or 𝑚2, and relabel all points-to edges leading to 𝑑 by the all
+    // target specifier.
+
+    // 9. Return (𝑠,𝐺,𝑑,𝑂 ∩ 𝑟𝑎𝑛𝑔𝑒(𝑚1), 𝑉 ∩ 𝑟𝑎𝑛𝑔𝑒(𝑚1), 𝑂 ∩ 𝑟𝑎𝑛𝑔𝑒(𝑚2), 𝑉 ∩
+    // 𝑟𝑎𝑛𝑔𝑒(𝑚2)).
+    throw new UnsupportedOperationException("implement me");
+  }
+
+  // This method is adapted from "joinSubSMG()" and is not the main abstracting merge!
+  // The main abstraction merge procedure for sub-SMGs is mergeSubSMGsforAbstraction().
   private static Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> mergeSubSMGs(
       SymbolicProgramConfiguration originalSpc1,
       SymbolicProgramConfiguration originalSpc2,
@@ -553,11 +614,17 @@ public class SymbolicProgramConfiguration {
       SymbolicProgramConfiguration originalNewSPC,
       SMGObject newObj,
       SMGMergeStatus initialStatus,
+      MergePolicy maxAllowedPrecisionLoss,
       NodeMapping mapping1,
       NodeMapping mapping2,
       int nestingDiff)
       throws SMGException {
     checkNotNull(initialStatus);
+    // Early abort if precision loss is too great
+    if (isAbortMergeDueToPrecisionLoss(initialStatus, maxAllowedPrecisionLoss)) {
+      return Optional.empty();
+    }
+
     // 1. Let res := joinFields(G1 , G2 , o1 , o2 ). If res = ⊥, return ⊥.
     // Otherwise, let (s0 , G1 , G2 ) := res and s := updateJoinStatus(s, s0).
     Optional<MergingSPCsAndMergeStatus> maybeMergedFields =
@@ -570,6 +637,11 @@ public class SymbolicProgramConfiguration {
     SMGMergeStatus status = initialStatus.updateWith(joinOfFieldsStatus);
     SymbolicProgramConfiguration spc1 = mergedFields.getMergingSPC1();
     SymbolicProgramConfiguration spc2 = mergedFields.getMergingSPC2();
+
+    // Early abort if precision loss is too great
+    if (isAbortMergeDueToPrecisionLoss(status, maxAllowedPrecisionLoss)) {
+      return Optional.empty();
+    }
 
     // 2. Collect the set F of all pairs (of, t) occurring in has-value edges leading from o1 or o2
     NavigableMap<Integer, Integer> offsetsToSize1 = new TreeMap<>();
@@ -635,7 +707,17 @@ public class SymbolicProgramConfiguration {
       // joinValues()
       // Returns a value that represents both inputs, inclusive their memory, if it succeeds.
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeJoinedValuesResult =
-          mergeValues(spc1, spc2, v1, v2, newSPC, mapping1, mapping2, status, currentNestingDiff);
+          mergeValues(
+              spc1,
+              spc2,
+              v1,
+              v2,
+              newSPC,
+              mapping1,
+              mapping2,
+              status,
+              maxAllowedPrecisionLoss,
+              currentNestingDiff);
 
       if (maybeJoinedValuesResult.isEmpty()) {
         return Optional.empty();
@@ -686,6 +768,27 @@ public class SymbolicProgramConfiguration {
             newSPC, status, spc1, spc2, mapping1, mapping2));
   }
 
+  /**
+   * If precision loss of pMaxAllowedPrecisionLoss < pStatus, this returns true, and the merge
+   * should be aborted. Else this returns false and the merge should continue.
+   */
+  private static boolean isAbortMergeDueToPrecisionLoss(
+      SMGMergeStatus pStatus, MergePolicy pMaxAllowedPrecisionLoss) {
+    checkArgument(
+        pMaxAllowedPrecisionLoss != MergePolicy.SEP, "Merge should not have been started at all");
+    return switch (pStatus) {
+      case SMGMergeStatus.EQUAL -> false;
+      case SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT ->
+          pMaxAllowedPrecisionLoss == MergePolicy.ISOMORPHISM_ONLY;
+      case SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT ->
+          pMaxAllowedPrecisionLoss == MergePolicy.ISOMORPHISM_ONLY;
+      case SMGMergeStatus.INCOMPARABLE ->
+          pMaxAllowedPrecisionLoss == MergePolicy.ISOMORPHISM_ONLY
+              || pMaxAllowedPrecisionLoss == MergePolicy.ENTAILMENT_ONLY
+              || pMaxAllowedPrecisionLoss == MergePolicy.ENTAILMENT_WITH_ABSTRACTION;
+    };
+  }
+
   private static Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> mergeValues(
       SymbolicProgramConfiguration pSpc1,
       SymbolicProgramConfiguration pSpc2,
@@ -695,6 +798,7 @@ public class SymbolicProgramConfiguration {
       NodeMapping mapping1,
       NodeMapping mapping2,
       SMGMergeStatus initialJoinStatus,
+      final MergePolicy maxAllowedPrecisionLoss,
       int nestingDiff)
       throws SMGException {
     checkNotNull(initialJoinStatus);
@@ -811,8 +915,9 @@ public class SymbolicProgramConfiguration {
           // TODO: This is not necessarily a bad thing!
           return Optional.empty();
         }
-        // TODO: constraints equality is currently handled in SMGState merge() (we reject all
-        //  possible states with non-equal constraints)
+
+        // Check constraints on the values and using the values
+        // TODO:
 
       }
 
@@ -849,7 +954,17 @@ public class SymbolicProgramConfiguration {
 
     // 5. joinTargetObject(), if it returns bottom, return bottom.
     Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> res =
-        mergeTargetObjects(pNewSpc, pSpc1, pSpc2, v1, v2, mapping1, mapping2, status, nestingDiff);
+        mergeTargetObjects(
+            pNewSpc,
+            pSpc1,
+            pSpc2,
+            v1,
+            v2,
+            mapping1,
+            mapping2,
+            status,
+            maxAllowedPrecisionLoss,
+            nestingDiff);
     // If it does not return recoverable failure, return result of joinTargetObject().
     if (res.isEmpty() || !res.orElseThrow().isRecoverableFailure()) {
       return res;
@@ -865,6 +980,7 @@ public class SymbolicProgramConfiguration {
         mapping1,
         mapping2,
         initialJoinStatus,
+        maxAllowedPrecisionLoss,
         nestingDiff,
         res.orElseThrow());
   }
@@ -883,6 +999,7 @@ public class SymbolicProgramConfiguration {
           NodeMapping mapping1,
           NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
+          final MergePolicy maxAllowedPrecisionLoss,
           int nestingDiff,
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue initialResult)
           throws SMGException {
@@ -899,7 +1016,16 @@ public class SymbolicProgramConfiguration {
     if (t1 instanceof SMGSinglyLinkedListSegment && res.isRecoverableFailureTypeDelayedMerge()) {
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           insertLeftLLAndJoin(
-              pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff);
+              pSpc1,
+              pSpc2,
+              v1,
+              v2,
+              pNewSpc,
+              mapping1,
+              mapping2,
+              initialJoinStatus,
+              maxAllowedPrecisionLoss,
+              nestingDiff);
 
       if (maybeRes.isEmpty()) {
         return maybeRes;
@@ -916,7 +1042,16 @@ public class SymbolicProgramConfiguration {
     if (t2 instanceof SMGSinglyLinkedListSegment && res.isRecoverableFailureTypeDelayedMerge()) {
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           insertRightLLAndJoin(
-              pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff);
+              pSpc1,
+              pSpc2,
+              v1,
+              v2,
+              pNewSpc,
+              mapping1,
+              mapping2,
+              initialJoinStatus,
+              maxAllowedPrecisionLoss,
+              nestingDiff);
       if (maybeRes.isEmpty()) {
         return Optional.empty();
       }
@@ -961,9 +1096,17 @@ public class SymbolicProgramConfiguration {
               mapping1,
               mapping2,
               initialJoinStatus,
+              maxAllowedPrecisionLoss,
               nestingDiff);
 
       if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailure()) {
+        return Optional.empty();
+      }
+
+      // Early abort if precision loss is too great
+      if (isAbortMergeDueToPrecisionLoss(
+          maybeRes.orElseThrow().getJoinSPCAndJoinStatusWithJoinedSPCsAndMapping().getMergeStatus(),
+          maxAllowedPrecisionLoss)) {
         return Optional.empty();
       }
 
@@ -995,6 +1138,7 @@ public class SymbolicProgramConfiguration {
               mapping1,
               mapping2,
               initialJoinStatus,
+              maxAllowedPrecisionLoss,
               nestingDiff);
 
       if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailure()) {
@@ -1206,6 +1350,7 @@ public class SymbolicProgramConfiguration {
           NodeMapping mapping1,
           NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
+          final MergePolicy maxAllowedPrecisionLoss,
           int nestingDiff)
           throws SMGException {
     assert areMappedValuesInSPC(pNewSpc, mapping1);
@@ -1303,7 +1448,17 @@ public class SymbolicProgramConfiguration {
       }
       // Let res = joinValues(status, SMG1, SMG2, new SMG, m1, m2, aNext, v2, ldiff).
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
-          mergeValues(spc1, spc2, aNext, v2, newSPC, mapping1, mapping2, status, nestingDiff);
+          mergeValues(
+              spc1,
+              spc2,
+              aNext,
+              v2,
+              newSPC,
+              mapping1,
+              mapping2,
+              status,
+              maxAllowedPrecisionLoss,
+              nestingDiff);
       if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
         return Optional.empty();
       } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
@@ -1312,7 +1467,7 @@ public class SymbolicProgramConfiguration {
       }
       MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue res = maybeRes.orElseThrow();
       // If res = bottom, return bottom.
-      // TODO: this a is wierd. It is never actually used in the algorithm. SMG1 also never used it.
+      // TODO: this a is weird. It is never actually used in the algorithm. SMG1 also never used it.
       // SMGValue a = res.getSMGValue();
       MergedSPCAndMergeStatusWithMergingSPCsAndMapping resRest =
           res.getJoinSPCAndJoinStatusWithJoinedSPCsAndMapping();
@@ -1367,7 +1522,7 @@ public class SymbolicProgramConfiguration {
     checkArgument(newSPC.heapObjects.contains(d));
     checkArgument(newSPC.smg.getObjects().contains(d));
     checkState(mapping1.hasMapping(sll1) && mapping1.getMappedObject(sll1).equals(d));
-    checkArgument(((SMGSinglyLinkedListSegment) d).getMinLength() == 0);
+    checkArgument(d.getMinLength() == 0);
     // 9. Let value a be the address such that the PTE of a equals the offset,
     //      size and target d if such an address already exists in new SMG.
     //    Otherwise, create a new value a with those characteristics and
@@ -1395,7 +1550,17 @@ public class SymbolicProgramConfiguration {
     // Note: we merge the next/prev pointer of the linked-list a1 points to and v2,
     //   skipping the inserted list element in a sense.
     Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
-        mergeValues(spc1, spc2, aNext, v2, newSPC, mapping1, mapping2, status, nestingDiff);
+        mergeValues(
+            spc1,
+            spc2,
+            aNext,
+            v2,
+            newSPC,
+            mapping1,
+            mapping2,
+            status,
+            maxAllowedPrecisionLoss,
+            nestingDiff);
     if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
       return maybeRes;
     } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
@@ -1455,6 +1620,7 @@ public class SymbolicProgramConfiguration {
           NodeMapping mapping1,
           NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
+          final MergePolicy maxAllowedPrecisionLoss,
           int nestingDiff)
           throws SMGException {
     assert areMappedValuesInSPC(pNewSpc, mapping1);
@@ -1548,7 +1714,17 @@ public class SymbolicProgramConfiguration {
       }
       // Let res = joinValues(status, SMG1, SMG2, new SMG, m1, m2, v1, aNext, ldiff).
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
-          mergeValues(spc1, spc2, v1, aNext, newSPC, mapping1, mapping2, status, nestingDiff);
+          mergeValues(
+              spc1,
+              spc2,
+              v1,
+              aNext,
+              newSPC,
+              mapping1,
+              mapping2,
+              status,
+              maxAllowedPrecisionLoss,
+              nestingDiff);
       if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
         return Optional.empty();
       } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
@@ -1641,7 +1817,17 @@ public class SymbolicProgramConfiguration {
     // abstracted list,
     //   skipping the abstracted list element.
     Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
-        mergeValues(spc1, spc2, v1, aNext, newSPC, mapping1, mapping2, status, nestingDiff);
+        mergeValues(
+            spc1,
+            spc2,
+            v1,
+            aNext,
+            newSPC,
+            mapping1,
+            mapping2,
+            status,
+            maxAllowedPrecisionLoss,
+            nestingDiff);
     if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
       return maybeRes;
     } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
@@ -1939,6 +2125,7 @@ public class SymbolicProgramConfiguration {
           NodeMapping mapping1,
           NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
+          final MergePolicy maxAllowedPrecisionLoss,
           int nestingDiff)
           throws SMGException {
     checkNotNull(initialJoinStatus);
@@ -2244,7 +2431,18 @@ public class SymbolicProgramConfiguration {
 
     // 14. Let res := joinSubSMGs(s, G1 , G2 , G, m1 , m2 , o1 , o2 , o, ldif f ).
     Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> maybeRes =
-        mergeSubSMGs(spc1, spc2, o1, o2, newSPC, o, status, mapping1, mapping2, nestingDiff);
+        mergeSubSMGs(
+            spc1,
+            spc2,
+            o1,
+            o2,
+            newSPC,
+            o,
+            status,
+            maxAllowedPrecisionLoss,
+            mapping1,
+            mapping2,
+            nestingDiff);
     // If res = ⊥, return ⊥.
     if (maybeRes.isEmpty()) {
       return Optional.empty();
