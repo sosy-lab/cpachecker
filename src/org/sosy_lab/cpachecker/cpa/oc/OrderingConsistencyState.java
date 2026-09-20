@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -31,7 +30,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * instead of its path tree; states are never covered.
  */
 public final class OrderingConsistencyState
-    implements AbstractState, AbstractStateWithLocation, Targetable, Partitionable, Graphable {
+    implements AbstractStateWithLocation,
+        OcThreadInstanceState,
+        Targetable,
+        Partitionable,
+        Graphable {
 
   /**
    * Everything that must coincide for two states to describe the same unrolled program point. The
@@ -102,6 +105,11 @@ public final class OrderingConsistencyState
   }
 
   int getInstanceId() {
+    return instanceId;
+  }
+
+  @Override
+  public int getThreadInstanceId() {
     return instanceId;
   }
 

@@ -63,6 +63,9 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentState;
 import org.sosy_lab.cpachecker.cpa.concurrent.ThreadState;
+import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
+import org.sosy_lab.cpachecker.cpa.oc.OcThreadInstanceState;
+import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -256,6 +259,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
+    // The ordering-consistency analysis does not track threads in a state either: its counter-
+    // example is one interleaving of the whole execution, and the state reached by a step records
+    // the thread instance that step created, if any.
+    OcThreadInstanceState ocState = extractStateByType(pState, OcThreadInstanceState.class);
+    if (ocState != null && ocState.getCreatedThreadInstanceId() != MemoryEvent.NO_INSTANCE) {
+      return Optional.of(getOcThreadName(ocState.getCreatedThreadInstanceId()));
+    }
+
     return Optional.empty();
   }
 
@@ -287,7 +298,24 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
+    // The ordering-consistency analysis records the executing thread instance on every state of
+    // its sequentialized counterexample path.
+    OcThreadInstanceState ocState = extractStateByType(pState, OcThreadInstanceState.class);
+    if (ocState != null) {
+      return Optional.of(getOcThreadName(ocState.getThreadInstanceId()));
+    }
+
     return Optional.empty();
+  }
+
+  /**
+   * Returns the name used to refer to a thread instance of the ordering-consistency analysis. The
+   * main instance always has id {@link ThreadInstance#MAIN_INSTANCE_ID} and is named "main" to
+   * match the thread ids used during the export; every other instance is named by its id, which is
+   * assigned in creation order and is unique per run.
+   */
+  private static String getOcThreadName(int pInstanceId) {
+    return pInstanceId == ThreadInstance.MAIN_INSTANCE_ID ? "main" : "T" + pInstanceId;
   }
 
   /**

@@ -239,12 +239,15 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   }
 
   /**
-   * A bare location abstract state at the given node, used to wrap the synthetic ARG states of a
-   * sequentialized counterexample path (which interleaves several threads and therefore has no
-   * counterpart in the exploration's reached set).
+   * A state of a sequentialized counterexample path: the given location, reached by a step of
+   * thread instance {@code pInstanceId} which created instance {@code pCreatedInstanceId} (or
+   * {@link MemoryEvent#NO_INSTANCE}). Such a path interleaves several threads and therefore has no
+   * counterpart in the exploration's reached set.
    */
-  public AbstractState locationStateFor(CFANode pNode) {
-    return locationCPA.getStateFactory().getState(pNode);
+  public AbstractState counterexampleStateFor(
+      CFANode pNode, int pInstanceId, int pCreatedInstanceId) {
+    return new OcCounterexampleState(
+        locationCPA.getStateFactory().getState(pNode), pInstanceId, pCreatedInstanceId);
   }
 
   CallstackCPA getCallstackCPA() {

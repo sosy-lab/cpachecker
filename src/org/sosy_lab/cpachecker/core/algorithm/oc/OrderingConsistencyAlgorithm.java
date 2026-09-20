@@ -649,11 +649,20 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * for a normal analysis. The explicit (non-null) edge list is the path's full path, which is what
    * the export prints.
    */
+  /** The thread instance a CREATE event starts, or {@link MemoryEvent#NO_INSTANCE} otherwise. */
+  private static int createdInstanceOf(MemoryEvent pEvent) {
+    return pEvent.kind() == EventKind.CREATE ? pEvent.otherInstanceId() : MemoryEvent.NO_INSTANCE;
+  }
+
   private void attachCounterexample(
       ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
       throws SolverException {
     try (Model model = pProver.getModel()) {
       List<CFAEdge> edges = new ArrayList<>();
+      // the thread instance that executes each edge, and the instance its step creates (if any),
+      // so that the violation witness can label every waypoint with the thread it belongs to
+      List<Integer> edgeInstances = new ArrayList<>();
+      List<Integer> edgeCreatedInstances = new ArrayList<>();
       // the event that ends the counterexample path (the reached error for unreach-call, the later
       // of the two racing accesses for no-data-race); its reached state becomes the CEX target
       MemoryEvent terminalEvent = terminalViolationEvent(model, pEncoder);
@@ -671,7 +680,13 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
           // can be tagged on several reads of the same assume edge
           if (!edge.equals(previousEdge)) {
             edges.add(edge);
+            edgeInstances.add(event.instanceId());
+            edgeCreatedInstances.add(createdInstanceOf(event));
             previousEdge = edge;
+          } else if (edgeCreatedInstances.getLast() == MemoryEvent.NO_INSTANCE) {
+            // one statement can produce several events; whichever of them is the create is the
+            // one that names the new thread
+            edgeCreatedInstances.set(edgeCreatedInstances.size() - 1, createdInstanceOf(event));
           }
         }
         if (event.id() == terminalEvent.id()) {
@@ -719,11 +734,23 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       // the state list, never parent-linked, so the reached-set ARG is left untouched.
       List<ARGState> states = new ArrayList<>();
       ARGState previous =
-          new ARGState(ocCpa.locationStateFor(edges.getFirst().getPredecessor()), null);
+          new ARGState(
+              ocCpa.counterexampleStateFor(
+                  edges.getFirst().getPredecessor(),
+                  edgeInstances.getFirst(),
+                  MemoryEvent.NO_INSTANCE),
+              null);
       states.add(previous);
       for (int i = 1; i < edges.size(); i++) {
+        // the state after an edge carries that edge's thread, which is what the witness export
+        // consults for the waypoint it builds from the edge
         ARGState next =
-            new ARGState(ocCpa.locationStateFor(edges.get(i - 1).getSuccessor()), previous);
+            new ARGState(
+                ocCpa.counterexampleStateFor(
+                    edges.get(i - 1).getSuccessor(),
+                    edgeInstances.get(i - 1),
+                    edgeCreatedInstances.get(i - 1)),
+                previous);
         states.add(next);
         previous = next;
       }
