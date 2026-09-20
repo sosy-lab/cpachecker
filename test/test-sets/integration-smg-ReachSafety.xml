@@ -35,7 +35,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="AnonymousLocalAllocationReachSafety">
     <include>../programs/smg2_tests/anonymousLocalAllocation/*_safe_*.yml</include>
-    <propertyfile>../../config/specification/ErrorLabel.spc</propertyfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
 
   <tasks>

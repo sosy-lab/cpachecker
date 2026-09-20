@@ -11,7 +11,7 @@ format_version: '2.0'
 input_files: 'alloca_free_one_past_unsafe.c'
 
 properties:
-  - property_file: ../../../../config/specification/memorysafety.spc
+  - property_file: ../../../config/properties/valid-memsafety.prp
     expected_verdict: false
     subproperty: valid-free
 

@@ -55,7 +55,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="AnonymousLocalAllocationMemSafety">
     <include>../programs/smg2_tests/anonymousLocalAllocation/*.yml</include>
     <option name="--smgSymbolicExecution"/>
-    <propertyfile>../../config/specification/memorysafety.spc</propertyfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="MemSafety-LinkedLists">
