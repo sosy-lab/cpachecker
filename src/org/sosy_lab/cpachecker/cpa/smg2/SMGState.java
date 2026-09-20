@@ -15,6 +15,7 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT;
+import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Equivalence.Wrapper;
@@ -74,6 +75,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGMergeOptions.MergePolicy;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGStopOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGStopOptions.StopPolicy;
+import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstantSymbolicExpressionLocator;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
@@ -123,11 +128,13 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus;
+import org.sosy_lab.cpachecker.util.smg.util.EitherMergedStateAndMergeStatusOrFailureInfo;
 import org.sosy_lab.cpachecker.util.smg.util.MergedSMGStateAndMergeStatus;
 import org.sosy_lab.cpachecker.util.smg.util.MergedSPCAndMergeStatus;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.smg.util.StatesMergedAndMergeStatus;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
@@ -188,6 +195,9 @@ public class SMGState
 
   // Remember merge info for quick lessOrEquals check (only valid for this very state!)
   private final Optional<StatesMergedAndMergeStatus> mergeInfo;
+  // Information about which state is to be merged how is gathered in precision adjustment,
+  // as merge does not have a location to decide this based on locations.
+  private MergePolicy mergePolicy = MergePolicy.SEP;
 
   // Constructor only for NEW/EMPTY SMGStates!
   private SMGState(
@@ -1324,56 +1334,181 @@ public class SMGState
     return "SMGCPA";
   }
 
-  /*
-   * Merge 2 SMGStates and as a consequence its SMGs as far as possible or return no state if they
-   * are incomparable.
+  public static EitherMergedStateAndMergeStatusOrFailureInfo mergeStatesWithPostProcessing(
+      final SMGState pStateFromTransfer,
+      final SMGState pStateFromReached,
+      final MergePolicy maxAllowedPrecisionLoss,
+      final boolean usedInStopOperator,
+      final Optional<StatTimer> pTimeForMergeWithoutPreprocessingAndChecks)
+      throws CPAException {
+    SMGOptions options = pStateFromReached.options;
+    checkState(options == pStateFromTransfer.options);
+
+    /* How merge (after transfer relation) and stop interact:
+     * If abstract state e´ is the result of applying transfer relation on some state e (that is no
+     * longer in waitlist), apply the following on all remaining states from reached R:
+     * e_new := merge(e′, e´´) // apply merge on e´ and e´´ ∈ R
+     * // stop_sep returns the state e´´ from reached R always
+     * if e_new != e´´ do
+     *   remove e´´ from reached and waitlist and add e_new instead to both;
+     * if not stop(e′, reached) then
+     *   add e´ to reached and waitlist;
+     */
+
+    if (options.getMergeOptions().mergeOnlyWithAbstractionPresent()
+        && pStateFromTransfer.getMemoryModel().getSmg().getAllValidAbstractedObjects().isEmpty()
+        && pStateFromReached.getMemoryModel().getSmg().getAllValidAbstractedObjects().isEmpty()) {
+      return EitherMergedStateAndMergeStatusOrFailureInfo.ofFailedMergeDueToPreconditions();
+    }
+
+    EitherMergedStateAndMergeStatusOrFailureInfo maybeMergedStateAndStatus =
+        pStateFromTransfer.mergeStatesWithPreconditionChecks(
+            pStateFromReached, maxAllowedPrecisionLoss, pTimeForMergeWithoutPreprocessingAndChecks);
+
+    if (!usedInStopOperator
+        && maybeMergedStateAndStatus.failedDueToPrecisionLoss()
+        && options.getAbstractionOptions().isUsePrecAdjustmentAbstraction()) {
+      // TODO: I found that there are states that SHOULD be abstracted more, e.g.:
+      //  [0+] -> [concrete element equal to 0+] -> 0
+      //  with no outside pointers, so it should be [1+] -> 0
+      //  The reason is most likely the "dropping" of the outside pointer and not encountering a
+      //  location where abstraction is allowed before the state is merged.
+      //  But further investigation is needed.
+      //  This issue is only relevant if we abstract using the non-merge abstraction procedure.
+      SMGState abstractedStateFromTransfer = tryToAbstractStateForMerge(pStateFromTransfer);
+      SMGState abstractedStateFromReached = tryToAbstractStateForMerge(pStateFromReached);
+      if (abstractedStateFromTransfer != pStateFromTransfer
+          || abstractedStateFromReached != pStateFromReached) {
+        maybeMergedStateAndStatus =
+            abstractedStateFromTransfer.mergeStatesWithPreconditionChecks(
+                abstractedStateFromReached,
+                MergePolicy.ENTAILMENT_ONLY, // TODO: use with abstraction?
+                pTimeForMergeWithoutPreprocessingAndChecks);
+      }
+    }
+
+    if (maybeMergedStateAndStatus.isMergedSuccessfully()) {
+      MergedSMGStateAndMergeStatus mergedStateAndStatus =
+          maybeMergedStateAndStatus.getMergedStateAndMergeStatus();
+      SMGMergeStatus mergeStatus = mergedStateAndStatus.getMergeStatus();
+
+      SMGState mergedState = mergedStateAndStatus.getMergedSMGState();
+      // We might now be able to fold more items into an abstracted element
+      if (!usedInStopOperator && options.getAbstractionOptions().isUsePrecAdjustmentAbstraction()) {
+        mergedState = tryToAbstractStateForMerge(mergedState);
+      }
+
+      // Retain merge status to reason about in stop operator
+      mergedState = mergedState.asResultOfMerge(pStateFromTransfer, pStateFromReached, mergeStatus);
+      checkState(mergedState.isResultOfMerge());
+
+      // The merged state is strictly equal or more abstract than the input states.
+      return EitherMergedStateAndMergeStatusOrFailureInfo.ofSuccessfulMerge(
+          MergedSMGStateAndMergeStatus.of(mergedState, mergeStatus));
+    } else {
+      // We don't want to remember information about failed merges for now, as the precision loss if
+      // used in stopOp would be too great.
+      return maybeMergedStateAndStatus;
+    }
+  }
+
+  private static SMGState tryToAbstractStateForMerge(SMGState mergedState) throws SMGException {
+    return new SMGCPAAbstractionManager(
+            mergedState,
+            mergedState.options.getAbstractionOptions().getListAbstractionMinimumLengthThreshold(),
+            mergedState.getStatistics())
+        .findAndAbstractLists();
+  }
+
+  /**
+   * Merge 2 {@link SMGState}s, meaning their SMGs are merged as far as possible or no state is
+   * returned if precision loss is too high. This also checks state and SPC equality as far as
+   * necessary to merge the states. pTimeForMergeWithoutPreprocessingAndChecks has only been started
+   * if this method did not return during preprocessing or precondition checks. Whoever calls this
+   * must ensure that pTimeForMergeWithoutPreprocessingAndChecks is stopped. We assume that if
+   * pTimeForMergeWithoutPreprocessingAndChecks is non-empty, this is used as part of the mergeOp
+   * and we also increment the # of merge tries after preconditions have been fullfilled as part of
+   * merge statistics.
    *
+   * @param maxAllowedPrecisionLoss max allowed {@link MergePolicy}. If precision loss becomes
+   *     greater than this, the merge is aborted early and no state is returned.
    */
-  public Optional<MergedSMGStateAndMergeStatus> merge(SMGState pOtherStateFromReached)
+  private EitherMergedStateAndMergeStatusOrFailureInfo mergeStatesWithPreconditionChecks(
+      SMGState pOtherStateFromReached,
+      final MergePolicy maxAllowedPrecisionLoss,
+      final Optional<StatTimer> pTimeForMergeWithoutPreprocessingAndChecks)
       throws CPAException {
     if (getSize() != pOtherStateFromReached.getSize()) {
       // If there is a non-equal number of (stack/global) variables, the merge fails anyway
-      return Optional.empty();
+      return EitherMergedStateAndMergeStatusOrFailureInfo.ofFailedMergeDueToPreconditions();
     }
 
     // We may not forget any errors already found
     if (!checkErrorEqualityForTwoStates(pOtherStateFromReached)
         || !copyAndPruneUnreachable()
             .checkErrorEqualityForTwoStates(pOtherStateFromReached.copyAndPruneUnreachable())) {
-      return Optional.empty();
+      return EitherMergedStateAndMergeStatusOrFailureInfo.ofFailedMergeDueToPreconditions();
     }
 
     if (!lastCheckedMemoryAccess.equals(pOtherStateFromReached.lastCheckedMemoryAccess)) {
       // TODO: most likely too strict.
-      return Optional.empty();
+      return EitherMergedStateAndMergeStatusOrFailureInfo.ofFailedMergeDueToPreconditions();
     }
 
     SMGState otherSanitizedState = pOtherStateFromReached.removeOldConstraints();
     SMGState thisSanitizedState = removeOldConstraints();
-    if (!options.getMergeOptions().isOverapproximateSymbolicConstraints()
-        && !otherSanitizedState.constraintsState.equals(thisSanitizedState.constraintsState)) {
-      // TODO: Problem: there might still be distinct symbolic values with the same constraints.
-      //   => Compare those by location.
-      //   Example: imagine a loop, the loop bound may be against a nondet() function,
-      //     the comparison is always i (concretely known, for example 1) < nondet().
-      //     The nondet() might be reassigned each loop, thus different.
-      //     But since the constraint is equal for location, that would be OK!
-      return Optional.empty();
+    ConstraintsState thisConstraints = thisSanitizedState.constraintsState;
+    ConstraintsState otherConstraints = otherSanitizedState.constraintsState;
+    if (!otherConstraints.equals(thisConstraints)) {
+      // TODO: remove old pure eq check, and add:
+      //  - constraint merging of symbolic values (disjunct them?) if possible (note: we NEED to
+      // take
+      //  constraints on the merged constraints into account!)
+      //  - merging of concrete values transforms them to ranges (i.e. symbolic values with a
+      //  constraint) until a threshold is reached at which we havoc (w option)
+      if (options.getMergeOptions().isAllowSymbolicValueRenaming()) {
+        // TODO: Get all diffs of the two constraints-sets and check whether we can just rename
+        //  the symbolic IDs to get equal constraints (we should do this per value when merging
+        //  values! As this ensures equal variables/memory-locations for them.)
+        return EitherMergedStateAndMergeStatusOrFailureInfo.ofFailedMergeDueToPreconditions();
+        /*
+        ImmutableSet.Builder<Constraint> diffBuilder = ImmutableSet.builder();
+        for (Constraint constrThis : thisConstraints) {
+          if (!otherConstraints.contains(constrThis)) {
+            diffBuilder.add(constrThis);
+          }
+        }
+        for (Constraint constrOther : otherConstraints) {
+          if (!thisConstraints.contains(constrOther)) {
+            diffBuilder.add(constrOther);
+          }
+        }*/
+
+      } else if (!options.getMergeOptions().isOverapproximateSymbolicConstraints()) {
+        return EitherMergedStateAndMergeStatusOrFailureInfo.ofFailedMergeDueToPreconditions();
+      }
     }
+
     otherSanitizedState = otherSanitizedState.removeUnusedValues();
     thisSanitizedState = thisSanitizedState.removeUnusedValues();
 
+    if (pTimeForMergeWithoutPreprocessingAndChecks.isPresent()) {
+      pTimeForMergeWithoutPreprocessingAndChecks.orElseThrow().start();
+      statistics.incrementMergeAttemptsAfterPreconditions();
+    }
+
     // The merge must happen on garbage free memory models
     Optional<MergedSPCAndMergeStatus> maybeNewSPC =
-        thisSanitizedState.memoryModel.merge(otherSanitizedState.memoryModel, machineModel);
+        thisSanitizedState.memoryModel.merge(
+            otherSanitizedState.memoryModel, maxAllowedPrecisionLoss, machineModel);
 
     if (maybeNewSPC.isEmpty()) {
-      return Optional.empty();
+      return EitherMergedStateAndMergeStatusOrFailureInfo.ofFailedMergeDueToPrecisionLoss();
     }
 
     SymbolicProgramConfiguration newSPC = maybeNewSPC.orElseThrow().getMergedSPC();
     assert newSPC.checkSMGSanity();
-    return Optional.of(
+    return EitherMergedStateAndMergeStatusOrFailureInfo.ofSuccessfulMerge(
         MergedSMGStateAndMergeStatus.of(
             new SMGState(
                 machineModel,
@@ -1554,7 +1689,7 @@ public class SMGState
   }
 
   // When true, the "this" (left) state is not added to the reached set or waitlist (and is
-  // therefore subsumed by the right state pOther).
+  // therefore subsumed by the right state pStateFromReached).
   // The "this" state is a newly computed successor state that might have been merged with some
   // states from reached.
   // The other state is some state from the reached-set, and might be the result of a merge with the
@@ -1562,21 +1697,70 @@ public class SMGState
   // The "this" state itself might be a recently merged state, as its successor might be merged with
   // it and the successor might therefore vanish.
   @Override
-  public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
-    if (this == pOther) {
+  public boolean isLessOrEqual(SMGState pStateFromReached)
+      throws CPAException, InterruptedException {
+    if (this == pStateFromReached) {
       return true;
     }
 
-    checkArgument(!this.subsumesDueToPreviousMerge(pOther), "Error when checking STOP");
+    // We can leverage information about stop-op from previous merges, potentially even if a merge
+    // did not succeed. It might have generated enough information to decide less-or-equal!
+    // TODO: take another look at this once we merge values!
+    // Should the merge status indicate semantic equality (isomorph but without value modifications)
+    // or entailment of the this state ⊏ (LEFT_ENTAILED_IN_RIGHT) with the other state,
+    // including its values in a strict form, it indicated stop.
+    StopPolicy stopMergePolicy = options.getStopOptions().getPolicyForStopOperator();
+    // TODO: this relies on the idea that the merged state XOR the state from reached (if merge
+    // failed) carries to merge info mutably inside!
+    if (stopMergePolicy != StopPolicy.NO_MERGE) {
+      SMGState possiblyEntailingState = pStateFromReached;
+      // First take previous merged into account if wanted
+      if (stopMergePolicy == StopPolicy.TRY_MERGE
+          || stopMergePolicy == StopPolicy.TRY_MERGE_SMART) {
+        Optional<Boolean> entailedDueToPreviousMerge =
+            isEntailedInDueToMerge(this, possiblyEntailingState, options.getStopOptions());
+        if (entailedDueToPreviousMerge.isPresent()) {
+          return entailedDueToPreviousMerge.orElseThrow();
+        }
+      }
 
-    if (pOther.subsumesDueToPreviousMerge(this)) {
-      // When merging 2 states (left is a new state, right is from reached), the result replaces the
-      // right state iff the merged state is <=
-      return true;
+      // Merge again if wanted
+      if (stopMergePolicy == StopPolicy.MERGE_EXCLUSIVLY
+          || stopMergePolicy == StopPolicy.TRY_MERGE
+          || stopMergePolicy == StopPolicy.TRY_MERGE_SMART) {
+        // Merge, if allowed, and return the result
+        EitherMergedStateAndMergeStatusOrFailureInfo mergeRes =
+            mergeStatesWithPostProcessing(
+                this,
+                possiblyEntailingState,
+                MergePolicy.ENTAILMENT_ONLY, // TODO: use with abstraction?
+                true,
+                Optional.empty());
+        if (mergeRes.isMergedSuccessfully()) {
+          possiblyEntailingState = mergeRes.getMergedStateAndMergeStatus().getMergedSMGState();
+        }
+      }
+
+      // TODO: we might be able to abort early if precondition checks fail, as we check (nearly?)
+      // the same below!
+
+      // Entails check (either for the just merged state, or the first check if no merge before)
+      Optional<Boolean> entailedDueToMerge =
+          isEntailedInDueToMerge(this, possiblyEntailingState, options.getStopOptions());
+
+      if (entailedDueToMerge.isPresent()) {
+        return entailedDueToMerge.orElseThrow();
+      }
+
+      if (stopMergePolicy == StopPolicy.MERGE_EXCLUSIVLY) {
+        // Only argue about stop via merge,
+        // and we know that true would have been returned already -> false
+        return false;
+      }
     }
 
     // This state needs the same amount of variables as the other state
-    if (getSize() != pOther.getSize()) {
+    if (getSize() != pStateFromReached.getSize()) {
       return false;
     }
 
@@ -1584,7 +1768,7 @@ public class SMGState
         memoryModel.getSmg().getAllValidAbstractedObjects();
     if (!thisAllAbstr.isEmpty()) {
       Set<SMGSinglyLinkedListSegment> otherAllAbstr =
-          pOther.memoryModel.getSmg().getAllValidAbstractedObjects();
+          pStateFromReached.memoryModel.getSmg().getAllValidAbstractedObjects();
       if (thisAllAbstr.size() > otherAllAbstr.size()) {
         if (!otherAllAbstr.isEmpty()
             && thisAllAbstr.stream().anyMatch(o -> o.getMinLength() == 0)) {
@@ -1608,7 +1792,7 @@ public class SMGState
     }
 
     // This removed unused symbolic values from the constraints
-    if (!pOther
+    if (!pStateFromReached
         .removeOldConstraints()
         .getConstraints()
         .containsAll(removeOldConstraints().getConstraints())) {
@@ -1624,7 +1808,7 @@ public class SMGState
     // We may not forget any errors already found
     // TODO: simplify/reduce complexity for cases in which we know that the result is equal to input
     if (!copyAndPruneUnreachable()
-        .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
+        .checkErrorEqualityForTwoStates(pStateFromReached.copyAndPruneUnreachable())) {
       return false;
     }
 
@@ -1632,7 +1816,8 @@ public class SMGState
     EqualityCache<Value> equalityCache = EqualityCache.of();
     EqualityCache<SMGObject> objectCache = EqualityCache.of();
     // Check that both have the same stack frames
-    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache, objectCache, false)) {
+    if (!checkStackFrameEqualityForTwoStates(
+        pStateFromReached, equalityCache, objectCache, false)) {
       return false;
     }
 
@@ -1641,7 +1826,7 @@ public class SMGState
     // pointers is lessOrEqual)
     // Validity is checked while checking values and the shape!
     // There might linger some invalidated memory with no connection and that's fine.
-    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache, objectCache, false);
+    return checkEqualityOfMemoryForTwoStates(pStateFromReached, equalityCache, objectCache, false);
   }
 
   /**
@@ -2433,12 +2618,17 @@ public class SMGState
           treatSymbolicsAsEqualWEqualConstrains,
           allowAbstractedSelfPointers,
           trueEqualityCheck);
-    } else if (options.getMergeOptions().useMergeInStop()) {
-      // Merge can accuratly determine whether 2 states subsume, but using it with merge disabled
-      // may be problematic
+
+    } else if (options.getStopOptions().getPolicyForStopOperator()
+        == StopPolicy.TRY_MERGE_FOR_SHAPE_ABSTRACTION_ONLY) {
+      // Merge can accurately determine whether 2 states subsume,
+      // but we only check this if previously no merge was used in stop
       try {
         Optional<MergedSPCAndMergeStatus> mergeRes =
-            this.memoryModel.merge(otherState.memoryModel, machineModel);
+            this.memoryModel.merge(
+                otherState.memoryModel,
+                MergePolicy.ENTAILMENT_ONLY, // TODO: use with abstraction?
+                machineModel);
         return mergeRes.isPresent()
             && (mergeRes.orElseThrow().getMergeStatus() == EQUAL
                 || (!trueEqualityCheck
@@ -8222,30 +8412,69 @@ public class SMGState
   }
 
   /**
-   * Checks whether the state calling this method subsumes (is equal or fully includes; >=) the
-   * argument state based on a previous merge. Does NOT check the reverse direction, i.e. whether
-   * the argument subsumes the calling state.
+   * Checks whether stateFromReached is equal or fully includes the thisState (thisState <=
+   * stateFromReached) based on some previous merge. This method may also be used when using the
+   * merge method (not operator) to argue about stop via the information provided. In this case, use
+   * stateFromReached for the resulting state of the merge. This does not work correctly if the
+   * states are swapped!
+   *
+   * @return empty optional if no concrete result could be established and stop should proceed to
+   *     check less-or-equals. A non-empty {@link Optional} result can be accepted as the result of
+   *     lessOrEqual().
    */
-  private boolean subsumesDueToPreviousMerge(SMGState otherState) {
-    if (this == otherState) {
-      return true;
-    }
-    if (isResultOfMerge()) {
-      StatesMergedAndMergeStatus thisUnpackedMergeInfo = mergeInfo.orElseThrow();
-      // The merge status is also included for more information/debugging!
-      // It has information about the relation of the 2 merged states with each other.
-      // Note about merge status incomparable: this does not mean that the merged state does not
-      // subsume the input states, just that the input states had both asymmetrical abstractions
-      // that were unified.
-      SMGState thisMergedLeftState = thisUnpackedMergeInfo.getNewState();
-      SMGState thisMergedRightState = thisUnpackedMergeInfo.getStateFromReached();
-      if (otherState == thisMergedLeftState || otherState == thisMergedRightState) {
-        // this >= otherState
-        return true;
+  private static Optional<Boolean> isEntailedInDueToMerge(
+      final SMGState thisState, final SMGState stateFromReached, final SMGStopOptions options) {
+    /* How merge (after transfer relation) and stop interact:
+     * If abstract state e´ is the result of applying transfer relation on some state e (that is no
+     * longer in waitlist), apply the following on all remaining states from reached R:
+     * e_new := merge(e′, e´´) // apply merge on e´ and e´´ ∈ R
+     * // stop_sep returns the state e´´ from reached R always
+     * if e_new != e´´ do
+     *   remove e´´ from reached and waitlist and add e_new instead to both;
+     * if not stop(e′, reached) then
+     *   add e´ to reached and waitlist;
+     *
+     * "thisState" may be one of the 2 inputs of a merged state from reached.
+     * If the merge was not successful (i.e. we discarded the merged state), precision loss was unacceptable for merge, hence it is unacceptable for stop as well.
+     */
+    Optional<StatesMergedAndMergeStatus> maybeReachedStateMergeInfo = stateFromReached.mergeInfo;
+
+    // Note about merge status incomparable: this does not necessarily mean that stateFromReached
+    // does not subsume thisState.
+    // The original input states may have had asymmetrical abstractions that were unified via
+    // merging them, and we might still want to stop! But we decide this not based on
+    // incomparable (as that's the relation of thisState to the other parent of stateFromReached
+    // that is the result of this merge), but the relation of thisState to stateFromReached (e.g.
+    // by merging them, or by comparing them)
+    if (maybeReachedStateMergeInfo.isPresent()) {
+      // mergeInfoFromReachedState.isPresent() -> there was a merge attempt with this state as
+      //  input, or it is the resulting state, but we don't know the other input state or the result
+      StatesMergedAndMergeStatus reachedStateMergeInfo = maybeReachedStateMergeInfo.orElseThrow();
+
+      SMGState thisMergedLeftState = reachedStateMergeInfo.getLeftMergeStateFromTransfer();
+      SMGState thisMergedRightState = reachedStateMergeInfo.getStateFromReached();
+      StopPolicy stopPolicy = options.getPolicyForStopOperator();
+      if (thisMergedLeftState == thisState) {
+        checkState(stateFromReached != thisMergedRightState);
+        // thisState was an input state to the merge information carries by stateFromReached
+        SMGMergeStatus reachedStateMergeStatus = reachedStateMergeInfo.getMergeStatus();
+        // stateFromReached is the result of merging thisMergedLeftState and thisMergedRightState
+        // Merging again with the resulting state might yield more info (if needed)
+        // TODO: add value merging consideration!
+        if (reachedStateMergeStatus == EQUAL || reachedStateMergeStatus == LEFT_ENTAILED_IN_RIGHT) {
+          return Optional.of(true);
+
+        } else if (reachedStateMergeStatus == RIGHT_ENTAILED_IN_LEFT
+            && stopPolicy == StopPolicy.TRY_MERGE_SMART) {
+          // Wrong entailment or incomparable
+          return Optional.of(false);
+        }
+        // Fallthrough
       }
     }
 
-    return false;
+    // Fallthrough indicating that we can't decide about the result of stop here
+    return Optional.empty();
   }
 
   /** For tests only, so that lessOrEquals can be tested on more states. */
@@ -8267,6 +8496,33 @@ public class SMGState
 
   public boolean isPointer(Value value) {
     return memoryModel.isPointer(value);
+  }
+
+  /**
+   * Returns true if there is the same function at least 'minimumDepth' times on the current
+   * function stack, e.g. to detect whether abstraction for recursive functions makes sense.
+   */
+  public boolean hasRecursionOfDepthGreaterEqual(int minimumDepth) {
+    Iterator<StackFrame> stackFramesIter = memoryModel.getStackFrames().iterator();
+    Map<CFunctionDeclaration, Integer> count = new HashMap<>();
+    while (stackFramesIter.hasNext()) {
+      CFunctionDeclaration frameFun = stackFramesIter.next().getFunctionDefinition();
+      int currentCount = count.getOrDefault(frameFun, 0) + 1;
+      if (currentCount >= minimumDepth) {
+        return true;
+      }
+      count.put(frameFun, currentCount);
+    }
+    return false;
+  }
+
+  /** Returns whether the state should be merged and with what policy. */
+  protected MergePolicy getMergePolicy() {
+    return mergePolicy;
+  }
+
+  protected void setMergePolicy(MergePolicy newMergePolicy) {
+    mergePolicy = checkNotNull(newMergePolicy);
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find
