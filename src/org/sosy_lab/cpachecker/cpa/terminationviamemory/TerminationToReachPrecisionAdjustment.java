@@ -172,28 +172,20 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             ImmutableSet.builder();
         for (PartitionedRelationFormula transitionPredicate :
             terminationState.getTransitionPredicates()) {
-          if (isTransitionInvariant(transitionPredicate, iterationFormula, location)) {
+          if (isInductiveTransitionInvariant(transitionPredicate, iterationFormula, location)) {
             builderTransitionInvariants.add(transitionPredicate);
           }
         }
 
-        // Add the predicates from the witness, if they are not transition invariants,
-        // we have to return false.
+        // Add the predicates from the witness
         if (validation) {
           PartitionedRelationFormula invariantFromWitness =
               new PartitionedRelationFormula(
                   collectCandidateTransitionInvariants(
                       location, terminationState.getPathFormulasForIteration().get(keyPair)),
                   fmgr);
-          if (isTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
+          if (isInductiveTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
             builderTransitionInvariants.add(invariantFromWitness);
-          } else {
-            terminationState.makeTarget();
-            result = result.withAbstractState(terminationState);
-            statistics.setNonterminatingLoop(
-                cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
-            result = result.withAction(Action.BREAK);
-            return Optional.of(result);
           }
         }
 
@@ -243,7 +235,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
           if (isOverapproximating
-              && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
+              && isInductiveTransitionInvariant(candidateTransInv, iterationFormula, location)) {
             // Set the computed candidateTransInv to the terminationState
             builderTransitionPredicates.add(candidateTransInv);
             builderTransitionPredicates.addAll(terminationState.getTransitionPredicates());
@@ -503,7 +495,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         .isEmpty();
   }
 
-  private boolean isTransitionInvariant(
+  private boolean isInductiveTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
       CFANode pLocation)

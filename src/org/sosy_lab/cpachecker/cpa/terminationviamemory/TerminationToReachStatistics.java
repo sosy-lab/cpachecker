@@ -250,16 +250,16 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
                     YAMLWitnessExpressionType.EXT_C,
                     locationEntry));
           }
-          try {
-            terminationWitnessExporter.export(
-                transitionInvariants.values().stream().collect(ImmutableList.toImmutableList()),
-                terminationWitnessOutputFileTemplate);
-          } catch (IOException e) {
-            logger.logUserException(
-                WARNING, e, "There is a problem when writing the witness into a file.");
-          }
         }
       }
+    }
+    try {
+      terminationWitnessExporter.export(
+          transitionInvariants.values().stream().collect(ImmutableList.toImmutableList()),
+          terminationWitnessOutputFileTemplate);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "There is a problem when writing the witness into a file.");
     }
   }
 }
