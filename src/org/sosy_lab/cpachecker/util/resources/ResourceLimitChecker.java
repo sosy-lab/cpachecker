@@ -27,6 +27,7 @@ import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -256,6 +257,7 @@ public final class ResourceLimitChecker {
     }
 
     @Override
+    @SuppressForbidden("sleep is used only as grace period during shutdown")
     public void run() {
       ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
       shutdownManager.getNotifier().registerAndCheckImmediately(interruptThreadOnShutdown);
