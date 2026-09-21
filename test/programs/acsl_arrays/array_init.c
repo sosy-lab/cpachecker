@@ -18,10 +18,10 @@ int main() {
     int A[size];
 
     int i = 0;
-        while (i < size) {
-            A[i] = 42;
-            i++;
-        }
+    while (i < size) {
+        A[i] = 42;
+        i++;
+    }
 
     if ((A[10]!=42)){
         __assert_fail("0", "array_init.c", 23, "main");
