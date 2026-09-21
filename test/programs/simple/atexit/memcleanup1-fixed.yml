@@ -11,7 +11,7 @@ format_version: '2.0'
 input_files: 'memcleanup1-fixed.c'
 
 properties:
-  - property_file: ../../../config/properties/valid-memcleanup.prp
+  - property_file: ../../benchmarks/properties/valid-memcleanup.prp
     expected_verdict: true
 
 options:
