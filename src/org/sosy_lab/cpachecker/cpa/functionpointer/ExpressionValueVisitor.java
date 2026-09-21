@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import com.google.common.base.Preconditions;
 import java.math.BigInteger;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -116,26 +114,7 @@ class ExpressionValueVisitor
   }
 
   @Override
-  public FunctionPointerTarget visit(CFunctionCallExpression pIastFunctionCallExpression)
-      throws UnrecognizedCodeException {
-    if (pIastFunctionCallExpression.getFunctionNameExpression() instanceof CIdExpression fnExpr
-        && fnExpr.getName().equals("atexit")) {
-      // We've found a statement "atexit(<argExpr>)":
-      // Evaluate <argExpr> to get a target for the function pointer and store it on the stack
-      List<CExpression> params = pIastFunctionCallExpression.getParameterExpressions();
-      Preconditions.checkArgument(
-          params.size() == 1,
-          "atexit() takes one argument, but it was called with %s",
-          params.size());
-      CExpression argExpr = params.getFirst();
-      FunctionPointerTarget target = argExpr.accept(this);
-      // Note: We want AtExitState.peek() to only return NullTarget when the stack is actually
-      // empty. Because of this we have to use abstractInvalidTarget() here to make sure no
-      // NullTarget can be pushed onto the stack by calling atexit(0). The call to
-      // abstractInvalidTarget() makes sure that in such cases the target is always replaced by
-      // UnknownTarget before being pushed onto the stack.
-      state.pushTarget(FunctionPointerTransferRelation.abstractInvalidTarget(target));
-    }
+  public FunctionPointerTarget visit(CFunctionCallExpression pIastFunctionCallExpression) {
     return UnknownTarget.getInstance();
   }
 

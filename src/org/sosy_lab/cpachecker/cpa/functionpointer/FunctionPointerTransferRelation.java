@@ -307,7 +307,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
    * Replaces {@link org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget}
    * with {@link org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget}.
    */
-  static FunctionPointerTarget abstractInvalidTarget(FunctionPointerTarget pTarget) {
+  private static FunctionPointerTarget abstractInvalidTarget(FunctionPointerTarget pTarget) {
     return (pTarget instanceof InvalidTarget || pTarget instanceof NullTarget)
         ? UnknownTarget.getInstance()
         : pTarget;
@@ -388,6 +388,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       FunctionPointerState.Builder pNewState, CStatement pStatement, CFAEdge pCfaEdge)
       throws UnrecognizedCodeException {
 
+    // TODO: Handle calls like "int r = atexit(argExpr)" that don't ignore the return value
     if (pStatement instanceof CFunctionCallAssignmentStatement callAssignStmt
         && callAssignStmt.getLeftHandSide() instanceof CIdExpression leftSide
         && callAssignStmt.getRightHandSide().getFunctionNameExpression()
@@ -405,13 +406,32 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       // assignment like "a = b" or "a = foo()"
       handleAssignment(pNewState, cAssignment, pCfaEdge);
 
-    } else if (pStatement instanceof CFunctionCallStatement cCallStatement) {
-      // external function call without return value
-      getValue(cCallStatement.getFunctionCallExpression(), pNewState);
+    } else if (pStatement instanceof CFunctionCallStatement callStmt
+        && callStmt.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof CIdExpression fnExpr
+        && fnExpr.getName().equals("atexit")) {
+      // We've found a statement "atexit(<argExpr>)":
+      // Evaluate <argExpr> to get a target for the function pointer and store it on the stack
+      List<CExpression> params = callStmt.getFunctionCallExpression().getParameterExpressions();
+      Preconditions.checkArgument(
+          params.size() == 1,
+          "atexit() takes one argument, but it was called with %s",
+          params.size());
+      CExpression argExpr = params.getFirst();
+      ExpressionValueVisitor evaluator = new ExpressionValueVisitor(pNewState);
+      FunctionPointerTarget target = argExpr.accept(evaluator);
+      // Note: We want AtExitState.peek() to only return NullTarget when the stack is actually
+      // empty. Because of this we have to use abstractInvalidTarget() here to make sure no
+      // NullTarget can be pushed onto the stack by calling atexit(0). The call to
+      // abstractInvalidTarget() makes sure that in such cases the target is always replaced by
+      // UnknowTarget before being pushed onto the stack.
+      pNewState.pushTarget(abstractInvalidTarget(target));
 
-    } else if (pStatement instanceof CExpressionStatement cExpressionStatement) {
+    } else if (pStatement instanceof CFunctionCallStatement) {
+      // external function call without return value
+
+    } else if (pStatement instanceof CExpressionStatement) {
       // side-effect free statement
-      getValue(cExpressionStatement.getExpression(), pNewState);
 
     } else {
       throw new UnrecognizedCodeException("unknown statement", pCfaEdge, pStatement);
