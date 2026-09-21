@@ -79,6 +79,11 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -541,9 +546,7 @@ public class LoopUnroller {
       return logGiveUpUnrolling(pLoop, "the loop is not left via one branch of a condition");
     }
     CFAEdge stayInLoopEdge =
-        conditionNode.getLeavingEdge(0).equals(exitEdge)
-            ? conditionNode.getLeavingEdge(1)
-            : conditionNode.getLeavingEdge(0);
+        getOnlyElement(conditionNode.getLeavingEdges().filter(e -> !e.equals(exitEdge)));
     if (!pLoop.getLoopNodes().contains(stayInLoopEdge.getSuccessor())) {
       return logGiveUpUnrolling(pLoop, "the loop is not left via one branch of a condition");
     }
@@ -604,23 +607,24 @@ public class LoopUnroller {
   private static Set<CFANode> nodesThatCanLeaveTheLoop(
       Loop pLoop, CFANode pEntry, CFANode pCondition) {
     ImmutableSet<CFAEdge> innerEdges = pLoop.getInnerLoopEdges();
-    Set<CFANode> reached = new HashSet<>();
-    Deque<CFANode> waitlist = new ArrayDeque<>();
-    reached.add(pCondition);
-    waitlist.push(pCondition);
-    while (!waitlist.isEmpty()) {
-      CFANode node = waitlist.pop();
-      if (node.equals(pEntry)) {
-        continue; // going further back would mean going through one more iteration
-      }
-      for (CFAEdge edge : node.getEnteringEdges()) {
-        CFANode predecessor = edge.getPredecessor();
-        if (innerEdges.contains(edge) && reached.add(predecessor)) {
-          waitlist.push(predecessor);
-        }
-      }
-    }
-    return reached;
+    NodeCollectingCFAVisitor reached =
+        new NodeCollectingCFAVisitor(
+            new DefaultCFAVisitor() {
+              @Override
+              public TraversalProcess visitNode(CFANode pNode) {
+                // Going further back would mean going through one more iteration.
+                return pNode.equals(pEntry) ? TraversalProcess.SKIP : TraversalProcess.CONTINUE;
+              }
+
+              @Override
+              public TraversalProcess visitEdge(CFAEdge pEdge) {
+                return innerEdges.contains(pEdge)
+                    ? TraversalProcess.CONTINUE
+                    : TraversalProcess.SKIP;
+              }
+            });
+    CFATraversal.dfs().backwards().traverse(pCondition, reached);
+    return reached.getVisitedNodes();
   }
 
   /**
@@ -1052,28 +1056,37 @@ public class LoopUnroller {
    * was declared with, which is unknown.
    */
   private static Optional<BigInteger> valueBeforeLoop(Loop pLoop, CVariableDeclaration pVariable) {
+    ImmutableSet<CFAEdge> innerEdges = pLoop.getInnerLoopEdges();
+    // Search backwards from the node where the loop begins, stopping at each write of the variable
+    // because nothing before it reaches the loop without passing it. Going through the loop itself
+    // is the only other way back to that node, so leaving those edges out reaches exactly the
+    // writes that can be the last one before the loop.
+    EdgeCollectingCFAVisitor lastWrites =
+        new EdgeCollectingCFAVisitor(
+            new DefaultCFAVisitor() {
+              @Override
+              public TraversalProcess visitEdge(CFAEdge pEdge) {
+                return innerEdges.contains(pEdge) || writesVariable(pEdge, pVariable)
+                    ? TraversalProcess.SKIP
+                    : TraversalProcess.CONTINUE;
+              }
+            });
+    CFATraversal.dfs().backwards().traverseOnce(getLoopEntry(pLoop), lastWrites);
+
     Set<BigInteger> values = new HashSet<>();
-    Set<CFAEdge> visited = new HashSet<>(pLoop.getIncomingEdges());
-    Deque<CFAEdge> waitlist = new ArrayDeque<>(pLoop.getIncomingEdges());
-    while (!waitlist.isEmpty()) {
-      CFAEdge edge = waitlist.pop();
+    for (CFAEdge edge : lastWrites.getVisitedEdges()) {
+      if (innerEdges.contains(edge)) {
+        continue; // an edge of the loop itself, which is not a way of reaching it from outside
+      }
       if (writesVariable(edge, pVariable)) {
         Optional<BigInteger> value = constantWrittenBy(edge);
         if (value.isEmpty()) {
           return Optional.empty();
         }
         values.add(value.orElseThrow());
-        continue; // nothing before this write can reach the loop without passing it
-      }
-      CFANode predecessor = edge.getPredecessor();
-      if (predecessor.getNumEnteringEdges() == 0) {
+      } else if (edge.getPredecessor().getNumEnteringEdges() == 0) {
         // We reached the start of the function, so the variable is never written before the loop.
         return Optional.empty();
-      }
-      for (CFAEdge enteringEdge : predecessor.getEnteringEdges()) {
-        if (visited.add(enteringEdge)) {
-          waitlist.push(enteringEdge);
-        }
       }
     }
     return values.size() == 1 ? Optional.of(getOnlyElement(values)) : Optional.empty();
