@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -89,9 +90,9 @@ public class LoopUnroller {
       secure = true,
       name = "maxAddedNodes",
       description =
-          "maximum number of CFA nodes that unrolling a single loop may add, which is one copy of"
-              + " the body of the loop per iteration (0 disables the unrolling)")
-  @IntegerOption(min = 0)
+          "limits the maximum size of an unrolled loop, so that smaller loops can be unrolled more"
+              + " often than large ones (iterations * nodes in loop <= limit)")
+  @IntegerOption(min = 1)
   private int maxNodesAddedPerUnrolling = 1000;
 
   @Option(
@@ -99,8 +100,8 @@ public class LoopUnroller {
       name = "maxIterations",
       description =
           "maximum number of iterations that a loop may have to be unrolled, however small its body"
-              + " is (0 disables the unrolling)")
-  @IntegerOption(min = 0)
+              + " is")
+  @IntegerOption(min = 1)
   private int maxNumberOfUnrollings = 100;
 
   public LoopUnroller(LogManager pLogger, Configuration pConfig)
@@ -110,54 +111,47 @@ public class LoopUnroller {
   }
 
   public void unrollBoundedLoops(MutableCFA cfa) {
-    // Unrolling a loop replaces the nodes of every loop around it, which makes the loop structure
-    // we used stale. Computing it again lets the loops that contain the one we unrolled be
-    // unrolled as well, so that a nest of loops comes apart from the inside out, one level per
-    // round.
-    while (unrollInnermostBoundedLoops(cfa)) {
-      // A loop we unrolled is gone, so the one around it is one level less deep and this ends.
-    }
-  }
 
-  /**
-   * Unrolls every loop that contains no other loop we unroll in the same round. A loop around one
-   * of them only exists as a copy afterwards, which the next round finds.
-   *
-   * @return whether anything was unrolled, so that another round is worth it
-   */
-  private boolean unrollInnermostBoundedLoops(MutableCFA cfa) {
-    LoopStructure loopStructure;
-    // Loop detection needs reverse-postorder ids, which CFACreator assigns only after all
-    // post-processings that modify the CFA (and again after this one).
-    cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
-    try {
-      loopStructure = LoopStructure.getLoopStructure(cfa);
-    } catch (ParserException e) {
-      logger.log(Level.WARNING, "Can not parse loop structure, no unrolling done");
-      return false;
-    }
+    boolean unrolledSomething;
 
-    boolean unrolledSomething = false;
-    // A loop that contains another one also contains all of its nodes and at least its own head,
-    // so this order reaches every loop before the ones that contain it. Those are stale by then
-    // and canUnroll skips them until the next round sees their copies.
-    for (Loop loop : innermostFirst(loopStructure.getAllLoops())) {
-      // Counting the iterations of a loop we could not unroll anyway would be wasted work
-      if (!canUnroll(cfa, loop)) {
-        continue;
+    do {
+
+      LoopStructure loopStructure;
+      // Loop detection needs reverse-postorder ids, which CFACreator assigns only after all
+      // post-processings that modify the CFA (and again after this one).
+      cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
+      try {
+        // Unrolling a loop replaces the nodes of every loop around it, which makes the loop
+        // structure we used stale. Computing it again lets the loops that contain the one we
+        // unrolled be  unrolled as well, so that a nest of loops comes apart from the inside out,
+        // one level per round.
+        loopStructure = LoopStructure.getLoopStructure(cfa);
+      } catch (ParserException e) {
+        logger.log(Level.WARNING, "Can not parse loop structure, no unrolling done");
+        break;
       }
-      OptionalInt loopIterations = findExactLoopIterationCount(cfa, loop);
-      if (loopIterations.isEmpty()) {
-        continue;
+
+      unrolledSomething = false;
+      // A loop that contains another one also contains all of its nodes and at least its own head,
+      // so this order reaches every loop before the ones that contain it. Those are stale by then
+      // and canUnroll skips them until the next round sees their copies.
+      for (Loop loop : innermostFirst(loopStructure.getAllLoops())) {
+        // Counting the iterations of a loop we could not unroll anyway would be wasted work
+        if (!canUnroll(cfa, loop)) {
+          continue;
+        }
+        OptionalInt loopIterations = findExactLoopIterationCount(cfa, loop);
+        if (loopIterations.isEmpty()) {
+          continue;
+        }
+        unrollLoopExactly(cfa, loop, loopIterations.orElseThrow());
+        unrolledSomething = true;
       }
-      unrollLoopExactly(cfa, loop, loopIterations.orElseThrow());
-      unrolledSomething = true;
-    }
-    return unrolledSomething;
+    } while (unrolledSomething);
   }
 
   /** The given loops, every one of them before the ones that contain it. */
-  private static ImmutableList<Loop> innermostFirst(Collection<Loop> pLoops) {
+  private static Iterable<Loop> innermostFirst(Collection<Loop> pLoops) {
     return ImmutableList.sortedCopyOf(
         Comparator.comparingInt(loop -> loop.getLoopNodes().size()), pLoops);
   }
@@ -209,10 +203,10 @@ public class LoopUnroller {
     // also handle it
     CFAEdge exitEdge = getOnlyElement(pLoop.getOutgoingEdges());
 
-    List<Map<CFANode, CFANode>> iterationNodes =
-        createNodeCopies(pCfa, pLoop, entryNode, exitEdge.getPredecessor(), pIterations);
-    createEdgeCopies(pLoop, entryNode, exitEdge, iterationNodes);
-    redirectIncomingEdges(pLoop, iterationNodes.getFirst().get(entryNode));
+    CFANode entryNodeInFirstIteration =
+        createLoopCopy(pCfa, pLoop, entryNode, exitEdge.getPredecessor(), pIterations, exitEdge);
+
+    redirectIncomingEdges(pLoop, entryNodeInFirstIteration);
     removeOriginalLoop(pCfa, pLoop, exitEdge);
 
     logger.logf(
@@ -223,98 +217,157 @@ public class LoopUnroller {
   }
 
   /**
-   * Creates one copy of the nodes of the loop per iteration, in the order of the iterations. The
-   * last iteration only gets the nodes before the exit, because it leaves the loop there instead of
-   * running the rest of the body.
+   * Creates one copy of the nodes of the loop per iteration, as well as the internal and leaving
+   * edges. The last iteration copies only the parts before the exit, because it leaves the loop
+   * there.
    *
-   * @return for every iteration a map from each node of the loop to its copy
+   * @return the entry node of the first iteration
    */
-  private static List<Map<CFANode, CFANode>> createNodeCopies(
-      MutableCFA pCfa, Loop pLoop, CFANode pEntryNode, CFANode pConditionNode, int pIterations) {
+  private static CFANode createLoopCopy(
+      MutableCFA pCfa,
+      Loop pLoop,
+      CFANode pEntryNode,
+      CFANode pConditionNode,
+      int pIterations,
+      CFAEdge pExitEdge) {
     Set<CFANode> nodesOfLastIteration = nodesThatCanLeaveTheLoop(pLoop, pEntryNode, pConditionNode);
 
     List<Map<CFANode, CFANode>> iterationNodes = new ArrayList<>(pIterations);
     for (int iteration = 0; iteration < pIterations; iteration++) {
-      boolean lastIteration = iteration + 1 == pIterations;
-      Map<CFANode, CFANode> nodeCopies = new LinkedHashMap<>();
-      for (CFANode node : pLoop.getLoopNodes()) {
-        if (lastIteration && !nodesOfLastIteration.contains(node)) {
-          continue;
-        }
-        CFANode copy = copyNode(node);
-        if (node.isLoopStart()
-            && !node.equals(pEntryNode)
-            && !pLoop.getLoopHeads().contains(node)) {
-          copy.setLoopStart(); // keep the flag for nested loops
-        }
-        pCfa.addNode(copy);
-        nodeCopies.put(node, copy);
-      }
-      iterationNodes.add(nodeCopies);
+      iterationNodes.add(
+          createNodeCopy(
+              pCfa, pLoop, pEntryNode, iteration + 1 == pIterations, nodesOfLastIteration));
     }
-    return iterationNodes;
-  }
 
-  /**
-   * Creates the edges between the node copies. Whatever started a new iteration in the original
-   * loop now enters the copy of the next iteration, so that the copies form a chain. The last one
-   * has no next copy and leaves the loop at the condition instead.
-   */
-  private void createEdgeCopies(
-      Loop pLoop,
-      CFANode pEntryNode,
-      CFAEdge pExitEdge,
-      List<Map<CFANode, CFANode>> pIterationNodes) {
     ImmutableSet<CFAEdge> innerEdges = pLoop.getInnerLoopEdges();
     ImmutableSet<CVariableDeclaration> declaredVariables = variablesDeclaredIn(pLoop);
-    int iterations = pIterationNodes.size();
 
-    for (int iteration = 0; iteration < iterations; iteration++) {
-      boolean lastIteration = iteration + 1 == iterations;
-      Map<CFANode, CFANode> nodeCopies = pIterationNodes.get(iteration);
+    for (int iteration = 0; iteration < pIterations; iteration++) {
+      Map<CFANode, CFANode> nodeCopies = iterationNodes.get(iteration);
+
+      Optional<CFANode> nextIterationEntryNode =
+          iteration + 1 == pIterations
+              ? Optional.empty()
+              : Optional.of(iterationNodes.get(iteration + 1).get(pEntryNode));
+
+      Map<CFAEdge, CFANode> successors =
+          filterEdgesAndCollectSuccessors(
+              pEntryNode, pExitEdge, innerEdges, nodeCopies, nextIterationEntryNode);
+
       ImmutableMap<CSimpleDeclaration, CVariableDeclaration> renamedVariables =
           renameDeclarations(declaredVariables, pEntryNode.getFunctionName(), iteration);
 
-      // Collect the edges of this copy before adding them. If one branch of an assumption is no
-      // longer needed, we later replace the other with a blank edge
-      Map<CFAEdge, CFANode> successors = new LinkedHashMap<>();
-      for (CFAEdge edge : innerEdges) {
-        if (!nodeCopies.containsKey(edge.getPredecessor())) {
-          // the predecessor was left out above because it is after the exit in the last iteration
+      createEdgeCopies(successors, nodeCopies, renamedVariables);
+    }
+
+    return iterationNodes.getFirst().get(pEntryNode);
+  }
+
+  /**
+   * Create the edges
+   *
+   * @param successors the edges to copy together with the successor they should point to
+   * @param nodeCopies a mapping of node to the copies of the current iteration
+   * @param renamedVariables the map of original nested variables to the ones of the current
+   *     iteration
+   */
+  private static void createEdgeCopies(
+      Map<CFAEdge, CFANode> successors,
+      Map<CFANode, CFANode> nodeCopies,
+      ImmutableMap<CSimpleDeclaration, CVariableDeclaration> renamedVariables) {
+    Multiset<CFANode> branchesOfNode = HashMultiset.create();
+    successors.keySet().forEach(edge -> branchesOfNode.add(edge.getPredecessor()));
+
+    successors.forEach(
+        (edge, successor) ->
+            CFACreationUtils.addEdgeUnconditionallyToCFA(
+                copyEdge(
+                    edge,
+                    nodeCopies.get(edge.getPredecessor()),
+                    successor,
+                    branchesOfNode.count(edge.getPredecessor()) < 2,
+                    renamedVariables)));
+  }
+
+  /**
+   * Filters the edges that should be included in the current iteration and return them together
+   * with the successor they should point to in the copy. The successors are needed because they
+   * might be in the next iteration or the exit.
+   *
+   * @param pEntryNode the single node where the loop is entered
+   * @param pExitEdge the single node where the loop is exited
+   * @param innerEdges all edges of the loop
+   * @param nodesOfCurrentIteration the map of original node to the copies of the current iteration
+   * @param pEntryNodeOfNextIteration the first node of the next iteration. empty if this is the
+   *     last iteration
+   * @return all edges that should be copied and the nodes they should point to.
+   */
+  private static @NonNull Map<CFAEdge, CFANode> filterEdgesAndCollectSuccessors(
+      CFANode pEntryNode,
+      CFAEdge pExitEdge,
+      ImmutableSet<CFAEdge> innerEdges,
+      Map<CFANode, CFANode> nodesOfCurrentIteration,
+      Optional<CFANode> pEntryNodeOfNextIteration) {
+    // Collect the edges of this copy before adding them. If one branch of an assumption is no
+    // longer needed, we later replace the other with a blank edge
+    Map<CFAEdge, CFANode> successors = new LinkedHashMap<>();
+    for (CFAEdge edge : innerEdges) {
+      if (!nodesOfCurrentIteration.containsKey(edge.getPredecessor())) {
+        // the predecessor was left out above because it is after the exit in the last iteration
+        continue;
+      }
+      CFANode successor;
+      if (edge.getSuccessor().equals(pEntryNode)) {
+        // point to the next iteration copy
+        if (pEntryNodeOfNextIteration.isEmpty()) {
           continue;
         }
-        CFANode successor;
-        if (edge.getSuccessor().equals(pEntryNode)) {
-          // point to the next iteration copy
-          if (lastIteration) {
-            continue;
-          }
-          successor = pIterationNodes.get(iteration + 1).get(pEntryNode);
-        } else {
-          successor = nodeCopies.get(edge.getSuccessor());
-          if (successor == null) {
-            // the successor was left out above because it is after the exit in the last iteration
-            continue;
-          }
+        successor = pEntryNodeOfNextIteration.orElseThrow();
+      } else {
+        successor = nodesOfCurrentIteration.get(edge.getSuccessor());
+        if (successor == null) {
+          // the successor was left out above because it is after the exit in the last iteration
+          continue;
         }
-        successors.put(edge, successor);
       }
-      if (lastIteration) {
-        successors.put(pExitEdge, pExitEdge.getSuccessor());
-      }
-
-      Multiset<CFANode> branchesOfNode = HashMultiset.create();
-      successors.keySet().forEach(edge -> branchesOfNode.add(edge.getPredecessor()));
-      successors.forEach(
-          (edge, successor) ->
-              CFACreationUtils.addEdgeUnconditionallyToCFA(
-                  copyEdge(
-                      edge,
-                      nodeCopies.get(edge.getPredecessor()),
-                      successor,
-                      branchesOfNode.count(edge.getPredecessor()) < 2,
-                      renamedVariables)));
+      successors.put(edge, successor);
     }
+    if (pEntryNodeOfNextIteration.isEmpty()) {
+      successors.put(pExitEdge, pExitEdge.getSuccessor());
+    }
+    return successors;
+  }
+
+  /**
+   * Creates a copy of the node of a loop, without connecting the edges. In the last iteration, only
+   * the nodes from which the exit can still be reached are copied.
+   *
+   * @param pCfa the cfa to add these node to
+   * @param pLoop the loop to copy
+   * @param pEntryNode the single node where the loop is entered
+   * @param lastIteration if this is the last iteration
+   * @param nodesOfLastIteration the nodes to keep in the last iteration
+   * @return a map from the original edges to the copies
+   */
+  private static Map<CFANode, CFANode> createNodeCopy(
+      MutableCFA pCfa,
+      Loop pLoop,
+      CFANode pEntryNode,
+      boolean lastIteration,
+      Set<CFANode> nodesOfLastIteration) {
+    Map<CFANode, CFANode> nodeCopies = new LinkedHashMap<>();
+    for (CFANode node : pLoop.getLoopNodes()) {
+      if (lastIteration && !nodesOfLastIteration.contains(node)) {
+        continue;
+      }
+      CFANode copy = copyNode(node);
+      if (node.isLoopStart() && !node.equals(pEntryNode) && !pLoop.getLoopHeads().contains(node)) {
+        copy.setLoopStart(); // keep the flag for nested loops
+      }
+      pCfa.addNode(copy);
+      nodeCopies.put(node, copy);
+    }
+    return nodeCopies;
   }
 
   /** Redirects everything that entered the loop to the copy of the first iteration. */
@@ -581,7 +634,7 @@ public class LoopUnroller {
    * @param pRenamedVariables A mapping of the variables that are declared inside the loop to the
    *     iteration specific copies
    */
-  private CFAEdge copyEdge(
+  private static CFAEdge copyEdge(
       CFAEdge pEdge,
       CFANode pPredecessor,
       CFANode pSuccessor,

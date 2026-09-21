@@ -1244,12 +1244,12 @@ cfa.threads.threadSelfJoin = "pthread_join_N"
 # unroll loops that a can be determined to have a fixed upper bound
 cfa.unrollBoundedLoops = false
 
-# maximum number of CFA nodes that unrolling a single loop may add, which is
-# one copy of the body of the loop per iteration (0 disables the unrolling)
+# limits the maximum size of an unrolled loop, so that smaller loops can be
+# unrolled more often than large ones (iterations * nodes in loop <= limit)
 cfa.unrollBoundedLoops.maxAddedNodes = 1000
 
 # maximum number of iterations that a loop may have to be unrolled, however
-# small its body is (0 disables the unrolling)
+# small its body is
 cfa.unrollBoundedLoops.maxIterations = 100
 
 # clone functions of the CFA, such that there are several identical CFAs for
