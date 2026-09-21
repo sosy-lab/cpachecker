@@ -46,11 +46,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -245,6 +247,18 @@ public final class LoopStructure {
     public ImmutableSet<CFAEdge> getOutgoingEdges() {
       computeSets();
       return outgoingEdges;
+    }
+
+    /** The variables that the given loop declares. */
+    public ImmutableSet<AVariableDeclaration> collectDeclaredVariables() {
+      ImmutableSet.Builder<AVariableDeclaration> declarations = ImmutableSet.builder();
+      for (CFAEdge edge : getInnerLoopEdges()) {
+        if (edge instanceof ADeclarationEdge declarationEdge
+            && declarationEdge.getDeclaration() instanceof AVariableDeclaration declaration) {
+          declarations.add(declaration);
+        }
+      }
+      return declarations.build();
     }
 
     @Override

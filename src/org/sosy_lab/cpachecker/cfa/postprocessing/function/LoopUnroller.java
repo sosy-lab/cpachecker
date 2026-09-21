@@ -44,8 +44,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -57,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -83,6 +85,11 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 @Options(prefix = "cfa.unrollBoundedLoops")
 public class LoopUnroller {
+
+  // Every part of the unrolling that looks at an AST expects it to be a C one. LLVM is supported
+  // as well because it is parsed into the same AST.
+  private static final ImmutableSet<Language> SUPPORTED_LANGUAGES =
+      ImmutableSet.of(Language.C, Language.LLVM);
 
   private final LogManager logger;
 
@@ -111,6 +118,17 @@ public class LoopUnroller {
   }
 
   public void unrollBoundedLoops(MutableCFA cfa) {
+
+    // A language we do not handle has to be turned away here instead of somewhere in the middle,
+    // because we must not modify the CFA and give up afterwards.
+    if (!SUPPORTED_LANGUAGES.contains(cfa.getLanguage())) {
+      logger.logf(
+          Level.WARNING,
+          "Not unrolling loops because %s is not supported, only %s are",
+          cfa.getLanguage(),
+          SUPPORTED_LANGUAGES);
+      return;
+    }
 
     boolean unrolledSomething;
 
@@ -240,7 +258,7 @@ public class LoopUnroller {
     }
 
     ImmutableSet<CFAEdge> innerEdges = pLoop.getInnerLoopEdges();
-    ImmutableSet<CVariableDeclaration> declaredVariables = variablesDeclaredIn(pLoop);
+    ImmutableSet<AVariableDeclaration> declaredVariables = pLoop.collectDeclaredVariables();
 
     for (int iteration = 0; iteration < pIterations; iteration++) {
       Map<CFANode, CFANode> nodeCopies = iterationNodes.get(iteration);
@@ -254,7 +272,7 @@ public class LoopUnroller {
           filterEdgesAndCollectSuccessors(
               pEntryNode, pExitEdge, innerEdges, nodeCopies, nextIterationEntryNode);
 
-      ImmutableMap<CSimpleDeclaration, CVariableDeclaration> renamedVariables =
+      ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables =
           renameDeclarations(declaredVariables, pEntryNode.getFunctionName(), iteration);
 
       createEdgeCopies(successors, nodeCopies, renamedVariables);
@@ -274,7 +292,7 @@ public class LoopUnroller {
   private static void createEdgeCopies(
       Map<CFAEdge, CFANode> successors,
       Map<CFANode, CFANode> nodeCopies,
-      ImmutableMap<CSimpleDeclaration, CVariableDeclaration> renamedVariables) {
+      ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables) {
     Multiset<CFANode> branchesOfNode = HashMultiset.create();
     successors.keySet().forEach(edge -> branchesOfNode.add(edge.getPredecessor()));
 
@@ -385,18 +403,6 @@ public class LoopUnroller {
     }
   }
 
-  /** The variables that the given loop declares, each of which needs one copy per iteration. */
-  private static ImmutableSet<CVariableDeclaration> variablesDeclaredIn(Loop pLoop) {
-    ImmutableSet.Builder<CVariableDeclaration> declarations = ImmutableSet.builder();
-    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
-      if (edge instanceof CDeclarationEdge declarationEdge
-          && declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration) {
-        declarations.add(declaration);
-      }
-    }
-    return declarations.build();
-  }
-
   /**
    * Creates the copies of the variables that the loop declares for the copy of one iteration.
    *
@@ -408,34 +414,38 @@ public class LoopUnroller {
    *     declares because {@link #canUnroll} only allows local ones
    * @return a map from each variable of the loop to the copy that this iteration uses
    */
-  private static ImmutableMap<CSimpleDeclaration, CVariableDeclaration> renameDeclarations(
-      Set<CVariableDeclaration> pDeclarations, String pFunction, int pIteration) {
+  private static ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renameDeclarations(
+      Set<AVariableDeclaration> pDeclarations, String pFunction, int pIteration) {
 
     // Create all of them without their initializers first, because the initializer of one variable
     // can read another variable of the same iteration.
-    Map<CSimpleDeclaration, CVariableDeclaration> renamed = new LinkedHashMap<>();
-    for (CVariableDeclaration declaration : pDeclarations) {
+    Map<ASimpleDeclaration, AVariableDeclaration> renamed = new LinkedHashMap<>();
+    for (AVariableDeclaration declaration : pDeclarations) {
       String name = renamedVariable(declaration.getName(), pIteration);
+      // TODO add support for other languages
+      if (!(declaration instanceof CVariableDeclaration cDeclaration)) {
+        throw new AssertionError("unsupported declaration for unrolling: " + declaration);
+      }
       renamed.put(
           declaration,
           new CVariableDeclaration(
-              declaration.getFileLocation(),
-              declaration.isGlobal(),
-              declaration.getCStorageClass(),
-              declaration.getType(),
+              cDeclaration.getFileLocation(),
+              cDeclaration.isGlobal(),
+              cDeclaration.getCStorageClass(),
+              cDeclaration.getType(),
               name,
-              declaration.getOrigName(),
+              cDeclaration.getOrigName(),
               qualifiedNameOfLocal(pFunction, name),
               null));
     }
 
-    ImmutableMap<CSimpleDeclaration, CVariableDeclaration> renamedVariables =
+    ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables =
         ImmutableMap.copyOf(renamed);
-    for (CVariableDeclaration declaration : pDeclarations) {
-      CInitializer initializer = declaration.getInitializer();
-      if (initializer != null) {
-        renamedVariables
-            .get(declaration)
+    for (AVariableDeclaration declaration : pDeclarations) {
+      // Only a C declaration can have an initializer, and it is also the only one that lets us add
+      // it afterwards, which we need because the initializers can read each other.
+      if (declaration.getInitializer() instanceof CInitializer initializer) {
+        ((CVariableDeclaration) renamedVariables.get(declaration))
             .addInitializer((CInitializer) substitute(initializer, renamedVariables));
       }
     }
@@ -467,7 +477,7 @@ public class LoopUnroller {
    * the iteration of the given renaming uses.
    */
   private static CAstNode substitute(
-      CAstNode pNode, ImmutableMap<CSimpleDeclaration, CVariableDeclaration> pRenamedVariables) {
+      CAstNode pNode, ImmutableMap<ASimpleDeclaration, AVariableDeclaration> pRenamedVariables) {
     if (pRenamedVariables.isEmpty()) {
       return pNode;
     }
@@ -475,7 +485,9 @@ public class LoopUnroller {
         new SubstitutingCAstNodeVisitor(
             node -> {
               if (node instanceof CIdExpression identifier) {
-                CVariableDeclaration renamed = pRenamedVariables.get(identifier.getDeclaration());
+                // The renaming of a C loop only contains C declarations, cf. renameDeclarations.
+                CVariableDeclaration renamed =
+                    (CVariableDeclaration) pRenamedVariables.get(identifier.getDeclaration());
                 if (renamed != null) {
                   return new CIdExpression(identifier.getFileLocation(), renamed);
                 }
@@ -639,7 +651,7 @@ public class LoopUnroller {
       CFANode pPredecessor,
       CFANode pSuccessor,
       boolean pNoLongerBranches,
-      ImmutableMap<CSimpleDeclaration, CVariableDeclaration> pRenamedVariables) {
+      ImmutableMap<ASimpleDeclaration, AVariableDeclaration> pRenamedVariables) {
     String rawStatement = pEdge.getRawStatement();
     FileLocation fileLocation = pEdge.getFileLocation();
 
@@ -665,7 +677,9 @@ public class LoopUnroller {
           new BlankEdge(
               rawStatement, fileLocation, pPredecessor, pSuccessor, pEdge.getDescription());
       case CDeclarationEdge edge -> {
-        CVariableDeclaration renamed = pRenamedVariables.get(edge.getDeclaration());
+        // The renaming of a C loop only contains C declarations, cf. renameDeclarations.
+        CVariableDeclaration renamed =
+            (CVariableDeclaration) pRenamedVariables.get(edge.getDeclaration());
         yield new CDeclarationEdge(
             rawStatement,
             fileLocation,
