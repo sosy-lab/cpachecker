@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
@@ -152,7 +153,7 @@ public class InvariantExchangeFormatTransformer {
 
     while (matcher.find()) {
       String variable = matcher.group(PREV_VARS_GROUP_INDEX);
-      matcher.appendReplacement(result, "__CPACHECKER_" + variable + "__PREV");
+      matcher.appendReplacement(result, variable + TransitionInvariantUtils.PREV_KEYWORD);
     }
     matcher.appendTail(result);
     invariantString = result.toString().replace("\\", "");
@@ -180,7 +181,7 @@ public class InvariantExchangeFormatTransformer {
     while (matcher.find()) {
       String prevVariable = matcher.group(PREV_VARS_GROUP_INDEX);
       CSimpleDeclaration currDeclaration = scope.lookupVariable(prevVariable);
-      prevVariable = "__CPACHECKER_" + prevVariable + "__PREV";
+      prevVariable = prevVariable + TransitionInvariantUtils.PREV_KEYWORD;
 
       // We want to declare each PREV variable only once
       if (alreadyDeclaredVariables.contains(prevVariable)) {

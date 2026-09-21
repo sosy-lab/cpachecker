@@ -63,7 +63,10 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -280,7 +283,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return OptionalInt.empty();
   }
 
-  private List<WaypointRecord> buildWaypoints(
+  private ImmutableList<WaypointRecord> buildWaypoints(
       CFAEdge pEdge,
       ImmutableListMultimap<CFAEdge, String> pEdgeToAssumptions,
       AstCfaRelation pAstCFARelation,
@@ -639,6 +642,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     ImmutableMap.Builder<String, Integer> threadNameToIdBuilder = new ImmutableMap.Builder<>();
     threadNameToIdBuilder.put("main", 0);
 
+    // Initialization for counters of cycle head visits in case the property is termination.
+    int cycleHeadVistits = 0;
+
     // The semantics of the YAML witnesses imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
     // "An assumption waypoint is evaluated at the sequence point immediately before the
@@ -651,7 +657,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // Therefore, an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
     for (EdgeWithStates edgeWithStates : edges) {
-      List<WaypointRecord> waypoints =
+      ImmutableList<WaypointRecord> waypoints =
           buildWaypoints(
               edgeWithStates.edge(),
               edgeToAssumptions,
@@ -661,6 +667,28 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
               edgeWithStates.nextState(),
               edgeWithStates.previousState(),
               pWitnessVersion);
+
+      if (isNonTerminationWitness(pWitnessVersion)) {
+        TerminationToReachState terminationState =
+            AbstractStates.extractStateByType(pCex.getTargetState(), TerminationToReachState.class);
+        LocationState locationState =
+            AbstractStates.extractStateByType(pCex.getTargetState(), LocationState.class);
+        if (terminationState.getNumberOfUnrollings() <= cycleHeadVistits && !waypoints.isEmpty()) {
+          WaypointRecord followWaypoint = getFollowWaypoint(waypoints);
+
+          // Remove the original follow waypoint
+          waypoints =
+              waypoints.stream()
+                  .filter(waypoint -> !waypoint.equals(followWaypoint))
+                  .collect(ImmutableList.toImmutableList());
+          // Add the follow waypoint but now with cycle action
+          waypoints =
+              ImmutableList.copyOf(
+                  Iterables.concat(waypoints, ImmutableList.of(followWaypoint.withCycleAction())));
+        } else if (locationState.getLocationNode() == edgeWithStates.edge().getPredecessor()) {
+          cycleHeadVistits += 1;
+        }
+      }
 
       if (!waypoints.isEmpty()) {
         segments.add(new SegmentRecord(waypoints));
@@ -755,7 +783,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         }
 
         segments.add(new SegmentRecord(targetWaypoints));
-      } else {
+      } else if (!isNonTerminationWitness(pWitnessVersion)) {
         segments.add(
             SegmentRecord.ofOnlyElement(
                 waypointRecord.withThreadId(
@@ -764,7 +792,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                         lastEdge.edge(),
                         threadNameToIdBuilder.buildOrThrow()))));
       }
-    } else {
+    } else if (!isNonTerminationWitness(pWitnessVersion)) {
       segments.add(SegmentRecord.ofOnlyElement(waypointRecord));
     }
 
@@ -788,6 +816,19 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                     && Objects.equals(
                         existingWaypoint.getLocation().getLine(),
                         pWaypoint.getLocation().getLine()));
+  }
+
+  /** Finds the follow waypoint in the list of waypoints. */
+  private static WaypointRecord getFollowWaypoint(List<WaypointRecord> waypoints) {
+    return Iterables.find(
+        waypoints, waypoint -> waypoint.getAction().equals(WaypointAction.FOLLOW));
+  }
+
+  private boolean isNonTerminationWitness(YAMLWitnessVersion pWitnessVersion) {
+    return (pWitnessVersion.equals(YAMLWitnessVersion.V2d1)
+            || pWitnessVersion.equals(YAMLWitnessVersion.V2d2))
+        && getSpecification().getProperties().stream()
+            .anyMatch(pProperty -> pProperty.equals(CommonVerificationProperty.TERMINATION));
   }
 
   /**

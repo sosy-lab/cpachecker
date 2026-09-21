@@ -148,25 +148,26 @@ class PartitionedRelationFormula {
   }
 
   private ImmutableMap<Formula, Formula> getSubstitutionMap(
-      ImmutableSet<Formula> variables, String suffix) {
+      ImmutableSet<Formula> variables, String prefix, String suffix) {
     return ImmutableMap.copyOf(
         Maps.asMap(
             variables,
             variable ->
                 fmgr.makeVariable(
                     fmgr.getFormulaType(variable),
-                    TransitionInvariantUtils.removeKeyWordAfterTransInv(
+                    prefix
+                        + TransitionInvariantUtils.removeKeyWordAfterTransInv(
                             fmgr.uninstantiate(variable).toString())
                         + suffix)));
   }
 
   /**
    * Returns a new {@link PartitionedRelationFormula} with the previous-state variables substituted
-   * to carry the given suffix. Does not mutate {@code this}.
+   * to wrap by given prefix and suffix. Does not mutate {@code this}.
    */
-  public PartitionedRelationFormula withPrevVarsSuffixed(String suffix) {
+  public PartitionedRelationFormula withPrevVarsWrapped(String prefix, String suffix) {
     BooleanFormula substituted =
-        fmgr.substitute(formula, getSubstitutionMap(prevVariables, suffix));
+        fmgr.substitute(formula, getSubstitutionMap(prevVariables, prefix, suffix));
     Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(substituted);
     boolean containsTransInv = usesTransInvKeyWord(varNamesToFormulas);
 
@@ -181,11 +182,11 @@ class PartitionedRelationFormula {
 
   /**
    * Returns a new {@link PartitionedRelationFormula} with the current-state variables substituted
-   * to carry the given suffix. Does not mutate {@code this}.
+   * to wrap by given prefix and suffix. Does not mutate {@code this}.
    */
-  public PartitionedRelationFormula withCurrVarsSuffixed(String suffix) {
+  public PartitionedRelationFormula withCurrVarsWrapped(String prefix, String suffix) {
     BooleanFormula substituted =
-        fmgr.substitute(formula, getSubstitutionMap(currVariables, suffix));
+        fmgr.substitute(formula, getSubstitutionMap(currVariables, prefix, suffix));
     Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(substituted);
     boolean containsTransInv = usesTransInvKeyWord(varNamesToFormulas);
 

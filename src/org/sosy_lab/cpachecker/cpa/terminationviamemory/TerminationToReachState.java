@@ -81,6 +81,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   private final Optional<PathFormula> pathFormulaFull;
   private final ImmutableList<CFANode> pathSequence;
+  private final int numberOfUnrollings;
 
   public TerminationToReachState(
       ImmutableMap<
@@ -103,6 +104,20 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = false;
     transitionInvariants = pTransitionInvariants;
     transitionPredicates = pAvailableTransitionPredicates;
+    numberOfUnrollings = 0;
+  }
+
+  public TerminationToReachState(int pNumberOfUnrollings) {
+    storedValues = ImmutableMap.of();
+    numberOfIterations = ImmutableMap.of();
+    pathFormulaForIteration = ImmutableMap.of();
+    pathFormulaForPrefix = Optional.empty();
+    pathFormulaFull = Optional.empty();
+    pathSequence = ImmutableList.of();
+    isTarget = false;
+    transitionInvariants = ImmutableSet.of();
+    transitionPredicates = ImmutableSet.of();
+    numberOfUnrollings = pNumberOfUnrollings;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -142,6 +157,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public void makeTarget() {
     isTarget = true;
+  }
+
+  public int getNumberOfUnrollings() {
+    return numberOfUnrollings;
   }
 
   public ImmutableSet<PartitionedRelationFormula> getTransitionInvariants() {

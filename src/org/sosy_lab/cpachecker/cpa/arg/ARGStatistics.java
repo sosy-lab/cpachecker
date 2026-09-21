@@ -138,7 +138,7 @@ public class ARGStatistics implements Statistics {
               + "Each version replaces the string '%s' "
               + "with its version number.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate yamlWitnessOutputFileTemplate =
+  protected PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-%s.yml");
 
   @Option(
@@ -159,7 +159,7 @@ public class ARGStatistics implements Statistics {
       secure = true,
       name = "exportYamlCorrectnessWitness",
       description = "export correctness witness in YAML format")
-  private boolean exportYamlCorrectnessWitness = true;
+  protected boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,

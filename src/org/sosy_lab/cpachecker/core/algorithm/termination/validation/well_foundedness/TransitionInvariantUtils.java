@@ -59,6 +59,10 @@ public class TransitionInvariantUtils {
   public static final String PREV_KEYWORD = TRANS_INV_KEYWORD + "PREV";
   public static final String CURR_KEYWORD = TRANS_INV_KEYWORD + "MID";
   public static final String CURR2_KEYWORD = TRANS_INV_KEYWORD + "CURR";
+  public static final String EMPTY_PREFIX = "";
+  public static final String AT_PREFIX_NON_C = "::at(";
+  public static final String AT_PREFIX = "\\at(";
+  public static final String ANYPREV_SUFFIX = ", AnyPrev)";
 
   public static String removeKeyWordAfterTransInv(String pFormula) {
     if (!pFormula.contains(TRANS_INV_KEYWORD)) {
@@ -109,10 +113,13 @@ public class TransitionInvariantUtils {
   }
 
   public static String transformFormulaToStringWithTrivialReplacement(
-      BooleanFormula pFormula, BooleanFormulaManagerView bfmgr, FormulaManagerView fmgr)
+      BooleanFormula pFormula,
+      BooleanFormulaManagerView bfmgr,
+      FormulaManagerView fmgr,
+      Scope pScope)
       throws CPAException {
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
-    if (bfmgr.isTrue(pFormula)) {
+    if (bfmgr.isTrue(pFormula) || containsPointerVariables(pFormula, fmgr, pScope)) {
       return "1";
     } else if (bfmgr.isFalse(pFormula)) {
       return "0";
@@ -122,6 +129,22 @@ public class TransitionInvariantUtils {
     } catch (SolverException | InterruptedException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }
+  }
+
+  private static boolean containsPointerVariables(
+      BooleanFormula pFormula, FormulaManagerView fmgr, Scope pScope) {
+    try {
+      for (String variable : fmgr.extractVariables(pFormula).keySet()) {
+        String varWithoutFunc = removeFunctionFromVarsName(variable);
+        if (pScope.variableNameInUse(varWithoutFunc)
+            && pScope.lookupVariable(varWithoutFunc).toString().contains("*")) {
+          return true;
+        }
+      }
+    } catch (NullPointerException e) {
+      return false;
+    }
+    return false;
   }
 
   /**
