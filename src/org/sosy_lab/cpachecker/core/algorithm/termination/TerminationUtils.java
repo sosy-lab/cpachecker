@@ -110,7 +110,8 @@ public class TerminationUtils {
     return pRankingFunction;
   }
 
-  public static InvariantEntry processSupportingInvariant(
+  /** Converts supporting invariant into an invariant entry. */
+  public static InvariantEntry convertSupportingInvariantToInvariantEntry(
       SupportingInvariant pSupportingInvariant, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
     FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();

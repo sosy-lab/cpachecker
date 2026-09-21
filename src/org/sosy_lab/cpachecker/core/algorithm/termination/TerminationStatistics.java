@@ -14,7 +14,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.collectArgumentsForNestedLoops;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.processSupportingInvariant;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
 import com.google.common.base.Function;
@@ -545,7 +544,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           // First construct reachability invariants that support the termination argument.
           for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
             entries.add(
-                processSupportingInvariant(supportingInvariant, loopHead, incomingLoopEdge));
+                TerminationUtils.convertSupportingInvariantToInvariantEntry(
+                    supportingInvariant, loopHead, incomingLoopEdge));
           }
         }
       }
