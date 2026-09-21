@@ -3172,10 +3172,6 @@ cpa.predicate.refinement.stopAfter = -1
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
-# time limit for refinement (use milliseconds or specify a unit; 0 for
-# infinite)
-cpa.predicate.refinement.timelimit = 0ms
-
 # After a failed interpolation query, try to solve the formulas again with
 # different options instead of giving up immediately.
 cpa.predicate.refinement.tryAgainOnInterpolationError = true
