@@ -22,6 +22,7 @@ import com.google.common.graph.Traverser;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.acsl.AcslReportingState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
@@ -250,5 +252,17 @@ public final class AbstractStates {
         .transform(s -> s.getFormulaApproximation(manager))
         .stream()
         .collect(manager.getBooleanFormulaManager().toConjunction());
+  }
+
+  /**
+   * Returns an Acsl predicate representing states represented by the given abstract state,
+   * according to reported Acsl predicates
+   */
+  public static ImmutableList<AcslPredicate> extractReportedAcslPredicates(AbstractState state) {
+    // traverse through all the sub-states contained in this state
+    return asIterable(state)
+        .filter(AcslReportingState.class)
+        .transform(s -> s.getAcslPredicate())
+        .toList();
   }
 }

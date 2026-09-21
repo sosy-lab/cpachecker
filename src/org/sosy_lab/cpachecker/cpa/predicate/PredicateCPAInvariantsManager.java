@@ -63,6 +63,8 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
@@ -93,7 +95,10 @@ import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSuppl
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
@@ -248,7 +253,13 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
     specification = pSpecification;
     cfa = pCfa;
 
-    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets);
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    FormulaManagerView fmgrv = solver.getFormulaManager();
+    MachineModel model = pCfa.getMachineModel();
+    CToFormulaConverterWithPointerAliasing converter =
+        initializeCtoFormulaConverter(fmgrv, logger, config, shutdownNotifier, model);
+
+    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets, converter, model);
     updateGlobalInvariants();
 
     if (generationStrategy.contains(InvariantGenerationStrategy.PF_CNF_KIND)
@@ -257,6 +268,30 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
     } else {
       semiCNFConverter = null;
     }
+  }
+
+  private CToFormulaConverterWithPointerAliasing initializeCtoFormulaConverter(
+      FormulaManagerView pFormulaManager,
+      LogManager pLogger,
+      Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+
+    CFormulaEncodingWithPointerAliasingOptions options =
+        new CFormulaEncodingWithPointerAliasingOptions(pConfig);
+    TypeHandlerWithPointerAliasing typeHandler =
+        new TypeHandlerWithPointerAliasing(logger, pMachineModel, options);
+
+    return new CToFormulaConverterWithPointerAliasing(
+        options,
+        pFormulaManager,
+        pMachineModel,
+        Optional.empty(),
+        pLogger,
+        pShutdownNotifier,
+        typeHandler,
+        AnalysisDirection.FORWARD);
   }
 
   public boolean appendToAbstractionFormula() {

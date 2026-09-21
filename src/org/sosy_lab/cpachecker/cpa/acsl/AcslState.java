@@ -12,16 +12,12 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslPredicateToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @SuppressWarnings("unused")
-public class AcslState implements FormulaReportingState {
+public class AcslState implements AcslReportingState {
 
   private AcslPredicateToFormulaVisitor acslPredVisitor;
   private final LogManager logger;
@@ -49,19 +45,6 @@ public class AcslState implements FormulaReportingState {
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    // TODO Important for communication with other CPAs if I have a Parallel Algorithm (I think)
-    return null;
-  }
-
-  @Override
-  public BooleanFormula getScopedFormulaApproximation(
-      FormulaManagerView manager, FunctionEntryNode functionScope) {
-    // TODO
-    return null;
-  }
-
-  @Override
   public int hashCode() {
     // TODO
     return 42;
@@ -80,5 +63,10 @@ public class AcslState implements FormulaReportingState {
   public String toString() {
     // TODO
     return "AcslState " + "TODO";
+  }
+
+  @Override
+  public AcslPredicate getAcslPredicate() {
+    return null;
   }
 }

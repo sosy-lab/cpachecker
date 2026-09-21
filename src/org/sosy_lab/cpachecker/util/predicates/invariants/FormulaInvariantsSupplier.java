@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.invariants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractReportedAcslPredicates;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractReportedFormulas;
 
 import com.google.common.collect.ImmutableCollection;
@@ -25,7 +26,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -37,6 +40,9 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslPredicateToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
@@ -47,6 +53,9 @@ import org.sosy_lab.java_smt.api.Formula;
 public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
+  private MachineModel machineModel;
+  private CToFormulaConverterWithPointerAliasing converter;
+  private boolean acslInvariantsEnabled = false;
 
   private Set<UnmodifiableReachedSet> lastUsedReachedSets = ImmutableSet.of();
   private InvariantSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
@@ -56,6 +65,17 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated) {
     aggregatedReached = pAggregated;
+    updateInvariants(); // at initialization, we want to update the invariants the first time
+  }
+
+  public FormulaInvariantsSupplier(
+      AggregatedReachedSets pAggregated,
+      CToFormulaConverterWithPointerAliasing pConverter,
+      MachineModel pMachineModel) {
+    aggregatedReached = pAggregated;
+    machineModel = Objects.requireNonNull(pMachineModel);
+    converter = Objects.requireNonNull(pConverter);
+    acslInvariantsEnabled = true;
     updateInvariants(); // at initialization, we want to update the invariants the first time
   }
 
@@ -70,6 +90,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     return lastInvariantSupplier.getInvariantFor(pNode, pCallstackInfo, pFmgr, pPfmgr, pContext);
   }
 
+  // TODO decide here if you create the ReachedSetBasedFormulaSupplierWithAcsl or the one without
+  // ACSL
   public void updateInvariants() {
     Set<UnmodifiableReachedSet> tmp = aggregatedReached.snapShot();
     if (!tmp.equals(lastUsedReachedSets)) {
@@ -78,11 +100,20 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       Set<UnmodifiableReachedSet> newElements = Sets.difference(tmp, lastUsedReachedSets);
 
       oldElements.forEach(r -> singleInvariantSuppliers.remove(r));
-      newElements.forEach(
-          r ->
-              singleInvariantSuppliers.put(
-                  r, new ReachedSetBasedFormulaSupplier(new LazyLocationMapping(r))));
+      if (acslInvariantsEnabled) {
+        newElements.forEach(
+            r ->
+                singleInvariantSuppliers.put(
+                    r,
+                    new ReachedSetBasedFormulaSupplierWithAcsl(
+                        new LazyLocationMapping(r), converter, machineModel)));
 
+      } else {
+        newElements.forEach(
+            r ->
+                singleInvariantSuppliers.put(
+                    r, new ReachedSetBasedFormulaSupplier(new LazyLocationMapping(r))));
+      }
       lastUsedReachedSets = tmp;
       lastInvariantSupplier =
           new AggregatedInvariantSupplier(ImmutableSet.copyOf(singleInvariantSuppliers.values()));
@@ -148,16 +179,70 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
 
+    Iterable<AbstractState> getStatesFromLazyLocationMapping(
+        CFANode pLocation, Optional<CallstackStateEqualsWrapper> callstackInformation) {
+      return lazyLocationMapping.get(pLocation, callstackInformation);
+    }
+
     BooleanFormula getInvariantFor(
         CFANode pLocation,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
-        FormulaManagerView fmgr) {
+        FormulaManagerView fmgr,
+        @Nullable PathFormula pContext) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeFalse();
 
       for (AbstractState locState : lazyLocationMapping.get(pLocation, pCallstackInformation)) {
         invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState));
       }
+      return invariant;
+    }
+  }
+
+  private static class ReachedSetBasedFormulaSupplierWithAcsl
+      extends ReachedSetBasedFormulaSupplier {
+    private final CToFormulaConverterWithPointerAliasing converter;
+    private final MachineModel model;
+
+    ReachedSetBasedFormulaSupplierWithAcsl(
+        LazyLocationMapping pLazyLocationMapping,
+        CToFormulaConverterWithPointerAliasing pConverter,
+        MachineModel pModel) {
+      super(pLazyLocationMapping);
+      converter = pConverter;
+      model = pModel;
+    }
+
+    @Override
+    BooleanFormula getInvariantFor(
+        CFANode pLocation,
+        Optional<CallstackStateEqualsWrapper> pCallstackInformation,
+        FormulaManagerView fmgr,
+        PathFormula pContext) {
+      BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+      BooleanFormula invariant = bfmgr.makeFalse();
+
+      // TODO what do we do about the constraints?
+      AcslPredicateToFormulaVisitor visitor =
+          new AcslPredicateToFormulaVisitor(
+              fmgr,
+              pContext.getSsa().builder(),
+              converter,
+              model,
+              converter.createPointerTargetSetBuilder(pContext.getPointerTargetSet()),
+              new Constraints(fmgr.getBooleanFormulaManager()));
+
+      for (AbstractState locState :
+          super.getStatesFromLazyLocationMapping(pLocation, pCallstackInformation)) {
+        invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState));
+
+        // Additional invariants from AcslReportingState
+        for (AcslPredicate acslPred : extractReportedAcslPredicates(locState)) {
+          BooleanFormula formula = acslPred.accept(visitor);
+          invariant = bfmgr.or(invariant, formula);
+        }
+      }
+
       return invariant;
     }
   }
@@ -180,7 +265,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
         PathFormulaManager pPfmgr,
         PathFormula pContext)
         throws InterruptedException {
-      InvariantsCacheKey key = new InvariantsCacheKey(pNode, callstackInformation, pFmgr, pPfmgr);
+      InvariantsCacheKey key =
+          new InvariantsCacheKey(pNode, callstackInformation, pFmgr, pPfmgr, pContext);
 
       List<BooleanFormula> invariants;
       if (cache.containsKey(key)) {
@@ -188,7 +274,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       } else {
         invariants =
             Collections3.transformedImmutableListCopy(
-                invariantSuppliers, s -> s.getInvariantFor(pNode, callstackInformation, pFmgr));
+                invariantSuppliers,
+                s -> s.getInvariantFor(pNode, callstackInformation, pFmgr, pContext));
 
         cache.put(key, invariants);
       }
@@ -223,16 +310,19 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     private final Optional<CallstackStateEqualsWrapper> callstackInformation;
     private final FormulaManagerView fmgr;
     private final PathFormulaManager pfmgr;
+    private final @Nullable PathFormula context;
 
     InvariantsCacheKey(
         CFANode pNode,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
         FormulaManagerView pFormulaManager,
-        PathFormulaManager pPathFormulaManager) {
+        PathFormulaManager pPathFormulaManager,
+        @Nullable PathFormula pContext) {
       node = pNode;
       callstackInformation = pCallstackInformation;
       fmgr = pFormulaManager;
       pfmgr = pPathFormulaManager;
+      context = pContext;
     }
 
     @Override
@@ -247,12 +337,13 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       return Objects.equals(node, that.node)
           && Objects.equals(callstackInformation, that.callstackInformation)
           && Objects.equals(fmgr, that.fmgr)
-          && Objects.equals(pfmgr, that.pfmgr);
+          && Objects.equals(pfmgr, that.pfmgr)
+          && Objects.equals(context, that.context);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(node, callstackInformation, fmgr, pfmgr);
+      return Objects.hash(node, callstackInformation, fmgr, pfmgr, context);
     }
   }
 }
