@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 arrayAsPointer/array*.yml
+anonymousLocalAllocation/*.yml
 atexit/memsafety*.yml
 atexit/reach*.yml
 atomic/*.yml
