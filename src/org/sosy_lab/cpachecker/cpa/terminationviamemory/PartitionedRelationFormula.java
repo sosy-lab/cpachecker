@@ -26,8 +26,8 @@ import org.sosy_lab.java_smt.api.Formula;
  * variables. Variables representing the previous state s and variables representing the current
  * state s'.
  *
- * <p>Instances are immutable: {@link #withPrevVarsWrapped} and {@link #withCurrVarsWrapped}
- * return new instances rather than mutating the receiver.
+ * <p>Instances are immutable: {@link #withPrevVarsWrapped} and {@link #withCurrVarsWrapped} return
+ * new instances rather than mutating the receiver.
  */
 class PartitionedRelationFormula {
   private final FormulaManagerView fmgr;
