@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -77,6 +78,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
+
+  // Time for waiting for threads on shutdown. Should be somewhat shorter than in
+  // ForceTerminationOnShutdown.
+  private static final Duration SHUTDOWN_GRACE_PERIOD = Duration.ofSeconds(8);
 
   @Option(
       secure = true,
@@ -167,8 +172,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       // Wait some time so that all threads are shut down and we have a happens-before relation
       // (necessary for statistics).
-      // Time limit here should be somewhat shorter than in ForceTerminationOnShutdown.
-      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 8, TimeUnit.SECONDS)) {
+      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, SHUTDOWN_GRACE_PERIOD)) {
         logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
       }
 
