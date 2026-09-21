@@ -181,6 +181,21 @@ public final class ResourceLimitChecker {
     return new ResourceLimitChecker(shutdownManager, ImmutableList.of());
   }
 
+  /**
+   * Create an instance of this class with specific wall-time limit. The returned instance is not
+   * started yet.
+   */
+  public static ResourceLimitChecker createWallTimeLimitChecker(
+      ShutdownManager shutdownManager, TimeSpan wallTime) {
+
+    if (wallTime.compareTo(TimeSpan.empty()) <= 0) {
+      return new ResourceLimitChecker(shutdownManager, ImmutableList.of());
+    }
+
+    ResourceLimit wallTimeLimitChecker = WalltimeLimit.create(wallTime);
+    return new ResourceLimitChecker(shutdownManager, ImmutableList.of(wallTimeLimitChecker));
+  }
+
   @Options(prefix = "limits")
   private static class ResourceLimitOptions {
 
