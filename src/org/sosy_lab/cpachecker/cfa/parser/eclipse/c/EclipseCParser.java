@@ -19,7 +19,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import java.io.File;
@@ -213,7 +213,7 @@ class EclipseCParser implements CParser {
         machine,
         "",
         sa,
-        ImmutableSet.of());
+        ImmutableSortedSet.of());
   }
 
   @Override
