@@ -130,7 +130,11 @@ public class TerminationUtils {
         locationRecord);
   }
 
-  public static InvariantEntry processRankingFunction(
+  /**
+   * Iterates through all the termination arguments in form of ranking functions and converts them
+   * to invariant entry expressed with transition invariant.
+   */
+  public static InvariantEntry convertRankgingFunctionsToTransitionInvariants(
       Collection<TerminationArgument> pArguments, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
     List<String> transitionInvariants = new ArrayList<>();
 

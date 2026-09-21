@@ -14,7 +14,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.collectArgumentsForNestedLoops;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.processRankingFunction;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.processSupportingInvariant;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
@@ -552,7 +551,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       }
       // Construct transition invariants from ranking function
       entries.add(
-          processRankingFunction(
+          TerminationUtils.convertRankgingFunctionsToTransitionInvariants(
               collectArgumentsForNestedLoops(
                   loop, pTerminationArguments.keySet(), pTerminationArguments),
               loopHead,
