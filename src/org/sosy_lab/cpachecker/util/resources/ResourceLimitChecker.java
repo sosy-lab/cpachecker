@@ -171,7 +171,6 @@ public final class ResourceLimitChecker {
 
     try {
       ResourceLimit cpuTimeLimitChecker = ProcessCpuTimeLimit.create(cpuTime);
-      logger.log(Level.INFO, "Using " + cpuTimeLimitChecker.getName());
       return new ResourceLimitChecker(shutdownManager, ImmutableList.of(cpuTimeLimitChecker));
     } catch (JMException e) {
       logger.log(
