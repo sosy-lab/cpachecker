@@ -184,11 +184,12 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       return lazyLocationMapping.get(pLocation, callstackInformation);
     }
 
+    @SuppressWarnings("unused")
     BooleanFormula getInvariantFor(
         CFANode pLocation,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
         FormulaManagerView fmgr,
-        @Nullable PathFormula pContext) {
+        PathFormula pContext) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeFalse();
 
