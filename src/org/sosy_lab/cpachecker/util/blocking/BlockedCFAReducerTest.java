@@ -18,9 +18,9 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
@@ -31,7 +31,7 @@ public class BlockedCFAReducerTest {
   public void setUp() throws InvalidConfigurationException {
     reducer =
         new BlockedCFAReducer(
-            Configuration.defaultConfiguration(), LogManager.createTestLogManager());
+            TestUtils.configurationForTest().build(), LogManager.createTestLogManager());
   }
 
   private void assertCfaIsEmpty(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa) {

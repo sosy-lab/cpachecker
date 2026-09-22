@@ -13,8 +13,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.Optional;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -23,24 +26,44 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
+  private final ImmutableSet<Loop> allLoops;
 
-  public TerminationToReachTransferRelation(FormulaManagerView pFmgr) {
-    fmgr = pFmgr;
+  public TerminationToReachTransferRelation(
+      FormulaManagerView pFormulaManagerView,
+      PathFormulaManager pPathFormulaManager,
+      ImmutableSet<Loop> pAllLoops) {
+    fmgr = pFormulaManagerView;
+    pfmgr = pPathFormulaManager;
+    allLoops = pAllLoops;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    return ImmutableList.of(state);
+    TerminationToReachState terminationState = (TerminationToReachState) state;
+    TerminationToReachState newState =
+        new TerminationToReachState(
+            terminationState.getStoredValues(),
+            terminationState.getNumberOfIterations(),
+            terminationState.getPathFormulasForIteration(),
+            terminationState.getPathFormulasForPrefix(),
+            terminationState.getPathFormulaFull(),
+            Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
+            ImmutableSet.of(),
+            terminationState.getTransitionPredicates());
+    return ImmutableList.of(newState);
   }
 
   @Override
@@ -59,7 +82,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
-    if (location.isLoopStart()) {
+
+    if (TransitionInvariantUtils.isLoopHead(location, allLoops)) {
       Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
 
       ImmutableMap.Builder<
@@ -70,40 +94,62 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula>
           newPathFormulaForIteration = ImmutableMap.builder();
 
+      // Set prefix path formula first
+      Optional<PathFormula> newPrefixFormula = terminationState.getPathFormulaFull();
+      PathFormula newFullFormula;
+      if (terminationState.getPathFormulaFull().isEmpty()) {
+        newFullFormula = predicateState.getPathFormula();
+      } else {
+        newFullFormula =
+            pfmgr.makeConjunction(
+                ImmutableList.of(
+                    terminationState.getPathFormulaFull().orElseThrow(),
+                    predicateState.getPathFormula()));
+      }
+
+      // Copy the information for other loops
       for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
           entry : terminationState.getStoredValues().entrySet()) {
         if (!entry.getKey().equals(pairKey)) {
           newStoredValues.put(entry.getKey(), entry.getValue());
           newNumberOfIterations.put(
               entry.getKey(), terminationState.getNumberOfIterationsAtLoopHead(entry.getKey()));
-          newPathFormulaForIteration.put(
-              entry.getKey(), terminationState.getPathFormulas().get(entry.getKey()));
+          if (terminationState.getPathFormulasForIteration().containsKey(entry.getKey())) {
+            newPathFormulaForIteration.put(
+                entry.getKey(), terminationState.getPathFormulasForIteration().get(entry.getKey()));
+          }
         }
       }
-      newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
-      ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
 
+      // Set the new iteration formula
+      ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
       if (terminationState.getStoredValues().containsKey(pairKey)) {
         newValues.putAll(terminationState.getStoredValues().get(pairKey));
         newValues.put(
             terminationState.getNumberOfIterationsAtLoopHead(pairKey),
-            extractLoopHeadVariables(predicateState.getPathFormula()));
+            extractLoopHeadVariables(newFullFormula));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
+        newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
       } else {
-        newValues.put(0, extractLoopHeadVariables(predicateState.getPathFormula()));
+        newValues.put(0, extractLoopHeadVariables(newFullFormula));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
-      return ImmutableList.of(
+      TerminationToReachState newState =
           new TerminationToReachState(
               newStoredValues.buildOrThrow(),
               newNumberOfIterations.buildOrThrow(),
-              newPathFormulaForIteration.buildOrThrow()));
-    } else {
-      return ImmutableList.of(pState);
+              newPathFormulaForIteration.buildOrThrow(),
+              newPrefixFormula,
+              Optional.of(newFullFormula),
+              terminationState.getPathSequence(),
+              ImmutableSet.of(),
+              terminationState.getTransitionPredicates());
+      return ImmutableList.of(newState);
     }
+    return ImmutableList.of(pState);
   }
 
   private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {

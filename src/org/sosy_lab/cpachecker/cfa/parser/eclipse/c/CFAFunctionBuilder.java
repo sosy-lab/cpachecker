@@ -808,14 +808,14 @@ class CFAFunctionBuilder extends ASTVisitor {
     for (GotoInformation gotoInfo : gotoLabelNeeded.get(labelName)) {
       BlankEdge gotoEdge =
           createGotoEdge(
-              gotoInfo.getGotoStatement(),
-              gotoInfo.getFileLoc(),
-              gotoInfo.getPrevNode(),
+              gotoInfo.statement(),
+              gotoInfo.location(),
+              gotoInfo.previousNode(),
               labelNode,
               labelName);
       addToCFA(gotoEdge);
 
-      FileLocation gotoLocation = gotoInfo.getFileLoc();
+      FileLocation gotoLocation = gotoInfo.location();
       for (StatementBlock block :
           FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
         if (block.getStartOffset() <= gotoLocation.getNodeOffset()
@@ -2630,32 +2630,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
   }
 
-  private static final class GotoInformation {
-
-    private final CFANode prevNode;
-    private final IASTGotoStatement gotoStatement;
-    private final FileLocation fileLoc;
-
-    private GotoInformation(
-        final CFANode pPrevNode,
-        final IASTGotoStatement pGotoStatement,
-        final FileLocation pFileLoc) {
-
-      prevNode = pPrevNode;
-      gotoStatement = checkNotNull(pGotoStatement);
-      fileLoc = checkNotNull(pFileLoc);
-    }
-
-    CFANode getPrevNode() {
-      return prevNode;
-    }
-
-    IASTGotoStatement getGotoStatement() {
-      return gotoStatement;
-    }
-
-    FileLocation getFileLoc() {
-      return fileLoc;
-    }
-  }
+  private record GotoInformation(
+      CFANode previousNode, IASTGotoStatement statement, FileLocation location) {}
 }

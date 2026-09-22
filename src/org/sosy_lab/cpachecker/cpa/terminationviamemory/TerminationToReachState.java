@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -32,6 +34,7 @@ import org.sosy_lab.java_smt.api.Formula;
 public class TerminationToReachState implements Graphable, AbstractQueryableState, Targetable {
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
+
   private boolean isTarget;
 
   /**
@@ -42,7 +45,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * call-stack states of loop-heads to a map with information about which variables were seen after
    * which unrolling of the loop.
    */
-  private ImmutableMap<
+  private final ImmutableMap<
           Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
       storedValues;
 
@@ -50,25 +53,56 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * For every loop-head (given by location and call-stack), we track how many times have we passed
    * it in the abstract graph until reaching this state.
    */
-  private ImmutableMap<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
+  private final ImmutableMap<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
 
   /**
    * For every loop-head (given by location and call-stack), we track the path formula until
-   * reaching this abstract state.
+   * reaching this abstract state. This is the part inside the loop, i.e. the loop iterations.
    */
-  private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
+  private final ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      pathFormulaForIteration;
+
+  /**
+   * For every loop-head (given by location and call-stack), we track the path formula until
+   * reaching this abstract state. This is the part before reaching the loop.
+   */
+  private final Optional<PathFormula> pathFormulaForPrefix;
+
+  /**
+   * We collect transition invariants that hold for previous iteration formulas at this abstract
+   * state. If the transition invariant does not hold in another branch, we weaken it with another
+   * candidate transition invariant. This set represents a conjunction of all possible transition
+   * invariants at this location.
+   */
+  private final ImmutableSet<PartitionedRelationFormula> transitionInvariants;
+
+  /** Available transition predicates to use. */
+  private final ImmutableSet<PartitionedRelationFormula> transitionPredicates;
+
+  private final Optional<PathFormula> pathFormulaFull;
+  private final ImmutableList<CFANode> pathSequence;
 
   public TerminationToReachState(
       ImmutableMap<
               Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
           pStoredValues,
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
-      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration) {
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
+      Optional<PathFormula> pPathFormulaForPrefix,
+      Optional<PathFormula> pPathFormulaFull,
+      ImmutableList<CFANode> pPathSequence,
+      ImmutableSet<PartitionedRelationFormula> pTransitionInvariants,
+      ImmutableSet<PartitionedRelationFormula> pAvailableTransitionPredicates) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
+    pathFormulaForPrefix = pPathFormulaForPrefix;
+    pathFormulaFull = pPathFormulaFull;
+    pathSequence = pPathSequence;
     isTarget = false;
+    transitionInvariants = pTransitionInvariants;
+    transitionPredicates = pAvailableTransitionPredicates;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -78,7 +112,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return 0;
   }
 
-  public ImmutableMap<Pair<LocationState, CallstackState>, Integer> getNumberOfIterationsMap() {
+  public ImmutableMap<Pair<LocationState, CallstackState>, Integer> getNumberOfIterations() {
     return numberOfIterations;
   }
 
@@ -88,17 +122,39 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return storedValues;
   }
 
-  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> getPathFormulas() {
+  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      getPathFormulasForIteration() {
     return pathFormulaForIteration;
+  }
+
+  public Optional<PathFormula> getPathFormulasForPrefix() {
+    return pathFormulaForPrefix;
+  }
+
+  public Optional<PathFormula> getPathFormulaFull() {
+    return pathFormulaFull;
+  }
+
+  // TODO: use PersistentStack for pathSequence
+  public ImmutableList<CFANode> getPathSequence() {
+    return pathSequence;
   }
 
   public void makeTarget() {
     isTarget = true;
   }
 
+  public ImmutableSet<PartitionedRelationFormula> getTransitionInvariants() {
+    return transitionInvariants;
+  }
+
+  public ImmutableSet<PartitionedRelationFormula> getTransitionPredicates() {
+    return transitionPredicates;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(storedValues, numberOfIterations, isTarget);
+    return Objects.hash(transitionInvariants, isTarget);
   }
 
   @Override
@@ -114,7 +170,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public String toString() {
-    return "TerminationState{storedValues=[" + getReadableStoredValues() + "]" + '}';
+    return "TerminationState{transitionPredicates=["
+        + getReadableTransitionInvariants()
+        + "]"
+        + '}';
   }
 
   @Override
@@ -123,21 +182,23 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       return true;
     }
     return pOther instanceof TerminationToReachState other
-        && storedValues.equals(other.getStoredValues());
+        && transitionInvariants.equals(other.getTransitionInvariants())
+        && !transitionInvariants.isEmpty()
+        && !other.getTransitionInvariants().isEmpty()
+        && isTarget == other.isTarget();
   }
 
-  private String getReadableStoredValues() {
+  private String getReadableTransitionInvariants() {
     StringBuilder sb = new StringBuilder();
-    for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
-        entry : getStoredValues().entrySet()) {
-      sb.append(entry);
+    for (PartitionedRelationFormula transInv : transitionInvariants) {
+      sb.append(transInv.getFormula());
     }
     return sb.toString();
   }
 
   @Override
   public String toDOTLabel() {
-    return "Stored Values:\n" + getReadableStoredValues().replace(", ", "\n");
+    return "Transition Predicates:\n" + getReadableTransitionInvariants().replace(", ", "\n");
   }
 
   @Override

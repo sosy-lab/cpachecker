@@ -1,0 +1,632 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.util.yamlwitnessexport;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+
+@Options(prefix = "witness.yamlexporter")
+public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
+
+  @Option(
+      secure = true,
+      description =
+          "Export loop invariants, i.e. invariants which hold whenever the head of a loop is"
+              + " reached, into the correctness witness which is exported from the ARG.")
+  private boolean exportLoopInvariants = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Export location invariants, i.e. invariants which hold whenever a specific location in"
+              + " the program is reached, into the correctness witness which is exported from the"
+              + " ARG. Currently these are only exported for the locations at which a function is"
+              + " called.")
+  private boolean exportLocationInvariants = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Export function contracts, i.e. the requires and ensures clauses describing the behavior"
+              + " of a function, into the correctness witness which is exported from the ARG."
+              + " Function contracts are not part of every witness format version, see"
+              + " witness.yamlexporter.witnessVersions.")
+  private boolean exportFunctionContracts = false;
+
+  private final RelevantArgStatesCollector argStatesCollector;
+
+  /** The types of information which are exported into the witness of each requested version. */
+  private final ImmutableMap<YAMLWitnessVersion, ImmutableSet<WitnessInvariantType>>
+      typesPerVersion;
+
+  /** The types of information which are exported into at least one of the requested versions. */
+  private final ImmutableSet<WitnessInvariantType> exportedTypes;
+
+  public ARGToCorrectnessWitnessV2(
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      RelevantArgStatesCollector pArgStatesCollector)
+      throws InvalidConfigurationException {
+    super(pConfig, pCfa, pSpecification, pLogger);
+    pConfig.inject(this, ARGToCorrectnessWitnessV2.class);
+    argStatesCollector = pArgStatesCollector;
+
+    ImmutableSet.Builder<WitnessInvariantType> requested = ImmutableSet.builder();
+    if (exportLoopInvariants) {
+      requested.add(WitnessInvariantType.LOOP_INVARIANT);
+    }
+    if (exportLocationInvariants) {
+      requested.add(WitnessInvariantType.LOCATION_INVARIANT);
+    }
+    if (exportFunctionContracts) {
+      requested.add(WitnessInvariantType.FUNCTION_CONTRACT);
+    }
+    ImmutableSet<WitnessInvariantType> requestedTypes = requested.build();
+
+    // Restrict the requested types to the ones the respective witness version can represent, so
+    // that every exported witness is valid for the version it declares. Warn about this here, since
+    // both the options and the versions are known once and the export itself may happen repeatedly.
+    ImmutableMap.Builder<YAMLWitnessVersion, ImmutableSet<WitnessInvariantType>> types =
+        ImmutableMap.builder();
+    for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
+      ImmutableSet<WitnessInvariantType> supported = witnessVersion.supportedInvariantTypes();
+      SetView<WitnessInvariantType> skipped = Sets.difference(requestedTypes, supported);
+      if (!skipped.isEmpty()) {
+        logger.logf(
+            Level.WARNING,
+            "The witness format version %s does not support %s, "
+                + "therefore they are not exported into the witness of this version.",
+            witnessVersion,
+            skipped);
+      }
+      types.put(witnessVersion, Sets.intersection(requestedTypes, supported).immutableCopy());
+    }
+    typesPerVersion = types.buildOrThrow();
+    exportedTypes = ImmutableSet.copyOf(Iterables.concat(typesPerVersion.values()));
+  }
+
+  /** Export some information to the user about the guarantees provided by the witness. */
+  private void analyzeExportedWitnessQuality(
+      Set<YAMLWitnessVersion> pVersionsWithFailedTranslation, UnmodifiableReachedSet pReachedSet) {
+    // The common prefix is used to be able to be able to automatically process these messages in
+    // CPAchecker's toolinfo module in BenchExec
+    String commonPrefix = "Witness export warning: ";
+
+    if (!pVersionsWithFailedTranslation.isEmpty()) {
+      // For example occurring for: sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
+      logger.log(
+          Level.INFO,
+          commonPrefix
+              + "Witnesses exported in versions "
+              + Joiner.on(", ").join(pVersionsWithFailedTranslation)
+              + " had problems during the translation process. "
+              + "This may result in invariants being too large an over approximation.");
+    }
+
+    if (FluentIterable.from(pReachedSet)
+        .filter(ARGState.class)
+        // For some reason not all elements being covered are in the reached set, therefore this
+        // workaround is needed
+        // One example program where this happens is:
+        // sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
+        .allMatch(argState -> argState.getCoveredByThis().isEmpty())) {
+      // For example occurring for: sv-benchmarks/c/loops/n.c40.c
+      logger.log(
+          Level.INFO,
+          commonPrefix
+              + "The ARG contains no cycles. "
+              + "This means that the invariants are likely not inductive or not safe.");
+    }
+  }
+
+  /**
+   * Export the given ARG to a witness file in YAML format. All versions of witnesses will be
+   * exported. It also prints output information to the user explaining what guarantees are provided
+   * by the witness.
+   *
+   * @param pRootState The root state of the ARG.
+   * @param pOutputFileTemplate The template for the output file. The template will be used to
+   *     generate unique names for each witness version by replacing the string '%s' with the
+   *     version.
+   * @throws InterruptedException If the witness export was interrupted.
+   * @throws IOException If the witness could not be written to the file.
+   */
+  public void export(
+      ARGState pRootState, UnmodifiableReachedSet pReachedSet, PathTemplate pOutputFileTemplate)
+      throws InterruptedException, IOException, ReportingMethodNotImplementedException {
+
+    // The entries are created only once, even when several versions are exported
+    CollectedInvariants invariants = createInvariantEntries(pRootState, exportedTypes);
+
+    ImmutableSet.Builder<YAMLWitnessVersion> versionsWithFailedTranslation = ImmutableSet.builder();
+    for (Entry<YAMLWitnessVersion, ImmutableSet<WitnessInvariantType>> version :
+        typesPerVersion.entrySet()) {
+      exportEntries(
+          new InvariantSetEntry(
+              getMetadata(version.getKey()), invariants.entriesFor(version.getValue())),
+          pOutputFileTemplate.getPath(version.getKey().toString()));
+      if (!invariants.translationAlwaysSuccessfulFor(version.getValue())) {
+        versionsWithFailedTranslation.add(version.getKey());
+      }
+    }
+
+    if (analyseWitnessQuality) {
+      analyzeExportedWitnessQuality(versionsWithFailedTranslation.build(), pReachedSet);
+    }
+  }
+
+  /**
+   * A class to keep track of the result of the creation of a function contract, in particular to
+   * inform the caller about some internals of the translation and export.
+   *
+   * @param functionContractEntry the function contract entry which was created
+   * @param translationSuccessful if the translation from internal ARG states to strings was
+   *     successful
+   */
+  record FunctionContractCreationResult(
+      FunctionContractEntry functionContractEntry, boolean translationSuccessful) {}
+
+  /**
+   * A class to keep track of the result of the creation of an invariant, in particular to inform
+   * the caller about some internals of the translation and export.
+   *
+   * @param invariantEntry the invariant entry which was created
+   * @param translationSuccessful if the translation from internal ARG states to strings was
+   *     successful
+   */
+  record InvariantCreationResult(InvariantEntry invariantEntry, boolean translationSuccessful) {}
+
+  /**
+   * A class to keep track of the result of the creation of an expression tree, in particular to
+   * keep track if this expression tree was successfully generated or not.
+   *
+   * @param expressionTree the expression tree which was created
+   * @param backTranslationSuccessful if the back translation from the abstract state to an
+   *     ExpressionTree was successful or if a fallback is being used
+   */
+  record ExpressionTreeResult(
+      ExpressionTree<Object> expressionTree, boolean backTranslationSuccessful) {}
+
+  /**
+   * This is a wrapper for the function type to also throw {@link InterruptedException} and {@link
+   * ReportingMethodNotImplementedException}. This is inspired by: <a
+   * href="https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception">https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception</a>
+   *
+   * @param <T> the type of the input parameter
+   * @param <R> the type of the return value
+   */
+  @FunctionalInterface
+  public interface NotImplementedThrowingFunction<T, R> {
+    R apply(T t)
+        throws InterruptedException,
+            ReportingMethodNotImplementedException,
+            TranslationToExpressionTreeFailedException;
+  }
+
+  private ExpressionTreeResult getOverapproximationOfStatesIgnoringReturnVariables(
+      Collection<ARGState> argStates, CFANode node, boolean useOldKeywordForVariables)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
+    return getOverapproximationOfStates(
+        argStates,
+        (ExpressionTreeReportingState x) ->
+            x.getFormulaApproximationInputProgramInScopeVariables(
+                entryNode,
+                node,
+                cfa.getAstCfaRelation(),
+                useOldKeywordForVariables,
+                cfa.getMachineModel()));
+  }
+
+  private ExpressionTreeResult getOverapproximationOfStatesWithOnlyReturnVariables(
+      Collection<ARGState> argStates, CFANode node)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    AIdExpression returnVariable;
+    if (node.getFunction().getType().getReturnType() instanceof CType cType) {
+      if (cType instanceof CVoidType) {
+        return new ExpressionTreeResult(ExpressionTrees.getTrue(), true);
+      }
+      returnVariable =
+          new CIdExpression(
+              FileLocation.DUMMY,
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  false,
+                  CStorageClass.AUTO,
+                  cType,
+                  "\\result",
+                  "\\result",
+                  node.getFunctionName() + "::\\result",
+                  null));
+    } else {
+      // Currently, we do not export witnesses for other programming languages than C, therefore
+      // everything else is currently not supported.
+      throw new UnsupportedOperationException();
+    }
+
+    FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
+    return getOverapproximationOfStates(
+        argStates,
+        (ExpressionTreeReportingState x) ->
+            x.getFormulaApproximationFunctionReturnVariableOnly(
+                entryNode, returnVariable, cfa.getMachineModel()));
+  }
+
+  /**
+   * Provides an overapproximation of the abstractions encoded by the ARG states at the location of
+   * the node.
+   *
+   * @param pArgStates the ARG states encoding abstractions of the state
+   * @return an over approximation of the abstraction at the state
+   * @throws InterruptedException if the call to this function is interrupted
+   */
+  private ExpressionTreeResult getOverapproximationOfStates(
+      Collection<ARGState> pArgStates,
+      NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
+          pStateToAbstraction)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    FluentIterable<ExpressionTreeReportingState> reportingStates =
+        FluentIterable.from(pArgStates)
+            .transformAndConcat(AbstractStates::asIterable)
+            .filter(ExpressionTreeReportingState.class);
+    List<List<ExpressionTreeResult>> expressionsPerClass = new ArrayList<>();
+
+    for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
+      List<ExpressionTreeResult> expressionsMatchingClass = new ArrayList<>();
+      for (ExpressionTreeReportingState state : reportingStates) {
+        if (stateClass.isAssignableFrom(state.getClass())) {
+          ExpressionTreeResult expressionTreeResult;
+          try {
+            expressionTreeResult = new ExpressionTreeResult(pStateToAbstraction.apply(state), true);
+          } catch (TranslationToExpressionTreeFailedException e) {
+            logger.logDebugException(e, "Could not translate state to expression tree");
+            expressionTreeResult = new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
+          }
+          expressionsMatchingClass.add(expressionTreeResult);
+        }
+      }
+      expressionsPerClass.add(expressionsMatchingClass);
+    }
+
+    ExpressionTree<Object> overapproximationOfState =
+        And.of(
+            FluentIterable.from(expressionsPerClass)
+                .transform(
+                    elementsForClass ->
+                        FluentIterable.from(elementsForClass)
+                            .transform(ExpressionTreeResult::expressionTree))
+                .transform(Or::of));
+    boolean backTranslationSuccessful =
+        expressionsPerClass.stream()
+            .allMatch(
+                elementsForClass ->
+                    elementsForClass.stream()
+                        .allMatch(ExpressionTreeResult::backTranslationSuccessful));
+
+    // Filter out CPAchecker internal variables from the over-approximation of the states
+    // This transformation is NOT correct for all possible cases, since if multiple internal
+    // variables are in relation to each other and this is relevant for the invariant, then this
+    // will not work. A more sophisticated approach may consider all these dependencies and do an
+    // actual replacement of CPAchecker internal variables
+    // TODO: Improve this
+    RemovingStructuresVisitor<Object, Exception> visitor =
+        new RemovingStructuresVisitor<>(x -> x.toString().contains("__CPAchecker_TMP"));
+    try {
+      overapproximationOfState = overapproximationOfState.accept(visitor);
+    } catch (Exception e) {
+      logger.log(Level.FINE, "Could not remove CPAchecker internal variables from invariant");
+    }
+
+    return new ExpressionTreeResult(overapproximationOfState, backTranslationSuccessful);
+  }
+
+  /**
+   * The entries created for one ARG, grouped by the type of information they contain.
+   *
+   * @param entriesPerType the created entries for each type
+   * @param typesWithFailedTranslation the types for which at least one translation from internal
+   *     ARG states to strings was not successful
+   */
+  record CollectedInvariants(
+      ImmutableListMultimap<WitnessInvariantType, AbstractInvariantEntry> entriesPerType,
+      ImmutableSet<WitnessInvariantType> typesWithFailedTranslation) {
+
+    /** The entries of the given types, in the declaration order of {@link WitnessInvariantType}. */
+    ImmutableList<AbstractInvariantEntry> entriesFor(Set<WitnessInvariantType> pTypes) {
+      ImmutableList.Builder<AbstractInvariantEntry> entries = ImmutableList.builder();
+      for (WitnessInvariantType invariantType : WitnessInvariantType.values()) {
+        if (pTypes.contains(invariantType)) {
+          entries.addAll(entriesPerType.get(invariantType));
+        }
+      }
+      return entries.build();
+    }
+
+    boolean translationAlwaysSuccessfulFor(Set<WitnessInvariantType> pTypes) {
+      return Collections.disjoint(typesWithFailedTranslation, pTypes);
+    }
+  }
+
+  /**
+   * Traverse the ARG and create the entries for the requested types of information.
+   *
+   * <p>The ARG is traversed only once, independently of how many witness versions are exported from
+   * the result.
+   *
+   * @param pRootState the root state of the ARG
+   * @param pTypes the types of information which should be created
+   * @return the created entries
+   * @throws InterruptedException if the execution is interrupted
+   */
+  CollectedInvariants createInvariantEntries(ARGState pRootState, Set<WitnessInvariantType> pTypes)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    CollectedARGStates statesCollector = argStatesCollector.getRelevantStates(pRootState);
+
+    ImmutableListMultimap.Builder<WitnessInvariantType, AbstractInvariantEntry> entries =
+        ImmutableListMultimap.builder();
+    ImmutableSet.Builder<WitnessInvariantType> typesWithFailedTranslation = ImmutableSet.builder();
+
+    if (pTypes.contains(WitnessInvariantType.LOOP_INVARIANT)) {
+      collectInvariants(
+          statesCollector.loopInvariants(),
+          InvariantRecordType.LOOP_INVARIANT,
+          entries,
+          typesWithFailedTranslation);
+    }
+
+    if (pTypes.contains(WitnessInvariantType.LOCATION_INVARIANT)) {
+      collectInvariants(
+          statesCollector.functionCallInvariants(),
+          InvariantRecordType.LOCATION_INVARIANT,
+          entries,
+          typesWithFailedTranslation);
+    }
+
+    if (pTypes.contains(WitnessInvariantType.FUNCTION_CONTRACT)) {
+      ImmutableList<FunctionContractCreationResult> contracts =
+          createFunctionContracts(
+              statesCollector.functionContractRequires(),
+              statesCollector.functionContractEnsures());
+      entries.putAll(
+          WitnessInvariantType.FUNCTION_CONTRACT,
+          FluentIterable.from(contracts)
+              .transform(FunctionContractCreationResult::functionContractEntry));
+      if (!FluentIterable.from(contracts)
+          .allMatch(FunctionContractCreationResult::translationSuccessful)) {
+        typesWithFailedTranslation.add(WitnessInvariantType.FUNCTION_CONTRACT);
+      }
+    }
+
+    return new CollectedInvariants(entries.build(), typesWithFailedTranslation.build());
+  }
+
+  /**
+   * Create the invariants of the given type for the states relevant to each of the given nodes, and
+   * add them to the entries.
+   *
+   * @param pStates the ARG states to over approximate, per node
+   * @param pType the type of the invariants to create
+   * @param pEntries where to add the created invariants
+   * @param pTypesWithFailedTranslation where to note the type if a translation was not successful
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private void collectInvariants(
+      Multimap<CFANode, ARGState> pStates,
+      InvariantRecordType pType,
+      ImmutableListMultimap.Builder<WitnessInvariantType, AbstractInvariantEntry> pEntries,
+      ImmutableSet.Builder<WitnessInvariantType> pTypesWithFailedTranslation)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    WitnessInvariantType invariantType = WitnessInvariantType.of(pType).orElseThrow();
+    boolean translationSuccessful = true;
+    for (CFANode node : pStates.keySet()) {
+      Optional<FileLocation> location = locationOfInvariant(node, pType);
+      if (location.isEmpty()) {
+        logger.logf(
+            Level.FINE,
+            "Could not determine the location of node %s, skipping its %s",
+            node,
+            invariantType);
+        continue;
+      }
+      InvariantCreationResult invariant =
+          createInvariant(pStates.get(node), node, pType, location.orElseThrow());
+      pEntries.put(invariantType, invariant.invariantEntry());
+      translationSuccessful &= invariant.translationSuccessful();
+    }
+    if (!translationSuccessful) {
+      pTypesWithFailedTranslation.add(invariantType);
+    }
+  }
+
+  /**
+   * The location in the input program an invariant of the given type at the given node belongs to.
+   * A loop invariant belongs to its loop, a location invariant to the statement containing the
+   * node, which is also the statement the validator resolves such an invariant to.
+   */
+  private Optional<FileLocation> locationOfInvariant(CFANode pNode, InvariantRecordType pType) {
+    return switch (pType) {
+      case LOOP_INVARIANT ->
+          getASTStructure()
+              .getTightestIterationStructureForNode(pNode)
+              .map(iteration -> iteration.getCompleteElement().location());
+      case LOCATION_INVARIANT -> getASTStructure().getStatementFileLocationForNode(pNode);
+      default -> throw new AssertionError("Cannot export invariants of type " + pType);
+    };
+  }
+
+  /**
+   * Create an invariant for the abstractions encoded by the ARG states.
+   *
+   * @param pArgStates the ARG states encoding abstractions of the state
+   * @param pNode the node at whose location the states should be over approximated
+   * @param pType the type of the invariant
+   * @param pLocation the location in the input program the invariant belongs to
+   * @return an invariant over approximating the abstraction at the state
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private InvariantCreationResult createInvariant(
+      Collection<ARGState> pArgStates,
+      CFANode pNode,
+      InvariantRecordType pType,
+      FileLocation pLocation)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    // TODO: The original name of the variables should be used here. This requires a visitor to
+    // rename them
+    ExpressionTreeResult invariantResult =
+        getOverapproximationOfStatesIgnoringReturnVariables(
+            pArgStates, pNode, /* useOldKeywordForVariables= */ false);
+    LocationRecord locationRecord =
+        LocationRecord.createLocationRecordAtStart(
+            pLocation,
+            pNode.getFunction().getFileLocation().getFileName().toString(),
+            pNode.getFunction().getOrigName());
+
+    return new InvariantCreationResult(
+        new InvariantEntry(
+            invariantResult.expressionTree().toString(),
+            pType.getKeyword(),
+            YAMLWitnessExpressionType.C,
+            locationRecord),
+        invariantResult.backTranslationSuccessful());
+  }
+
+  /**
+   * Create function contracts for each of the functions whose entry nodes have been given
+   *
+   * @param pFunctionContractRequires a mapping from function entry nodes to ARG states encoding the
+   *     abstractions at that location
+   * @param pFunctionContractEnsures a mapping from function exit nodes to ARG states encoding the
+   *     abstractions at that location
+   * @return a list of function contracts, one for each of the functions whose entry nodes have been
+   *     given
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private ImmutableList<FunctionContractCreationResult> createFunctionContracts(
+      Multimap<FunctionEntryNode, ARGState> pFunctionContractRequires,
+      Multimap<FunctionExitNode, FunctionEntryExitPair> pFunctionContractEnsures)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    ImmutableList.Builder<FunctionContractCreationResult> functionContractRecords =
+        new ImmutableList.Builder<>();
+
+    for (FunctionEntryNode functionEntryNode : pFunctionContractRequires.keySet()) {
+      Collection<ARGState> requiresArgStates = pFunctionContractRequires.get(functionEntryNode);
+      boolean translationSuccessful = true;
+
+      FileLocation location = functionEntryNode.getFileLocation();
+      ExpressionTreeResult requiresClauseResult =
+          getOverapproximationOfStatesIgnoringReturnVariables(
+              requiresArgStates, functionEntryNode, /* useOldKeywordForVariables= */ false);
+      String requiresClause = requiresClauseResult.expressionTree().toString();
+      translationSuccessful &= requiresClauseResult.backTranslationSuccessful();
+
+      ImmutableSet.Builder<String> ensuresClause = new ImmutableSet.Builder<>();
+      if (functionEntryNode.getExitNode().isPresent()
+          && pFunctionContractEnsures.containsKey(functionEntryNode.getExitNode().orElseThrow())) {
+        Collection<FunctionEntryExitPair> ensuresArgStates =
+            pFunctionContractEnsures.get(functionEntryNode.getExitNode().orElseThrow());
+        for (FunctionEntryExitPair pair : ensuresArgStates) {
+          // Get the state of the input of the function
+          ExpressionTreeResult stateOfTheInputResult =
+              getOverapproximationOfStatesIgnoringReturnVariables(
+                  ImmutableSet.of(pair.entry()),
+                  functionEntryNode,
+                  // we need to use the old keyword to reference the variables in the input.
+                  /* useOldKeywordForVariables= */ true);
+
+          String stateOfTheInput = stateOfTheInputResult.expressionTree().toString();
+          translationSuccessful &= stateOfTheInputResult.backTranslationSuccessful();
+
+          // Get the state of the output of the function
+          ExpressionTreeResult stateOfTheOutputResult =
+              getOverapproximationOfStatesWithOnlyReturnVariables(
+                  ImmutableSet.of(pair.exit()), functionEntryNode);
+          String stateOfTheOutput = stateOfTheOutputResult.expressionTree().toString();
+          translationSuccessful &= stateOfTheOutputResult.backTranslationSuccessful();
+
+          // Create a relation between the input and the output of the function
+          String implication = "(!(" + stateOfTheInput + ") || (" + stateOfTheOutput + "))";
+          ensuresClause.add(implication);
+        }
+      } else {
+        // If we do not have an exit node then we do not have any ensures clause
+        ensuresClause.add("1");
+      }
+      functionContractRecords.add(
+          new FunctionContractCreationResult(
+              new FunctionContractEntry(
+                  String.join(" && ", ensuresClause.build()),
+                  requiresClause,
+                  // The format of contract expressions is always ext_c_expression
+                  YAMLWitnessExpressionType.EXT_C,
+                  LocationRecord.createLocationRecordAtStart(
+                      location, functionEntryNode.getFunction().getOrigName())),
+              translationSuccessful));
+    }
+
+    return functionContractRecords.build();
+  }
+}
