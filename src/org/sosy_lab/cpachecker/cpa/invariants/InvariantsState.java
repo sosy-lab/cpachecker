@@ -1224,7 +1224,9 @@ public class InvariantsState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode)
+      final FunctionEntryNode pFunctionEntryNode,
+      final CFANode pReferenceNode,
+      final MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
 
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
@@ -1241,7 +1243,8 @@ public class InvariantsState
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
@@ -1264,12 +1267,15 @@ public class InvariantsState
     return getFormulaApproximation(
         pFunctionScope,
         isInvalidVarFormulaApproximation,
-        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+        varName ->
+            useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(varName) : varName);
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {

@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.SequencedSet;
@@ -63,7 +63,8 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
 
   public Collection<BlockNode> mergeVertically(Collection<BlockNode> pNodes) {
 
-    Map<String, BlockNode> blocks = new HashMap<>();
+    // Insertion order, because blocks.values() below becomes the input of the next merge round
+    Map<String, BlockNode> blocks = new LinkedHashMap<>();
     pNodes.forEach(
         n -> {
           blocks.put(n.getId(), n);

@@ -55,12 +55,10 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
@@ -68,7 +66,9 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Test that the bundled configuration files are all valid. */
 @RunWith(Parameterized.class)
@@ -251,7 +251,7 @@ public class ConfigurationFileChecks {
   @SuppressWarnings("CheckReturnValue")
   public void parse() throws URISyntaxException {
     try {
-      parse(configFile).build();
+      Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException e) {
       assertWithMessage(
               "Error during parsing of configuration file %s : %s", configFile, e.getMessage())
@@ -259,17 +259,14 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private static ConfigurationBuilder parse(Object pConfigFile)
-      throws IOException, InvalidConfigurationException, URISyntaxException {
-    Path configFile;
-    if (pConfigFile instanceof Path path) {
-      configFile = path;
-    } else if (pConfigFile instanceof URL uRL) {
-      configFile = Path.of(uRL.toURI());
+  private Path configFileAsPath() throws URISyntaxException {
+    if (configFile instanceof Path path) {
+      return path;
+    } else if (configFile instanceof URL uRL) {
+      return Path.of(uRL.toURI());
     } else {
-      throw new AssertionError("Unexpected config file " + pConfigFile);
+      throw new AssertionError("Unexpected config file " + configFile);
     }
-    return Configuration.builder().loadFromFile(configFile);
   }
 
   @Rule public final Expect expect = Expect.create();
@@ -278,7 +275,7 @@ public class ConfigurationFileChecks {
   public void checkUndesiredOptions() {
     Configuration config;
     try {
-      config = parse(configFile).build();
+      config = Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assumeNoException(e);
       throw new AssertionError(e);
@@ -420,6 +417,7 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
       assertThat(spec).endsWith("specification/null-deref.spc");
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
+        || Ascii.toLowerCase(basePath.toString()).contains("termination")
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
         || basePath.toString().contains("validation-termination")) {
       assertThat(Strings.nullToEmpty(spec)).isEmpty();
@@ -512,10 +510,12 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
+    boolean isComponentConfig =
+        configFile instanceof Path configFilePath
+            && Iterables.contains(configFilePath, Path.of("components"));
     if (Strings.isNullOrEmpty(config.getProperty(SPECIFICATION_OPTION))
         && configFile instanceof Path configFilePath
-        && (Iterables.contains(configFilePath, Path.of("components"))
-            || configFilePath.endsWith("ltl.properties"))) {
+        && (isComponentConfig || configFilePath.endsWith("ltl.properties"))) {
       // Some configs require a specification due to the use of $specification.
       // For config/components/ we do not want to hard-code a specification in the config file,
       // but we still want to instantiate the config for testing here. So provide a dummy spec.
@@ -561,10 +561,18 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
+      if (isComponentConfig) {
+        // Component configs are not expected to be used for CFA creation,
+        // so if they have cfa options that do not match their subcomponents,
+        // it does not matter.
+        NestingAlgorithm.checkCfaOptionMisMatch = false;
+      }
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);
+    } finally {
+      NestingAlgorithm.checkCfaOptionMisMatch = true;
     }
 
     assert_()
@@ -610,15 +618,8 @@ public class ConfigurationFileChecks {
 
   private Configuration createConfigurationForTestInstantiation() {
     try {
-      FileTypeConverter fileTypeConverter =
-          FileTypeConverter.create(
-              Configuration.builder()
-                  .setOption("rootDirectory", tempFolder.getRoot().toString())
-                  .build());
-      Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-
-      return parse(configFile)
-          .addConverter(FileOption.class, fileTypeConverter)
+      return TestUtils.configurationForTestWithOutput(tempFolder)
+          .loadFromFile(configFileAsPath())
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .setOption("differential.program", createEmptyProgram(Language.C))
           .setOption("statistics.memory", "false")

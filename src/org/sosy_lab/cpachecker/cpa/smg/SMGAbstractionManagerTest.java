@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.Iterables;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -28,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGAbstractionManagerTest {
   private CLangSMG smg;
@@ -81,7 +81,7 @@ public class SMGAbstractionManagerTest {
         new SMGState(
             LogManager.createTestLogManager(),
             MachineModel.LINUX32,
-            new SMGOptions(Configuration.defaultConfiguration()));
+            new SMGOptions(TestUtils.configurationForTest().build()));
     SMGAbstractionManager manager =
         new SMGAbstractionManager(LogManager.createTestLogManager(), smg, dummyState);
     manager.execute();

@@ -31,8 +31,8 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -337,7 +337,7 @@ class ASTConverter {
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
       Sideassignments pSideAssignmentStack,
-      Set<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
     options = pOptions;
     scope = pScope;
     logger = pLogger;
@@ -719,6 +719,18 @@ class ASTConverter {
     CExpression arrayExpr = convertExpressionWithoutSideEffects(e.getArrayExpression());
     CExpression subscriptExpr = convertExpressionWithoutSideEffects(toExpression(e.getArgument()));
 
+    if (!CTypes.isIntegerType(subscriptExpr.getExpressionType())) {
+      if (CTypes.isIntegerType(arrayExpr.getExpressionType())) {
+        // i[a] is the same as a[i] in C, we normalize it.
+        CExpression tmp = arrayExpr;
+        arrayExpr = subscriptExpr;
+        subscriptExpr = tmp;
+      } else if (!(subscriptExpr.getExpressionType() instanceof CProblemType)) {
+        parseContext.parseError(
+            "Array subscript with non-integer type " + subscriptExpr.getExpressionType(), e);
+      }
+    }
+
     // Eclipse CDT has a bug in determining the result type if the array type is a typedef.
     CType resultType = arrayExpr.getExpressionType();
     while (resultType instanceof CTypedefType typedefType) {
@@ -728,7 +740,7 @@ class ASTConverter {
       resultType = arrayType.getType();
     } else if (resultType instanceof CPointerType pointerType) {
       resultType = pointerType.getType();
-    } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
+    } else if (resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
       resultType = typeConverter.convert(e.getExpressionType());
@@ -1501,8 +1513,8 @@ class ASTConverter {
 
   private boolean areCompatibleTypes(CType a, CType b) {
     // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
-    a = a.getCanonicalType().withoutQualifiers();
-    b = b.getCanonicalType().withoutQualifiers();
+    a = a.getCanonicalType().asUnqualified();
+    b = b.getCanonicalType().asUnqualified();
     if (a.equals(b)) {
       return true;
     }
@@ -2365,7 +2377,7 @@ class ASTConverter {
           // clear added modifiers
           tmpArrMod.clear();
 
-          type = typeConverter.convert(iASTPointerOperator, type);
+          type = typeConverter.convert(iASTPointerOperator, type, modifiers, d);
 
         } else {
           throw new AssertionError();
@@ -3222,7 +3234,7 @@ class ASTConverter {
       if (pDeclarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
-      return canonicalType.withoutQualifiers().equals(CNumericTypes.CHAR);
+      return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
     }
     return false;
   }

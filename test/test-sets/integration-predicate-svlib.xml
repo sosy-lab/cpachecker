@@ -29,12 +29,16 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--predicateAnalysis-svlib"/>
   </rundefinition>
 
+  <tasks name="SV-LIB.Simple">
+    <include>../programs/sv-lib/*.yml</include>
+    <propertyfile>../config/properties/correct-annotations.prp</propertyfile>
+  </tasks>
+
   <!--
     Currently there are so few SV-LIB benchmarks that we can afford
     to run all of them with witness generation enabled.
   -->
   <tasks name="SV-LIB.Main">
-    <include>../programs/sv-lib/*.yml</include>
     <includesfile>../programs/svlib-benchmarks/CTranslated.set</includesfile>
     <includesfile>../programs/svlib-benchmarks/CoreValidation.set</includesfile>
     <includesfile>../programs/svlib-benchmarks/CoreVerification.set</includesfile>

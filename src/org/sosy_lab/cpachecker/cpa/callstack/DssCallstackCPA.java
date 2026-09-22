@@ -38,15 +38,15 @@ public final class DssCallstackCPA extends CallstackCPA {
     return createState(null, pNode.getFunctionName(), pNode, false);
   }
 
-  /** Creates a DSS callstack state, optionally allowing every transfer. */
+  /** Creates a DSS callstack state, optionally one that may stand for an unknown callstack. */
   public DssCallstackState createState(
       @Nullable CallstackState pPreviousState,
       String pFunction,
       CFANode pCallerNode,
-      boolean pAllowAllTransfers) {
+      boolean pCanBeTopState) {
     CallstackState wrappedState =
         new CallstackState(DssCallstackState.unwrap(pPreviousState), pFunction, pCallerNode);
-    return new DssCallstackState(wrappedState, pAllowAllTransfers);
+    return new DssCallstackState(wrappedState, pCanBeTopState);
   }
 
   @Override

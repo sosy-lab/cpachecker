@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -40,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
@@ -293,22 +288,5 @@ public final class MPORUtil {
           .collect(ImmutableList.toImmutableList());
     }
     return pElements;
-  }
-
-  // CFA ===========================================================================================
-
-  public static CFACreator buildTestCfaCreator(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    return new CFACreator(TestUtils.configurationForTest().build(), pLogger, pShutdownNotifier);
-  }
-
-  public static CFACreator buildTestCfaCreatorWithPreprocessor(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    return new CFACreator(
-        TestUtils.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
-        pLogger,
-        pShutdownNotifier);
   }
 }

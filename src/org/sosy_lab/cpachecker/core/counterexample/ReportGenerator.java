@@ -394,7 +394,10 @@ public class ReportGenerator {
     PreCondition preCondition = traceFormula.getPrecondition();
     FormulaContext context = traceFormula.getContext();
     FormulaToCVisitor visitor =
-        new FormulaToCVisitor(context.getSolver().getFormulaManager(), Function.identity());
+        new FormulaToCVisitor(
+            context.getSolver().getFormulaManager(),
+            Function.identity(),
+            context.getMutableCFA().getMachineModel());
     context.getSolver().getFormulaManager().visit(preCondition.getPrecondition(), visitor);
     return visitor.getString();
   }

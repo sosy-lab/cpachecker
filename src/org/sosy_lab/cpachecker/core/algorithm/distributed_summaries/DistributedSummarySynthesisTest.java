@@ -21,16 +21,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedSummarySynthesisTest {
 
   private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
       "config/generateBlockGraph.properties";
   private static final String PROGRAM = "doc/examples/example.c";
-  private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
+  private static final String BLOCKS_JSON_PATH = "output/block_analysis/blocks.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -43,7 +45,10 @@ public class DistributedSummarySynthesisTest {
   public void testBlockDecompositionExportsJson() throws Exception {
     Path tempFolderPath = tempFolder.getRoot().toPath();
     Configuration config =
-        TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
+        TestUtils.configurationForTestWithOutput(tempFolder)
+            .loadFromFile(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH)
+            .setOption("language", Language.C.name())
+            .build();
     File expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH).toFile();
 
     IntegrationTestResult result = IntegrationTestRunner.run(config, PROGRAM);

@@ -65,7 +65,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
       ConfigurableProgramAnalysis pBlockCpa, BlockNode pNode, DssAnalysisOptions pOptions) {
     checkArgument(
         pBlockCpa instanceof BlockCPA, "%s is no %s", pBlockCpa.getClass(), BlockCPA.class);
-    blockCpa = ((BlockCPA) pBlockCpa);
+    blockCpa = (BlockCPA) pBlockCpa;
     node = pNode;
     blockStateSupplier =
         location ->

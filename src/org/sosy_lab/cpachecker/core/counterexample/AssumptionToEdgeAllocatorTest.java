@@ -39,7 +39,7 @@ public class AssumptionToEdgeAllocatorTest {
   @Before
   public void setUp() throws Exception {
     cfa =
-        TestCfaUtils.makeCFA(
+        TestCfaUtils.makeCfaFromString(
             """
             typedef struct dataNode {
               int h;
