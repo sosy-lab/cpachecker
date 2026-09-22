@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -24,18 +23,20 @@ int main(void) {
   const signed char schar_max = 127;
   const unsigned char uchar_max = 255U;
   const short int short_max = 32767;
-  const int int_min = (-2147483647 - 1);
+  const int int_min = -2147483648LL;
   const int int_max = 2147483647;
   const unsigned int uint_max = 4294967295U;
-  const long long int ll_min = (-9223372036854775807LL - 1LL);
+  // GCC converts the explicit unsigned sign-bit value to LLONG_MIN.
+  const long long int ll_min = (long long int)9223372036854775808ULL;
   const long long int ll_max = 9223372036854775807LL;
   const unsigned long long int ull_max = 18446744073709551615ULL;
   const char char_2 = -2;
-  const unsigned long int mul_ulong_max = ~0UL;
-  const long int mul_long_max = (long int)((~0UL) >> 1);
-  const long int smull_max = (long int)((~0UL) >> 1);
-  const long int smull_min = (-((long int)((~0UL) >> 1)) - 1L);
-  const unsigned long int umull_max = ~0UL;
+  const unsigned long int mul_ulong_max = sizeof(long int) == 4U ? 4294967295UL : 18446744073709551615UL;
+  const long int mul_long_max = sizeof(long int) == 4U ? 2147483647L : 9223372036854775807L;
+  const long int smull_max = mul_long_max;
+  // GCC's unsigned-to-signed conversion gives LONG_MIN for the explicit sign-bit value.
+  const long int smull_min = sizeof(long int) == 4U ? (long int)2147483648UL : (long int)9223372036854775808UL;
+  const unsigned long int umull_max = mul_ulong_max;
 
 
   // long is 32 bits in ILP32 and 64 bits in LP64, so this builtin case has model-dependent expected results.
@@ -143,7 +144,7 @@ int main(void) {
   // ILP32: 4294967295UL * 2UL = 8589934590, outside the destination range; stored result = 4294967294UL and overflow = 1.
   // LP64: 18446744073709551615UL * 2UL = 36893488147419103230, outside the destination range; stored result = 18446744073709551614UL and
   // overflow = 1.
-  __VERIFIER_assert(mul_ulong_max_2_res == (~0UL) - 1UL);
+  __VERIFIER_assert(mul_ulong_max_2_res == mul_ulong_max - 1UL);
 
   __VERIFIER_assert(mul_ulong_max_2_ov == 1);
 
@@ -197,6 +198,16 @@ int main(void) {
   __VERIFIER_assert(mul_uint_1_2_res == 4294967294U);
 
   __VERIFIER_assert(mul_uint_1_2_ov == 1);
+
+
+  long long int mul_int_max_2_wide_res;
+  int mul_int_max_2_wide_ov;
+  mul_int_max_2_wide_ov = __builtin_mul_overflow(int_max, 2, &mul_int_max_2_wide_res);
+
+  // 2147483647 * 2 fits the wider destination; stored result = 4294967294LL and overflow = 0.
+  __VERIFIER_assert(mul_int_max_2_wide_res == 4294967294LL);
+
+  __VERIFIER_assert(mul_int_max_2_wide_ov == 0);
 
 
   // Signed int multiplication overflow tests.
@@ -299,6 +310,26 @@ int main(void) {
   __VERIFIER_assert(smul_1_m1_res == 1);
 
   __VERIFIER_assert(smul_1_m1_ov == 0);
+
+
+  int smul_converted_res;
+  int smul_converted_ov;
+  smul_converted_ov = __builtin_smul_overflow(2147483648LL, 1, &smul_converted_res);
+
+  // The first argument converts to int before multiplication; the converted product fits.
+  __VERIFIER_assert(smul_converted_res == int_min);
+
+  __VERIFIER_assert(smul_converted_ov == 0);
+
+
+  int smul_converted_second_res;
+  int smul_converted_second_ov;
+  smul_converted_second_ov = __builtin_smul_overflow(1, 2147483648LL, &smul_converted_second_res);
+
+  // The second argument converts to INT_MIN before multiplication; the converted product fits.
+  __VERIFIER_assert(smul_converted_second_res == int_min);
+
+  __VERIFIER_assert(smul_converted_second_ov == 0);
   long int smull_0_0_res;
   int smull_0_0_ov;
   smull_0_0_ov = __builtin_smull_overflow(0L, 0L, &smull_0_0_res);
@@ -362,7 +393,7 @@ int main(void) {
   // ILP32: 2147483647L * -1L = -2147483647, which fits the destination range; stored result = -2147483647L and overflow = 0.
   // LP64: 9223372036854775807L * -1L = -9223372036854775807, which fits the destination range; stored result = -9223372036854775807L and
   // overflow = 0.
-  __VERIFIER_assert(smull_max_m1_res == - ((long int)((~0UL) >> 1)));
+  __VERIFIER_assert(smull_max_m1_res == -smull_max);
 
   __VERIFIER_assert(smull_max_m1_ov == 0);
 
@@ -602,19 +633,19 @@ int main(void) {
 
   unsigned long int umull_2_halfmax_res;
   int umull_2_halfmax_ov;
-  umull_2_halfmax_ov = __builtin_umull_overflow(2UL, (~0UL) / 2UL, &umull_2_halfmax_res);
+  umull_2_halfmax_ov = __builtin_umull_overflow(2UL, umull_max / 2UL, &umull_2_halfmax_res);
 
   // ILP32: 2UL * 2147483647UL = 4294967294, which fits the destination range; stored result = 4294967294UL and overflow = 0.
   // LP64: 2UL * 9223372036854775807UL = 18446744073709551614, which fits the destination range; stored result = 18446744073709551614UL and
   // overflow = 0.
-  __VERIFIER_assert(umull_2_halfmax_res == (~0UL) - 1UL);
+  __VERIFIER_assert(umull_2_halfmax_res == umull_max - 1UL);
 
   __VERIFIER_assert(umull_2_halfmax_ov == 0);
 
 
   unsigned long int umull_2_halfmax1_res;
   int umull_2_halfmax1_ov;
-  umull_2_halfmax1_ov = __builtin_umull_overflow(2UL, (~0UL) / 2UL + 1UL, &umull_2_halfmax1_res);
+  umull_2_halfmax1_ov = __builtin_umull_overflow(2UL, umull_max / 2UL + 1UL, &umull_2_halfmax1_res);
 
   // ILP32: 2UL * 2147483648UL = 4294967296, outside the destination range; stored result = 0UL and overflow = 1.
   // LP64: 2UL * 9223372036854775808UL = 18446744073709551616, outside the destination range; stored result = 0UL and overflow = 1.
@@ -642,7 +673,7 @@ int main(void) {
   // ILP32: 4294967295UL * 2UL = 8589934590, outside the destination range; stored result = 4294967294UL and overflow = 1.
   // LP64: 18446744073709551615UL * 2UL = 36893488147419103230, outside the destination range; stored result = 18446744073709551614UL and
   // overflow = 1.
-  __VERIFIER_assert(umull_max_2_res == (~0UL) - 1UL);
+  __VERIFIER_assert(umull_max_2_res == umull_max - 1UL);
 
   __VERIFIER_assert(umull_max_2_ov == 1);
 

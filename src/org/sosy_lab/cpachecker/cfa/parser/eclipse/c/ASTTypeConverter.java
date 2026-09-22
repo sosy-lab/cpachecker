@@ -12,17 +12,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.NavigableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
 import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
@@ -78,15 +81,16 @@ class ASTTypeConverter {
   private final ParseContext parseContext;
 
   // All cases of _Atomic that were not handled so far. This set is pre-filled and we need to remove
-  // locations once we handled their respective AST node.
-  private final Set<FileLocation> unhandledAtomicOccurrences;
+  // locations once we handled their respective AST node. Sorted so that the occurrences relevant
+  // to a given source region can be looked up in O(log n) instead of scanning the whole set.
+  private final NavigableSet<FileLocation> unhandledAtomicOccurrences;
 
   ASTTypeConverter(
       Scope pScope,
       ASTConverter pConverter,
       String pFilePrefix,
       ParseContext pParseContext,
-      Set<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
@@ -483,17 +487,84 @@ class ASTTypeConverter {
     return new CElaboratedType(convertCTypeQualifiers(d), type, name, origName, realType);
   }
 
-  /** returns a pointerType, that wraps the type. */
+  /**
+   * Returns a pointerType that wraps the type, ignoring any {@code _Atomic} right of the {@code *}.
+   * Only for contexts where that is unsupported (currently function return types); {@link
+   * CFABuilder}'s final check reports those.
+   */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
+    return convert(po, type, /* pAtomic= */ false);
+  }
+
+  /**
+   * Returns a pointerType that wraps the type. {@code pAtomic} tells whether the pointer itself is
+   * atomic, e.g., for {@code int * _Atomic p}. CDT silently drops the attribute we use for _Atomic
+   * from a pointer operator, so this information cannot be read from the pointer directly and has
+   * to be recovered separately (cf. {@link #isAtomicPointerOperator}, #1670).
+   */
+  private CPointerType convert(
+      final IASTPointerOperator po, final CType type, final boolean pAtomic) {
     if (po instanceof IASTPointer p) {
+      // CDT drops the _Atomic attribute here, so this only fires if CDT ever stops dropping it.
       return new CPointerType(
           CTypeQualifiers.create(
-              hasUnexpectedCPAcheckerAttributeForAtomic(p), p.isConst(), p.isVolatile()),
+              hasUnexpectedCPAcheckerAttributeForAtomic(p) || pAtomic, p.isConst(), p.isVolatile()),
           type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);
     }
+  }
+
+  /**
+   * Returns a pointerType that wraps the type, recovering whether {@code po} itself carries a
+   * dropped {@code _Atomic} qualifier (e.g., for {@code int * _Atomic p}) from among the given
+   * declarator modifiers. Cf. {@link #isAtomicPointerOperator}, #1670.
+   */
+  CPointerType convert(
+      final IASTPointerOperator po,
+      final CType type,
+      final List<IASTNode> modifiers,
+      final IASTDeclarator declarator) {
+    return convert(po, type, isAtomicPointerOperator(po, modifiers, declarator));
+  }
+
+  /**
+   * Determine whether the given pointer operator carries an {@code _Atomic} qualifier (e.g., for
+   * {@code int * _Atomic p}). CDT silently drops the attribute we use for _Atomic when it appears
+   * to the right of a {@code *}, but the location of the dropped {@code _Atomic} is still recorded
+   * in {@link #unhandledAtomicOccurrences}. We recover the qualifier by checking whether such an
+   * occurrence falls into {@code pointer}'s qualifier region (between the {@code *} and the next
+   * modifier or the end of the declarator), and mark the occurrence as handled if so. Cf. #1670.
+   */
+  private boolean isAtomicPointerOperator(
+      final IASTPointerOperator pointer,
+      final List<IASTNode> modifiers,
+      final IASTDeclarator declarator) {
+    FileLocation pointerLocation = converter.getLocation(pointer);
+    FileLocation declaratorLocation = converter.getLocation(declarator);
+    int declaratorEnd = declaratorLocation.getNodeOffset() + declaratorLocation.getNodeLength();
+
+    int regionStart = pointerLocation.getNodeOffset() + pointerLocation.getNodeLength();
+    int regionEnd =
+        modifiers.stream()
+            .mapToInt(modifier -> converter.getLocation(modifier).getNodeOffset())
+            .filter(offset -> offset > pointerLocation.getNodeOffset() && offset < declaratorEnd)
+            .min()
+            .orElse(declaratorEnd);
+
+    Path fileName = pointerLocation.getFileName();
+    NavigableSet<FileLocation> candidates =
+        unhandledAtomicOccurrences.subSet(
+            new FileLocation(fileName, regionStart, 0, 0, 0, 0, 0),
+            true,
+            new FileLocation(fileName, regionEnd, 0, 0, 0, 0, 0),
+            false);
+    if (candidates.isEmpty()) {
+      return false;
+    }
+    unhandledAtomicOccurrences.remove(candidates.getFirst());
+    return true;
   }
 
   /** returns a pointerType, that wraps all the converted types. */

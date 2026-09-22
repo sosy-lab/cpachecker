@@ -236,7 +236,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = pCompositeType.withoutQualifiers();
+    CCompositeType compositeType = pCompositeType.asUnqualified();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
