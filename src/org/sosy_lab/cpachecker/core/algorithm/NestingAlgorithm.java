@@ -46,10 +46,8 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 /** abstract algorithm for executing other nested algorithms. */
 public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider {
 
-  /** System property for disabling the consistency check of cfa.* options. Only for tests. */
-  @VisibleForTesting
-  public static final String PROPERTY_CHECK_CFA_OPTION_MISMATCH =
-      "nestingAlgorithm.checkCfaOptionMisMatch";
+  /** Flag for disabling the consistency check of cfa.* options. Only for tests. */
+  @VisibleForTesting public static boolean checkCfaOptionMisMatch = true;
 
   protected record NestedAnalysis(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
@@ -172,7 +170,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     // once for the NestingAlgorithm, so we check whether all "cfa.*"-options that are set in the
     // subconfig are also present and with the same value in the global config.
     // In tests we sometimes need to disable it.
-    if (Boolean.valueOf(System.getProperty(PROPERTY_CHECK_CFA_OPTION_MISMATCH, "true"))) {
+    if (checkCfaOptionMisMatch) {
       for (Entry<String, String> entry : single.entrySet()) {
         String key = entry.getKey();
         String value = entry.getValue();

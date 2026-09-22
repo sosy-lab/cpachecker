@@ -565,14 +565,14 @@ public class ConfigurationFileChecks {
         // Component configs are not expected to be used for CFA creation,
         // so if they have cfa options that do not match their subcomponents,
         // it does not matter.
-        System.setProperty(NestingAlgorithm.PROPERTY_CHECK_CFA_OPTION_MISMATCH, "false");
+        NestingAlgorithm.checkCfaOptionMisMatch = false;
       }
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);
     } finally {
-      System.clearProperty(NestingAlgorithm.PROPERTY_CHECK_CFA_OPTION_MISMATCH);
+      NestingAlgorithm.checkCfaOptionMisMatch = true;
     }
 
     assert_()
