@@ -8,7 +8,7 @@
 
 format_version: '2.0'
 
-input_files: 'transformation2.c'
+input_files: 'atexit-result1.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-call.prp
