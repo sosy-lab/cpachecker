@@ -46,7 +46,8 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
       if (s.isBlank()) {
         continue;
       }
-      List<String> parts = Splitter.on(":").limit(3).splitToList(s);
+      List<String> parts =
+          Splitter.on(SerializeFunctionPointerStateOperator.DELIMITER).limit(3).splitToList(s);
       assert parts.size() >= 2;
       switch (parts.getFirst()) {
         case "I" ->

@@ -173,8 +173,8 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
             "CFA option of a nested sub-configuration must also be present in the outer"
                 + " configuration!\n"
                 + String.format(
-                    "inner config: \"%s = %s\" ; outer config: \"%s = %s\" ",
-                    key, value, key, global.get(key)));
+                    "inner config %s has \"%s = %s\"\nouter config has \"%s = %s\" ",
+                    pSingleConfigFileName, key, value, key, global.get(key)));
       }
     }
   }

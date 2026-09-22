@@ -63,6 +63,11 @@ such tests must be disabled by default by calling
 As above, the test class should be named `*IntegrationTest`.
 One can run them by setting the system property `enableExtendedTests`,
 e.g., with `ant tests -DenableExtendedTests=true`.
+Note that integration tests added as JUnit based must not
+refer to programs in external repositories (like SV-Benchmarks)
+nor use a preprocessor,
+as both would cause problems in certain environments.
+Use BuildBot tests if you need these.
 
 Smoke tests that automatically run each CPAchecker configuration on a trivial program
 are executed with `ant configuration-checks` and in [GitLab CI][].

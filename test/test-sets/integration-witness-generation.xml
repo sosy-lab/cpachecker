@@ -18,6 +18,7 @@ SPDX-License-Identifier: Apache-2.0
   produced by this test-set definition using ../util/generate_witness_validation_testdef.py
   -->
 
+  <option name="--no-output-files"/>
   <option name="--heap">6000M</option>
 
   <resultfiles>**/witness*.*</resultfiles>

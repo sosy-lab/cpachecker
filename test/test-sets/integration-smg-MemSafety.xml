@@ -5,7 +5,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -48,6 +48,12 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="ExtAllocMemSafety">
     <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
+    <option name="--smgSymbolicExecution"/>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <tasks name="SimpleMemSafety">
+    <includesfile>../programs/simple/simple.set</includesfile>
     <option name="--smgSymbolicExecution"/>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
