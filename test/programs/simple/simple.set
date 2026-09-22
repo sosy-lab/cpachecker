@@ -8,8 +8,7 @@
 
 arrayAsPointer/array*.yml
 anonymousLocalAllocation/*.yml
-atexit/memsafety*.yml
-atexit/reach*.yml
+atexit/*.yml
 atomic/*.yml
 bitvectors/*.yml
 block_analysis/*.yml
