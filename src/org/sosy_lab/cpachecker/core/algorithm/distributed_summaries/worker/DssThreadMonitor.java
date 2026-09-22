@@ -46,7 +46,8 @@ public class DssThreadMonitor extends Thread {
 
   @Override
   @SuppressForbidden(
-      "TODO this should be improved, cf. https://gitlab.com/sosy-lab/software/cpachecker/-/commit/25db045321d415aa3b4bf6742bc082a49f04ac53#note_3882238434")
+      "TODO this should be improved, cf."
+          + " https://gitlab.com/sosy-lab/software/cpachecker/-/commit/25db045321d415aa3b4bf6742bc082a49f04ac53#note_3882238434")
   public void run() {
     while (true) {
       boolean allWaiting =
