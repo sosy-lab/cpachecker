@@ -25,11 +25,26 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
+  </tasks>
+  <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
@@ -118,11 +133,5 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--dvb--frontends--cxd2820r.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--video--zoran--zr36016.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
-  </tasks>
-
-  <tasks name="ReachSafety-Concurrency-Sequentialized">
-    <option name="--option">analysis.preprocessing.MPOR=true</option>
-    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
-    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
 </benchmark>
