@@ -19,7 +19,6 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -63,8 +62,6 @@ public class BlockState
   private ImmutableList<? extends AbstractState> violationConditions;
   private final SegmentedPaths witness;
 
-  private final Optional<SegmentedPaths> witnessCheckPathState;
-
   private final transient Set<AbstractState> hinderedByCallstack;
 
   public BlockState(
@@ -75,8 +72,7 @@ public class BlockState
       BlockStateType pType,
       ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
-      SegmentedPaths pWitness,
-      SegmentedPaths pWitnessCheckPathState) {
+      SegmentedPaths pWitness) {
     id = pId;
     predecessor = pPredecessor;
     node = pNode;
@@ -85,29 +81,7 @@ public class BlockState
     violationConditions = pViolationConditions;
     history = pHistory;
     witness = pWitness;
-    witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
     hinderedByCallstack = new LinkedHashSet<>();
-  }
-
-  public BlockState(
-      String pId,
-      BlockState pPredecessor,
-      CFANode pNode,
-      BlockNode pTargetNode,
-      BlockStateType pType,
-      ImmutableList<? extends AbstractState> pViolationConditions,
-      BlockGraphPath pHistory,
-      SegmentedPaths pWitness) {
-    this(
-        pId,
-        pPredecessor,
-        pNode,
-        pTargetNode,
-        pType,
-        pViolationConditions,
-        pHistory,
-        pWitness,
-        null);
   }
 
   public String getUniqueId() {
@@ -247,7 +221,6 @@ public class BlockState
   public boolean isCovered(BlockState that) {
     return this == that
         || (Objects.equals(node, that.node)
-            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
             && type == that.type
             && blockNode == that.getBlockNode());
   }
@@ -263,7 +236,6 @@ public class BlockState
     return this == other
         || (other instanceof BlockState that
             && Objects.equals(node, that.node)
-            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
             && type == that.type
             && blockNode == that.getBlockNode()
             && violationConditions == that.violationConditions);
@@ -271,7 +243,7 @@ public class BlockState
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, witnessCheckPathState, type, blockNode, violationConditions);
+    return Objects.hash(node, type, blockNode, violationConditions);
   }
 
   @Override

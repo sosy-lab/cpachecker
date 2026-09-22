@@ -335,8 +335,8 @@ public final class DssDebugUtils {
           + " violationConditions="
           + blockState.getViolationConditions().size()
           + (blockState.isTarget() ? " TARGET" : "")
-          + " callStackMistmatch="
-          + blockState.getHinderedByCallstack();
+          + " hinderedByCallstack="
+          + blockState.getHinderedByCallstack().size();
     }
     if (pComponent instanceof CallstackState callstackState) {
       return renderCallstack(callstackState) + " (depth " + callstackState.getDepth() + ")";

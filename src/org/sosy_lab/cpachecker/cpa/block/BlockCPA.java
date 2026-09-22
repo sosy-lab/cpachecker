@@ -59,7 +59,7 @@ public class BlockCPA extends AbstractCPA {
   public BlockCPA(Configuration pConfiguration) throws InvalidConfigurationException {
     super("sep", "sep", new BlockStateIdentityDomain(), null);
     idGenerator = new UniqueIdGenerator();
-    transferRelation = new BlockTransferRelation(pConfiguration, idGenerator);
+    transferRelation = new BlockTransferRelation(idGenerator);
   }
 
   public void init(BlockNode pBlockNode) {

@@ -14,10 +14,6 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -26,20 +22,13 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
-@Options(prefix = "cpa.block.transfer")
 public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
   private final UniqueIdGenerator idGenerator;
 
-  @Option(description = "whether to travel over the ghost edge", secure = true)
-  private boolean standardVcs = true;
-
-  public BlockTransferRelation(Configuration pConfiguration, UniqueIdGenerator pIdGenerator)
-      throws InvalidConfigurationException {
+  public BlockTransferRelation(UniqueIdGenerator pIdGenerator) {
     idGenerator = pIdGenerator;
-    pConfiguration.inject(this);
   }
 
   @Override
@@ -54,22 +43,13 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableSet.of();
     }
 
-    if (blockState.getType() == BlockStateType.FINAL) {
-      if (standardVcs) {
-        if (!cfaEdge
+    // the block end is left only over the ghost edge, which leads to the violation-condition
+    // location
+    if (blockState.getType() == BlockStateType.FINAL
+        && !cfaEdge
             .getSuccessor()
             .equals(blockState.getBlockNode().getViolationConditionLocation())) {
-          return ImmutableList.of();
-        }
-      } else {
-        for (AbstractState violationCondition : blockState.getViolationConditions()) {
-          BlockState violationBlockState =
-              AbstractStates.extractStateByType(violationCondition, BlockState.class);
-          assert violationBlockState != null;
-          throw new UnsupportedOperationException(
-              "Witness cannot yet be traversed: " + violationBlockState.getWitness());
-        }
-      }
+      return ImmutableList.of();
     }
 
     if (blockState.getType() == BlockStateType.ABSTRACTION) {
