@@ -248,7 +248,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final boolean supplyReached;
     final boolean refineAnalysis;
 
-    final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
+    final Configuration singleConfig = createSingleConfig(singleConfigFileName);
     if (singleConfig == null) {
       return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
     }
@@ -474,8 +474,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Nullable
-  private Configuration createSingleConfig(Path singleConfigFileName, LogManager pLogger) {
+  private Configuration createSingleConfig(Path singleConfigFileName)
+      throws InvalidConfigurationException {
     try {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
@@ -487,15 +487,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       NestingAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
-    } catch (IOException | InvalidConfigurationException e) {
-      // TODO: log/return the config that triggers this!
-      pLogger.logUserException(
-          Level.WARNING,
-          e,
-          "Skipping one analysis in building a parallel analysis because the configuration file "
-              + singleConfigFileName
-              + " could not be read");
-      return null;
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Configuration file could not be read", e);
     }
   }
 
