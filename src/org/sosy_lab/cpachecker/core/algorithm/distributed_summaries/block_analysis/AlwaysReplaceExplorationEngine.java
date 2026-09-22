@@ -85,9 +85,6 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
                 !violationConditions.isEmptyFor(sender),
                 "No violation condition found for sender ID: %s",
                 sender));
-    if (violationConditions.isEmpty()) {
-      return AnalysisResult.empty();
-    }
     BlockToProgramLocationMap preconditions = preconditionHandler.getPreconditions();
     if (pViolationConditionSender.isEmpty() && preconditions.isUnreachable()) {
       // every predecessor reported an unreachable block end, so this block cannot be entered
@@ -124,6 +121,16 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       Collection<AbstractState> preconditionStates =
           preconditions.getStatesPerLocation(preconditionProgramPoint);
 
+      if (allConditionProgramPoints.isEmpty()) {
+        // No successor has sent a violation condition yet. The postcondition of this block still
+        // has to be computed and published: a successor of a successor may be waiting for a
+        // precondition that only this block can produce, and on a cycle through the block graph
+        // nobody would ever start otherwise.
+        rounds.put(
+            ImmutableList.of(preconditionProgramPoint),
+            exploreFrom(preconditionStates, ImmutableList.of(), precisionOfAnalysis, false));
+        continue;
+      }
       // A round under all exit contexts at once is the postcondition this precondition really has,
       // which is why the per-context rounds below are replaced by exactly such a round whenever
       // more than one context turns out to be safe. Trying it first pays off because a violation
@@ -246,6 +253,13 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     Set<ArgPathAndCondition> finalViolations = violations.build();
 
     if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
+      if (pDiscardSummaries) {
+        // A speculative round throws its summaries away by construction, so finding nothing says
+        // that it found no violation -- not that the block end is out of reach. Reporting it as
+        // unreachable would be a claim about a block this round did not even enter from its real
+        // preconditions, and successors would take it as proof that they can never be entered.
+        return AnalysisResult.empty();
+      }
       // the exploration produced no state at the final location
       return AnalysisResult.unreachableBlockEnd();
     }
