@@ -464,8 +464,10 @@ def componentsSanityCheck(nodes):
             unused_level = 2 if "unmaintained/" in name else 3
             if "components/" in name:
                 log(f"Component file {name} is unused!", level=unused_level)
-            if "includes/" in name:
+            elif "includes/" in name:
                 log(f"Include file {name} is unused!", level=unused_level)
+            elif "cex-checks/" in name:
+                log(f"Counterexample-check file {name} is unused!", level=unused_level)
         elif "unmaintained/" not in name and all(
             "unmaintained/" in parent for parent in node.parents
         ):
@@ -474,8 +476,13 @@ def componentsSanityCheck(nodes):
                     f"Component file {name} is used only by unmaintained files!",
                     level=3,
                 )
-            if "includes/" in name:
+            elif "includes/" in name:
                 log(f"Include file {name} is used only by unmaintained files!", level=3)
+            elif "cex-checks/" in name:
+                log(
+                    f"Counterexample-check file {name} is used only by unmaintained files!",
+                    level=3,
+                )
 
         if "unmaintained/" in name:
             maintained_parents = [p for p in node.parents if "unmaintained/" not in p]
