@@ -14,8 +14,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * Helper class that contains some complex operations that may be useful during the creation of a
@@ -105,6 +108,11 @@ public class CFACreationUtils {
    * Remove nodes from the CFA beginning at a certain node n until there is a node that is reachable
    * via some other path (not going through n). Useful for eliminating dead node, if node n is not
    * reachable.
+   *
+   * <p>The removal does not descend into called functions. A function entry node is shared by all
+   * call sites of that function, so the fact that it becomes unreachable from n does not mean that
+   * it is unreachable at all (cf. #1588). The part of the current function behind such a call is
+   * removed via the summary edge instead.
    */
   public static void removeChainOfNodesFromCFA(CFANode n) {
     if (n.getNumEnteringEdges() > 0) {
@@ -121,7 +129,30 @@ public class CFACreationUtils {
       CFANode succ = e.getSuccessor();
 
       removeEdgeFromNodes(e);
-      removeChainOfNodesFromCFA(succ);
+
+      if (!(e instanceof FunctionCallEdge)) {
+        removeChainOfNodesFromCFA(succ);
+      }
+    }
+
+    // If n calls a function, the node behind that call is the successor of the summary edge,
+    // and it is unreachable now just like the successors of the regular edges above.
+    // The call is removed as a whole, i.e., together with the return edge of the callee.
+    FunctionSummaryEdge summaryEdge = n.getLeavingSummaryEdge();
+    if (summaryEdge != null) {
+      CFANode returnSite = summaryEdge.getSuccessor();
+      n.removeLeavingSummaryEdge(summaryEdge);
+      returnSite.removeEnteringSummaryEdge(summaryEdge);
+
+      for (int i = returnSite.getNumEnteringEdges() - 1; i >= 0; i--) {
+        CFAEdge e = returnSite.getEnteringEdge(i);
+        if (e instanceof FunctionReturnEdge returnEdge
+            && returnEdge.getSummaryEdge().equals(summaryEdge)) {
+          removeEdgeFromNodes(e);
+        }
+      }
+
+      removeChainOfNodesFromCFA(returnSite);
     }
   }
 
