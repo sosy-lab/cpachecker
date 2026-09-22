@@ -763,7 +763,13 @@ public class ARGUtils {
           sb.append(";\n");
         }
       }
-      sb.append("    TRUE -> STOP;\n\n");
+      if (forCounterexample && s.isTarget()) {
+        // Create a self-loop for the target state to continue until the specification automaton is
+        // violated
+        sb.append("    TRUE -> " + VIOLATION_ASSERTION + "GOTO ARG" + s.getStateId() + ";\n\n");
+      } else {
+        sb.append("    TRUE -> STOP;\n\n");
+      }
     }
     sb.append("END AUTOMATON\n");
   }
