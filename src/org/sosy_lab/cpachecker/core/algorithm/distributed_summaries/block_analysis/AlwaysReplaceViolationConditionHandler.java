@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimaps;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
@@ -30,9 +32,6 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
   private final BlockToProgramLocationMap conditions;
 
   private final DssBlockAnalysis analysis;
-
-  /** Conditions that still need to be explored, with equivalent ones kept only once. */
-  private ImmutableList<StateAndPrecision> conditionsToExplore = ImmutableList.of();
 
   AlwaysReplaceViolationConditionHandler(DssBlockAnalysis pAnalysis) {
     conditions =
@@ -61,16 +60,11 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       if (analysis.statesEqual(received, storedForSender)) {
         return DssMessageProcessing.stop();
       }
-      conditions.clearKey(sender);
-      conditions.overwriteStatesForKey(sender, received);
-      ImmutableList<StateAndPrecision> updatedConditionsToExplore =
-          analysis.deduplicateStatesAndPrecisions(conditions.getStatesAndPrecisions());
-      boolean globalConditionSetUnchanged =
-          analysis.statesEqual(updatedConditionsToExplore, conditionsToExplore);
-      conditionsToExplore = updatedConditionsToExplore;
-      return globalConditionSetUnchanged
-          ? DssMessageProcessing.stop()
-          : DssMessageProcessing.proceed();
+
+      ImmutableListMultimap<Object, @NonNull StateAndPrecision> programPointToState =
+          Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointId(sap.state()));
+      conditions.overwriteStatesForKey(sender, programPointToState);
+      return DssMessageProcessing.proceed();
     } finally {
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());
@@ -89,10 +83,8 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
 
   @Override
   public ImmutableList<AbstractState> statesOf(Optional<String> pSenderId) {
-    return pSenderId
-        .map(sender -> ImmutableList.copyOf(conditions.getStatesForKey(sender)))
-        .orElseGet(
-            () -> transformedImmutableListCopy(conditionsToExplore, StateAndPrecision::state));
+    checkState(pSenderId.isEmpty());
+    return ImmutableList.copyOf(conditions.getStates());
   }
 
   public BlockToProgramLocationMap getConditions() {
