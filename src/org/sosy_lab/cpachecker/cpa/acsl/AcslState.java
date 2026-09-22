@@ -12,14 +12,12 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslPredicateToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @SuppressWarnings("unused")
 public class AcslState implements AcslReportingState {
 
-  private AcslPredicateToFormulaVisitor acslPredVisitor;
   private final LogManager logger;
   private final ImmutableSet<AcslPredicate> acslInvariants;
   private final Solver solver;
@@ -39,10 +37,6 @@ public class AcslState implements AcslReportingState {
     this.acslInvariants = pAcslInvariants;
   }
 
-  protected void setVisitor(AcslPredicateToFormulaVisitor pVisitor) {
-    // TODO this should probably work differently, but I need to understand where i get the ssa from
-    this.acslPredVisitor = pVisitor;
-  }
 
   @Override
   public int hashCode() {
