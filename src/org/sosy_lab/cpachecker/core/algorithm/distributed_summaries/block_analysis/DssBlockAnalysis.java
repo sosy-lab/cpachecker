@@ -304,7 +304,13 @@ public final class DssBlockAnalysis {
       throws CPAException, InterruptedException, SolverException {
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
     if (!pRound.violationConditions().isEmpty()) {
-      messages.addAll(reportViolationConditions(pRound.violationConditions()));
+      try {
+        workerStats.getViolationConditionTimer().start();
+        workerStats.getViolationConditionCounter().add(pRound.violationConditions().size());
+        messages.addAll(reportViolationConditions(pRound.violationConditions()));
+      } finally {
+        workerStats.getViolationConditionTimer().stop();
+      }
     }
     if (pRound.blockEndUnreachable()) {
       messages.addAll(reportUnreachableBlockEnd());
@@ -410,13 +416,19 @@ public final class DssBlockAnalysis {
       throws CPAException, InterruptedException {
     // TODO rather inefficient
     int covered = 0;
-    for (StateAndPrecision state : pStates) {
-      for (StateAndPrecision candidate : pCandidates) {
-        if (dcpa.getCoverageOperator().areStatesEqual(state.state(), candidate.state())) {
-          covered++;
-          break;
+    try {
+      workerStats.getCoverageTimer().start();
+      for (StateAndPrecision state : pStates) {
+        for (StateAndPrecision candidate : pCandidates) {
+          workerStats.getCoverageCounter().inc();
+          if (dcpa.getCoverageOperator().areStatesEqual(state.state(), candidate.state())) {
+            covered++;
+            break;
+          }
         }
       }
+    } finally {
+      workerStats.getCoverageTimer().stop();
     }
     return covered;
   }
@@ -458,22 +470,28 @@ public final class DssBlockAnalysis {
     CoverageOperator coverage = dcpa.getCoverageOperator();
     ListMultimap<Object, AbstractState> representativesPerProgramPoint = ArrayListMultimap.create();
     ImmutableList.Builder<T> deduplicated = ImmutableList.builder();
-    for (T element : pElements) {
-      AbstractState state = pStateOf.apply(element);
-      List<AbstractState> representatives =
-          representativesPerProgramPoint.get(dcpa.computeProgramPointId(state));
-      boolean isDuplicate = false;
-      for (AbstractState representative : representatives) {
-        if (state == representative || coverage.areStatesEqual(state, representative)) {
-          isDuplicate = true;
-          break;
+    try {
+      workerStats.getCoverageTimer().start();
+      for (T element : pElements) {
+        AbstractState state = pStateOf.apply(element);
+        List<AbstractState> representatives =
+            representativesPerProgramPoint.get(dcpa.computeProgramPointId(state));
+        boolean isDuplicate = false;
+        for (AbstractState representative : representatives) {
+          workerStats.getCoverageCounter().inc();
+          if (state == representative || coverage.areStatesEqual(state, representative)) {
+            isDuplicate = true;
+            break;
+          }
+        }
+        if (!isDuplicate) {
+          // ArrayListMultimap#get returns a view that writes through to the multimap.
+          representatives.add(state);
+          deduplicated.add(element);
         }
       }
-      if (!isDuplicate) {
-        // ArrayListMultimap#get returns a view that writes through to the multimap.
-        representatives.add(state);
-        deduplicated.add(element);
-      }
+    } finally {
+      workerStats.getCoverageTimer().stop();
     }
     return deduplicated.build();
   }

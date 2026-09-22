@@ -14,15 +14,15 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -117,37 +117,58 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
-    Multimap<Object, Object> safeRuns = ArrayListMultimap.create();
+    ImmutableList<Object> allConditionProgramPoints =
+        ImmutableList.copyOf(conditionsPerLocation.keySet());
     Map<ImmutableList<Object>, AnalysisResult> rounds = new LinkedHashMap<>();
-    for (Object conditionProgramPoint : conditionsPerLocation.keySet()) {
-      ImmutableList<AbstractState> conditionsAtLocation =
-          conditionsPerLocation.get(conditionProgramPoint);
-      for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
+    for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
+      Collection<AbstractState> preconditionStates =
+          preconditions.getStatesPerLocation(preconditionProgramPoint);
+
+      // A round under all exit contexts at once is the postcondition this precondition really has,
+      // which is why the per-context rounds below are replaced by exactly such a round whenever
+      // more than one context turns out to be safe. Trying it first pays off because a violation
+      // under one context also shows up in the combined round: if that round finds none, every
+      // context is safe and the per-context rounds would have been discarded anyway. Only if it
+      // does find one do the contexts have to be told apart, because a violation under one of them
+      // must not suppress the postcondition established under another.
+      if (allConditionProgramPoints.size() > 1) {
+        AnalysisResult combined =
+            exploreFrom(
+                preconditionStates,
+                ImmutableList.copyOf(conditionsPerLocation.values()),
+                precisionOfAnalysis,
+                false);
+        if (combined.violationConditions().isEmpty()) {
+          rounds.put(elementAndList(preconditionProgramPoint, allConditionProgramPoints), combined);
+          continue;
+        }
+      }
+
+      List<Object> safeConditionProgramPoints = new ArrayList<>();
+      for (Object conditionProgramPoint : allConditionProgramPoints) {
         AnalysisResult round =
             exploreFrom(
-                preconditions.getStatesPerLocation(preconditionProgramPoint),
-                conditionsAtLocation,
+                preconditionStates,
+                conditionsPerLocation.get(conditionProgramPoint),
                 precisionOfAnalysis,
                 false);
         if (!round.summaries().isEmpty()) {
-          safeRuns.put(preconditionProgramPoint, conditionProgramPoint);
+          safeConditionProgramPoints.add(conditionProgramPoint);
         }
         rounds.put(ImmutableList.of(preconditionProgramPoint, conditionProgramPoint), round);
       }
-    }
-    for (Object preconditionProgramPoint : safeRuns.keySet()) {
-      Collection<Object> vcProgramPoints = safeRuns.get(preconditionProgramPoint);
-      if (vcProgramPoints.size() > 1) {
-        vcProgramPoints.forEach(v -> rounds.remove(ImmutableList.of(preconditionProgramPoint, v)));
+      if (safeConditionProgramPoints.size() > 1) {
+        safeConditionProgramPoints.forEach(
+            v -> rounds.remove(ImmutableList.of(preconditionProgramPoint, v)));
         AnalysisResult round =
             exploreFrom(
-                preconditions.getStatesPerLocation(preconditionProgramPoint),
-                FluentIterable.from(vcProgramPoints)
+                preconditionStates,
+                FluentIterable.from(safeConditionProgramPoints)
                     .transformAndConcat(conditionsPerLocation::get)
                     .toList(),
                 precisionOfAnalysis,
                 false);
-        rounds.put(elementAndList(preconditionProgramPoint, vcProgramPoints), round);
+        rounds.put(elementAndList(preconditionProgramPoint, safeConditionProgramPoints), round);
       }
     }
     if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {

@@ -1273,33 +1273,32 @@ public class ARGUtils {
   /** Returns all possible paths from the given state to the root of the ARG. */
   public static Set<ARGPath> getAllPaths(final ReachedSet pReachedSet, final ARGState pStart) {
     ARGState root = AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
-    List<ARGState> states = new ArrayList<>();
     ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();
-    List<List<ARGState>> paths = new ArrayList<>();
 
-    states.add(pStart);
-    paths.add(states);
+    // A partial path is held as a state plus a link to the rest, so that the states two partial
+    // paths have in common are stored once instead of being copied for every parent. Copying the
+    // whole prefix per parent costs a quadratic number of list entries in the length of a path,
+    // which is what an ARG with merged states runs into: there a state has several parents, so the
+    // number of partial paths is no longer bounded by the number of leaves.
+    record PartialPath(ARGState state, @Nullable PartialPath restTowardsStart) {}
+
+    Deque<PartialPath> waiting = new ArrayDeque<>();
+    waiting.push(new PartialPath(pStart, null));
 
     // This is assuming from each node there is a way to go to the start
     // Loop until all paths reached the root
-    while (!paths.isEmpty()) {
-      // Expand currently considered path
-      List<ARGState> curPath = paths.removeLast();
-      Preconditions.checkNotNull(curPath);
-      // If there is no more to expand - add this path and continue
-      if (curPath.getLast() == root) {
-        results.add(new ARGPath(curPath.reversed()));
+    while (!waiting.isEmpty()) {
+      PartialPath current = waiting.pop();
+      if (current.state() == root) {
+        ImmutableList.Builder<ARGState> path = ImmutableList.builder();
+        for (PartialPath part = current; part != null; part = part.restTowardsStart()) {
+          path.add(part.state());
+        }
+        results.add(new ARGPath(path.build()));
         continue;
       }
-
-      // Add all parents of currently first state on the current path
-      for (ARGState parentElement : curPath.getLast().getParents()) {
-        ImmutableList.Builder<ARGState> tmp =
-            ImmutableList.builderWithExpectedSize(curPath.size() + 1);
-        tmp.addAll(curPath);
-
-        tmp.add(parentElement);
-        paths.add(tmp.build());
+      for (ARGState parent : current.state().getParents()) {
+        waiting.push(new PartialPath(parent, current));
       }
     }
     return results.build();
