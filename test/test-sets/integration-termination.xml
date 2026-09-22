@@ -21,6 +21,15 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <!--
+    Runs only those tasks that declare termination.prp in their task definition,
+    cf. ../programs/simple/*/*.yml.
+  -->
+  <tasks name="simple">
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/termination.prp</propertyfile>
+  </tasks>
+
+  <!--
     The task sets of the termination category of SV-COMP, i.e., the ones of the rundefinition
     SV-COMP27_termination in svcomp.xml, which is kept in sync with
     https://gitlab.com/sosy-lab/sv-comp/bench-defs/-/blob/main/benchmark-defs/cpachecker.xml
