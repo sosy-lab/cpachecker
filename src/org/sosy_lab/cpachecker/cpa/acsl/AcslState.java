@@ -37,7 +37,6 @@ public class AcslState implements AcslReportingState {
     this.acslInvariants = pAcslInvariants;
   }
 
-
   @Override
   public int hashCode() {
     // TODO

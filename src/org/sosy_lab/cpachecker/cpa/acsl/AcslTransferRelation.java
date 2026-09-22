@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @SuppressWarnings("unused")
@@ -38,7 +39,6 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     // TODO
     if (cfaEdge.getSuccessor().isLoopStart()) {
       logger.log(Level.FINE, "[ACSL] Loop start: " + cfaEdge.getSuccessor());
-      // TODO these are the interesting nodes for me
     }
     logger.log(
         Level.FINEST,
@@ -53,6 +53,13 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
+
+    for (AbstractState otherState : otherStates) {
+      if (otherState instanceof ConstraintsState constraintsState) {
+        // TODO this is where I think we can communicate with symbolic execution
+      }
+    }
+
     // TODO
     return super.strengthen(state, otherStates, cfaEdge, precision);
   }
