@@ -14,6 +14,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -31,6 +32,21 @@ public final class DssCallstackCPA extends CallstackCPA {
     if (getCallstackOptions().traverseBackwards()) {
       throw new InvalidConfigurationException("DssCallstackCPA only supports forward analyses");
     }
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return new DssCallstackDomain();
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOther) {
+    return new DssCallstackDomain().isLessOrEqual(pState, pOther);
+  }
+
+  @Override
+  public boolean isCoveredByRecursiveState(AbstractState pState, AbstractState pOther) {
+    return isCoveredBy(pState, pOther);
   }
 
   @Override
