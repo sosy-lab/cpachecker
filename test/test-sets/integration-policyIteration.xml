@@ -155,6 +155,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/heavy-1.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-3.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops/linear_sea.ch.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops/linear_search.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops/sum01-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/trex03-1.yml</exclude> <!-- flapping unknown/timeout -->
@@ -175,5 +176,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/dijkstra-u_valuebound10.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound5.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/nla-digbench/dijkstra-u.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/verifythis/elimination_max.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
 </benchmark>

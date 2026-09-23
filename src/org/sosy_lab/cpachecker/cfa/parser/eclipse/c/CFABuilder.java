@@ -20,8 +20,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -93,8 +95,9 @@ class CFABuilder extends ASTVisitor {
   // Here we keep track of all occurrences of _Atomic that we found but did not handle yet.
   // The set is filled by this class and then passed to ASTConverter, which removes handled cases.
   // The reason for this is that we want to detect cases like "int * _Atomic a;" where we do not see
-  // the _Atomic in the AST nodes when converting them.
-  private final Set<FileLocation> unhandledAtomicOccurrences = new HashSet<>();
+  // the _Atomic in the AST nodes when converting them. Sorted (by file, offset) so lookups for a
+  // given source region can use subSet() instead of a linear scan.
+  private final NavigableSet<FileLocation> unhandledAtomicOccurrences = new TreeSet<>();
 
   // Data structures for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();

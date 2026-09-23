@@ -21,6 +21,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -89,6 +90,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
+  @SuppressForbidden("time limit is intended here, but should use ResoureLimitChecker")
   public Collection<MonitorState> getAbstractSuccessorsForEdge(
       AbstractState pElement, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
@@ -175,6 +177,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
+  @SuppressForbidden("time limit is intended here, but should use ResoureLimitChecker")
   public Collection<? extends AbstractState> strengthen(
       AbstractState pElement,
       final Iterable<AbstractState> otherElements,

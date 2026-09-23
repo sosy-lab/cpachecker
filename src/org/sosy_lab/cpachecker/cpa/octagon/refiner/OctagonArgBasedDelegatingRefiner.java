@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -48,9 +47,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -301,9 +298,9 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
-        WalltimeLimit l = WalltimeLimit.create(timeForOctagonFeasibilityCheck);
         ResourceLimitChecker limits =
-            new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
+            ResourceLimitChecker.createWallTimeLimitChecker(
+                shutdown, timeForOctagonFeasibilityCheck);
 
         limits.start();
         checker =
