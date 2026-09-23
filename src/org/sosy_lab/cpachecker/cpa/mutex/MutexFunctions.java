@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.mutex;
 
 import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static org.sosy_lab.cpachecker.util.CFAUtils.getFunctionCallName;
 
 import com.google.common.collect.ImmutableMap;
@@ -193,7 +192,7 @@ public final class MutexFunctions {
             if (handle.isEmpty()) {
               throw new UnsupportedOperationException("Cannot statically determine mutex handle.");
             }
-            return of(new MutexLock(handle.get(), lockType));
+            return Optional.of(new MutexLock(handle.get(), lockType));
           }
         }
       }

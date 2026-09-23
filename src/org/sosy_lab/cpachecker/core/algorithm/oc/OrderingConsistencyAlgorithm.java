@@ -505,12 +505,10 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
     try (Model model = pProver.getModel()) {
       Set<Integer> enabled = new LinkedHashSet<>();
-      Map<Integer, MemoryEvent> byId = new LinkedHashMap<>();
       Map<Integer, List<MemoryEvent>> byInstance = new LinkedHashMap<>();
       for (MemoryEvent event : pEncoder.getEvents()) {
         if (Boolean.TRUE.equals(model.evaluate(pEncoder.getFullGuard(event)))) {
           enabled.add(event.id());
-          byId.put(event.id(), event);
           byInstance.computeIfAbsent(event.instanceId(), k -> new ArrayList<>()).add(event);
         }
       }
@@ -638,6 +636,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
+  /** The thread instance a CREATE event starts, or {@link MemoryEvent#NO_INSTANCE} otherwise. */
+  private static int createdInstanceOf(MemoryEvent pEvent) {
+    return pEvent.kind() == EventKind.CREATE ? pEvent.otherInstanceId() : MemoryEvent.NO_INSTANCE;
+  }
+
   /**
    * Replicates the standard CPAchecker counterexample mechanism so the violation flows through the
    * existing infrastructure (counterexample export, report, ...). A regular analysis leaves a
@@ -649,11 +652,6 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * for a normal analysis. The explicit (non-null) edge list is the path's full path, which is what
    * the export prints.
    */
-  /** The thread instance a CREATE event starts, or {@link MemoryEvent#NO_INSTANCE} otherwise. */
-  private static int createdInstanceOf(MemoryEvent pEvent) {
-    return pEvent.kind() == EventKind.CREATE ? pEvent.otherInstanceId() : MemoryEvent.NO_INSTANCE;
-  }
-
   private void attachCounterexample(
       ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
       throws SolverException {

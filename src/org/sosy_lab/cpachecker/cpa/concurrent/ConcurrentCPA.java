@@ -253,8 +253,9 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
       threadSpecificPrecision =
           threadSpecificCPA.getInitialPrecision(
               CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
-    } catch (InterruptedException pE) {
-      throw new IllegalArgumentException("Could not get initial precision for thread-specific CPA");
+    } catch (InterruptedException e) {
+      throw new IllegalArgumentException(
+          "Could not get initial precision for thread-specific CPA", e);
     }
     return (state, reached, precision) -> {
       if (state instanceof ConcurrentState concurrentState
@@ -262,8 +263,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
         ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
         for (AbstractState reachedState : reached) {
           if (reachedState instanceof ConcurrentState reachedConcurrentState
-              && Objects.equals(
-                  concurrentState.threads().size(), reachedConcurrentState.threads().size())
+              && concurrentState.threads().size() == reachedConcurrentState.threads().size()
               && Objects.equals(concurrentState.livePids(), reachedConcurrentState.livePids())) {
             boolean allThreadsStop = true;
             for (var entry : concurrentState.threads.entrySet()) {
