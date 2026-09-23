@@ -348,8 +348,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
     // global variables are added to scope +  declaration commands are added to commandsCollector
     transformationStatistics.initializationTime.start();
+    CToSvLibInitializer initializer;
     try {
-      CToSvLibInitializer initializer =
+      initializer =
           new CToSvLibInitializer(
               logger, cfa, functions, scope, formulaManager, pathFormulaManager, converter);
       initializer.initialize(commandsCollector);
@@ -367,6 +368,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         new CToSvLibTransformation(
             cfa,
             functions,
+            initializer.getNondeterministicFunctions(),
             formulaManager,
             pathFormulaManager,
             formulaToSvLibVisitor,

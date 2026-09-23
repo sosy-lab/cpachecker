@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
@@ -98,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.core.algorithm.to_svlib.CToSvLibInitializer.NondeterministicFunction;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -122,6 +124,9 @@ class CToSvLibTransformation {
 
   /** The functions of the program that are transformed. */
   private final ImmutableList<FunctionEntryNode> functions;
+
+  /** The external functions whose calls only yield nondeterministic values, by their name. */
+  private final ImmutableMap<String, NondeterministicFunction> nondeterministicFunctions;
 
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
@@ -175,6 +180,7 @@ class CToSvLibTransformation {
   CToSvLibTransformation(
       CFA pCFA,
       ImmutableList<FunctionEntryNode> pFunctions,
+      ImmutableMap<String, NondeterministicFunction> pNondeterministicFunctions,
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
@@ -183,6 +189,7 @@ class CToSvLibTransformation {
       boolean pUseLargeBlockEncoding) {
     cfa = pCFA;
     functions = pFunctions;
+    nondeterministicFunctions = pNondeterministicFunctions;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
@@ -1153,6 +1160,17 @@ class CToSvLibTransformation {
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
     storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
+    if (pStatementEdge.getStatement() instanceof CFunctionCallStatement call
+        && CToSvLibTransformationConstants.NAMES_OF_TERMINATING_FUNCTIONS.contains(
+            call.getFunctionCallExpression().getFunctionNameExpression().toASTString())) {
+      // The execution ends here, as in the analysis of the C program. A call of a procedure would
+      // cost an abstraction at its entry every time the analysis reaches it.
+      return new SvLibAssumeStatement(
+          FileLocation.DUMMY,
+          new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+          ImmutableList.of(),
+          ImmutableList.of());
+    }
     // Everything that is not a variable of the program, such as an element of an array, a member
     // of a structure or the target of a pointer, is memory that the arrays of the heap model.
     if (pStatementEdge.getStatement()
@@ -1292,15 +1310,7 @@ class CToSvLibTransformation {
     SvLibType returnType = calledProcedure.getReturnValues().getFirst().getType();
 
     if (assignedVariable.getType().equals(returnType)) {
-      return withAssumedConstraints(
-          new SvLibProcedureCallStatement(
-              FileLocation.DUMMY,
-              ImmutableList.of(),
-              ImmutableList.of(),
-              calledProcedure,
-              inputParameters.terms(),
-              ImmutableList.of(assignedVariable)),
-          inputParameters.constraints());
+      return createCall(calledProcedure, inputParameters, ImmutableList.of(assignedVariable));
     }
 
     // The assigned variable has a different type than the return value of the procedure, which
@@ -1308,14 +1318,8 @@ class CToSvLibTransformation {
     // value is therefore stored in a dummy variable of the type of the procedure and converted to
     // the type of the assigned variable afterwards, like the implicit conversion in C does.
     SvLibSimpleParsingDeclaration returnDummyVariable = getReturnDummyVariable(returnType);
-    SvLibProcedureCallStatement callStatement =
-        new SvLibProcedureCallStatement(
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of(),
-            calledProcedure,
-            inputParameters.terms(),
-            ImmutableList.of(returnDummyVariable));
+    SvLibStatement callStatement =
+        createCall(calledProcedure, inputParameters, ImmutableList.of(returnDummyVariable));
     SvLibAssignmentStatement conversionStatement =
         new SvLibAssignmentStatement(
             ImmutableMap.of(
@@ -1327,13 +1331,11 @@ class CToSvLibTransformation {
             FileLocation.DUMMY,
             ImmutableList.of(),
             ImmutableList.of());
-    return withAssumedConstraints(
-        new SvLibSequenceStatement(
-            ImmutableList.of(callStatement, conversionStatement),
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of()),
-        inputParameters.constraints());
+    return new SvLibSequenceStatement(
+        ImmutableList.of(callStatement, conversionStatement),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   /**
@@ -1416,15 +1418,7 @@ class CToSvLibTransformation {
             pCallEdge,
             pCalledProcedure,
             pEdgeToPointerTargetSet);
-    return withAssumedConstraints(
-        new SvLibProcedureCallStatement(
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of(),
-            pCalledProcedure,
-            inputParameters.terms(),
-            returnVariableDummies.build()),
-        inputParameters.constraints());
+    return createCall(pCalledProcedure, inputParameters, returnVariableDummies.build());
   }
 
   private SvLibSequenceStatement handleReturnValueAssignmentToHeap(
@@ -1449,15 +1443,7 @@ class CToSvLibTransformation {
             calledProcedure,
             pEdgeToPointerTargetSet);
     SvLibStatement callStatement =
-        withAssumedConstraints(
-            new SvLibProcedureCallStatement(
-                FileLocation.DUMMY,
-                ImmutableList.of(),
-                ImmutableList.of(),
-                calledProcedure,
-                inputParameters.terms(),
-                ImmutableList.of(variable)),
-            inputParameters.constraints());
+        createCall(calledProcedure, inputParameters, ImmutableList.of(variable));
 
     // The value that the procedure returns is stored in the memory by an assignment of the variable
     // that holds it, which is transformed like every other assignment to the memory.
@@ -1603,6 +1589,65 @@ class CToSvLibTransformation {
    */
   private record InputParameters(
       ImmutableList<SvLibTerm> terms, ImmutableList<SvLibTerm> constraints) {}
+
+  /**
+   * The call of the given procedure, or the havoc of the given results if the procedure is the one
+   * of an external function whose call only yields a nondeterministic value.
+   */
+  private SvLibStatement createCall(
+      SvLibProcedureDeclaration pProcedure,
+      InputParameters pArguments,
+      ImmutableList<SvLibSimpleParsingDeclaration> pResults) {
+    NondeterministicFunction function =
+        nondeterministicFunctions.get(pProcedure.getProcedureName());
+    if (function == null) {
+      return withAssumedConstraints(
+          new SvLibProcedureCallStatement(
+              FileLocation.DUMMY,
+              ImmutableList.of(),
+              ImmutableList.of(),
+              pProcedure,
+              pArguments.terms(),
+              pResults),
+          pArguments.constraints());
+    }
+    if (pResults.isEmpty()) {
+      return SvLibSequenceStatement.emptySequence();
+    }
+    ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
+    statements.add(
+        new SvLibHavocStatement(
+            FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of(), pResults));
+    if (function.bounds().isPresent()
+        && !(function.bounds().orElseThrow() instanceof SvLibBooleanConstantTerm constant
+            && constant.getValue())) {
+      // The bounds constrain the value of the procedure, which the results take instead.
+      Map<String, SvLibSimpleParsingDeclaration> results = new LinkedHashMap<>();
+      for (int i = 0; i < pResults.size(); i++) {
+        results.put(unquote(function.returnValues().get(i).getName()), pResults.get(i));
+      }
+      SvLibRelationalTerm bounds =
+          function
+              .bounds()
+              .orElseThrow()
+              .accept(
+                  new SvLibIdTermReplacer() {
+                    @Override
+                    public SvLibRelationalTerm replace(SvLibIdTerm pIdTerm) {
+                      SvLibSimpleParsingDeclaration result =
+                          results.get(unquote(pIdTerm.getDeclaration().getName()));
+                      return result == null
+                          ? pIdTerm
+                          : new SvLibIdTerm(result.toSimpleDeclaration(), FileLocation.DUMMY);
+                    }
+                  });
+      statements.add(
+          new SvLibAssumeStatement(
+              FileLocation.DUMMY, (SvLibTerm) bounds, ImmutableList.of(), ImmutableList.of()));
+    }
+    return new SvLibSequenceStatement(
+        statements.build(), FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+  }
 
   /**
    * Prepend the assumption of the constraints of the arguments of a procedure call to the given

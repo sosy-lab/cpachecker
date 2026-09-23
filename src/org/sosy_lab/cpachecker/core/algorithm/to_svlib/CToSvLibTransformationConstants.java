@@ -159,6 +159,17 @@ final class CToSvLibTransformationConstants {
           "alloca",
           "__builtin_alloca");
 
+  /**
+   * Functions whose procedures a property of the specification can annotate, see {@link
+   * CToSvLibPropertyEncoder}, so that a call of them has to stay a call of their procedure.
+   */
+  static final ImmutableSet<String> NAMES_OF_FUNCTIONS_THAT_PROPERTIES_REFER_TO =
+      ImmutableSet.of("reach_error", "__VERIFIER_error", "__assert_fail", "__assert_func");
+
+  /** Functions that end the execution of the program, which the parser of C knows as such. */
+  static final ImmutableSet<String> NAMES_OF_TERMINATING_FUNCTIONS =
+      ImmutableSet.of("abort", "exit");
+
   static final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS =
       ImmutableSet.of("__assert_fail", "__assert_perror_fail", "__assert");
   static final ImmutableSet<String> NAMES_OF_UNSUPPORTED_STDLIB_EXTERNAL_FUNCTIONS =

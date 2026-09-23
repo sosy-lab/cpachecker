@@ -9,9 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -228,11 +231,11 @@ class CToSvLibInitializer {
             boolean isExtern = !cfa.getAllFunctionNames().contains(functionDeclaration.getName());
             if (isExtern
                 && !isEncodedInFormula(functionDeclaration.getName())
+                && !CToSvLibTransformationConstants.NAMES_OF_TERMINATING_FUNCTIONS.contains(
+                    functionDeclaration.getName())
                 && !scope.hasProcedureDeclaration(functionDeclaration.getName())) {
-              SvLibProcedureDefinitionCommand externProcedureDefinition =
-                  createExternProcedureDefinition(functionDeclaration);
-              scope.addProcedureDeclaration(externProcedureDefinition.getProcedureDeclaration());
-              pCommandsCollector.add(externProcedureDefinition);
+              addExternProcedure(
+                  createExternProcedureDefinition(functionDeclaration), pCommandsCollector);
             }
           }
 
@@ -782,14 +785,71 @@ class CToSvLibInitializer {
       String functionName =
           CToSvLibTransformationConstants.asSymbol(
               functionCallExpression.getFunctionNameExpression().toASTString());
-      if (scope.hasProcedureDeclaration(functionName)) {
+      if (scope.hasProcedureDeclaration(functionName)
+          || CToSvLibTransformationConstants.NAMES_OF_TERMINATING_FUNCTIONS.contains(
+              functionCallExpression.getFunctionNameExpression().toASTString())) {
         continue;
       }
       CType expressionType = functionCallExpression.getExpressionType();
-      SvLibProcedureDefinitionCommand procedureDefinition =
-          createProcedureDefinitionForUndeclaredFunction(functionName, expressionType);
-      pCommandsCollector.add(procedureDefinition);
-      scope.addProcedureDeclaration(procedureDefinition.getProcedureDeclaration());
+      addExternProcedure(
+          createProcedureDefinitionForUndeclaredFunction(functionName, expressionType),
+          pCommandsCollector);
+    }
+  }
+
+  /**
+   * An external function whose call only yields a nondeterministic value of its type, or nothing,
+   * like the analysis of the C program treats a function without a body.
+   *
+   * @param returnValues the variables that the procedure for the function would return
+   * @param bounds the condition that the returned values fulfill, if there is one
+   */
+  record NondeterministicFunction(
+      ImmutableList<SvLibParsingParameterDeclaration> returnValues, Optional<SvLibTerm> bounds) {}
+
+  /** The external functions whose calls are transformed without a procedure, by their name. */
+  private final Map<String, NondeterministicFunction> nondeterministicFunctions =
+      new LinkedHashMap<>();
+
+  ImmutableMap<String, NondeterministicFunction> getNondeterministicFunctions() {
+    return ImmutableMap.copyOf(nondeterministicFunctions);
+  }
+
+  /**
+   * Declare the given procedure of an external function and define it, unless the function only
+   * yields a nondeterministic value.
+   *
+   * <p>A call of such a function is transformed into a havoc of the assigned variables instead of a
+   * call of a procedure, because the analysis of the generated program abstracts at the entry of
+   * every procedure and the analysis of the C program has no entry for a function without a body. A
+   * function that a property refers to keeps its procedure, which that property annotates.
+   */
+  private void addExternProcedure(
+      SvLibProcedureDefinitionCommand pDefinition,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    SvLibProcedureDeclaration declaration = pDefinition.getProcedureDeclaration();
+    scope.addProcedureDeclaration(declaration);
+    Optional<SvLibTerm> bounds = Optional.empty();
+    boolean onlyYieldsValues =
+        !CToSvLibTransformationConstants.NAMES_OF_FUNCTIONS_THAT_PROPERTIES_REFER_TO.contains(
+            declaration.getName());
+    if (onlyYieldsValues && pDefinition.getBody() instanceof SvLibSequenceStatement body) {
+      for (SvLibStatement statement : body.getStatements()) {
+        if (statement instanceof SvLibAssumeStatement assumption && bounds.isEmpty()) {
+          bounds = Optional.of(assumption.getTerm());
+        } else if (!(statement instanceof SvLibHavocStatement)) {
+          onlyYieldsValues = false;
+        }
+      }
+    } else {
+      onlyYieldsValues = false;
+    }
+    if (onlyYieldsValues) {
+      nondeterministicFunctions.put(
+          declaration.getProcedureName(),
+          new NondeterministicFunction(declaration.getReturnValues(), bounds));
+    } else {
+      pCommandsCollector.add(pDefinition);
     }
   }
 
