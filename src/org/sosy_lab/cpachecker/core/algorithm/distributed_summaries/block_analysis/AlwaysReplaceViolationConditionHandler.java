@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
@@ -29,6 +31,9 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
   private final BlockToProgramLocationMap conditions;
 
   private final DssBlockAnalysis analysis;
+
+  /** The conditions the block explores, with equivalent ones kept only once. */
+  private ImmutableList<StateAndPrecision> conditionsToExplore = ImmutableList.of();
 
   AlwaysReplaceViolationConditionHandler(DssBlockAnalysis pAnalysis) {
     conditions =
@@ -61,7 +66,18 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       ImmutableListMultimap<Object, @NonNull StateAndPrecision> programPointToState =
           Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointId(sap.state()));
       conditions.overwriteStatesForKey(sender, programPointToState);
-      return DssMessageProcessing.proceed();
+
+      // What the block has to explore is the set of conditions over all senders, so an update is
+      // only worth re-exploring if it changes that set. A condition another successor has already
+      // reported adds nothing: exploring the block again would repeat work that is already done.
+      ImmutableList<StateAndPrecision> updatedConditionsToExplore =
+          analysis.deduplicateStatesAndPrecisions(conditions.getStatesAndPrecisions());
+      boolean conditionSetUnchanged =
+          analysis.statesEqual(updatedConditionsToExplore, conditionsToExplore);
+      conditionsToExplore = updatedConditionsToExplore;
+      return conditionSetUnchanged
+          ? DssMessageProcessing.stop()
+          : DssMessageProcessing.proceed();
     } finally {
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());
@@ -70,7 +86,9 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
 
   @Override
   public ImmutableList<AbstractState> states() {
-    return ImmutableList.copyOf(conditions.getStates());
+    // The conditions to explore, not the raw entries: two successors can report the same condition,
+    // and the block gains nothing from exploring it once per successor.
+    return transformedImmutableListCopy(conditionsToExplore, StateAndPrecision::state);
   }
 
   BlockToProgramLocationMap getConditions() {
