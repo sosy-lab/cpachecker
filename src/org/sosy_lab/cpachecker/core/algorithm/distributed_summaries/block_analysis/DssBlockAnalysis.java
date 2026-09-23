@@ -456,6 +456,12 @@ public final class DssBlockAnalysis {
   private <T> ImmutableList<T> deduplicate(
       Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf)
       throws CPAException, InterruptedException {
+    return deduplicate(pElements, pStateOf, false);
+  }
+
+  private <T> ImmutableList<T> deduplicate(
+      Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf, boolean pSyntactically)
+      throws CPAException, InterruptedException {
     CoverageOperator coverage = dcpa.getCoverageOperator();
     ListMultimap<Object, AbstractState> representativesPerProgramPoint = ArrayListMultimap.create();
     ImmutableList.Builder<T> deduplicated = ImmutableList.builder();
@@ -468,7 +474,10 @@ public final class DssBlockAnalysis {
         boolean isDuplicate = false;
         for (AbstractState representative : representatives) {
           workerStats.getCoverageCounter().inc();
-          if (state == representative || coverage.areStatesEqual(state, representative)) {
+          if (state == representative
+              || (pSyntactically
+                  ? coverage.areStatesSyntacticallyEqual(state, representative)
+                  : coverage.areStatesEqual(state, representative))) {
             isDuplicate = true;
             break;
           }
@@ -510,6 +519,33 @@ public final class DssBlockAnalysis {
       Collection<@NonNull StateAndPrecision> pStates1,
       Collection<@NonNull StateAndPrecision> pStates2)
       throws CPAException, InterruptedException {
+    return statesEqual(pStates1, pStates2, false);
+  }
+
+  /**
+   * Whether the two sets of violation conditions are the same. A violation condition is built from
+   * the edges of a path, so the same path yields the same formula and the sets can be compared by
+   * their representation, which spares a solver query per pair.
+   */
+  boolean violationConditionsEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2)
+      throws CPAException, InterruptedException {
+    return statesEqual(pStates1, pStates2, true);
+  }
+
+  /** Like {@link #deduplicateStatesAndPrecisions} for violation conditions. */
+  ImmutableList<StateAndPrecision> deduplicateViolationConditions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    return deduplicate(pStatesAndPrecisions, StateAndPrecision::state, true);
+  }
+
+  private boolean statesEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2,
+      boolean pSyntactically)
+      throws CPAException, InterruptedException {
     CoverageOperator coverage = dcpa.getCoverageOperator();
     ImmutableList<StateAndPrecision> states2 = ImmutableList.copyOf(pStates2);
     boolean[] matchedInStates2 = new boolean[states2.size()];
@@ -521,7 +557,9 @@ public final class DssBlockAnalysis {
           // candidate. The comparison itself can cost a solver query, so skip it.
           continue;
         }
-        if (coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
+        if (pSyntactically
+            ? coverage.areStatesSyntacticallyEqual(state1.state(), states2.get(i).state())
+            : coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
           matched = true;
           matchedInStates2[i] = true;
         }

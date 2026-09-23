@@ -59,7 +59,7 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       // other senders: if two successors report the same condition, an update from one of them
       // must not erase the condition that still belongs to the other. Both directions matter,
       // because removing a condition is an update as well, so this asks for set equality.
-      if (analysis.statesEqual(received, storedForSender)) {
+      if (analysis.violationConditionsEqual(received, storedForSender)) {
         return DssMessageProcessing.stop();
       }
 
@@ -71,9 +71,9 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       // only worth re-exploring if it changes that set. A condition another successor has already
       // reported adds nothing: exploring the block again would repeat work that is already done.
       ImmutableList<StateAndPrecision> updatedConditionsToExplore =
-          analysis.deduplicateStatesAndPrecisions(conditions.getStatesAndPrecisions());
+          analysis.deduplicateViolationConditions(conditions.getStatesAndPrecisions());
       boolean conditionSetUnchanged =
-          analysis.statesEqual(updatedConditionsToExplore, conditionsToExplore);
+          analysis.violationConditionsEqual(updatedConditionsToExplore, conditionsToExplore);
       conditionsToExplore = updatedConditionsToExplore;
       return conditionSetUnchanged
           ? DssMessageProcessing.stop()

@@ -79,14 +79,14 @@ public class AlwaysReplaceViolationConditionHandlerTest {
     when(analysis.deserialize(messageAX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
     when(analysis.deserialize(messageBX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
     when(analysis.deserialize(messageAY)).thenReturn(ImmutableList.of(conditionYAndPrecision));
-    when(analysis.statesEqual(any(), any()))
+    when(analysis.violationConditionsEqual(any(), any()))
         .thenAnswer(
             invocation -> {
               Collection<StateAndPrecision> states1 = invocation.getArgument(0);
               Collection<StateAndPrecision> states2 = invocation.getArgument(1);
               return containsAllStatesOf(states1, states2) && containsAllStatesOf(states2, states1);
             });
-    when(analysis.deduplicateStatesAndPrecisions(any()))
+    when(analysis.deduplicateViolationConditions(any()))
         .thenAnswer(
             invocation -> {
               Iterable<StateAndPrecision> states = invocation.getArgument(0);
@@ -147,14 +147,14 @@ public class AlwaysReplaceViolationConditionHandlerTest {
     when(analysis.deserialize(messageAX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
     when(analysis.deserialize(messageBY)).thenReturn(ImmutableList.of(conditionYAndPrecision));
     when(analysis.deserialize(messageBX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
-    when(analysis.statesEqual(any(), any()))
+    when(analysis.violationConditionsEqual(any(), any()))
         .thenAnswer(
             invocation -> {
               Collection<StateAndPrecision> states1 = invocation.getArgument(0);
               Collection<StateAndPrecision> states2 = invocation.getArgument(1);
               return containsAllStatesOf(states1, states2) && containsAllStatesOf(states2, states1);
             });
-    when(analysis.deduplicateStatesAndPrecisions(any()))
+    when(analysis.deduplicateViolationConditions(any()))
         .thenAnswer(
             invocation -> {
               Iterable<StateAndPrecision> states = invocation.getArgument(0);
