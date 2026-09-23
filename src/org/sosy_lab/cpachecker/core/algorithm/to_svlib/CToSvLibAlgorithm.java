@@ -18,9 +18,13 @@ import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -42,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
@@ -73,6 +78,8 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
@@ -300,6 +307,30 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   /**
+   * The functions that an execution of the program can call, in the order of the CFA.
+   *
+   * <p>Only these are transformed, because the analysis of the C program never reaches the others,
+   * which can contain constructs that the transformation does not support.
+   */
+  private ImmutableList<FunctionEntryNode> getFunctionsReachableFromMain() {
+    Set<FunctionEntryNode> reachable = new HashSet<>();
+    Deque<FunctionEntryNode> waiting = new ArrayDeque<>();
+    reachable.add(cfa.getMainFunction());
+    waiting.push(cfa.getMainFunction());
+    while (!waiting.isEmpty()) {
+      EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
+      CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(waiting.pop(), edgeCollector);
+      for (CFAEdge edge : edgeCollector.getVisitedEdges()) {
+        if (edge instanceof FunctionSummaryEdge summaryEdge
+            && reachable.add(summaryEdge.getFunctionEntry())) {
+          waiting.push(summaryEdge.getFunctionEntry());
+        }
+      }
+    }
+    return FluentIterable.from(cfa.entryNodes()).filter(reachable::contains).toList();
+  }
+
+  /**
    * Transforms the {@link CFA} of a C program to a {@link SvLibScript}.
    *
    * @return The SvLibScript generated from the CFA
@@ -312,13 +343,15 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         new SvLibSetInfoCommand(":source", getNameOfSourceFile(), FileLocation.DUMMY),
         new SvLibSetInfoCommand(":producer", "CPAchecker", FileLocation.DUMMY));
 
+    ImmutableList<FunctionEntryNode> functions = getFunctionsReachableFromMain();
+
     // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
     // global variables are added to scope +  declaration commands are added to commandsCollector
     transformationStatistics.initializationTime.start();
     try {
       CToSvLibInitializer initializer =
           new CToSvLibInitializer(
-              logger, cfa, scope, formulaManager, pathFormulaManager, converter);
+              logger, cfa, functions, scope, formulaManager, pathFormulaManager, converter);
       initializer.initialize(commandsCollector);
     } finally {
       transformationStatistics.initializationTime.stop();
@@ -333,6 +366,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     CToSvLibTransformation transformation =
         new CToSvLibTransformation(
             cfa,
+            functions,
             formulaManager,
             pathFormulaManager,
             formulaToSvLibVisitor,
@@ -343,7 +377,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     try {
       List<SvLibStatement> procedureBodies = new ArrayList<>();
       List<FunctionEntryNode> transformedFunctions = new ArrayList<>();
-      for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
+      for (FunctionEntryNode functionEntryNode : functions) {
         SvLibStatement procedureBody =
             transformation.transformFunction((CFunctionEntryNode) functionEntryNode);
 

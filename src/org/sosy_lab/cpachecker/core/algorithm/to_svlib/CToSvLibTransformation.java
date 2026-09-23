@@ -119,6 +119,10 @@ import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 
 class CToSvLibTransformation {
   private final CFA cfa;
+
+  /** The functions of the program that are transformed. */
+  private final ImmutableList<FunctionEntryNode> functions;
+
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
@@ -170,6 +174,7 @@ class CToSvLibTransformation {
 
   CToSvLibTransformation(
       CFA pCFA,
+      ImmutableList<FunctionEntryNode> pFunctions,
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
@@ -177,6 +182,7 @@ class CToSvLibTransformation {
       TypeHandlerWithPointerAliasing pTypeHandler,
       boolean pUseLargeBlockEncoding) {
     cfa = pCFA;
+    functions = pFunctions;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
@@ -1080,7 +1086,7 @@ class CToSvLibTransformation {
     PathFormula formula =
         pathFormulaManager.makeEmptyPathFormulaWithContext(
             SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
-    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
+    for (FunctionEntryNode entryNode : functions) {
       for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
         Optional<CAssignment> assignment = getAssignmentOfEdge(edge);
         if (assignment.isPresent() && isMemoryAllocation(assignment.orElseThrow())) {

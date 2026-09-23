@@ -104,6 +104,10 @@ class CToSvLibInitializer {
 
   private final LogManager logger;
   private final CFA cfa;
+
+  /** The functions of the program that are transformed. */
+  private final ImmutableList<FunctionEntryNode> functions;
+
   private final SvLibCurrentScope scope;
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
@@ -115,12 +119,14 @@ class CToSvLibInitializer {
   CToSvLibInitializer(
       LogManager pLogger,
       CFA pCFA,
+      ImmutableList<FunctionEntryNode> pFunctions,
       SvLibCurrentScope pCurrentScope,
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       CtoFormulaConverter pConverter) {
     logger = pLogger;
     cfa = pCFA;
+    functions = pFunctions;
     scope = pCurrentScope;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
@@ -167,7 +173,7 @@ class CToSvLibInitializer {
       throws UnsupportedOperationException, CPATransferException, InterruptedException {
     ImmutableSet.Builder<CType> typesOfHeapArraysToBuild = ImmutableSet.builder();
 
-    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
+    for (FunctionEntryNode entryNode : functions) {
       CFunctionEntryNode cEntryNode = (CFunctionEntryNode) entryNode;
       String procedureName = entryNode.getFunctionName();
 
