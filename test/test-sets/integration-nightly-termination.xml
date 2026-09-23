@@ -22,11 +22,6 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <!--
-    Witnesses are exported only in this job and not in the non-nightly jobs for the individual
-    analyses, because we run witness validation only for nightly jobs (!647#note_3884466678).
-    Generate the test-set definition files for the validation of these witnesses
-    using ../util/generate_witness_validation_testdef.py
-
     We collect error- and proof-witness files for further steps in our BuildBot.
     Currently we expect the following compressed witness files from a complete benchmark set:
     - induction:    170M
