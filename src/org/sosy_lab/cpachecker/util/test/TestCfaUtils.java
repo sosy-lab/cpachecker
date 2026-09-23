@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -46,6 +48,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 /** Various utilities for creating a CFA or parts of it for tests. */
 public class TestCfaUtils {
 
+  private static final String PREPROCESSOR_OPTION = "parser.usePreprocessor";
+
+  /** A function that never returns, so that the branch calling it reaches no exit node. */
+  private static final String ABORT_DECLARATION =
+      "extern void abort(void) __attribute__((__noreturn__));\n";
+
   public static CIdExpression makeVariable(String varName, CSimpleType varType) {
     FileLocation loc = FileLocation.DUMMY;
     CVariableDeclaration decl =
@@ -55,21 +63,49 @@ public class TestCfaUtils {
     return new CIdExpression(loc, decl);
   }
 
-  public static ImmutableCFA makeCFA(String program) throws ParserException, InterruptedException {
+  @SafeVarargs
+  public static ImmutableCFA makeCfaFromFile(String filename, Map.Entry<String, String>... options)
+      throws ParserException, InterruptedException, IOException {
+    String programText = Files.readString(Path.of(filename), StandardCharsets.UTF_8);
+    return makeCfaFromString(programText, options);
+  }
+
+  @SafeVarargs
+  public static ImmutableCFA makeCfaFromString(
+      String program, Map.Entry<String, String>... pOptions)
+      throws ParserException, InterruptedException {
+    @SuppressWarnings("varargs")
+    ImmutableMap<String, String> options = ImmutableMap.ofEntries(pOptions);
+    if (options.containsKey(PREPROCESSOR_OPTION)) {
+      throw new AssertionError(
+          "JUnit tests should not rely on the preprocessor, "
+              + "this breaks test execution on other OS "
+              + "and makes them depend on the system headers");
+    }
+
     try {
-      return makeCFA(TestUtils.configurationForTest().build(), program);
+      Configuration config =
+          TestUtils.configurationForTest()
+              .setOptions(options)
+              // Prevent using preprocessor due to auto-detection
+              .setOption(PREPROCESSOR_OPTION, "false")
+              .build();
+
+      CFACreator creator =
+          new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
+
+      return creator.parseSourceAndCreateCFA(program);
     } catch (InvalidConfigurationException e) {
-      throw new AssertionError("Default configuration is invalid?");
+      throw new AssertionError("Default configuration is invalid?", e);
     }
   }
 
-  public static ImmutableCFA makeCFA(Configuration config, String program)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-
-    CFACreator creator =
-        new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
-
-    return creator.parseSourceAndCreateCFA(program);
+  /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
+  @SafeVarargs
+  public static ImmutableCFA makeCfaFromFunctionBody(
+      String functionBody, Map.Entry<String, String>... options)
+      throws ParserException, InterruptedException {
+    return makeCfaFromString(getProgram(functionBody), options);
   }
 
   /**
@@ -127,15 +163,25 @@ public class TestCfaUtils {
     return mapping.get(cfa.getMainFunction().getExitNode().orElseThrow());
   }
 
-  /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
-  public static ImmutableCFA toSingleFunctionCFA(CFACreator creator, String functionBody)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(getProgram(functionBody));
-  }
+  /**
+   * Convert the given C expression to a {@link PathFormula}. The expression is used as an
+   * assumption in a new program whose main function starts with the given declarations.
+   */
+  @SafeVarargs
+  public static PathFormula toFormula(
+      String declarations,
+      String expression,
+      PathFormulaManager pfmgr,
+      Map.Entry<String, String>... options)
+      throws Exception {
+    @SuppressWarnings("varargs")
+    CFA cfa =
+        makeCfaFromString(
+            ABORT_DECLARATION
+                + getProgram(declarations + "\nif (!(" + expression + ")) {\n  abort();\n}"),
+            options);
 
-  public static ImmutableCFA toMultiFunctionCFA(CFACreator creator, String program)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(program);
+    return toPathFormula(cfa, SSAMap.emptySSAMap(), pfmgr, true);
   }
 
   private static String getProgram(String functionBody) {

@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
@@ -26,6 +25,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.test.SMGTest0;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 // TODO write more test cases which test not only base cases
 public class SMGProveNequalityTest extends SMGTest0 {
@@ -39,7 +39,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    options = new SMGOptions(Configuration.defaultConfiguration(), null);
+    options = new SMGOptions(TestUtils.configurationForTest().build(), null);
     smg = new SMG(mockType4bSize);
     smg =
         smg.copyAndAddValueWithNestingLevelZero(value1)

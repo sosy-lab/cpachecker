@@ -311,7 +311,12 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
           "could not find field " + pFieldName + " in " + pOwnerType);
     }
 
-    // call with byte size of 1 to return size in bytes instead of bits
-    return model.calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1L);
+    // call with byte size of 1 to return size in bytes instead of bits.
+    // Use the non-atomic alignment of pOwnerType here: an atomic composite type is never larger
+    // than its non-atomic version, so this trailing padding is unaffected by atomicity, and using
+    // the (possibly size-dependent) atomic alignment here would make getSizeof and getAlignof of
+    // an atomic composite type recursively depend on each other.
+    return model.calculatePaddedBitsize(
+        bitOffset, sizeOfConsecutiveBitFields, pOwnerType.withoutAtomic(), 1L);
   }
 }

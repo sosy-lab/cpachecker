@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.CParser.FileContentToParse;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class CParserLocationTest {
@@ -75,9 +76,9 @@ public class CParserLocationTest {
 
   @Test
   public void singleFileTest_lineDirectiveIgnored() throws Exception {
+    Configuration config = TestUtils.configurationForTest().build();
     parser =
-        new CParserWithLocationMapper(
-            Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, false);
+        new CParserWithLocationMapper(config, LogManager.createTestLogManager(), parser, false);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
     ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.functions().get("main").getFileLocation();
@@ -92,9 +93,8 @@ public class CParserLocationTest {
 
   @Test
   public void singleFileTest_lineDirective() throws Exception {
-    parser =
-        new CParserWithLocationMapper(
-            Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
+    Configuration config = TestUtils.configurationForTest().build();
+    parser = new CParserWithLocationMapper(config, LogManager.createTestLogManager(), parser, true);
     String code = "#line 5\nvoid main() { }";
     ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.functions().get("main").getFileLocation();
@@ -109,9 +109,8 @@ public class CParserLocationTest {
 
   @Test
   public void singleFileTest_lineDirectiveWithFilename() throws Exception {
-    parser =
-        new CParserWithLocationMapper(
-            Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
+    Configuration config = TestUtils.configurationForTest().build();
+    parser = new CParserWithLocationMapper(config, LogManager.createTestLogManager(), parser, true);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
     ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.functions().get("main").getFileLocation();

@@ -308,7 +308,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private MemoryLocation toLocation(Type pType, String name) {
     Type type = pType;
     if (type instanceof CType cType) {
-      type = cType.getCanonicalType().withoutQualifiers();
+      type = cType.getCanonicalType().asUnqualified();
     }
     if (isStructOrUnion(type)) {
       // TODO find a better way to handle this
@@ -490,7 +490,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       }
       type = innerType;
     }
-    String prefix = type.withoutQualifiers().toString();
+    String prefix = type.asUnqualified().toString();
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
@@ -547,7 +547,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           @Override
           public LocationSet visit(CIdExpression pIastIdExpression)
               throws UnrecognizedCodeException {
-            CType type = pIastIdExpression.getExpressionType().withoutQualifiers();
+            CType type = pIastIdExpression.getExpressionType().asUnqualified();
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               // TODO find a better way to handle this

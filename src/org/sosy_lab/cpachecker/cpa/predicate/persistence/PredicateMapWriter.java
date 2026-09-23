@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
@@ -41,6 +42,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
@@ -174,6 +176,7 @@ public final class PredicateMapWriter {
       PredicateDumpFormat pFormat,
       Function<String, Boolean> pIncludeVariablesFilter,
       FormulaManagerView pFmgr,
+      MachineModel pMachineModel,
       ImmutableList.Builder<PrecisionDeclaration> pDeclarationBuilder) {
     return switch (pFormat) {
       case SMTLIB2 -> {
@@ -186,7 +189,11 @@ public final class PredicateMapWriter {
         try {
           yield Optional.of(
               AbstractionFormula.asExpressionTree(
-                      pPredicate.getSymbolicAtom(), pFmgr, pIncludeVariablesFilter, y -> y)
+                      pPredicate.getSymbolicAtom(),
+                      pFmgr,
+                      pIncludeVariablesFilter,
+                      y -> y,
+                      pMachineModel)
                   .toString());
         } catch (TranslationToExpressionTreeFailedException | InterruptedException e) {
           yield Optional.empty();
@@ -233,6 +240,10 @@ public final class PredicateMapWriter {
       PathTemplate pPathTemplate,
       MetadataRecord pMetadataRecord) {
 
+    checkState(
+        cfa.isPresent(), "Exporting a precision as a witness requires the CFA of the program.");
+    MachineModel machineModel = cfa.orElseThrow().getMachineModel();
+
     for (PredicateDumpFormat witnessPredicateFormat : witnessPredicateFormats) {
 
       // Build the data structures that contain the predicates
@@ -259,6 +270,7 @@ public final class PredicateMapWriter {
                                   //  the translation back from SMT to C
                                   notInternalVariable(name),
                               fmgr,
+                              machineModel,
                               declarationBuilder))
                   .filter(Optional::isPresent)
                   .transform(Optional::orElseThrow)
@@ -284,6 +296,7 @@ public final class PredicateMapWriter {
                                           notInternalVariable(name)
                                               && variableNameInFunction(name, functionName),
                                       fmgr,
+                                      machineModel,
                                       declarationBuilder))
                           .filter(Optional::isPresent)
                           .transform(Optional::orElseThrow)
@@ -291,79 +304,74 @@ public final class PredicateMapWriter {
                           .asList())));
 
       // Add all local predicates
-      if (cfa.isPresent()) {
-        AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
-        if (astCfaRelation == null) {
-          Verify.verify(
-              !cfa.orElseThrow().getLanguage().equals(Language.C),
-              "We expect an AST-CFA relation for C programs, but it is not present.");
-          logger.log(
-              Level.INFO, "Currently we cannot export local predicates for programs other than C");
-        } else {
+      AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
+      if (astCfaRelation == null) {
+        Verify.verify(
+            !cfa.orElseThrow().getLanguage().equals(Language.C),
+            "We expect an AST-CFA relation for C programs, but it is not present.");
+        logger.log(
+            Level.INFO, "Currently we cannot export local predicates for programs other than C");
+      } else {
 
-          for (CFANode cfaNode : pLocation.keySet()) {
-            String functionName = cfaNode.getFunctionName();
-            Optional<PrecisionScope> precisionScope =
-                PrecisionScope.localPrecisionScopeFor(cfaNode, astCfaRelation);
+        for (CFANode cfaNode : pLocation.keySet()) {
+          String functionName = cfaNode.getFunctionName();
+          Optional<PrecisionScope> precisionScope =
+              PrecisionScope.localPrecisionScopeFor(cfaNode, astCfaRelation);
 
-            if (precisionScope.isEmpty()) {
-              // TODO: This should never happen, it is a bug in the AST-CFA relation.
+          if (precisionScope.isEmpty()) {
+            // TODO: This should never happen, it is a bug in the AST-CFA relation.
 
-              // As a workaround, we export the predicates as function-scoped
-              // predicates, but this is not quite correct.
-              entriesBuilder.add(
-                  new PrecisionExchangeEntry(
-                      witnessExpressionType,
-                      new FunctionPrecisionScope(functionName),
-                      PrecisionType.PREDICATES,
-                      FluentIterable.from(pLocation.get(cfaNode))
-                          .transform(
-                              pFormula ->
-                                  getPredicateString(
-                                      pFormula,
-                                      witnessPredicateFormat,
-                                      name ->
-                                          notInternalVariable(name)
-                                              && variableNameInFunction(name, functionName),
-                                      fmgr,
-                                      declarationBuilder))
-                          .filter(Optional::isPresent)
-                          .transform(Optional::orElseThrow)
-                          .toSet()
-                          .asList()));
+            // As a workaround, we export the predicates as function-scoped
+            // predicates, but this is not quite correct.
+            entriesBuilder.add(
+                new PrecisionExchangeEntry(
+                    witnessExpressionType,
+                    new FunctionPrecisionScope(functionName),
+                    PrecisionType.PREDICATES,
+                    FluentIterable.from(pLocation.get(cfaNode))
+                        .transform(
+                            pFormula ->
+                                getPredicateString(
+                                    pFormula,
+                                    witnessPredicateFormat,
+                                    name ->
+                                        notInternalVariable(name)
+                                            && variableNameInFunction(name, functionName),
+                                    fmgr,
+                                    machineModel,
+                                    declarationBuilder))
+                        .filter(Optional::isPresent)
+                        .transform(Optional::orElseThrow)
+                        .toSet()
+                        .asList()));
 
-            } else {
-              entriesBuilder.add(
-                  new PrecisionExchangeEntry(
-                      witnessExpressionType,
-                      precisionScope.orElseThrow(),
-                      PrecisionType.PREDICATES,
-                      FluentIterable.from(pLocation.get(cfaNode))
-                          .transform(
-                              pFormula ->
-                                  getPredicateString(
-                                      pFormula,
-                                      witnessPredicateFormat,
-                                      variableName ->
-                                          notInternalVariable(variableName)
-                                              && variableNameInFunction(
-                                                  variableName, cfaNode.getFunctionName())
-                                              && variableInOriginalProgram(
-                                                  variableName, astCfaRelation, cfaNode),
-                                      fmgr,
-                                      declarationBuilder))
-                          .filter(Optional::isPresent)
-                          .transform(Optional::orElseThrow)
-                          .toSet()
-                          .asList()));
-            }
+          } else {
+            entriesBuilder.add(
+                new PrecisionExchangeEntry(
+                    witnessExpressionType,
+                    precisionScope.orElseThrow(),
+                    PrecisionType.PREDICATES,
+                    FluentIterable.from(pLocation.get(cfaNode))
+                        .transform(
+                            pFormula ->
+                                getPredicateString(
+                                    pFormula,
+                                    witnessPredicateFormat,
+                                    variableName ->
+                                        notInternalVariable(variableName)
+                                            && variableNameInFunction(
+                                                variableName, cfaNode.getFunctionName())
+                                            && variableInOriginalProgram(
+                                                variableName, astCfaRelation, cfaNode),
+                                    fmgr,
+                                    machineModel,
+                                    declarationBuilder))
+                        .filter(Optional::isPresent)
+                        .transform(Optional::orElseThrow)
+                        .toSet()
+                        .asList()));
           }
         }
-      } else {
-        // If no CFA is present, we cannot export local predicates
-        logger.log(
-            Level.INFO,
-            "No CFA present, skipping export of local predicates in precision exchange set.");
       }
 
       PrecisionExchangeSetEntry precisionExchangeSetEntry =

@@ -46,7 +46,7 @@ public class PrecisionExchangeIntegrationTest {
 
   // Safe program with rich loop invariants, so the predicate analysis refines several predicates.
   private static final Path PREDICATE_PROGRAM =
-      Path.of("test/programs/witness-v2-validation/simple.c");
+      Path.of("test/programs/witness-v2-validation/no-overflow/simple.c");
 
   // Safe program with concrete values, so the value analysis tracks concrete memory locations.
   private static final Path VALUE_PROGRAM =

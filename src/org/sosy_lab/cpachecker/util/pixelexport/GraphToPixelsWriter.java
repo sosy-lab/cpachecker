@@ -30,6 +30,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageOutputStream;
 import org.apache.batik.dom.GenericDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -309,6 +310,7 @@ public abstract class GraphToPixelsWriter<Node> {
     private SVGGraphics2D svgGenerator = null;
 
     @Override
+    @SuppressForbidden("specific case of InternalError can be handled, cf. comments")
     public Graphics2D createCanvas(int pWidth, int pHeight) throws IOException {
       DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation();
 

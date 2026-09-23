@@ -180,7 +180,7 @@ final class PredicateCPAStatistics implements Statistics {
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, pLogger, pAbsmgr, fmgr, pRmgr);
-    abstractionsWriter = new PredicateAbstractionsWriter(pLogger, fmgr);
+    abstractionsWriter = new PredicateAbstractionsWriter(pLogger, fmgr, pCfa.getMachineModel());
 
     if (exportPredmap && (predmapFile != null || predmapWitnessFile != null)) {
       precisionWriter = new PredicateMapWriter(pConfig, fmgr, logger, Optional.of(pCfa));

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 public enum YAMLWitnessVersion {
@@ -24,11 +26,37 @@ public enum YAMLWitnessVersion {
     };
   }
 
+  /**
+   * The types of information which the invariant set of a correctness witness in this format
+   * version may contain.
+   *
+   * <p>Version 2.0 only knows loop and location invariants, transition invariants and function
+   * contracts were added in version 2.1.
+   *
+   * @return the types this version supports, in the declaration order of {@link
+   *     WitnessInvariantType}
+   */
+  public ImmutableSet<WitnessInvariantType> supportedInvariantTypes() {
+    return switch (this) {
+      case V2 ->
+          Sets.immutableEnumSet(
+              WitnessInvariantType.LOOP_INVARIANT, WitnessInvariantType.LOCATION_INVARIANT);
+      case V2d1, V2d2 ->
+          Sets.immutableEnumSet(
+              WitnessInvariantType.LOOP_INVARIANT,
+              WitnessInvariantType.LOCATION_INVARIANT,
+              WitnessInvariantType.LOOP_TRANSITION_INVARIANT,
+              WitnessInvariantType.LOCATION_TRANSITION_INVARIANT,
+              WitnessInvariantType.FUNCTION_CONTRACT);
+    };
+  }
+
   public static YAMLWitnessVersion fromString(String pVersion)
       throws InvalidConfigurationException {
     return switch (pVersion) {
       case "2.0" -> V2;
       case "2.1" -> V2d1;
+      case "2.2" -> V2d2;
       default -> throw new InvalidConfigurationException("The version is not recognized.");
     };
   }

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -26,11 +24,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CExpressionCollector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -38,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SeqMemoryLocationFinder {
 
@@ -48,7 +47,8 @@ public class SeqMemoryLocationFinder {
   public static boolean containsRelevantMemoryLocation(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
-      SeqPointerAliasingMap pPointerAliasingMap) {
+      SeqPointerAliasingMap pPointerAliasingMap)
+      throws UnsupportedCodeException {
 
     ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
         findDirectMemoryLocationsByAccessType(
@@ -63,7 +63,8 @@ public class SeqMemoryLocationFinder {
       SeqThreadStatementBlock pBlock,
       SeqPointerAliasingMap pPointerAliasingMap,
       SeqMemoryAccessType pAccessType,
-      SeqMemoryReachType pReachType) {
+      SeqMemoryReachType pReachType)
+      throws UnsupportedCodeException {
 
     return switch (pReachType) {
       case DIRECT ->
@@ -83,7 +84,8 @@ public class SeqMemoryLocationFinder {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
       SeqPointerAliasingMap pPointerAliasingMap,
-      SeqMemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType)
+      throws UnsupportedCodeException {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
@@ -107,7 +109,8 @@ public class SeqMemoryLocationFinder {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
       SeqPointerAliasingMap pPointerAliasingMap,
-      SeqMemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType)
+      throws UnsupportedCodeException {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
@@ -128,7 +131,8 @@ public class SeqMemoryLocationFinder {
   private static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
       SeqPointerAliasingMap pPointerAliasingMap,
-      SeqMemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType)
+      throws UnsupportedCodeException {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
@@ -143,7 +147,8 @@ public class SeqMemoryLocationFinder {
   public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsBySubstituteEdge(
       SubstituteEdge pSubstituteEdge,
       SeqPointerAliasingMap pPointerAliasingMap,
-      SeqMemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType)
+      throws UnsupportedCodeException {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
     rMemoryLocations.addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType));
@@ -166,7 +171,8 @@ public class SeqMemoryLocationFinder {
    */
   static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       final SeqMemoryLocation pPointerDereference,
-      ImmutableSet<SeqPointerAssignment> pPointerAssignments) {
+      ImmutableSet<SeqPointerAssignment> pPointerAssignments)
+      throws UnsupportedCodeException {
 
     // the set of memory locations associated with the pointer dereference
     Set<SeqMemoryLocation> found = new HashSet<>();
@@ -248,7 +254,8 @@ public class SeqMemoryLocationFinder {
   private static SeqMemoryLocation getTargetMemoryLocation(
       final SeqMemoryLocation pPointerDereference,
       final ImmutableSet<SeqMemoryLocation> pPointerDereferenceRightHandSides,
-      SeqMemoryLocation pCurrentMemoryLocation) {
+      SeqMemoryLocation pCurrentMemoryLocation)
+      throws UnsupportedCodeException {
 
     if (pCurrentMemoryLocation.declaration() != null) {
       CType currentType = pCurrentMemoryLocation.declaration().getType();
@@ -273,7 +280,8 @@ public class SeqMemoryLocationFinder {
                       fieldReference.getFieldOwner().getExpressionType(),
                       fieldReference.getFieldName(),
                       pCurrentMemoryLocation);
-              checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
+              InputRejection.checkPointerDereferenceTypes(
+                  pPointerDereference, targetMemoryLocation);
               return targetMemoryLocation;
             }
           }
@@ -286,7 +294,7 @@ public class SeqMemoryLocationFinder {
             SeqMemoryLocation targetMemoryLocation =
                 getTargetMemoryLocationWithFieldMember(
                     currentType, fieldMemberName, pCurrentMemoryLocation);
-            checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
+            InputRejection.checkPointerDereferenceTypes(pPointerDereference, targetMemoryLocation);
             return targetMemoryLocation;
           }
 
@@ -301,7 +309,8 @@ public class SeqMemoryLocationFinder {
                         currentType,
                         rightHandSide.fieldMember().orElseThrow().getName(),
                         pCurrentMemoryLocation);
-                checkTypeEquivalence(pPointerDereference, targetMemoryLocation);
+                InputRejection.checkPointerDereferenceTypes(
+                    pPointerDereference, targetMemoryLocation);
                 return targetMemoryLocation;
               }
             }
@@ -310,12 +319,13 @@ public class SeqMemoryLocationFinder {
       }
     }
 
-    checkTypeEquivalence(pPointerDereference, pCurrentMemoryLocation);
+    InputRejection.checkPointerDereferenceTypes(pPointerDereference, pCurrentMemoryLocation);
     return pCurrentMemoryLocation;
   }
 
   private static SeqMemoryLocation getTargetMemoryLocationWithFieldMember(
-      CType pFieldOwnerType, String pFieldName, SeqMemoryLocation pCurrentMemoryLocation) {
+      CType pFieldOwnerType, String pFieldName, SeqMemoryLocation pCurrentMemoryLocation)
+      throws UnsupportedCodeException {
 
     CCompositeTypeMemberDeclaration fieldMemberDeclaration =
         SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
@@ -324,43 +334,5 @@ public class SeqMemoryLocationFinder {
         pCurrentMemoryLocation.callContext(),
         Objects.requireNonNull(pCurrentMemoryLocation.declaration()),
         Optional.of(fieldMemberDeclaration));
-  }
-
-  private static void checkTypeEquivalence(
-      SeqMemoryLocation pPointerDereference, SeqMemoryLocation pTargetMemoryLocation) {
-
-    if (pPointerDereference.declaration() != null) {
-      CType declarationType = pPointerDereference.declaration().getType();
-
-      if (pPointerDereference.fieldMember().isPresent()) {
-        CType fieldMemberType = pPointerDereference.fieldMember().orElseThrow().getType();
-        checkArgument(
-            declarationType instanceof CPointerType
-                || declarationType instanceof CArrayType
-                || fieldMemberType instanceof CPointerType
-                || fieldMemberType instanceof CArrayType,
-            "pPointerDereference declaration or fieldMember CType must be CPointerType or"
-                + " CArrayType.");
-
-      } else {
-        checkArgument(
-            declarationType instanceof CPointerType || declarationType instanceof CArrayType,
-            "pPointerDereference declaration CType must be CPointerType or CArrayType.");
-      }
-    }
-
-    // ignore function call right-hand side e.g. malloc always returns (void*) which may not match
-    if (pTargetMemoryLocation.functionCallExpression().isEmpty()) {
-      // exclude start routine target memory locations, since they are always (void*)
-      if (!pTargetMemoryLocation.callContext().isStartRoutineCallContext()) {
-        CType typeA = pPointerDereference.getUnwrappedType();
-        CType typeB = pTargetMemoryLocation.getUnwrappedType();
-        checkArgument(
-            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-            "CTypes are not equivalent or assignable: %s, %s",
-            typeA,
-            typeB);
-      }
-    }
   }
 }

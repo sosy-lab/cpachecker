@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 public abstract class AbstractYAMLWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
-  protected List<YAMLWitnessVersion> witnessVersions = ImmutableList.of(YAMLWitnessVersion.V2);
+  protected List<YAMLWitnessVersion> witnessVersions = ImmutableList.of(YAMLWitnessVersion.V2d2);
 
   @Option(
       secure = true,
@@ -58,6 +58,7 @@ public abstract class AbstractYAMLWitnessExporter {
   protected final LogManager logger;
   private final Specification specification;
   private final ProducerRecord producerRecord;
+  private TaskRecord taskRecord;
 
   protected AbstractYAMLWitnessExporter(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
@@ -71,8 +72,18 @@ public abstract class AbstractYAMLWitnessExporter {
   }
 
   protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {
-    return MetadataRecord.createMetadataRecord(
-        producerRecord, TaskRecord.getTaskDescription(cfa, specification), version);
+    return MetadataRecord.createMetadataRecord(producerRecord, getTaskDescription(), version);
+  }
+
+  /**
+   * The description of the verification task, which is the same for every witness of a run.
+   * Computing it hashes every input file, so it is computed only once.
+   */
+  private TaskRecord getTaskDescription() throws IOException {
+    if (taskRecord == null) {
+      taskRecord = TaskRecord.getTaskDescription(cfa, specification);
+    }
+    return taskRecord;
   }
 
   protected Specification getSpecification() {
