@@ -10,7 +10,8 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN"
+  "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -19,6 +20,28 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition>
     <option name="--terminationAnalysis"/>
   </rundefinition>
+
+  <!--
+    Witnesses are exported only in this job and not in the non-nightly jobs for the individual
+    analyses, because we run witness validation only for nightly jobs (!647#note_3884466678).
+    Generate the test-set definition files for the validation of these witnesses
+    using ../util/generate_witness_validation_testdef.py
+
+    We collect error- and proof-witness files for further steps in our BuildBot.
+    Currently we expect the following compressed witness files from a complete benchmark set:
+    - induction:    170M
+    - predicate:    600M
+    - value:        600M
+    - smg:           10M
+    - termination:  170M
+    - sv-comp18/19: 230M
+    CPAchecker can compress and handle compressed witnesses automatically.
+    Please disable compression for real SVComp benchmarks!
+  -->
+  <resultfiles>**/witness*.*</resultfiles>
+  <!-- The portfolio runs the lasso-based analysis (prefix termination) as well as
+       termination-to-safety (prefix terminationtoreach), so both export witnesses. -->
+  <option name="--option">termination.yamlProofWitness=witness.yml</option>
 
   <!--
     Runs only those tasks that declare termination.prp in their task definition,

@@ -17,8 +17,6 @@ SPDX-License-Identifier: Apache-2.0
   <!--
     Counterpart of integration-lassoRankerAnalysis.xml
     for the termination-to-safety approach (cf. config/terminationToSafety.properties).
-    Generate the test-set definition files to validate the witnesses
-    produced by this test-set definition using ../util/generate_witness_validation_testdef.py
   -->
 
   <option name="--no-output-files"/>
@@ -27,30 +25,6 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition>
     <option name="--terminationToSafety"/>
   </rundefinition>
-
-  <!-- The counterexample of a termination-to-safety run is not a feasible program path. -->
-  <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
-
-  <!--
-    We collect error- and proof-witness files for further steps in our BuildBot.
-    Currently we expect the following compressed witness files from a complete benchmark set:
-    - induction:    170M
-    - predicate:    600M
-    - value:        600M
-    - smg:           10M
-    - termination:  170M
-    - sv-comp18/19: 230M
-    CPAchecker can compress and handle compressed witnesses automatically.
-    Please disable compression for real SVComp benchmarks!
-  -->
-  <resultfiles>**/witness*.*</resultfiles>
-  <!--
-    The violation witness is exported by TerminationToReachStatistics (prefix terminationtoreach),
-    the correctness witness by TerminationStatistics (prefix termination).
-  -->
-  <option name="--option">terminationtoreach.violation.witness=witness.graphml</option>
-  <option name="--option">terminationtoreach.compressWitness=true</option>
-  <option name="--option">termination.yamlProofWitness=witness.yml</option>
 
   <tasks name="C.termination.BitVectors">
     <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>

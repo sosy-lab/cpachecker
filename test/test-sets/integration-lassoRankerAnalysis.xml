@@ -14,37 +14,12 @@ SPDX-License-Identifier: Apache-2.0
   "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
 
-  <!--
-    Generate the test-set definition files to validate the witnesses
-    produced by this test-set definition using ../util/generate_witness_validation_testdef.py
-  -->
-
   <option name="--no-output-files"/>
   <option name="--heap">2000M</option>
 
   <rundefinition>
     <option name="--lassoRankerAnalysis"/>
   </rundefinition>
-
-  <!--
-    We collect error- and proof-witness files for further steps in our BuildBot.
-    Currently we expect the following compressed witness files from a complete benchmark set:
-    - induction:    170M
-    - predicate:    600M
-    - value:        600M
-    - smg:           10M
-    - termination:  170M
-    - sv-comp18/19: 230M
-    CPAchecker can compress and handle compressed witnesses automatically.
-    Please disable compression for real SVComp benchmarks!
-  -->
-  <resultfiles>**/witness*.*</resultfiles>
-  <option name="--option">cpa.arg.compressWitness=true</option>
-  <option name="--option">counterexample.export.compressWitness=true</option>
-  <option name="--option">counterexample.export.graphml=witness.graphml</option>
-  <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
-  <option name="--option">termination.violation.witness.graphml=witness.graphml</option>
-  <option name="--option">termination.yamlProofWitness=witness.yml</option>
 
   <tasks name="C.termination.BitVectors">
     <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
