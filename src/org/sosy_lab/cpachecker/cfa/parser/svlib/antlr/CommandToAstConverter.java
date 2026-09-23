@@ -121,7 +121,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             variableType,
             variableName,
             variableName,
-            variableName);
+            null);
 
     scope.addVariable(variableDeclaration);
 
@@ -141,7 +141,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             variableType,
             variableName,
             variableName,
-            variableName);
+            null);
 
     scope.addVariable(variableDeclaration);
 
