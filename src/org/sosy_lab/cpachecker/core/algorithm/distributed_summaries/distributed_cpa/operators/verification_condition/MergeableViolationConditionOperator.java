@@ -22,7 +22,12 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Implementations must preserve the disjunction of both inputs when merging.
  */
 public interface MergeableViolationConditionOperator<T> extends ViolationConditionOperator {
-  T initialCondition(Optional<ARGState> pPreviousCondition);
+  /**
+   * The condition the backward propagation starts from at {@code pStart}, the state the violation
+   * was found in.
+   */
+  T initialCondition(ARGState pStart, Optional<ARGState> pPreviousCondition)
+      throws InterruptedException;
 
   T prepend(T pCondition, List<CFAEdge> pEdges) throws CPATransferException, InterruptedException;
 
