@@ -9,19 +9,20 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssWorkCounter;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -30,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAc
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -45,8 +45,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
  * used to provide a visualization of the message exchange between analysis workers.
  *
- * <p>Proofs are found if all workers are waiting for new messages. The {@link DssThreadMonitor
- * thread monitor} broadcasts the verdict TRUE if all workers are done.
+ * <p>Every worker runs in a thread of its own, because a block analysis has to stay on the thread
+ * that created it. Proofs are found if all workers are waiting for new messages and no message is
+ * left in any queue, which the shared {@link DssWorkCounter} detects. The verdict TRUE is then
+ * broadcast to all workers.
  *
  * <p>The analysis is started by calling {@link
  * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker#runInitialAnalysis()}
@@ -56,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class MultithreadingDssExecutor implements DssExecutor {
 
   private static final String OBSERVER_WORKER_ID = "__observer__";
+  private static final String PROOF_SENDER_ID = "dss-fixpoint";
 
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
@@ -76,17 +79,18 @@ public class MultithreadingDssExecutor implements DssExecutor {
       BlockGraph blockGraph,
       DssWitnessArgStateCollector stateCollector,
       DssAllWorkerStatistics allWorkerStatistics,
-      Set<String> activeWorkers)
+      DssWorkCounter workCounter,
+      ShutdownManager workerShutdownManager)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
         new DssWorkerBuilder(
             cfa,
             specification,
-            () -> new DssDefaultQueue(activeWorkers),
+            () -> new DssDefaultQueue(workCounter),
             messageFactory,
             allWorkerStatistics,
-            shutdownManager);
+            workerShutdownManager);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
@@ -104,55 +108,55 @@ public class MultithreadingDssExecutor implements DssExecutor {
       DssWitnessArgStateCollector stateCollector,
       DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    Set<String> activeWorkers = ConcurrentHashMap.newKeySet();
+    DssWorkCounter workCounter = new DssWorkCounter();
+    // Stops the analyses that are still running once DSS finished.
+    ShutdownManager workerShutdownManager =
+        ShutdownManager.createWithParent(shutdownManager.getNotifier());
+    // Closing the executor waits for all workers, and happens before the actors are closed.
     try (DssActors actors =
-        createDssActors(cfa, blockGraph, stateCollector, allWorkerStatistics, activeWorkers)) {
+            createDssActors(
+                cfa,
+                blockGraph,
+                stateCollector,
+                allWorkerStatistics,
+                workCounter,
+                workerShutdownManager);
+        ExecutorService executor =
+            Executors.newThreadPerTaskExecutor(
+                Thread.ofPlatform().name("dss-worker-", 0).daemon().factory())) {
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
           observer.getId().equals(OBSERVER_WORKER_ID),
           "Observer worker must have id %s but has id %s",
           OBSERVER_WORKER_ID,
           observer.getId());
-      // run workers
-      ImmutableList.Builder<Thread> threadsBuilder =
-          ImmutableList.builderWithExpectedSize(actors.size());
-      ImmutableList.Builder<DssConnection> monitoredConnections =
-          ImmutableList.builderWithExpectedSize(actors.getActors().size());
       for (DssActor worker :
           Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
-        Thread thread = new Thread(worker, worker.getId());
-        threadsBuilder.add(thread);
-        monitoredConnections.add(worker.getConnection());
-        thread.setDaemon(true);
-        // A worker may wait for a solver or a lock before it ever reads its queue. Count it as
-        // active from the start so the monitor does not mistake that wait for a finished analysis.
-        activeWorkers.add(thread.getName());
-        thread.start();
+        executor.execute(worker);
       }
+      DssMessageBroadcaster broadcaster = observer.getConnection().getBroadcaster();
+      executor.execute(() -> broadcastProofOnceNoWorkIsLeft(workCounter, broadcaster));
 
-      ImmutableList<Thread> threads = threadsBuilder.build();
-      Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
-      // sends a result message iff all workers are waiting
-      DssThreadMonitor monitor =
-          new DssThreadMonitor(
-              threads,
-              messageFactory,
-              observer.getConnection(),
-              monitoredConnections.build(),
-              activeWorkers);
-      monitor.setDaemon(true);
-      monitor.start();
-
-      StatusAndResult result = null;
       try {
         // Blocks until all WITNESS(es) or EXCEPTION arrives
-        result = observer.observe();
+        return observer.observe();
       } finally {
-        for (Thread t : threads) {
-          t.join();
-        }
+        // Workers that are still busy, e.g., because another block found a violation, are not
+        // needed anymore. Those waiting for messages that never arrive are interrupted.
+        workerShutdownManager.requestShutdown("DSS finished");
+        executor.shutdownNow();
       }
-      return result;
     }
+  }
+
+  private void broadcastProofOnceNoWorkIsLeft(
+      DssWorkCounter workCounter, DssMessageBroadcaster broadcaster) {
+    try {
+      workCounter.awaitNoWorkLeft();
+    } catch (InterruptedException e) {
+      // The analysis ended with another verdict, so there is nothing to prove anymore.
+      return;
+    }
+    broadcaster.broadcastToAll(messageFactory.createDssResultMessage(PROOF_SENDER_ID, Result.TRUE));
   }
 }

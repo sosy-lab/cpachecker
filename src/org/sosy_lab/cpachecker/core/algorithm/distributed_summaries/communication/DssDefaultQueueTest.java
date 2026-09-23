@@ -9,13 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
 import static com.google.common.truth.Truth.assertThat;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -46,42 +44,48 @@ public class DssDefaultQueueTest {
     assertThat(queue.isEmpty()).isTrue();
   }
 
-  /** A worker becomes active before its dequeued message stops counting as pending. */
+  /**
+   * No work is left only after a message that one worker sends to another has been taken by the
+   * receiver and the receiver has become idle again.
+   */
   @Test(timeout = 5000)
-  public void workerIsActiveAfterTakingMessage() throws Exception {
+  public void noWorkLeftOnlyAfterForwardedMessageWasProcessed() throws Exception {
     DssMessageFactory messageFactory =
         new DssMessageFactory(new DssAnalysisOptions(Configuration.defaultConfiguration()));
-    String workerId = "queue-worker";
-    Set<String> activeWorkers = ConcurrentHashMap.newKeySet();
-    activeWorkers.add(workerId);
-    DssDefaultQueue queue = new DssDefaultQueue(activeWorkers);
     DssMessage message = messageFactory.createDssResultMessage("monitor", Result.TRUE);
-    CountDownLatch finished = new CountDownLatch(1);
-    AtomicReference<Throwable> failure = new AtomicReference<>();
-    Thread worker =
-        new Thread(
-            () -> {
-              try {
-                assertThat(queue.take()).isSameInstanceAs(message);
-                assertThat(activeWorkers).contains(workerId);
-                assertThat(queue.isEmpty()).isTrue();
-              } catch (Throwable t) {
-                failure.set(t);
-              } finally {
-                finished.countDown();
-              }
-            },
-            workerId);
-    worker.start();
+    DssWorkCounter workCounter = new DssWorkCounter();
+    DssDefaultQueue sender = new DssDefaultQueue(workCounter);
+    DssDefaultQueue receiver = new DssDefaultQueue(workCounter);
+    AtomicBoolean received = new AtomicBoolean();
+    sender.add(message);
 
-    while (activeWorkers.contains(workerId) && worker.isAlive()) {
-      Thread.onSpinWait();
+    try (ExecutorService executor =
+        Executors.newThreadPerTaskExecutor(Thread.ofPlatform().factory())) {
+      executor.execute(
+          () -> {
+            try {
+              receiver.add(sender.take());
+              sender.take();
+            } catch (InterruptedException e) {
+              // expected once the test is done
+            }
+          });
+      executor.execute(
+          () -> {
+            try {
+              receiver.take();
+              received.set(true);
+              receiver.take();
+            } catch (InterruptedException e) {
+              // expected once the test is done
+            }
+          });
+
+      workCounter.awaitNoWorkLeft();
+      assertThat(received.get()).isTrue();
+      assertThat(sender.isEmpty()).isTrue();
+      assertThat(receiver.isEmpty()).isTrue();
+      executor.shutdownNow();
     }
-    assertThat(activeWorkers).doesNotContain(workerId);
-    queue.add(message);
-
-    assertThat(finished.await(1, SECONDS)).isTrue();
-    worker.join();
-    assertThat(failure.get()).isNull();
   }
 }

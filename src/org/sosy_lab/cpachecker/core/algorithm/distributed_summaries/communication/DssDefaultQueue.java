@@ -14,9 +14,7 @@ import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -26,7 +24,7 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
   private final BlockingQueue<DssMessage> queue;
   private final Deque<DssMessage> highestPriority;
   private final Deque<DssMessage> next;
-  private final Set<String> activeWorkers;
+  private final DssWorkCounter workCounter;
   private final AtomicInteger pendingMessages;
 
   /**
@@ -35,21 +33,24 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
    * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType}
    */
   public DssDefaultQueue() {
-    this(ConcurrentHashMap.newKeySet());
+    this(new DssWorkCounter());
   }
 
   /**
-   * Creates a queue that shares its worker's activity with the termination monitor.
+   * Creates a queue that reports its messages and the activity of its worker to {@code
+   * pWorkCounter}.
    *
-   * <p>Add the worker to {@code pActiveWorkers} before starting its thread. A worker can do useful
-   * work before it first calls {@link #take()}, and the monitor needs to see that too.
+   * <p>The worker counts as busy from the creation of the queue on. A worker can do useful work
+   * before it first calls {@link #take()}, and the counter needs to see that too. Every queue that
+   * shares the counter therefore needs a worker that eventually takes from it.
    */
-  public DssDefaultQueue(Set<String> pActiveWorkers) {
+  public DssDefaultQueue(DssWorkCounter pWorkCounter) {
     queue = new LinkedBlockingQueue<>();
     highestPriority = new ArrayDeque<>();
     next = new ArrayDeque<>();
-    activeWorkers = Objects.requireNonNull(pActiveWorkers);
+    workCounter = Objects.requireNonNull(pWorkCounter);
     pendingMessages = new AtomicInteger();
+    workCounter.workAdded();
   }
 
   @Override
@@ -64,9 +65,10 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
   @Override
   public boolean add(DssMessage pMessage) {
-    // Count the message first. Otherwise, the monitor could look between these two steps and see
-    // neither an active sender nor a queued message.
+    // Count the message before the receiver can take it, so that it never counts as done before
+    // it was counted as added.
     pendingMessages.incrementAndGet();
+    workCounter.workAdded();
     boolean added = false;
     try {
       added = queue.add(pMessage);
@@ -74,6 +76,7 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
     } finally {
       if (!added) {
         pendingMessages.decrementAndGet();
+        workCounter.workDone();
       }
     }
   }
@@ -81,6 +84,8 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
   private DssMessage startProcessing(DssMessage pMessage) {
     int remainingMessages = pendingMessages.decrementAndGet();
     checkState(remainingMessages >= 0, "Consumed a message that was not registered as pending");
+    // The worker is busy while it processes the message, so the message itself is done.
+    workCounter.workDone();
     return pMessage;
   }
 
@@ -108,15 +113,17 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
     if (!next.isEmpty()) {
       return startProcessing(next.removeFirst());
     }
-    activeWorkers.remove(Thread.currentThread().getName());
+    // The worker has nothing left to do and becomes idle until the next message arrives.
+    workCounter.workDone();
     try {
       DssMessage message = queue.take();
-      // Mark the worker active before the message stops counting as pending. This keeps the work
-      // visible to the monitor while it moves from the queue to the worker.
-      activeWorkers.add(Thread.currentThread().getName());
+      // Mark the worker busy before the message stops counting. This keeps the work visible to the
+      // counter while it moves from the queue to the worker.
+      workCounter.workAdded();
       return startProcessing(message);
     } catch (InterruptedException e) {
-      activeWorkers.add(Thread.currentThread().getName());
+      // The worker still has to react to the interrupt.
+      workCounter.workAdded();
       throw e;
     }
   }
