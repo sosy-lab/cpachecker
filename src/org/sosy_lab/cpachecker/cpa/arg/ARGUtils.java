@@ -50,7 +50,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jspecify.annotations.NonNull;
-import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1274,27 +1273,33 @@ public class ARGUtils {
   /** Returns all possible paths from the given state to the root of the ARG. */
   public static Set<ARGPath> getAllPaths(final ReachedSet pReachedSet, final ARGState pStart) {
     ARGState root = AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
+    List<ARGState> states = new ArrayList<>();
     ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();
+    List<List<ARGState>> paths = new ArrayList<>();
 
-    // Each entry of the waitlist is a path that ends in pStart and starts at the state the search
-    // has walked back to so far. Prepending a parent keeps the old path intact and takes constant
-    // time, so two paths that continue through the same state hold that state once. Copying the
-    // path for every parent instead costs a quadratic number of entries in its length, which an
-    // ARG with merged states runs into because there a state has more than one parent.
-    Deque<PersistentLinkedList<ARGState>> waiting = new ArrayDeque<>();
-    waiting.push(PersistentLinkedList.of(pStart));
+    states.add(pStart);
+    paths.add(states);
 
     // This is assuming from each node there is a way to go to the start
     // Loop until all paths reached the root
-    while (!waiting.isEmpty()) {
-      PersistentLinkedList<ARGState> path = waiting.pop();
-      ARGState firstState = path.head();
-      if (firstState == root) {
-        results.add(new ARGPath(path));
-      } else {
-        for (ARGState parent : firstState.getParents()) {
-          waiting.push(path.with(parent));
-        }
+    while (!paths.isEmpty()) {
+      // Expand currently considered path
+      List<ARGState> curPath = paths.removeLast();
+      Preconditions.checkNotNull(curPath);
+      // If there is no more to expand - add this path and continue
+      if (curPath.getLast() == root) {
+        results.add(new ARGPath(curPath.reversed()));
+        continue;
+      }
+
+      // Add all parents of currently first state on the current path
+      for (ARGState parentElement : curPath.getLast().getParents()) {
+        ImmutableList.Builder<ARGState> tmp =
+            ImmutableList.builderWithExpectedSize(curPath.size() + 1);
+        tmp.addAll(curPath);
+
+        tmp.add(parentElement);
+        paths.add(tmp.build());
       }
     }
     return results.build();

@@ -60,7 +60,10 @@ public class DssDefaultQueueTest {
     sender.add(message);
 
     try (ExecutorService executor =
-        Executors.newThreadPerTaskExecutor(Thread.ofPlatform().factory())) {
+        Executors.newThreadPerTaskExecutor(
+            Thread.ofPlatform()
+                .name(DssDefaultQueueTest.class.getSimpleName() + "-", 0)
+                .factory())) {
       executor.execute(
           () -> {
             try {

@@ -136,6 +136,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
         final AtomicBoolean pResult,
         final Lock pMutex,
         final Semaphore pCoordinate) {
+      super("PartialReachedSetParallelStrategy.PartialChecker");
       startIndex = pStartIndex;
       certificate = pCertificate;
       initPrec = pInitPrec;
@@ -153,6 +154,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
         final AtomicBoolean pResult,
         final Lock pMutex,
         final Semaphore pCoordinate) {
+      super("PartialReachedSetParallelStrategy.PartialChecker");
       assert enableLoadDistribution;
       startIndex = 0;
       certificate = pCertificate;

@@ -232,53 +232,51 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       final AtomicBoolean checkResult = new AtomicBoolean(true);
       final Semaphore partitionsAvailable = new Semaphore(0);
 
-      Thread readerThread =
-          new Thread(
-              new Runnable() {
+      Runnable readerRunnable =
+          new Runnable() {
 
-                @Override
-                public void run() {
-                  try (ObjectInputStream o = openProofStream()) {
-                    o.readInt();
+            @Override
+            public void run() {
+              try (ObjectInputStream o = openProofStream()) {
+                o.readInt();
 
-                    Object readARG;
-                    for (int i = 0; i < roots.length && checkResult.get(); i++) {
-                      logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
-                      cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
-                      SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
-                      try {
-                        readARG = o.readObject();
-                      } finally {
-                        SerializationInfoStorage.clear();
-                      }
-                      if (!(readARG instanceof ARGState)) {
-                        abortPreparation();
-                      }
-
-                      roots[i] = (ARGState) readARG;
-
-                      if (shutdown.shouldShutdown()) {
-                        abortPreparation();
-                        break;
-                      }
-                      partitionsAvailable.release();
-                    }
-                  } catch (IOException | ClassNotFoundException e) {
-                    logger.logUserException(
-                        Level.SEVERE, e, "Partition reading failed. Stop checking");
-                    abortPreparation();
-                  } catch (Exception e2) {
-                    logger.logException(
-                        Level.SEVERE, e2, "Unexpected failure during proof reading");
+                Object readARG;
+                for (int i = 0; i < roots.length && checkResult.get(); i++) {
+                  logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
+                  cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
+                  SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+                  try {
+                    readARG = o.readObject();
+                  } finally {
+                    SerializationInfoStorage.clear();
+                  }
+                  if (!(readARG instanceof ARGState)) {
                     abortPreparation();
                   }
-                }
 
-                private void abortPreparation() {
-                  checkResult.set(false);
+                  roots[i] = (ARGState) readARG;
+
+                  if (shutdown.shouldShutdown()) {
+                    abortPreparation();
+                    break;
+                  }
                   partitionsAvailable.release();
                 }
-              });
+              } catch (IOException | ClassNotFoundException e) {
+                logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
+                abortPreparation();
+              } catch (Exception e2) {
+                logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
+                abortPreparation();
+              }
+            }
+
+            private void abortPreparation() {
+              checkResult.set(false);
+              partitionsAvailable.release();
+            }
+          };
+      Thread readerThread = Thread.ofPlatform().name("ARG_CMCStrategy").unstarted(readerRunnable);
 
       try {
         if (proofKnown) {
