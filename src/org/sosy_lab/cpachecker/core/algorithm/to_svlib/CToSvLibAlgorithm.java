@@ -308,7 +308,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     ImmutableList.Builder<SvLibCommand> commandsCollector = ImmutableList.builder();
     commandsCollector.add(
         new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
-        new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
+        new SvLibSetInfoCommand(":format-version", "\"1.0\"", FileLocation.DUMMY),
         new SvLibSetInfoCommand(":source", getNameOfSourceFile(), FileLocation.DUMMY),
         new SvLibSetInfoCommand(":producer", "CPAchecker", FileLocation.DUMMY));
 
