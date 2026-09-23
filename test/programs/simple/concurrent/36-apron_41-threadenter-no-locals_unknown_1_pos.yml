@@ -18,7 +18,6 @@ properties:
     expected_verdict: false
   - property_file: ../../../config/properties/no-data-race.prp
     expected_verdict: true
-  - property_file: ../../../config/properties/coverage-branches.prp
 
 options:
   language: C
