@@ -292,7 +292,7 @@ public class BlockState
    * <p>This is what lets the predicate analysis merge inside a block. Without it, a block with
    * <em>n</em> decisions keeps one state per path through it, because the composite CPA merges two
    * states only if every component agrees, and a component that never agrees vetoes the merge of
-   * all the others (see {@link org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeOperator}).
+   * all the others.
    *
    * <p>Only {@link BlockStateType#MID interior} states qualify. The algorithm resolves an
    * abstraction state to the block-end state it was spawned from, and a block-end state to the

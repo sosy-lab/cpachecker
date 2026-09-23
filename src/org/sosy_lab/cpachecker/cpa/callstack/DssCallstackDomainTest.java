@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.junit.Before;
 import org.junit.Test;
@@ -107,7 +108,7 @@ public class DssCallstackDomainTest {
     AbstractState unknown = new DssCallstackState(stack, true);
     assertThat(
             cpa.getStopOperator()
-                .stop(state, java.util.List.of(unknown), SingletonPrecision.getInstance()))
+                .stop(state, ImmutableList.of(unknown), SingletonPrecision.getInstance()))
         .isFalse();
     assertThat(cpa.isCoveredBy(state, unknown)).isFalse();
     assertThat(cpa.isCoveredByRecursiveState(state, unknown)).isFalse();

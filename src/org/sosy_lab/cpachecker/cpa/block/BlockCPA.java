@@ -69,10 +69,8 @@ public class BlockCPA extends AbstractCPA {
    * reached state unchanged.
    *
    * <p>Whether the merge actually happens is not decided here. The composite CPA merges only if
-   * every component agrees (see {@link
-   * org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeOperator}), so the predicate analysis
-   * still decides whether two states at this location are merged at all; this operator only stops
-   * the block CPA from vetoing that decision.
+   * every component agrees, so the predicate analysis still decides whether two states at this
+   * location are merged at all; this operator only stops the block CPA from vetoing that decision.
    */
   private static final class BlockStateMergeOperator implements MergeOperator {
 

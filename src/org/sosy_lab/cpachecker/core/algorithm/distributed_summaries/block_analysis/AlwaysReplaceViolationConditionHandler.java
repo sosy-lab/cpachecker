@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -83,7 +83,7 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
 
   @Override
   public ImmutableList<AbstractState> statesOf(Optional<String> pSenderId) {
-    checkState(pSenderId.isEmpty());
+    checkArgument(pSenderId.isEmpty());
     return ImmutableList.copyOf(conditions.getStates());
   }
 
