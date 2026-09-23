@@ -8,12 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
@@ -72,22 +69,11 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
   }
 
   @Override
-  public boolean isEmpty() {
-    return conditions.getStates().isEmpty();
-  }
-
-  @Override
-  public boolean isEmptyFor(String pSenderId) {
-    return conditions.isEmpty(pSenderId);
-  }
-
-  @Override
-  public ImmutableList<AbstractState> statesOf(Optional<String> pSenderId) {
-    checkArgument(pSenderId.isEmpty());
+  public ImmutableList<AbstractState> states() {
     return ImmutableList.copyOf(conditions.getStates());
   }
 
-  public BlockToProgramLocationMap getConditions() {
+  BlockToProgramLocationMap getConditions() {
     return conditions;
   }
 }

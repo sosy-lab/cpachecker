@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
@@ -24,7 +23,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
@@ -64,7 +62,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
 
     if (result.getAllViolations().isEmpty()) {
       // The initial run publishes only the violations that originate inside the block. Its
-      // postcondition stays unpublished, matching explore(Optional), which explores nothing as
+      // postcondition stays unpublished, matching explore(boolean), which explores nothing as
       // long as no violation condition is known.
       return AnalysisResult.empty();
     }
@@ -77,24 +75,20 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
    * a time, and merges what the individual rounds found.
    */
   @Override
-  public AnalysisResult explore(Optional<String> pViolationConditionSender)
+  public AnalysisResult explore(boolean pViolationConditionsChanged)
       throws CPAException, InterruptedException {
-    pViolationConditionSender.ifPresent(
-        sender ->
-            checkArgument(
-                !violationConditions.isEmptyFor(sender),
-                "No violation condition found for sender ID: %s",
-                sender));
     BlockToProgramLocationMap preconditions = preconditionHandler.getPreconditions();
-    if (pViolationConditionSender.isEmpty() && preconditions.isUnreachable()) {
-      // every predecessor reported an unreachable block end, so this block cannot be entered
+    if (!pViolationConditionsChanged && preconditions.isUnreachable()) {
+      // every predecessor reported an unreachable block end, so this block cannot be entered.
+      // A new violation condition still explores the block, so that the successor asking about it
+      // learns about violations reachable from the unconstrained start state.
       return AnalysisResult.unreachableBlockEnd();
     }
     ImmutableListMultimap<Object, AbstractState> conditionsPerLocation;
     if (analysis.getOptions().callStackStateRequiresStateReset()) {
       conditionsPerLocation =
           ImmutableListMultimap.<Object, AbstractState>builder()
-              .putAll(0, violationConditions.statesOf(Optional.empty()))
+              .putAll(0, violationConditions.states())
               .build();
     } else {
       // Violation conditions are grouped by program point exactly like preconditions are. Because a
@@ -105,7 +99,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       // by all of them, so the contexts have to be kept apart by exploring per group instead.
       conditionsPerLocation =
           Multimaps.index(
-              violationConditions.statesOf(Optional.empty()),
+              violationConditions.states(),
               condition -> analysis.getDcpa().computeProgramPointId(condition));
     }
 
@@ -184,7 +178,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       AnalysisResult topExploration =
           exploreFrom(
               ImmutableSet.of(analysis.makeStartState(true)),
-              violationConditions.statesOf(Optional.empty()),
+              violationConditions.states(),
               precisionOfAnalysis,
               true);
       Preconditions.checkState(topExploration.summaries().isEmpty());

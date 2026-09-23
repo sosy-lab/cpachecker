@@ -15,7 +15,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -95,11 +94,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   /** Whether a stored postcondition still owes an exploration, see {@link #processMessage}. */
   private boolean preconditionsPending;
 
-  /**
-   * A successor whose stored violation conditions still owe an exploration, or {@code null} if none
-   * does, see {@link #processMessage}.
-   */
-  private @Nullable String pendingViolationConditionSender;
+  /** Whether stored violation conditions still owe an exploration, see {@link #processMessage}. */
+  private boolean violationConditionsPending;
 
   /**
    * {@link DssAnalysisWorker}s trigger forward and backward analyses to find a verification
@@ -189,26 +185,24 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   }
 
   private boolean isAnalysisPending() {
-    return preconditionsPending || pendingViolationConditionSender != null;
+    return preconditionsPending || violationConditionsPending;
   }
 
   /**
    * Runs the exploration that the stored messages owe.
    *
    * <p>A single exploration covers both kinds of update, because it reads everything the two
-   * handlers hold rather than only what the message that triggered it brought. The backward variant
-   * is preferred when a violation condition is owed: it is the one that still explores a block all
-   * of whose predecessors reported an unreachable block end, which is exactly what a successor
-   * asking about that block needs.
+   * handlers hold rather than only what the message that triggered it brought. It only has to know
+   * whether a violation condition is owed: then it still explores a block all of whose predecessors
+   * reported an unreachable block end, which is exactly what a successor asking about that block
+   * needs.
    */
   private Collection<DssMessage> analyzePending()
       throws CPAException, InterruptedException, SolverException {
-    String violationConditionSender = pendingViolationConditionSender;
+    boolean violationConditionsChanged = violationConditionsPending;
     preconditionsPending = false;
-    pendingViolationConditionSender = null;
-    return violationConditionSender == null
-        ? analysis.getDssBlockAnalysis().analyzePreconditions()
-        : analysis.getDssBlockAnalysis().analyzeViolationConditions(violationConditionSender);
+    violationConditionsPending = false;
+    return analysis.getDssBlockAnalysis().analyze(violationConditionsChanged);
   }
 
   private Collection<DssMessage> store(DssMessage message) {
@@ -235,7 +229,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          pendingViolationConditionSender = message.getSenderId();
+          violationConditionsPending = true;
           yield ImmutableSet.of();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));

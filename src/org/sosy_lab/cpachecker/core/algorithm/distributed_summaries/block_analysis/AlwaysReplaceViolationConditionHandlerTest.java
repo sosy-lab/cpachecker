@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -99,12 +98,12 @@ public class AlwaysReplaceViolationConditionHandlerTest {
 
     assertThat(handler.store(messageAX).shouldProceed()).isTrue();
     assertThat(handler.store(messageBX).shouldProceed()).isFalse();
-    assertThat(handler.statesOf(Optional.empty())).containsExactly(conditionX);
+    assertThat(handler.states()).containsExactly(conditionX);
     assertThat(handler.store(messageAY).shouldProceed()).isTrue();
 
-    assertThat(handler.statesOf(Optional.of(senderA))).containsExactly(conditionY);
-    assertThat(handler.statesOf(Optional.of(senderB))).containsExactly(conditionX);
-    assertThat(handler.statesOf(Optional.empty())).containsExactly(conditionY, conditionX);
+    assertThat(handler.getConditions().getStatesForKey(senderA)).containsExactly(conditionY);
+    assertThat(handler.getConditions().getStatesForKey(senderB)).containsExactly(conditionX);
+    assertThat(handler.states()).containsExactly(conditionY, conditionX);
     assertThat(handler.store(messageBX).shouldProceed()).isFalse();
   }
 }

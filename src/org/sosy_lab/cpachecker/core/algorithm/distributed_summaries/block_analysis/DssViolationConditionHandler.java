@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -21,8 +20,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * received condition adds nothing new.
  *
  * <p>A handler only keeps track of what arrived. Exploring the block under what it holds is the job
- * of a {@link DssExplorationEngine}, which asks for the conditions through {@link
- * #statesOf(Optional)}.
+ * of a {@link DssExplorationEngine}, which asks for the conditions through {@link #states()}.
  *
  * @see AlwaysReplaceViolationConditionHandler
  */
@@ -36,15 +34,6 @@ interface DssViolationConditionHandler {
   DssMessageProcessing store(DssViolationConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException;
 
-  /** Whether no violation condition is known at all. */
-  boolean isEmpty();
-
-  /** Whether no violation condition of the given block is known. */
-  boolean isEmptyFor(String pSenderId);
-
-  /**
-   * The conditions to explore the block under: those received from one specific block, or all known
-   * ones if no block is given.
-   */
-  ImmutableList<AbstractState> statesOf(Optional<String> pSenderId);
+  /** All known violation conditions, i.e., the conditions to explore the block under. */
+  ImmutableList<AbstractState> states();
 }

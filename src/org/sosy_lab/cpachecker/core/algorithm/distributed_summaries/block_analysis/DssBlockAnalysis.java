@@ -260,16 +260,6 @@ public final class DssBlockAnalysis {
   }
 
   /**
-   * Re-explores the block after {@link #storePrecondition} asked the analysis to proceed.
-   *
-   * @return All violations and/or abstractions that occurred while running the forward analysis.
-   */
-  public Collection<DssMessage> analyzePreconditions()
-      throws SolverException, InterruptedException, CPAException {
-    return messagesFor(engine.explore(Optional.empty()));
-  }
-
-  /**
    * Adds new abstract states to the known violation conditions.
    *
    * @param pReceived The new violation conditions to add.
@@ -277,22 +267,21 @@ public final class DssBlockAnalysis {
    */
   public DssMessageProcessing storeViolationCondition(DssViolationConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    DssMessageProcessing processing = violationConditionHandler.store(pReceived);
-    if (processing.shouldProceed()) {
-      preconditions.violationConditionsChanged();
-    }
-    return processing;
+    return violationConditionHandler.store(pReceived);
   }
 
   /**
-   * Analyzes the violation conditions received from the given block.
+   * Re-explores the block after {@link #storePrecondition} or {@link #storeViolationCondition}
+   * asked the analysis to proceed. The exploration always reads everything the handlers hold, not
+   * only what the triggering messages brought.
    *
-   * @param pSenderId Sender ID of the violation-condition message to analyze.
-   * @return The messages resulting from the analysis of the violation condition.
+   * @param pViolationConditionsChanged whether {@link #storeViolationCondition} asked to proceed
+   *     since the last exploration
+   * @return All violations and/or abstractions that occurred while exploring the block.
    */
-  public Collection<DssMessage> analyzeViolationConditions(String pSenderId)
+  public Collection<DssMessage> analyze(boolean pViolationConditionsChanged)
       throws SolverException, InterruptedException, CPAException {
-    return messagesFor(engine.explore(Optional.of(pSenderId)));
+    return messagesFor(engine.explore(pViolationConditionsChanged));
   }
 
   /**

@@ -117,11 +117,6 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     return preconditions.getStatesAndPrecisions();
   }
 
-  @Override
-  public void violationConditionsChanged() {
-    // nothing to do, the block is always explored from all known preconditions
-  }
-
   /**
    * The stored preconditions, grouped by sending block and program point, for the {@link
    * AlwaysReplaceExplorationEngine} that explores them.
