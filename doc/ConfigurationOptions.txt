@@ -2062,9 +2062,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# ignore the callstack and do not track it this heavily over-approximates.
-cpa.callstack.ignoreTransfer = false
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -4649,6 +4646,13 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Which block analysis to use for the distributed summaries algorithm
+distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
+  enum:     [ALWAYS_REPLACE]
+
+# Whether to combine preconditions at same program location
+distributedSummaries.combinePresByHash = false
+
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true
 
@@ -4656,6 +4660,13 @@ distributedSummaries.combineVcsByHash = true
 # output for debugging and exports additional metadata.Creating this
 # information consumes resources and should not be used for benchmarks.
 distributedSummaries.debug = false
+
+# Whether the messages of a debug run carry every predicate formula a second
+# time in the notation of the solver. That notation is not the one the
+# message is built from, so it has to be rendered separately, which costs
+# more than the whole rest of a block analysis. Has no effect unless debug
+# mode is enabled.
+distributedSummaries.debug.readableFormulas = false
 
 # Abstraction nodes are added to each block after they are created. They are
 # needed to strengthen the preconditions of blocks. Missing blocks make the
@@ -4703,10 +4714,9 @@ distributedSummaries.logging.reportFiles = "block_analysis/messages"
 # Print per-block statistics in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
 
-# Whether to reset the precision for each run of the analysis or to keep the
-# transmitted one. The latter has disadvantages as unnecessary variables
-# might be tracked due to a too precise precision.
-distributedSummaries.resetPrecisionForEveryRun = false
+# Whether to reset callstack state before running a block analysis; usually
+# used together with the inlining decomposition
+distributedSummaries.resetCallstackState = false
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4732,6 +4742,13 @@ distributedSummaries.singleWorker.outputMessages = "messages/"
 # Whether to spawn a worker for only one block id
 distributedSummaries.singleWorker.spawnWorkerForId = ""
 
+# Whether to decide equality of violation conditions by their representation
+# instead of asking the solver. A violation condition is built from the edges
+# of a path, so the same path yields the same formula. Deciding it this way
+# spares an implication query per compared pair, but tells equivalent
+# conditions that are written differently apart.
+distributedSummaries.syntacticVcEquality = false
+
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
 
@@ -4739,10 +4756,19 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
+# Level of the per-worker logfiles. The block analyses log their SMT formulas
+# at ALL, and rendering a formula as a string is expensive enough to dominate
+# the runtime of a block analysis, so set this to ALL only when those
+# formulas are what you are looking for.
+distributedSummaries.worker.logLevel = Level.FINE
+
 # The path to which the different versions of the correctness witnesses will
 # be exported. Each witness version replaces the string '%s' with its version
 # number.
 distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
+
+# Whether to query the SMT solver before proceeding backwards.
+dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

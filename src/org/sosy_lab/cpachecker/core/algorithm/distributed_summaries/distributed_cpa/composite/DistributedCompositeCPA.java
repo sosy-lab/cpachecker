@@ -282,16 +282,16 @@ public class DistributedCompositeCPA
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
+  public Object computeProgramPointId(AbstractState pAbstractState) {
     CompositeState composite = (CompositeState) pAbstractState;
     Preconditions.checkArgument(composite.getWrappedStates().size() == wrappedCpas.size());
-    int hash = 0;
+    ImmutableList.Builder<Object> programPoint = ImmutableList.builder();
     for (CpaAndState cpaAndState : zip(wrappedCpas, composite)) {
       if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
         Preconditions.checkState(dcpa.doesOperateOn(cpaAndState.state().getClass()));
-        hash = 31 * hash + dcpa.computeProgramPointHash(cpaAndState.state());
+        programPoint.add(dcpa.computeProgramPointId(cpaAndState.state()));
       }
     }
-    return hash;
+    return programPoint.build();
   }
 }

@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
@@ -41,7 +41,7 @@ public class DistributedCompositeCPATest {
             .createInstance();
 
     ConfigurableProgramAnalysis cpa2 =
-        CallstackCPA.factory()
+        DssCallstackCPA.factory()
             .setConfiguration(config)
             .setLogger(LogManager.createTestLogManager())
             .setShutdownNotifier(ShutdownNotifier.createDummy())
