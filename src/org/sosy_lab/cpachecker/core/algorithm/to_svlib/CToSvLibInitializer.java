@@ -859,11 +859,12 @@ class CToSvLibInitializer {
     ImmutableList.Builder<SvLibParsingParameterDeclaration> returnParameterCollector =
         ImmutableList.builder();
     if (!(pReturnType.getCanonicalType() instanceof CVoidType)) {
+      SvLibType returnType = convertToSvLibSmtLibType(getTypeOfParameter(pReturnType));
       returnParameterCollector.add(
           new SvLibParsingParameterDeclaration(
               FileLocation.DUMMY,
-              convertToSvLibSmtLibType(getTypeOfParameter(pReturnType)),
-              "__retval__",
+              returnType,
+              CToSvLibTransformationConstants.returnValueName(returnType),
               pFunctionName));
     }
     SvLibProcedureDeclaration procedureDeclarationForUndeclaredFunction =
