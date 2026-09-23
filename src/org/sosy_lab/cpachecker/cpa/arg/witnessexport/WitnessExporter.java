@@ -71,7 +71,7 @@ public class WitnessExporter {
           try {
             expressionTree =
                 etrs.getFormulaApproximationAllVariablesInFunctionScope(
-                    cfa.getFunctionHead(functionName), pEdge.getSuccessor());
+                    cfa.getFunctionHead(functionName), pEdge.getSuccessor(), cfa.getMachineModel());
           } catch (TranslationToExpressionTreeFailedException e) {
             // Keep consistency with the previous implementation
             expressionTree = ExpressionTrees.getTrue();

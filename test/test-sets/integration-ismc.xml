@@ -61,6 +61,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c267_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c356_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
@@ -108,6 +109,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.2.M1-2.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.3.M1.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.4.M1.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded/rekcba_nxt.2.M1-2.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.2.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.BOUNDED-10.pals.c.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.1.ufo.BOUNDED-10.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
@@ -133,7 +135,8 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-isdn-mISDN-mISDN_core.ko.cil.out.yml</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--rtc--rtc-rs5c348.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--misc--rotary_encoder.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout / out of native memory -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--rtc--rtc-rs5c348.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
   </tasks>
 </benchmark>

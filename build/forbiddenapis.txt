@@ -21,6 +21,20 @@ java.lang.InternalError @ This refers to JVM-internal errors, throw AssertionErr
 java.lang.Throwable#printStackTrace() @ We do not want raw output on stderr, use proper logging (cf. doc/Logging.md)
 java.nio.file.Paths @ use Path.of() instead (can be applied automatically with Refaster)
 
+@defaultMessage relying on time periods is usually brittle and introduces unwanted delays
+java.lang.Object#wait(long)
+java.lang.Object#wait(long, int)
+java.lang.Thread#join(java.time.Duration)
+java.lang.Thread#join(long)
+java.lang.Thread#join(long, int)
+java.lang.Thread#sleep(**)
+java.util.concurrent.Future#get(long, java.util.concurrent.TimeUnit)
+java.util.concurrent.TimeUnit.sleep(**)
+java.util.concurrent.TimeUnit.timedJoin(**)
+java.util.concurrent.TimeUnit.timedWait(**)
+java.util.concurrent.locks.LockSupport.parkNanos(**)
+java.util.concurrent.locks.LockSupport.parkUntil(**)
+
 @defaultMessage CPAchecker should be deterministic, use Random with constant seed
 java.lang.Math#random()
 java.util.Collections#shuffle(java.util.List)

@@ -25,6 +25,11 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">counterexample.export.graphml=witness.graphml</option>
   <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
 
+  <tasks name="simple">
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+
   <tasks name="C.valid-memcleanup.Main">
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <includesfile>../programs/benchmarks/Juliet.set</includesfile>
