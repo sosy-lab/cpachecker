@@ -14,16 +14,13 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -32,8 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -74,8 +69,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 public record SeqThreadStatementBuilder(
@@ -118,8 +111,7 @@ public record SeqThreadStatementBuilder(
       new CFunctionCallStatement(FileLocation.DUMMY, REACH_ERROR_FUNCTION_CALL_EXPRESSION);
 
   public ImmutableList<SeqThreadStatement> buildStatementsFromThreadNode(
-      CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes)
-      throws UnrecognizedCodeException {
+      CFANodeForThread pThreadNode) throws UnrecognizedCodeException {
 
     if (!pThreadNode.leavingEdges().isEmpty()) {
       if (SeqThreadStatementUtil.isFunctionExitOrTerminationNode(pThreadNode.getCfaNode())) {
@@ -136,255 +128,15 @@ public record SeqThreadStatementBuilder(
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
     for (CFAEdgeForThread threadEdge : pThreadNode.leavingEdges()) {
-      // handle const CPAchecker_TMP first because it requires successor nodes and edges
-      if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
-        rStatements.add(buildConstCpaCheckerTmpStatement(threadEdge, pCoveredNodes));
-
-      } else if (MPORUtil.isCpaCheckerTmpDeclarationWithoutInitializer(threadEdge.cfaEdge)) {
-        rStatements.add(buildCpaCheckerTmpWithoutInitializerStatement(threadEdge));
-
-      } else {
-        // exclude all function summaries, the calling context is handled by return edges
-        if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
-          if (substituteEdges.containsKey(threadEdge)) {
-            SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
-            rStatements.add(buildStatementFromThreadEdge(threadEdge, substitute));
-          }
+      // exclude all function summaries, the calling context is handled by return edges
+      if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
+        if (substituteEdges.containsKey(threadEdge)) {
+          SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
+          rStatements.add(buildStatementFromThreadEdge(threadEdge, substitute));
         }
       }
     }
     return rStatements.build();
-  }
-
-  // const CPAchecker_TMP ==========================================================================
-
-  private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes)
-      throws UnsupportedCodeException {
-
-    SubstituteEdge constCpaCheckerTmpEdge =
-        Objects.requireNonNull(substituteEdges.get(pThreadEdge));
-
-    // ensure there are two single successors that are both statement edges
-    CFANodeForThread firstSuccessor = pThreadEdge.getSuccessor();
-    pCoveredNodes.add(firstSuccessor);
-    // const CPAchecker_TMP declarations can have only 1 successor edge
-    CFAEdgeForThread firstSuccessorEdge = Iterables.getOnlyElement(firstSuccessor.leavingEdges());
-    checkState(
-        firstSuccessorEdge.cfaEdge instanceof CStatementEdge,
-        "Expected CStatementEdge as successor edge of const CPAchecker_TMP declaration, got %s",
-        firstSuccessorEdge.cfaEdge);
-
-    CFANodeForThread secondSuccessor = firstSuccessorEdge.getSuccessor();
-    checkState(!secondSuccessor.leavingEdges().isEmpty());
-    // multiple leaving edges are possible e.g. if an increment is followed by a function call:
-    // var++; function();
-    if (secondSuccessor.leavingEdges().size() > 1) {
-      checkState(secondSuccessor.leavingEdges().size() == 2);
-      checkState(secondSuccessor.leavingEdges().getFirst().cfaEdge instanceof CFunctionSummaryEdge);
-      checkState(secondSuccessor.leavingEdges().getLast().cfaEdge instanceof CFunctionCallEdge);
-      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
-    }
-
-    CFAEdgeForThread secondSuccessorEdge = Iterables.getOnlyElement(secondSuccessor.leavingEdges());
-    // the second successor edge can be blank if an increment is followed by a function return:
-    // function(int number) { number++; }
-    if (secondSuccessorEdge.cfaEdge instanceof BlankEdge) {
-      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
-    }
-
-    CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
-    // there are programs where a const CPAchecker_TMP statement has only two parts.
-    // in the tested programs, this only happened when the statement was followed by a function call
-    if (secondSuccessorStatement.getStatement() instanceof CFunctionCallStatement) {
-      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
-    } else {
-      // cover second successor only when it is a three part const CPAchecker_TMP statement
-      pCoveredNodes.add(secondSuccessor);
-      CExpressionStatement expressionStatement =
-          (CExpressionStatement) secondSuccessorStatement.getStatement();
-      checkState(expressionStatement.getExpression() instanceof CIdExpression);
-      return buildThreePartConstCpaCheckerTmpStatement(
-          constCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge);
-    }
-  }
-
-  private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge, CFAEdgeForThread pSuccessorEdge)
-      throws UnsupportedCodeException {
-
-    // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-    SubstituteEdge substituteEdgeA = Objects.requireNonNull(substituteEdges.get(pSuccessorEdge));
-    int newTargetPc = pSuccessorEdge.getSuccessor().pc;
-
-    return buildConstCpaCheckerTmpStatement(
-        pConstCpaCheckerTmpEdge,
-        substituteEdgeA,
-        Optional.empty(),
-        ImmutableSet.of(pConstCpaCheckerTmpEdge, substituteEdgeA),
-        newTargetPc);
-  }
-
-  private SeqThreadStatement buildThreePartConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge,
-      CFAEdgeForThread pFirstSuccessorEdge,
-      CFAEdgeForThread pSecondSuccessorEdge)
-      throws UnsupportedCodeException {
-
-    // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-    SubstituteEdge firstSuccessorEdge =
-        Objects.requireNonNull(substituteEdges.get(pFirstSuccessorEdge));
-    SubstituteEdge secondSuccessorEdge =
-        Objects.requireNonNull(substituteEdges.get(pSecondSuccessorEdge));
-    int newTargetPc = pSecondSuccessorEdge.getSuccessor().pc;
-
-    return buildConstCpaCheckerTmpStatement(
-        pConstCpaCheckerTmpEdge,
-        firstSuccessorEdge,
-        Optional.of(secondSuccessorEdge),
-        ImmutableSet.of(pConstCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge),
-        newTargetPc);
-  }
-
-  private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge,
-      SubstituteEdge pFirstSuccessorEdge,
-      Optional<SubstituteEdge> pSecondSuccessorEdge,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pNewTargetPc)
-      throws UnsupportedCodeException {
-
-    SeqThreadStatementData data =
-        new SeqThreadStatementData(
-            SeqThreadStatementType.CONST_CPACHECKER_TMP,
-            pSubstituteEdges,
-            thread.id(),
-            pcLeftHandSide);
-
-    // ensure that the declaration is a CVariableDeclaration and cast accordingly
-    CDeclarationEdge declarationEdge = (CDeclarationEdge) pConstCpaCheckerTmpEdge.cfaEdge;
-    CVariableDeclaration variableDeclaration =
-        (CVariableDeclaration) declarationEdge.getDeclaration();
-
-    checkConstCpaCheckerTmpArguments(
-        variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
-
-    ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-
-    CExpressionAssignmentStatement assignmentStatement =
-        buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration);
-    exportStatements.add(new CStatementWrapper(assignmentStatement));
-    exportStatements.add(
-        new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
-
-    if (pSecondSuccessorEdge.isPresent()) {
-      exportStatements.add(
-          new CStatementWrapper(
-              ((CStatementEdge) pSecondSuccessorEdge.orElseThrow().cfaEdge).getStatement()));
-    }
-    return SeqThreadStatement.of(data, pNewTargetPc, exportStatements.build());
-  }
-
-  private void checkConstCpaCheckerTmpArguments(
-      CVariableDeclaration pVariableDeclaration,
-      SubstituteEdge pFirstSuccessorEdge,
-      Optional<SubstituteEdge> pSecondSuccessorEdge)
-      throws UnsupportedCodeException {
-
-    checkArgument(
-        MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration),
-        "pDeclaration must declare a const __CPAchecker_TMP variable");
-    checkArgument(
-        pFirstSuccessorEdge.cfaEdge instanceof CStatementEdge,
-        "pFirstSuccessorEdge.cfaEdge must be CStatementEdge");
-    if (pSecondSuccessorEdge.isPresent()) {
-      checkArgument(
-          pSecondSuccessorEdge.orElseThrow().cfaEdge instanceof CStatementEdge,
-          "pSecondSuccessorEdge.cfaEdge must be CStatementEdge");
-
-      CStatement secondStatement =
-          ((CStatementEdge) pSecondSuccessorEdge.orElseThrow().cfaEdge).getStatement();
-      if (secondStatement instanceof CExpressionStatement secondExpressionStatement) {
-        CIdExpression secondIdExpression =
-            getIdExpressionFromSecondSuccessor(secondExpressionStatement.getExpression());
-        CSimpleDeclaration secondDeclaration = secondIdExpression.getDeclaration();
-        checkArgument(
-            pVariableDeclaration.equals(secondDeclaration),
-            "pDeclaration and pSecondSuccessorEdge must use the same __CPAchecker_TMP variable when"
-                + " pSecondSuccessorEdge is a CExpressionStatement");
-
-      } else if (secondStatement instanceof CExpressionAssignmentStatement secondAssignment) {
-        CStatement firstStatement = ((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement();
-        checkArgument(
-            firstStatement instanceof CExpressionAssignmentStatement,
-            "pFirstSuccessorEdge must be CExpressionAssignmentStatement when pSecondSuccessorEdge"
-                + " is a CExpressionAssignmentStatement");
-        CExpressionAssignmentStatement firstAssignment =
-            (CExpressionAssignmentStatement) firstStatement;
-        if (pVariableDeclaration.getInitializer()
-            instanceof CInitializerExpression initializerExpression) {
-          if (initializerExpression.getExpression().equals(firstAssignment.getLeftHandSide())) {
-            if (secondAssignment.getRightHandSide() instanceof CIdExpression secondIdExpression) {
-              // this happens e.g. in weaver/parallel-ticket-6.wvr.c
-              // _Atomic int CPA_TMP_0 = t; t = t + 1; m1 = CPA_TMP_0;
-              // we want to ensure that the declaration is equal to the RHS in the last statement
-              checkArgument(
-                  pVariableDeclaration.equals(secondIdExpression.getDeclaration()),
-                  "pVariableDeclaration must equal pSecondSuccessorEdge RHS");
-              return;
-            }
-          }
-        }
-        // this happens e.g. in ldv-races/race-2_2-container_of:
-        // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
-        // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
-        checkArgument(
-            firstAssignment.getLeftHandSide().equals(secondAssignment.getRightHandSide()),
-            "pFirstSuccessorEdge LHS must equal pSecondSuccessorEdge RHS when pSecondSuccessorEdge"
-                + " is a CExpressionAssignmentStatement");
-      }
-    }
-  }
-
-  private CIdExpression getIdExpressionFromSecondSuccessor(CExpression pExpression)
-      throws UnsupportedCodeException {
-
-    if (pExpression instanceof CIdExpression idExpression) {
-      return idExpression;
-    } else if (pExpression instanceof CPointerExpression pointerExpression) {
-      if (pointerExpression.getOperand() instanceof CIdExpression idExpression) {
-        return idExpression;
-      }
-    }
-    throw new UnsupportedCodeException(
-        String.format(
-            "pExpression must be either CIdExpression or CPointerExpression %s",
-            pExpression.toASTString()),
-        null);
-  }
-
-  // CPAchecker_TMP without initializer ============================================================
-
-  private SeqThreadStatement buildCpaCheckerTmpWithoutInitializerStatement(
-      CFAEdgeForThread pThreadEdge) {
-
-    SubstituteEdge cpaCheckerTmpEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
-    CDeclarationEdge declarationEdge = (CDeclarationEdge) cpaCheckerTmpEdge.cfaEdge;
-    CVariableDeclaration variableDeclaration =
-        (CVariableDeclaration) declarationEdge.getDeclaration();
-    CIdExpression idExpression = new CIdExpression(FileLocation.DUMMY, variableDeclaration);
-    CExpressionStatementWrapper exportStatement =
-        new CExpressionStatementWrapper(new CExpressionWrapper(idExpression));
-
-    SeqThreadStatementData data =
-        new SeqThreadStatementData(
-            SeqThreadStatementType.CPACHECKER_TMP_WITHOUT_INITIALIZER,
-            ImmutableSet.of(cpaCheckerTmpEdge),
-            thread.id(),
-            pcLeftHandSide);
-
-    return SeqThreadStatement.of(
-        data, pThreadEdge.getSuccessor().pc, ImmutableList.of(exportStatement));
   }
 
   // Statement build methods =======================================================================
