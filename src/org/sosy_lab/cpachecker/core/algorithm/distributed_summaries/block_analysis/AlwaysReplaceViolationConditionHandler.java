@@ -75,9 +75,7 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       boolean conditionSetUnchanged =
           analysis.violationConditionsEqual(updatedConditionsToExplore, conditionsToExplore);
       conditionsToExplore = updatedConditionsToExplore;
-      return conditionSetUnchanged
-          ? DssMessageProcessing.stop()
-          : DssMessageProcessing.proceed();
+      return conditionSetUnchanged ? DssMessageProcessing.stop() : DssMessageProcessing.proceed();
     } finally {
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());

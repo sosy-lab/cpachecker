@@ -531,14 +531,17 @@ public final class DssBlockAnalysis {
       Collection<@NonNull StateAndPrecision> pStates1,
       Collection<@NonNull StateAndPrecision> pStates2)
       throws CPAException, InterruptedException {
-    return statesEqual(pStates1, pStates2, true);
+    return statesEqual(pStates1, pStates2, options.useSyntacticViolationConditionEquality());
   }
 
   /** Like {@link #deduplicateStatesAndPrecisions} for violation conditions. */
   ImmutableList<StateAndPrecision> deduplicateViolationConditions(
       Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
       throws CPAException, InterruptedException {
-    return deduplicate(pStatesAndPrecisions, StateAndPrecision::state, true);
+    return deduplicate(
+        pStatesAndPrecisions,
+        StateAndPrecision::state,
+        options.useSyntacticViolationConditionEquality());
   }
 
   private boolean statesEqual(

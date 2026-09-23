@@ -4746,6 +4746,13 @@ distributedSummaries.singleWorker.outputMessages = "messages/"
 # Whether to spawn a worker for only one block id
 distributedSummaries.singleWorker.spawnWorkerForId = ""
 
+# Whether to decide equality of violation conditions by their representation
+# instead of asking the solver. A violation condition is built from the edges
+# of a path, so the same path yields the same formula. Deciding it this way
+# spares an implication query per compared pair, but tells equivalent
+# conditions that are written differently apart.
+distributedSummaries.syntacticVcEquality = false
+
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
 
