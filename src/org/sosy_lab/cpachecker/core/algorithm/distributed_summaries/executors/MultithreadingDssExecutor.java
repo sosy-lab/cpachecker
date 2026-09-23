@@ -120,14 +120,10 @@ public class MultithreadingDssExecutor implements DssExecutor {
           ImmutableList.builderWithExpectedSize(actors.getActors().size());
       for (DssActor worker :
           Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
-        Thread thread = new Thread(worker, worker.getId());
+        Thread thread = Thread.ofPlatform().daemon().name(worker.getId()).start(worker);
         threadsBuilder.add(thread);
         monitoredConnections.add(worker.getConnection());
-        thread.setDaemon(true);
-        // A worker may wait for a solver or a lock before it ever reads its queue. Count it as
-        // active from the start so the monitor does not mistake that wait for a finished analysis.
         activeWorkers.add(thread.getName());
-        thread.start();
       }
 
       ImmutableList<Thread> threads = threadsBuilder.build();
