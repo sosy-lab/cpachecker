@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public record SeqThreadStatementBuilder(
     MPOROptions options,
@@ -272,14 +271,9 @@ public record SeqThreadStatementBuilder(
 
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
 
-    if (options.declareConstAuxiliaryVariablesGlobally()) {
-      CExpressionAssignmentStatement assignmentStatement =
-          buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration);
-      exportStatements.add(new CStatementWrapper(assignmentStatement));
-    } else {
-      exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
-    }
-
+    CExpressionAssignmentStatement assignmentStatement =
+        buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration);
+    exportStatements.add(new CStatementWrapper(assignmentStatement));
     exportStatements.add(
         new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
 
