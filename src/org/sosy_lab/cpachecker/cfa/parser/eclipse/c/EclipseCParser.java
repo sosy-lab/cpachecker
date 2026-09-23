@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapCode;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapFile;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
@@ -142,7 +140,7 @@ class EclipseCParser implements CParser {
         Lists.transform(pFilenames, name -> new FileToParse(Path.of(name))),
         new CSourceOriginMapping(),
         CProgramScope.empty(),
-        (pFileName, pContent) -> wrapFile(pFileName));
+        (pFileName, pContent) -> eclipseCdt.wrapFile(pFileName));
   }
 
   @Override
@@ -156,7 +154,7 @@ class EclipseCParser implements CParser {
         CProgramScope.empty(),
         (pFileName, pContent) -> {
           Preconditions.checkArgument(pContent instanceof FileContentToParse);
-          return wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
+          return eclipseCdt.wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
         });
   }
 
@@ -172,14 +170,15 @@ class EclipseCParser implements CParser {
         pScope instanceof CProgramScope cProgramScope ? cProgramScope : CProgramScope.empty(),
         (fileName, content) -> {
           Preconditions.checkArgument(content instanceof FileContentToParse);
-          return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
+          return eclipseCdt.wrapCode(fileName, ((FileContentToParse) content).getFileContent());
         });
   }
 
   private IASTStatement[] parseCodeFragmentReturnBody(String pCode)
       throws CParserException, InterruptedException {
     // parse
-    IASTTranslationUnit ast = parse(wrapCode(Path.of("fragment"), pCode), ParseContext.dummy());
+    IASTTranslationUnit ast =
+        parse(eclipseCdt.wrapCode(Path.of("fragment"), pCode), ParseContext.dummy());
 
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();

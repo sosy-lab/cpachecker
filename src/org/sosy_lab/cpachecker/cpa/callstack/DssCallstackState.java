@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 import com.google.common.base.Preconditions;
 import java.io.Serial;
 import java.util.List;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -32,16 +33,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * condition that the successor block sent. Only such a backwards replay can tell whether the path
  * through the block is feasible with respect to the callstack.
  *
- * <p>Every state of this class wraps the {@link CallstackState} that an ordinary callstack analysis
- * would have at the same point, and it forwards {@link #equals(Object)} and {@link #hashCode()} to
- * that wrapped state. This is crucial for the stop operator: {@link CallstackTransferRelation}
- * deliberately reuses state objects (it returns the given state for most edges and the previous
- * state of the stack on a function return), and the identity-based equality of {@link
- * CallstackState} relies on that. Since the wrapped states are created by {@link
- * CallstackTransferRelation} itself, two DSS states are equal exactly if the two states of an
- * ordinary callstack analysis would be. Neither the recorded edges nor {@link #canBeTopState()}
- * take part in the comparison: including the edges would prevent coverage of two states at the same
- * program location, so the analysis of a block with a loop would not terminate.
+ * <p>The current stack, the unknown-stack mode, and the backwards callstack effect determine local
+ * equality. The full edge sequence is retained for diagnostics only. The local DSS domain
+ * additionally compares independently constructed stacks structurally; distributed precondition
+ * coverage has its own relation and deliberately ignores local replay effects.
  */
 public class DssCallstackState extends CallstackState {
 
@@ -60,15 +55,17 @@ public class DssCallstackState extends CallstackState {
   private final PersistentList<CFAEdge> reversedTraversedEdges;
 
   private final boolean canBeTopState;
+  private final DssCallstackEffect effect;
 
   public DssCallstackState(CallstackState pWrappedState, boolean pCanBeTopState) {
-    this(pWrappedState, pCanBeTopState, PersistentLinkedList.of());
+    this(pWrappedState, pCanBeTopState, PersistentLinkedList.of(), DssCallstackEffect.EMPTY);
   }
 
   private DssCallstackState(
       CallstackState pWrappedState,
       boolean pCanBeTopState,
-      PersistentList<CFAEdge> pReversedTraversedEdges) {
+      PersistentList<CFAEdge> pReversedTraversedEdges,
+      DssCallstackEffect pEffect) {
     super(
         pWrappedState.getPreviousState(),
         pWrappedState.getCurrentFunction(),
@@ -80,6 +77,7 @@ public class DssCallstackState extends CallstackState {
     wrappedState = pWrappedState;
     canBeTopState = pCanBeTopState;
     reversedTraversedEdges = pReversedTraversedEdges;
+    effect = pEffect;
   }
 
   /** Returns the given state itself, or the state that it wraps if it is a DSS callstack state. */
@@ -103,6 +101,15 @@ public class DssCallstackState extends CallstackState {
     return canBeTopState;
   }
 
+  DssCallstackEffect getEffect() {
+    return effect;
+  }
+
+  /** Start another block exploration with the same stack and no replay history. */
+  public DssCallstackState reset() {
+    return new DssCallstackState(wrappedState, canBeTopState);
+  }
+
   public boolean isTopState() {
     return canBeTopState() && wrappedState.previousState == null;
   }
@@ -115,10 +122,7 @@ public class DssCallstackState extends CallstackState {
     return reversedTraversedEdges;
   }
 
-  /**
-   * Returns a copy of this state that additionally recorded the given edge. The callstack itself
-   * remains unchanged, so the returned state is equal to this state.
-   */
+  /** Records another edge without changing the current stack. The backwards effect may change. */
   public DssCallstackState withTraversedEdge(CFAEdge pEdge) {
     return withWrappedStateAndTraversedEdge(wrappedState, pEdge);
   }
@@ -133,19 +137,22 @@ public class DssCallstackState extends CallstackState {
    */
   public DssCallstackState withWrappedStateAndTraversedEdge(
       CallstackState pWrappedState, CFAEdge pEdge) {
-    return new DssCallstackState(pWrappedState, canBeTopState, reversedTraversedEdges.with(pEdge));
+    return new DssCallstackState(
+        pWrappedState, canBeTopState, reversedTraversedEdges.with(pEdge), effect.append(pEdge));
   }
 
   @Override
   public boolean equals(@Nullable Object pOther) {
-    // identity of the wrapped state, exactly like the equality of an ordinary callstack analysis
     return this == pOther
-        || (pOther instanceof DssCallstackState other && wrappedState.equals(other.wrappedState));
+        || (pOther instanceof DssCallstackState other
+            && wrappedState.equals(other.wrappedState)
+            && canBeTopState == other.canBeTopState
+            && effect.equals(other.effect));
   }
 
   @Override
   public int hashCode() {
-    return wrappedState.hashCode();
+    return Objects.hash(wrappedState, canBeTopState, effect);
   }
 
   @Override

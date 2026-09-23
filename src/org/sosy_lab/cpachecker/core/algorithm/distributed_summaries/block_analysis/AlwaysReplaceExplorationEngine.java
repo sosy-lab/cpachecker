@@ -8,23 +8,21 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
@@ -64,7 +62,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
 
     if (result.getAllViolations().isEmpty()) {
       // The initial run publishes only the violations that originate inside the block. Its
-      // postcondition stays unpublished, matching explore(Optional), which explores nothing as
+      // postcondition stays unpublished, matching explore(boolean), which explores nothing as
       // long as no violation condition is known.
       return AnalysisResult.empty();
     }
@@ -77,27 +75,20 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
    * a time, and merges what the individual rounds found.
    */
   @Override
-  public AnalysisResult explore(Optional<String> pViolationConditionSender)
+  public AnalysisResult explore(boolean pViolationConditionsChanged)
       throws CPAException, InterruptedException {
-    pViolationConditionSender.ifPresent(
-        sender ->
-            checkArgument(
-                !violationConditions.isEmptyFor(sender),
-                "No violation condition found for sender ID: %s",
-                sender));
-    if (violationConditions.isEmpty()) {
-      return AnalysisResult.empty();
-    }
     BlockToProgramLocationMap preconditions = preconditionHandler.getPreconditions();
-    if (pViolationConditionSender.isEmpty() && preconditions.isUnreachable()) {
-      // every predecessor reported an unreachable block end, so this block cannot be entered
+    if (!pViolationConditionsChanged && preconditions.isUnreachable()) {
+      // every predecessor reported an unreachable block end, so this block cannot be entered.
+      // A new violation condition still explores the block, so that the successor asking about it
+      // learns about violations reachable from the unconstrained start state.
       return AnalysisResult.unreachableBlockEnd();
     }
     ImmutableListMultimap<Object, AbstractState> conditionsPerLocation;
     if (analysis.getOptions().callStackStateRequiresStateReset()) {
       conditionsPerLocation =
           ImmutableListMultimap.<Object, AbstractState>builder()
-              .putAll(0, violationConditions.statesOf(Optional.empty()))
+              .putAll(0, violationConditions.states())
               .build();
     } else {
       // Violation conditions are grouped by program point exactly like preconditions are. Because a
@@ -108,7 +99,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       // by all of them, so the contexts have to be kept apart by exploring per group instead.
       conditionsPerLocation =
           Multimaps.index(
-              violationConditions.statesOf(Optional.empty()),
+              violationConditions.states(),
               condition -> analysis.getDcpa().computeProgramPointId(condition));
     }
 
@@ -117,37 +108,68 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
-    Multimap<Object, Object> safeRuns = ArrayListMultimap.create();
+    ImmutableList<Object> allConditionProgramPoints =
+        ImmutableList.copyOf(conditionsPerLocation.keySet());
     Map<ImmutableList<Object>, AnalysisResult> rounds = new LinkedHashMap<>();
-    for (Object conditionProgramPoint : conditionsPerLocation.keySet()) {
-      ImmutableList<AbstractState> conditionsAtLocation =
-          conditionsPerLocation.get(conditionProgramPoint);
-      for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
+    for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
+      Collection<AbstractState> preconditionStates =
+          preconditions.getStatesPerLocation(preconditionProgramPoint);
+
+      if (allConditionProgramPoints.isEmpty()) {
+        // No successor has sent a violation condition yet. The postcondition of this block still
+        // has to be computed and published: a successor of a successor may be waiting for a
+        // precondition that only this block can produce, and on a cycle through the block graph
+        // nobody would ever start otherwise.
+        rounds.put(
+            ImmutableList.of(preconditionProgramPoint),
+            exploreFrom(preconditionStates, ImmutableList.of(), precisionOfAnalysis, false));
+        continue;
+      }
+      // A round under all exit contexts at once is the postcondition this precondition really has,
+      // which is why the per-context rounds below are replaced by exactly such a round whenever
+      // more than one context turns out to be safe. Trying it first pays off because a violation
+      // under one context also shows up in the combined round: if that round finds none, every
+      // context is safe and the per-context rounds would have been discarded anyway. Only if it
+      // does find one do the contexts have to be told apart, because a violation under one of them
+      // must not suppress the postcondition established under another.
+      if (allConditionProgramPoints.size() > 1) {
+        AnalysisResult combined =
+            exploreFrom(
+                preconditionStates,
+                ImmutableList.copyOf(conditionsPerLocation.values()),
+                precisionOfAnalysis,
+                false);
+        if (combined.violationConditions().isEmpty()) {
+          rounds.put(elementAndList(preconditionProgramPoint, allConditionProgramPoints), combined);
+          continue;
+        }
+      }
+
+      List<Object> safeConditionProgramPoints = new ArrayList<>();
+      for (Object conditionProgramPoint : allConditionProgramPoints) {
         AnalysisResult round =
             exploreFrom(
-                preconditions.getStatesPerLocation(preconditionProgramPoint),
-                conditionsAtLocation,
+                preconditionStates,
+                conditionsPerLocation.get(conditionProgramPoint),
                 precisionOfAnalysis,
                 false);
         if (!round.summaries().isEmpty()) {
-          safeRuns.put(preconditionProgramPoint, conditionProgramPoint);
+          safeConditionProgramPoints.add(conditionProgramPoint);
         }
         rounds.put(ImmutableList.of(preconditionProgramPoint, conditionProgramPoint), round);
       }
-    }
-    for (Object preconditionProgramPoint : safeRuns.keySet()) {
-      Collection<Object> vcProgramPoints = safeRuns.get(preconditionProgramPoint);
-      if (vcProgramPoints.size() > 1) {
-        vcProgramPoints.forEach(v -> rounds.remove(ImmutableList.of(preconditionProgramPoint, v)));
+      if (safeConditionProgramPoints.size() > 1) {
+        safeConditionProgramPoints.forEach(
+            v -> rounds.remove(ImmutableList.of(preconditionProgramPoint, v)));
         AnalysisResult round =
             exploreFrom(
-                preconditions.getStatesPerLocation(preconditionProgramPoint),
-                FluentIterable.from(vcProgramPoints)
+                preconditionStates,
+                FluentIterable.from(safeConditionProgramPoints)
                     .transformAndConcat(conditionsPerLocation::get)
                     .toList(),
                 precisionOfAnalysis,
                 false);
-        rounds.put(elementAndList(preconditionProgramPoint, vcProgramPoints), round);
+        rounds.put(elementAndList(preconditionProgramPoint, safeConditionProgramPoints), round);
       }
     }
     if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
@@ -156,7 +178,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       AnalysisResult topExploration =
           exploreFrom(
               ImmutableSet.of(analysis.makeStartState(true)),
-              violationConditions.statesOf(Optional.empty()),
+              violationConditions.states(),
               precisionOfAnalysis,
               true);
       Preconditions.checkState(topExploration.summaries().isEmpty());
@@ -225,6 +247,13 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     Set<ArgPathAndCondition> finalViolations = violations.build();
 
     if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
+      if (pDiscardSummaries) {
+        // A speculative round throws its summaries away by construction, so finding nothing says
+        // that it found no violation -- not that the block end is out of reach. Reporting it as
+        // unreachable would be a claim about a block this round did not even enter from its real
+        // preconditions, and successors would take it as proof that they can never be entered.
+        return AnalysisResult.empty();
+      }
       // the exploration produced no state at the final location
       return AnalysisResult.unreachableBlockEnd();
     }

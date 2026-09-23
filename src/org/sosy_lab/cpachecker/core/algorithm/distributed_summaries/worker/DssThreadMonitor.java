@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -49,6 +50,9 @@ public class DssThreadMonitor extends Thread {
   }
 
   @Override
+  @SuppressForbidden(
+      "TODO this should be improved, cf."
+          + " https://gitlab.com/sosy-lab/software/cpachecker/-/commit/25db045321d415aa3b4bf6742bc082a49f04ac53#note_3882238434")
   public void run() {
     while (true) {
       boolean allWaiting =

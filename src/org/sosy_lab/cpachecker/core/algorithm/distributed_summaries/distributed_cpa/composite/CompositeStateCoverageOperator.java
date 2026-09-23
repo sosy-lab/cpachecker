@@ -54,6 +54,27 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
   }
 
   @Override
+  public boolean areStatesSyntacticallyEqual(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    CompositeState compositeState1 = (CompositeState) state1;
+    CompositeState compositeState2 = (CompositeState) state2;
+    if (compositeState1.getWrappedStates().size() != compositeState2.getWrappedStates().size()
+        || compositeState1.getWrappedStates().size() != wrapped.size()) {
+      return false;
+    }
+    for (int i = 0; i < wrapped.size(); i++) {
+      if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa
+          && !dcpa.getCoverageOperator()
+              .areStatesSyntacticallyEqual(
+                  compositeState1.getWrappedStates().get(i),
+                  compositeState2.getWrappedStates().get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override
   public boolean isBasedOnEquality() {
     return false;
   }

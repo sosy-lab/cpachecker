@@ -261,16 +261,6 @@ public final class DssBlockAnalysis {
   }
 
   /**
-   * Re-explores the block after {@link #storePrecondition} asked the analysis to proceed.
-   *
-   * @return All violations and/or abstractions that occurred while running the forward analysis.
-   */
-  public Collection<DssMessage> analyzePreconditions()
-      throws SolverException, InterruptedException, CPAException {
-    return messagesFor(engine.explore(Optional.empty()));
-  }
-
-  /**
    * Adds new abstract states to the known violation conditions.
    *
    * @param pReceived The new violation conditions to add.
@@ -278,22 +268,21 @@ public final class DssBlockAnalysis {
    */
   public DssMessageProcessing storeViolationCondition(DssViolationConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    DssMessageProcessing processing = violationConditionHandler.store(pReceived);
-    if (processing.shouldProceed()) {
-      preconditions.violationConditionsChanged();
-    }
-    return processing;
+    return violationConditionHandler.store(pReceived);
   }
 
   /**
-   * Analyzes the violation conditions received from the given block.
+   * Re-explores the block after {@link #storePrecondition} or {@link #storeViolationCondition}
+   * asked the analysis to proceed. The exploration always reads everything the handlers hold, not
+   * only what the triggering messages brought.
    *
-   * @param pSenderId Sender ID of the violation-condition message to analyze.
-   * @return The messages resulting from the analysis of the violation condition.
+   * @param pViolationConditionsChanged whether {@link #storeViolationCondition} asked to proceed
+   *     since the last exploration
+   * @return All violations and/or abstractions that occurred while exploring the block.
    */
-  public Collection<DssMessage> analyzeViolationConditions(String pSenderId)
+  public Collection<DssMessage> analyze(boolean pViolationConditionsChanged)
       throws SolverException, InterruptedException, CPAException {
-    return messagesFor(engine.explore(Optional.of(pSenderId)));
+    return messagesFor(engine.explore(pViolationConditionsChanged));
   }
 
   /**
@@ -305,7 +294,13 @@ public final class DssBlockAnalysis {
       throws CPAException, InterruptedException, SolverException {
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
     if (!pRound.violationConditions().isEmpty()) {
-      messages.addAll(reportViolationConditions(pRound.violationConditions()));
+      try {
+        workerStats.getViolationConditionTimer().start();
+        workerStats.getViolationConditionCounter().add(pRound.violationConditions().size());
+        messages.addAll(reportViolationConditions(pRound.violationConditions()));
+      } finally {
+        workerStats.getViolationConditionTimer().stop();
+      }
     }
     if (pRound.blockEndUnreachable()) {
       messages.addAll(reportUnreachableBlockEnd());
@@ -459,13 +454,19 @@ public final class DssBlockAnalysis {
       throws CPAException, InterruptedException {
     // TODO rather inefficient
     int covered = 0;
-    for (StateAndPrecision state : pStates) {
-      for (StateAndPrecision candidate : pCandidates) {
-        if (isCovered(state, candidate)) {
-          covered++;
-          break;
+    try {
+      workerStats.getCoverageTimer().start();
+      for (StateAndPrecision state : pStates) {
+        for (StateAndPrecision candidate : pCandidates) {
+          workerStats.getCoverageCounter().inc();
+          if (isCovered(state, candidate)) {
+            covered++;
+            break;
+          }
         }
       }
+    } finally {
+      workerStats.getCoverageTimer().stop();
     }
     return covered;
   }
@@ -514,25 +515,40 @@ public final class DssBlockAnalysis {
   private <T> ImmutableList<T> deduplicate(
       Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf)
       throws CPAException, InterruptedException {
+    return deduplicate(pElements, pStateOf, false);
+  }
+
+  private <T> ImmutableList<T> deduplicate(
+      Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf, boolean pSyntactically)
+      throws CPAException, InterruptedException {
     CoverageOperator coverage = dcpa.getCoverageOperator();
     ListMultimap<Object, AbstractState> representativesPerProgramPoint = ArrayListMultimap.create();
     ImmutableList.Builder<T> deduplicated = ImmutableList.builder();
-    for (T element : pElements) {
-      AbstractState state = pStateOf.apply(element);
-      List<AbstractState> representatives =
-          representativesPerProgramPoint.get(dcpa.computeProgramPointId(state));
-      boolean isDuplicate = false;
-      for (AbstractState representative : representatives) {
-        if (state == representative || coverage.areStatesEqual(state, representative)) {
-          isDuplicate = true;
-          break;
+    try {
+      workerStats.getCoverageTimer().start();
+      for (T element : pElements) {
+        AbstractState state = pStateOf.apply(element);
+        List<AbstractState> representatives =
+            representativesPerProgramPoint.get(dcpa.computeProgramPointId(state));
+        boolean isDuplicate = false;
+        for (AbstractState representative : representatives) {
+          workerStats.getCoverageCounter().inc();
+          if (state == representative
+              || (pSyntactically
+                  ? coverage.areStatesSyntacticallyEqual(state, representative)
+                  : coverage.areStatesEqual(state, representative))) {
+            isDuplicate = true;
+            break;
+          }
+        }
+        if (!isDuplicate) {
+          // ArrayListMultimap#get returns a view that writes through to the multimap.
+          representatives.add(state);
+          deduplicated.add(element);
         }
       }
-      if (!isDuplicate) {
-        // ArrayListMultimap#get returns a view that writes through to the multimap.
-        representatives.add(state);
-        deduplicated.add(element);
-      }
+    } finally {
+      workerStats.getCoverageTimer().stop();
     }
     return deduplicated.build();
   }
@@ -562,6 +578,36 @@ public final class DssBlockAnalysis {
       Collection<@NonNull StateAndPrecision> pStates1,
       Collection<@NonNull StateAndPrecision> pStates2)
       throws CPAException, InterruptedException {
+    return statesEqual(pStates1, pStates2, false);
+  }
+
+  /**
+   * Whether the two sets of violation conditions are the same. A violation condition is built from
+   * the edges of a path, so the same path yields the same formula and the sets can be compared by
+   * their representation, which spares a solver query per pair.
+   */
+  boolean violationConditionsEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2)
+      throws CPAException, InterruptedException {
+    return statesEqual(pStates1, pStates2, options.useSyntacticViolationConditionEquality());
+  }
+
+  /** Like {@link #deduplicateStatesAndPrecisions} for violation conditions. */
+  ImmutableList<StateAndPrecision> deduplicateViolationConditions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    return deduplicate(
+        pStatesAndPrecisions,
+        StateAndPrecision::state,
+        options.useSyntacticViolationConditionEquality());
+  }
+
+  private boolean statesEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2,
+      boolean pSyntactically)
+      throws CPAException, InterruptedException {
     CoverageOperator coverage = dcpa.getCoverageOperator();
     ImmutableList<StateAndPrecision> states2 = ImmutableList.copyOf(pStates2);
     boolean[] matchedInStates2 = new boolean[states2.size()];
@@ -573,7 +619,9 @@ public final class DssBlockAnalysis {
           // candidate. The comparison itself can cost a solver query, so skip it.
           continue;
         }
-        if (coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
+        if (pSyntactically
+            ? coverage.areStatesSyntacticallyEqual(state1.state(), states2.get(i).state())
+            : coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
           matched = true;
           matchedInStates2[i] = true;
         }

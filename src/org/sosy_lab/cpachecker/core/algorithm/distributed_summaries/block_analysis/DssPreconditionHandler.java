@@ -41,7 +41,4 @@ interface DssPreconditionHandler {
 
   /** All preconditions known so far, e.g. to export them as a correctness witness. */
   ImmutableList<@NonNull StateAndPrecision> getKnownPreconditions();
-
-  /** Notified if violation condition changes. */
-  void violationConditionsChanged();
 }
