@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssW
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -50,10 +51,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * left in any queue, which the shared {@link DssWorkCounter} detects. The verdict TRUE is then
  * broadcast to all workers.
  *
- * <p>The analysis is started by calling {@link
- * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker#runInitialAnalysis()}
- * on all workers. The monitoring of the messages is done by {@link DssObserverWorker}, which blocks
- * until it can determine a final verification verdict (SAFE, UNSAFE, or timeout)
+ * <p>The analysis is started by calling {@link DssAnalysisWorker#runInitialAnalysis()} on all
+ * workers. The monitoring of the messages is done by {@link DssObserverWorker}, which blocks until
+ * it can determine a final verification verdict (SAFE, UNSAFE, or timeout)
  */
 public class MultithreadingDssExecutor implements DssExecutor {
 
@@ -130,9 +130,19 @@ public class MultithreadingDssExecutor implements DssExecutor {
           "Observer worker must have id %s but has id %s",
           OBSERVER_WORKER_ID,
           observer.getId());
-      for (DssActor worker :
-          Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
-        executor.execute(worker);
+      for (DssAnalysisWorker worker : actors.getAnalysisWorkers()) {
+        // The block analysis can only be closed by the thread that created it.
+        executor.execute(
+            () -> {
+              try {
+                worker.run();
+              } finally {
+                worker.close();
+              }
+            });
+      }
+      for (DssActor actor : actors.getRemainingActors()) {
+        executor.execute(actor);
       }
       DssMessageBroadcaster broadcaster = observer.getConnection().getBroadcaster();
       executor.execute(() -> broadcastProofOnceNoWorkIsLeft(workCounter, broadcaster));
