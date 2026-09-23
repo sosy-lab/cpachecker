@@ -73,7 +73,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectLanguageNotC() throws Exception {
-    String inputFile = "test/programs/mpor/input_rejections/HelloJava.java";
+    String inputFile = "./test/programs/mpor/input_rejections/HelloJava.java";
     CParserException exception =
         assertThrows(CParserException.class, () -> TestCfaUtils.makeCfaFromFile(inputFile));
     assertThat(exception).isNotNull();
