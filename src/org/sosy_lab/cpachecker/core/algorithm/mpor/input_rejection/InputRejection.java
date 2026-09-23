@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
@@ -21,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -37,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -163,12 +168,36 @@ public class InputRejection {
     }
   }
 
-  public static void checkConstAuxiliaryVariableOutOfScope(MPOROptions pOptions, CFAEdge pCfaEdge)
+  public static void checkConstAuxiliaryVariableOutOfScope(
+      MPOROptions pOptions, CDeclarationEdge pDeclarationEdge, CStatementEdge pStatementEdge)
       throws UnsupportedCodeException {
 
+    CVariableDeclaration variableDeclaration =
+        (CVariableDeclaration) pDeclarationEdge.getDeclaration();
+    checkArgument(MPORUtil.isConstCpaCheckerTmp(variableDeclaration));
+
     if (!pOptions.declareConstAuxiliaryVariablesGlobally()) {
-      InputRejection.rejectCfaEdge(
-          pCfaEdge, InputRejectionMessage.CONST_AUXILIARY_VARIABLE_OUT_OF_SCOPE);
+      // Example: 'const int TMP = b; b = b + 1; a = TMP;' (created from 'a = b++;').
+      // TMP goes out of scope if a context switch occurs between the 2nd and 3rd statements.
+      if (pStatementEdge.getStatement() instanceof CExpressionAssignmentStatement assignment
+          && assignment.getRightHandSide().accept(new CDeclarationVisitor(variableDeclaration))) {
+        InputRejection.rejectCfaEdge(
+            pStatementEdge, InputRejectionMessage.CONST_AUXILIARY_VARIABLE_OUT_OF_SCOPE);
+      }
+      // Example: 'atomic_begin; _Atomic const int TMP = b; b = b + 1; atomic_end; a = TMP;'
+      // (created from 'a = b++;' where 'b' is _Atomic). TMP goes out of scope, but there is an
+      // atomic_begin and atomic_end in between (only for _Atomic variables).
+      if (variableDeclaration.getType().isAtomic()
+          && PthreadUtil.isCallToPthreadFunction(
+              pStatementEdge, PthreadFunctionType.VERIFIER_ATOMIC_END)
+          && pStatementEdge.getSuccessor().getLeavingEdges().size() == 1) {
+        CFAEdge successorEdge =
+            Iterables.getOnlyElement(pStatementEdge.getSuccessor().getLeavingEdges());
+        if (successorEdge instanceof CStatementEdge statementEdge) {
+          InputRejection.checkConstAuxiliaryVariableOutOfScope(
+              pOptions, pDeclarationEdge, statementEdge);
+        }
+      }
     }
   }
 
@@ -483,6 +512,68 @@ public class InputRejection {
                 pRightHandSide.toASTString()),
             null);
       }
+    }
+  }
+
+  /**
+   * Returns true if any of the nested expressions inside a given {@link CExpression} is a {@link
+   * CIdExpression} whose declaration equals the given {@link CSimpleDeclaration}.
+   */
+  private static final class CDeclarationVisitor
+      extends DefaultCExpressionVisitor<Boolean, UnsupportedCodeException> {
+
+    private CSimpleDeclaration declaration;
+
+    CDeclarationVisitor(CSimpleDeclaration pDeclaration) {
+      declaration = pDeclaration;
+    }
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
+      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
+      return pFieldReference.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pPointerExpression) throws UnsupportedCodeException {
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression pBinaryExpression) throws UnsupportedCodeException {
+      return pBinaryExpression.getOperand1().accept(this)
+          || pBinaryExpression.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
+      return pCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
+      return pUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIdExpression) {
+      return pIdExpression.getDeclaration().equals(declaration);
+    }
+
+    @Override
+    protected Boolean visitDefault(CExpression pExpression) {
+      return false; // ignore
     }
   }
 

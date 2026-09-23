@@ -196,6 +196,9 @@ public record SeqThreadStatementBuilder(
     }
 
     CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
+    // first check if the code would result in parse errors when transformed
+    InputRejection.checkConstAuxiliaryVariableOutOfScope(
+        options, (CDeclarationEdge) pThreadEdge.cfaEdge, secondSuccessorStatement);
 
     return switch (secondSuccessorStatement.getStatement()) {
       case CFunctionCallStatement ignored ->
@@ -203,7 +206,6 @@ public record SeqThreadStatementBuilder(
           // then the function call is not part of the const CPAchecker_TMP handling.
           buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
       case CExpressionAssignmentStatement ignored -> {
-        InputRejection.checkConstAuxiliaryVariableOutOfScope(options, secondSuccessorEdge.cfaEdge);
         // const CPAchecker_TMP statement followed by two assignments has only two parts because
         // a context-switch should occur between the first and second assignment. Example:
         // 'const int TMP = z; z = z - 1; w = y + TMP;' (created from 'w = y + z--;')
