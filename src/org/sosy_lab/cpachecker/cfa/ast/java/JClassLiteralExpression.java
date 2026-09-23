@@ -20,8 +20,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- *
- *
  * <pre>
  * ClassLiteral:
  *   TypeName {[ ]} . class

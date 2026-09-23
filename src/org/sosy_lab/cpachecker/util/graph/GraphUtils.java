@@ -153,11 +153,8 @@ public class GraphUtils {
       if (!SCCs.isEmpty()) {
         // find the SCC with the minimum index with respect to pStates
         ARGState s =
-            SCCs.stream()
-                .map(x -> pStates.indexOf(x.getRootNode()))
-                .reduce((x, y) -> x.compareTo(y) <= 0 ? x : y)
-                .map(pStates::get)
-                .orElseThrow();
+            pStates.get(
+                SCCs.stream().mapToInt(x -> pStates.indexOf(x.getRootNode())).min().orElseThrow());
 
         blockedSet.clear();
         blockedMap.clear();

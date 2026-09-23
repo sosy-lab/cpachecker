@@ -450,7 +450,7 @@ public class ExpressionTransformer
   }
 
   private SMGCPAValueVisitor getNewValueVisitor(final SMGState pState) {
-    return new SMGCPAValueVisitor(evaluator, pState, edge, logger, options);
+    return new SMGCPAValueVisitor(evaluator, pState, edge, logger);
   }
 
   private Value createNumericValue(long pValue) {

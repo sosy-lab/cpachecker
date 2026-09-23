@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="8">
+<!--require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/-->
+
+  <rundefinition name="DSS">
+	<option name="--heap">13000M</option>
+	<option name="--dss"/>
+	<option name="--benchmark"/>
+	<option name="--disable-java-assertions"/>
+	<option name="--no-output-files"/>
+	<option name="--stats"/>
+	<option name="--option">distributedSummaries.decomposition.decompositionType=INLINING_DECOMPOSITION</option>
+
+	<tasks name="Simple">
+	  <includesfile>../programs/simple/blockAnalysis.set</includesfile>
+	  <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+	</tasks>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Size of reached set</column>
+    <column title="targets">Number of target states</column>
+    <column title="worker">Number of worker</column>
+    <column title="abstraction">Worker without abstraction</column>
+	<column title="functions">Number of functions</column>
+	<column title="block size">Average number of edges in block</column>
+  </columns>
+</benchmark>

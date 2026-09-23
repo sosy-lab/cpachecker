@@ -811,7 +811,9 @@ public class CoreComponentsFactory {
       }
 
       if (splitProgram) {
-        algorithm = new ProgramSplitAlgorithm(algorithm, cpa, config, logger, shutdownNotifier);
+        algorithm =
+            new ProgramSplitAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa.getMachineModel());
       }
 
       if (usePropertyCheckingAlgorithm) {
@@ -859,7 +861,8 @@ public class CoreComponentsFactory {
                 logger,
                 cfa,
                 ShutdownManager.createWithParent(shutdownNotifier),
-                specification);
+                specification,
+                cpa);
       }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);

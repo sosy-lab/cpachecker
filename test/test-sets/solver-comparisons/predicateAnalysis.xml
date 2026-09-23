@@ -22,10 +22,6 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
 
-  <!-- SV-Comp files assume that malloc always succeeds (for CEX) -->
-  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-
-
   <option name="--predicateAnalysis-PredAbsRefiner-ABEl"/>
 
 

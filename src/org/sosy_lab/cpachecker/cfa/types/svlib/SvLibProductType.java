@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.types.svlib;
 
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
+import java.util.stream.Collectors;
 
 /**
  * A product type in SV-LIB, representing a tuple of types, should only ever be used for {@link
@@ -28,15 +29,14 @@ public final class SvLibProductType implements SvLibType {
 
   @Override
   public String toASTString(String declarator) {
-    return declarator
-        + " ["
-        + String.join(", ", elementTypes.stream().map(SvLibType::toString).toList())
-        + "]";
+    return declarator + " " + toASTString();
   }
 
   @Override
   public String toASTString() {
-    return "[" + String.join(", ", elementTypes.stream().map(SvLibType::toString).toList()) + "]";
+    return elementTypes.stream()
+        .map(SvLibType::toString)
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   public ImmutableList<SvLibType> getElementTypes() {

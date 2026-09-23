@@ -40,9 +40,9 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCom
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
+import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 
 public class ArgToSvLibCorrectnessWitnessExport {
   private final SvLibCfaMetadata svLibMetadata;
@@ -147,7 +147,8 @@ public class ArgToSvLibCorrectnessWitnessExport {
   }
 
   public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState) {
-    CollectedARGStates relevantStates = RelevantArgStatesCollector.getRelevantStates(pRootState);
+    CollectedARGStates relevantStates =
+        new RootExplorationArgStateCollector().getRelevantStates(pRootState);
 
     ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();
 

@@ -26,7 +26,7 @@ class EdgeType(Enum):
 errorFound = False
 
 
-def log(msg, level=1):
+def log(msg, *, level=1):
     if level <= logLevel:
         global errorFound
         errorFound = True
@@ -101,40 +101,39 @@ def collectChildren(filename):
     children = {}
     try:
         multilineBuffer = ""
-        for line in open(filename, "r"):
-            if (
-                not line.startswith(("#", "//"))
-                and line.rstrip() != line
-                and line.rstrip() != line[:-1]
-            ):
-                log(
-                    "trailing whitespace in config '%s' in line '%s'"
-                    % (filename, line.strip()),
-                    level=2,
-                )
-
-            if line.strip().endswith("\\"):
-                # multiline statement
-                multilineBuffer += line.strip()[:-1]  # remove ending
-                continue
-            else:
-                # single line or end of multiline statement
-                multilineBuffer += line
-                line = multilineBuffer
-                multilineBuffer = ""  # reset
-
-            (filenames, typ) = getFilenamesFromLine(line)
-            for child in filenames:
-                child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
-                if os.path.exists(child):
-                    children[child] = typ
-                else:
+        with open(filename) as f:
+            for line in f:
+                if (
+                    not line.startswith(("#", "//"))
+                    and line.rstrip() != line
+                    and line.rstrip() != line[:-1]
+                ):
                     log(
-                        "file '%s' referenced in '%s' does not exists"
-                        % (child, filename)
+                        f"trailing whitespace in config '{filename}' in line '{line.strip()}'",
+                        level=4,
                     )
+
+                if line.strip().endswith("\\"):
+                    # multiline statement
+                    multilineBuffer += line.strip()[:-1]  # remove ending
+                    continue
+                else:
+                    # single line or end of multiline statement
+                    multilineBuffer += line
+                    line = multilineBuffer
+                    multilineBuffer = ""  # reset
+
+                (filenames, typ) = getFilenamesFromLine(line)
+                for child in filenames:
+                    child = os.path.normpath(
+                        os.path.join(os.path.dirname(filename), child)
+                    )
+                    if os.path.exists(child):
+                        children[child] = typ
+                    else:
+                        log(f"file '{child}' referenced in '{filename}' does not exist")
     except UnicodeDecodeError:
-        log("Cannot read file '%s'" % filename, level=3)
+        log(f"Cannot read file '{filename}'")
     return children
 
 
@@ -159,7 +158,7 @@ def writeDot(
     """print dot file for limited set of nodes"""
 
     out.write("digraph configs {\n")
-    out.write('graph [ranksep="%s" rankdir="LR"];\n' % (args.ranksep))
+    out.write(f'graph [ranksep="{args.ranksep}" rankdir="LR"];\n')
     out.write("node [shape=box]\n")
 
     allNodesDict, childDependencyNodes, parentDependencyNodes = determineDependencies(
@@ -185,8 +184,8 @@ def writeDot(
         for index, (category, categoryNodesDict) in enumerate(
             sorted(categoryMapping.items())
         ):
-            out.write("subgraph cluster_%s {" % index)
-            out.write('label = "%s";' % category)
+            out.write(f"subgraph cluster_{index} {{")
+            out.write(f'label = "{category}";')
             for name, node in sorted(categoryNodesDict.items()):
                 isDependency = (
                     name in childDependencyNodes or name in parentDependencyNodes
@@ -213,19 +212,16 @@ def writeDot(
         for child in sorted(v.children):
             if child in nodes:
                 out.write(
-                    '"%s" -> "%s";\n'
-                    % (normPath(filename), normPath(nodes[child].name))
+                    f'"{normPath(filename)}" -> "{normPath(nodes[child].name)}";\n'
                 )
             elif child in childDependencyNodes:
                 out.write(
-                    '"%s" -> "%s" [style="dashed" color="grey"];\n'
-                    % (normPath(filename), normPath(childDependencyNodes[child].name))
+                    f'"{normPath(filename)}" -> "{normPath(childDependencyNodes[child].name)}" [style="dashed" color="grey"];\n'
                 )
         for parent in v.parents:
             if parent not in nodes and parent in parentDependencyNodes:
                 out.write(
-                    '"%s" -> "%s" [style="dashed" color="grey"];\n'
-                    % (normPath(parentDependencyNodes[parent].name), normPath(filename))
+                    f'"{normPath(parentDependencyNodes[parent].name)}" -> "{normPath(filename)}" [style="dashed" color="grey"];\n'
                 )
 
     out.write("}\n")
@@ -240,8 +236,7 @@ def writeRSF(nodes, out, showChildDependencies=True, showParentDependencies=True
         for child in v.children:
             if child in nodes:
                 out.write(
-                    "GRAPH %s %s 1\n"
-                    % (normPath(filename), normPath(nodes[child].name))
+                    f"GRAPH {normPath(filename)} {normPath(nodes[child].name)} 1\n"
                 )
 
 
@@ -285,26 +280,27 @@ def determineNode(node, dependencyNode=False):
     if os.path.isfile(filename):
         content = ""
         try:
-            content = re.sub("\n", "&#10;", open(filename, "r").read())
+            with open(filename) as f:
+                content = re.sub("\n", "&#10;", f.read())
         except UnicodeDecodeError:
-            log("Cannot read file '%s'" % filename, level=3)
+            log(f"Cannot read file '{filename}'")
         content = content.replace("\\", "\\\\").replace('"', '\\"')
     else:
-        log("File does not exist: '%s'" % (filename))
+        log(f"File does not exist: '{filename}'")
     color = determineColor(node)
 
     tooltip = ""
     if content is not None:
-        tooltip = 'tooltip = "%s"' % content
+        tooltip = f'tooltip = "{content}"'
 
     style = ""
     if color is not None:
-        style = 'style=filled fillcolor="%s"' % color
+        style = f'style=filled fillcolor="{color}"'
     if dependencyNode:
-        style = 'style="setlinewidth(3),rounded" color="%s"' % color
+        style = f'style="setlinewidth(3),rounded" color="{color}"'
 
-    options = "%s %s" % (tooltip, style)
-    result = '"%s"[%s]\n' % (normPath(node.name), options)
+    options = f"{tooltip} {style}"
+    result = f'"{normPath(node.name)}"[{options}]\n'
     return result
 
 
@@ -401,7 +397,7 @@ Examples:
     parser.add_argument(
         "--logLevel",
         metavar="LEVEL",
-        default=1,
+        default=2,
         help="a higher value enables more warnings, 0 is OFF",
     )
     parser.add_argument(
@@ -465,25 +461,34 @@ def componentsSanityCheck(nodes):
     """Check for configuration files in the components folder that are never used."""
     for name, node in nodes.items():
         if not node.parents:
+            unused_level = 2 if "unmaintained/" in name else 3
             if "components/" in name:
-                log("Component file %s is unused!" % name, 2)
-            if "includes/" in name:
-                log("Include file %s is unused!" % name)
+                log(f"Component file {name} is unused!", level=unused_level)
+            elif "includes/" in name:
+                log(f"Include file {name} is unused!", level=unused_level)
+            elif "cex-checks/" in name:
+                log(f"Counterexample-check file {name} is unused!", level=unused_level)
         elif "unmaintained/" not in name and all(
             "unmaintained/" in parent for parent in node.parents
         ):
             if "components/" in name:
-                log("Component file %s is unmaintained!" % name, 2)
-            if "includes/" in name:
-                log("Include file %s is unmaintained!" % name, 2)
+                log(
+                    f"Component file {name} is used only by unmaintained files!",
+                    level=3,
+                )
+            elif "includes/" in name:
+                log(f"Include file {name} is used only by unmaintained files!", level=3)
+            elif "cex-checks/" in name:
+                log(
+                    f"Counterexample-check file {name} is used only by unmaintained files!",
+                    level=3,
+                )
 
         if "unmaintained/" in name:
             maintained_parents = [p for p in node.parents if "unmaintained/" not in p]
             if maintained_parents:
                 log(
-                    "Unmaintained file '%s' is referenced by maintained files '%s'"
-                    % (name, "', '".join(maintained_parents)),
-                    1,
+                    f"Unmaintained file '{name}' is referenced by maintained files '{', '.join(maintained_parents)}'"
                 )
 
 
@@ -520,7 +525,7 @@ def transitiveReductionCheck(nodes):
         while wlist2:
             current2 = wlist2.pop()
             for c in filterChildren(current2):
-                if c in reach.keys():
+                if c in reach:
                     if reach[c] != current and current2 != current:
                         continue  # only consider cases where one of the includes is the common ancestor
                     if current2.childrenToType[
@@ -530,8 +535,10 @@ def transitiveReductionCheck(nodes):
                     ):
                         continue  # it is ok if the set of specs in "specification = " is overriden with a different set
                     log(
-                        "included twice:%s\nFirst include by:\t%s\nSecond include by:\t%s\nCommon ancestor:\t%s\n"
-                        % (c.name, reach[c].name, current2.name, current.name)
+                        f"included twice:{c.name}\n"
+                        f"  First include by:\t{reach[c].name}\n"
+                        f"  Second include by:\t{current2.name}\n"
+                        f"  Common ancestor:\t{current.name}"
                     )
                 else:
                     reach[c] = current2
@@ -554,7 +561,7 @@ if __name__ == "__main__":
     if args.root is not None:
         for root in args.root:
             if root not in nodes:
-                log("Root file '%s' not found." % root)
+                log(f"Root file '{root}' not found.")
             else:
                 children.extend(getTransitiveChildren(root, nodes))
     nodesFromRoot = {k: v for k, v in nodes.items() if k in children}
@@ -562,7 +569,7 @@ if __name__ == "__main__":
     nodesFromDepend = {}
     if args.depend is not None:
         if args.depend not in nodes:
-            log("Depend file '%s' not found." % args.depend)
+            log(f"Depend file '{args.depend}' not found.")
         else:
             parents = getTransitiveParents(args.depend, nodes)
             nodesFromDepend = {k: v for k, v in nodes.items() if k in parents}
@@ -604,4 +611,4 @@ if __name__ == "__main__":
             args.clusterKeywords,
         )
 
-    exit(errorFound)
+    sys.exit(errorFound)

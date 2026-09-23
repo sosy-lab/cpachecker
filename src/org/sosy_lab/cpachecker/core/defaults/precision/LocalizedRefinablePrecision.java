@@ -12,9 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Comparator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -53,8 +53,8 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   private static ImmutableSetMultimap.Builder<CFANode, MemoryLocation> createBuilder() {
     // sorted multimap so that we have deterministic output
     return ImmutableSetMultimap.<CFANode, MemoryLocation>builder()
-        .orderKeysBy(Ordering.natural())
-        .orderValuesBy(Ordering.natural());
+        .orderKeysBy(Comparator.naturalOrder())
+        .orderValuesBy(Comparator.naturalOrder());
   }
 
   @Override

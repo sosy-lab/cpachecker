@@ -25,8 +25,8 @@ public class WitnessExportUtils {
       Path pOutputPath, Iterable<? extends SvLibCommand> pCommands, LogManager pLogger) {
     FluentIterable<String> witnessContentLines =
         FluentIterable.of("(")
-            .append(
-                FluentIterable.from(pCommands).transform(SvLibCommand::toASTString).append(")"));
+            .append(FluentIterable.from(pCommands).transform(SvLibCommand::toASTString))
+            .append(")");
 
     // The catch block was not triggered, so we can proceed to write the witness
     try {

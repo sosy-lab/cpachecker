@@ -139,9 +139,7 @@ public class DistributedFunctionPointerCPA
 
   @Override
   public int computeProgramPointHash(AbstractState pAbstractState) {
-    // FIXME: Add explanation. Why does the function-pointer state contain information
-    // about the current program state?
-    return getSerializeOperator().serialize(pAbstractState).hashCode();
+    return 0;
   }
 
   @Override

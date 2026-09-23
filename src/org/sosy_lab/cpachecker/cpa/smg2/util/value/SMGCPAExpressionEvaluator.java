@@ -416,7 +416,7 @@ public class SMGCPAExpressionEvaluator {
     // only interesting in a failure case in which the analysis stops!
     SMGState currentState = pState;
     SMGCPAAddressVisitor addressVisitor =
-        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger, options);
+        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset objectAndOffsetOrState :
         operand.accept(addressVisitor)) {
@@ -1446,8 +1446,7 @@ public class SMGCPAExpressionEvaluator {
     // Get the memory for the left hand side variable
     // Write the return value into the left hand side variable
     for (SMGStateAndOptionalSMGObjectAndOffset variableMemoryAndOffsetOrState :
-        leftHandSideValue.accept(
-            new SMGCPAAddressVisitor(this, currentState, edge, logger, options))) {
+        leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger))) {
       if (!variableMemoryAndOffsetOrState.hasSMGObjectAndOffset()) {
         // throw new SMG2Exception("No memory found to assign the value to.");
         successorsBuilder.add(variableMemoryAndOffsetOrState.getSMGState());
@@ -1458,7 +1457,7 @@ public class SMGCPAExpressionEvaluator {
       Value offset = variableMemoryAndOffsetOrState.getOffsetForObject();
 
       ValueAndSMGState castedValueAndState =
-          new SMGCPAValueVisitor(this, currentState, edge, logger, options)
+          new SMGCPAValueVisitor(this, currentState, edge, logger)
               .castCValue(valueToWrite, leftHandSideValue.getExpressionType(), currentState);
       valueToWrite = castedValueAndState.getValue();
       currentState = castedValueAndState.getState();
@@ -1511,7 +1510,7 @@ public class SMGCPAExpressionEvaluator {
         CType arrayLengthType = arrayLength.getExpressionType().getCanonicalType();
         // Evaluate using the value visitor, and reuse symbolic size
         List<ValueAndSMGState> lengths =
-            new SMGCPAValueVisitor(this, pInitialSmgState, pEdge, logger, options)
+            new SMGCPAValueVisitor(this, pInitialSmgState, pEdge, logger)
                 .evaluate(arrayLength, arrayLengthType);
         if (lengths.size() == 1) {
           ValueAndSMGState arrayLengthValueAndState = lengths.getFirst();
@@ -1923,8 +1922,7 @@ public class SMGCPAExpressionEvaluator {
                       CFANode.newDummyCFANode(),
                       CFANode.newDummyCFANode(),
                       "dummy edge for variable sizes arrays"),
-                  logger,
-                  options))) {
+                  logger))) {
         Value lengthValue = lengthValueAndState.getValue();
         // We simply ignore the State for this as if it's not numeric it does not matter
         if (lengthValue instanceof NumericValue numLengthValue) {
@@ -2678,7 +2676,7 @@ public class SMGCPAExpressionEvaluator {
       // Copy of the entire structure instead of just writing
       // Source == right hand side
       for (SMGStateAndOptionalSMGObjectAndOffset sourceObjectAndOffsetOrState :
-          exprToWrite.accept(new SMGCPAAddressVisitor(this, pState, cfaEdge, logger, options))) {
+          exprToWrite.accept(new SMGCPAAddressVisitor(this, pState, cfaEdge, logger))) {
         if (!sourceObjectAndOffsetOrState.hasSMGObjectAndOffset()) {
           resultStatesBuilder.add(sourceObjectAndOffsetOrState.getSMGState());
           continue;
@@ -2722,7 +2720,7 @@ public class SMGCPAExpressionEvaluator {
 
     } else {
       // Just a normal write
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(this, pState, cfaEdge, logger, options);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(this, pState, cfaEdge, logger);
       for (ValueAndSMGState valueAndState : vv.evaluate(exprToWrite, typeOfWrite)) {
 
         ValueAndSMGState valueAndStateToAssign =

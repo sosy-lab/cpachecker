@@ -8,18 +8,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import sys
-import os
-import glob
-import subprocess
-import shutil
 import argparse
-import tempfile
-
-from typing import Optional, NamedTuple
-
+import glob
+import itertools
 import logging
+import os
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from typing import NamedTuple
 
 """
 CPA-witness2test module for validating witness files by using a generate-and-validate approach.
@@ -84,8 +83,8 @@ class ArgumentStyle:
 
 class ValidationResult(NamedTuple):
     verdict: str
-    violated_property: Optional[str] = None
-    successful_harness: Optional[str] = None
+    violated_property: str | None = None
+    successful_harness: str | None = None
 
 
 class Specification(NamedTuple):
@@ -93,7 +92,7 @@ class Specification(NamedTuple):
     mem_free: bool
     mem_deref: bool
     mem_memtrack: bool
-    reach_method_call: Optional[str]
+    reach_method_call: str | None
 
     def is_reach_call(self):
         return self.reach_method_call is not None
@@ -139,17 +138,14 @@ def get_cpachecker_version():
 def create_parser(args_style: ArgumentStyle):
     flag = args_style.flag  # shorten function name for better readability
     descr = "Validate a given violation witness for an input file."
-    if sys.version_info >= (3, 5):
-        parser = argparse.ArgumentParser(
-            description=descr, add_help=False, allow_abbrev=False
-        )
-    else:
-        parser = argparse.ArgumentParser(description=descr, add_help=False)
+    parser = argparse.ArgumentParser(
+        description=descr, add_help=False, allow_abbrev=False
+    )
 
     parser.add_argument(flag("help"), "-h", action="help")
 
     parser.add_argument(
-        flag("version"), action="version", version="{}".format(get_cpachecker_version())
+        flag("version"), action="version", version=f"{get_cpachecker_version()}"
     )
 
     machine_model_args = parser.add_mutually_exclusive_group(required=False)
@@ -218,7 +214,7 @@ def _determine_file_args(argv):
     parameter_prefix = "-"
     files = []
     logging.debug("Determining file args from %s", argv)
-    for fst, snd in zip(argv[:-1], argv[1:]):
+    for fst, snd in itertools.pairwise(argv):
         if not fst.startswith(parameter_prefix) and not snd.startswith(
             parameter_prefix
         ):
@@ -234,7 +230,7 @@ def _parse_args(argv):
         use_single_dash_flags = False
     args_style = ArgumentStyle(use_single_dash_flags)
     parser = create_parser(args_style)
-    args, remainder = parser.parse_known_args(argv)
+    args, _remainder = parser.parse_known_args(argv)
     args.file = _determine_file_args(argv)
     if not args.file:
         raise ValueError("The following arguments are required: program file")
@@ -283,7 +279,7 @@ def create_compile_cmd(
         compiler = "gcc"
 
     compile_cmd = [compiler] + _create_compile_basic_args(args)
-    compile_cmd.append("-std={}".format(c_version))
+    compile_cmd.append(f"-std={c_version}")
 
     sanitizer_in_use = False
     if specification.no_overflow:
@@ -394,7 +390,10 @@ def execute(command, quiet=False):
     if not quiet:
         logging.info(" ".join(command))
     return subprocess.run(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
+        command,
+        capture_output=True,
+        text=True,
+        check=False,  # TODO add error handling
     )
 
 
@@ -480,10 +479,10 @@ def get_spec(specification_file):
         raise ValidationError("No specification file given.")
     if not os.path.isfile(specification_file):
         raise ValidationError(
-            "Specification file does not exist: %s" % specification_file
+            f"Specification file does not exist: {specification_file}"
         )
 
-    with open(specification_file, "r") as inp:
+    with open(specification_file) as inp:
         content = inp.read().strip()
 
     spec_matches = re.match(r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)", content)
@@ -513,7 +512,7 @@ def get_spec(specification_file):
 
 
 def _preprocess(program: str, spec: Specification, target: str):
-    with open(program, "r") as inp:
+    with open(program) as inp:
         content = inp.read()
 
     # IMPORTANT: This assumes that any target function is not defined or defined on a single line of code
@@ -667,14 +666,11 @@ def run(argv=None):
         print()
 
     if result.successful_harness:
-        print("Harness %s was successful." % result.successful_harness)
+        print(f"Harness {result.successful_harness} was successful.")
 
-    result_str = "Verification result: %s" % result.verdict
+    result_str = f"Verification result: {result.verdict}"
     if result.violated_property:
-        result_str += (
-            ". Property violation (%s) found by chosen configuration."
-            % result.violated_property
-        )
+        result_str += f". Property violation ({result.violated_property}) found by chosen configuration."
     print(result_str)
 
 

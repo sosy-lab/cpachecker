@@ -58,9 +58,16 @@ Developers who wish to have a few basic integration tests
 written as JUnit tests for their convenience may also add them.
 However, in order to not let local execution or CI pipelines take too much time,
 such tests must be disabled by default by calling
-`CPATestRunner.skipUnlessExtendedTestsEnabled()` (ideally from a `@BeforeClass` method).
+`IntegrationTestRunner.skipUnlessExtendedTestsEnabled()`
+(ideally from a `@BeforeClass` method).
+As above, the test class should be named `*IntegrationTest`.
 One can run them by setting the system property `enableExtendedTests`,
 e.g., with `ant tests -DenableExtendedTests=true`.
+Note that integration tests added as JUnit based must not
+refer to programs in external repositories (like SV-Benchmarks)
+nor use a preprocessor,
+as both would cause problems in certain environments.
+Use BuildBot tests if you need these.
 
 Smoke tests that automatically run each CPAchecker configuration on a trivial program
 are executed with `ant configuration-checks` and in [GitLab CI][].

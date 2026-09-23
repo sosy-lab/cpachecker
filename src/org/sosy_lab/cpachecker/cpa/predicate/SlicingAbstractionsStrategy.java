@@ -22,6 +22,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -266,10 +267,7 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
     } else {
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
       // root state. Then handling more than one root state would be no problem.
-      rootState =
-          rootStates.stream()
-              .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
-              .orElseThrow();
+      rootState = Collections.min(rootStates, Comparator.comparingInt(ARGState::getStateId));
       logger.logf(
           Level.INFO,
           "More than one root state present!(%s)",

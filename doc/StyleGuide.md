@@ -172,6 +172,19 @@ with considerably less effort!
   In such cases, rename one of the config files.
   Config files in `config/unmaintained/` should never have the same name
   as config files outside of this directory.
+- Regarding output files the following is desired:
+  - By default in most configs: all output files produced (in particular witnesses), except for particularly expensive ones
+  - Default with `--no-output-files`: no files produced, including no witnesses
+  - SV-COMP with `--benchmark` (implies `--no-output-files`): no files except witnesses
+
+  This is achieved with the following steps:
+  - Enable witnesses and output files by default in the code.
+  - Have a `@FileOption(FileOption.Type.OUTPUT_FILE)` option for the file name,
+    which is set to `null` by `--no-output-files` (code needs to handle this).
+  - Do not set the option in standard config files.
+  - Explicitly set the option for the file names of witnesses to `witness.yml` in the SV-COMP configs.
+    Then `--no-output-files` has no effect on these options,
+    because it sets only options to `null` that are not in the config file.
 
 Note that the syntax of configuration files is explained in
 [`Configuration.md`](Configuration.md#configuration-file-format).
@@ -282,6 +295,16 @@ Note that the syntax of configuration files is explained in
   (read "Effective Java" before using it).
   If you have serializable classes,
   mark all serialization-related fields and methods with `@Serial`.
+- Avoid the `var` keyword and instead spell out types explicitly.  
+  An exception can be made for cases like the following
+  where the type of `entry` is redundant (the important `key` and `value` types are specified again directly below)
+  and can clutter and decrease the readability of the `for` line a lot:
+  ```java
+  for (Map.Entry<LongType1, LongType2> entry : map) { // can use var keyword here
+    LongType1 key = entry.getKey();
+    LongType2 value = entry.getValue();
+    ...
+  ```
 
 #### `switch`
 

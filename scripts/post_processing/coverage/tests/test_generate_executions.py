@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
@@ -18,7 +16,7 @@ import unittest
 import unittest.mock
 from unittest.mock import call, patch
 
-import post_processing.coverage.generate_coverage as generate_coverage
+from post_processing.coverage import generate_coverage
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -80,9 +78,10 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
         cex_count = 2  # Will only produce one, checking the output though.
         aa_file = os.path.join(self.aux_root, "dummy_aa.spc")
 
-        with patch.object(self.logger, "error") as mock_logger, patch.object(
-            self.logger, "info"
-        ) as mock_info:
+        with (
+            patch.object(self.logger, "error") as mock_logger,
+            patch.object(self.logger, "info") as mock_info,
+        ):
             try:
                 g = generate_coverage.GenerateFirstThenCollect(
                     instance=instance,
@@ -682,9 +681,10 @@ class TestCoverageIntegrationTimeout(TestCoverage):
         # Will allow only one terminating execution to be generated,
         # since the timer adds 10 second for each call to method 'time'.
         timer = MockAdd10SecTimer(start_time)
-        with patch.object(self.logger, "info") as mock_info, patch.object(
-            self.logger, "error"
-        ) as mock_error:
+        with (
+            patch.object(self.logger, "info") as mock_info,
+            patch.object(self.logger, "error") as mock_error,
+        ):
             mock_info.side_effect = side_effect
             generate_coverage.main(argv, self.logger, timer=timer)
             self.assertEqual(mock_error.mock_calls, [])

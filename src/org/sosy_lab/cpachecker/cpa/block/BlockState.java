@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -46,7 +47,7 @@ public class BlockState
   private final BlockNode blockNode;
   private final ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
-  private final ViolationWitness witness;
+  private final SegmentedPaths witness;
   private boolean topSummaryFromNonTrivialState;
 
   public BlockState(
@@ -55,7 +56,7 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      ViolationWitness pWitness,
+      SegmentedPaths pWitness,
       boolean pTopSummaryFromNonTrivialState) {
     node = pNode;
     type = pType;
@@ -70,7 +71,7 @@ public class BlockState
     topSummaryFromNonTrivialState = pStemsFromTopState;
   }
 
-  public ViolationWitness getWitness() {
+  public SegmentedPaths getWitness() {
     return witness;
   }
 
