@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -195,19 +196,35 @@ public record SeqThreadStatementBuilder(
     }
 
     CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
-    // there are programs where a const CPAchecker_TMP statement has only two parts.
-    // in the tested programs, this only happened when the statement was followed by a function call
-    if (secondSuccessorStatement.getStatement() instanceof CFunctionCallStatement) {
-      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
-    } else {
-      // cover second successor only when it is a three part const CPAchecker_TMP statement
-      pCoveredNodes.add(secondSuccessor);
-      CExpressionStatement expressionStatement =
-          (CExpressionStatement) secondSuccessorStatement.getStatement();
-      checkState(expressionStatement.getExpression() instanceof CIdExpression);
-      return buildThreePartConstCpaCheckerTmpStatement(
-          constCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge);
-    }
+
+    return switch (secondSuccessorStatement.getStatement()) {
+      case CFunctionCallStatement ignored ->
+          // if the second successor to a const CPAchecker_TMP statement is a function call,
+          // then the function call is not part of the const CPAchecker_TMP handling.
+          buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
+      case CExpressionAssignmentStatement ignored -> {
+        InputRejection.checkConstAuxiliaryVariableOutOfScope(options, secondSuccessorEdge.cfaEdge);
+        // const CPAchecker_TMP statement followed by two assignments has only two parts because
+        // a context-switch should occur between the first and second assignment. Example:
+        // 'const int TMP = z; z = z - 1; w = y + TMP;' (created from 'w = y + z--;')
+        checkState(
+            ((CStatementEdge) firstSuccessorEdge.cfaEdge).getStatement()
+                instanceof CExpressionAssignmentStatement);
+        yield buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
+      }
+      case CExpressionStatement expressionStatement -> {
+        // cover second successor only when it is a three part const CPAchecker_TMP statement
+        pCoveredNodes.add(secondSuccessor);
+        checkState(expressionStatement.getExpression() instanceof CIdExpression);
+        yield buildThreePartConstCpaCheckerTmpStatement(
+            constCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge);
+      }
+      default ->
+          throw new IllegalArgumentException(
+              String.format(
+                  "The second successor of a const CPAchecker_TMP statement is not handled: %s",
+                  secondSuccessorStatement.getStatement().getClass()));
+    };
   }
 
   private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(

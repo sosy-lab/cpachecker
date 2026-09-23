@@ -61,6 +61,10 @@ public class InputRejection {
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
+    CONST_AUXILIARY_VARIABLE_OUT_OF_SCOPE(
+        "declareConstAuxiliaryVariablesGlobally is disabled, but the following statement contains"
+            + " an out-of-scope auxiliary variable if it is declared locally: ",
+        true),
     DUPLICATE_STRUCT_MEMBER_NAMES(
         "MPOR does not support non unique nested struct member names in line ", true),
     FIELD_MEMBER_NOT_FOUND(
@@ -156,6 +160,15 @@ public class InputRejection {
     }
     if (!isParallel) {
       throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
+    }
+  }
+
+  public static void checkConstAuxiliaryVariableOutOfScope(MPOROptions pOptions, CFAEdge pCfaEdge)
+      throws UnsupportedCodeException {
+
+    if (!pOptions.declareConstAuxiliaryVariablesGlobally()) {
+      InputRejection.rejectCfaEdge(
+          pCfaEdge, InputRejectionMessage.CONST_AUXILIARY_VARIABLE_OUT_OF_SCOPE);
     }
   }
 
