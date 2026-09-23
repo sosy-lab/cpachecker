@@ -1203,13 +1203,11 @@ class CToSvLibTransformation {
             ImmutableList.of(),
             ImmutableList.of());
       } else if (CToSvLibTransformationConstants.NAMES_OF_UNSUPPORTED_STDLIB_EXTERNAL_FUNCTIONS
-          .contains(calledProcedure.getName())) {
+              .contains(calledProcedure.getName())
+          || CToSvLibTransformationConstants.NAMES_OF_UNSUPPORTED_NONDET_FUNCTIONS.contains(
+              calledProcedure.getName())) {
         throw new UnsupportedOperationException(
-            "Call to unsupported external function encountered");
-      } else if (CToSvLibTransformationConstants.NAMES_OF_UNSUPPORTED_NONDET_FUNCTIONS.contains(
-          calledProcedure.getName())) {
-        throw new UnsupportedOperationException(
-            "Call to unsupported external function encountered");
+            "Call to unsupported external function " + calledProcedure.getName() + " encountered");
       }
 
       return createProcedureCallStatementWithDummyReturn(

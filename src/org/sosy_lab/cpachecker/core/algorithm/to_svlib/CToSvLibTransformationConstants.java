@@ -187,6 +187,10 @@ final class CToSvLibTransformationConstants {
           "lcong48_r",
           "atexit",
           "at_quick_exit",
+          // A jump back to a setjmp is control flow that the generated program cannot have.
+          "longjmp",
+          "_longjmp",
+          "siglongjmp",
           "onexit",
           "getenv",
           "mktemp",
