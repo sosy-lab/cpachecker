@@ -25,6 +25,7 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.BootstrapLanguageOptions;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
@@ -55,8 +56,8 @@ public class CPAMainTest {
   }
 
   @Before
-  public void setUp() {
-    configBuilder = Configuration.builder();
+  public void setUp() throws InvalidConfigurationException {
+    configBuilder = TestUtils.configurationForTest();
   }
 
   @Test

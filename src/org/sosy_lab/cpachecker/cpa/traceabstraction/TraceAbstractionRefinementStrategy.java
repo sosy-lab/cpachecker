@@ -173,7 +173,11 @@ public class TraceAbstractionRefinementStrategy extends PredicateAbstractionRefi
     shutdownNotifier.shutdownIfNecessary();
 
     argUpdate.start();
-    pReached.removeSubtree(pRefinementRoot);
+    if (pRefinementRoot.getParents().isEmpty()) {
+      pReached.removeAllExceptFirstState();
+    } else {
+      pReached.removeSubtree(pRefinementRoot);
+    }
     argUpdate.stop();
 
     assert refinementCount > 0;

@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -254,6 +255,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
+
       if (elementToEnter.edges().contains(edge)) {
         return CONST_TRUE;
       }
@@ -302,6 +304,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
+
       if (edge.getSuccessor().getLeavingEdges().anyMatch(e -> incomingFrontierEdges.contains(e))) {
         return CONST_TRUE;
       }
@@ -441,12 +444,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * CFAUtils#getClosestFullExpression(CCfaEdge,AstCfaRelation)}.
    */
   public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
-    private final int columnToReach;
+    private final OptionalInt columnToReach;
     private final int lineNumber;
     private final AstCfaRelation astCfaRelation;
 
     public CheckClosestFullExpressionMatchesColumnAndLine(
-        int pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
+        OptionalInt pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
       astCfaRelation = pAstCfaRelation;
@@ -470,7 +473,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       int edgeNodeStartingColumn = fullExpressionLocation.getStartColumnInLine();
 
       if (fullExpressionLocation.getStartingLineInOrigin() == lineNumber
-          && edgeNodeStartingColumn == columnToReach) {
+          && (columnToReach.isEmpty() || edgeNodeStartingColumn == columnToReach.orElseThrow())) {
         return CONST_TRUE;
       }
 
@@ -484,13 +487,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public int hashCode() {
-      return columnToReach;
+      return lineNumber;
     }
 
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckClosestFullExpressionMatchesColumnAndLine c
-          && columnToReach == c.columnToReach
+          && columnToReach.equals(c.columnToReach)
           && lineNumber == c.lineNumber
           && astCfaRelation.equals(c.astCfaRelation);
     }

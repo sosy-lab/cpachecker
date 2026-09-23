@@ -82,6 +82,20 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
 
+  <!-- recursive programs for which no state at the exit node of main is computed, cf. #1539 -->
+  <tasks name="predicate_without_main_exit">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <option name="--predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_without_main_exit_overflow">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <option name="--predicateAnalysis-bam-rec--overflow"/>
+  </tasks>
+
+
   <!-- parallel BAM -->
   <tasks name="VA-parallelBam-noCegar">
     <option name="--valueAnalysis-parallelBam"/>

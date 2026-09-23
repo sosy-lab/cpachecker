@@ -792,9 +792,9 @@ public class CFAUtils {
           }
         }
       }
-      if (currentEdge.getSuccessor().getNumLeavingEdges() > 1
+      if (currentEdge.getSuccessor().getNumLeavingEdges() != 1
           || currentEdge.getPredecessor().getNumEnteringEdges() > 1) {
-        // stop on branchings and incoming edges (loops)
+        // stop on branchings, CFA end, and incoming edges (loops)
         break;
       }
       currentEdge = Iterables.getOnlyElement(currentEdge.getSuccessor().getLeavingEdges());

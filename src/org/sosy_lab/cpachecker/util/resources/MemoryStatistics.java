@@ -28,6 +28,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.RuntimeErrorException;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 
@@ -143,6 +144,7 @@ public class MemoryStatistics implements Runnable {
       justification =
           "synchronization guaranteed externally, "
               + "printStatistics is called only after thread is stopped")
+  @SuppressForbidden("sleep is fine for running in time-based intervals")
   public void run() {
     while (true) { // no stop condition, call Thread#interrupt() to stop it
       count++;
