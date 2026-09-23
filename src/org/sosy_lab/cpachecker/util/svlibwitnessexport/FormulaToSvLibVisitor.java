@@ -664,7 +664,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
             .allMatch(type -> type instanceof SvLibSmtLibBitVectorType)) {
       int size = bitVector.getSize();
       return switch (actualName) {
-        // TODO case "concat" -> new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorConcat());
+        case "concat" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorConcat(
+                    ((SvLibSmtLibBitVectorType) pArgTypes.getFirst()).getSize(),
+                    ((SvLibSmtLibBitVectorType) pArgTypes.get(1)).getSize()),
+                FileLocation.DUMMY);
         case "bvand" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorAnd(size), FileLocation.DUMMY);
         case "bvor" ->
