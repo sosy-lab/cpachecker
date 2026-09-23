@@ -28,7 +28,7 @@ public enum SeqThreadStatementType {
    * The thread simulation inside the respective function then only initializes the local variable
    * ({@code l = 9;}).
    */
-  LOCAL_VARIABLE_INITIALIZATION(true, false),
+  LOCAL_VARIABLE_DECLARATION(true, false),
   MUTEX_LOCK(true, true),
   MUTEX_UNLOCK(true, false),
   PARAMETER_ASSIGNMENT(true, false),

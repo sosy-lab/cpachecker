@@ -18,9 +18,9 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -162,7 +162,7 @@ public record SeqThreadStatementBuilder(
 
       case CDeclarationEdge declarationEdge ->
           // "leftover" declarations should be local variables with an initializer
-          buildLocalVariableInitializationStatement(
+          buildLocalVariableDeclarationStatement(
               (CVariableDeclaration) declarationEdge.getDeclaration(), pSubstituteEdge, targetPc);
 
       case CFunctionCallEdge functionCallEdge ->
@@ -237,23 +237,43 @@ public record SeqThreadStatementBuilder(
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of());
   }
 
-  private SeqThreadStatement buildLocalVariableInitializationStatement(
+  private SeqThreadStatement buildLocalVariableDeclarationStatement(
       CVariableDeclaration pVariableDeclaration, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
-    checkArgument(
-        pVariableDeclaration.getInitializer() != null,
-        "pVariableDeclaration must have an initializer");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.LOCAL_VARIABLE_INITIALIZATION,
+            SeqThreadStatementType.LOCAL_VARIABLE_DECLARATION,
             pSubstituteEdge,
             thread.id(),
             pcLeftHandSide);
+    CIdExpression idExpression =
+        new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
+
+    // if there is no initializer, then just create an expression statement e.g. 'x;'.
+    // preserving this statement and not removing it is useful so that loop heads are preserved.
+    if (pVariableDeclaration.getInitializer() == null) {
+      CExpressionStatement expressionStatement =
+          new CExpressionStatement(pVariableDeclaration.getFileLocation(), idExpression);
+      return SeqThreadStatement.of(
+          data, pTargetPc, ImmutableList.of(new CStatementWrapper(expressionStatement)));
+    }
+
+    if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
+      throw new UnsupportedCodeException(
+          "The sequentialization does not support CInitializer other than CInitializerExpression"
+              + " for local variables.",
+          null);
+    }
+    // the local variable is declared outside main() without an initializer e.g. 'int x;',
+    // and here it is assigned the initializer e.g. 'x = 7;'
     CExpressionAssignmentStatement assignmentStatement =
-        buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            idExpression,
+            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
     return SeqThreadStatement.of(
         data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignmentStatement)));
   }
@@ -654,14 +674,10 @@ public record SeqThreadStatementBuilder(
 
     } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // IMPORTANT: this step (checking for declaration edges) must come after checking for
-      // PTHREAD_MUTEX_INITIALIZER (which may be inside a CDeclarationEdge too!)
-      CDeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof CVariableDeclaration variableDeclaration) {
-        // all variables, functions, structs... are declared outside the main function,
-        // EXCEPT local variables that have an initializer:
-        return !(!variableDeclaration.isGlobal() && variableDeclaration.getInitializer() != null);
-      }
-      return true;
+      // PTHREAD_MUTEX_INITIALIZER (which may be inside a CDeclarationEdge too).
+      // all variables, functions, structs... are initialized outside main() except local variables:
+      return !(declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration)
+          || variableDeclaration.isGlobal();
 
     } else {
       Optional<CFunctionCall> functionCall =
@@ -674,26 +690,6 @@ public record SeqThreadStatementBuilder(
       }
     }
     return false;
-  }
-
-  private static CExpressionAssignmentStatement
-      buildExpressionAssignmentStatementFromVariableDeclaration(
-          CVariableDeclaration pVariableDeclaration) throws UnsupportedCodeException {
-
-    if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
-      throw new UnsupportedCodeException(
-          "The sequentialization does not support CInitializer other than CInitializerExpression"
-              + " for local variables.",
-          null);
-    }
-    // the local variable is declared outside main() without an initializer e.g. 'int x;', and here
-    // it is assigned the initializer e.g. 'x = 7;'
-    CIdExpression idExpression =
-        new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
-    return new CExpressionAssignmentStatement(
-        FileLocation.DUMMY,
-        idExpression,
-        ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
   }
 
   private static boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {
