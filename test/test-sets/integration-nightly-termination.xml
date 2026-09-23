@@ -36,6 +36,11 @@ SPDX-License-Identifier: Apache-2.0
   <resultfiles>**/witness*.*</resultfiles>
   <!-- The portfolio runs the lasso-based analysis (prefix termination) as well as
        termination-to-safety (prefix terminationtoreach), so both export witnesses. -->
+  <option name="--option">cpa.arg.compressWitness=true</option>
+  <option name="--option">counterexample.export.compressWitness=true</option>
+  <option name="--option">counterexample.export.graphml=witness.graphml</option>
+  <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
+  <option name="--option">termination.violation.witness.graphml=witness.graphml</option>
   <option name="--option">termination.yamlProofWitness=witness.yml</option>
 
   <!--
