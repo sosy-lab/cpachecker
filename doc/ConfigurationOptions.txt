@@ -5161,6 +5161,13 @@ parser.collectACSLAnnotations = false
 parser.dialect = GNUC
   enum:     [C99, GNUC]
 
+# Whether to enable (experimental) support for the atomic type specifier
+# '_Atomic(type-name)' by rewriting it to the equivalent '_Atomic' qualifier
+# before parsing. Disadvantage: this rewriting is a purely textual
+# replacement that is applied unconditionally to the whole input, including
+# string literals and comments.
+parser.handleAtomicTypeSpecifiers = false
+
 # The command line for calling the preprocessor. May contain binary name and
 # arguments, but won't be expanded by a shell. The argument for the
 # architecture and the source file name will be appended to this string. The
