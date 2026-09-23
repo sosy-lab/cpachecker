@@ -50,6 +50,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jspecify.annotations.NonNull;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1275,30 +1276,25 @@ public class ARGUtils {
     ARGState root = AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
     ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();
 
-    // A partial path is held as a state plus a link to the rest, so that the states two partial
-    // paths have in common are stored once instead of being copied for every parent. Copying the
-    // whole prefix per parent costs a quadratic number of list entries in the length of a path,
-    // which is what an ARG with merged states runs into: there a state has several parents, so the
-    // number of partial paths is no longer bounded by the number of leaves.
-    record PartialPath(ARGState state, @Nullable PartialPath restTowardsStart) {}
-
-    Deque<PartialPath> waiting = new ArrayDeque<>();
-    waiting.push(new PartialPath(pStart, null));
+    // Each entry of the waitlist is a path that ends in pStart and starts at the state the search
+    // has walked back to so far. Prepending a parent keeps the old path intact and takes constant
+    // time, so two paths that continue through the same state hold that state once. Copying the
+    // path for every parent instead costs a quadratic number of entries in its length, which an
+    // ARG with merged states runs into because there a state has more than one parent.
+    Deque<PersistentLinkedList<ARGState>> waiting = new ArrayDeque<>();
+    waiting.push(PersistentLinkedList.of(pStart));
 
     // This is assuming from each node there is a way to go to the start
     // Loop until all paths reached the root
     while (!waiting.isEmpty()) {
-      PartialPath current = waiting.pop();
-      if (current.state() == root) {
-        ImmutableList.Builder<ARGState> path = ImmutableList.builder();
-        for (PartialPath part = current; part != null; part = part.restTowardsStart()) {
-          path.add(part.state());
+      PersistentLinkedList<ARGState> path = waiting.pop();
+      ARGState firstState = path.head();
+      if (firstState == root) {
+        results.add(new ARGPath(path));
+      } else {
+        for (ARGState parent : firstState.getParents()) {
+          waiting.push(path.with(parent));
         }
-        results.add(new ARGPath(path.build()));
-        continue;
-      }
-      for (ARGState parent : current.state().getParents()) {
-        waiting.push(new PartialPath(parent, current));
       }
     }
     return results.build();
