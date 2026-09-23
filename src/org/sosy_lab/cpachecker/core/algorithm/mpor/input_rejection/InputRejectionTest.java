@@ -167,6 +167,33 @@ public class InputRejectionTest {
   }
 
   @Test
+  public void testRejectConstAuxiliaryVariableOutOfScope() throws Exception {
+    // create test config and MPOROptions instance
+    Configuration config =
+        TestUtils.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.declareConstAuxiliaryVariablesGlobally", "false")
+            .build();
+    MPOROptions customOptions = new MPOROptions(config);
+
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/const-auxiliary-variables-out-of-scope.c");
+    testExpectedRejectionWhenBuildingProgram(
+        customOptions,
+        config,
+        inputFilePath,
+        InputRejectionMessage.CONST_AUXILIARY_VARIABLE_OUT_OF_SCOPE);
+
+    Path inputFilePathAtomic =
+        Path.of(
+            "./test/programs/mpor/input_rejections/const-auxiliary-variables-out-of-scope-atomic.c");
+    testExpectedRejectionWhenBuildingProgram(
+        customOptions,
+        config,
+        inputFilePathAtomic,
+        InputRejectionMessage.CONST_AUXILIARY_VARIABLE_OUT_OF_SCOPE);
+  }
+
+  @Test
   public void testRejectPointerWriteBinaryExpression() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/pointer-write-binary-expression.c");
