@@ -238,13 +238,13 @@ public class MutexState implements AbstractState {
 
     Optional<MutexLock> mutexToLock = MutexFunctions.getLockMutex(edge);
     if (mutexToLock.isPresent()) {
-      MutexLock aliasUpdated = updateAlias(mutexToLock.get(), mutexCandidates);
+      MutexLock aliasUpdated = updateAlias(mutexToLock.orElseThrow(), mutexCandidates);
       return withLock(aliasUpdated, pid);
     }
 
     Optional<MutexLock> mutexToUnlock = MutexFunctions.getUnlockMutex(edge);
     if (mutexToUnlock.isPresent()) {
-      MutexLock aliasUpdated = updateAlias(mutexToUnlock.get(), mutexCandidates);
+      MutexLock aliasUpdated = updateAlias(mutexToUnlock.orElseThrow(), mutexCandidates);
       return Optional.of(withUnlock(aliasUpdated, pid));
     }
 
@@ -259,11 +259,11 @@ public class MutexState implements AbstractState {
           Optional<MutexHandle> mutexName = MutexFunctions.extractMutexName(params.getFirst());
           if (mutexName.isPresent()) {
             if (MutexFunctions.isInitFunction(functionName)) {
-              return Optional.of(withInit(mutexName.get()));
+              return Optional.of(withInit(mutexName.orElseThrow()));
             }
 
             if (MutexFunctions.isDestroyFunction(functionName)) {
-              return Optional.of(withDestroy(mutexName.get()));
+              return Optional.of(withDestroy(mutexName.orElseThrow()));
             }
           }
         }

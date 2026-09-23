@@ -101,7 +101,7 @@ public class MutexCPA extends AbstractCPA {
         candidates.put(handle, aliases.getOrDefault(handle, handle));
       }
     }
-    return candidates.build();
+    return candidates.buildOrThrow();
   }
 
   @Override

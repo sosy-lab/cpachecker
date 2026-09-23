@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -24,9 +26,7 @@ public final class ThreadState extends AbstractSingleWrapperState
     super(pWrappedState);
     this.locationState =
         AbstractStates.extractStateByType(pWrappedState, AbstractStateWithLocation.class);
-    if (this.locationState == null) {
-      throw new IllegalStateException("No location state found in thread state.");
-    }
+    checkState(this.locationState != null, "No location state found in thread state.");
   }
 
   @Override

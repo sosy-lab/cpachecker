@@ -139,10 +139,10 @@ public class MutexStateTest {
     MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
-    state = state.withLock(read, 1).get();
+    state = state.withLock(read, 1).orElseThrow();
     // A 2nd concurrent reader used to throw IllegalArgumentException("Multiple entries with
     // same key") because withLock's builder put()'d the already-putAll()'d key again.
-    state = state.withLock(read, 2).get();
+    state = state.withLock(read, 2).orElseThrow();
 
     assertThat(state.getHolders(read)).containsExactly(1, 2);
   }
@@ -152,8 +152,8 @@ public class MutexStateTest {
     MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
-    state = state.withLock(read, 1).get();
-    state = state.withLock(read, 2).get();
+    state = state.withLock(read, 1).orElseThrow();
+    state = state.withLock(read, 2).orElseThrow();
     state = state.withUnlock(read, 1);
 
     assertThat(state.getHolders(read)).containsExactly(2);
@@ -170,7 +170,7 @@ public class MutexStateTest {
     MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
-    state = state.withLock(read, 1).get();
+    state = state.withLock(read, 1).orElseThrow();
     state = state.withUnlock(read, 1);
 
     assertThat(state.isLocked(read)).isFalse();

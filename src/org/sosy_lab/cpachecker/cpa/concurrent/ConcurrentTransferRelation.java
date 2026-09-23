@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
@@ -240,7 +241,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
     if (functionName.isPresent()) {
       List<? extends AExpression> params = callParameters(cfaEdge);
 
-      if (ThreadFunctions.isCreateFunction(functionName.get())) {
+      if (ThreadFunctions.isCreateFunction(functionName.orElseThrow())) {
         ThreadFunctions.checkCreateParams(params);
         String threadFunc = ThreadFunctions.extractCreateFunctionName(params);
         int newPid = state.threads().size();
@@ -271,7 +272,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
         return;
       }
 
-      if (ThreadFunctions.isJoinFunction(functionName.get())) {
+      if (ThreadFunctions.isJoinFunction(functionName.orElseThrow())) {
         ThreadFunctions.checkJoinParams(params);
         CExpression handle = (CExpression) params.getFirst();
 
@@ -292,11 +293,11 @@ public class ConcurrentTransferRelation implements TransferRelation {
         // does not apply to (e.g. a runtime-computed array index).
         Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
         if (handleKey.isPresent()) {
-          OptionalInt hint = state.getHandleHint(handleKey.get());
-          if (hint.isPresent() && state.livePids().contains(hint.getAsInt())) {
-            Optional<ConcurrentState> joined = state.joinThread(hint.getAsInt());
+          OptionalInt hint = state.getHandleHint(handleKey.orElseThrow());
+          if (hint.isPresent() && state.livePids().contains(hint.orElseThrow())) {
+            Optional<ConcurrentState> joined = state.joinThread(hint.orElseThrow());
             if (joined.isPresent()) {
-              finishEdge(joined.get(), cfaEdge, pid, wrappedSuccessors, result);
+              finishEdge(joined.orElseThrow(), cfaEdge, pid, wrappedSuccessors, result);
             }
             return;
           }
@@ -326,13 +327,13 @@ public class ConcurrentTransferRelation implements TransferRelation {
                     pid));
           }
           if (!filtered.isEmpty()) {
-            finishEdge(joined.get(), cfaEdge, pid, filtered, result);
+            finishEdge(joined.orElseThrow(), cfaEdge, pid, filtered, result);
           }
         }
         return;
       }
 
-      if (ThreadFunctions.isThreadExitFunction(functionName.get())) {
+      if (ThreadFunctions.isThreadExitFunction(functionName.orElseThrow())) {
         ThreadState threadState = state.threads().get(pid);
         assert threadState != null : "threads must contain pid to exit " + pid;
         CFANode currentNode = threadState.getLocationNode();
@@ -717,11 +718,10 @@ public class ConcurrentTransferRelation implements TransferRelation {
     AbstractState initialWrappedState =
         threadSpecificCPA.getInitialState(
             clonedEntryNode, StateSpacePartition.getDefaultPartition());
-    if (!(initialWrappedState instanceof CompositeState composite)) {
-      throw new IllegalStateException(
-          "Thread-specific CPA's initial state is not a CompositeState");
-    }
-    ThreadState initialThreadState = new ThreadState(composite);
+    checkState(
+        initialWrappedState instanceof CompositeState,
+        "Thread-specific CPA's initial state is not a CompositeState");
+    ThreadState initialThreadState = new ThreadState((CompositeState) initialWrappedState);
     return old.addNewThread(addToLivePids, handleName, initialThreadState);
   }
 }

@@ -192,7 +192,7 @@ public final class MutexFunctions {
             if (handle.isEmpty()) {
               throw new UnsupportedOperationException("Cannot statically determine mutex handle.");
             }
-            return Optional.of(new MutexLock(handle.get(), lockType));
+            return Optional.of(new MutexLock(handle.orElseThrow(), lockType));
           }
         }
       }

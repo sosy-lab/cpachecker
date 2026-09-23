@@ -51,6 +51,6 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
       // is no execution along it, so there is nothing for any other CPA to learn from it either.
       return ImmutableList.of();
     }
-    return ImmutableList.of(updated.get());
+    return ImmutableList.of(updated.orElseThrow());
   }
 }

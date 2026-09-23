@@ -128,7 +128,7 @@ class SPORConcurrentState extends ConcurrentState {
                       e -> {
                         Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(e);
                         return lockMutex.isPresent()
-                            && mutexState.isMutexBlockedFor(lockMutex.get(), pid);
+                            && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), pid);
                       });
       if (!allBlocked) {
         sourceSetFirstActions.add(ImmutableList.copyOf(firstActions));
@@ -257,7 +257,7 @@ class SPORConcurrentState extends ConcurrentState {
     EdgeDefUseData uses = EdgeDefUseData.empty();
     final List<CFAEdge> exploredEdges = new ArrayList<>();
     final List<Pair<CFAEdge, MutexState>> toExplore =
-        new ArrayList<>(List.of(Pair.of(startEdge, initialMutexState)));
+        new ArrayList<>(ImmutableList.of(Pair.of(startEdge, initialMutexState)));
     while (!toExplore.isEmpty()) {
       final Pair<CFAEdge, MutexState> exploring = toExplore.removeFirst();
       final CFAEdge edge = exploring.getFirst();
@@ -269,7 +269,7 @@ class SPORConcurrentState extends ConcurrentState {
         if (result.isEmpty()) {
           continue;
         }
-        mutexState = result.get();
+        mutexState = result.orElseThrow();
       }
       if (goFurther.test(edge, mutexState)) {
         for (final var successorEdge : getSuccessorEdges(edge, visitStartedThreadFunction)) {

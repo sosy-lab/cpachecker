@@ -276,7 +276,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
               ThreadState threadState = entry.getValue();
               if (!threadSpecificStop.stop(
                   threadState.getWrappedState(),
-                  List.of(reachedThreadState.getWrappedState()),
+                  ImmutableList.of(reachedThreadState.getWrappedState()),
                   threadSpecificPrecision)) {
                 allThreadsStop = false;
                 break;

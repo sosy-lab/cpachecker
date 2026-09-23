@@ -203,7 +203,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
     if (!params.isEmpty() && params.getFirst() instanceof CExpression handle) {
       Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
       if (handleKey.isPresent()) {
-        Integer hint = handleHints.get(handleKey.get());
+        Integer hint = handleHints.get(handleKey.orElseThrow());
         if (hint != null && livePids.contains(hint)) {
           return canJoin(hint);
         }
@@ -290,7 +290,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
       // Atomic block filtering: if another thread holds the atomic block, this thread is blocked.
       OptionalInt atomicHolder =
           mutexState != null ? mutexState.getAtomicHolder() : OptionalInt.empty();
-      if (atomicHolder.isPresent() && atomicHolder.getAsInt() != pid) {
+      if (atomicHolder.isPresent() && atomicHolder.orElseThrow() != pid) {
         continue;
       }
 
@@ -302,7 +302,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
           // Mutex lock filtering: if this edge is a lock call and the mutex is held by another
           // thread, this thread is blocked and cannot proceed along this edge.
           Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(cloned);
-          if (lockMutex.isPresent() && mutexState.isMutexBlockedFor(lockMutex.get(), pid)) {
+          if (lockMutex.isPresent() && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), pid)) {
             continue;
           }
         }

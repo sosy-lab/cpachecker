@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -112,10 +114,7 @@ final class ConsistencyChecker {
             new Edge(
                 from,
                 to,
-                ImmutableList.<BooleanFormula>builder()
-                    .add(encoder.getFullGuard(cross.guardEvent()))
-                    .addAll(guardsOf(from, to))
-                    .build()));
+                elementAndList(encoder.getFullGuard(cross.guardEvent()), guardsOf(from, to))));
       }
     }
     List<RfPair> activeRf = new ArrayList<>();
