@@ -88,6 +88,17 @@ public class DssAnalysisOptions {
   private boolean resetCallstackState = false;
 
   @Option(
+      name = "syntacticVcEquality",
+      description =
+          "Whether to decide equality of violation conditions by their representation instead of"
+              + " asking the solver. A violation condition is built from the edges of a path, so"
+              + " the same path yields the same formula. Deciding it this way spares an implication"
+              + " query per compared pair, but tells equivalent conditions that are written"
+              + " differently apart.",
+      secure = true)
+  private boolean syntacticViolationConditionEquality = false;
+
+  @Option(
       name = "combineVcsByHash",
       description = "Whether to combine violation conditions at same program location",
       secure = true)
@@ -152,6 +163,10 @@ public class DssAnalysisOptions {
 
   public boolean combineViolationConditionsByHash() {
     return combineViolationConditionsByHash;
+  }
+
+  public boolean useSyntacticViolationConditionEquality() {
+    return syntacticViolationConditionEquality;
   }
 
   public boolean combinePreconditionsByHash() {
