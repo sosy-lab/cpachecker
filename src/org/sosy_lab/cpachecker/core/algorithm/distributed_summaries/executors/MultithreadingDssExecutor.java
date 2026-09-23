@@ -112,7 +112,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
       List<Thread> threads = new ArrayList<>(actors.getActors().size());
       for (DssActor worker :
           Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
-        Thread.ofPlatform().daemon().name(worker.getId()).start(worker);
+        threads.add(Thread.ofPlatform().daemon().name(worker.getId()).start(worker));
       }
 
       Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
