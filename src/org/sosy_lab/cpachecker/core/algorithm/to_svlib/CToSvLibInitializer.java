@@ -199,6 +199,16 @@ class CToSvLibInitializer {
       for (SvLibParsingParameterDeclaration inputParameter : inputParameters) {
         localVariablesCollector.add(createDummyForInputParameter(inputParameter));
       }
+      if (entryNode.equals(cfa.getMainFunction())) {
+        // The parameters of main have arbitrary values, as in the analysis of the C program.
+        for (CParameterDeclaration parameter : cEntryNode.getFunctionParameters()) {
+          localVariablesCollector.add(
+              createLocalVariable(
+                  convertToSvLibSmtLibType(getTypeOfParameter(parameter.getType())),
+                  parameter.getName(),
+                  procedureName));
+        }
+      }
 
       ImmutableSet.Builder<CFunctionCallExpression> undeclaredFunctionsCollector =
           ImmutableSet.builder();
