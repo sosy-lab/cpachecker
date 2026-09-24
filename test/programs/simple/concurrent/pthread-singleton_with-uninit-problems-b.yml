@@ -12,7 +12,7 @@
 format_version: '2.0'
 
 # old file name: singleton_with-uninit-problems_true-unreach-call.i
-input_files: 'singleton_with-uninit-problems-b.i'
+input_files: 'pthread-singleton_with-uninit-problems-b.i'
 
 properties:
   - property_file: ../../../config/properties/no-data-race.prp

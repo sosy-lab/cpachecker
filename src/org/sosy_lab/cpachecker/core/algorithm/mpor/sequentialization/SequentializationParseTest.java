@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
  */
 public class SequentializationParseTest {
 
+  private static final Path BASE_PATH = Path.of("test/programs/simple/concurrent");
+
   // TODO these programs assign function pointers (also as initializers), some are not found:
   // pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_change_pc8736x_gpio_configure
 
@@ -47,7 +49,7 @@ public class SequentializationParseTest {
   public void test_array_eq_symm_wvr() throws Exception {
     // this program allocates memory with a helper function that returns (void *) and casts the
     // result, i.e. a pointer dereference resolves to a memory location of a different CType
-    Path path = Path.of("./test/programs/simple/concurrent/array-eq-symm.wvr.c");
+    Path path = BASE_PATH.resolve("weaver-array-eq-symm.wvr.c");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -65,7 +67,7 @@ public class SequentializationParseTest {
   @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {
     // this program contains multiple loops whose condition only contains local variables
-    Path path = Path.of("./test/programs/simple/concurrent/13-privatized_04-priv_multi_true.i");
+    Path path = BASE_PATH.resolve("goblint-regression-13-privatized_04-priv_multi_true.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -87,8 +89,8 @@ public class SequentializationParseTest {
   public void test_13_privatized_69_refine_protected_loop_interval_true() throws Exception {
     // this program had issues with infinite recursion when reordering blocks
     Path path =
-        Path.of(
-            "./test/programs/simple/concurrent/13-privatized_69-refine-protected-loop-interval_true.i");
+        BASE_PATH.resolve(
+            "goblint-regression-13-privatized_69-refine-protected-loop-interval_true.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -109,7 +111,7 @@ public class SequentializationParseTest {
   @Test
   public void test_28_race_reach_45_escape_racing() throws Exception {
     // this program contains a start_routine argument passed via pthread_create
-    Path path = Path.of("./test/programs/simple/concurrent/28-race_reach_45-escape_racing.i");
+    Path path = BASE_PATH.resolve("goblint-regression-28-race_reach_45-escape_racing.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -131,8 +133,7 @@ public class SequentializationParseTest {
   public void test_36_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
     // this program contains only local variables, no global variables
     Path path =
-        Path.of(
-            "./test/programs/simple/concurrent/36-apron_41-threadenter-no-locals_unknown_1_pos.i");
+        BASE_PATH.resolve("goblint-regression-36-apron_41-threadenter-no-locals_unknown_1_pos.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -157,7 +158,7 @@ public class SequentializationParseTest {
   public void test_fib_safe7() throws Exception {
     // this example demonstrates the need to handle local variables with initializers explicitly.
     // otherwise the local variables are declared (and initialized) and then never updated in cases.
-    Path path = Path.of("./test/programs/simple/concurrent/fib_safe-7.i");
+    Path path = BASE_PATH.resolve("pthread-fib_safe-7.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -181,7 +182,7 @@ public class SequentializationParseTest {
 
   @Test
   public void test_lazy01() throws Exception {
-    Path path = Path.of("./test/programs/simple/concurrent/lazy01.i");
+    Path path = BASE_PATH.resolve("pthread-lazy01.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -201,7 +202,7 @@ public class SequentializationParseTest {
   @Test
   public void test_queue_longest() throws Exception {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
-    Path path = Path.of("./test/programs/simple/concurrent/queue_longest.i");
+    Path path = BASE_PATH.resolve("pthread-queue_longest.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -223,7 +224,7 @@ public class SequentializationParseTest {
   @Test
   public void test_subsystem() throws Exception {
     // this program had issues with infinite recursion when reordering blocks
-    Path path = Path.of("./test/programs/simple/concurrent/subsystem.i");
+    Path path = BASE_PATH.resolve("subsystem.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -249,7 +250,7 @@ public class SequentializationParseTest {
     // this program contains start_routines that start directly with a function call.
     // this forces us to reorder the thread statements, because function statements are usually
     // at the bottom of a thread simulation.
-    Path path = Path.of("./test/programs/simple/concurrent/function-call-entry.i");
+    Path path = BASE_PATH.resolve("function-call-entry.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -275,7 +276,7 @@ public class SequentializationParseTest {
   @Test
   public void test_simple_two() throws Exception {
     // this program contains no return statements for the created threads
-    Path path = Path.of("./test/programs/simple/concurrent/simple_two.i");
+    Path path = BASE_PATH.resolve("simple_two.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -300,7 +301,7 @@ public class SequentializationParseTest {
   @Test
   public void test_singleton_with_uninit_problems_b() throws Exception {
     // this program has thread creations inside a non-main thread
-    Path path = Path.of("./test/programs/simple/concurrent/singleton_with-uninit-problems-b.i");
+    Path path = BASE_PATH.resolve("pthread-singleton_with-uninit-problems-b.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
@@ -320,7 +321,7 @@ public class SequentializationParseTest {
 
   @Test
   public void test_stack_1() throws Exception {
-    Path path = Path.of("./test/programs/simple/concurrent/stack-1.i");
+    Path path = BASE_PATH.resolve("pthread-stack-1.i");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestUtils.configurationForTest()
