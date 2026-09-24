@@ -11,6 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 import com.google.common.collect.ImmutableSet;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.Vocabulary;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
@@ -60,6 +65,26 @@ final class CToSvLibTransformationConstants {
     return SIMPLE_SYMBOL.matcher(pName).matches() && !KEYWORDS.contains(pName)
         ? pName
         : "|" + pName + "|";
+  }
+
+  /**
+   * The name of the procedure for a function without a body that the given call calls.
+   *
+   * <p>A call through a pointer, whose function the CFA does not know, names the procedure after
+   * the expression of the pointer. The same expression can denote pointers to functions of
+   * different types in different functions, for example a temporary variable of CIL, so such a
+   * procedure belongs to the function that contains the call.
+   */
+  static String procedureNameOfCall(CFunctionCallExpression pCall, String pCallingFunction) {
+    CExpression function = pCall.getFunctionNameExpression();
+    boolean callsFunctionByName =
+        function instanceof CIdExpression id
+            && !(id.getDeclaration() instanceof CVariableDeclaration)
+            && !(id.getDeclaration() instanceof CParameterDeclaration);
+    return asSymbol(
+        callsFunctionByName
+            ? function.toASTString()
+            : pCallingFunction + "::" + function.toASTString());
   }
 
   /**

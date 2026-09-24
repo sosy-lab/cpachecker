@@ -1214,11 +1214,9 @@ class CToSvLibTransformation {
 
       SvLibProcedureDeclaration calledProcedure =
           scope.getProcedureDeclaration(
-              CToSvLibTransformationConstants.asSymbol(
-                  functionCallStatement
-                      .getFunctionCallExpression()
-                      .getFunctionNameExpression()
-                      .toASTString()));
+              CToSvLibTransformationConstants.procedureNameOfCall(
+                  functionCallStatement.getFunctionCallExpression(),
+                  pStatementEdge.getPredecessor().getFunctionName()));
 
       // Handle calls to a set of external __assert functions that have a char* input parameter
       if (CToSvLibTransformationConstants.NAMES_OF_ASSERT_FUNCTIONS.contains(
@@ -1292,11 +1290,9 @@ class CToSvLibTransformation {
       throws CPATransferException, InterruptedException {
     SvLibProcedureDeclaration calledProcedure =
         scope.getProcedureDeclaration(
-            CToSvLibTransformationConstants.asSymbol(
-                pFunctionCallAssignmentStatement
-                    .getRightHandSide()
-                    .getFunctionNameExpression()
-                    .toASTString()));
+            CToSvLibTransformationConstants.procedureNameOfCall(
+                pFunctionCallAssignmentStatement.getRightHandSide(),
+                pCallEdge.getPredecessor().getFunctionName()));
 
     InputParameters inputParameters =
         transformInputParameters(
@@ -1438,8 +1434,8 @@ class CToSvLibTransformation {
       throws CPATransferException, InterruptedException {
 
     String calledFunctionName =
-        CToSvLibTransformationConstants.asSymbol(
-            pAssignmentStatement.getRightHandSide().getFunctionNameExpression().toASTString());
+        CToSvLibTransformationConstants.procedureNameOfCall(
+            pAssignmentStatement.getRightHandSide(), pCallEdge.getPredecessor().getFunctionName());
     SvLibProcedureDeclaration calledProcedure = scope.getProcedureDeclaration(calledFunctionName);
 
     String tmpVariableQualifiedName = constructTmpVariableName(calledProcedure, pCallEdge);

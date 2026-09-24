@@ -351,7 +351,7 @@ class CToSvLibInitializer {
       ImmutableSet<CFunctionCallExpression> undeclaredFunctions =
           undeclaredFunctionsCollector.build();
       if (!undeclaredFunctions.isEmpty()) {
-        initializeUndeclaredFunctions(undeclaredFunctions, pCommandsCollector);
+        initializeUndeclaredFunctions(undeclaredFunctions, procedureName, pCommandsCollector);
       }
 
       SvLibProcedureDeclaration procedureDeclaration =
@@ -778,14 +778,15 @@ class CToSvLibInitializer {
 
   private void initializeUndeclaredFunctions(
       ImmutableSet<CFunctionCallExpression> pUndeclaredFunctions,
+      String pCallingFunction,
       ImmutableList.Builder<SvLibCommand> pCommandsCollector)
       throws CPATransferException, InterruptedException {
     // Several calls of the same function are different expressions, and the same function may be
     // called from several functions of the program, so only one procedure is created per name.
     for (CFunctionCallExpression functionCallExpression : pUndeclaredFunctions) {
       String functionName =
-          CToSvLibTransformationConstants.asSymbol(
-              functionCallExpression.getFunctionNameExpression().toASTString());
+          CToSvLibTransformationConstants.procedureNameOfCall(
+              functionCallExpression, pCallingFunction);
       if (scope.hasProcedureDeclaration(functionName)
           || CToSvLibTransformationConstants.NAMES_OF_TERMINATING_FUNCTIONS.contains(
               functionCallExpression.getFunctionNameExpression().toASTString())) {
