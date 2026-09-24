@@ -516,6 +516,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.boolDisjunction(pArgTypes.size()), FileLocation.DUMMY);
         case "not" -> new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY);
+        // MathSAT5 calls the equality of two Boolean values "iff".
+        case "iff", "=" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_EQUALITY, FileLocation.DUMMY);
         default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
