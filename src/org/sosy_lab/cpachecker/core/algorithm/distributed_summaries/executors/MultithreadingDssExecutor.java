@@ -151,8 +151,11 @@ public class MultithreadingDssExecutor implements DssExecutor {
         // Blocks until all WITNESS(es) or EXCEPTION arrives
         return observer.observe();
       } finally {
-        // Workers that are still busy, e.g., because another block found a violation, are not
-        // needed anymore. Those waiting for messages that never arrive are interrupted.
+        // No worker is needed anymore, but two kinds of workers do not stop on their own:
+        // - A worker that is still analyzing, e.g., because another block found a violation,
+        //   checks the shutdown request regularly, but an interrupt would mostly go unnoticed.
+        // - A worker that waits in take() for a message that never arrives does not notice the
+        //   shutdown request, but take() throws once shutdownNow() interrupts its thread.
         workerShutdownManager.requestShutdown("DSS finished");
         executor.shutdownNow();
       }
