@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -127,6 +128,9 @@ class CToSvLibTransformation {
 
   /** The external functions whose calls only yield nondeterministic values, by their name. */
   private final ImmutableMap<String, NondeterministicFunction> nondeterministicFunctions;
+
+  /** The names of the functions of {@link #nondeterministicFunctions} that the program calls. */
+  private final Set<String> calledNondeterministicFunctions = new TreeSet<>();
 
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
@@ -933,6 +937,11 @@ class CToSvLibTransformation {
         CToSvLibTransformationConstants.FIRST_ALLOCATED_ADDRESS, pAddressType);
   }
 
+  /** The external functions whose calls yield nondeterministic values and that are called. */
+  ImmutableSet<String> getCalledNondeterministicFunctions() {
+    return ImmutableSet.copyOf(calledNondeterministicFunctions);
+  }
+
   /** The variables that the transformation itself introduced and that have to be declared. */
   ImmutableList<SvLibParsingVariableDeclaration> getVariablesOfTransformation() {
     return ImmutableList.copyOf(variablesOfTransformation.values());
@@ -1600,6 +1609,9 @@ class CToSvLibTransformation {
       ImmutableList<SvLibSimpleParsingDeclaration> pResults) {
     NondeterministicFunction function =
         nondeterministicFunctions.get(pProcedure.getProcedureName());
+    if (function != null) {
+      calledNondeterministicFunctions.add(pProcedure.getProcedureName());
+    }
     if (function == null) {
       return withAssumedConstraints(
           new SvLibProcedureCallStatement(

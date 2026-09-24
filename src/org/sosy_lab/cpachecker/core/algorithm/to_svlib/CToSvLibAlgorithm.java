@@ -421,6 +421,20 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       transformationStatistics.transformationTime.stop();
     }
 
+    ImmutableList<String> functionsWithArbitraryResults =
+        FluentIterable.from(transformation.getCalledNondeterministicFunctions())
+            .filter(name -> !name.startsWith("__VERIFIER_nondet_"))
+            .toList();
+    if (!functionsWithArbitraryResults.isEmpty()) {
+      // A C program whose correctness relies on what such a function computes, for example on the
+      // result of memcmp, can be correct although the generated program is not.
+      logger.log(
+          Level.INFO,
+          "The generated program replaces the results of the functions without a body",
+          functionsWithArbitraryResults,
+          "by arbitrary values, as the analysis of the C program does.");
+    }
+
     // The variables that the transformation and the transformed formulas introduced have to be
     // declared before the procedures that use them.
     for (SvLibParsingVariableDeclaration variableOfTransformation :
