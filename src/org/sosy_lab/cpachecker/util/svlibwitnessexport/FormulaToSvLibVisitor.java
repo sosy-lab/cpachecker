@@ -573,7 +573,6 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
         case "/", "Integer_/_", "div" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_DIV, FileLocation.DUMMY);
-        case "_%_" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MOD, FileLocation.DUMMY);
         default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
@@ -883,6 +882,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
                   ImmutableList.of(rightTerm, modulusTerm),
                   FileLocation.DUMMY)),
           FileLocation.DUMMY);
+    } else if (functionName.equals("_%_") && formulaType.equals(SvLibSmtLibPredefinedType.INT)) {
+      return remainderOfC(args.getFirst(), args.get(1));
     } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.FP_AS_IEEEBV) {
       return bitsOfFloatingPointNumber(
           args.getFirst(),
@@ -908,6 +909,42 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
 
       return new SvLibSymbolApplicationTerm(functionIdTerm, args, FileLocation.DUMMY);
     }
+  }
+
+  /**
+   * The remainder of the division of C, which rounds towards zero, for which the analysis of the C
+   * program uses an uninterpreted function. The modulo of SMT-LIB is never negative, so the
+   * remainder of a negative dividend is the negated modulo of the negated dividend.
+   */
+  private static SvLibTerm remainderOfC(SvLibTerm pDividend, SvLibTerm pDivisor) {
+    SvLibTerm dividendIsNotNegative =
+        new SvLibSymbolApplicationTerm(
+            new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN, FileLocation.DUMMY),
+            ImmutableList.of(
+                new SvLibIntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY), pDividend),
+            FileLocation.DUMMY);
+    return new SvLibSymbolApplicationTerm(
+        new SvLibIdTerm(
+            SmtLibTheoryDeclarations.ite(SvLibSmtLibPredefinedType.INT), FileLocation.DUMMY),
+        ImmutableList.of(
+            dividendIsNotNegative,
+            intModulo(pDividend, pDivisor),
+            intNegation(intModulo(intNegation(pDividend), pDivisor))),
+        FileLocation.DUMMY);
+  }
+
+  private static SvLibTerm intModulo(SvLibTerm pDividend, SvLibTerm pDivisor) {
+    return new SvLibSymbolApplicationTerm(
+        new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MOD, FileLocation.DUMMY),
+        ImmutableList.of(pDividend, pDivisor),
+        FileLocation.DUMMY);
+  }
+
+  private static SvLibTerm intNegation(SvLibTerm pTerm) {
+    return new SvLibSymbolApplicationTerm(
+        new SvLibIdTerm(SmtLibTheoryDeclarations.intSubtraction(1), FileLocation.DUMMY),
+        ImmutableList.of(pTerm),
+        FileLocation.DUMMY);
   }
 
   /**
