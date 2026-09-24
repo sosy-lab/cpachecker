@@ -16,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.Before;
@@ -78,9 +77,7 @@ public class SequentializedCounterexampleToWitnessTest {
             inputCfa,
             SequentializationUtils.of(inputCfa, config, logger, shutdownNotifier));
     mapping = result.mapping();
-    outputCfa =
-        TestCfaUtils.makeCfaFromString(
-            result.program(), Map.entry("parser.usePreprocessor", "false"));
+    outputCfa = TestCfaUtils.makeCfaFromString(result.program());
     exporter =
         new SequentializedCounterexampleToWitness(
             config, inputCfa, mapping, Specification.alwaysSatisfied(), logger);
