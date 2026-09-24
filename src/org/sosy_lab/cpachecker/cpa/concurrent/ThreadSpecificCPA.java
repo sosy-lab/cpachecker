@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -27,7 +27,8 @@ public class ThreadSpecificCPA extends AbstractSingleWrapperCPA {
         CompositeCPA.factory()
             .setConfiguration(Configuration.defaultConfiguration())
             .setChildren(
-                List.of(LocationCPA.create(pCfa, pConfig), new CallstackCPA(pConfig, pLogger)))
+                ImmutableList.of(
+                    LocationCPA.create(pCfa, pConfig), new CallstackCPA(pConfig, pLogger)))
             .set(pCfa, CFA.class)
             .createInstance());
   }
