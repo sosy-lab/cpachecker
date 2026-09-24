@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN"
+  "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+
+  <!--
+    Counterpart of integration-lassoRankerAnalysis.xml
+    for the termination-to-safety approach (cf. config/terminationToSafety.properties).
+  -->
+
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
+
+  <rundefinition>
+    <option name="--terminationToSafety"/>
+  </rundefinition>
+
+  <tasks name="C.termination.BitVectors">
+    <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+  <tasks name="C.termination.MainControlFlow">
+    <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+  <tasks name="C.termination.MainHeap">
+    <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+  <tasks name="C.termination.Other">
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+  <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+  <tasks name="C.termination.SoftwareSystems-uthash">
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+</benchmark>

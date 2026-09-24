@@ -108,8 +108,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="5.23.0" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="5.23.0" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="5.24.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="5.24.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -145,7 +145,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
-        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.10" conf="build->default" />
+        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.11" conf="build->default" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->

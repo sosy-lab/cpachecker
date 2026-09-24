@@ -811,7 +811,9 @@ public class CoreComponentsFactory {
       }
 
       if (splitProgram) {
-        algorithm = new ProgramSplitAlgorithm(algorithm, cpa, config, logger, shutdownNotifier);
+        algorithm =
+            new ProgramSplitAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa.getMachineModel());
       }
 
       if (usePropertyCheckingAlgorithm) {

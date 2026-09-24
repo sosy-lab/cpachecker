@@ -7,8 +7,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 arrayAsPointer/array*.yml
-atexit/memsafety*.yml
-atexit/reach*.yml
+anonymousLocalAllocation/*.yml
+atexit/*.yml
 atomic/*.yml
 bitvectors/*.yml
 block_analysis/*.yml
@@ -25,3 +25,5 @@ type_tests/*.yml
 pointer_arithmetics/*.yml
 function_pointers/*.yml
 verifier-nondet-memory-sanity/*.yml
+mathFunctions/*.yml
+memset/*.yml
