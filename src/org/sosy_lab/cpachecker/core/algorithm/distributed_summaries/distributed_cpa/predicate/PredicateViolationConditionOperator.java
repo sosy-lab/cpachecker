@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -38,7 +38,6 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     cpa = pCpa;
     hasRootAsPredecessor = pHasRootAsPredecessor;
   }
-
 
   /**
    * Adds the pointer-target set the forward analysis built along the path to the context of {@code
