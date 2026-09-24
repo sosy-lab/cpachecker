@@ -25,6 +25,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -50,7 +51,7 @@ public class SequentializedCounterexampleToWitnessTest {
 
   /** The concurrent input program that is sequentialized. */
   private static final Path INPUT_PROGRAM =
-      Path.of("./test/programs/mpor/sequentialization/lazy01.c");
+      Path.of("./test/programs/simple/concurrent/pthread-lazy01.i");
 
   private CFA inputCfa;
 
@@ -66,7 +67,10 @@ public class SequentializedCounterexampleToWitnessTest {
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
-    inputCfa = TestCfaUtils.makeCfaFromFile(INPUT_PROGRAM.toString());
+    // this does not use TestCfaUtils because it overwrites the input file name, but the unit tests
+    // here check the input file name.
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(INPUT_PROGRAM.toString()));
 
     SequentializationResult result =
         Sequentialization.tryBuildProgram(

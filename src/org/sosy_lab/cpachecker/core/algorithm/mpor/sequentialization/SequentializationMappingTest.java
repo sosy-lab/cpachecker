@@ -18,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -51,7 +51,7 @@ public class SequentializationMappingTest {
 
   /** The concurrent input program that is sequentialized. */
   private static final Path INPUT_PROGRAM =
-      Path.of("./test/programs/mpor/sequentialization/lazy01.c");
+      Path.of("./test/programs/simple/concurrent/pthread-lazy01.i");
 
   @Parameters(name = "{0}")
   public static List<Object[]> encodings() {
@@ -113,7 +113,10 @@ public class SequentializationMappingTest {
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
-    inputCfa = TestCfaUtils.makeCfaFromFile(INPUT_PROGRAM.toString());
+    // this does not use TestCfaUtils because it overwrites the input file name, but the unit tests
+    // here check the input file name.
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(INPUT_PROGRAM.toString()));
 
     SequentializationResult result =
         Sequentialization.tryBuildProgram(
@@ -121,9 +124,7 @@ public class SequentializationMappingTest {
             inputCfa,
             SequentializationUtils.of(inputCfa, config, logger, shutdownNotifier));
     mapping = result.mapping();
-    outputCfa =
-        TestCfaUtils.makeCfaFromString(
-            result.program(), Map.entry("parser.usePreprocessor", "false"));
+    outputCfa = TestCfaUtils.makeCfaFromString(result.program());
   }
 
   /**
