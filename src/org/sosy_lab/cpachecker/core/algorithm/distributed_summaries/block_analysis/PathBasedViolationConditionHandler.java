@@ -14,13 +14,14 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
@@ -65,17 +66,22 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
       Multimap<String, StateAndPrecision> mapForSuccessor = conditions.get(pReceived.getSenderId());
       ImmutableListMultimap<String, @NonNull StateAndPrecision> vcsByID =
           indexByPrecondition(received);
+      Set<String> remaining = ImmutableSet.copyOf(pReceived.getRemainingPreconditions());
+      if (!changesConditions(mapForSuccessor, vcsByID, remaining)) {
+        // Deciding this per precondition of the sender spares recomputing the conditions over all
+        // senders, which compares every pair of conditions, for the frequent message that only
+        // repeats what this block knows.
+        return DssMessageProcessing.stop();
+      }
       // replace all newly received keys
       vcsByID.keySet().forEach(id -> mapForSuccessor.removeAll(id));
       mapForSuccessor.putAll(vcsByID);
       List<String> toRemove =
-          mapForSuccessor.keySet().stream()
-              .filter(k -> !pReceived.getRemainingPreconditions().contains(k))
-              .toList();
+          mapForSuccessor.keySet().stream().filter(k -> !remaining.contains(k)).toList();
       toRemove.forEach(remainingId -> mapForSuccessor.removeAll(remainingId));
 
       ImmutableList<StateAndPrecision> updatedConditionsToExplore =
-          analysis.deduplicateStatesAndPrecisions(
+          analysis.deduplicateViolationConditions(
               conditions.values().stream().flatMap(m -> m.values().stream()).toList());
       // Compared with equality, not coverage: a condition that unrolls one more loop iteration is
       // the previous one's path formula conjoined with the next loop guard, so it is subsumed by
@@ -83,7 +89,7 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
       // would stop instead of exploring it, and the loop would never unroll far enough to reach a
       // violation that only occurs after several iterations.
       boolean globalConditionSetUnchanged =
-          analysis.statesEqual(updatedConditionsToExplore, conditionsToExplore);
+          analysis.violationConditionsEqual(updatedConditionsToExplore, conditionsToExplore);
       conditionsToExplore = updatedConditionsToExplore;
 
       return globalConditionSetUnchanged
@@ -93,6 +99,27 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());
     }
+  }
+
+  /**
+   * Whether storing the given conditions of one sender changes what is stored for it: a
+   * precondition of the sender gets new conditions, or one with conditions is gone.
+   */
+  private boolean changesConditions(
+      Multimap<String, StateAndPrecision> pStored,
+      ImmutableListMultimap<String, @NonNull StateAndPrecision> pReceived,
+      Set<String> pRemaining)
+      throws CPAException, InterruptedException {
+    if (!pRemaining.containsAll(pStored.keySet())) {
+      return true;
+    }
+    for (String id : pReceived.keySet()) {
+      if (pRemaining.contains(id)
+          && !analysis.violationConditionsEqual(pReceived.get(id), pStored.get(id))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -117,17 +144,7 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
   }
 
   @Override
-  public boolean isEmpty() {
-    return conditions.keySet().stream().allMatch(this::isEmptyFor);
-  }
-
-  @Override
-  public boolean isEmptyFor(String pSenderId) {
-    return !conditions.containsKey(pSenderId) || conditions.get(pSenderId).isEmpty();
-  }
-
-  @Override
-  public ImmutableList<AbstractState> statesOf(Optional<String> pSenderId) {
+  public ImmutableList<AbstractState> states() {
     return transformedImmutableListCopy(conditionsToExplore, StateAndPrecision::state);
   }
 

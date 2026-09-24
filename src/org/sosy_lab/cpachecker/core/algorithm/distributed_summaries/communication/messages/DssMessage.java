@@ -17,16 +17,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -291,6 +294,50 @@ public abstract class DssMessage {
 
   public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
     return asJsonWithIdentifier(0);
+  }
+
+  /**
+   * The contexts of the sender that no longer produce a postcondition, each identified by its path
+   * through the block graph without versions. A receiver that keys what it derived by path drops
+   * everything it derived from these contexts.
+   */
+  public final ImmutableList<BlockGraphPath> getRetractedContexts() {
+    checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
+    String retracted = content.get(DssMessageFactory.DSS_MESSAGE_RETRACTED_CONTEXTS_KEY);
+    if (isNullOrEmpty(retracted)) {
+      return ImmutableList.of();
+    }
+    return FluentIterable.from(
+            Splitter.on(DssMessageFactory.RETRACTED_CONTEXT_SEPARATOR).split(retracted))
+        .transform(
+            path ->
+                BlockGraphPath.of(
+                    Splitter.on(DssMessageFactory.RETRACTED_CONTEXT_ELEMENT_SEPARATOR)
+                        .splitToList(path)))
+        .toList();
+  }
+
+  /**
+   * For every block the sender knows of, whether that block withholds the postcondition of one of
+   * its contexts, as last announced by it.
+   */
+  public final ImmutableMap<String, WithholdingStatus> getWithholdingStatus() {
+    checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
+    String serialized = content.get(DssMessageFactory.DSS_MESSAGE_WITHHOLDING_KEY);
+    if (isNullOrEmpty(serialized)) {
+      return ImmutableMap.of();
+    }
+    ImmutableMap.Builder<String, WithholdingStatus> statuses = ImmutableMap.builder();
+    for (String status : Splitter.on(DssMessageFactory.WITHHOLDING_SEPARATOR).split(serialized)) {
+      List<String> parts =
+          Splitter.on(DssMessageFactory.WITHHOLDING_ELEMENT_SEPARATOR).splitToList(status);
+      checkState(parts.size() == 3, "Malformed withholding status: %s", status);
+      statuses.put(
+          parts.get(0),
+          new WithholdingStatus(
+              Integer.parseInt(parts.get(1)), Boolean.parseBoolean(parts.get(2))));
+    }
+    return statuses.buildOrThrow();
   }
 
   public final ImmutableList<String> getRemainingPreconditions() {

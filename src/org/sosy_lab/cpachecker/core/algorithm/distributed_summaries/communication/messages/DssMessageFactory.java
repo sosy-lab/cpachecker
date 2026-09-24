@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +21,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
@@ -30,6 +34,20 @@ public class DssMessageFactory {
   public static final String DSS_MESSAGE_PROPERTY_KEY = "property";
   public static final String DSS_MESSAGE_SOUND_KEY = "sound";
   public static final String DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY = "unreachableBlockEnd";
+  public static final String DSS_MESSAGE_RETRACTED_CONTEXTS_KEY = "retractedContexts";
+  public static final String DSS_MESSAGE_WITHHOLDING_KEY = "withholding";
+
+  /** Separates the statuses of different blocks in a postcondition message. */
+  static final char WITHHOLDING_SEPARATOR = ';';
+
+  /** Separates the block id, the epoch and the flag of one withholding status. */
+  static final char WITHHOLDING_ELEMENT_SEPARATOR = ':';
+
+  /** Separates the retracted contexts of a postcondition message from each other. */
+  static final char RETRACTED_CONTEXT_SEPARATOR = ';';
+
+  /** Separates the blocks of one retracted context. */
+  static final char RETRACTED_CONTEXT_ELEMENT_SEPARATOR = ',';
 
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
@@ -51,12 +69,54 @@ public class DssMessageFactory {
 
   public DssPostConditionMessage createDssPostConditionMessage(
       String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
-    return new DssPostConditionMessage(
-        pSenderId,
+    return createDssPostConditionMessage(
+        pSenderId, pStatus, pStateContent, ImmutableList.of(), ImmutableMap.of());
+  }
+
+  /**
+   * Creates a postcondition message that additionally retracts contexts of the sender, i.e.,
+   * contexts that no longer produce a postcondition (see {@link
+   * DssMessage#getRetractedContexts()}), and tells which blocks withhold a postcondition (see
+   * {@link DssMessage#getWithholdingStatus()}).
+   *
+   * @param pRetractedContexts the paths through the block graph that identify the retracted
+   *     contexts in the sender
+   * @param pWithholding the withholding status of every block the sender knows of
+   */
+  public DssPostConditionMessage createDssPostConditionMessage(
+      String pSenderId,
+      AlgorithmStatus pStatus,
+      ImmutableMap<String, String> pStateContent,
+      List<BlockGraphPath> pRetractedContexts,
+      Map<String, WithholdingStatus> pWithholding) {
+    ImmutableMap.Builder<String, String> content =
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
-            .putAll(pStateContent)
-            .buildOrThrow());
+            .putAll(pStateContent);
+    if (!pWithholding.isEmpty()) {
+      content.put(
+          DSS_MESSAGE_WITHHOLDING_KEY,
+          Joiner.on(WITHHOLDING_SEPARATOR)
+              .join(
+                  Collections2.transform(
+                      pWithholding.entrySet(),
+                      entry ->
+                          Joiner.on(WITHHOLDING_ELEMENT_SEPARATOR)
+                              .join(
+                                  entry.getKey(),
+                                  entry.getValue().epoch(),
+                                  entry.getValue().withholding()))));
+    }
+    if (!pRetractedContexts.isEmpty()) {
+      content.put(
+          DSS_MESSAGE_RETRACTED_CONTEXTS_KEY,
+          Joiner.on(RETRACTED_CONTEXT_SEPARATOR)
+              .join(
+                  Lists.transform(
+                      pRetractedContexts,
+                      path -> Joiner.on(RETRACTED_CONTEXT_ELEMENT_SEPARATOR).join(path.path()))));
+    }
+    return new DssPostConditionMessage(pSenderId, content.buildOrThrow());
   }
 
   /**

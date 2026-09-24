@@ -111,7 +111,6 @@ public class BlockState
     violationConditions = pReached.violationConditions;
     history = pReached.history;
     witness = pReached.witness;
-    witnessCheckPathState = pReached.witnessCheckPathState;
     hinderedByCallstack = new LinkedHashSet<>(pReached.hinderedByCallstack);
     hinderedByCallstack.addAll(pSuccessor.hinderedByCallstack);
     mergedFrom = ImmutableList.of(pReached, pSuccessor);
@@ -290,7 +289,6 @@ public class BlockState
         && blockNode == pOther.blockNode
         && Objects.equals(history, pOther.history)
         && Objects.equals(witness, pOther.witness)
-        && Objects.equals(witnessCheckPathState, pOther.witnessCheckPathState)
         && violationConditions.equals(pOther.violationConditions);
   }
 

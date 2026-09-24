@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
@@ -41,4 +43,13 @@ interface DssPreconditionHandler {
 
   /** All preconditions known so far, e.g. to export them as a correctness witness. */
   ImmutableList<@NonNull StateAndPrecision> getKnownPreconditions();
+
+  /**
+   * The ids of the states that the violation conditions this block reports may stem from, so that a
+   * predecessor can drop the conditions of states this block no longer explores.
+   */
+  default ImmutableList<String> getIdsOfExploredStates() {
+    return transformedImmutableListCopy(
+        getKnownPreconditions(), sap -> sap.getBlockState().getUniqueId());
+  }
 }

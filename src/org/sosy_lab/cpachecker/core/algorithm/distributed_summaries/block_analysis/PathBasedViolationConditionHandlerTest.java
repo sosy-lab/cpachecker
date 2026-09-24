@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,14 +56,14 @@ public class PathBasedViolationConditionHandlerTest {
     // stand in for these two collaborators. All violation conditions of this test are pairwise
     // distinct states, so comparing them by identity is equivalent to the coverage-based
     // comparison that the real implementations use.
-    when(analysis.deduplicateStatesAndPrecisions(any()))
+    when(analysis.deduplicateViolationConditions(any()))
         .thenAnswer(
             invocation -> {
               Iterable<StateAndPrecision> statesAndPrecisions = invocation.getArgument(0);
               return ImmutableList.copyOf(
                   new LinkedHashSet<>(ImmutableList.copyOf(statesAndPrecisions)));
             });
-    when(analysis.statesEqual(any(), any()))
+    when(analysis.violationConditionsEqual(any(), any()))
         .thenAnswer(
             invocation -> {
               Collection<StateAndPrecision> states1 = invocation.getArgument(0);
@@ -114,8 +113,7 @@ public class PathBasedViolationConditionHandlerTest {
     assertThat(handler.store(message(ImmutableList.of("p1", "p2"), combined)).shouldProceed())
         .isTrue();
 
-    assertThat(handler.statesOf(Optional.of(SENDER))).containsExactly(combined.state());
-    assertThat(handler.statesOf(Optional.empty())).containsExactly(combined.state());
+    assertThat(handler.states()).containsExactly(combined.state());
   }
 
   /**
@@ -131,13 +129,11 @@ public class PathBasedViolationConditionHandlerTest {
     handler.store(message(ImmutableList.of("p1", "p2"), combined));
     handler.store(message(ImmutableList.of("p1", "p2"), onlyP1));
 
-    assertThat(handler.statesOf(Optional.of(SENDER)))
-        .containsExactly(combined.state(), onlyP1.state());
+    assertThat(handler.states()).containsExactly(combined.state(), onlyP1.state());
 
     handler.store(message(ImmutableList.of("p1", "p2"), onlyP2));
 
-    assertThat(handler.statesOf(Optional.of(SENDER)))
-        .containsExactly(onlyP1.state(), onlyP2.state());
+    assertThat(handler.states()).containsExactly(onlyP1.state(), onlyP2.state());
   }
 
   /** Conditions of preconditions that the sender does not know anymore are dropped. */
@@ -150,7 +146,29 @@ public class PathBasedViolationConditionHandlerTest {
     // the sender replaced p1, so the combined condition is neither valid for p1 nor for p2 anymore
     handler.store(message(ImmutableList.of("p2"), onlyP2));
 
-    assertThat(handler.statesOf(Optional.of(SENDER))).containsExactly(onlyP2.state());
-    assertThat(handler.isEmptyFor(SENDER)).isFalse();
+    assertThat(handler.states()).containsExactly(onlyP2.state());
+  }
+
+  /**
+   * A message that repeats the conditions this block already knows for the sender changes nothing.
+   */
+  @Test
+  public void repeatedConditionsStop() throws Exception {
+    StateAndPrecision condition = violationConditionFor("p1");
+
+    assertThat(handler.store(message(ImmutableList.of("p1"), condition)).shouldProceed()).isTrue();
+    assertThat(handler.store(message(ImmutableList.of("p1"), condition)).shouldProceed()).isFalse();
+    assertThat(handler.states()).containsExactly(condition.state());
+  }
+
+  /** A message whose sender no longer knows a precondition drops that precondition's conditions. */
+  @Test
+  public void goneKnownPreconditionProceeds() throws Exception {
+    StateAndPrecision forP1 = violationConditionFor("p1");
+    StateAndPrecision forP2 = violationConditionFor("p2");
+    handler.store(message(ImmutableList.of("p1", "p2"), forP1, forP2));
+
+    assertThat(handler.store(message(ImmutableList.of("p2"), forP2)).shouldProceed()).isTrue();
+    assertThat(handler.states()).containsExactly(forP2.state());
   }
 }

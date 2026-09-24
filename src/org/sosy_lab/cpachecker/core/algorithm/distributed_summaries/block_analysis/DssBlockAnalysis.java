@@ -305,7 +305,7 @@ public final class DssBlockAnalysis {
     if (pRound.blockEndUnreachable()) {
       messages.addAll(reportUnreachableBlockEnd());
     } else {
-      messages.addAll(reportPostconditions(pRound.summaries()));
+      messages.addAll(reportPostconditions(pRound.summaries(), pRound.contextUpdate()));
     }
     return messages.build();
   }
@@ -370,9 +370,9 @@ public final class DssBlockAnalysis {
    * The given preconditions, each with this block recorded at the end of its history.
    *
    * <p>Called by the receiver of a postcondition rather than by the sender before it serializes
-   * (see {@link #reportPostconditions(Collection)}), so that a block ends up in the history of the
-   * preconditions it receives itself. A path-based receiver needs exactly that to tell a repeat
-   * visit of a cycle apart from one reached via a genuinely new predecessor.
+   * (see {@link #reportPostconditions(Collection, Optional)}), so that a block ends up in the
+   * history of the preconditions it receives itself. A path-based receiver needs exactly that to
+   * tell a repeat visit of a cycle apart from one reached via a genuinely new predecessor.
    */
   ImmutableList<@NonNull StateAndPrecision> withBlockInHistory(
       Collection<@NonNull StateAndPrecision> pStates) {
@@ -689,8 +689,14 @@ public final class DssBlockAnalysis {
     return summaries.build();
   }
 
-  Collection<DssMessage> reportPostconditions(Collection<@NonNull StateAndPrecision> pSummaries) {
-    if (pSummaries.isEmpty()) {
+  /**
+   * Publishes the given postconditions together with the given update of the contexts (see {@link
+   * AnalysisResult#contextUpdate()}). Nothing is published if there are neither postconditions nor
+   * an update.
+   */
+  private Collection<DssMessage> reportPostconditions(
+      Collection<@NonNull StateAndPrecision> pSummaries, Optional<ContextUpdate> pContextUpdate) {
+    if (pSummaries.isEmpty() && pContextUpdate.isEmpty()) {
       return ImmutableList.of();
     }
 
@@ -699,7 +705,11 @@ public final class DssBlockAnalysis {
     // repeat visit of a cycle apart from one reached via a genuinely new predecessor.
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
-            block.getId(), status, serialize(ImmutableList.copyOf(pSummaries))));
+            block.getId(),
+            status,
+            serialize(ImmutableList.copyOf(pSummaries)),
+            pContextUpdate.map(ContextUpdate::retractedContexts).orElse(ImmutableList.of()),
+            pContextUpdate.map(ContextUpdate::withholding).orElse(ImmutableMap.of())));
   }
 
   /**
@@ -759,9 +769,7 @@ public final class DssBlockAnalysis {
     if (allVcs.isEmpty()) {
       return ImmutableSet.of();
     }
-    ImmutableList<String> ids =
-        transformedImmutableListCopy(
-            preconditions.getKnownPreconditions(), sap -> blockStateOf(sap.state()).getUniqueId());
+    ImmutableList<String> ids = preconditions.getIdsOfExploredStates();
     return ImmutableSet.of(
         messageFactory.createViolationConditionMessage(
             block.getId(), status, ids, serialize(allVcs)));
