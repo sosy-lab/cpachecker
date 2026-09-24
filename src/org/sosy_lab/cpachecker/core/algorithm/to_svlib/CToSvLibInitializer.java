@@ -116,6 +116,13 @@ class CToSvLibInitializer {
   private final PathFormulaManager pathFormulaManager;
   private final CtoFormulaConverter converter;
 
+  /**
+   * The context of the formulas of the declarations, which contains the declarations so far: a
+   * declaration like "int *p = &a;" needs the base of a, which cannot be created there if the size
+   * of the type of a is unknown.
+   */
+  private PathFormula declarationContext;
+
   /** The names of the global variables of the program, which a local variable must not have. */
   private final ImmutableSet<String> namesOfGlobalVariables;
 
@@ -135,6 +142,7 @@ class CToSvLibInitializer {
     pathFormulaManager = pPathFormulaManager;
     converter = pConverter;
     namesOfGlobalVariables = collectNamesOfGlobalVariables();
+    declarationContext = pathFormulaManager.makeEmptyPathFormula();
   }
 
   /**
@@ -198,11 +206,19 @@ class CToSvLibInitializer {
         if (edge instanceof CDeclarationEdge declarationEdge) {
           CDeclaration declaration = declarationEdge.getDeclaration();
 
+          if (declaration instanceof CVariableDeclaration) {
+            // Also a variable whose type has no values can become a base, when its address is
+            // taken, and the later declarations need that base.
+            declarationContext =
+                pathFormulaManager.makeAnd(
+                    pathFormulaManager.makeEmptyPathFormulaWithContext(
+                        declarationContext.getSsa(), declarationContext.getPointerTargetSet()),
+                    edge);
+          }
           if (declaration instanceof CVariableDeclaration variableDeclaration
               && hasValues(variableDeclaration.getType())) {
             SvLibSimpleParsingDeclaration parsingDeclaration =
                 initializeVariableDeclaration(
-                    edge,
                     variableDeclaration,
                     procedureName,
                     typesOfHeapArraysToBuild,
@@ -399,17 +415,13 @@ class CToSvLibInitializer {
   }
 
   private SvLibSimpleParsingDeclaration initializeVariableDeclaration(
-      CFAEdge pEdge,
       CVariableDeclaration pVariableDeclaration,
       String pProcedureName,
       ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate,
       ImmutableList.Builder<SvLibCommand> pCommandsCollector)
       throws CPATransferException, InterruptedException {
 
-    PointerTargetSet pointerTargetSetForEdge =
-        pathFormulaManager
-            .makeAnd(pathFormulaManager.makeEmptyPathFormula(), pEdge)
-            .getPointerTargetSet();
+    PointerTargetSet pointerTargetSetForEdge = declarationContext.getPointerTargetSet();
     // One edge can make more than one variable part of the heap representation, for example the
     // declaration "int *p = &a;", so the base of the declared variable is searched for instead of
     // assuming that it is the only one.

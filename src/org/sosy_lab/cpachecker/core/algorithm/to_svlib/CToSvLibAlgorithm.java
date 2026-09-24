@@ -327,7 +327,13 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         }
       }
     }
-    return FluentIterable.from(cfa.entryNodes()).filter(reachable::contains).toList();
+    // The main function comes first, because it begins with the declarations of the global
+    // variables, which the formulas of the other functions need as their context.
+    return FluentIterable.of(cfa.getMainFunction())
+        .append(
+            FluentIterable.from(cfa.entryNodes())
+                .filter(entry -> reachable.contains(entry) && !entry.equals(cfa.getMainFunction())))
+        .toList();
   }
 
   /**
