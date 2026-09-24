@@ -250,6 +250,17 @@ class CToSvLibInitializer {
                     .toASTString())) {
           undeclaredFunctionsCollector.add(
               cFunctionCallAssignmentStatement.getFunctionCallExpression());
+          // The result can be assigned to memory, as for a call through a pointer to a function,
+          // which needs the variable that holds it as well.
+          SvLibType returnValueType =
+              convertToSvLibSmtLibType(
+                  cFunctionCallAssignmentStatement.getRightHandSide().getExpressionType());
+          localVariablesCollector.add(
+              new SvLibParsingParameterDeclaration(
+                  FileLocation.DUMMY,
+                  returnValueType,
+                  CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType),
+                  procedureName));
 
         } else if (edge instanceof CStatementEdge statementEdgeOfCall
             && statementEdgeOfCall.getStatement() instanceof CFunctionCallStatement callStatement
