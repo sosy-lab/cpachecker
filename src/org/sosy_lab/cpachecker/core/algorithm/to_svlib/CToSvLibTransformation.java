@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
@@ -244,9 +245,23 @@ class CToSvLibTransformation {
       if (!procedureDeclaration.getParameters().isEmpty()) {
         ImmutableMap.Builder<SvLibSimpleParsingDeclaration, SvLibTerm> inputAssignmentsCollector =
             ImmutableMap.builder();
+        ImmutableList.Builder<SvLibStatement> storesOfParametersInMemory = ImmutableList.builder();
 
-        for (SvLibParsingParameterDeclaration inputParameter :
-            procedureDeclaration.getParameters()) {
+        for (int i = 0; i < procedureDeclaration.getParameters().size(); i++) {
+          SvLibParsingParameterDeclaration inputParameter =
+              procedureDeclaration.getParameters().get(i);
+          CParameterDeclaration parameter = pEntryNode.getFunctionParameters().get(i);
+          if (!isRepresentedByOwnVariable(
+              new CIdExpression(FileLocation.DUMMY, parameter),
+              Verify.verifyNotNull(initialPointerTargetSet))) {
+            // The address of the parameter is taken, so its value is part of the memory, as the
+            // analysis of the C program stores it there when the function is called.
+            storesOfParametersInMemory.add(
+                transformAssignmentEdge(
+                    createAssignmentOfParameter(pEntryNode, parameter, inputParameter),
+                    edgeToPointerTargetSet));
+            continue;
+          }
           // The variable is looked up by its qualified name, because a local variable that
           // shadows a global one is renamed and its name in the generated program is not the one
           // of the input parameter without the prefix.
@@ -261,13 +276,15 @@ class CToSvLibTransformation {
               new SvLibIdTerm(inputParameter.toSimpleDeclaration(), FileLocation.DUMMY));
         }
 
-        SvLibAssignmentStatement assignDummyInput =
-            new SvLibAssignmentStatement(
-                inputAssignmentsCollector.buildOrThrow(),
-                FileLocation.DUMMY,
-                ImmutableList.of(),
-                ImmutableList.of());
-        statementCollector.put(pEntryNode, assignDummyInput);
+        ImmutableMap<SvLibSimpleParsingDeclaration, SvLibTerm> inputAssignments =
+            inputAssignmentsCollector.buildOrThrow();
+        if (!inputAssignments.isEmpty()) {
+          statementCollector.put(
+              pEntryNode,
+              new SvLibAssignmentStatement(
+                  inputAssignments, FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of()));
+        }
+        statementCollector.putAll(pEntryNode, storesOfParametersInMemory.build());
       }
 
       ImmutableList<CFAEdge> relevantEdges = getAllRelevantEdges(pEntryNode);
@@ -1108,7 +1125,19 @@ class CToSvLibTransformation {
         pathFormulaManager.makeEmptyPathFormulaWithContext(
             SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
     for (FunctionEntryNode entryNode : functions) {
-      for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
+      // The analysis of the C program makes a parameter whose address is taken part of the memory
+      // when the function is called, but the edges of the calls are not transformed into formulas.
+      ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
+      if (!entryNode.equals(cfa.getMainFunction())) {
+        for (CParameterDeclaration parameter :
+            ((CFunctionEntryNode) entryNode).getFunctionParameters()) {
+          edges.add(
+              new CDeclarationEdge(
+                  "", FileLocation.DUMMY, entryNode, entryNode, parameter.asVariableDeclaration()));
+        }
+      }
+      edges.addAll(getAllRelevantEdges(entryNode));
+      for (CFAEdge edge : edges.build()) {
         Optional<CAssignment> assignment = getAssignmentOfEdge(edge);
         if (assignment.isPresent() && isMemoryAllocation(assignment.orElseThrow())) {
           continue;
@@ -1485,6 +1514,40 @@ class CToSvLibTransformation {
     return pCallEdge.getPredecessor().getFunctionName()
         + "::"
         + CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType);
+  }
+
+  /**
+   * An edge at the entry of the given function that assigns the value that the procedure receives
+   * for the given parameter to that parameter, which is not part of the CFA.
+   */
+  private CStatementEdge createAssignmentOfParameter(
+      CFunctionEntryNode pEntryNode,
+      CParameterDeclaration pParameter,
+      SvLibParsingParameterDeclaration pInputParameter) {
+    String nameOfValue = pEntryNode.getFunctionName() + "::" + pInputParameter.getName();
+    CType type = pParameter.getType();
+    if (type.getCanonicalType() instanceof CArrayType arrayType) {
+      type = new CPointerType(CTypeQualifiers.NONE, arrayType.getType());
+    }
+    CVariableDeclaration value =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            type,
+            nameOfValue,
+            nameOfValue,
+            nameOfValue,
+            null);
+    return new CStatementEdge(
+        "",
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            new CIdExpression(FileLocation.DUMMY, pParameter),
+            new CIdExpression(FileLocation.DUMMY, type, nameOfValue, value)),
+        FileLocation.DUMMY,
+        pEntryNode,
+        pEntryNode);
   }
 
   /**
