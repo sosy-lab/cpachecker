@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -315,29 +314,6 @@ public abstract class DssMessage {
                     Splitter.on(DssMessageFactory.RETRACTED_CONTEXT_ELEMENT_SEPARATOR)
                         .splitToList(path)))
         .toList();
-  }
-
-  /**
-   * For every block the sender knows of, whether that block withholds the postcondition of one of
-   * its contexts, as last announced by it.
-   */
-  public final ImmutableMap<String, WithholdingStatus> getWithholdingStatus() {
-    checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
-    String serialized = content.get(DssMessageFactory.DSS_MESSAGE_WITHHOLDING_KEY);
-    if (isNullOrEmpty(serialized)) {
-      return ImmutableMap.of();
-    }
-    ImmutableMap.Builder<String, WithholdingStatus> statuses = ImmutableMap.builder();
-    for (String status : Splitter.on(DssMessageFactory.WITHHOLDING_SEPARATOR).split(serialized)) {
-      List<String> parts =
-          Splitter.on(DssMessageFactory.WITHHOLDING_ELEMENT_SEPARATOR).splitToList(status);
-      checkState(parts.size() == 3, "Malformed withholding status: %s", status);
-      statuses.put(
-          parts.get(0),
-          new WithholdingStatus(
-              Integer.parseInt(parts.get(1)), Boolean.parseBoolean(parts.get(2))));
-    }
-    return statuses.buildOrThrow();
   }
 
   public final ImmutableList<String> getRemainingPreconditions() {

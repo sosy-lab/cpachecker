@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 
 /**
@@ -23,21 +24,22 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
  *     postcondition is {@code false}. This is tracked explicitly instead of being encoded as a top
  *     state among the {@code summaries}, because top is also a valid postcondition of a reachable
  *     but unconstrained block end.
- * @param contextUpdate what has to be published to the successors besides the summaries, even if
- *     there are none. Only a {@link PathBasedExplorationEngine} publishes per-context
- *     postconditions and therefore such an update; for every other engine this is empty.
+ * @param retractedContexts the contexts of this block, identified by their path through the block
+ *     graph, that no longer produce a postcondition, so that successors drop what they derived from
+ *     them. Only a {@link PathBasedExplorationEngine} publishes per-context postconditions and
+ *     therefore retracts contexts; for every other engine this is empty.
  */
 public record AnalysisResult(
     Collection<StateAndPrecision> summaries,
     Set<ArgPathAndCondition> violationConditions,
     boolean blockEndUnreachable,
-    Optional<ContextUpdate> contextUpdate) {
+    ImmutableList<BlockGraphPath> retractedContexts) {
 
   AnalysisResult(
       Collection<StateAndPrecision> pSummaries,
       Set<ArgPathAndCondition> pViolationConditions,
       boolean pBlockEndUnreachable) {
-    this(pSummaries, pViolationConditions, pBlockEndUnreachable, Optional.empty());
+    this(pSummaries, pViolationConditions, pBlockEndUnreachable, ImmutableList.of());
   }
 
   /** A round that reached the block end, so the summaries describe it. */

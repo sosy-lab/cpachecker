@@ -15,9 +15,11 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,6 +46,9 @@ public class PathBasedViolationConditionHandlerTest {
   private DssBlockAnalysis analysis;
   private PathBasedViolationConditionHandler handler;
 
+  /** Pairs of distinct conditions that the mocked comparison treats as equal. */
+  private final Set<Set<StateAndPrecision>> equal = new LinkedHashSet<>();
+
   @Before
   public void setUp() throws Exception {
     messageFactory =
@@ -52,16 +57,16 @@ public class PathBasedViolationConditionHandlerTest {
     when(analysis.getLogger()).thenReturn(mock(LogManager.class));
     when(analysis.statistics()).thenReturn(new DssSingleWorkerStatistics("test-block"));
 
-    // The handler collects the conditions to explore through the analysis, so the mock has to
-    // stand in for these two collaborators. All violation conditions of this test are pairwise
-    // distinct states, so comparing them by identity is equivalent to the coverage-based
-    // comparison that the real implementations use.
-    when(analysis.deduplicateViolationConditions(any()))
+    // The handler compares conditions through the analysis, so the mock has to stand in for these
+    // two collaborators. The violation conditions of this test are pairwise distinct states unless
+    // listed in equal, so comparing them by identity is equivalent to the comparison that the real
+    // implementations use.
+    when(analysis.isSameViolationCondition(any(), any()))
         .thenAnswer(
             invocation -> {
-              Iterable<StateAndPrecision> statesAndPrecisions = invocation.getArgument(0);
-              return ImmutableList.copyOf(
-                  new LinkedHashSet<>(ImmutableList.copyOf(statesAndPrecisions)));
+              StateAndPrecision condition = invocation.getArgument(0);
+              StateAndPrecision other = invocation.getArgument(1);
+              return condition == other || equal.contains(ImmutableSet.of(condition, other));
             });
     when(analysis.violationConditionsEqual(any(), any()))
         .thenAnswer(
@@ -170,5 +175,26 @@ public class PathBasedViolationConditionHandlerTest {
 
     assertThat(handler.store(message(ImmutableList.of("p2"), forP2)).shouldProceed()).isTrue();
     assertThat(handler.states()).containsExactly(forP2.state());
+  }
+
+  /**
+   * A condition that the sender replaces by an equal one is still the same condition to explore, so
+   * the contexts that were checked against it are not checked again.
+   */
+  @Test
+  public void equalReplacementKeepsCondition() throws Exception {
+    StateAndPrecision condition = violationConditionFor("p1");
+    handler.store(message(ImmutableList.of("p1"), condition));
+
+    StateAndPrecision resent = violationConditionFor("p1");
+    equal.add(ImmutableSet.of(condition, resent));
+
+    assertThat(handler.store(message(ImmutableList.of("p1"), resent)).shouldProceed()).isFalse();
+    assertThat(handler.states()).containsExactly(condition.state());
+
+    // the class survives as long as one of its members is stored
+    StateAndPrecision other = violationConditionFor("p1");
+    assertThat(handler.store(message(ImmutableList.of("p1"), other)).shouldProceed()).isTrue();
+    assertThat(handler.states()).containsExactly(other.state());
   }
 }

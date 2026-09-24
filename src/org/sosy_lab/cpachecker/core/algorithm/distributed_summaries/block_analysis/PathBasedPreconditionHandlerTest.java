@@ -52,6 +52,12 @@ public class PathBasedPreconditionHandlerTest {
   /** Pairs (covered, covering) of state ids that the mocked coverage check treats as covered. */
   private final Set<List<String>> coverage = new LinkedHashSet<>();
 
+  /**
+   * Pairs (stronger, weaker) of state ids of the same path, i.e., the second one covers the first
+   * one when two generations of a path are compared.
+   */
+  private final Set<List<String>> weakerThan = new LinkedHashSet<>();
+
   private PathBasedPreconditionHandler handler;
 
   @Before
@@ -78,16 +84,9 @@ public class PathBasedPreconditionHandlerTest {
               received.forEach(sap -> sap.getBlockState().addHistory(block));
               return ImmutableList.copyOf(received);
             });
-    // States of this test are equal if and only if they have the same id: a repeated message
-    // brings freshly deserialized states, i.e., equal ones, but not the same objects.
-    when(analysis.statesEqual(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              Collection<StateAndPrecision> states1 = invocation.getArgument(0);
-              Collection<StateAndPrecision> states2 = invocation.getArgument(1);
-              return ids(states1).equals(ids(states2));
-            });
-    when(analysis.allCovered(any(), any()))
+    // A state covers another one if both have the same id (a repeated message brings freshly
+    // deserialized, equal states), or if the pair is listed in weakerThan or coverage.
+    when(analysis.allStatesCovered(any(), any()))
         .thenAnswer(
             invocation -> {
               Collection<StateAndPrecision> states = invocation.getArgument(0);
@@ -98,8 +97,11 @@ public class PathBasedPreconditionHandlerTest {
                           candidates.stream()
                               .anyMatch(
                                   covering ->
-                                      coverage.contains(
-                                          ImmutableList.of(id(covered), id(covering)))));
+                                      id(covered).equals(id(covering))
+                                          || weakerThan.contains(
+                                              ImmutableList.of(id(covered), id(covering)))
+                                          || coverage.contains(
+                                              ImmutableList.of(id(covered), id(covering)))));
             });
 
     handler = new PathBasedPreconditionHandler(analysis);
@@ -137,8 +139,7 @@ public class PathBasedPreconditionHandlerTest {
             PREDECESSOR,
             AlgorithmStatus.SOUND_AND_PRECISE,
             serialized(pPostconditions),
-            pRetracted,
-            ImmutableMap.of());
+            pRetracted);
     when(analysis.deserialize(received)).thenReturn(ImmutableList.copyOf(pPostconditions));
     return received;
   }
@@ -176,9 +177,7 @@ public class PathBasedPreconditionHandlerTest {
   public void repeatedContextStops() throws Exception {
     StateAndPrecision first = state("s1", "X", PREDECESSOR);
     handler.store(message(first));
-    // what the exploration consumes and publishes
     handler.consumeChangedContexts();
-    handler.consumeWithholdingToAnnounce();
 
     DssPostConditionMessage repeated = message(state("s1", "X", PREDECESSOR));
     assertThat(handler.store(repeated).shouldProceed()).isFalse();
@@ -272,5 +271,73 @@ public class PathBasedPreconditionHandlerTest {
     handler.store(message(state("s1", "X", PREDECESSOR)));
 
     assertThat(handler.getIdsOfExploredStates()).containsExactly("s1");
+  }
+
+  /**
+   * A path stands for a fixed set of concrete states, so an update with weaker states, e.g. one
+   * that was derived from an outdated generation upstream and arrives late, must not weaken what is
+   * stored.
+   */
+  @Test
+  public void weakerUpdateOfPathIsDiscarded() throws Exception {
+    StateAndPrecision strong = state("s1", "X", PREDECESSOR);
+    handler.store(message(strong));
+    handler.consumeChangedContexts();
+
+    StateAndPrecision weak = state("s2", "X", PREDECESSOR);
+    weakerThan.add(ImmutableList.of("s1", "s2"));
+
+    assertThat(handler.store(message(weak)).shouldProceed()).isFalse();
+    assertThat(handler.getKnownPreconditions()).containsExactly(strong);
+  }
+
+  /** An update with stronger states replaces what is stored for the path. */
+  @Test
+  public void strongerUpdateOfPathReplaces() throws Exception {
+    StateAndPrecision weak = state("s1", "X", PREDECESSOR);
+    handler.store(message(weak));
+    handler.consumeChangedContexts();
+
+    StateAndPrecision strong = state("s2", "X", PREDECESSOR);
+    weakerThan.add(ImmutableList.of("s2", "s1"));
+
+    assertThat(handler.store(message(strong)).shouldProceed()).isTrue();
+    assertThat(handler.getKnownPreconditions()).containsExactly(strong);
+  }
+
+  /** Equal states with a stronger precision count as a stronger update. */
+  @Test
+  public void equalStatesWithStrongerPrecisionReplace() throws Exception {
+    handler.store(message(state("s1", "X", PREDECESSOR)));
+    handler.consumeChangedContexts();
+    when(analysis.precisionStrictlyStronger(any(), any())).thenReturn(true);
+
+    StateAndPrecision refined = state("s1", "X", PREDECESSOR);
+    assertThat(handler.store(message(refined)).shouldProceed()).isTrue();
+    assertThat(handler.getKnownPreconditions()).containsExactly(refined);
+  }
+
+  /**
+   * A context whose states several contexts cover together is parked, and it is explored as soon as
+   * one of them is removed.
+   */
+  @Test
+  public void contextCoveredByUnionIsParkedUntilACoveringContextIsRemoved() throws Exception {
+    StateAndPrecision viaX = state("s1", "X", PREDECESSOR);
+    StateAndPrecision viaY = state("s2", "Y", PREDECESSOR);
+    handler.store(message(viaX, viaY));
+    handler.consumeChangedContexts();
+
+    StateAndPrecision first = state("s3", "Z", PREDECESSOR);
+    StateAndPrecision second = state("s4", "Z", PREDECESSOR);
+    coverage.add(ImmutableList.of(id(first), id(viaX)));
+    coverage.add(ImmutableList.of(id(second), id(viaY)));
+    assertThat(handler.store(message(first, second)).shouldProceed()).isFalse();
+    assertThat(handler.getKnownPreconditions()).containsExactly(viaX, viaY);
+
+    handler.store(message(ImmutableList.of(path("X", PREDECESSOR))));
+    assertThat(handler.getKnownPreconditions()).containsExactly(viaY, first, second);
+    assertThat(handler.consumeChangedContexts())
+        .containsExactly(path("Z", PREDECESSOR, THIS_BLOCK));
   }
 }

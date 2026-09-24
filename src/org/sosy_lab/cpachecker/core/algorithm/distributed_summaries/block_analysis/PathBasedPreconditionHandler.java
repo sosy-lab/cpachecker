@@ -31,7 +31,6 @@ import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.WithholdingStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
@@ -57,10 +56,10 @@ import org.sosy_lab.java_smt.api.SolverException;
  *
  * <p>Only the root block starts with a context, the unconstrained entry state. Every other block
  * starts without one and learns its contexts from the forward wave that starts at the root, like
- * with {@link AlwaysReplacePreconditionHandler}. Until it has learned all of them, it has to be
- * explored speculatively from the unconstrained entry state (see {@link #mayMissContexts()}), which
- * also covers the contexts a block upstream withholds because they reach a violation that is not
- * resolved yet. Which blocks withhold contexts is passed on with the postconditions.
+ * with {@link AlwaysReplacePreconditionHandler}. Until every predecessor has sent something, it is
+ * explored speculatively from the unconstrained entry state (see {@link #mayMissContexts()}).
+ *
+ * <p>What is stored for a path only ever gets stronger (see {@link #isStronger}).
  */
 final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
@@ -75,7 +74,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
    * not need to be analyzed as well. Needed for when the covering state is later replaced by a
    * different one.
    *
-   * <p>An entry A -> B means B is covered by A.
+   * <p>An entry A -> B means B is covered by A, possibly together with the other contexts that B is
+   * parked under as well. Removing any of them uncovers B.
    */
   private final Multimap<BlockGraphPath, StatesByPath> coveredStates = ArrayListMultimap.create();
 
@@ -101,30 +101,6 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
   /** The predecessors that have sent at least one postcondition message. */
   private final Set<String> predecessorsHeardFrom = new LinkedHashSet<>();
-
-  /**
-   * The contexts whose postcondition this block withholds, because exploring them found a violation
-   * that has to be resolved first (see {@link PathBasedExplorationEngine}).
-   */
-  private final Set<BlockGraphPath> withheldContexts = new LinkedHashSet<>();
-
-  /** How often the status this block announces for itself changed. */
-  private int withholdingEpoch = 0;
-
-  /** The status this block announced for itself last. */
-  private boolean ownStatusWithholding = true;
-
-  /**
-   * The latest status of every other block that this block learned from its predecessors, i.e., of
-   * every block that can pass states to it, directly or indirectly.
-   */
-  private final Map<String, WithholdingStatus> withholdingUpstream = new LinkedHashMap<>();
-
-  /** Whether this block learned its own status from a predecessor, i.e., lies on a cycle. */
-  private boolean onCycle = false;
-
-  /** The statuses this block published last, to tell whether it has to publish them again. */
-  private ImmutableMap<String, WithholdingStatus> announcedWithholding = ImmutableMap.of();
 
   /**
    * How often a store changed what the next exploration has to do or publish, to tell whether a
@@ -188,7 +164,6 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
       }
 
       int changesBefore = changes;
-      mergeWithholding(pReceived.getWithholdingStatus());
       ImmutableList.Builder<BlockGraphPath> continuations = ImmutableList.builder();
       for (BlockGraphPath retracted : pReceived.getRetractedContexts()) {
         // the retracted context of the sender continues into this block as the path extended by it
@@ -207,10 +182,6 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
               path -> retractedHere.stream().noneMatch(retracted -> retracted.isPrefixOf(path)));
       storeStates(groups);
       addUncovered();
-      if (!getWithholdingStatus().equals(announcedWithholding)) {
-        // the successors have to learn about the change, even if no postcondition changes
-        changes++;
-      }
 
       if (changes == changesBefore) {
         return DssMessageProcessing.stop();
@@ -222,66 +193,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     }
   }
 
-  /** Adopts the statuses of the given map that are newer than the known ones. */
-  private void mergeWithholding(ImmutableMap<String, WithholdingStatus> pReceived) {
-    String self = analysis.getBlock().getId();
-    for (Entry<String, WithholdingStatus> entry : pReceived.entrySet()) {
-      if (entry.getKey().equals(self)) {
-        // this block knows its own status best, but learns that it can pass states to itself
-        onCycle = true;
-        continue;
-      }
-      WithholdingStatus known = withholdingUpstream.get(entry.getKey());
-      if (known == null || entry.getValue().isNewerThan(known)) {
-        withholdingUpstream.put(entry.getKey(), entry.getValue());
-      }
-    }
-  }
-
-  /** Records whether this block withholds the postcondition of the context of the given path. */
-  void setWithheld(BlockGraphPath pPath, boolean pWithheld) {
-    if (pWithheld) {
-      withheldContexts.add(pPath);
-    } else {
-      withheldContexts.remove(pPath);
-    }
-  }
-
   private boolean heardFromAllPredecessors() {
     return predecessorsHeardFrom.containsAll(analysis.getBlock().getPredecessorIds());
-  }
-
-  /**
-   * The status of this block and of every block upstream of it, as this block knows them.
-   *
-   * <p>This block counts as withholding not only while it withholds the postcondition of one of its
-   * contexts, but also while some predecessor has not sent anything yet: until then, it cannot
-   * publish what it would derive from that predecessor either. Whether it misses contexts because
-   * of a block further upstream is told by that block's own status.
-   */
-  ImmutableMap<String, WithholdingStatus> getWithholdingStatus() {
-    boolean withholding = !withheldContexts.isEmpty() || !heardFromAllPredecessors();
-    if (withholding != ownStatusWithholding) {
-      ownStatusWithholding = withholding;
-      withholdingEpoch++;
-    }
-    return ImmutableMap.<String, WithholdingStatus>builder()
-        .putAll(withholdingUpstream)
-        .put(analysis.getBlock().getId(), new WithholdingStatus(withholdingEpoch, withholding))
-        .buildOrThrow();
-  }
-
-  /**
-   * The statuses to publish with the next message, or empty if the successors already know them.
-   * Calling this records them as published.
-   */
-  Optional<ImmutableMap<String, WithholdingStatus>> consumeWithholdingToAnnounce() {
-    ImmutableMap<String, WithholdingStatus> current = getWithholdingStatus();
-    if (current.equals(announcedWithholding)) {
-      return Optional.empty();
-    }
-    announcedWithholding = current;
-    return Optional.of(current);
   }
 
   private BlockGraphPath extendedByThisBlock(BlockGraphPath pPath) {
@@ -306,7 +219,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     for (StatesByPath newStates :
         Maps.filterKeys(pGroupedStates, this::shouldConsiderPath).values()) {
       StatesByPath existing = preconditions.get(newStates.path);
-      if (existing != null && analysis.statesEqual(newStates.states, existing.states)) {
+      if (existing != null && !isStronger(newStates, existing)) {
         continue;
       }
       // an earlier generation of the same path that was parked is superseded as well
@@ -314,6 +227,28 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
       boolean wasStored = remove(newStates.path);
       add(newStates, wasStored);
     }
+  }
+
+  /**
+   * Whether the given update of a path is stronger than what is stored for it, i.e., whether it
+   * replaces the stored states.
+   *
+   * <p>A path stands for a fixed set of concrete states, those that reach this block along exactly
+   * the blocks of the path, and every state received for the path over-approximates that set. What
+   * is stored for a path therefore only has to get stronger. An update with weaker states is
+   * discarded, e.g., one that was derived from an outdated generation upstream and arrives late,
+   * and so is one with the same states, unless its precision is stronger. Incomparable states
+   * replace the stored ones: both over-approximate the same set, and the update reflects what the
+   * sender knows now.
+   */
+  private boolean isStronger(StatesByPath pUpdate, StatesByPath pStored)
+      throws CPAException, InterruptedException {
+    if (!analysis.allStatesCovered(pStored.states, pUpdate.states)) {
+      // the update is strictly stronger or incomparable
+      return true;
+    }
+    return analysis.allStatesCovered(pUpdate.states, pStored.states)
+        && analysis.precisionStrictlyStronger(pUpdate.states, pStored.states);
   }
 
   /**
@@ -325,10 +260,12 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
    */
   private void add(StatesByPath pStates, boolean pReplacesStoredContext)
       throws CPAException, InterruptedException {
-    Optional<BlockGraphPath> coveringPath = findCoveringPath(pStates);
-    if (coveringPath.isPresent()) {
-      // No need to analyze now, but store in case the covering state is removed later
-      coveredStates.put(coveringPath.orElseThrow(), pStates);
+    Optional<ImmutableSet<BlockGraphPath>> coveringPaths = findCoveringPaths(pStates);
+    if (coveringPaths.isPresent()) {
+      // No need to analyze now, but store in case one of the covering contexts is removed later
+      for (BlockGraphPath coveringPath : coveringPaths.orElseThrow()) {
+        coveredStates.put(coveringPath, pStates);
+      }
       if (pReplacesStoredContext) {
         // What was derived from the previous states of the path is superseded by what the
         // covering context produces.
@@ -355,7 +292,6 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
       return false;
     }
     pathsToAnalyze.remove(pPath);
-    setWithheld(pPath, false);
     uncovered.addAll(coveredStates.removeAll(pPath));
     return true;
   }
@@ -364,6 +300,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   private void addUncovered() throws CPAException, InterruptedException {
     while (!uncovered.isEmpty()) {
       StatesByPath states = uncovered.removeFirst();
+      // the states may still be parked under the other contexts that covered them together
+      coveredStates.entries().removeIf(entry -> entry.getValue().path.equals(states.path));
       if (!preconditions.containsKey(states.path)) {
         add(states, false);
       }
@@ -410,19 +348,45 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   }
 
   /**
-   * Tests if the new states are covered by the states of any single path in the preconditions.
+   * Finds contexts that together cover the new states, i.e., every new state is covered by a state
+   * of one of them. Exploring the new states then produces nothing that exploring these contexts
+   * does not produce already, whichever paths they stand for.
+   *
+   * <p>The precision the new states come with does not matter: every context is explored with the
+   * precision of all states received, parked ones included (see {@link
+   * #getPreconditionsWithParked()}), so what a parked state asks the analysis to track is tracked
+   * for the contexts covering it as well.
    *
    * @param newStates the states to check
-   * @return the path of the covering precondition, if one exists
+   * @return the paths of the covering contexts, a single one if possible, so that fewer removals
+   *     uncover the states again, or empty if the stored contexts do not cover the new states
    */
-  private Optional<BlockGraphPath> findCoveringPath(StatesByPath newStates)
+  private Optional<ImmutableSet<BlockGraphPath>> findCoveringPaths(StatesByPath newStates)
       throws CPAException, InterruptedException {
     for (StatesByPath existing : preconditions.values()) {
-      if (analysis.allCovered(newStates.states, existing.states)) {
-        return Optional.of(existing.path);
+      if (analysis.allStatesCovered(newStates.states, existing.states)) {
+        return Optional.of(ImmutableSet.of(existing.path));
       }
     }
-    return Optional.empty();
+    if (newStates.states.size() < 2) {
+      // a single state that no single context covers is not covered by several ones either
+      return Optional.empty();
+    }
+    ImmutableSet.Builder<BlockGraphPath> coveringPaths = ImmutableSet.builder();
+    for (StateAndPrecision state : newStates.states) {
+      Optional<BlockGraphPath> coveringPath = Optional.empty();
+      for (StatesByPath existing : preconditions.values()) {
+        if (analysis.allStatesCovered(ImmutableList.of(state), existing.states)) {
+          coveringPath = Optional.of(existing.path);
+          break;
+        }
+      }
+      if (coveringPath.isEmpty()) {
+        return Optional.empty();
+      }
+      coveringPaths.add(coveringPath.orElseThrow());
+    }
+    return Optional.of(coveringPaths.build());
   }
 
   private boolean shouldConsiderPath(BlockGraphPath pBlockGraphPath) {
@@ -465,6 +429,18 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   @Override
   public ImmutableList<@NonNull StateAndPrecision> getKnownPreconditions() {
     return FluentIterable.from(preconditions.values())
+        .transformAndConcat(StatesByPath::states)
+        .toList();
+  }
+
+  /**
+   * The states of all contexts and all parked states, whose precisions the exploration combines. A
+   * parked state is covered by the contexts that are explored, but it may come with a stronger
+   * precision than they do.
+   */
+  ImmutableList<@NonNull StateAndPrecision> getPreconditionsWithParked() {
+    return FluentIterable.from(preconditions.values())
+        .append(ImmutableSet.copyOf(coveredStates.values()))
         .transformAndConcat(StatesByPath::states)
         .toList();
   }
@@ -535,19 +511,16 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
   /**
    * Whether the entry of this block may still be reached by states it does not know yet, because
-   * some predecessor has not sent anything so far, or because a block upstream withholds the
-   * postcondition of one of its contexts. As long as this holds, the block has to be explored
-   * speculatively from the unconstrained entry state, or it would not report the violations that
-   * the contexts it misses reach.
+   * some predecessor has not sent anything so far. As long as this holds, the block is explored
+   * speculatively from the unconstrained entry state, like with {@link
+   * AlwaysReplaceExplorationEngine}.
+   *
+   * <p>Once every predecessor has sent something, the contexts of this block over-approximate
+   * everything its predecessors know: a predecessor publishes the postcondition of every context it
+   * explores, so a context it learns about later reaches this block as well.
    */
   boolean mayMissContexts() {
-    if (!heardFromAllPredecessors()) {
-      return true;
-    }
-    // A block upstream that withholds a postcondition withholds everything derived from it as
-    // well, so this block may miss contexts although every predecessor has sent something.
-    return withholdingUpstream.values().stream().anyMatch(WithholdingStatus::withholding)
-        || (onCycle && !withheldContexts.isEmpty());
+    return !heardFromAllPredecessors();
   }
 
   /**

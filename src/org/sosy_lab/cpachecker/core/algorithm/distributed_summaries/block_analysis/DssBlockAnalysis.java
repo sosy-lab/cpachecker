@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
@@ -305,7 +306,7 @@ public final class DssBlockAnalysis {
     if (pRound.blockEndUnreachable()) {
       messages.addAll(reportUnreachableBlockEnd());
     } else {
-      messages.addAll(reportPostconditions(pRound.summaries(), pRound.contextUpdate()));
+      messages.addAll(reportPostconditions(pRound.summaries(), pRound.retractedContexts()));
     }
     return messages.build();
   }
@@ -370,7 +371,7 @@ public final class DssBlockAnalysis {
    * The given preconditions, each with this block recorded at the end of its history.
    *
    * <p>Called by the receiver of a postcondition rather than by the sender before it serializes
-   * (see {@link #reportPostconditions(Collection, Optional)}), so that a block ends up in the
+   * (see {@link #reportPostconditions(Collection, ImmutableList)}), so that a block ends up in the
    * history of the preconditions it receives itself. A path-based receiver needs exactly that to
    * tell a repeat visit of a cycle apart from one reached via a genuinely new predecessor.
    */
@@ -408,6 +409,49 @@ public final class DssBlockAnalysis {
       throws InterruptedException {
     return dcpa.getCombinePrecisionOperator()
         .combine(transformedImmutableListCopy(pReceived, StateAndPrecision::precision));
+  }
+
+  /**
+   * Whether every state of {@code pStates} is covered by some state of {@code pCandidates},
+   * regardless of the precisions (compare {@link #allCovered}).
+   */
+  boolean allStatesCovered(
+      Collection<@NonNull StateAndPrecision> pStates,
+      Collection<@NonNull StateAndPrecision> pCandidates)
+      throws CPAException, InterruptedException {
+    CoverageOperator coverage = dcpa.getCoverageOperator();
+    try {
+      workerStats.getCoverageTimer().start();
+      for (StateAndPrecision state : pStates) {
+        boolean covered = false;
+        for (StateAndPrecision candidate : pCandidates) {
+          workerStats.getCoverageCounter().inc();
+          if (coverage.isSubsumed(state.state(), candidate.state())) {
+            covered = true;
+            break;
+          }
+        }
+        if (!covered) {
+          return false;
+        }
+      }
+      return true;
+    } finally {
+      workerStats.getCoverageTimer().stop();
+    }
+  }
+
+  /**
+   * Whether an analysis run with the combined precision of {@code pStrong} is strictly more precise
+   * than one with the combined precision of {@code pWeak}.
+   */
+  boolean precisionStrictlyStronger(
+      Collection<@NonNull StateAndPrecision> pStrong, Collection<@NonNull StateAndPrecision> pWeak)
+      throws InterruptedException {
+    Precision strong = combinePrecisions(pStrong);
+    Precision weak = combinePrecisions(pWeak);
+    PrecisionCoverageOperator coverage = dcpa.getPrecisionCoverageOperator();
+    return coverage.isSubsumed(weak, strong) && !coverage.isSubsumed(strong, weak);
   }
 
   /**
@@ -593,6 +637,32 @@ public final class DssBlockAnalysis {
     return statesEqual(pStates1, pStates2, options.useSyntacticViolationConditionEquality());
   }
 
+  /**
+   * Whether two violation conditions are equal in the sense of {@link
+   * #deduplicateViolationConditions}, i.e., one of them can be explored for both.
+   */
+  boolean isSameViolationCondition(
+      @NonNull StateAndPrecision pCondition, @NonNull StateAndPrecision pOther)
+      throws CPAException, InterruptedException {
+    if (pCondition == pOther) {
+      return true;
+    }
+    if (!dcpa.computeProgramPointId(pCondition.state())
+        .equals(dcpa.computeProgramPointId(pOther.state()))) {
+      return false;
+    }
+    CoverageOperator coverage = dcpa.getCoverageOperator();
+    try {
+      workerStats.getCoverageTimer().start();
+      workerStats.getCoverageCounter().inc();
+      return options.useSyntacticViolationConditionEquality()
+          ? coverage.areStatesSyntacticallyEqual(pCondition.state(), pOther.state())
+          : coverage.areStatesEqual(pCondition.state(), pOther.state());
+    } finally {
+      workerStats.getCoverageTimer().stop();
+    }
+  }
+
   /** Like {@link #deduplicateStatesAndPrecisions} for violation conditions. */
   ImmutableList<StateAndPrecision> deduplicateViolationConditions(
       Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
@@ -690,13 +760,14 @@ public final class DssBlockAnalysis {
   }
 
   /**
-   * Publishes the given postconditions together with the given update of the contexts (see {@link
-   * AnalysisResult#contextUpdate()}). Nothing is published if there are neither postconditions nor
-   * an update.
+   * Publishes the given postconditions together with the contexts of this block that no longer
+   * produce one (see {@link AnalysisResult#retractedContexts()}). Nothing is published if both are
+   * empty.
    */
   private Collection<DssMessage> reportPostconditions(
-      Collection<@NonNull StateAndPrecision> pSummaries, Optional<ContextUpdate> pContextUpdate) {
-    if (pSummaries.isEmpty() && pContextUpdate.isEmpty()) {
+      Collection<@NonNull StateAndPrecision> pSummaries,
+      ImmutableList<BlockGraphPath> pRetractedContexts) {
+    if (pSummaries.isEmpty() && pRetractedContexts.isEmpty()) {
       return ImmutableList.of();
     }
 
@@ -708,8 +779,7 @@ public final class DssBlockAnalysis {
             block.getId(),
             status,
             serialize(ImmutableList.copyOf(pSummaries)),
-            pContextUpdate.map(ContextUpdate::retractedContexts).orElse(ImmutableList.of()),
-            pContextUpdate.map(ContextUpdate::withholding).orElse(ImmutableMap.of())));
+            pRetractedContexts));
   }
 
   /**
