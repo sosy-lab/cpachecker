@@ -6,6 +6,13 @@
 // SEPARATE atomic blocks. This allows a lost-update race: both threads
 // can read the same value before either writes. The final counter can
 // be 1 instead of 2, so the assertion can fail. This is UNSAFE.
+//
+// POR may answer UNKNOWN here instead of FALSE, because its counterexample check is unreliable for
+// concurrent counterexamples: CounterexampleCPAchecker exports the path as a GraphML witness and
+// re-runs CPAchecker with it, but a witness tracks a SEQUENTIAL call stack, so an interleaved path
+// looks like a bogus function return ("Trying to return from function thread, but current function
+// on call stack is main"). The witness then fails to pin the path down and the nested run may
+// refute a genuine violation. UNKNOWN costs precision only; a TRUE here would be a soundness bug.
 
 #include <pthread.h>
 

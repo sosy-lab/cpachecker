@@ -8,6 +8,16 @@
 
 // A thread overflows a shared signed int; a second thread just runs
 // concurrently so this exercises the overflow property in a threaded setting.
+//
+// This is the regression guard for the second of two POR/OverflowCPA wrong-TRUE bugs (the first is
+// in overflow_after_join_unsafe.c). POR applies synthetic bookkeeping edges of its own: the handle
+// write at a pthread_create, the handle-equality assume at a join. Feeding an already-VIOLATING
+// state through one of them returned an empty successor collection — and OverflowCPA reports a
+// violation precisely by producing no successors, which POR then read as "infeasible branch" and
+// dropped. See ConcurrentTransferRelation#applyBookkeepingEdge. The second pthread_create below is
+// the edge that destroyed the flagged state.
+//
+// Expected verdict: FALSE.
 #include <pthread.h>
 #include <limits.h>
 

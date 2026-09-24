@@ -34,11 +34,17 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/atomic_swap_safe.yml</include>
     <include>../programs/por/atomic_split_unsafe.yml</include>
     <include>../programs/por/function.yml</include>
-    <include>../programs/por/singleton.yml</include>
     <include>../programs/por/array_handle_safe.yml</include>
     <include>../programs/por/array_handle_unsafe.yml</include>
     <include>../programs/por/escaping_local_safe.yml</include>
     <include>../programs/por/escaping_local_unsafe.yml</include>
+  </tasks>
+
+  <tasks name="por-pred-sv-benchmarks">
+    <option name="--por-pred"/>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+
+    <include>../programs/benchmarks/pthread/singleton.yml</include>
   </tasks>
 
   <tasks name="por-value">

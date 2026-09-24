@@ -2117,10 +2117,9 @@ cpa.composite.inCPAEnabledAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
-# Use an abstraction-aware POR algorithm. Abstraction-aware POR can
-# ignorecertain variables during dependency calculation if there is no
-# information about themin the precision (e.g., no predicates referring to
-# them).
+# Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore
+# certain variables during dependency calculation if there is no information
+# about them in the precision (e.g., no predicates referring to them).
 cpa.concurrent.abstractionAware = false
 
 # Aggregate basic blocks to MultiEdges. Similar to basic block aggregation

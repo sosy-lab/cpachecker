@@ -33,7 +33,6 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/atomic_split_unsafe.yml</include>
     <include>../programs/por/pthread_exit_safe.yml</include>
     <include>../programs/por/function.yml</include>
-    <include>../programs/por/singleton.yml</include>
     <include>../programs/por/oc_branch_create.yml</include>
     <include>../programs/por/oc_loop_safe.yml</include>
     <include>../programs/por/oc_array_safe.yml</include>
@@ -49,6 +48,20 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/interior_pointer_unsafe.yml</include>
     <include>../programs/por/pointer_field_mutex_safe.yml</include>
     <include>../programs/por/distinct_mutexes_unsafe.yml</include>
+  </tasks>
+
+  <!-- A finite final loop bound makes the iterative deepening stop with UNKNOWN instead of
+       deepening into the time limit. singleton and fib_unsafe-5 are solved within it; bigshot_s
+       and 28-race_reach_83-list2_racing1 are not yet. -->
+  <tasks name="reachability-sv-benchmarks">
+    <option name="--orderingConsistency"/>
+    <option name="--option">oc.finalLoopBound=15</option>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+
+    <include>../programs/benchmarks/pthread/singleton.yml</include>
+    <include>../programs/benchmarks/pthread/fib_unsafe-5.yml</include>
+    <include>../programs/benchmarks/pthread/bigshot_s.yml</include>
+    <include>../programs/benchmarks/goblint-regression/28-race_reach_83-list2_racing1.yml</include>
   </tasks>
 
   <tasks name="data-race">

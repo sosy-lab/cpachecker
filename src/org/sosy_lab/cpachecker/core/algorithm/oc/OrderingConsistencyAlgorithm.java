@@ -207,6 +207,12 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * Properties the analysis cannot decide (overflow, memory safety/cleanup, deadlock, termination)
    * are rejected rather than silently mis-verified, since an unsound "safe" verdict would be worse
    * than an error.
+   *
+   * <p>The target must therefore come from a {@code .prp} property file: {@link
+   * Specification#getProperties()} reports only those, so an automaton {@code .spc} file
+   * contributes nothing here and the analysis falls back to {@link TargetProperty#UNREACH_CALL}.
+   * Passing {@code specification/datarace.spc} instead of {@code properties/no-data-race.prp}
+   * silently checks reachability and reports a meaningless verdict.
    */
   private static Optional<TargetProperty> targetPropertyOf(Specification pSpecification)
       throws InvalidConfigurationException {

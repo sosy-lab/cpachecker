@@ -10,6 +10,10 @@
 // inside a critical section, thread 2 sets x=20 inside a critical section.
 // With mutex protection, thread 2 cannot interleave between thread 1's
 // x=10 and y=x, so y can never be 20. The error is unreachable.
+//
+// Only reach-safe, not race-free: main reads y without holding the mutex and without joining
+// either thread, so that read races with thread 1's write. The name refers to the reachability
+// property; under no-data-race this program is FALSE. The two properties are independent.
 #include <pthread.h>
 
 int x = 0;

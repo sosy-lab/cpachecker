@@ -65,8 +65,8 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
   @Option(
       secure = true,
       description =
-          "Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignorecertain"
-              + " variables during dependency calculation if there is no information about themin"
+          "Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore certain"
+              + " variables during dependency calculation if there is no information about them in"
               + " the precision (e.g., no predicates referring to them).")
   private boolean abstractionAware = false;
 
