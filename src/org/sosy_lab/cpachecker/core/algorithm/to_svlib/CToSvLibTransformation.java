@@ -407,6 +407,17 @@ class CToSvLibTransformation {
               ImmutableList.of(),
               ImmutableList.<SvLibSimpleParsingDeclaration>copyOf(freshValues)));
     }
+    ImmutableList<SvLibTerm> conditionsOfFreshValues =
+        formulaToSvLibVisitor.pollConditionsOfFreshValues();
+    if (!conditionsOfFreshValues.isEmpty()) {
+      pCreatedStatements.put(
+          pEdge.getPredecessor(),
+          new SvLibAssumeStatement(
+              FileLocation.DUMMY,
+              conjoin(conditionsOfFreshValues),
+              ImmutableList.of(),
+              ImmutableList.of()));
+    }
     pCreatedStatements.putAll(statementsOfEdge.build());
   }
 

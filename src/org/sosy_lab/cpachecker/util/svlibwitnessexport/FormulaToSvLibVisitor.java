@@ -15,7 +15,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -90,6 +92,18 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
   private final List<SvLibParsingVariableDeclaration> allocatedAddressesOfFormulas =
       new ArrayList<>();
 
+  /** The conditions that the fresh values of {@link #freshValuesOfFormulas} have to fulfill. */
+  private final List<SvLibTerm> conditionsOfFreshValues = new ArrayList<>();
+
+  /** The number of variables for the bits of a floating point number that were declared. */
+  private int numberOfBitsOfFloatingPointNumbers = 0;
+
+  /**
+   * The variables of {@link #freshValuesOfFormulas} for the bits of a floating point number, by
+   * that number, so that all occurrences of the bits of a NaN in an edge have the same value.
+   */
+  private final Map<String, SvLibIdTerm> bitsOfFloatingPointNumbers = new HashMap<>();
+
   /**
    * The variables that the transformed formulas introduced, for a nondeterministic value, for the
    * address of memory that is allocated on the heap or for the memory of a type. They have to be
@@ -108,7 +122,18 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
     ImmutableList<SvLibParsingVariableDeclaration> freshValues =
         ImmutableList.copyOf(freshValuesOfFormulas);
     freshValuesOfFormulas.clear();
+    bitsOfFloatingPointNumbers.clear();
     return freshValues;
+  }
+
+  /**
+   * The conditions that the variables of {@link #pollFreshValuesOfFormulas} fulfill, which have to
+   * be assumed after they are havoced and before the statements of the transformed edge.
+   */
+  public ImmutableList<SvLibTerm> pollConditionsOfFreshValues() {
+    ImmutableList<SvLibTerm> conditions = ImmutableList.copyOf(conditionsOfFreshValues);
+    conditionsOfFreshValues.clear();
+    return conditions;
   }
 
   /**
@@ -858,6 +883,11 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
                   ImmutableList.of(rightTerm, modulusTerm),
                   FileLocation.DUMMY)),
           FileLocation.DUMMY);
+    } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.FP_AS_IEEEBV) {
+      return bitsOfFloatingPointNumber(
+          args.getFirst(),
+          (SvLibSmtLibFloatingPointType) argTypes.getFirst(),
+          (SvLibSmtLibBitVectorType) formulaType);
     } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.BV_MUL
         && getFactorThatIsNegated(args).isPresent()) {
       // A multiplication with -1, which is how the solvers build the negation of a bitvector, is
@@ -878,6 +908,49 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
 
       return new SvLibSymbolApplicationTerm(functionIdTerm, args, FileLocation.DUMMY);
     }
+  }
+
+  /**
+   * The bits of the representation of IEEE 754 of the given floating point number.
+   *
+   * <p>SMT-LIB has no function for them, only the conversion of bits into a floating point number.
+   * They are therefore a fresh value that this conversion takes to the given number, which
+   * determines the bits of every number except NaN, whose bits are then any of the ones of a NaN.
+   */
+  private SvLibTerm bitsOfFloatingPointNumber(
+      SvLibTerm pNumber,
+      SvLibSmtLibFloatingPointType pNumberType,
+      SvLibSmtLibBitVectorType pBitsType) {
+    SvLibIdTerm existingBits = bitsOfFloatingPointNumbers.get(pNumber.toASTString());
+    if (existingBits != null) {
+      return existingBits;
+    }
+    String name =
+        "__transformationBitsOfFloatingPointNumber" + numberOfBitsOfFloatingPointNumbers++;
+    SvLibParsingVariableDeclaration bits =
+        new SvLibParsingVariableDeclaration(
+            FileLocation.DUMMY, true, false, pBitsType, name, name, null);
+    scope.addVariable(bits);
+    variablesOfFormulas.add(bits);
+    freshValuesOfFormulas.add(bits);
+    SvLibIdTerm bitsTerm = new SvLibIdTerm(bits.toSimpleDeclaration(), FileLocation.DUMMY);
+    conditionsOfFreshValues.add(
+        new SvLibSymbolApplicationTerm(
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.floatingPointOperation(
+                    "=", 2, pNumberType, SvLibSmtLibPredefinedType.BOOL),
+                FileLocation.DUMMY),
+            ImmutableList.of(
+                new SvLibSymbolApplicationTerm(
+                    new SvLibIdTerm(
+                        SmtLibTheoryDeclarations.floatingPointFromBitVector(pBitsType, pNumberType),
+                        FileLocation.DUMMY),
+                    ImmutableList.of(bitsTerm),
+                    FileLocation.DUMMY),
+                pNumber),
+            FileLocation.DUMMY));
+    bitsOfFloatingPointNumbers.put(pNumber.toASTString(), bitsTerm);
+    return bitsTerm;
   }
 
   /**
