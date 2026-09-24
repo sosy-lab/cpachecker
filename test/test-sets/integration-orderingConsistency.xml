@@ -50,9 +50,6 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/distinct_mutexes_unsafe.yml</include>
   </tasks>
 
-  <!-- A finite final loop bound makes the iterative deepening stop with UNKNOWN instead of
-       deepening into the time limit. singleton and fib_unsafe-5 are solved within it; bigshot_s
-       and 28-race_reach_83-list2_racing1 are not yet. -->
   <tasks name="reachability-sv-benchmarks">
     <option name="--orderingConsistency"/>
     <option name="--option">oc.finalLoopBound=15</option>
