@@ -79,7 +79,7 @@ import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriter
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedARGToWitness;
 
 @Options(prefix = "cpa.arg")
@@ -245,7 +245,7 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
-  private final ARGToYAMLWitnessExport argToWitnessWriter;
+  private final ARGToCorrectnessWitnessV2 argToWitnessWriter;
   private final SequentializedARGToWitness sequentializedArgToWitnessWriter;
   private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -295,7 +295,7 @@ public class ARGStatistics implements Statistics {
                 config, sequentialization.originalCfa(), pSpecification, pLogger);
       } else {
         argToWitnessWriter =
-            new ARGToYAMLWitnessExport(
+            new ARGToCorrectnessWitnessV2(
                 config, pCFA, pSpecification, pLogger, new RootExplorationArgStateCollector());
         sequentializedArgToWitnessWriter = null;
       }

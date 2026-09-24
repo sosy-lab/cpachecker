@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
@@ -44,14 +45,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   private interface AnalysisCreation {
 
     DssBlockAnalysis createDssBlockAnalysis()
-        throws CPAException,
-            InvalidConfigurationException,
-            InterruptedException,
-            NoSuchMethodException,
-            InstantiationException,
-            IllegalAccessException,
-            IllegalArgumentException,
-            InvocationTargetException;
+        throws CPAException, InvalidConfigurationException, InterruptedException;
   }
 
   private static class CreateOrRetrieveThreadLocalAnalysis {
@@ -68,13 +62,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       if (dssBlockAnalysis == null) {
         try {
           dssBlockAnalysis = createAnalysis.createDssBlockAnalysis();
-        } catch (InterruptedException
-            | InvalidConfigurationException
-            | CPAException
-            | NoSuchMethodException
-            | InstantiationException
-            | IllegalAccessException
-            | InvocationTargetException e) {
+        } catch (InterruptedException | InvalidConfigurationException | CPAException e) {
           throw new AssertionError("Could not create DssBlockAnalysis but it is required", e);
         }
         originalThreadName = Thread.currentThread().getName();
@@ -98,8 +86,16 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final DssConnection connection;
 
+  private final DssSingleWorkerStatistics workerStats;
+
   private boolean shutdown;
   private boolean closed;
+
+  /** Whether a stored postcondition still owes an exploration, see {@link #processMessage}. */
+  private boolean preconditionsPending;
+
+  /** Whether stored violation conditions still owe an exploration, see {@link #processMessage}. */
+  private boolean violationConditionsPending;
 
   /**
    * {@link DssAnalysisWorker}s trigger forward and backward analyses to find a verification
@@ -140,6 +136,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             .build();
 
     messageFactory = pMessageFactory;
+    workerStats = pWorkerStatistics.createWorkerStats(pId);
     analysis =
         new CreateOrRetrieveThreadLocalAnalysis(
             () ->
@@ -152,7 +149,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
                     pOptions,
                     pMessageFactory,
                     pShutdownManager,
-                    pWorkerStatistics.createWorkerStats(getId())));
+                    workerStats));
   }
 
   public Collection<DssMessage> runInitialAnalysis()
@@ -160,8 +157,55 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     return analysis.getDssBlockAnalysis().runInitialAnalysis();
   }
 
+  /**
+   * Stores what a message carries and explores the block once the worker's queue has run empty.
+   *
+   * <p>Exploring after every single message is what makes the multithreaded execution expensive. A
+   * worker is usually handed a burst of messages: the block is explored from the first one, and the
+   * result is superseded by the second before anyone reads it. Storing the whole burst first and
+   * exploring once afterwards produces the same conditions with a fraction of the analyses.
+   *
+   * <p>The exploration cannot simply be left to the next message, because there may be no next
+   * message. It has to happen before this worker blocks on its queue again, since {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor} reads a
+   * worker waiting on an empty queue as a worker with nothing left to do, and would report a
+   * verdict while an exploration is still owed.
+   */
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
+    Collection<DssMessage> messages = store(message);
+    if (shutdown || !isAnalysisPending() || getConnection().hasPendingMessages()) {
+      return messages;
+    }
+    try {
+      return ImmutableList.<DssMessage>builder().addAll(messages).addAll(analyzePending()).build();
+    } catch (Exception | Error e) {
+      return ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
+    }
+  }
+
+  private boolean isAnalysisPending() {
+    return preconditionsPending || violationConditionsPending;
+  }
+
+  /**
+   * Runs the exploration that the stored messages owe.
+   *
+   * <p>A single exploration covers both kinds of update, because it reads everything the two
+   * handlers hold rather than only what the message that triggered it brought. It only has to know
+   * whether a violation condition is owed: then it still explores a block all of whose predecessors
+   * reported an unreachable block end, which is exactly what a successor asking about that block
+   * needs.
+   */
+  private Collection<DssMessage> analyzePending()
+      throws CPAException, InterruptedException, SolverException {
+    boolean violationConditionsChanged = violationConditionsPending;
+    preconditionsPending = false;
+    violationConditionsPending = false;
+    return analysis.getDssBlockAnalysis().analyze(violationConditionsChanged);
+  }
+
+  private Collection<DssMessage> store(DssMessage message) {
     return switch (message.getType()) {
       case POST_CONDITION -> {
         try {
@@ -170,7 +214,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          yield analysis.getDssBlockAnalysis().analyzePrecondition();
+          preconditionsPending = true;
+          yield ImmutableSet.of();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         }
@@ -184,7 +229,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          yield analysis.getDssBlockAnalysis().analyzeViolationCondition(message.getSenderId());
+          violationConditionsPending = true;
+          yield ImmutableSet.of();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         }

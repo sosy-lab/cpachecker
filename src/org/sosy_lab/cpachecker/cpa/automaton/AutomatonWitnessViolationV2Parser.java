@@ -84,8 +84,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
  * versions 2.0, 2.1 or 2.2.
  *
  * <p>The three versions differ only by a handful of features. Instead of modelling each version
- * with its own subclass, this parser stores the {@link YAMLWitnessVersion} it was created for and
- * asks a set of {@code supports...} feature predicates whether a given feature may be used. This
+ * with its own subclass, this parser asks a set of {@code supports...} feature predicates, based on
+ * the {@link YAMLWitnessVersion} it was created for, whether a given feature may be used. This
  * keeps the shared logic in a single place and makes the version-specific behavior explicit at the
  * point where it matters.
  *
@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
  */
 public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
-  private final YAMLWitnessVersion version;
   private final CParser cparser;
   private final ParserTools parserTools;
 
@@ -112,20 +111,10 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
       CFA pCFA,
       YAMLWitnessVersion pVersion)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pCFA);
-    version = pVersion;
+    super(pConfig, pLogger, pShutdownNotifier, pCFA, pVersion);
     cparser =
-        CParser.Factory.getParser(
-            /*
-             * FIXME: Use normal logger as soon as CParser supports parsing
-             * expression trees natively, such that we can remove the workaround
-             * with the undefined __CPAchecker_ACSL_return dummy function that
-             * causes warnings to be logged.
-             */
-            LogManager.createNullLogManager(),
-            CParser.Factory.getOptions(pConfig),
-            pCFA.getMachineModel(),
-            pShutdownNotifier);
+        CParserUtils.createWitnessExpressionParser(
+            pConfig, pCFA.getMachineModel(), pShutdownNotifier);
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), pCFA.getMachineModel(), pLogger);
   }
 

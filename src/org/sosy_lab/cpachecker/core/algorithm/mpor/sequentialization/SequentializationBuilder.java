@@ -181,11 +181,6 @@ public class SequentializationBuilder {
 
     // try remove const qualifier from variable
     if (pVariableDeclaration.getType().getQualifiers().containsConst()) {
-      // based on the options, const CPAchecker_TMP variables are not declared globally
-      if (!pOptions.declareConstAuxiliaryVariablesGlobally()
-          && MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration)) {
-        return Optional.empty();
-      }
       // create an identical copy of pVariableDeclaration, but remove const qualifier
       CType type = pVariableDeclaration.getType();
       CType typeWithoutConst = type.withQualifiersSetTo(type.getQualifiers().withoutConst());

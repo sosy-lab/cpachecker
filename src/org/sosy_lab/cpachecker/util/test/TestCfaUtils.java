@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 /** Various utilities for creating a CFA or parts of it for tests. */
 public class TestCfaUtils {
 
+  private static final String PREPROCESSOR_OPTION = "parser.usePreprocessor";
+
   /** A function that never returns, so that the branch calling it reaches no exit node. */
   private static final String ABORT_DECLARATION =
       "extern void abort(void) __attribute__((__noreturn__));\n";
@@ -69,18 +71,28 @@ public class TestCfaUtils {
   }
 
   @SafeVarargs
-  public static ImmutableCFA makeCfaFromString(String program, Map.Entry<String, String>... options)
+  public static ImmutableCFA makeCfaFromString(
+      String program, Map.Entry<String, String>... pOptions)
       throws ParserException, InterruptedException {
+    @SuppressWarnings("varargs")
+    ImmutableMap<String, String> options = ImmutableMap.ofEntries(pOptions);
+    if (options.containsKey(PREPROCESSOR_OPTION)) {
+      throw new AssertionError(
+          "JUnit tests should not rely on the preprocessor, "
+              + "this breaks test execution on other OS "
+              + "and makes them depend on the system headers");
+    }
 
     try {
-      @SuppressWarnings("varargs")
-      ConfigurationBuilder config =
-          TestUtils.configurationForTest().setOptions(ImmutableMap.ofEntries(options));
-      // TODO: once #1706 is fixed hard-code parser.usePreprocessor=false here
+      Configuration config =
+          TestUtils.configurationForTest()
+              .setOptions(options)
+              // Prevent using preprocessor due to auto-detection
+              .setOption(PREPROCESSOR_OPTION, "false")
+              .build();
 
       CFACreator creator =
-          new CFACreator(
-              config.build(), LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
+          new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
       return creator.parseSourceAndCreateCFA(program);
     } catch (InvalidConfigurationException e) {

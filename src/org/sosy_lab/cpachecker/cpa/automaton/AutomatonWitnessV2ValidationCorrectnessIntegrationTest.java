@@ -28,57 +28,87 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
   private String TEST_DIR_PATH = "test/programs/witness-v2-validation/no-overflow";
   private String SPECIFICATION_PATH = "config/properties/";
 
+  private void validate(String pProgramFileName, String pWitnessFileName, Result pExpectedResult)
+      throws Exception {
+    WitnessV2ValidationTestUtils.performValidationTest(
+        Path.of(TEST_DIR_PATH, pProgramFileName),
+        pExpectedResult,
+        Path.of(SPECIFICATION_PATH, "no-overflow.prp"),
+        Path.of(TEST_DIR_PATH, pWitnessFileName));
+  }
+
   @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_1() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
-    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
-    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--1.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+    validate("simple.c", "simple-invalid-witness-v2--1.yml", Result.FALSE);
   }
 
   @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_2() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
-    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
-    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--2.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+    validate("simple.c", "simple-invalid-witness-v2--2.yml", Result.FALSE);
   }
 
   @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_3() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
-    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
-    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--3.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+    validate("simple.c", "simple-invalid-witness-v2--3.yml", Result.FALSE);
   }
 
   @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_4() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
-    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
-    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--4.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+    validate("simple.c", "simple-invalid-witness-v2--4.yml", Result.FALSE);
   }
 
   @Test(timeout = 3000)
   public void validate_witness_valid_invariant_1() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
-    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
-    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-valid-witness-v2--1.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
-        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+    validate("simple.c", "simple-valid-witness-v2--1.yml", Result.TRUE);
   }
 
   @Test(timeout = 3000)
   public void validate_witness_valid_invariant_2() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
-    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
-    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-valid-witness-v2--2.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
-        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+    validate("simple.c", "simple-valid-witness-v2--2.yml", Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d1_valid_loop_invariant() throws Exception {
+    validate("simple.c", "simple-valid-witness-v2d1--1.yml", Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_valid_loop_invariant() throws Exception {
+    validate("simple.c", "simple-valid-witness-v2d2--1.yml", Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_invalid_loop_invariant() throws Exception {
+    validate("simple.c", "simple-invalid-witness-v2d2--1.yml", Result.FALSE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_valid_location_invariant() throws Exception {
+    validate("simple.c", "simple-valid-witness-v2d2-location--1.yml", Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_invalid_location_invariant() throws Exception {
+    validate("simple.c", "simple-invalid-witness-v2d2-location--1.yml", Result.FALSE);
+  }
+
+  /** Transition invariants used to be rejected in version 2.2, they were only allowed in 2.1. */
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_transition_invariant() throws Exception {
+    validate("simple.c", "simple-valid-witness-v2d2-transition--1.yml", Result.TRUE);
+  }
+
+  /**
+   * A transition invariant on a location is matched to its statement, like a location invariant.
+   */
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_location_transition_invariant() throws Exception {
+    validate("simple.c", "simple-valid-witness-v2d2-location-transition--1.yml", Result.TRUE);
+  }
+
+  /** Function contracts cannot be validated yet, but they must not make the witness invalid. */
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_function_contract() throws Exception {
+    validate("simple.c", "simple-valid-witness-v2d2-contract--1.yml", Result.TRUE);
   }
 }
