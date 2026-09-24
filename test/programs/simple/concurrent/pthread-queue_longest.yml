@@ -12,7 +12,7 @@
 format_version: '2.0'
 
 # old file name: queue_longest_false-unreach-call.i
-input_files: 'queue_longest.i'
+input_files: 'pthread-queue_longest.i'
 
 properties:
   - property_file: ../../../config/properties/unreach-call.prp
