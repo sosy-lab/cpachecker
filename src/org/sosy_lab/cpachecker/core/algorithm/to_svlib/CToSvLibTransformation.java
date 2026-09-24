@@ -2160,6 +2160,13 @@ class CToSvLibTransformation {
           // inverted, that jump has become the target of the condition.
           continue;
         }
+        if (statement instanceof SvLibSequenceStatement sequence
+            && sequence.getStatements().isEmpty()
+            && sequence.getTagReferences().isEmpty()
+            && sequence.getTagAttributes().isEmpty()) {
+          // An edge without an effect, such as the declaration of a variable without a value.
+          continue;
+        }
         statementList.add(statement);
       }
     }
