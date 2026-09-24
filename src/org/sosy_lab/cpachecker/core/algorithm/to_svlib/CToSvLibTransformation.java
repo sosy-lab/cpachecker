@@ -534,6 +534,7 @@ class CToSvLibTransformation {
         pFunctionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
     return CToSvLibTransformationConstants.NAMES_OF_MEMORY_ALLOCATION_FUNCTIONS.contains(
             functionName)
+        || CToSvLibTransformationConstants.NAMES_OF_COMPARISON_FUNCTIONS.contains(functionName)
         || BuiltinFunctions.isBuiltinFunction(functionName)
         || hasSideEffectInFormula(pFunctionCall);
   }

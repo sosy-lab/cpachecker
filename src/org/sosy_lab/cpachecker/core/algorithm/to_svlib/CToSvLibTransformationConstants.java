@@ -160,6 +160,16 @@ final class CToSvLibTransformationConstants {
           "__builtin_alloca");
 
   /**
+   * Functions that compare memory, whose results the formulas constrain by the compared characters
+   * up to a bound, see {@link
+   * org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CExpressionVisitorWithPointerAliasing}.
+   * Their calls are therefore transformed through the formulas of their edges, as the one of {@code
+   * strlen}, which is a builtin function.
+   */
+  static final ImmutableSet<String> NAMES_OF_COMPARISON_FUNCTIONS =
+      ImmutableSet.of("memcmp", "strcmp", "strncmp");
+
+  /**
    * Functions whose procedures a property of the specification can annotate, see {@link
    * CToSvLibPropertyEncoder}, so that a call of them has to stay a call of their procedure.
    */

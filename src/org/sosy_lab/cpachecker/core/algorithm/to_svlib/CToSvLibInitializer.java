@@ -427,6 +427,7 @@ class CToSvLibInitializer {
   private boolean isEncodedInFormula(String pFunctionName) {
     return CToSvLibTransformationConstants.NAMES_OF_MEMORY_ALLOCATION_FUNCTIONS.contains(
             pFunctionName)
+        || CToSvLibTransformationConstants.NAMES_OF_COMPARISON_FUNCTIONS.contains(pFunctionName)
         || BuiltinFunctions.isBuiltinFunction(pFunctionName)
         || CtoFormulaConverter.isSideEffectFunction(pFunctionName);
   }
