@@ -33,9 +33,12 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -733,7 +736,8 @@ class CToSvLibTransformation {
    *
    * <p>The size of the type of the allocated block is the one that the analysis of the C program
    * uses. That type is only known later for an allocation whose size is not the one of a type, as
-   * in {@code malloc(n)}, and the argument of the call is used in that case.
+   * in {@code malloc(n)}, and the size is then computed from the arguments of the call as by that
+   * analysis.
    */
   private Optional<SvLibTerm> getSizeOfAllocatedMemory(
       SvLibParsingVariableDeclaration pAddress,
@@ -749,14 +753,23 @@ class CToSvLibTransformation {
           createNumericConstant(cfa.getMachineModel().getSizeof(typeOfBase), pAddress.getType()));
     }
 
-    ImmutableList<CExpression> arguments =
-        pAllocation.getFunctionCallExpression().getParameterExpressions();
-    if (arguments.size() != 1) {
+    CFunctionCallExpression call = pAllocation.getFunctionCallExpression();
+    ImmutableList<CExpression> arguments = call.getParameterExpressions();
+    final CExpression sizeExpression;
+    if (call.getFunctionNameExpression().toASTString().equals("calloc") && arguments.size() == 2) {
+      sizeExpression =
+          new CBinaryExpressionBuilder(cfa.getMachineModel(), LogManager.createNullLogManager())
+              .buildBinaryExpression(
+                  arguments.getFirst(), arguments.get(1), BinaryOperator.MULTIPLY);
+    } else if (!arguments.isEmpty()) {
+      // Further arguments, such as the flags of kmalloc, do not change the size.
+      sizeExpression = arguments.getFirst();
+    } else {
       return Optional.empty();
     }
     RightHandSideTerm size =
         pathFormulaManager.rightHandSideToFormula(
-            pContext, arguments.getFirst(), cfa.getMachineModel().getSizeType(), pEdge);
+            pContext, sizeExpression, cfa.getMachineModel().getSizeType(), pEdge);
     return Optional.of(formulaManager.visit(size.term(), formulaToSvLibVisitor));
   }
 
