@@ -529,6 +529,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
       CFACreator cfaCreator = new CFACreator(innerConfig, logger, shutdownNotifier);
       newSvLibCfa = cfaCreator.parseSourceAndCreateCFA(generatedScript);
+      logger.log(Level.INFO, "Created the CFA of the transformed script.");
 
       coreComponents =
           new CoreComponentsFactory(
