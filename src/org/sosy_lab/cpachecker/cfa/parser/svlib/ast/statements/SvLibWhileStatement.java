@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSExpression;
 
 public final class SvLibWhileStatement extends SvLibControlFlowStatement {
 
@@ -45,7 +46,15 @@ public final class SvLibWhileStatement extends SvLibControlFlowStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return "(while " + condition.toASTString() + " " + body.toASTString() + ")";
+    return toSExpressionWithoutTags().toSingleLine();
+  }
+
+  @Override
+  protected SvLibSExpression toSExpressionWithoutTags() {
+    return SvLibSExpression.list(
+        SvLibSExpression.atom("while"),
+        SvLibSExpression.atom(condition.toASTString()),
+        body.toSExpression());
   }
 
   public SvLibTerm getCondition() {

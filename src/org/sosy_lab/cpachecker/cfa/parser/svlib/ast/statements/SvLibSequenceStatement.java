@@ -8,15 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSExpression;
 
 public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
   @Serial private static final long serialVersionUID = 8121014592707608414L;
@@ -59,9 +59,15 @@ public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return statements.stream()
-        .map(SvLibParsingAstNode::toASTString)
-        .collect(Collectors.joining(" ", "(sequence ", ")"));
+    return toSExpressionWithoutTags().toSingleLine();
+  }
+
+  @Override
+  protected SvLibSExpression toSExpressionWithoutTags() {
+    return SvLibSExpression.list(
+        FluentIterable.of(SvLibSExpression.atom("sequence"))
+            .append(FluentIterable.from(statements).transform(SvLibStatement::toSExpression))
+            .toList());
   }
 
   @Override

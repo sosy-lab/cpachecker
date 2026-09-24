@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
@@ -19,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSExpression;
 
 public abstract sealed class SvLibStatement implements SvLibParsingAstNode
     permits SvLibAssignmentStatement,
@@ -54,23 +54,42 @@ public abstract sealed class SvLibStatement implements SvLibParsingAstNode
    * Returns a string representation of the SvLibStatement. If annotations exist for the
    * SvLibStatement, then these annotations, which may be tags or properties, are added to the
    * String. The generated string representation corresponds to the format for SvLibStatements in
-   * the SvLib language.
+   * the SvLib language, and spans several lines for a statement that consists of other statements
+   * and does not fit on one line.
    *
    * @return the SvLibStatement with annotations as String
    */
   @Override
   public String toASTString() {
+    return toSExpression().format();
+  }
+
+  /** The statement with its annotations as an S-expression, see {@link SvLibSExpression}. */
+  public SvLibSExpression toSExpression() {
+    SvLibSExpression statement = toSExpressionWithoutTags();
     if (getTagReferences().isEmpty() && getTagAttributes().isEmpty()) {
-      return toASTStringWithoutTags();
-    } else {
-      return "(! "
-          + toASTStringWithoutTags()
-          + Joiner.on(" ")
-              .join(
-                  FluentIterable.concat(tagReferences, tagAttributes)
-                      .transform(SvLibTagAttribute::toASTString))
-          + ")";
+      return statement;
     }
+    SvLibSExpression annotatedStatement =
+        SvLibSExpression.list(
+            FluentIterable.of(SvLibSExpression.atom("!"), statement)
+                .append(
+                    FluentIterable.<SvLibTagAttribute>concat(tagReferences, tagAttributes)
+                        .transform(tag -> SvLibSExpression.atom(tag.toASTString())))
+                .toList());
+    // A statement without other statements is written on a single line, because it is also the
+    // description of its edges in the CFA.
+    return statement instanceof SvLibSExpression.Atom
+        ? SvLibSExpression.atom(annotatedStatement.toSingleLine())
+        : annotatedStatement;
+  }
+
+  /**
+   * The statement without its annotations as an S-expression, which is a single line for a
+   * statement that does not consist of other statements.
+   */
+  protected SvLibSExpression toSExpressionWithoutTags() {
+    return SvLibSExpression.atom(toASTStringWithoutTags());
   }
 
   /**

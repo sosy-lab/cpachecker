@@ -8,14 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSExpression;
 
 public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
   @Serial private static final long serialVersionUID = 6120083959916315980L;
@@ -42,9 +43,15 @@ public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return choices.stream()
-        .map(SvLibStatement::toASTString)
-        .collect(Collectors.joining(" ", "(choice", ")"));
+    return toSExpressionWithoutTags().toSingleLine();
+  }
+
+  @Override
+  protected SvLibSExpression toSExpressionWithoutTags() {
+    return SvLibSExpression.list(
+        FluentIterable.of(SvLibSExpression.atom("choice"))
+            .append(FluentIterable.from(choices).transform(SvLibStatement::toSExpression))
+            .toList());
   }
 
   public ImmutableList<SvLibStatement> getChoices() {

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSExpression;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 
 public final class SvLibIfStatement extends SvLibControlFlowStatement {
@@ -78,13 +80,18 @@ public final class SvLibIfStatement extends SvLibControlFlowStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return "(if "
-        + condition.toASTString()
-        + " "
-        + thenBranch.toASTString()
-        + " "
-        + (elseBranch.isPresent() ? elseBranch.orElseThrow().toASTString() : "")
-        + ")";
+    return toSExpressionWithoutTags().toSingleLine();
+  }
+
+  @Override
+  protected SvLibSExpression toSExpressionWithoutTags() {
+    ImmutableList.Builder<SvLibSExpression> elements = ImmutableList.builder();
+    elements.add(
+        SvLibSExpression.atom("if"),
+        SvLibSExpression.atom(condition.toASTString()),
+        thenBranch.toSExpression());
+    elseBranch.ifPresent(statement -> elements.add(statement.toSExpression()));
+    return SvLibSExpression.list(elements.build());
   }
 
   public SvLibTerm getCondition() {

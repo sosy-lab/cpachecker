@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -88,6 +89,32 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
         + variablesToString(returnValues)
         + " "
         + variablesToString(localVariables);
+  }
+
+  /**
+   * The name, the parameters, the returned values and the local variables of the procedure as
+   * S-expressions, which is how a definition of the procedure begins.
+   */
+  public ImmutableList<SvLibSExpression> toSExpressions() {
+    return ImmutableList.of(
+        SvLibSExpression.atom(name),
+        variablesToSExpression(parameters),
+        variablesToSExpression(returnValues),
+        variablesToSExpression(localVariables));
+  }
+
+  private static SvLibSExpression variablesToSExpression(
+      List<SvLibParsingParameterDeclaration> pVariables) {
+    if (pVariables.isEmpty()) {
+      return SvLibSExpression.atom("()");
+    }
+    return SvLibSExpression.list(
+        FluentIterable.from(pVariables)
+            .transform(
+                variable ->
+                    SvLibSExpression.atom(
+                        "(" + variable.getName() + " " + variable.getType().toASTString() + ")"))
+            .toList());
   }
 
   private String variablesToString(List<SvLibParsingParameterDeclaration> variableList) {
