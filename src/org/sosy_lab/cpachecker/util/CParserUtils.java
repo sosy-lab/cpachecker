@@ -89,7 +89,7 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class CParserUtils {
 
-  private static final String CPACHECKER_TMP_PREFIX = "__CPAchecker_TMP";
+  public static final String CPACHECKER_TMP_PREFIX = "__CPAchecker_TMP";
 
   public static CStatement parseSingleStatement(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {

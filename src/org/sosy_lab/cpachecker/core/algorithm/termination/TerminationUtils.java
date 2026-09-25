@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
+import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -208,12 +209,11 @@ public class TerminationUtils {
       ImmutableList.Builder<String> transitionInvariants,
       String rankingFunction,
       Iterable<IProgramVar> variables) {
-    final String TMP_KEYWORD = "__CPAchecker_TMP";
     String prevRank =
         rightSideOfRankingFunction(wrapTheVariablesWithAtAnyPrev(rankingFunction, variables));
     String currentRank =
         rightSideOfRankingFunction(wrapTheVariablesWithCastToLongLong(rankingFunction, variables));
-    if (prevRank.contains(TMP_KEYWORD)) {
+    if (prevRank.contains(CParserUtils.CPACHECKER_TMP_PREFIX)) {
       transitionInvariants.add("0");
     } else {
       transitionInvariants.add(prevRank + " > " + currentRank);
