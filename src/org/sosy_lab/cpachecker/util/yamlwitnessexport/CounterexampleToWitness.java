@@ -855,6 +855,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
+   * Export the given counterexample as a Witness version 2.0 to the given output file.
+   *
+   * @param pCex The counterexample to export.
+   * @param pOutputFile The file to export the witness to.
+   * @throws IOException If the witness could not be written to the file.
+   */
+  public void export(CounterexampleInfo pCex, Path pOutputFile) throws IOException {
+    exportWitness(pCex, pOutputFile, YAMLWitnessVersion.V2);
+  }
+
+  /**
    * Export the given counterexample to a witness file. The format of the witness file is determined
    * by the witness versions given in the configuration. All versions of witnesses will be exported.
    * Currently, only Version 2 exists for Violation Witnesses.
