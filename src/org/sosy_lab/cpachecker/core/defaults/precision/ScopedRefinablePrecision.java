@@ -10,22 +10,27 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.notInternalVariable;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableNameInFunction;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -90,36 +95,44 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa) {
-    ImmutableList.Builder<String> globalVariables = ImmutableList.builder();
-    ImmutableListMultimap.Builder<String, String> functionWideVariables =
-        ImmutableListMultimap.builder();
+    Optional<Supplier<CProgramScope>> scope = scopeOf(pCfa);
+    if (scope.isEmpty()) {
+      return ImmutableList.of();
+    }
+
+    // Two memory locations can describe the same variable, so collect the expressions in a set
+    SequencedSet<String> globalVariables = new LinkedHashSet<>();
+    SetMultimap<String, String> functionWideVariables =
+        MultimapBuilder.linkedHashKeys().linkedHashSetValues().build();
 
     for (MemoryLocation variable : rawPrecision) {
+      if (!notInternalVariable(variable.getQualifiedName())) {
+        continue;
+      }
+      Optional<String> expression =
+          asCExpression(variable, scope.orElseThrow(), pCfa.getMachineModel());
+      if (expression.isEmpty()) {
+        continue;
+      }
       if (variable.isOnFunctionStack()) {
-        String functionName = variable.getFunctionName();
-        if (notInternalVariable(variable.getQualifiedName())
-            && variableNameInFunction(variable.getIdentifier(), functionName)) {
-          functionWideVariables.put(variable.getFunctionName(), variable.asCExpression());
-        }
+        functionWideVariables.put(variable.getFunctionName(), expression.orElseThrow());
       } else {
-        if (notInternalVariable(variable.getQualifiedName())) {
-          globalVariables.add(variable.asCExpression());
-        }
+        globalVariables.add(expression.orElseThrow());
       }
     }
 
     ImmutableList.Builder<PrecisionExchangeEntry> entries = ImmutableList.builder();
-    if (!globalVariables.build().isEmpty()) {
+    if (!globalVariables.isEmpty()) {
       entries.add(
           new PrecisionExchangeEntry(
               YAMLWitnessExpressionType.C,
               new GlobalPrecisionScope(),
               PrecisionType.MEMORY_LOCATIONS,
-              globalVariables.build()));
+              ImmutableList.copyOf(globalVariables)));
     }
 
     for (Entry<String, Collection<String>> functionEntry :
-        functionWideVariables.build().asMap().entrySet()) {
+        functionWideVariables.asMap().entrySet()) {
       entries.add(
           new PrecisionExchangeEntry(
               YAMLWitnessExpressionType.C,

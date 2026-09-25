@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -34,11 +36,15 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.precision.RefinablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -258,7 +264,8 @@ public class ValueAnalysisCPA extends AbstractCPA
           if (entry instanceof PrecisionExchangeSetEntry pExchangeSetEntry) {
             initialPrecision =
                 initialPrecision.withIncrement(
-                    precisionExchangeSetToMapping(pExchangeSetEntry.getContent(), cfa));
+                    precisionExchangeSetToMapping(
+                        pExchangeSetEntry.getContent(), cfa, initialPrecision));
           } else {
             logger.logf(
                 Level.WARNING,
@@ -277,13 +284,26 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private Multimap<CFANode, MemoryLocation> precisionExchangeSetToMapping(
-      List<PrecisionExchangeEntry> pEntries, CFA pCfa) {
+      List<PrecisionExchangeEntry> pEntries, CFA pCfa, VariableTrackingPrecision pPrecision) {
     ImmutableListMultimap.Builder<CFANode, MemoryLocation> builder =
         ImmutableListMultimap.builder();
-    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+    AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
+    if (pCfa.getLanguage() != Language.C || astCfaRelation == null) {
+      logger.log(
+          Level.WARNING,
+          "A precision can only be imported from a witness for a program in C, ignoring it.");
+      return builder.build();
+    }
 
+    // A precision which is not bound to a location has to be tracked at every location of its
+    // scope, since a location-based precision only tracks what its own node is mapped to. Any
+    // other precision ignores the nodes, so naming one of them is enough.
     Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
-    CFANode defaultLocation = getDefaultLocation(idToCfaNode);
+    ImmutableSet<CFANode> allNodes =
+        RefinablePrecision.tracksPerLocation(pPrecision)
+            ? ImmutableSet.copyOf(pCfa.nodes())
+            : ImmutableSet.of(getDefaultLocation(idToCfaNode));
+    CProgramScope scope = new CProgramScope(pCfa, logger);
     for (PrecisionExchangeEntry entry : pEntries) {
       if (entry.format() != YAMLWitnessExpressionType.C
           || entry.type() != PrecisionType.MEMORY_LOCATIONS) {
@@ -299,42 +319,67 @@ public class ValueAnalysisCPA extends AbstractCPA
       switch (entry.scope()) {
         case GlobalPrecisionScope pGlobalScope -> {
           for (String var : entry.values()) {
-            builder.put(defaultLocation, MemoryLocation.parseCExpression(var, Optional.empty()));
+            Optional<MemoryLocation> memoryLocation = parseMemoryLocation(var, null, scope, pCfa);
+            if (memoryLocation.isEmpty()) {
+              continue;
+            }
+            for (CFANode node : allNodes) {
+              builder.put(node, memoryLocation.orElseThrow());
+            }
           }
         }
         case FunctionPrecisionScope pFunctionScope -> {
+          String functionName = pFunctionScope.getFunctionName();
           for (String var : entry.values()) {
-            builder.put(
-                defaultLocation,
-                MemoryLocation.parseCExpression(
-                    var, Optional.of(pFunctionScope.getFunctionName())));
+            Optional<MemoryLocation> memoryLocation =
+                parseMemoryLocation(var, functionName, scope, pCfa);
+            if (memoryLocation.isEmpty()) {
+              continue;
+            }
+            for (CFANode node : allNodes) {
+              if (node.getFunctionName().equals(functionName)) {
+                builder.put(node, memoryLocation.orElseThrow());
+              }
+            }
           }
         }
         case LocalLoopPrecisionScope pLoopScope -> {
           LocationRecord locationRecord = pLoopScope.getLocation();
+          if (locationRecord.getColumn().isEmpty()) {
+            logger.logf(
+                Level.WARNING,
+                "Ignoring the precision scope %s, which we cannot match to the CFA without a"
+                    + " column.",
+                locationRecord);
+            continue;
+          }
 
           Optional<CFANode> location =
               astCfaRelation.getNodeForIterationStatementLocation(
-                  // TODO: Handle missing columns correctly
                   locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
           if (location.isEmpty()) {
             continue;
           }
 
           for (String var : entry.values()) {
-            builder.put(
-                location.orElseThrow(),
-                MemoryLocation.parseCExpression(
-                    var, Optional.ofNullable(location.orElseThrow().getFunctionName())));
+            parseMemoryLocation(var, location.orElseThrow().getFunctionName(), scope, pCfa)
+                .ifPresent(memoryLocation -> builder.put(location.orElseThrow(), memoryLocation));
           }
         }
 
         case LocalPrecisionScope pLocalScope -> {
           LocationRecord locationRecord = pLocalScope.getLocation();
+          if (locationRecord.getColumn().isEmpty()) {
+            logger.logf(
+                Level.WARNING,
+                "Ignoring the precision scope %s, which we cannot match to the CFA without a"
+                    + " column.",
+                locationRecord);
+            continue;
+          }
 
           Set<CFANode> location =
               astCfaRelation.getNodeForStatementLocation(
-                  // TODO: Handle missing columns correctly
                   locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
           if (location.isEmpty()) {
             continue;
@@ -342,10 +387,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
           for (String var : entry.values()) {
             for (CFANode node : location) {
-              builder.put(
-                  node,
-                  MemoryLocation.parseCExpression(
-                      var, Optional.ofNullable(node.getFunctionName())));
+              parseMemoryLocation(var, node.getFunctionName(), scope, pCfa)
+                  .ifPresent(memoryLocation -> builder.put(node, memoryLocation));
             }
           }
         }
@@ -387,6 +430,31 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
     return idToCfaNode.values().iterator().next();
+  }
+
+  /**
+   * Parses a memory location of a precision entry. The exported expression carries no function
+   * qualifier, so the variable is looked up in the given function first and in the global scope
+   * afterwards. Its declared type is needed to turn the designated address back into an offset.
+   */
+  private static Optional<MemoryLocation> parseMemoryLocation(
+      String pVariable, @Nullable String pFunctionName, CProgramScope pScope, CFA pCfa) {
+    String identifier = MemoryLocation.baseIdentifierOfCExpression(pVariable);
+    if (pFunctionName != null) {
+      CSimpleDeclaration local = pScope.lookupVariable(pFunctionName + "::" + identifier);
+      if (local != null) {
+        return MemoryLocation.parseCExpression(
+            pVariable, Optional.of(pFunctionName), local.getType(), pCfa.getMachineModel());
+      }
+    }
+    CSimpleDeclaration global = pScope.lookupVariable(identifier);
+    if (global == null || global.getQualifiedName().contains("::")) {
+      // The lookup also answers with a local variable of any other function, which is not the
+      // variable this expression names
+      return Optional.empty();
+    }
+    return MemoryLocation.parseCExpression(
+        pVariable, Optional.empty(), global.getType(), pCfa.getMachineModel());
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {

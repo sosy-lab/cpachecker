@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWrit
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableInOriginalProgram;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableNameInFunction;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -29,6 +30,7 @@ import java.util.SequencedMap;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -91,7 +93,8 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   @Override
   public List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa) {
     AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
-    if (astCfaRelation == null) {
+    Optional<Supplier<CProgramScope>> scope = scopeOf(pCfa);
+    if (astCfaRelation == null || scope.isEmpty()) {
       // Without the relation to the AST we cannot describe the scope of any location
       return ImmutableList.of();
     }
@@ -119,7 +122,14 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
                                   astCfaRelation,
                                   currentLocation)));
 
-      Set<String> expressions = relevantVariables.transform(MemoryLocation::asCExpression).toSet();
+      Set<String> expressions =
+          relevantVariables
+              .filter(variable -> !isShadowedGlobal(variable, functionName, scope.orElseThrow()))
+              .transform(
+                  variable -> asCExpression(variable, scope.orElseThrow(), pCfa.getMachineModel()))
+              .filter(Optional::isPresent)
+              .transform(Optional::orElseThrow)
+              .toSet();
       if (!expressions.isEmpty()) {
         variablesPerScope
             .computeIfAbsent(
@@ -137,6 +147,16 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
                 entry.getKey(),
                 PrecisionType.MEMORY_LOCATIONS,
                 ImmutableList.copyOf(entry.getValue())));
+  }
+
+  /**
+   * Whether the memory location is a global variable which a local variable of the function hides,
+   * so that the exported expression would name the local one instead.
+   */
+  private static boolean isShadowedGlobal(
+      MemoryLocation pLocation, String pFunctionName, Supplier<CProgramScope> pScope) {
+    return !pLocation.isOnFunctionStack()
+        && pScope.get().lookupVariable(pFunctionName + "::" + pLocation.getIdentifier()) != null;
   }
 
   @Override

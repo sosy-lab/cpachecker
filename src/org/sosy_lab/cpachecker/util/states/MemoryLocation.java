@@ -13,15 +13,25 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Ordering;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serial;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** This class describes a location in the memory. */
 @Immutable
@@ -145,7 +155,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(null, varName.replace("/" + offset, ""), offset);
+      return new MemoryLocation(null, varName, offset);
     }
   }
 
@@ -161,35 +171,190 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return variableName + "/" + offset;
   }
 
-  /** Return a string that represents this memory location as a C expression. */
-  public String asCExpression() {
-    String variableName = getIdentifier();
+  /**
+   * Returns this memory location as the C expression denoting its address, for example {@code &x},
+   * {@code &a[2]} or {@code &p.y}.
+   *
+   * <p>The offset of a memory location counts bytes, while C pointer arithmetic counts elements, so
+   * the offset is resolved to the element and the member it points to. Returns nothing if it points
+   * into a scalar, which no C expression denotes.
+   *
+   * @param pType the declared type of the variable of this memory location
+   * @param pMachineModel the machine model of the analyzed program
+   */
+  public Optional<String> asCExpression(CType pType, MachineModel pMachineModel) {
+    StringBuilder expression = new StringBuilder("&").append(identifier);
     if (offset == null) {
-      return "&" + variableName;
+      return Optional.of(expression.toString());
     }
-    return variableName + " + " + offset;
+
+    CType current = pType.getCanonicalType();
+    if (!isAggregate(current)) {
+      // Only an element or a member can be designated, and without a designator the expression
+      // would be the one of the same variable without an offset, which is a different location
+      return Optional.empty();
+    }
+    long rest = offset;
+
+    try {
+      // Descend into the arrays and the composites until the offset is consumed
+      while (isAggregate(current)) {
+        if (current instanceof CArrayType array) {
+          long elementSize = pMachineModel.getSizeof(array.getType()).longValueExact();
+          if (elementSize <= 0) {
+            return Optional.empty();
+          }
+          long index = rest / elementSize;
+          OptionalInt length = array.getLengthAsInt();
+          if (length.isPresent() && index >= length.orElseThrow()) {
+            return Optional.empty();
+          }
+          expression.append('[').append(index).append(']');
+          rest -= index * elementSize;
+          current = array.getType().getCanonicalType();
+        } else if (current instanceof CCompositeType composite) {
+          Optional<CCompositeTypeMemberDeclaration> member =
+              memberAt(composite, rest, pMachineModel);
+          if (member.isEmpty()) {
+            return Optional.empty();
+          }
+          expression.append('.').append(member.orElseThrow().getName());
+          rest -=
+              pMachineModel
+                  .getFieldOffsetInBytes(composite, member.orElseThrow().getName())
+                  .orElseThrow()
+                  .longValueExact();
+          current = member.orElseThrow().getType().getCanonicalType();
+        }
+      }
+    } catch (IllegalArgumentException | ArithmeticException | NoSuchElementException e) {
+      // The size of the type is unknown, for example for an incomplete type
+      return Optional.empty();
+    }
+
+    // A rest is left over when the offset points into a scalar, which no C expression denotes
+    return rest == 0 ? Optional.of(expression.toString()) : Optional.empty();
   }
 
-  public static MemoryLocation parseCExpression(
-      String pVariableName, Optional<String> pFunctionName) {
-    String realVariableName = pVariableName.trim();
-    if (realVariableName.startsWith("&")) {
-      realVariableName = pVariableName.substring(1).trim();
+  /** Whether the type is one whose parts have an address of their own. */
+  private static boolean isAggregate(CType pType) {
+    return pType instanceof CArrayType
+        || (pType instanceof CCompositeType composite
+            && composite.getKind() != ComplexTypeKind.ENUM);
+  }
+
+  /** Returns the member of the composite type which contains the given offset. */
+  private static Optional<CCompositeTypeMemberDeclaration> memberAt(
+      CCompositeType pComposite, long pOffset, MachineModel pMachineModel) {
+    for (CCompositeTypeMemberDeclaration member : pComposite.getMembers()) {
+      Optional<BigInteger> start =
+          pMachineModel.getFieldOffsetInBytes(pComposite, member.getName());
+      if (start.isEmpty()) {
+        // A bit field which is not aligned to a byte has no address in C
+        continue;
+      }
+      long from = start.orElseThrow().longValueExact();
+      long to = from + pMachineModel.getSizeof(member.getType()).longValueExact();
+      if (from <= pOffset && pOffset < to) {
+        return Optional.of(member);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns the identifier of the variable a C expression produced by {@link #asCExpression(CType,
+   * MachineModel)} refers to, so that its declaration can be looked up.
+   */
+  public static String baseIdentifierOfCExpression(String pExpression) {
+    String rest = pExpression.trim();
+    if (rest.startsWith("&")) {
+      rest = rest.substring(1).trim();
+    }
+    int end = 0;
+    while (end < rest.length() && isIdentifierChar(rest.charAt(end))) {
+      end++;
+    }
+    return rest.substring(0, end);
+  }
+
+  /**
+   * Returns the memory location denoted by a C expression produced by {@link #asCExpression(CType,
+   * MachineModel)}, or nothing if it does not describe a location of the given type.
+   *
+   * @param pExpression the address expression to parse
+   * @param pFunctionName the function the variable belongs to, if it is not a global one
+   * @param pType the declared type of the variable of the expression
+   * @param pMachineModel the machine model of the analyzed program
+   */
+  public static Optional<MemoryLocation> parseCExpression(
+      String pExpression, Optional<String> pFunctionName, CType pType, MachineModel pMachineModel) {
+    String rest = pExpression.trim();
+    if (rest.startsWith("&")) {
+      rest = rest.substring(1).trim();
+    }
+    String identifier = baseIdentifierOfCExpression(rest);
+    if (identifier.isEmpty()) {
+      return Optional.empty();
     }
 
-    List<String> offsetParts = Splitter.on('+').splitToList(realVariableName);
-    String varName = offsetParts.getFirst().trim();
+    CType current = pType.getCanonicalType();
+    long offset = 0;
+    int index = identifier.length();
+    boolean hasDesignator = false;
 
-    boolean hasOffset = offsetParts.size() == 2;
-
-    @Nullable Long offset = hasOffset ? Long.parseLong(offsetParts.get(1).trim()) : null;
-
-    if (pFunctionName.isPresent()) {
-      String functionName = pFunctionName.orElseThrow();
-      return new MemoryLocation(functionName, varName, offset);
-    } else {
-      return new MemoryLocation(null, varName.replace("/" + offset, ""), offset);
+    try {
+      while (index < rest.length()) {
+        char next = rest.charAt(index);
+        if (Character.isWhitespace(next)) {
+          index++;
+        } else if (next == '[') {
+          int close = rest.indexOf(']', index);
+          if (close < 0 || !(current instanceof CArrayType array)) {
+            return Optional.empty();
+          }
+          offset +=
+              Long.parseLong(rest.substring(index + 1, close).trim())
+                  * pMachineModel.getSizeof(array.getType()).longValueExact();
+          current = array.getType().getCanonicalType();
+          index = close + 1;
+          hasDesignator = true;
+        } else if (next == '.') {
+          int end = index + 1;
+          while (end < rest.length() && isIdentifierChar(rest.charAt(end))) {
+            end++;
+          }
+          if (!(current instanceof CCompositeType composite)) {
+            return Optional.empty();
+          }
+          String member = rest.substring(index + 1, end);
+          Optional<CCompositeTypeMemberDeclaration> declaration =
+              FluentIterable.from(composite.getMembers())
+                  .firstMatch(m -> m.getName().equals(member))
+                  .toJavaUtil();
+          if (declaration.isEmpty()) {
+            return Optional.empty();
+          }
+          offset +=
+              pMachineModel.getFieldOffsetInBytes(composite, member).orElseThrow().longValueExact();
+          current = declaration.orElseThrow().getType().getCanonicalType();
+          index = end;
+          hasDesignator = true;
+        } else {
+          return Optional.empty();
+        }
+      }
+    } catch (IllegalArgumentException | ArithmeticException | NoSuchElementException e) {
+      return Optional.empty();
     }
+
+    return Optional.of(
+        new MemoryLocation(
+            pFunctionName.orElse(null), identifier, hasDesignator ? Long.valueOf(offset) : null));
+  }
+
+  private static boolean isIdentifierChar(char pChar) {
+    return Character.isLetterOrDigit(pChar) || pChar == '_';
   }
 
   /**
