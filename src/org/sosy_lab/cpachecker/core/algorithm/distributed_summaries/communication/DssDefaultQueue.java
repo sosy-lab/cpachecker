@@ -8,116 +8,101 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import com.google.common.util.concurrent.ForwardingBlockingQueue;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.Comparator;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 
-public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
+/**
+ * The incoming messages of one DSS worker, ordered by priority.
+ *
+ * <p>Messages that end the analysis ({@link DssMessageType#WITNESS}, {@link DssMessageType#RESULT},
+ * and {@link DssMessageType#EXCEPTION}) are taken before all others. Messages of the same priority
+ * are taken in the order in which they were added.
+ *
+ * <p>The queue is thread-safe: the ordering is left to a {@link PriorityBlockingQueue}. Any thread
+ * may add messages, but only the worker the queue belongs to should take them, because the queue
+ * reports the activity of that worker to a {@link DssWorkCounter}.
+ */
+public class DssDefaultQueue {
 
-  private final BlockingQueue<DssMessage> queue;
-  private final Deque<DssMessage> highestPriority;
-  private final Deque<DssMessage> next;
-  private final Set<String> activeWorkers;
-  private final AtomicInteger pendingMessages;
+  /** A message together with its position in the order in which messages were added. */
+  private record Entry(DssMessage message, long sequenceNumber) {}
 
-  /**
-   * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
-   * messages according to the enum {@link
-   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType}
-   */
+  private static final Comparator<Entry> ORDER =
+      Comparator.comparingInt((Entry entry) -> priority(entry.message().getType()))
+          .thenComparingLong(Entry::sequenceNumber);
+
+  private final PriorityBlockingQueue<Entry> queue = new PriorityBlockingQueue<>(11, ORDER);
+  private final AtomicLong nextSequenceNumber = new AtomicLong();
+  private final DssWorkCounter workCounter;
+
+  /** Creates a queue whose worker does not take part in a shared {@link DssWorkCounter}. */
   public DssDefaultQueue() {
-    this(ConcurrentHashMap.newKeySet());
+    this(new DssWorkCounter());
   }
 
   /**
-   * Creates a queue that shares its worker's activity with the termination monitor.
-   *
-   * <p>Add the worker to {@code pActiveWorkers} before starting its thread. A worker can do useful
-   * work before it first calls {@link #take()}, and the monitor needs to see that too.
+   * Creates a queue that reports its messages and the activity of its worker to {@code
+   * pWorkCounter}. Every queue that shares the counter therefore needs a worker that eventually
+   * takes from it.
    */
-  public DssDefaultQueue(Set<String> pActiveWorkers) {
-    queue = new LinkedBlockingQueue<>();
-    highestPriority = new ArrayDeque<>();
-    next = new ArrayDeque<>();
-    activeWorkers = Objects.requireNonNull(pActiveWorkers);
-    pendingMessages = new AtomicInteger();
+  public DssDefaultQueue(DssWorkCounter pWorkCounter) {
+    workCounter = Objects.requireNonNull(pWorkCounter);
+    workCounter.workerStarted();
   }
 
-  @Override
-  protected BlockingQueue<DssMessage> delegate() {
-    return queue;
+  private static int priority(DssMessageType pType) {
+    return switch (pType) {
+      case WITNESS, RESULT, EXCEPTION -> 0;
+      case VIOLATION_CONDITION, POST_CONDITION -> 1;
+    };
   }
 
-  @Override
-  public boolean isEmpty() {
-    return pendingMessages.get() == 0;
+  @CanIgnoreReturnValue
+  public boolean offer(DssMessage pMessage) {
+    Objects.requireNonNull(pMessage);
+    // Count the message before its worker can take it, so that it never counts as taken before it
+    // was counted as queued.
+    workCounter.messageQueued();
+    queue.offer(new Entry(pMessage, nextSequenceNumber.getAndIncrement()));
+    return true;
   }
 
-  @Override
-  public boolean add(DssMessage pMessage) {
-    // Count the message first. Otherwise, the monitor could look between these two steps and see
-    // neither an active sender nor a queued message.
-    pendingMessages.incrementAndGet();
-    boolean added = false;
-    try {
-      added = queue.add(pMessage);
-      return added;
-    } finally {
-      if (!added) {
-        pendingMessages.decrementAndGet();
+  /**
+   * Returns the next message, and blocks while there is none.
+   *
+   * <p>While it blocks, the worker of this queue counts as idle.
+   */
+  public DssMessage take() throws InterruptedException {
+    Entry entry = queue.poll();
+    if (entry == null) {
+      workCounter.workerIdle();
+      try {
+        entry = queue.take();
+      } finally {
+        // Mark the worker busy before the message stops counting. This keeps the work visible to
+        // the counter while it moves from the queue to the worker. After an interrupt, the worker
+        // is busy as well, because it still has to react to it.
+        workCounter.workerBusy();
       }
     }
+    workCounter.messageTaken();
+    return entry.message();
   }
 
-  private DssMessage startProcessing(DssMessage pMessage) {
-    int remainingMessages = pendingMessages.decrementAndGet();
-    checkState(remainingMessages >= 0, "Consumed a message that was not registered as pending");
-    return pMessage;
+  public boolean isEmpty() {
+    return queue.isEmpty();
   }
 
-  /**
-   * Messages are returned according to the defined ordering.
-   *
-   * @return Next message to process
-   * @throws InterruptedException thrown if the process is interrupted
-   */
-  @Override
-  public DssMessage take() throws InterruptedException {
-    // empty pending messages (non blocking)
-    while (!queue.isEmpty()) {
-      DssMessage message = queue.take();
-      Deque<DssMessage> queueForMessage =
-          switch (message.getType()) {
-            case WITNESS, RESULT, EXCEPTION -> highestPriority;
-            case VIOLATION_CONDITION, POST_CONDITION -> next;
-          };
-      queueForMessage.add(message);
-    }
-    if (!highestPriority.isEmpty()) {
-      return startProcessing(highestPriority.removeFirst());
-    }
-    if (!next.isEmpty()) {
-      return startProcessing(next.removeFirst());
-    }
-    activeWorkers.remove(Thread.currentThread().getName());
-    try {
-      DssMessage message = queue.take();
-      // Mark the worker active before the message stops counting as pending. This keeps the work
-      // visible to the monitor while it moves from the queue to the worker.
-      activeWorkers.add(Thread.currentThread().getName());
-      return startProcessing(message);
-    } catch (InterruptedException e) {
-      activeWorkers.add(Thread.currentThread().getName());
-      throw e;
-    }
+  public void clear() {
+    queue.clear();
+  }
+
+  public int size() {
+    return queue.size();
   }
 }
