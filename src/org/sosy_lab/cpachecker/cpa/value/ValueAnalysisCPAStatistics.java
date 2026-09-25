@@ -120,15 +120,22 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       loopInvGenExporter = null;
     }
 
-    try {
-      metadataRecord =
-          Optional.of(
-              MetadataRecord.createMetadataRecord(
-                  ProducerRecord.getProducerRecord(config),
-                  TaskRecord.getTaskDescription(cfa, pSpecification),
-                  YAMLWitnessVersion.V2d2));
-    } catch (IOException e) {
-      metadataRecord = Optional.empty();
+    // Creating the metadata hashes every input file, so only do it when it is exported
+    metadataRecord = Optional.empty();
+    if (witnessPrecisionFile != null) {
+      try {
+        metadataRecord =
+            Optional.of(
+                MetadataRecord.createMetadataRecord(
+                    ProducerRecord.getProducerRecord(config),
+                    TaskRecord.getTaskDescription(cfa, pSpecification),
+                    YAMLWitnessVersion.V2d2));
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "Could not create metadata record for exporting the precision as a witness");
+      }
     }
   }
 
@@ -215,7 +222,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
             .logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
       }
     }
-    if (witnessPrecisionFile != null) {
+    if (witnessPrecisionFile != null && metadataRecord.isPresent()) {
       List<PrecisionExchangeEntry> entries = consolidatedPrecision.asWitnessEntries(cfa);
       PrecisionExchangeSetEntry precisionExchangeSetEntry =
           new PrecisionExchangeSetEntry(metadataRecord.orElseThrow(), ImmutableList.of(), entries);
