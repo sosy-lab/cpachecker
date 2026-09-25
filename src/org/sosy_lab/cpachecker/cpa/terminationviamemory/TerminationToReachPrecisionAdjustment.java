@@ -169,25 +169,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
             ImmutableSet.builder();
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
-            ImmutableSet.builder();
-        for (PartitionedRelationFormula transitionPredicate :
-            terminationState.getTransitionPredicates()) {
-          if (isInductiveTransitionInvariant(transitionPredicate, iterationFormula, location)) {
-            builderTransitionInvariants.add(transitionPredicate);
-          }
-        }
-
-        // Add the predicates from the witness
-        if (validation) {
-          PartitionedRelationFormula invariantFromWitness =
-              new PartitionedRelationFormula(
-                  collectCandidateTransitionInvariants(
-                      location, terminationState.getPathFormulasForIteration().get(keyPair)),
-                  fmgr);
-          if (isInductiveTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
-            builderTransitionInvariants.add(invariantFromWitness);
-          }
-        }
+            collectInductiveTransitionInvariants(
+                terminationState, iterationFormula, location, keyPair);
 
         // If the BMC queries are UNSAT, we try to compute transition invariant
         // We strengthen the transition invariant with the prefix formula
@@ -195,32 +178,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
         while (true) {
           // Check for a lasso in the current unrolling
-          try {
-            Optional<Integer> numberOfUnrollingsForLasso =
-                findNonterminatingLoop(
-                    sameStateFormulas,
-                    isOverapproximating,
-                    isOverapproximating ? Optional.of(candidateTransInv) : Optional.empty(),
-                    iterationFormula,
-                    prefixPathFormula);
-            if (numberOfUnrollingsForLasso.isPresent()) {
-              if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
-                TerminationToReachState cycleState =
-                    new TerminationToReachState(numberOfUnrollingsForLasso.get());
-                cycleState.makeTarget();
-                result = result.withAbstractState(terminationState);
-                statistics.setNonterminatingLoop(
-                    cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
-                result = result.withAction(Action.BREAK);
-                return Optional.of(result.withAbstractState(cycleState));
-              }
-              if (isOverapproximating) {
-                return Optional.of(result);
-              }
-            }
-          } catch (SolverException e) {
-            logger.logDebugException(e);
-            return Optional.of(result);
+          Optional<PrecisionAdjustmentResult> lassoResult =
+              checkForNonterminatingLasso(
+                  sameStateFormulas,
+                  isOverapproximating,
+                  candidateTransInv,
+                  iterationFormula,
+                  prefixPathFormula,
+                  terminationState,
+                  location,
+                  result);
+          if (lassoResult.isPresent()) {
+            return lassoResult;
           }
 
           // Get the latest formula checking for the same states
@@ -234,58 +203,208 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           }
 
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
-          if (isOverapproximating
-              && isInductiveTransitionInvariant(candidateTransInv, iterationFormula, location)) {
-            // Set the computed candidateTransInv to the terminationState
-            builderTransitionPredicates.add(candidateTransInv);
-            builderTransitionPredicates.addAll(terminationState.getTransitionPredicates());
-            builderTransitionInvariants.add(candidateTransInv);
-
-            TerminationToReachState newTerminationState =
-                new TerminationToReachState(
-                    terminationState.getStoredValues(),
-                    terminationState.getNumberOfIterations(),
-                    terminationState.getPathFormulasForIteration(),
-                    terminationState.getPathFormulasForPrefix(),
-                    terminationState.getPathFormulaFull(),
-                    terminationState.getPathSequence(),
-                    builderTransitionInvariants.build(),
-                    builderTransitionPredicates.build());
-            return Optional.of(result.withAbstractState(newTerminationState));
+          Optional<PrecisionAdjustmentResult> fixPointResult =
+              checkFixPoint(
+                  isOverapproximating,
+                  candidateTransInv,
+                  iterationFormula,
+                  location,
+                  terminationState,
+                  builderTransitionPredicates,
+                  builderTransitionInvariants,
+                  result);
+          if (fixPointResult.isPresent()) {
+            return fixPointResult;
           }
 
-          candidateTransInv = candidateTransInv.withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD);
-          candidateTransInv = candidateTransInv.withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
-
-          PartitionedRelationFormula newInterpolant;
-          newInterpolant =
-              computeNewRelationalInterpolant(
+          Optional<PartitionedRelationFormula> newCandidateTransInv =
+              computeNextCandidateTransitionInvariant(
                   isOverapproximating,
                   candidateTransInv,
                   iterationFormula,
                   prefixPathFormula,
                   latestSameStateFormula,
                   callstackState);
-
-          try {
-            if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
-              return Optional.of(result);
-            }
-          } catch (SolverException e) {
-            logger.logDebugException(e);
+          if (newCandidateTransInv.isEmpty()) {
             return Optional.of(result);
           }
-
-          // Trying to reach the fix-point
-          // We can also strengthen the candidate transition invariant with the prefix formula
-          candidateTransInv =
-              new PartitionedRelationFormula(
-                  bfmgr.or(candidateTransInv.getFormula(), newInterpolant.getFormula()), fmgr);
+          candidateTransInv = newCandidateTransInv.orElseThrow();
           isOverapproximating = true;
         }
       }
     }
     return Optional.of(result);
+  }
+
+  /**
+   * Collects the transition predicates of the given state that are inductive transition invariants
+   * for the current iteration of the loop. In case of witness validation, the transition invariant
+   * from the witness is added as well, if it is inductive.
+   *
+   * @return a builder containing the inductive transition invariants, such that further transition
+   *     invariants can be added to it
+   */
+  private ImmutableSet.Builder<PartitionedRelationFormula> collectInductiveTransitionInvariants(
+      TerminationToReachState terminationState,
+      PartitionedRelationFormula iterationFormula,
+      CFANode location,
+      Pair<LocationState, CallstackState> keyPair)
+      throws InterruptedException {
+    ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
+        ImmutableSet.builder();
+    for (PartitionedRelationFormula transitionPredicate :
+        terminationState.getTransitionPredicates()) {
+      if (isInductiveTransitionInvariant(transitionPredicate, iterationFormula, location)) {
+        builderTransitionInvariants.add(transitionPredicate);
+      }
+    }
+
+    // Add the predicates from the witness
+    if (validation) {
+      PartitionedRelationFormula invariantFromWitness =
+          new PartitionedRelationFormula(
+              collectCandidateTransitionInvariants(
+                  location, terminationState.getPathFormulasForIteration().get(keyPair)),
+              fmgr);
+      if (isInductiveTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
+        builderTransitionInvariants.add(invariantFromWitness);
+      }
+    }
+    return builderTransitionInvariants;
+  }
+
+  /**
+   * Checks whether there is a lasso in the current unrolling of the loop. If a sound lasso is found
+   * without overapproximation, the returned result contains a target state that reports the
+   * non-terminating loop.
+   *
+   * @return the result of the precision adjustment if the analysis of the current state is
+   *     finished, i.e., a lasso was found, a lasso was found in the overapproximation, or the
+   *     solver failed. Otherwise, Optional.empty() is returned and the search for a transition
+   *     invariant continues.
+   */
+  private Optional<PrecisionAdjustmentResult> checkForNonterminatingLasso(
+      ImmutableList<BooleanFormula> sameStateFormulas,
+      boolean isOverapproximating,
+      PartitionedRelationFormula candidateTransInv,
+      PartitionedRelationFormula iterationFormula,
+      PathFormula prefixPathFormula,
+      TerminationToReachState terminationState,
+      CFANode location,
+      PrecisionAdjustmentResult result)
+      throws InterruptedException {
+    try {
+      Optional<Integer> numberOfUnrollingsForLasso =
+          findNonterminatingLoop(
+              sameStateFormulas,
+              isOverapproximating,
+              isOverapproximating ? Optional.of(candidateTransInv) : Optional.empty(),
+              iterationFormula,
+              prefixPathFormula);
+      if (numberOfUnrollingsForLasso.isPresent()) {
+        if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
+          TerminationToReachState cycleState =
+              new TerminationToReachState(numberOfUnrollingsForLasso.get());
+          cycleState.makeTarget();
+          PrecisionAdjustmentResult lassoResult = result.withAbstractState(terminationState);
+          statistics.setNonterminatingLoop(
+              cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
+          lassoResult = lassoResult.withAction(Action.BREAK);
+          return Optional.of(lassoResult.withAbstractState(cycleState));
+        }
+        if (isOverapproximating) {
+          return Optional.of(result);
+        }
+      }
+    } catch (SolverException e) {
+      logger.logDebugException(e);
+      return Optional.of(result);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Checks whether the candidate transition invariant is a fix-point, i.e., an inductive transition
+   * invariant. If so, it is added to the transition predicates and transition invariants of a new
+   * termination state.
+   *
+   * @return the result of the precision adjustment with the new termination state if the fix-point
+   *     is reached, otherwise Optional.empty()
+   */
+  private Optional<PrecisionAdjustmentResult> checkFixPoint(
+      boolean isOverapproximating,
+      PartitionedRelationFormula candidateTransInv,
+      PartitionedRelationFormula iterationFormula,
+      CFANode location,
+      TerminationToReachState terminationState,
+      ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates,
+      ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants,
+      PrecisionAdjustmentResult result)
+      throws InterruptedException {
+    if (isOverapproximating
+        && isInductiveTransitionInvariant(candidateTransInv, iterationFormula, location)) {
+      // Set the computed candidateTransInv to the terminationState
+      builderTransitionPredicates.add(candidateTransInv);
+      builderTransitionPredicates.addAll(terminationState.getTransitionPredicates());
+      builderTransitionInvariants.add(candidateTransInv);
+
+      TerminationToReachState newTerminationState =
+          new TerminationToReachState(
+              terminationState.getStoredValues(),
+              terminationState.getNumberOfIterations(),
+              terminationState.getPathFormulasForIteration(),
+              terminationState.getPathFormulasForPrefix(),
+              terminationState.getPathFormulaFull(),
+              terminationState.getPathSequence(),
+              builderTransitionInvariants.build(),
+              builderTransitionPredicates.build());
+      return Optional.of(result.withAbstractState(newTerminationState));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Computes a new relational interpolant and weakens the candidate transition invariant with it,
+   * in order to reach the fix-point.
+   *
+   * @return the new candidate transition invariant, or Optional.empty() if the new interpolant does
+   *     not add anything to the candidate transition invariant or the solver failed
+   */
+  private Optional<PartitionedRelationFormula> computeNextCandidateTransitionInvariant(
+      boolean isOverapproximating,
+      PartitionedRelationFormula candidateTransInv,
+      PartitionedRelationFormula iterationFormula,
+      PathFormula prefixPathFormula,
+      BooleanFormula latestSameStateFormula,
+      CallstackState callstackState)
+      throws CPAException, InterruptedException {
+    candidateTransInv = candidateTransInv.withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD);
+    candidateTransInv = candidateTransInv.withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
+
+    PartitionedRelationFormula newInterpolant;
+    newInterpolant =
+        computeNewRelationalInterpolant(
+            isOverapproximating,
+            candidateTransInv,
+            iterationFormula,
+            prefixPathFormula,
+            latestSameStateFormula,
+            callstackState);
+
+    try {
+      if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
+        return Optional.empty();
+      }
+    } catch (SolverException e) {
+      logger.logDebugException(e);
+      return Optional.empty();
+    }
+
+    // Trying to reach the fix-point
+    // We can also strengthen the candidate transition invariant with the prefix formula
+    return Optional.of(
+        new PartitionedRelationFormula(
+            bfmgr.or(candidateTransInv.getFormula(), newInterpolant.getFormula()), fmgr));
   }
 
   /**
