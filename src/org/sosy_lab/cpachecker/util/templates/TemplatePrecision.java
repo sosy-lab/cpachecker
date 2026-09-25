@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 @Options(prefix = "precision.template", deprecatedPrefix = "cpa.lpi")
 public class TemplatePrecision implements Precision {
 
+  // TODO this is extremely inefficient because of Template.toString
   private static final Comparator<Template> TEMPLATE_COMPARATOR =
       Comparator.<Template>comparingInt(template -> template.getLinearExpression().size())
           .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
