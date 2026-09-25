@@ -20,7 +20,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope.PrecisionScopeDeserializer;
 
 @JsonDeserialize(using = PrecisionScopeDeserializer.class)
@@ -41,34 +40,48 @@ public abstract sealed class PrecisionScope
     return entryType;
   }
 
+  /**
+   * Returns the scope describing the program location of the given node, if there is one.
+   *
+   * <p>The location of a node is derived from its edges, and for the entry and the exit node of a
+   * function these are the ones of the call site, i.e., inside the calling function. The resulting
+   * record would name a function which does not contain its own location, so we only return a scope
+   * for locations inside the function of the node.
+   */
   public static Optional<PrecisionScope> localPrecisionScopeFor(
       CFANode pNode, AstCfaRelation pAstCfaRelation) {
     String functionName = pNode.getFunctionName();
     if (pNode.isLoopStart()) {
-      Optional<IterationElement> iterationStructure =
-          pAstCfaRelation.getTightestIterationStructureForNode(pNode);
-
-      if (iterationStructure.isEmpty()) {
-        return Optional.empty();
-      } else {
-        FileLocation fileLocation =
-            iterationStructure.orElseThrow().getCompleteElement().location();
-        return Optional.of(
-            new LocalLoopPrecisionScope(
-                LocationRecord.createLocationRecordAtStart(fileLocation, functionName)));
-      }
-
+      return pAstCfaRelation
+          .getTightestIterationStructureForNode(pNode)
+          .map(structure -> structure.getCompleteElement().location())
+          .filter(location -> isInsideFunctionOf(location, pNode))
+          .map(
+              location ->
+                  new LocalLoopPrecisionScope(
+                      LocationRecord.createLocationRecordAtStart(location, functionName)));
     } else {
-      Optional<FileLocation> fileLocation = pAstCfaRelation.getStatementFileLocationForNode(pNode);
-      if (fileLocation.isEmpty()) {
-        return Optional.empty();
-      } else {
-        return Optional.of(
-            new LocalPrecisionScope(
-                LocationRecord.createLocationRecordAtStart(
-                    fileLocation.orElseThrow(), functionName)));
-      }
+      return pAstCfaRelation
+          .getStatementFileLocationForNode(pNode)
+          .filter(location -> isInsideFunctionOf(location, pNode))
+          .map(
+              location ->
+                  new LocalPrecisionScope(
+                      LocationRecord.createLocationRecordAtStart(location, functionName)));
     }
+  }
+
+  /**
+   * Whether the given location lies inside the function the given node belongs to. The offsets are
+   * compared and not the lines, since the lines of an origin file say nothing about a location of
+   * another origin file which was preprocessed into the same one.
+   */
+  private static boolean isInsideFunctionOf(FileLocation pLocation, CFANode pNode) {
+    FileLocation functionLocation = pNode.getFunction().getFileLocation();
+    return pLocation.getFileName().equals(functionLocation.getFileName())
+        && pLocation.getNodeOffset() >= functionLocation.getNodeOffset()
+        && pLocation.getNodeOffset()
+            <= functionLocation.getNodeOffset() + functionLocation.getNodeLength();
   }
 
   public static class PrecisionScopeDeserializer extends JsonDeserializer<PrecisionScope> {
