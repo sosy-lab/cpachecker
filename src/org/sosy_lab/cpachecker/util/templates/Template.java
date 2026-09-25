@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.templates;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -25,9 +27,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /** Linear expression over program variables. */
-public final class Template {
+public record Template(LinearExpression<CIdExpression> linearExpression) {
   // todo: switch to MemoryLocation, additionally track type.
-  private final LinearExpression<CIdExpression> linearExpression;
+
+  public Template {
+    checkNotNull(linearExpression);
+  }
 
   public Collection<String> getUsedVars() {
     return Collections2.transform(
@@ -49,16 +54,8 @@ public final class Template {
     COMPLEX
   }
 
-  private Template(LinearExpression<CIdExpression> pLinearExpression) {
-    linearExpression = pLinearExpression;
-  }
-
   public Kind getKind() {
     return getKind(linearExpression);
-  }
-
-  public LinearExpression<CIdExpression> getLinearExpression() {
-    return linearExpression;
   }
 
   public boolean isUnsigned() {
@@ -84,10 +81,6 @@ public final class Template {
     return true;
   }
 
-  public static Template of(LinearExpression<CIdExpression> expr) {
-    return new Template(expr);
-  }
-
   private static Kind getKind(LinearExpression<CIdExpression> expr) {
     int s = expr.size();
     if (s == 1 && Objects.equals(Iterables.getOnlyElement(expr).getValue(), Rational.ONE)) {
@@ -111,23 +104,6 @@ public final class Template {
       }
     }
     return Kind.COMPLEX;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    Template other = (Template) o;
-    return linearExpression.equals(other.linearExpression);
-  }
-
-  @Override
-  public int hashCode() {
-    return linearExpression.hashCode();
   }
 
   public int size() {

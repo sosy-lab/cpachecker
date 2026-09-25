@@ -102,7 +102,7 @@ class PolicyReducer implements Reducer {
     if (t.getKind() != Kind.UPPER_BOUND) {
       return false;
     }
-    Template negated = Template.of(t.getLinearExpression().negate());
+    Template negated = new Template(t.linearExpression().negate());
     PolicyBound negatedValue = abstraction.get(negated);
     return negatedValue != null && negatedValue.getBound().equals(bound.getBound());
   }

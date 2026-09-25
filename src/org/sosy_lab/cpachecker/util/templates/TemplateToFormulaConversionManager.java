@@ -73,7 +73,7 @@ public final class TemplateToFormulaConversionManager {
     Formula sum = null;
     int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula, fmgr);
 
-    for (Entry<CIdExpression, Rational> entry : template.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> entry : template.linearExpression()) {
       Rational coeff = entry.getValue();
       CIdExpression declaration = entry.getKey();
 
@@ -129,7 +129,7 @@ public final class TemplateToFormulaConversionManager {
     // also note: there is an overall _expression_ type.
     // Wonder how that one is computed --- it actually depends on the order of
     // the operands.
-    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> e : t.linearExpression()) {
       CIdExpression expr = e.getKey();
       if (sum == null) {
         sum = expr;
@@ -146,7 +146,7 @@ public final class TemplateToFormulaConversionManager {
     int length = 0;
 
     // Figure out the maximum bitvector size.
-    for (Entry<CIdExpression, Rational> entry : t.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> entry : t.linearExpression()) {
       Formula item;
       try {
         item = pfmgr.expressionToFormula(contextFormula, entry.getKey(), dummyEdge);

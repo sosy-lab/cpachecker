@@ -77,7 +77,7 @@ public class TemplatePrecision implements Precision {
 
   // TODO this is extremely inefficient because of Template.toString
   private static final Comparator<Template> TEMPLATE_COMPARATOR =
-      Comparator.<Template>comparingInt(template -> template.getLinearExpression().size())
+      Comparator.<Template>comparingInt(Template::size)
           .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
           .thenComparing(Template::toString);
 
@@ -295,7 +295,7 @@ public class TemplatePrecision implements Precision {
           return filterRedundantExpressions(linearExpressions)
               .filter(this::hasSameType)
               .filter(t -> !t.isEmpty())
-              .map(Template::of);
+              .map(Template::new);
         });
   }
 
@@ -306,7 +306,7 @@ public class TemplatePrecision implements Precision {
         .flatMap(v1 -> varExpression.stream().map(v2 -> v1.sub(v2)))
         .filter(this::hasSameType)
         .filter(t -> !t.isEmpty())
-        .map(Template::of);
+        .map(Template::new);
   }
 
   /**
@@ -376,8 +376,8 @@ public class TemplatePrecision implements Precision {
         template
             .filter(t -> !t.isEmpty())
             .ifPresent(t -> {
-              templates.add(Template.of(t));
-              templates.add(Template.of(t.negate()));
+              templates.add(new Template(t));
+              templates.add(new Template(t.negate()));
             });
       }
     }
@@ -393,7 +393,7 @@ public class TemplatePrecision implements Precision {
       return true;
     }
     LiveVariables liveVariables = cfa.getLiveVariables().orElseThrow();
-    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> e : t.linearExpression()) {
       CIdExpression id = e.getKey();
       if (varFiltering == VarFilteringStrategy.ONE_LIVE
           && !liveVariables.isVariableLive(id.getDeclaration(), node)) {
@@ -414,7 +414,7 @@ public class TemplatePrecision implements Precision {
     return CFAUtils.allEdges(cfa).stream()
         .flatMap(edge -> extractTemplatesFromEdge(edge).stream())
         .filter(t -> t.size() >= 1)
-        .map(Template::of)
+        .map(Template::new)
         .collect(toImmutableSet());
   }
 
@@ -637,7 +637,7 @@ public class TemplatePrecision implements Precision {
     if (t.size() == 1) {
       return false;
     }
-    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> e : t.linearExpression()) {
 
       // Do not add templates whose coefficients are already overflowing.
       if (templateToFormulaConversionManager.isOverflowing(t, e.getValue())) {
