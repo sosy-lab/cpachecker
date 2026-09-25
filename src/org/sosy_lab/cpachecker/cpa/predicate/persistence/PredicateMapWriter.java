@@ -23,12 +23,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
@@ -41,6 +43,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
@@ -177,12 +180,17 @@ public final class PredicateMapWriter {
       Function<String, Boolean> pIncludeVariablesFilter,
       FormulaManagerView pFmgr,
       MachineModel pMachineModel,
-      ImmutableList.Builder<PrecisionDeclaration> pDeclarationBuilder) {
+      Set<PrecisionDeclaration> pDeclarations) {
+    if (!FluentIterable.from(pFmgr.extractVariableNames(pPredicate.getSymbolicAtom()))
+        .allMatch(pIncludeVariablesFilter::apply)) {
+      return Optional.empty();
+    }
     return switch (pFormat) {
       case SMTLIB2 -> {
         Pair<String, List<String>> p = splitFormula(pFmgr, pPredicate.getSymbolicAtom());
-        pDeclarationBuilder.addAll(
-            FluentIterable.from(p.getSecond()).transform(value -> new PrecisionDeclaration(value)));
+        FluentIterable.from(p.getSecond())
+            .transform(PrecisionDeclaration::new)
+            .copyInto(pDeclarations);
         yield Optional.of(Objects.requireNonNull(p.getFirst()));
       }
       case C -> {
@@ -219,8 +227,13 @@ public final class PredicateMapWriter {
 
   public static boolean variableInOriginalProgram(
       String pQualifiedVariableName, AstCfaRelation pAstCfaRelation, CFANode pLocation) {
-    return pAstCfaRelation
-        .getVariablesAndParametersInScope(pLocation)
+    Optional<FluentIterable<AbstractSimpleDeclaration>> variablesInScope =
+        pAstCfaRelation.getVariablesAndParametersInScope(pLocation);
+    if (variablesInScope.isEmpty()) {
+      // Without scope information we cannot tell, so we do not export the variable
+      return false;
+    }
+    return variablesInScope
         .orElseThrow()
         .anyMatch(
             var ->
@@ -243,144 +256,117 @@ public final class PredicateMapWriter {
     checkState(
         cfa.isPresent(), "Exporting a precision as a witness requires the CFA of the program.");
     MachineModel machineModel = cfa.orElseThrow().getMachineModel();
+    AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
+    if (astCfaRelation == null) {
+      Verify.verify(
+          !cfa.orElseThrow().getLanguage().equals(Language.C),
+          "We expect an AST-CFA relation for C programs, but it is not present.");
+      logger.log(
+          Level.INFO, "Currently we cannot export local predicates for programs other than C");
+    }
 
     for (PredicateDumpFormat witnessPredicateFormat : witnessPredicateFormats) {
+      if (witnessPredicateFormat == PredicateDumpFormat.PLAIN) {
+        logger.log(
+            Level.WARNING,
+            "Predicates have no representation as PLAIN in a witness, skipping this format.");
+        continue;
+      }
 
-      // Build the data structures that contain the predicates
-      ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
-      ImmutableList.Builder<PrecisionDeclaration> declarationBuilder = ImmutableList.builder();
+      // The same variable is declared by every predicate using it, but redeclaring a symbol is an
+      // error in SMT-LIB, so every declaration is exported only once.
+      SequencedSet<PrecisionDeclaration> declarations = new LinkedHashSet<>();
 
       YAMLWitnessExpressionType witnessExpressionType =
           YAMLWitnessExpressionType.fromPredicateFormat(witnessPredicateFormat);
 
-      // Add all global predicates
-      entriesBuilder.add(
-          new PrecisionExchangeEntry(
-              witnessExpressionType,
-              new GlobalPrecisionScope(),
-              PrecisionType.PREDICATES,
-              FluentIterable.from(pGlobal)
-                  .transform(
-                      pFormula ->
-                          getPredicateString(
-                              pFormula,
-                              witnessPredicateFormat,
-                              name ->
-                                  // TODO: The ADDRESS_OF problem should not be solved here, but in
-                                  //  the translation back from SMT to C
-                                  notInternalVariable(name),
-                              fmgr,
-                              machineModel,
-                              declarationBuilder))
-                  .filter(Optional::isPresent)
-                  .transform(Optional::orElseThrow)
-                  .toSet()
-                  .asList()));
+      // Several CFA nodes may describe the same scope, for example all nodes of one statement, so
+      // collect the predicates per scope to export every scope exactly once. A scope without any
+      // predicate carries no information, so it is left out.
+      SequencedMap<PrecisionScope, Set<String>> predicatesPerScope = new LinkedHashMap<>();
 
-      // Add all function predicates
-      entriesBuilder.addAll(
-          transformedImmutableListCopy(
-              pFunction.keys(),
-              functionName ->
-                  new PrecisionExchangeEntry(
-                      witnessExpressionType,
-                      new FunctionPrecisionScope(functionName),
-                      PrecisionType.PREDICATES,
-                      FluentIterable.from(pFunction.get(functionName))
-                          .transform(
-                              pFormula ->
-                                  getPredicateString(
-                                      pFormula,
-                                      witnessPredicateFormat,
-                                      name ->
-                                          notInternalVariable(name)
-                                              && variableNameInFunction(name, functionName),
-                                      fmgr,
-                                      machineModel,
-                                      declarationBuilder))
-                          .filter(Optional::isPresent)
-                          .transform(Optional::orElseThrow)
-                          .toSet()
-                          .asList())));
+      addPredicates(
+          predicatesPerScope,
+          new GlobalPrecisionScope(),
+          pGlobal,
+          witnessPredicateFormat,
+          // TODO: The ADDRESS_OF problem should not be solved here, but in the translation back
+          //  from SMT to C
+          PredicateMapWriter::notInternalVariable,
+          machineModel,
+          declarations);
 
-      // Add all local predicates
-      AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
-      if (astCfaRelation == null) {
-        Verify.verify(
-            !cfa.orElseThrow().getLanguage().equals(Language.C),
-            "We expect an AST-CFA relation for C programs, but it is not present.");
-        logger.log(
-            Level.INFO, "Currently we cannot export local predicates for programs other than C");
-      } else {
+      for (String functionName : pFunction.keySet()) {
+        addPredicates(
+            predicatesPerScope,
+            new FunctionPrecisionScope(functionName),
+            pFunction.get(functionName),
+            witnessPredicateFormat,
+            name -> notInternalVariable(name) && variableNameInFunction(name, functionName),
+            machineModel,
+            declarations);
+      }
 
+      if (astCfaRelation != null) {
         for (CFANode cfaNode : pLocation.keySet()) {
           String functionName = cfaNode.getFunctionName();
           Optional<PrecisionScope> precisionScope =
               PrecisionScope.localPrecisionScopeFor(cfaNode, astCfaRelation);
 
-          if (precisionScope.isEmpty()) {
-            // TODO: This should never happen, it is a bug in the AST-CFA relation.
-
-            // As a workaround, we export the predicates as function-scoped
-            // predicates, but this is not quite correct.
-            entriesBuilder.add(
-                new PrecisionExchangeEntry(
-                    witnessExpressionType,
-                    new FunctionPrecisionScope(functionName),
-                    PrecisionType.PREDICATES,
-                    FluentIterable.from(pLocation.get(cfaNode))
-                        .transform(
-                            pFormula ->
-                                getPredicateString(
-                                    pFormula,
-                                    witnessPredicateFormat,
-                                    name ->
-                                        notInternalVariable(name)
-                                            && variableNameInFunction(name, functionName),
-                                    fmgr,
-                                    machineModel,
-                                    declarationBuilder))
-                        .filter(Optional::isPresent)
-                        .transform(Optional::orElseThrow)
-                        .toSet()
-                        .asList()));
-
-          } else {
-            entriesBuilder.add(
-                new PrecisionExchangeEntry(
-                    witnessExpressionType,
-                    precisionScope.orElseThrow(),
-                    PrecisionType.PREDICATES,
-                    FluentIterable.from(pLocation.get(cfaNode))
-                        .transform(
-                            pFormula ->
-                                getPredicateString(
-                                    pFormula,
-                                    witnessPredicateFormat,
-                                    variableName ->
-                                        notInternalVariable(variableName)
-                                            && variableNameInFunction(
-                                                variableName, cfaNode.getFunctionName())
-                                            && variableInOriginalProgram(
-                                                variableName, astCfaRelation, cfaNode),
-                                    fmgr,
-                                    machineModel,
-                                    declarationBuilder))
-                        .filter(Optional::isPresent)
-                        .transform(Optional::orElseThrow)
-                        .toSet()
-                        .asList()));
-          }
+          // Nodes without a scope of their own, for example the entry node of a function, are
+          // exported as function-scoped predicates. This is sound, but less precise.
+          addPredicates(
+              predicatesPerScope,
+              precisionScope.orElseGet(() -> new FunctionPrecisionScope(functionName)),
+              pLocation.get(cfaNode),
+              witnessPredicateFormat,
+              variableName ->
+                  notInternalVariable(variableName)
+                      && variableNameInFunction(variableName, functionName)
+                      && (precisionScope.isEmpty()
+                          || variableInOriginalProgram(variableName, astCfaRelation, cfaNode)),
+              machineModel,
+              declarations);
         }
       }
 
       PrecisionExchangeSetEntry precisionExchangeSetEntry =
           new PrecisionExchangeSetEntry(
-              pMetadataRecord, declarationBuilder.build(), entriesBuilder.build());
+              pMetadataRecord,
+              ImmutableList.copyOf(declarations),
+              transformedImmutableListCopy(
+                  predicatesPerScope.entrySet(),
+                  scope ->
+                      new PrecisionExchangeEntry(
+                          witnessExpressionType,
+                          scope.getKey(),
+                          PrecisionType.PREDICATES,
+                          ImmutableList.copyOf(scope.getValue()))));
 
       Path exportPath = pPathTemplate.getPath(witnessPredicateFormat.toString());
       AbstractYAMLWitnessExporter.exportEntries(
           ImmutableList.of(precisionExchangeSetEntry), exportPath, logger);
+    }
+  }
+
+  private void addPredicates(
+      Map<PrecisionScope, Set<String>> pPredicatesPerScope,
+      PrecisionScope pScope,
+      Collection<AbstractionPredicate> pPredicates,
+      PredicateDumpFormat pFormat,
+      Function<String, Boolean> pIncludeVariablesFilter,
+      MachineModel pMachineModel,
+      Set<PrecisionDeclaration> pDeclarations) {
+    Set<String> predicateStrings = new LinkedHashSet<>();
+    for (AbstractionPredicate predicate : pPredicates) {
+      getPredicateString(
+              predicate, pFormat, pIncludeVariablesFilter, fmgr, pMachineModel, pDeclarations)
+          .ifPresent(predicateStrings::add);
+    }
+    if (!predicateStrings.isEmpty()) {
+      pPredicatesPerScope
+          .computeIfAbsent(pScope, scope -> new LinkedHashSet<>())
+          .addAll(predicateStrings);
     }
   }
 }
