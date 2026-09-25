@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.notInternalVariable;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableInOriginalProgram;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableNameInFunction;
@@ -20,8 +21,12 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedMap;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -85,41 +90,53 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa) {
-    ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
     AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
+    if (astCfaRelation == null) {
+      // Without the relation to the AST we cannot describe the scope of any location
+      return ImmutableList.of();
+    }
 
-    FluentIterable<@NonNull MemoryLocation> relevantVariables =
-        FluentIterable.from(rawPrecision.values())
-            .filter(memoryLocation -> notInternalVariable(memoryLocation.getQualifiedName()));
+    // Several CFA nodes may describe the same scope, for example all nodes of one statement, so
+    // collect the memory locations per scope to export every scope exactly once.
+    SequencedMap<PrecisionScope, Set<String>> variablesPerScope = new LinkedHashMap<>();
 
     for (CFANode currentLocation : rawPrecision.keySet()) {
       String functionName = currentLocation.getFunctionName();
       Optional<PrecisionScope> precisionScope =
           PrecisionScope.localPrecisionScopeFor(currentLocation, astCfaRelation);
-      relevantVariables =
-          relevantVariables.filter(
-              memoryLocation ->
-                  variableNameInFunction(memoryLocation.getQualifiedName(), functionName));
-      if (precisionScope.isEmpty()) {
-        // We overapproximate by making this function wide
-        precisionScope = Optional.of(new FunctionPrecisionScope(functionName));
-      } else {
-        relevantVariables =
-            relevantVariables.filter(
-                memoryLocation ->
-                    variableInOriginalProgram(
-                        memoryLocation.getQualifiedName(), astCfaRelation, currentLocation));
-      }
 
-      entriesBuilder.add(
-          new PrecisionExchangeEntry(
-              YAMLWitnessExpressionType.C,
-              precisionScope.orElseThrow(),
-              PrecisionType.MEMORY_LOCATIONS,
-              relevantVariables.transform(MemoryLocation::asCExpression).toList()));
+      FluentIterable<@NonNull MemoryLocation> relevantVariables =
+          FluentIterable.from(rawPrecision.get(currentLocation))
+              .filter(
+                  memoryLocation ->
+                      notInternalVariable(memoryLocation.getQualifiedName())
+                          && variableNameInFunction(memoryLocation.getQualifiedName(), functionName)
+                          // Nodes without a scope of their own are overapproximated by the scope
+                          // of their function, where the variables of the node are still in scope
+                          && (precisionScope.isEmpty()
+                              || variableInOriginalProgram(
+                                  memoryLocation.getQualifiedName(),
+                                  astCfaRelation,
+                                  currentLocation)));
+
+      Set<String> expressions = relevantVariables.transform(MemoryLocation::asCExpression).toSet();
+      if (!expressions.isEmpty()) {
+        variablesPerScope
+            .computeIfAbsent(
+                precisionScope.orElseGet(() -> new FunctionPrecisionScope(functionName)),
+                key -> new LinkedHashSet<>())
+            .addAll(expressions);
+      }
     }
 
-    return entriesBuilder.build();
+    return transformedImmutableListCopy(
+        variablesPerScope.entrySet(),
+        entry ->
+            new PrecisionExchangeEntry(
+                YAMLWitnessExpressionType.C,
+                entry.getKey(),
+                PrecisionType.MEMORY_LOCATIONS,
+                ImmutableList.copyOf(entry.getValue())));
   }
 
   @Override
