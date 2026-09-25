@@ -173,7 +173,7 @@ public class TerminationUtils {
    */
   public static InvariantEntry convertRankgingFunctionsToTransitionInvariants(
       Collection<TerminationArgument> pArguments, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
-    List<String> transitionInvariants = new ArrayList<>();
+    ImmutableList.Builder<String> transitionInvariants = ImmutableList.builder();
 
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
     FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();
@@ -198,14 +198,14 @@ public class TerminationUtils {
     }
     return new InvariantEntry(
         TransitionInvariantUtils.removeFunctionFromVarsName(
-            String.join(" || ", transitionInvariants)),
+            String.join(" || ", transitionInvariants.build())),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.EXT_C,
         locationRecord);
   }
 
   private static void addTransitionInvariant(
-      List<String> transitionInvariants, String rankingFunction, Iterable<IProgramVar> variables) {
+      ImmutableList.Builder<String> transitionInvariants, String rankingFunction, Iterable<IProgramVar> variables) {
     final String TMP_KEYWORD = "__CPAchecker_TMP";
     String prevRank =
         rightSideOfRankingFunction(wrapTheVariablesWithAtAnyPrev(rankingFunction, variables));
