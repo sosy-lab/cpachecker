@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -378,6 +380,14 @@ public final class PredicatePrecisionBootstrapper {
 
       InvariantExchangeFormatTransformer transformer =
           new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
+      // Building this walks the whole CFA, so do it once, and only for a witness which needs it
+      Supplier<Scope> programScope =
+          Suppliers.memoize(
+              () ->
+                  switch (cfa.getLanguage()) {
+                    case C -> new CProgramScope(cfa, logger);
+                    default -> DummyScope.getInstance();
+                  });
 
       for (AbstractEntry entry : entries) {
         if (!(entry instanceof PrecisionExchangeSetEntry pExchangeSetEntry)) {
@@ -385,7 +395,7 @@ public final class PredicatePrecisionBootstrapper {
               Level.WARNING,
               "Witness file %s does not contain a precision exchange set entry, ignoring it.",
               pWitnessFile);
-          return result;
+          continue;
         }
 
         ImmutableList.Builder<AbstractionPredicate> globalPredicatesBuilder =
@@ -404,7 +414,7 @@ public final class PredicatePrecisionBootstrapper {
         for (PrecisionExchangeEntry precisionExchangeEntry : pExchangeSetEntry.getContent()) {
           PrecisionScope scope = precisionExchangeEntry.scope();
           if (precisionExchangeEntry.type() != PrecisionType.PREDICATES) {
-            logger.log(
+            logger.logf(
                 Level.WARNING,
                 "Witness file %s contains a precision exchange entry with type %s, "
                     + "but only predicate precision is supported, ignoring it.",
@@ -463,9 +473,18 @@ public final class PredicatePrecisionBootstrapper {
           } else if (scope instanceof LocalPrecisionScope pLocalScope) {
             LocationRecord locationRecord = pLocalScope.getLocation();
 
+            if (locationRecord.getColumn().isEmpty()) {
+              logger.logf(
+                  Level.WARNING,
+                  "Witness file %s contains a local precision scope without a column for %s, "
+                      + "which we cannot match to the CFA, ignoring it.",
+                  pWitnessFile,
+                  locationRecord);
+              continue;
+            }
+
             Set<CFANode> location =
                 astCfaRelation.getNodeForStatementLocation(
-                    // TODO: Handle missing columns correctly
                     locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
 
             if (location.isEmpty()) {
@@ -486,14 +505,24 @@ public final class PredicatePrecisionBootstrapper {
                 transformer,
                 precisionExchangeEntry,
                 commonDefinitions,
+                programScope,
                 localPredicatesBuilder);
 
           } else if (scope instanceof LocalLoopPrecisionScope pLocalLoopPrecisionScope) {
             LocationRecord locationRecord = pLocalLoopPrecisionScope.getLocation();
 
+            if (locationRecord.getColumn().isEmpty()) {
+              logger.logf(
+                  Level.WARNING,
+                  "Witness file %s contains a local loop precision scope without a column for %s, "
+                      + "which we cannot match to the CFA, ignoring it.",
+                  pWitnessFile,
+                  locationRecord);
+              continue;
+            }
+
             Optional<CFANode> location =
                 astCfaRelation.getNodeForIterationStatementLocation(
-                    // TODO: Handle missing columns correctly
                     locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
 
             if (location.isEmpty()) {
@@ -513,6 +542,7 @@ public final class PredicatePrecisionBootstrapper {
                 transformer,
                 precisionExchangeEntry,
                 commonDefinitions,
+                programScope,
                 localPredicatesBuilder);
 
           } else {
@@ -543,16 +573,11 @@ public final class PredicatePrecisionBootstrapper {
       InvariantExchangeFormatTransformer pTransformer,
       PrecisionExchangeEntry pPrecisionExchangeEntry,
       String pCommonDefinitions,
+      Supplier<Scope> pProgramScope,
       ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pLocalPredicatesBuilder)
       throws InterruptedException {
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pLocationRecord.getFunction());
-
-    Scope programScope =
-        switch (cfa.getLanguage()) {
-          case C -> new CProgramScope(cfa, logger);
-          default -> DummyScope.getInstance();
-        };
 
     for (String predicateString : pPrecisionExchangeEntry.values()) {
 
@@ -563,7 +588,7 @@ public final class PredicatePrecisionBootstrapper {
               pCommonDefinitions,
               pLocationRecord,
               callStack,
-              programScope,
+              pProgramScope.get(),
               pTransformer);
 
       for (CFANode loc : pLocations) {
