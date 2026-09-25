@@ -756,9 +756,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
             follows.add(waypoint);
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
             containsCycle = true;
-            // TODO: It is a bug to build it here, since there may be avoid
-            //  waypoints which are not collected
-            segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
+            follows.add(waypoint);
           }
         }
       }

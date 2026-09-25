@@ -18,6 +18,8 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,9 +49,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * store an already seen state. Transition relation allows to non-deterministically store an already
  * visiting state.
  */
+@Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private Optional<Path> witnessPath;
-  private boolean validation;
   private Solver solver;
   private InterpolationManager itpMgr;
   private PathFormulaManager pfmgr;
@@ -63,6 +65,9 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
 
+  @Option(secure = true, description = "Enables use of transition predicatesa from the witness.")
+  private boolean useTransitionPredicatesFromWitness = false;
+
   public TerminationToReachCPA(
       LogManager pLogger,
       Configuration pConfiguration,
@@ -71,6 +76,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       Specification pSpecification)
       throws InvalidConfigurationException {
     super("sep", "sep", new TerminationToReachAbstractDomain(), null);
+    pConfiguration.inject(this);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA, this);
     cfa = pCFA;
     configuration = pConfiguration;
@@ -82,7 +88,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     possiblyNonTerminatingLoops = builder.build();
 
     witnessPath = pSpecification.getPathToSpecificationAutomata().keySet().stream().findAny();
-    validation = witnessPath.isPresent();
   }
 
   public static CPAFactory factory() {
@@ -117,8 +122,10 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             itpMgr,
             configuration,
             possiblyNonTerminatingLoops,
-            validation,
-            validation ? collectCandidateTransitionInvariants() : ImmutableSet.of());
+            useTransitionPredicatesFromWitness,
+            useTransitionPredicatesFromWitness
+                ? collectCandidateTransitionInvariants()
+                : ImmutableSet.of());
 
     statistics.setFormulaManager(fmgr);
     statistics.setBooleanFormulaManager(bfmgr);
