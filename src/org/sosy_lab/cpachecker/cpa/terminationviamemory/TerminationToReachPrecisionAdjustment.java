@@ -304,7 +304,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       if (numberOfUnrollingsForLasso.isPresent()) {
         if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
           TerminationToReachState cycleState =
-              new TerminationToReachState(numberOfUnrollingsForLasso.get());
+              new TerminationToReachState(numberOfUnrollingsForLasso.orElseThrow());
           cycleState.makeTarget();
           PrecisionAdjustmentResult lassoResult = result.withAbstractState(terminationState);
           statistics.setNonterminatingLoop(

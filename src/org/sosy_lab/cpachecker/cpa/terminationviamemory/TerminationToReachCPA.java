@@ -159,7 +159,14 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     try {
       WitnessInvariantsExtractor invariantsExtractor =
           new WitnessInvariantsExtractor(
-              configuration, logger, cfa, shutdownNotifier, witnessPath.orElseThrow());
+              configuration,
+              logger,
+              cfa,
+              shutdownNotifier,
+              witnessPath.orElseThrow(
+                  () ->
+                      new InvalidConfigurationException(
+                          "Witness file is missing in specification.")));
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
