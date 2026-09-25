@@ -70,7 +70,7 @@ public class StraightLineBlockAggregator implements BasicBlockAggregator {
           return declaration == null
               || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
         }
-        return (statementEdge.getStatement() instanceof CFunctionCall);
+        return false;
       } else if (edge instanceof SvLibStatementEdge pSvLibStatementEdge) {
         return pSvLibStatementEdge.getStatement() instanceof SvLibFunctionCallAssignmentStatement;
       } else {
