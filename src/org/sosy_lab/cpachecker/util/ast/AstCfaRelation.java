@@ -15,11 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -234,28 +230,19 @@ public final class AstCfaRelation {
       return ImmutableSet.of();
     }
 
-    // Since blank edges are considered to be the same location, as they
-    // do not execute a statement, we add all nodes that are reachable by
-    // only using blank edges from the current node.
-    ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
-    Set<CFANode> visited = new HashSet<>();
-    List<CFANode> toVisit = new ArrayList<>(Collections.singleton(firstNode.orElseThrow()));
-    nodes.add(firstNode.orElseThrow());
-
-    while (!toVisit.isEmpty()) {
-      CFANode currentNode = toVisit.removeLast();
-      Set<CFANode> newNodes =
-          currentNode
-              .getLeavingEdges()
-              .filter(BlankEdge.class)
-              .transform(CFAEdge::getSuccessor)
-              .filter(node -> !visited.contains(node))
-              .toSet();
-      visited.addAll(newNodes);
-      nodes.addAll(newNodes);
-    }
-
-    return nodes.build();
+    // A blank edge executes no statement, so its successor is still the same location. We do not
+    // follow them any further, since a chain of them can join paths, for example at the target of
+    // a goto, and the consumers of this method assume the information of the location for every
+    // node we return.
+    return ImmutableSet.<CFANode>builder()
+        .add(firstNode.orElseThrow())
+        .addAll(
+            firstNode
+                .orElseThrow()
+                .getLeavingEdges()
+                .filter(BlankEdge.class)
+                .transform(CFAEdge::getSuccessor))
+        .build();
   }
 
   private void initializeMapFromLineAndStartColumnToIfStructure() {
