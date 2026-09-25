@@ -160,7 +160,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             new PartitionedRelationFormula(
                 terminationState.getPathFormulasForIteration().get(keyPair).getFormula(), fmgr);
         ImmutableList<BooleanFormula> sameStateFormulas =
-            buildCycleFormula(
+            buildComparingFormulas(
                 terminationState.getStoredValues().get(keyPair),
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
@@ -539,13 +539,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     }
   }
 
-  private ImmutableList<BooleanFormula> buildCycleFormula(
-      Map<Integer, ImmutableSet<Formula>> storedValues, SSAMap pLatestValues, int pMaxIndex) {
-    return buildComparingFormulas(storedValues, pMaxIndex, pLatestValues);
-  }
-
   private ImmutableList<BooleanFormula> buildComparingFormulas(
-      Map<Integer, ImmutableSet<Formula>> storedValues, int pMaxIndex, SSAMap pLatestValues) {
+      Map<Integer, ImmutableSet<Formula>> storedValues, SSAMap pLatestValues, int pMaxIndex) {
     ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
     for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
       if (savedVariables.getKey().intValue() >= pMaxIndex) {
