@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -152,32 +151,6 @@ public final class MPORUtil {
         && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
         // in tests, const CPAchecker_TMP variables always had initializer
         && pVariableDeclaration.getInitializer() != null;
-  }
-
-  public static boolean isCpaCheckerTmpWithoutInitializer(
-      CVariableDeclaration pVariableDeclaration) {
-    return !pVariableDeclaration.getType().isConst()
-        && !pVariableDeclaration.isGlobal()
-        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
-        && pVariableDeclaration.getInitializer() == null;
-  }
-
-  public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        return isConstCpaCheckerTmp(variableDeclaration);
-      }
-    }
-    return false;
-  }
-
-  public static boolean isCpaCheckerTmpDeclarationWithoutInitializer(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        return isCpaCheckerTmpWithoutInitializer(variableDeclaration);
-      }
-    }
-    return false;
   }
 
   // CVariableDeclaration

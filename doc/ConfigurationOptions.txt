@@ -340,13 +340,6 @@ analysis.algorithm.MPOR.comments = false
 # statement being unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
-# Whether the const CPAchecker_TMP auxiliary variables should be declared
-# globally (true) or inside the thread simulation functions (false). For some
-# backends like CBMC it should be set to true, otherwise the programs cannot
-# be parsed. For CPAchecker it is set to false by default, otherwise it can
-# produce incorrect results.
-analysis.algorithm.MPOR.declareConstAuxiliaryVariablesGlobally = false
-
 # Prefer the execution of threads that commute, i.e., they are not in
 # conflict with any other thread. Enabling this option together with
 # abortCommutingContextSwitches is unsound, because the next thread is chosen
@@ -1366,6 +1359,10 @@ counterexample.checker.checkMemorySafetySubproperty = false
 # only loaded once a CEX-check is performed and is not influenced by settings
 # of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
+
+# Internal representation of the counterexample path used for the check.
+counterexample.checker.counterexampleFormat = AUTOMATON
+  enum:     [AUTOMATON, WITNESSV2]
 
 # counterexample check should fully replace existing counterexamples with own
 # ones, if available

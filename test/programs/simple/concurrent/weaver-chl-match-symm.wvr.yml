@@ -11,7 +11,7 @@
 
 format_version: '2.0'
 
-input_files: 'chl-match-symm.wvr.c'
+input_files: 'weaver-chl-match-symm.wvr.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-call.prp
