@@ -97,12 +97,14 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -611,11 +613,34 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       }
 
       if (violationWitnessYaml != null) {
-        cexToWitnessEporter.export(cexInfo, violationWitnessYaml, 0);
+        cexToWitnessEporter.exportNonTerminationWitness(
+            cexInfo,
+            violationWitnessYaml,
+            0,
+            countLoopHeadVisitsInStem(
+                cexInfo.getTargetPath(), AbstractStates.extractLocation(loopStart)));
       }
     } catch (InterruptedException | IOException e) {
       logger.logUserException(WARNING, e, "Could not export termination witness.");
     }
+  }
+
+  /**
+   * Counts how often the stem of the lasso leaves the loop head, i.e., how often the loop is
+   * unrolled before the loop part of the lasso starts.
+   */
+  private static int countLoopHeadVisitsInStem(ARGPath pPath, CFANode pLoopHead) {
+    int visits = 0;
+    for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
+      if (AbstractStates.extractStateByType(it.getNextAbstractState(), TerminationState.class)
+          .isPartOfLoop()) {
+        break;
+      }
+      if (it.getOutgoingEdge().getPredecessor().equals(pLoopHead)) {
+        visits++;
+      }
+    }
+    return visits;
   }
 
   protected Collection<ARGState> copyStem(
