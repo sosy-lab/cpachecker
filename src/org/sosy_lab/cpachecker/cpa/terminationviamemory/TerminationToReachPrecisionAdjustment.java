@@ -439,7 +439,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
             .orElseThrow()
             .getFirst();
-    if (containsOnlyIrrelevantVariables(interpolant, callstackState)) {
+    if (containsOnlyVariablesOutOfScope(interpolant, callstackState)) {
       return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
     }
 
@@ -487,7 +487,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
    * Therefore, there needs to be at least one variable that is local for the function, where the
    * loop is, such that we check that some variable actually decreases/increases.
    */
-  private boolean containsOnlyIrrelevantVariables(
+  private boolean containsOnlyVariablesOutOfScope(
       BooleanFormula pInvariant, CallstackState pCallstackState) {
     return CFAUtils.filterVariablesOfFunction(
             ImmutableSortedSet.copyOf(fmgr.extractVariables(pInvariant).keySet()),
