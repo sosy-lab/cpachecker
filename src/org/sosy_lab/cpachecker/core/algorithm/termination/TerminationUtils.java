@@ -12,6 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.ANYPREV_SUFFIX;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.AT_PREFIX;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
@@ -21,9 +24,13 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -92,22 +99,51 @@ public class TerminationUtils {
   // AnyPrev) and casts them into a larger type
   private static String wrapTheVariablesWithAtAnyPrev(
       String pRankingFunction, Iterable<IProgramVar> pVars) {
-    for (IProgramVar var : pVars) {
-      String newVarName = "((__int128)" + AT_PREFIX + var + ANYPREV_SUFFIX + ")";
-      pRankingFunction = pRankingFunction.replace(var.toString(), newVarName);
-    }
-    return pRankingFunction;
+    return replaceVariables(
+        pRankingFunction,
+        pVars,
+        varName -> "((__int128)" + AT_PREFIX + varName + ANYPREV_SUFFIX + ")");
   }
 
   // The function casts the variables into (__int128) as we want to prevent overflows in the
   // witness
   private static String wrapTheVariablesWithCastToLongLong(
       String pRankingFunction, Iterable<IProgramVar> pVars) {
-    for (IProgramVar var : pVars) {
-      String newVarName = "((__int128)" + var + ")";
-      pRankingFunction = pRankingFunction.replace(var.toString(), newVarName);
+    return replaceVariables(pRankingFunction, pVars, varName -> "((__int128)" + varName + ")");
+  }
+
+  /**
+   * Replaces every occurrence of the given variables in the expression by the result of the given
+   * function. Only whole variable names are replaced, i.e., for variables t and tmp the variable t
+   * is not replaced inside tmp. The replacement is done in a single pass, such that the inserted
+   * text is never replaced again.
+   */
+  private static String replaceVariables(
+      String pExpression, Iterable<IProgramVar> pVars, Function<String, String> pReplacement) {
+    // Longer names come first in the alternation, such that for overlapping names like
+    // (* main::p) and main::p the longest one matches
+    ImmutableList<String> varNames =
+        FluentIterable.from(pVars)
+            .transform(IProgramVar::toString)
+            .toSortedSet(
+                Comparator.comparingInt(String::length)
+                    .reversed()
+                    .thenComparing(Comparator.naturalOrder()))
+            .asList();
+    if (varNames.isEmpty()) {
+      return pExpression;
     }
-    return pRankingFunction;
+
+    // A variable must not be preceded or followed by characters that can be part of a
+    // (qualified) variable name
+    Pattern variables =
+        Pattern.compile(
+            "(?<![\\w:])("
+                + FluentIterable.from(varNames).transform(Pattern::quote).join(Joiner.on('|'))
+                + ")(?![\\w:])");
+    return variables
+        .matcher(pExpression)
+        .replaceAll(match -> Matcher.quoteReplacement(pReplacement.apply(match.group(1))));
   }
 
   /** Converts supporting invariant into an invariant entry. */
