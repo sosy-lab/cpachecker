@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -96,6 +98,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
 
   public void setSolverAndManagers(Solver pSolver, PathFormulaManager pPfmgr)
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    checkState(solver == null, "The solver of %s is already set", getClass().getSimpleName());
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();

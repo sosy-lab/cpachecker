@@ -148,9 +148,9 @@ class PartitionedRelationFormula {
   }
 
   /**
-   * Constructs a substitution map which replaces the original variables with variables
-   * wrapped around with the prefix and the suffix. I.e. variable t wrapped in __ and _TMP
-   * will be substituted with t -> __t_TMP
+   * Constructs a substitution map which replaces the original variables with variables wrapped
+   * around with the prefix and the suffix. I.e. variable t wrapped in __ and _TMP will be
+   * substituted with t -> __t_TMP
    */
   private ImmutableMap<Formula, Formula> getSubstitutionMap(
       ImmutableSet<Formula> variables, String prefix, String suffix) {

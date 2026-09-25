@@ -495,7 +495,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
       try {
         terminationWitnessExporter.export(
-            convertRankingFunctionToTransitionInvariant(terminationArguments), yamlWitnessOutputFileTemplate);
+            convertRankingFunctionToTransitionInvariant(terminationArguments),
+            yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
