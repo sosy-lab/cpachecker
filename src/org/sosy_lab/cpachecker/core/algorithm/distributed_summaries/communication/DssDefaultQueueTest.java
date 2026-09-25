@@ -56,11 +56,11 @@ public class DssDefaultQueueTest {
     DssMessage second = postCondition("second");
     DssMessage result = MESSAGE_FACTORY.createDssResultMessage("monitor", Result.TRUE);
 
-    queue.add(first);
-    queue.add(second);
-    queue.add(result);
+    queue.offer(first);
+    queue.offer(second);
+    queue.offer(result);
 
-    assertThat(queue).hasSize(3);
+    assertThat(queue.size()).isEqualTo(3);
     assertThat(queue.take()).isSameInstanceAs(result);
     assertThat(queue.take()).isSameInstanceAs(first);
     assertThat(queue.isEmpty()).isFalse();
@@ -90,7 +90,7 @@ public class DssDefaultQueueTest {
         executor.execute(
             () -> {
               for (int i = 0; i < messagesPerSender; i++) {
-                queue.add(postCondition(senderId + ":" + i));
+                queue.offer(postCondition(senderId + ":" + i));
               }
             });
       }
@@ -117,7 +117,7 @@ public class DssDefaultQueueTest {
     DssDefaultQueue sender = new DssDefaultQueue(workCounter);
     DssDefaultQueue receiver = new DssDefaultQueue(workCounter);
     AtomicBoolean received = new AtomicBoolean();
-    sender.add(message);
+    sender.offer(message);
 
     try (ExecutorService executor =
         Executors.newThreadPerTaskExecutor(
@@ -127,7 +127,7 @@ public class DssDefaultQueueTest {
       executor.execute(
           () -> {
             try {
-              receiver.add(sender.take());
+              receiver.offer(sender.take());
               sender.take();
             } catch (InterruptedException e) {
               // expected once the test is done

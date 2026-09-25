@@ -8,13 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
-import com.google.common.collect.Iterators;
-import java.util.AbstractQueue;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
@@ -30,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
  * may add messages, but only the worker the queue belongs to should take them, because the queue
  * reports the activity of that worker to a {@link DssWorkCounter}.
  */
-public class DssDefaultQueue extends AbstractQueue<DssMessage> {
+public class DssDefaultQueue {
 
   /** A message together with its position in the order in which messages were added. */
   private record Entry(DssMessage message, long sequenceNumber) {}
@@ -65,7 +62,7 @@ public class DssDefaultQueue extends AbstractQueue<DssMessage> {
     };
   }
 
-  @Override
+  @CanIgnoreReturnValue
   public boolean offer(DssMessage pMessage) {
     Objects.requireNonNull(pMessage);
     // Count the message before its worker can take it, so that it never counts as taken before it
@@ -73,16 +70,6 @@ public class DssDefaultQueue extends AbstractQueue<DssMessage> {
     workCounter.messageQueued();
     queue.offer(new Entry(pMessage, nextSequenceNumber.getAndIncrement()));
     return true;
-  }
-
-  /** The queue is unbounded, so this never waits. */
-  public boolean offer(DssMessage pMessage, long pTimeout, TimeUnit pUnit) {
-    return offer(pMessage);
-  }
-
-  /** The queue is unbounded, so this never waits. */
-  public void put(DssMessage pMessage) {
-    offer(pMessage);
   }
 
   /**
@@ -107,35 +94,15 @@ public class DssDefaultQueue extends AbstractQueue<DssMessage> {
     return entry.message();
   }
 
-  @Override
-  public DssMessage poll() {
-    Entry entry = queue.poll();
-    if (entry == null) {
-      return null;
-    }
-    workCounter.messageTaken();
-    return entry.message();
-  }
-
-  @Override
-  public DssMessage peek() {
-    Entry entry = queue.peek();
-    return entry == null ? null : entry.message();
-  }
-
-  @Override
   public boolean isEmpty() {
     return queue.isEmpty();
   }
 
-  @Override
-  public int size() {
-    return queue.size();
+  public void clear() {
+    queue.clear();
   }
 
-  /** Iterates over the messages in no particular order. The iterator cannot remove messages. */
-  @Override
-  public Iterator<DssMessage> iterator() {
-    return Iterators.unmodifiableIterator(Iterators.transform(queue.iterator(), Entry::message));
+  public int size() {
+    return queue.size();
   }
 }

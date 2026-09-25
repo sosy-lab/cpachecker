@@ -52,7 +52,7 @@ public class DssMessageBroadcaster {
   private void broadcast(DssMessage message, DssCommunicationEntity entity) {
     Collection<DssDefaultQueue> queues = connectionsByEntity.get(entity);
     for (DssDefaultQueue queue : queues) {
-      queue.add(message);
+      queue.offer(message);
     }
   }
 
@@ -65,7 +65,7 @@ public class DssMessageBroadcaster {
   public void broadcastToIds(DssMessage message, ImmutableSet<String> ids) {
     for (String id : ids) {
       DssDefaultQueue queue = connectionsBySenderId.get(id);
-      Objects.requireNonNull(queue, "No connection found for id: " + id).add(message);
+      Objects.requireNonNull(queue, "No connection found for id: " + id).offer(message);
     }
   }
 
