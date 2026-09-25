@@ -19,13 +19,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DssDefaultQueueTest {
 
@@ -33,7 +33,8 @@ public class DssDefaultQueueTest {
 
   private static DssMessageFactory createMessageFactory() {
     try {
-      return new DssMessageFactory(new DssAnalysisOptions(Configuration.defaultConfiguration()));
+      return new DssMessageFactory(
+          new DssAnalysisOptions(TestUtils.configurationForTest().build()));
     } catch (InvalidConfigurationException e) {
       throw new AssertionError(e);
     }
