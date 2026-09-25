@@ -22,11 +22,9 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationAr
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -198,14 +196,18 @@ public class TerminationUtils {
     }
     return new InvariantEntry(
         TransitionInvariantUtils.removeFunctionFromVarsName(
-            String.join(" || ", transitionInvariants.build())),
+            FluentIterable.from(transitionInvariants.build())
+                .transform(disjunct -> "(" + disjunct + ")")
+                .join(Joiner.on(" || "))),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.EXT_C,
         locationRecord);
   }
 
   private static void addTransitionInvariant(
-      ImmutableList.Builder<String> transitionInvariants, String rankingFunction, Iterable<IProgramVar> variables) {
+      ImmutableList.Builder<String> transitionInvariants,
+      String rankingFunction,
+      Iterable<IProgramVar> variables) {
     final String TMP_KEYWORD = "__CPAchecker_TMP";
     String prevRank =
         rightSideOfRankingFunction(wrapTheVariablesWithAtAnyPrev(rankingFunction, variables));
