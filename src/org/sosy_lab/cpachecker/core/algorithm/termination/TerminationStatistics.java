@@ -495,7 +495,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
       try {
         terminationWitnessExporter.export(
-            convertRankingFuncToTransInv(terminationArguments), yamlWitnessOutputFileTemplate);
+            convertRankingFunctionToTransitionInvariant(terminationArguments), yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
@@ -534,7 +534,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     }
   }
 
-  private ImmutableList<AbstractInvariantEntry> convertRankingFuncToTransInv(
+  private ImmutableList<AbstractInvariantEntry> convertRankingFunctionToTransitionInvariant(
       Multimap<Loop, TerminationArgument> pTerminationArguments) {
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
