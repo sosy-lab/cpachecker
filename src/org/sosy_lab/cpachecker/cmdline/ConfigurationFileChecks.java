@@ -556,7 +556,9 @@ public class ConfigurationFileChecks {
               Path.of("sequentializeProgram.properties"),
               Path.of("sequentialization-concurrency--memorysafety.properties"),
               Path.of("sequentialization-concurrency--overflow.properties"),
-              Path.of("sequentialization-concurrency.properties"));
+              Path.of("sequentialization-concurrency.properties"),
+              // interprets the property itself, so it rejects the default specification
+              Path.of("orderingConsistency.properties"));
     }
 
     CPAcheckerResult result;

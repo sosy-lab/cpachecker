@@ -101,9 +101,8 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   private EncodingMode encoding = EncodingMode.CLOCKS;
 
   /**
-   * The kind of safety property the analysis checks. Derived from the {@code --spec} property file
-   * (see {@link #targetPropertyOf}); with no specification it defaults to {@link #UNREACH_CALL},
-   * matching the historical behaviour of detecting calls to the error function.
+   * The kind of safety property the analysis checks, derived from the {@code --spec} property file
+   * (see {@link #targetPropertyOf}). A specification stating neither is rejected.
    */
   private enum TargetProperty {
     /** Reachability of a call to the error function (SV-COMP unreach-call). Always supported. */
@@ -177,14 +176,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     if (loopBoundStep < 1) {
       throw new InvalidConfigurationException("oc.loopBoundStep must be positive");
     }
-    Optional<TargetProperty> specTarget = targetPropertyOf(pSpecification);
-    if (specTarget.isEmpty()) {
-      pLogger.log(
-          Level.INFO,
-          "No property given; the ordering-consistency analysis checks unreach-call. Pass a"
-              + " --spec property file to check something else.");
-    }
-    targetProperty = specTarget.orElse(TargetProperty.UNREACH_CALL);
+    targetProperty =
+        targetPropertyOf(pSpecification)
+            .orElseThrow(
+                () ->
+                    new InvalidConfigurationException(
+                        "the ordering-consistency analysis cannot interpret the given"
+                            + " specification; it needs a property file stating unreach-call or"
+                            + " no-data-race"));
     if (targetProperty == TargetProperty.DATA_RACE && encoding != EncodingMode.CLOCKS) {
       throw new InvalidConfigurationException(
           "the ordering-consistency data-race check needs the CLOCKS encoding (set"
