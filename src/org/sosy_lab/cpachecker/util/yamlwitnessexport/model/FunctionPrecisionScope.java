@@ -30,4 +30,15 @@ public final class FunctionPrecisionScope extends PrecisionScope {
   public String getFunctionName() {
     return functionName;
   }
+
+  @Override
+  public boolean equals(Object pOther) {
+    return pOther instanceof FunctionPrecisionScope other
+        && functionName.equals(other.functionName);
+  }
+
+  @Override
+  public int hashCode() {
+    return functionName.hashCode();
+  }
 }

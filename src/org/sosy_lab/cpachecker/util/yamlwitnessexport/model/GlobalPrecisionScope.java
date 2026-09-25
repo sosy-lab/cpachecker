@@ -20,4 +20,14 @@ public final class GlobalPrecisionScope extends PrecisionScope {
 
     super(GLOBAL_TYPE_IDENTIFIER);
   }
+
+  @Override
+  public boolean equals(Object pOther) {
+    return pOther instanceof GlobalPrecisionScope;
+  }
+
+  @Override
+  public int hashCode() {
+    return GLOBAL_TYPE_IDENTIFIER.hashCode();
+  }
 }

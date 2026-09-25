@@ -28,4 +28,14 @@ public final class LocalPrecisionScope extends PrecisionScope {
   public LocationRecord getLocation() {
     return location;
   }
+
+  @Override
+  public boolean equals(Object pOther) {
+    return pOther instanceof LocalPrecisionScope other && location.equals(other.location);
+  }
+
+  @Override
+  public int hashCode() {
+    return location.hashCode();
+  }
 }
