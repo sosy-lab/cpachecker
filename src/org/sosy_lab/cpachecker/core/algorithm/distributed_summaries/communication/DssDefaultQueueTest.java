@@ -59,7 +59,7 @@ public class DssDefaultQueueTest {
     queue.add(second);
     queue.add(result);
 
-    assertThat(queue.size()).isEqualTo(3);
+    assertThat(queue).hasSize(3);
     assertThat(queue.take()).isSameInstanceAs(result);
     assertThat(queue.take()).isSameInstanceAs(first);
     assertThat(queue.isEmpty()).isFalse();
@@ -97,7 +97,7 @@ public class DssDefaultQueueTest {
       for (int received = 0; received < senders * messagesPerSender; received++) {
         List<String> senderAndIndex = Splitter.on(':').splitToList(queue.take().getSenderId());
         int index = Integer.parseInt(senderAndIndex.get(1));
-        Integer previous = lastReceived.put(senderAndIndex.get(0), index);
+        Integer previous = lastReceived.put(senderAndIndex.getFirst(), index);
         assertThat(index).isEqualTo(previous == null ? 0 : previous + 1);
       }
     }
