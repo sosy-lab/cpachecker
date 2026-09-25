@@ -144,12 +144,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
         && exportTerminationWitness
         && terminationWitnessOutputFileTemplate != null
         && pResult == Result.TRUE) {
-      try {
-        exportTerminationWitness(pReached);
-      } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "There is a problem when writing the witness into a file.");
-      }
+      exportTerminationWitness(pReached);
     }
   }
 
@@ -172,7 +167,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
     bfmgr = pBfmgr;
   }
 
-  private void exportTerminationWitness(UnmodifiableReachedSet pReached) throws IOException {
+  private void exportTerminationWitness(UnmodifiableReachedSet pReached) {
     Map<FileLocation, InvariantEntry> transitionInvariants = new HashMap<>();
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
     for (AbstractState state :
