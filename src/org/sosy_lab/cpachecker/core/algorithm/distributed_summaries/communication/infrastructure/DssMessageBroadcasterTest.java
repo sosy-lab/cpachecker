@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.concurrent.BlockingQueue;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -27,11 +26,11 @@ public class DssMessageBroadcasterTest {
   @Test
   public void testBroadcastToAll() throws InvalidConfigurationException {
 
-    BlockingQueue<DssMessage> observer = new DssDefaultQueue();
-    BlockingQueue<DssMessage> block1 = new DssDefaultQueue();
-    BlockingQueue<DssMessage> block2 = new DssDefaultQueue();
+    DssDefaultQueue observer = new DssDefaultQueue();
+    DssDefaultQueue block1 = new DssDefaultQueue();
+    DssDefaultQueue block2 = new DssDefaultQueue();
 
-    ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
+    ImmutableMap.Builder<CommunicationId, DssDefaultQueue> queues =
         ImmutableMap.builderWithExpectedSize(3);
 
     queues.put(new CommunicationId("obs", DssCommunicationEntity.OBSERVER), observer);
@@ -53,11 +52,11 @@ public class DssMessageBroadcasterTest {
   @Test
   public void testBroadcastToObserver() throws InvalidConfigurationException {
 
-    BlockingQueue<DssMessage> observer = new DssDefaultQueue();
-    BlockingQueue<DssMessage> block1 = new DssDefaultQueue();
-    BlockingQueue<DssMessage> block2 = new DssDefaultQueue();
+    DssDefaultQueue observer = new DssDefaultQueue();
+    DssDefaultQueue block1 = new DssDefaultQueue();
+    DssDefaultQueue block2 = new DssDefaultQueue();
 
-    ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
+    ImmutableMap.Builder<CommunicationId, DssDefaultQueue> queues =
         ImmutableMap.builderWithExpectedSize(3);
 
     queues.put(new CommunicationId("obs", DssCommunicationEntity.OBSERVER), observer);
@@ -79,11 +78,11 @@ public class DssMessageBroadcasterTest {
   @Test
   public void testBroadcastToIDs() throws InvalidConfigurationException {
 
-    BlockingQueue<DssMessage> observer = new DssDefaultQueue();
-    BlockingQueue<DssMessage> block1 = new DssDefaultQueue();
-    BlockingQueue<DssMessage> block2 = new DssDefaultQueue();
+    DssDefaultQueue observer = new DssDefaultQueue();
+    DssDefaultQueue block1 = new DssDefaultQueue();
+    DssDefaultQueue block2 = new DssDefaultQueue();
 
-    ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
+    ImmutableMap.Builder<CommunicationId, DssDefaultQueue> queues =
         ImmutableMap.builderWithExpectedSize(3);
 
     queues.put(new CommunicationId("obs", DssCommunicationEntity.OBSERVER), observer);

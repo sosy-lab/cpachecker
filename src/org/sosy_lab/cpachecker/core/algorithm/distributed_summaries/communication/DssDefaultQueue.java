@@ -8,15 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.Iterators;
 import java.util.AbstractQueue;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,8 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
  * may add messages, but only the worker the queue belongs to should take them, because the queue
  * reports the activity of that worker to a {@link DssWorkCounter}.
  */
-public class DssDefaultQueue extends AbstractQueue<DssMessage>
-    implements BlockingQueue<DssMessage> {
+public class DssDefaultQueue extends AbstractQueue<DssMessage> {
 
   /** A message together with its position in the order in which messages were added. */
   private record Entry(DssMessage message, long sequenceNumber) {}
@@ -81,13 +76,11 @@ public class DssDefaultQueue extends AbstractQueue<DssMessage>
   }
 
   /** The queue is unbounded, so this never waits. */
-  @Override
   public boolean offer(DssMessage pMessage, long pTimeout, TimeUnit pUnit) {
     return offer(pMessage);
   }
 
   /** The queue is unbounded, so this never waits. */
-  @Override
   public void put(DssMessage pMessage) {
     offer(pMessage);
   }
@@ -97,7 +90,6 @@ public class DssDefaultQueue extends AbstractQueue<DssMessage>
    *
    * <p>While it blocks, the worker of this queue counts as idle.
    */
-  @Override
   public DssMessage take() throws InterruptedException {
     Entry entry = queue.poll();
     if (entry == null) {
@@ -125,15 +117,6 @@ public class DssDefaultQueue extends AbstractQueue<DssMessage>
     return entry.message();
   }
 
-  /**
-   * Not supported: a worker waits for messages with {@link #take()}, which marks it as idle while
-   * it waits.
-   */
-  @Override
-  public DssMessage poll(long pTimeout, TimeUnit pUnit) {
-    throw new UnsupportedOperationException("Wait for messages with take()");
-  }
-
   @Override
   public DssMessage peek() {
     Entry entry = queue.peek();
@@ -154,27 +137,5 @@ public class DssDefaultQueue extends AbstractQueue<DssMessage>
   @Override
   public Iterator<DssMessage> iterator() {
     return Iterators.unmodifiableIterator(Iterators.transform(queue.iterator(), Entry::message));
-  }
-
-  @Override
-  public int remainingCapacity() {
-    return Integer.MAX_VALUE;
-  }
-
-  @Override
-  public int drainTo(Collection<? super DssMessage> pTarget) {
-    return drainTo(pTarget, Integer.MAX_VALUE);
-  }
-
-  @Override
-  public int drainTo(Collection<? super DssMessage> pTarget, int pMaxElements) {
-    checkArgument(pTarget != this, "Cannot drain a queue into itself");
-    int drained = 0;
-    DssMessage message;
-    while (drained < pMaxElements && (message = poll()) != null) {
-      pTarget.add(message);
-      drained++;
-    }
-    return drained;
   }
 }
