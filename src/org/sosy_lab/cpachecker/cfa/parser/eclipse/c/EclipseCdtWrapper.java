@@ -46,6 +46,15 @@ public class EclipseCdtWrapper {
    */
   static final String ATOMIC_ATTRIBUTE = "__CPAchecker_Atomic__";
 
+  /**
+   * As a workaround for missing CDT support for thread-local storage ({@code __thread} / C11 {@code
+   * _Thread_local}), we use a macro that replaces it with an attribute with this name, in the same
+   * way as {@link #ATOMIC_ATTRIBUTE}. CDT models no thread-local storage class at all, so without
+   * this the qualifier is silently dropped and a thread-local variable becomes indistinguishable
+   * from an ordinary shared global.
+   */
+  static final String THREAD_LOCAL_ATTRIBUTE = "__CPAchecker_ThreadLocal__";
+
   // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
   private static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
@@ -199,6 +208,10 @@ public class EclipseCdtWrapper {
           "__SIZEOF_LONG_DOUBLE__", Integer.toString(pMachineModel.getSizeofLongDouble()));
 
       macrosBuilder.put("_Atomic", "__attribute__((%s))".formatted(ATOMIC_ATTRIBUTE));
+      // CDT has no notion of thread-local storage, so route __thread / _Thread_local through an
+      // attribute we can recognize again in the converter (same trick as _Atomic above).
+      macrosBuilder.put("__thread", "__attribute__((%s))".formatted(THREAD_LOCAL_ATTRIBUTE));
+      macrosBuilder.put("_Thread_local", "__attribute__((%s))".formatted(THREAD_LOCAL_ATTRIBUTE));
 
       macros = macrosBuilder.buildOrThrow();
     }

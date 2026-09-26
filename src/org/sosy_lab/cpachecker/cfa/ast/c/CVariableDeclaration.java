@@ -30,6 +30,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   @Serial private static final long serialVersionUID = 8303959164064236061L;
   private final CStorageClass cStorageClass;
 
+  private final boolean isThreadLocal;
+
   public CVariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
@@ -39,6 +41,28 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
       String pOrigName,
       String pQualifiedName,
       @Nullable CInitializer pInitializer) {
+    this(
+        pFileLocation,
+        pIsGlobal,
+        pCStorageClass,
+        pType,
+        pName,
+        pOrigName,
+        pQualifiedName,
+        pInitializer,
+        /* pIsThreadLocal= */ false);
+  }
+
+  public CVariableDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      CStorageClass pCStorageClass,
+      CType pType,
+      String pName,
+      String pOrigName,
+      String pQualifiedName,
+      @Nullable CInitializer pInitializer,
+      boolean pIsThreadLocal) {
 
     super(
         pFileLocation,
@@ -49,6 +73,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
         pQualifiedName,
         pInitializer);
     cStorageClass = pCStorageClass;
+    isThreadLocal = pIsThreadLocal;
 
     checkArgument(
         !(cStorageClass == CStorageClass.EXTERN && getInitializer() != null),
@@ -72,6 +97,10 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   /** The storage class of this variable (either extern or auto). */
   public CStorageClass getCStorageClass() {
     return cStorageClass;
+  }
+
+  public boolean isThreadLocal() {
+    return isThreadLocal;
   }
 
   @Override
@@ -116,6 +145,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(cStorageClass);
+    result = prime * result + Boolean.hashCode(isThreadLocal);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -128,6 +158,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
     return obj instanceof CVariableDeclaration other
         && super.equals(obj)
+        && other.isThreadLocal == isThreadLocal
         && Objects.equals(other.cStorageClass, cStorageClass);
   }
 
