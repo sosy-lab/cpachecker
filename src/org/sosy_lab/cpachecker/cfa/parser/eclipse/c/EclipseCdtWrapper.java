@@ -47,6 +47,17 @@ public class EclipseCdtWrapper {
   static final String ATOMIC_ATTRIBUTE = "__CPAchecker_Atomic__";
 
   /**
+   * The atomic type specifier {@code _Atomic(type-name)} (C23 § 6.7.3.5, #1667) needs a macro
+   * definition distinct from the {@code _Atomic} qualifier above, since a macro name cannot be both
+   * unconditionally substituted (the qualifier) and only substituted when followed by "(" (the
+   * specifier). {@link AtomicTypeSpecifierRewriter} renames occurrences of the specifier form to
+   * this name before parsing; the macro below then expands it via {@code __typeof__}, so that CDT's
+   * own preprocessor and type system resolve the type-name, including pointer and function-pointer
+   * shapes.
+   */
+  static final String ATOMIC_SPECIFIER_MACRO = "_CPA_AS";
+
+  /**
    * As a workaround for missing CDT support for thread-local storage ({@code __thread} / C11 {@code
    * _Thread_local}), we use a macro that replaces it with an attribute with this name, in the same
    * way as {@link #ATOMIC_ATTRIBUTE}. CDT models no thread-local storage class at all, so without
@@ -64,6 +75,8 @@ public class EclipseCdtWrapper {
 
   private final ShutdownNotifier shutdownNotifier;
 
+  private final boolean handleAtomicTypeSpecifiers;
+
   public EclipseCdtWrapper(
       final ParserOptions pOptions,
       final MachineModel pMachineModel,
@@ -71,6 +84,7 @@ public class EclipseCdtWrapper {
     shutdownNotifier = pShutdownNotifier;
     parserLog = new ShutdownNotifierLogAdapter(shutdownNotifier);
     scannerInfo = new StubScannerInfo(pMachineModel);
+    handleAtomicTypeSpecifiers = pOptions.shouldHandleAtomicTypeSpecifiers();
 
     language =
         switch (pOptions.getDialect()) {
@@ -79,8 +93,11 @@ public class EclipseCdtWrapper {
         };
   }
 
-  static FileContent wrapCode(final Path pFileName, final String pCode) {
-    return FileContent.create(pFileName.toString(), pCode.toCharArray());
+  FileContent wrapCode(final Path pFileName, final String pCode) {
+    // The rewriting of atomic type specifiers (#1667) is optional; without it the code is passed to
+    // CDT unchanged, which is the behavior before that feature was added.
+    String code = handleAtomicTypeSpecifiers ? AtomicTypeSpecifierRewriter.rewrite(pCode) : pCode;
+    return FileContent.create(pFileName.toString(), code.toCharArray());
   }
 
   /**
@@ -92,7 +109,7 @@ public class EclipseCdtWrapper {
    * @throws IOException If an I/O error occurs reading from the file or a malformed or unmappable
    *     byte sequence is read.
    */
-  public static FileContent wrapFile(final Path pFileName) throws IOException {
+  public FileContent wrapFile(final Path pFileName) throws IOException {
     final String code = Files.readString(pFileName, Charset.defaultCharset());
     return wrapCode(pFileName, code);
   }
@@ -208,6 +225,9 @@ public class EclipseCdtWrapper {
           "__SIZEOF_LONG_DOUBLE__", Integer.toString(pMachineModel.getSizeofLongDouble()));
 
       macrosBuilder.put("_Atomic", "__attribute__((%s))".formatted(ATOMIC_ATTRIBUTE));
+      macrosBuilder.put(
+          ATOMIC_SPECIFIER_MACRO + "(T)",
+          "__typeof__(T) __attribute__((%s))".formatted(ATOMIC_ATTRIBUTE));
       // CDT has no notion of thread-local storage, so route __thread / _Thread_local through an
       // attribute we can recognize again in the converter (same trick as _Atomic above).
       macrosBuilder.put("__thread", "__attribute__((%s))".formatted(THREAD_LOCAL_ATTRIBUTE));

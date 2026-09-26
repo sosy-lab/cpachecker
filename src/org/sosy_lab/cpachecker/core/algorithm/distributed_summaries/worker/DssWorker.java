@@ -24,6 +24,7 @@ public abstract class DssWorker implements DssActor {
   private final DssMessageFactory messageFactory;
   protected final LogManager logger;
   private final String id;
+  private boolean interrupted;
 
   /**
    * Abstract definition of a Worker. All workers enter the same routine of receiving and producing
@@ -54,6 +55,14 @@ public abstract class DssWorker implements DssActor {
     }
   }
 
+  /**
+   * Whether this actor stopped because it was interrupted, e.g. by a shutdown request, rather than
+   * because it was done.
+   */
+  protected final boolean wasInterrupted() {
+    return interrupted;
+  }
+
   @Override
   public void run() {
     if (shutdownRequested()) {
@@ -64,7 +73,14 @@ public abstract class DssWorker implements DssActor {
       while (!shutdownRequested()) {
         broadcast(processMessage(nextMessage()));
       }
-    } catch (CPAException | InterruptedException | IOException | SolverException e) {
+    } catch (InterruptedException e) {
+      // An interrupt is how a shutdown request reaches an actor blocked on its queue.
+      interrupted = true;
+      logger.logf(Level.WARNING, "%s was interrupted, most likely by a shutdown request.", getId());
+      // The other actors are still blocked on their queues and have to be told to stop.
+      broadcastOrLogException(
+          ImmutableList.of(messageFactory.createDssExceptionMessage(getId(), e)));
+    } catch (CPAException | IOException | SolverException e) {
       logger.logfException(
           Level.SEVERE, e, "%s faced a problem while processing messages.", getId());
       broadcastOrLogException(

@@ -75,10 +75,10 @@ public class SSAMapMerger {
 
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
-      final String symbolName = symbolDifference.getKey();
+      final String symbolName = symbolDifference.key();
       final Type symbolType = resultSSA.getType(symbolName);
-      final int index1 = symbolDifference.getLeftValue().orElse(1);
-      final int index2 = symbolDifference.getRightValue().orElse(1);
+      final int index1 = symbolDifference.leftValue().orElse(1);
+      final int index2 = symbolDifference.rightValue().orElse(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {
@@ -155,10 +155,10 @@ public class SSAMapMerger {
 
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
-      final String symbolName = symbolDifference.getKey();
+      final String symbolName = symbolDifference.key();
       final Type symbolType = resultSSA.getType(symbolName);
-      final int index1 = symbolDifference.getLeftValue().orElse(1);
-      final int index2 = symbolDifference.getRightValue().orElse(1);
+      final int index1 = symbolDifference.leftValue().orElse(1);
+      final int index2 = symbolDifference.rightValue().orElse(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {
