@@ -27,6 +27,7 @@ public class DssMessageFactory {
   public static final String DSS_MESSAGE_PRECISE_KEY = "precise";
   public static final String DSS_MESSAGE_PROPERTY_KEY = "property";
   public static final String DSS_MESSAGE_SOUND_KEY = "sound";
+  public static final String DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY = "unreachableBlockEnd";
 
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
@@ -53,6 +54,26 @@ public class DssMessageFactory {
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
+            .buildOrThrow());
+  }
+
+  /**
+   * Creates a postcondition message that reports the end of the sender's block as unreachable,
+   * i.e., the block produced no state at its final location.
+   *
+   * <p>The message deliberately carries no states: the flag alone is the signal, so neither sender
+   * nor receiver has to (de)serialize an abstract state to communicate unreachability.
+   *
+   * @param pSenderId the ID of the block whose end is unreachable
+   * @param pStatus the status of the analysis that found the block end to be unreachable
+   */
+  public DssPostConditionMessage createDssUnreachableBlockEndMessage(
+      String pSenderId, AlgorithmStatus pStatus) {
+    return new DssPostConditionMessage(
+        pSenderId,
+        ImmutableMap.<String, String>builder()
+            .putAll(serializeStatus(pStatus))
+            .put(DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY, "true")
             .buildOrThrow());
   }
 

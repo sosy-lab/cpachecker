@@ -50,6 +50,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
@@ -369,7 +370,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     if (async) {
       // start invariant generation asynchronously
-      ExecutorService executor = Executors.newSingleThreadExecutor();
+      ThreadFactory threadFactory =
+          Thread.ofPlatform().name("KInductionInvariantGenerator").factory();
+      ExecutorService executor = Executors.newSingleThreadExecutor(threadFactory);
       invariantGenerationFuture = executor.submit(task);
       executor.shutdown(); // will shut down after task is finished
 
