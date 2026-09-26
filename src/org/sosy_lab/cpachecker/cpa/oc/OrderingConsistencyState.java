@@ -65,7 +65,7 @@ public final class OrderingConsistencyState
   private final ImmutableSet<Integer> liveInstanceIds;
   private final ImmutableMap<CFANode, Integer> loopCounts;
   private final ImmutableMap<String, Integer> lockDepths;
-  private final boolean target;
+  private boolean target;
 
   // set once the state's successors have been computed; expanded states must not be merged into,
   // otherwise their suffix would be explored twice with overlapping guards
@@ -202,6 +202,10 @@ public final class OrderingConsistencyState
   /** Marks this state as the target of a found data-race violation (see {@link #raceTarget}). */
   public void markRaceTarget() {
     raceTarget = true;
+  }
+
+  public void clearTarget() {
+    target = false;
   }
 
   @Override

@@ -40,12 +40,25 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.PoEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -641,6 +654,33 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
+  private static Optional<AExpressionStatement> assumptionFor(
+      MemoryEvent pEvent, CFAEdge pEdge, Model pModel) {
+    if (pEvent.variable() == null
+        || !(pEdge instanceof CStatementEdge statementEdge)
+        || !(statementEdge.getStatement() instanceof CExpressionAssignmentStatement assignment)) {
+      return Optional.empty();
+    }
+    CLeftHandSide lhs = assignment.getLeftHandSide();
+    CType type = lhs.getExpressionType().getCanonicalType();
+    if (!(type instanceof CSimpleType simpleType) || !simpleType.getType().isIntegerType()) {
+      return Optional.empty();
+    }
+    if (!(pModel.evaluate(pEvent.variable()) instanceof BigInteger value)) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new CExpressionStatement(
+            FileLocation.DUMMY,
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                type,
+                type,
+                lhs,
+                new CIntegerLiteralExpression(FileLocation.DUMMY, type, value),
+                BinaryOperator.EQUALS)));
+  }
+
   /** The thread instance a CREATE event starts, or {@link MemoryEvent#NO_INSTANCE} otherwise. */
   private static int createdInstanceOf(MemoryEvent pEvent) {
     return pEvent.kind() == EventKind.CREATE ? pEvent.otherInstanceId() : MemoryEvent.NO_INSTANCE;
@@ -666,6 +706,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       // so that the violation witness can label every waypoint with the thread it belongs to
       List<Integer> edgeInstances = new ArrayList<>();
       List<Integer> edgeCreatedInstances = new ArrayList<>();
+      List<List<AExpressionStatement>> edgeAssumptions = new ArrayList<>();
       // the event that ends the counterexample path (the reached error for unreach-call, the later
       // of the two racing accesses for no-data-race); its reached state becomes the CEX target
       MemoryEvent terminalEvent = terminalViolationEvent(model, pEncoder);
@@ -685,12 +726,15 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
             edges.add(edge);
             edgeInstances.add(event.instanceId());
             edgeCreatedInstances.add(createdInstanceOf(event));
+            edgeAssumptions.add(new ArrayList<>());
             previousEdge = edge;
           } else if (edgeCreatedInstances.getLast() == MemoryEvent.NO_INSTANCE) {
             // one statement can produce several events; whichever of them is the create is the
             // one that names the new thread
             edgeCreatedInstances.set(edgeCreatedInstances.size() - 1, createdInstanceOf(event));
           }
+          assumptionFor(event, edge, model)
+              .ifPresent(assumption -> edgeAssumptions.getLast().add(assumption));
         }
         if (event.id() == terminalEvent.id()) {
           break; // the execution stops at the violating event
@@ -758,8 +802,25 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         previous = next;
       }
       states.add(target);
+      ARGPath path = new ARGPath(states, ImmutableList.copyOf(edges));
+      ImmutableList.Builder<CFAEdgeWithAssumptions> assumptions = ImmutableList.builder();
+      for (int i = 0; i < edges.size(); i++) {
+        assumptions.add(
+            new CFAEdgeWithAssumptions(
+                edges.get(i), ImmutableList.copyOf(edgeAssumptions.get(i)), ""));
+      }
       target.addCounterexampleInformation(
-          CounterexampleInfo.feasibleImprecise(new ARGPath(states, ImmutableList.copyOf(edges))));
+          CounterexampleInfo.feasiblePrecise(
+              path, CFAPathWithAssumptions.from(assumptions.build())));
+      // every syntactically reachable error state is a target, and the exporter would derive a
+      // second counterexample from one, starting at its thread root and naming no thread instances
+      for (AbstractState reached : pReachedSet) {
+        OrderingConsistencyState other =
+            AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
+        if (other != null && reached != target) {
+          other.clearTarget();
+        }
+      }
     }
   }
 
