@@ -376,21 +376,25 @@ public class CEXExporter {
         } else {
 
           try {
-            final Witness witness =
-                witnessExporter.generateErrorWitness(
-                    rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+            // only the GraphML and DOT outputs are built from this; the YAML export below goes
+            // straight from the counterexample, so skip the work when neither file is wanted
+            if (options.getWitnessFile() != null || options.getWitnessDotFile() != null) {
+              final Witness witness =
+                  witnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-            writeErrorPathFile(
-                options.getWitnessFile(),
-                uniqueId,
-                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-                compressWitness);
+              writeErrorPathFile(
+                  options.getWitnessFile(),
+                  uniqueId,
+                  (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+                  compressWitness);
 
-            writeErrorPathFile(
-                options.getWitnessDotFile(),
-                uniqueId,
-                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
-                compressWitness);
+              writeErrorPathFile(
+                  options.getWitnessDotFile(),
+                  uniqueId,
+                  (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+                  compressWitness);
+            }
             if (cfa.getMetadata().getInputLanguage() == Language.C) {
               if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
                 try {
