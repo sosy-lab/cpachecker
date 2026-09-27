@@ -48,7 +48,7 @@ public class AcslState implements AcslReportingState {
 
   @Override
   public String toString() {
-    return "AcslState " + acslInvariants.toString();
+    return "AcslState " + acslInvariants;
   }
 
   @Override
