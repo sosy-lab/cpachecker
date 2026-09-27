@@ -73,10 +73,10 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     for (AbstractState otherState : otherStates) {
       if (otherState instanceof ConstraintsState constraintsState) {
         // TODO this is where I think we can communicate with symbolic execution
-        // logger.log(logLevel, constraintsState.toString());
+        logger.log(logLevel, constraintsState.toString());
       }
       if (otherState instanceof ValueAnalysisState valueState) {
-        // logger.log(logLevel, valueState.toString());
+        logger.log(logLevel, valueState.toString());
       }
     }
 

@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 class LoopPatternFinder {
 
   private final LogManager logger;
-  private final Level logLevel = Level.INFO; // TODO change back once debugging is over
+  private final Level logLevel = Level.FINER; // TODO change to INFO for debugging
 
   LoopPatternFinder(LogManager pLogger) {
     this.logger = pLogger;
