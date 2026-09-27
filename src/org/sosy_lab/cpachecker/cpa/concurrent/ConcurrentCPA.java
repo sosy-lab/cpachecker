@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -183,13 +184,12 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
       return pCpa;
     }
     ImmutableList<ConfigurableProgramAnalysis> rewrapped =
-        children.stream()
-            .map(
-                child ->
-                    child instanceof ControlAutomatonCPA
-                        ? (ConfigurableProgramAnalysis) new OriginalEdgeCPA(child)
-                        : child)
-            .collect(ImmutableList.toImmutableList());
+        Collections3.transformedImmutableListCopy(
+            children,
+            child ->
+                child instanceof ControlAutomatonCPA
+                    ? (ConfigurableProgramAnalysis) new OriginalEdgeCPA(child)
+                    : child);
     return CompositeCPA.factory()
         .setConfiguration(pConfig)
         .setChildren(rewrapped)
