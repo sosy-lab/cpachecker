@@ -8,15 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessViolationV2Parser;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
  * Hands the wrapped CPA the original CFA edge instead of the per-thread clone POR explores.
@@ -62,11 +67,50 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
         @Nullable CFAEdge pEdge,
         Precision pPrecision)
         throws CPATransferException, InterruptedException {
+      Iterable<AbstractState> others = pOtherStates;
+      if (pEdge != null) {
+        // the clone the edge belongs to names the thread, which no state of the composite knows
+        OptionalInt pid = ConcurrentEdgeCloner.getThreadIdForNode(pEdge.getSuccessor());
+        if (pid.isEmpty()) {
+          pid = ConcurrentEdgeCloner.getThreadIdForNode(pEdge.getPredecessor());
+        }
+        if (pid.isPresent()) {
+          others =
+              ImmutableList.<AbstractState>builder()
+                  .addAll(pOtherStates)
+                  .add(new ActiveThreadState(pid.orElseThrow()))
+                  .build();
+        }
+      }
       return delegate.strengthen(
           pState,
-          pOtherStates,
+          others,
           pEdge == null ? null : ConcurrentEdgeCloner.getOriginalEdge(pEdge),
           pPrecision);
+    }
+  }
+
+  /** Answers the witness automaton's thread query, which only a sibling state can. */
+  private record ActiveThreadState(int pid) implements AbstractQueryableState {
+
+    @Override
+    public String getCPAName() {
+      return "ConcurrentCPA";
+    }
+
+    @Override
+    public boolean checkProperty(String pProperty) throws InvalidQueryException {
+      if (!pProperty.startsWith(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY)) {
+        throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+      }
+      String expected =
+          pProperty.substring(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY.length());
+      try {
+        return pid == Integer.parseInt(expected);
+      } catch (NumberFormatException e) {
+        throw new InvalidQueryException(
+            "Query '" + pProperty + "' does not compare against an integer.", e);
+      }
     }
   }
 }
