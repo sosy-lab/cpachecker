@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -44,8 +43,7 @@ public class AcslState implements AcslReportingState {
       return true;
     }
     // TODO replace true below with actual comparison of the relevant fields
-    return pO instanceof AcslState that
-        && this.acslInvariants.equals(that.acslInvariants);
+    return pO instanceof AcslState that && this.acslInvariants.equals(that.acslInvariants);
   }
 
   @Override
@@ -55,7 +53,7 @@ public class AcslState implements AcslReportingState {
 
   @Override
   public AcslPredicate getAcslPredicate() {
-    //TODO: combine the predicates in acslInvariants?
+    // TODO: combine the predicates in acslInvariants?
     return null;
   }
 }
