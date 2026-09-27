@@ -996,7 +996,12 @@ public class CoreComponentsFactory {
       // CompositeCPA to hold a specification automaton, so the automata that a property file would
       // otherwise contribute must not be inserted into its CPA; build it from the property-free
       // specification, and let the algorithm interpret the property.
-      return cpaFactory.buildCPAs(cfa, Specification.alwaysSatisfied(), aggregatedReachedSets);
+      // keep the properties: the CPA gets no automaton from them, but the witness export
+      // needs them, e.g. to emit both racing accesses of a data race
+      return cpaFactory.buildCPAs(
+          cfa,
+          Specification.alwaysSatisfied().withAdditionalProperties(pSpecification.getProperties()),
+          aggregatedReachedSets);
     }
 
     return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);
