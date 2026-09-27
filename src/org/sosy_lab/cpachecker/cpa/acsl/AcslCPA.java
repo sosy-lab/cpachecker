@@ -94,6 +94,6 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     // TODO return to this when I have thought more about how my abstract states should look
-    return new AcslState(logger, cfa, solver, converter, ImmutableSet.of());
+    return new AcslState(logger, solver, converter, ImmutableSet.of());
   }
 }

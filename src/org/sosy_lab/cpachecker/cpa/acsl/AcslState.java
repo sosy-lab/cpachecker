@@ -21,19 +21,14 @@ public class AcslState implements AcslReportingState {
   private final LogManager logger;
   private final ImmutableSet<AcslPredicate> acslInvariants;
   private final Solver solver;
-  private final CToFormulaConverterWithPointerAliasing converter;
-  private final CFA cfa;
 
   public AcslState(
       LogManager pLogger,
-      CFA pCfa,
       Solver pSolver,
       CToFormulaConverterWithPointerAliasing pConverter,
       ImmutableSet<AcslPredicate> pAcslInvariants) {
     this.logger = pLogger;
-    this.cfa = pCfa;
     this.solver = pSolver;
-    this.converter = pConverter;
     this.acslInvariants = pAcslInvariants;
   }
 
@@ -49,17 +44,18 @@ public class AcslState implements AcslReportingState {
       return true;
     }
     // TODO replace true below with actual comparison of the relevant fields
-    return pO instanceof AcslState that && true;
+    return pO instanceof AcslState that
+        && this.acslInvariants.equals(that.acslInvariants);
   }
 
   @Override
   public String toString() {
-    // TODO
-    return "AcslState " + "TODO";
+    return "AcslState " + acslInvariants.toString();
   }
 
   @Override
   public AcslPredicate getAcslPredicate() {
+    //TODO: combine the predicates in acslInvariants?
     return null;
   }
 }
