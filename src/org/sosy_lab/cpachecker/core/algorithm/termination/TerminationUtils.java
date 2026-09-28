@@ -157,6 +157,9 @@ public class TerminationUtils {
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
+    // Supporting invariant is an object from LassoRanker library, and we do not have a transformer
+    // to our CExpression. Maybe in future, we could implement such transformer, however, so far,
+    // we did not have problems with just using it as string.
     String invariant =
         wrapTheVariablesWithCastToLongLong(
             pSupportingInvariant.toString(), pSupportingInvariant.getVariables());
