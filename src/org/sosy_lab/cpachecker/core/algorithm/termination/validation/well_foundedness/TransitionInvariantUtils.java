@@ -119,13 +119,18 @@ public class TransitionInvariantUtils {
       Scope pScope)
       throws CPAException {
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
-    if (bfmgr.isTrue(pFormula) || containsPointerVariables(pFormula, fmgr, pScope)) {
-      return "1";
-    } else if (bfmgr.isFalse(pFormula)) {
-      return "0";
-    }
     try {
-      return converter.formulaToCExpression(pFormula);
+      // Replace the literals containing pointer variables with true. The formula is converted to
+      // NNF before, so that this replacement only weakens the formula.
+      BooleanFormula formula =
+          fmgr.filterLiterals(
+              pFormula, literal -> !containsPointerVariables(literal, fmgr, pScope));
+      if (bfmgr.isTrue(formula)) {
+        return "1";
+      } else if (bfmgr.isFalse(formula)) {
+        return "0";
+      }
+      return converter.formulaToCExpression(formula);
     } catch (SolverException | InterruptedException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }
