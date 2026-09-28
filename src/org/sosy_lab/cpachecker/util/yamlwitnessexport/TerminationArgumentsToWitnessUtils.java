@@ -10,10 +10,12 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.ANYPREV_SUFFIX;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.AT_PREFIX;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.AT_PREFIX_NON_C;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
@@ -23,17 +25,34 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.PartitionedRelationFormula;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
@@ -189,5 +208,94 @@ public class TerminationArgumentsToWitnessUtils {
       }
     }
     return argumentsForNestedLoops;
+  }
+
+  public static ImmutableList<AbstractInvariantEntry> getTransitionInvariantsFromARG(
+      UnmodifiableReachedSet pReached,
+      CFA pCFA,
+      FormulaManagerView fmgr,
+      BooleanFormulaManagerView bfmgr,
+      Scope scope) {
+    Map<FileLocation, InvariantEntry> transitionInvariants = new HashMap<>();
+    AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
+    for (AbstractState state :
+        pReached.stream()
+            .filter(
+                state ->
+                    !AbstractStates.extractStateByType(state, TerminationToReachState.class)
+                        .getTransitionInvariants()
+                        .isEmpty())
+            .collect(ImmutableSet.toImmutableSet())) {
+      TerminationToReachState terminationState =
+          AbstractStates.extractStateByType(state, TerminationToReachState.class);
+      CFANode location =
+          AbstractStates.extractStateByType(state, LocationState.class).getLocationNode();
+      String transitionInvariantAsC;
+
+      for (PartitionedRelationFormula formula : terminationState.getTransitionInvariants()) {
+        PartitionedRelationFormula wrappedFormula;
+        wrappedFormula = formula.withPrevVarsWrapped(AT_PREFIX_NON_C, ANYPREV_SUFFIX);
+        wrappedFormula = wrappedFormula.withCurrVarsWrapped("", "");
+        // Transforming the candidate transition invariant from formula to C expression
+        // and wrapping the previous variables into \\at(x, AnyPrev)
+        try {
+          transitionInvariantAsC =
+              TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+                      wrappedFormula.getFormula(), bfmgr, fmgr, scope)
+                  .replace(AT_PREFIX_NON_C, AT_PREFIX);
+          transitionInvariantAsC =
+              TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
+        } catch (CPAException e) {
+          transitionInvariantAsC = "true";
+        }
+
+        Optional<IterationElement> iterationElement =
+            astCfaRelation.getTightestIterationStructureForNode(location);
+        if (iterationElement.isPresent()) {
+          FileLocation fileLocation =
+              iterationElement.orElseThrow().getCompleteElement().location();
+          if (transitionInvariants.containsKey(fileLocation)) {
+            if (!transitionInvariants
+                .get(fileLocation)
+                .getValue()
+                .contains(transitionInvariantAsC)) {
+              transitionInvariantAsC =
+                  transitionInvariantAsC
+                      + " || "
+                      + transitionInvariants.get(fileLocation).getValue();
+              transitionInvariants.remove(fileLocation, transitionInvariants.get(fileLocation));
+              LocationRecord locationEntry =
+                  LocationRecord.createLocationRecordAtStart(
+                      iterationElement.orElseThrow().getCompleteElement().location(),
+                      location.getFunction().getFileLocation().getFileName().toString(),
+                      location.getFunctionName());
+
+              transitionInvariants.put(
+                  fileLocation,
+                  new InvariantEntry(
+                      transitionInvariantAsC,
+                      InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
+                      YAMLWitnessExpressionType.EXT_C,
+                      locationEntry));
+            }
+          } else {
+            LocationRecord locationEntry =
+                LocationRecord.createLocationRecordAtStart(
+                    iterationElement.orElseThrow().getCompleteElement().location(),
+                    location.getFunction().getFileLocation().getFileName().toString(),
+                    location.getFunctionName());
+
+            transitionInvariants.put(
+                fileLocation,
+                new InvariantEntry(
+                    transitionInvariantAsC,
+                    InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
+                    YAMLWitnessExpressionType.EXT_C,
+                    locationEntry));
+          }
+        }
+      }
+    }
+    return transitionInvariants.values().stream().collect(ImmutableList.toImmutableList());
   }
 }

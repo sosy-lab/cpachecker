@@ -29,7 +29,7 @@ import org.sosy_lab.java_smt.api.Formula;
  * <p>Instances are immutable: {@link #withPrevVarsWrapped} and {@link #withCurrVarsWrapped} return
  * new instances rather than mutating the receiver.
  */
-class PartitionedRelationFormula {
+public class PartitionedRelationFormula {
   private final FormulaManagerView fmgr;
   private final ImmutableSet<Formula> prevVariables;
   private final ImmutableSet<Formula> currVariables;
