@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.collectArgumentsForNestedLoops;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
 import com.google.common.base.Function;
@@ -116,6 +115,7 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 
@@ -547,15 +547,15 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             // First construct reachability invariants that support the termination argument.
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
               entries.add(
-                  TerminationUtils.convertSupportingInvariantToInvariantEntry(
+                  TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
                       supportingInvariant, loopHead, incomingLoopEdge));
             }
           }
         }
         // Construct transition invariants from ranking function
         entries.add(
-            TerminationUtils.convertRankgingFunctionsToTransitionInvariants(
-                collectArgumentsForNestedLoops(
+            TerminationArgumentsToWitnessUtils.convertRankgingFunctionsToTransitionInvariants(
+                TerminationArgumentsToWitnessUtils.collectArgumentsForNestedLoops(
                     loop, pTerminationArguments.keySet(), pTerminationArguments),
                 loopHead,
                 incomingLoopEdge));
