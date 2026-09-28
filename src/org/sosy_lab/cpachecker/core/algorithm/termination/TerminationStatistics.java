@@ -540,25 +540,26 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
     for (Loop loop : pTerminationArguments.keySet()) {
-      CFANode loopHead = loop.getLoopNodes().getFirst();
-      CFAEdge incomingLoopEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
-      for (TerminationArgument argument : pTerminationArguments.get(loop)) {
-        if (exportSupportingInvariantsInWitness) {
-          // First construct reachability invariants that support the termination argument.
-          for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-            entries.add(
-                TerminationUtils.convertSupportingInvariantToInvariantEntry(
-                    supportingInvariant, loopHead, incomingLoopEdge));
+      for (CFANode loopHead : loop.getLoopHeads()) {
+        CFAEdge incomingLoopEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
+        for (TerminationArgument argument : pTerminationArguments.get(loop)) {
+          if (exportSupportingInvariantsInWitness) {
+            // First construct reachability invariants that support the termination argument.
+            for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
+              entries.add(
+                  TerminationUtils.convertSupportingInvariantToInvariantEntry(
+                      supportingInvariant, loopHead, incomingLoopEdge));
+            }
           }
         }
+        // Construct transition invariants from ranking function
+        entries.add(
+            TerminationUtils.convertRankgingFunctionsToTransitionInvariants(
+                collectArgumentsForNestedLoops(
+                    loop, pTerminationArguments.keySet(), pTerminationArguments),
+                loopHead,
+                incomingLoopEdge));
       }
-      // Construct transition invariants from ranking function
-      entries.add(
-          TerminationUtils.convertRankgingFunctionsToTransitionInvariants(
-              collectArgumentsForNestedLoops(
-                  loop, pTerminationArguments.keySet(), pTerminationArguments),
-              loopHead,
-              incomingLoopEdge));
     }
     return entries.build();
   }
