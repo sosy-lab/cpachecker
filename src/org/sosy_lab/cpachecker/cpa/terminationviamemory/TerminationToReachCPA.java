@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  */
 @Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
-  private Optional<Path> witnessPath;
   private Solver solver;
   private InterpolationManager itpMgr;
   private PathFormulaManager pfmgr;
@@ -66,6 +66,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final CFA cfa;
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
+  private final Specification specification;
 
   @Option(secure = true, description = "Enables use of transition predicatesa from the witness.")
   private boolean useTransitionPredicatesFromWitness = false;
@@ -84,12 +85,11 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     configuration = pConfiguration;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
+    specification = pSpecification;
 
     ImmutableSet.Builder<Loop> builder = ImmutableSet.builder();
     builder.addAll(cfa.getLoopStructure().orElseThrow().getAllLoops());
     possiblyNonTerminatingLoops = builder.build();
-
-    witnessPath = pSpecification.getPathToSpecificationAutomata().keySet().stream().findAny();
   }
 
   public static CPAFactory factory() {
@@ -157,19 +157,18 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
 
   private ImmutableSet<ExpressionTreeLocationInvariant> collectCandidateTransitionInvariants()
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    Set<ExpressionTreeLocationInvariant> invariants;
+    Set<ExpressionTreeLocationInvariant> invariants = new HashSet<>();
     try {
-      WitnessInvariantsExtractor invariantsExtractor =
-          new WitnessInvariantsExtractor(
-              configuration,
-              logger,
-              cfa,
-              shutdownNotifier,
-              witnessPath.orElseThrow(
-                  () ->
-                      new InvalidConfigurationException(
-                          "Witness file is missing in specification.")));
-      invariants = invariantsExtractor.extractInvariantsFromReachedSet();
+      for (Path witnessPath : specification.getPathToSpecificationAutomata().keySet()) {
+        WitnessInvariantsExtractor invariantsExtractor =
+            new WitnessInvariantsExtractor(
+                configuration,
+                logger,
+                cfa,
+                shutdownNotifier,
+                witnessPath);
+        invariants.addAll(invariantsExtractor.extractInvariantsFromReachedSet());
+      }
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
