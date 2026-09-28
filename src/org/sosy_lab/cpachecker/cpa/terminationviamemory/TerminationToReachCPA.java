@@ -68,7 +68,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final LogManager logger;
   private final Specification specification;
 
-  @Option(secure = true, description = "Enables use of transition predicatesa from the witness.")
+  @Option(secure = true, description = "Enables use of transition predicates from the witness.")
   private boolean useTransitionPredicatesFromWitness = false;
 
   public TerminationToReachCPA(
@@ -114,21 +114,29 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             logger,
             false);
     precisionAdjustment =
-        new TerminationToReachPrecisionAdjustment(
-            solver,
-            statistics,
-            logger,
-            cfa,
-            bfmgr,
-            fmgr,
-            pfmgr,
-            itpMgr,
-            configuration,
-            possiblyNonTerminatingLoops,
-            useTransitionPredicatesFromWitness,
-            useTransitionPredicatesFromWitness
-                ? collectCandidateTransitionInvariants()
-                : ImmutableSet.of());
+        useTransitionPredicatesFromWitness
+            ? new TerminationToReachValidationPrecisionAdjustment(
+                solver,
+                statistics,
+                logger,
+                cfa,
+                bfmgr,
+                fmgr,
+                pfmgr,
+                itpMgr,
+                configuration,
+                possiblyNonTerminatingLoops,
+                collectCandidateTransitionInvariants())
+            : new TerminationToReachPrecisionAdjustment(
+                solver,
+                statistics,
+                logger,
+                cfa,
+                bfmgr,
+                fmgr,
+                itpMgr,
+                configuration,
+                possiblyNonTerminatingLoops);
 
     // Statistics need formula manager because it converts the Formula for transition invariant
     // to a CExpression for witness export.
@@ -162,11 +170,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       for (Path witnessPath : specification.getPathToSpecificationAutomata().keySet()) {
         WitnessInvariantsExtractor invariantsExtractor =
             new WitnessInvariantsExtractor(
-                configuration,
-                logger,
-                cfa,
-                shutdownNotifier,
-                witnessPath);
+                configuration, logger, cfa, shutdownNotifier, witnessPath);
         invariants.addAll(invariantsExtractor.extractInvariantsFromReachedSet());
       }
     } catch (InvalidWitnessException e) {

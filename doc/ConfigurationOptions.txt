@@ -4059,9 +4059,9 @@ cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 
 # Disables checks for fix-point with transition invariants and performs plain
 # BMC.
-cpa.terminationviamemory.performBMC = false
+cpa.terminationviamemory.disableTransitionAbstractions = false
 
-# Enables use of transition predicatesa from the witness.
+# Enables use of transition predicates from the witness.
 cpa.terminationviamemory.useTransitionPredicatesFromWitness = false
 
 # Simple thread analysis from theory paper

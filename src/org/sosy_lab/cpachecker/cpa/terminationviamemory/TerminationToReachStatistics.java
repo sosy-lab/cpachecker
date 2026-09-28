@@ -60,9 +60,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 @Options(prefix = "terminationtoreach")
 public class TerminationToReachStatistics extends ARGStatistics implements Statistics {
-  @Option(secure = true, name = "validation", description = "do not produce witness for validation")
-  private boolean validation = false;
-
   @Option(
       secure = true,
       name = "terminationWitness",
@@ -123,8 +120,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    if (!validation
-        && terminationWitnessOutputFileTemplate != null
+    if (terminationWitnessOutputFileTemplate != null
         && exportTerminationWitness
         && pResult == Result.FALSE) {
       int uniqueId = 0;
@@ -140,8 +136,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
       }
     }
 
-    if (!validation
-        && exportTerminationWitness
+    if (exportTerminationWitness
         && terminationWitnessOutputFileTemplate != null
         && pResult == Result.TRUE) {
       exportTerminationWitness(pReached);

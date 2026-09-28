@@ -12,15 +12,12 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.EMPTY_PREFIX;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PREV_KEYWORD;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.TRANS_INV_KEYWORD;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -33,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -44,21 +40,17 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -66,18 +58,13 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustment {
   private final Solver solver;
-  private final BooleanFormulaManagerView bfmgr;
-  private final FormulaManagerView fmgr;
-  private final PathFormulaManager pthfmgr;
+  protected final BooleanFormulaManagerView bfmgr;
+  protected final FormulaManagerView fmgr;
   private final InterpolationManager itpMgr;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
   private final LogManager logger;
   private final ImmutableSet<Loop> allLoops;
-
-  // These parameters are added only for witness validation
-  private final ImmutableSet<ExpressionTreeLocationInvariant> candidateInvariants;
-  private final boolean validation;
 
   @Option(
       secure = true,
@@ -109,14 +96,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr,
-      PathFormulaManager pPthfmgr,
       InterpolationManager pItpMgr,
       Configuration pConfiguration,
-      ImmutableSet<Loop> pAllLoops,
-      boolean pValidation,
-      ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants)
+      ImmutableSet<Loop> pAllLoops)
       throws InvalidConfigurationException {
-    pConfiguration.inject(this);
+    pConfiguration.inject(this, TerminationToReachPrecisionAdjustment.class);
     solver = pSolver;
     statistics = pStatistics;
     cfa = pCFA;
@@ -125,9 +109,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     logger = plogger;
     itpMgr = pItpMgr;
     allLoops = pAllLoops;
-    candidateInvariants = pCandidateInvariants;
-    validation = pValidation;
-    pthfmgr = pPthfmgr;
   }
 
   @Override
@@ -238,13 +219,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
   /**
    * Collects the transition predicates of the given state that are inductive transition invariants
-   * for the current iteration of the loop. In case of witness validation, the transition invariant
-   * from the witness is added as well, if it is inductive.
+   * for the current iteration of the loop.
    *
    * @return a builder containing the inductive transition invariants, such that further transition
    *     invariants can be added to it
    */
-  private ImmutableSet.Builder<PartitionedRelationFormula> collectInductiveTransitionInvariants(
+  protected ImmutableSet.Builder<PartitionedRelationFormula> collectInductiveTransitionInvariants(
       TerminationToReachState terminationState,
       PartitionedRelationFormula iterationFormula,
       CFANode location,
@@ -259,17 +239,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
     }
 
-    // Add the predicates from the witness
-    if (validation) {
-      PartitionedRelationFormula invariantFromWitness =
-          new PartitionedRelationFormula(
-              collectCandidateTransitionInvariants(
-                  location, terminationState.getPathFormulasForIteration().get(keyPair)),
-              fmgr);
-      if (isInductiveTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
-        builderTransitionInvariants.add(invariantFromWitness);
-      }
-    }
     return builderTransitionInvariants;
   }
 
@@ -468,45 +437,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return Optional.empty();
   }
 
-  private BooleanFormula collectCandidateTransitionInvariants(
-      CFANode pLocation, PathFormula pIterationFormula) throws InterruptedException {
-    BooleanFormula candidateTransitionInvariant = bfmgr.makeTrue();
-    for (ExpressionTreeLocationInvariant invariant : candidateInvariants) {
-      if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
-        continue;
-      }
-
-      if (invariant.getLocation().equals(pLocation)) {
-        BooleanFormula invariantFormula;
-        try {
-          if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
-            invariantFormula = bfmgr.makeTrue();
-          } else {
-            invariantFormula = invariant.getFormula(fmgr, pthfmgr, pIterationFormula);
-          }
-        } catch (CPATransferException e) {
-          invariantFormula = bfmgr.makeTrue();
-        }
-        candidateTransitionInvariant = bfmgr.and(candidateTransitionInvariant, invariantFormula);
-      }
-    }
-    candidateTransitionInvariant =
-        fmgr.substitute(
-            candidateTransitionInvariant,
-            ImmutableMap.copyOf(
-                Maps.asMap(
-                    fmgr.extractVariables(candidateTransitionInvariant).values().stream()
-                        .filter(variable -> !variable.toString().contains(TRANS_INV_KEYWORD))
-                        .collect(ImmutableSet.toImmutableSet()),
-                    variable ->
-                        fmgr.makeVariable(
-                            fmgr.getFormulaType(variable),
-                            TransitionInvariantUtils.removeKeyWordAfterTransInv(
-                                    fmgr.uninstantiate(variable).toString())
-                                + CURR_KEYWORD))));
-    return candidateTransitionInvariant;
-  }
-
   /**
    * This method gets the latest same state formula instantiated for the fix-point check if we are
    * abstracting already.
@@ -614,7 +544,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         .isEmpty();
   }
 
-  private boolean isInductiveTransitionInvariant(
+  protected boolean isInductiveTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
       CFANode pLocation)
