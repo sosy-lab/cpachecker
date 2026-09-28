@@ -15,6 +15,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
@@ -142,7 +143,7 @@ public class TransitionInvariantUtils {
       for (String variable : fmgr.extractVariables(pFormula).keySet()) {
         String varWithoutFunc = removeFunctionFromVarsName(variable);
         if (pScope.variableNameInUse(varWithoutFunc)
-            && pScope.lookupVariable(varWithoutFunc).toString().contains("*")) {
+            && pScope.lookupVariable(varWithoutFunc).getType().getCanonicalType() instanceof CPointerType) {
           return true;
         }
       }
