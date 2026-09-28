@@ -100,7 +100,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       secure = true,
       description =
           "Disables checks for fix-point with transition invariants and performs " + "plain BMC.")
-  private boolean performBMC = false;
+  private boolean disableTransitionAbstractions = false;
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
@@ -198,7 +198,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
           // If the user sets the algorithm to perform only BMC, then it does not try to reach the
           // fix-point
-          if (performBMC) {
+          if (disableTransitionAbstractions) {
             break;
           }
 
