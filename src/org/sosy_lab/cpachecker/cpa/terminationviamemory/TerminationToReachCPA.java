@@ -130,6 +130,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
                 ? collectCandidateTransitionInvariants()
                 : ImmutableSet.of());
 
+    // Statistics need formula manager because it converts the Formula for transition invariant
+    // to a CExpression for witness export.
     statistics.setFormulaManager(fmgr);
     statistics.setBooleanFormulaManager(bfmgr);
   }
