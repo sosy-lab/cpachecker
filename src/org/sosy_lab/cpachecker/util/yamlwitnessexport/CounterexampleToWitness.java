@@ -63,9 +63,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -93,7 +91,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * An edge of a counterexample together with the {@link ARGState}s before and after it. For edges
    * which fill a hole of the {@link ARGPath} these are the states enclosing the whole hole.
    */
-  private record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState nextState) {}
+  protected record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState nextState) {}
 
   /**
    * Return all CFA edges of the given path together with their surrounding states. Consecutive
@@ -102,7 +100,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * cpa.composite.aggregateBasicBlocks). {@link ARGPath#fullPathIterator()} resolves such holes
    * into the edges they stand for.
    */
-  private static ImmutableList<EdgeWithStates> getEdgesWithStates(ARGPath pPath) {
+  protected static ImmutableList<EdgeWithStates> getEdgesWithStates(ARGPath pPath) {
     ImmutableList.Builder<EdgeWithStates> edgesWithStates = ImmutableList.builder();
 
     for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
@@ -282,7 +280,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return OptionalInt.empty();
   }
 
-  private ImmutableList<WaypointRecord> buildWaypoints(
+  protected List<WaypointRecord> buildWaypoints(
       CFAEdge pEdge,
       ImmutableListMultimap<CFAEdge, String> pEdgeToAssumptions,
       AstCfaRelation pAstCFARelation,
@@ -570,26 +568,18 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Export the given counterexample to the path as a Witness version 2.0
+   * Computes the assumptions of the given counterexample for each of its edges. The index of the
+   * current assumption of each edge is initialized in the given map.
    *
-   * @param pCex the counterexample to be exported
-   * @param pPath the path to export the witness to
-   * @param pNumberOfUnrollings for non-termination witnesses, the number of times the loop head is
-   *     left before the cycle starts. If empty, it is taken from the {@link
-   *     TerminationToReachState} of the target state.
-   * @throws IOException if writing the witness to the path is not possible
+   * @param pCex the counterexample whose assumptions are computed
+   * @param pEdgeToCurrentExpressionIndex the map in which the index of the current assumption is
+   *     initialized for each edge that has assumptions
+   * @return the assumptions at each edge
    */
-  private void exportWitness(
-      CounterexampleInfo pCex,
-      Path pPath,
-      YAMLWitnessVersion pWitnessVersion,
-      OptionalInt pNumberOfUnrollings)
-      throws IOException {
-    AstCfaRelation astCFARelation = getASTStructure();
-
+  protected ImmutableListMultimap<CFAEdge, String> computeEdgeToAssumptions(
+      CounterexampleInfo pCex, Map<CFAEdge, Integer> pEdgeToCurrentExpressionIndex) {
     ImmutableListMultimap.Builder<CFAEdge, String> edgeToAssumptionsBuilder =
         new ImmutableListMultimap.Builder<>();
-    Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
         CFAEdge edge = edgeWithAssumptions.getCFAEdge();
@@ -634,11 +624,27 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         }
 
         edgeToAssumptionsBuilder.put(edge, statement);
-        edgeToCurrentExpressionIndex.put(edge, 0);
+        pEdgeToCurrentExpressionIndex.put(edge, 0);
       }
     }
 
-    ImmutableListMultimap<CFAEdge, String> edgeToAssumptions = edgeToAssumptionsBuilder.build();
+    return edgeToAssumptionsBuilder.build();
+  }
+
+  /**
+   * Export the given counterexample to the path as a Witness version 2.0
+   *
+   * @param pCex the counterexample to be exported
+   * @param pPath the path to export the witness to
+   * @throws IOException if writing the witness to the path is not possible
+   */
+  protected void exportWitness(
+      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) throws IOException {
+    AstCfaRelation astCFARelation = getASTStructure();
+
+    Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
+    ImmutableListMultimap<CFAEdge, String> edgeToAssumptions =
+        computeEdgeToAssumptions(pCex, edgeToCurrentExpressionIndex);
 
     ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
     ImmutableList<EdgeWithStates> edges = getEdgesWithStates(pCex.getTargetPath());
@@ -647,23 +653,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // created such that we can refer to them in the witness. Main always has the thread ID 0.
     ImmutableMap.Builder<String, Integer> threadNameToIdBuilder = new ImmutableMap.Builder<>();
     threadNameToIdBuilder.put("main", 0);
-
-    // Initialization for counters of cycle head visits in case the property is termination.
-    int cycleHeadVisits = 0;
-    boolean isInCycle = false;
-    int numberOfUnrollings = 0;
-    CFANode cycleHead = null;
-    if (isNonTerminationWitness(pWitnessVersion)) {
-      numberOfUnrollings =
-          pNumberOfUnrollings.isPresent()
-              ? pNumberOfUnrollings.orElseThrow()
-              : Verify.verifyNotNull(
-                      AbstractStates.extractStateByType(
-                          pCex.getTargetState(), TerminationToReachState.class),
-                      "Number of unrollings for the non-termination witness is unknown")
-                  .getNumberOfUnrollings();
-      cycleHead = AbstractStates.extractLocation(pCex.getTargetState());
-    }
 
     // The semantics of the YAML witnesses imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
@@ -677,7 +666,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // Therefore, an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
     for (EdgeWithStates edgeWithStates : edges) {
-      ImmutableList<WaypointRecord> waypoints =
+      List<WaypointRecord> waypoints =
           buildWaypoints(
               edgeWithStates.edge(),
               edgeToAssumptions,
@@ -687,31 +676,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
               edgeWithStates.nextState(),
               edgeWithStates.previousState(),
               pWitnessVersion);
-
-      if (isNonTerminationWitness(pWitnessVersion)) {
-        // The cycle starts when the cycle head is left after it was already left
-        // numberOfUnrollings times
-        if (!isInCycle && edgeWithStates.edge().getPredecessor().equals(cycleHead)) {
-          if (cycleHeadVisits < numberOfUnrollings) {
-            cycleHeadVisits++;
-          } else {
-            isInCycle = true;
-          }
-        }
-        if (isInCycle && !waypoints.isEmpty()) {
-          WaypointRecord followWaypoint = getFollowWaypoint(waypoints);
-
-          // Remove the original follow waypoint
-          waypoints =
-              waypoints.stream()
-                  .filter(waypoint -> !waypoint.equals(followWaypoint))
-                  .collect(ImmutableList.toImmutableList());
-          // Add the follow waypoint but now with cycle action
-          waypoints =
-              ImmutableList.copyOf(
-                  Iterables.concat(waypoints, ImmutableList.of(followWaypoint.withCycleAction())));
-        }
-      }
 
       if (!waypoints.isEmpty()) {
         segments.add(new SegmentRecord(waypoints));
@@ -806,7 +770,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         }
 
         segments.add(new SegmentRecord(targetWaypoints));
-      } else if (!isNonTerminationWitness(pWitnessVersion)) {
+      } else {
         segments.add(
             SegmentRecord.ofOnlyElement(
                 waypointRecord.withThreadId(
@@ -815,7 +779,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                         lastEdge.edge(),
                         threadNameToIdBuilder.buildOrThrow()))));
       }
-    } else if (!isNonTerminationWitness(pWitnessVersion)) {
+    } else {
       segments.add(SegmentRecord.ofOnlyElement(waypointRecord));
     }
 
@@ -841,19 +805,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                         pWaypoint.getLocation().getLine()));
   }
 
-  /** Finds the follow waypoint in the list of waypoints. */
-  private static WaypointRecord getFollowWaypoint(List<WaypointRecord> waypoints) {
-    return Iterables.find(
-        waypoints, waypoint -> waypoint.getAction().equals(WaypointAction.FOLLOW));
-  }
-
-  private boolean isNonTerminationWitness(YAMLWitnessVersion pWitnessVersion) {
-    return (pWitnessVersion.equals(YAMLWitnessVersion.V2d1)
-            || pWitnessVersion.equals(YAMLWitnessVersion.V2d2))
-        && getSpecification().getProperties().stream()
-            .anyMatch(pProperty -> pProperty.equals(CommonVerificationProperty.TERMINATION));
-  }
-
   /**
    * Export the given counterexample as a Witness version 2.0 to the given output file.
    *
@@ -862,7 +813,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * @throws IOException If the witness could not be written to the file.
    */
   public void export(CounterexampleInfo pCex, Path pOutputFile) throws IOException {
-    exportWitness(pCex, pOutputFile, YAMLWitnessVersion.V2, OptionalInt.empty());
+    exportWitness(pCex, pOutputFile, YAMLWitnessVersion.V2);
   }
 
   /**
@@ -878,34 +829,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    */
   public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
       throws IOException {
-    export(pCex, pOutputFileTemplate, uniqueId, OptionalInt.empty());
-  }
-
-  /**
-   * Export the given counterexample to a non-termination witness file, see {@link
-   * #export(CounterexampleInfo, PathTemplate, int)}.
-   *
-   * @param pNumberOfUnrollings the number of times the loop head (location of the target state) is
-   *     left in the counterexample before the cycle of the non-termination witness starts
-   */
-  public void exportNonTerminationWitness(
-      CounterexampleInfo pCex,
-      PathTemplate pOutputFileTemplate,
-      int uniqueId,
-      int pNumberOfUnrollings)
-      throws IOException {
-    export(pCex, pOutputFileTemplate, uniqueId, OptionalInt.of(pNumberOfUnrollings));
-  }
-
-  private void export(
-      CounterexampleInfo pCex,
-      PathTemplate pOutputFileTemplate,
-      int uniqueId,
-      OptionalInt pNumberOfUnrollings)
-      throws IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, witnessVersion.toString());
-      exportWitness(pCex, outputFile, witnessVersion, pNumberOfUnrollings);
+      exportWitness(pCex, outputFile, witnessVersion);
     }
   }
 }

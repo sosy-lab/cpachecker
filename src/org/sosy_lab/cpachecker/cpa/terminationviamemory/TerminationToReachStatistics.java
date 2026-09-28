@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 
@@ -40,7 +40,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
   private final TerminationYAMLWitnessExporter terminationWitnessExporter;
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
-  private CounterexampleToWitness nonterminationWitnessExporter;
+  private NonterminationCounterexampleToWitness nonterminationWitnessExporter;
   private Scope scope;
 
   public TerminationToReachStatistics(
@@ -63,7 +63,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pLogger);
     nonterminationWitnessExporter =
-        new CounterexampleToWitness(
+        new NonterminationCounterexampleToWitness(
             pConfig,
             pCFA,
             Specification.alwaysSatisfied()
@@ -73,12 +73,12 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    if (terminationWitnessExporter.isExportEnabled() && pResult == Result.FALSE) {
+    if (nonterminationWitnessExporter.isExportEnabled() && pResult == Result.FALSE) {
       int uniqueId = 0;
       for (CounterexampleInfo info : getAllCounterexamples(pReached).values()) {
         try {
           nonterminationWitnessExporter.export(
-              info, terminationWitnessExporter.getOutputFileTemplate(), uniqueId);
+              info, nonterminationWitnessExporter.getOutputFileTemplate(), uniqueId);
         } catch (IOException e) {
           logger.logUserException(
               WARNING, e, "There is a problem when writing the witness into a file.");

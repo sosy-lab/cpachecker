@@ -114,7 +114,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
@@ -183,7 +183,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   protected final WitnessExporter witnessExporter;
   protected final TerminationYAMLWitnessExporter terminationWitnessExporter;
-  private final CounterexampleToWitness cexToWitnessEporter;
+  private final NonterminationCounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
@@ -218,7 +218,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             pLogger);
 
     cexToWitnessEporter =
-        new CounterexampleToWitness(
+        new NonterminationCounterexampleToWitness(
             pConfig,
             pCFA,
             Specification.alwaysSatisfied()
