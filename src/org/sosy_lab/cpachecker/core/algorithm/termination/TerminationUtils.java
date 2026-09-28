@@ -149,6 +149,7 @@ public class TerminationUtils {
   public static InvariantEntry convertSupportingInvariantToInvariantEntry(
       SupportingInvariant pSupportingInvariant, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
+    // This is planned in https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1483
     FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();
 
     LocationRecord locationRecord =
@@ -175,6 +176,7 @@ public class TerminationUtils {
     ImmutableList.Builder<String> transitionInvariants = ImmutableList.builder();
 
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
+    // This is planned in https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1483
     FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
