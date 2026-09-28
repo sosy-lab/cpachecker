@@ -148,28 +148,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
       secure = true,
-      name = "yamlProofWitness",
-      description =
-          "The template from which the different "
-              + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.yml");
-
-  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
-  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
-  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
-  // added to make it possible to deactivate the export.
-  @Option(
-      secure = true,
-      name = "exportYamlCorrectnessWitness",
-      description = "export correctness witness in YAML format")
-  protected boolean exportYamlCorrectnessWitness = true;
-
-  @Option(
-      secure = true,
       name = "exportSupportingInvariantsInWitness",
       description = "export supporting invariants in the witness")
   private boolean exportSupportingInvariantsInWitness = false;
@@ -231,18 +209,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             Specification.alwaysSatisfied()
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
-    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      terminationWitnessExporter =
-          new TerminationYAMLWitnessExporter(
-              pConfig,
-              pCFA,
-              Specification.alwaysSatisfied()
-                  .withAdditionalProperties(
-                      ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-              pLogger);
-    } else {
-      terminationWitnessExporter = null;
-    }
+    terminationWitnessExporter =
+        new TerminationYAMLWitnessExporter(
+            pConfig,
+            pCFA,
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+            pLogger);
 
     cexToWitnessEporter =
         new CounterexampleToWitness(
@@ -492,11 +465,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(!violations.hasNext());
     }
 
-    if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
+    if (pResult == Result.TRUE && terminationWitnessExporter.isExportEnabled()) {
       try {
         terminationWitnessExporter.export(
-            convertRankingFunctionToTransitionInvariant(terminationArguments),
-            yamlWitnessOutputFileTemplate);
+            convertRankingFunctionToTransitionInvariant(terminationArguments));
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");

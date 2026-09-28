@@ -22,11 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -58,30 +54,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
-@Options(prefix = "terminationtoreach")
 public class TerminationToReachStatistics extends ARGStatistics implements Statistics {
-  @Option(
-      secure = true,
-      name = "terminationWitness",
-      description =
-          "The template from which the different "
-              + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected PathTemplate terminationWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.yml");
-
-  // Since the default of the 'terminationWitness' option is not null, it is not possible to
-  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
-  // null. Due to this reason, the 'exportTerminationCorrectnessWitness' option is
-  // added to make it possible to deactivate the export.
-  @Option(
-      secure = true,
-      name = "exportTerminationWitness",
-      description = "export witness in YAML format")
-  protected boolean exportTerminationWitness = true;
-
   private ImmutableSet<Loop> nonterminatingLoops = null;
   private final TerminationYAMLWitnessExporter terminationWitnessExporter;
   private FormulaManagerView fmgr;
@@ -99,7 +72,6 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
         Specification.alwaysSatisfied()
             .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
         pCFA);
-    pConfig.inject(this);
 
     scope = new CProgramScope(pCFA, pLogger);
     terminationWitnessExporter =
@@ -120,14 +92,12 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    if (terminationWitnessOutputFileTemplate != null
-        && exportTerminationWitness
-        && pResult == Result.FALSE) {
+    if (terminationWitnessExporter.isExportEnabled() && pResult == Result.FALSE) {
       int uniqueId = 0;
       for (CounterexampleInfo info : getAllCounterexamples(pReached).values()) {
         try {
           nonterminationWitnessExporter.export(
-              info, terminationWitnessOutputFileTemplate, uniqueId);
+              info, terminationWitnessExporter.getOutputFileTemplate(), uniqueId);
         } catch (IOException e) {
           logger.logUserException(
               WARNING, e, "There is a problem when writing the witness into a file.");
@@ -136,9 +106,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
       }
     }
 
-    if (exportTerminationWitness
-        && terminationWitnessOutputFileTemplate != null
-        && pResult == Result.TRUE) {
+    if (terminationWitnessExporter.isExportEnabled() && pResult == Result.TRUE) {
       exportTerminationWitness(pReached);
     }
   }
@@ -245,8 +213,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
     }
     try {
       terminationWitnessExporter.export(
-          transitionInvariants.values().stream().collect(ImmutableList.toImmutableList()),
-          terminationWitnessOutputFileTemplate);
+          transitionInvariants.values().stream().collect(ImmutableList.toImmutableList()));
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "There is a problem when writing the witness into a file.");
