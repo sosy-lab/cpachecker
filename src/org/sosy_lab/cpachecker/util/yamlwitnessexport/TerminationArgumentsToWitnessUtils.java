@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 public class TerminationArgumentsToWitnessUtils {
 
   private static String rightSideOfRankingFunction(String pRankingFunction) {
+    // The ranking function comes from LassoRanker, so we have little options on how to process it,
+    // therefore, we have to work with the strings.
     int firstEquals = pRankingFunction.indexOf('=');
     return pRankingFunction.substring(firstEquals + 1).trim();
   }
