@@ -139,16 +139,12 @@ public class TransitionInvariantUtils {
 
   private static boolean containsPointerVariables(
       BooleanFormula pFormula, FormulaManagerView fmgr, Scope pScope) {
-    try {
-      for (String variable : fmgr.extractVariables(pFormula).keySet()) {
-        String varWithoutFunc = removeFunctionFromVarsName(variable);
-        if (pScope.variableNameInUse(varWithoutFunc)
-            && pScope.lookupVariable(varWithoutFunc).getType().getCanonicalType() instanceof CPointerType) {
-          return true;
-        }
+    for (String variable : fmgr.extractVariables(pFormula).keySet()) {
+      String varWithoutFunc = removeFunctionFromVarsName(variable);
+      if (pScope.variableNameInUse(varWithoutFunc)
+          && pScope.lookupVariable(varWithoutFunc).getType().getCanonicalType() instanceof CPointerType) {
+        return true;
       }
-    } catch (NullPointerException e) {
-      return false;
     }
     return false;
   }
