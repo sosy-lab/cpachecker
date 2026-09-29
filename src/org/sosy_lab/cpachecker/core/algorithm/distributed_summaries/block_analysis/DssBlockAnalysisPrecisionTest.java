@@ -81,7 +81,11 @@ public class DssBlockAnalysisPrecisionTest {
   }
 
   private Harness createHarness(boolean pOptimized) throws Exception {
-    CFA cfa = TestCfaUtils.makeCfaFromFunctionBody("int x = 0; int y = x + 1; return y;");
+    return createHarness(
+        pOptimized, TestCfaUtils.makeCfaFromFunctionBody("int x = 0; int y = x + 1; return y;"));
+  }
+
+  private Harness createHarness(boolean pOptimized, CFA cfa) throws Exception {
     BlockNode root = new SingleBlockDecomposition().decompose(cfa).getRoot();
     BlockNode block =
         new BlockNode(
@@ -345,6 +349,38 @@ public class DssBlockAnalysisPrecisionTest {
                     .getPredicates(h.analysis().getBlock().getFinalLocation(), 1))
             .contains(h.predicate());
       }
+    }
+  }
+
+  @Test
+  public void reportsPostconditionsAlongsideViolations() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromString(
+            "extern int choose(void); int main(void) { int x = choose();"
+                + " if (x) { ERROR: return 1; } return 0; }");
+    try (Harness h = createHarness(true, cfa)) {
+      DssPostConditionMessage input =
+          h.messages()
+              .createDssPostConditionMessage(
+                  "predecessor",
+                  AlgorithmStatus.SOUND_AND_PRECISE,
+                  h.analysis()
+                      .serialize(
+                          ImmutableList.of(
+                              new StateAndPrecision(
+                                  h.analysis().makeStartState(false),
+                                  h.analysis().makeStartPrecision()))));
+      assertThat(h.analysis().storePrecondition(input).shouldProceed()).isTrue();
+      Collection<DssMessage> output = h.analysis().analyze(false);
+      assertThat(output.stream().anyMatch(DssViolationConditionMessage.class::isInstance)).isTrue();
+      DssPostConditionMessage summary =
+          output.stream()
+              .filter(DssPostConditionMessage.class::isInstance)
+              .map(DssPostConditionMessage.class::cast)
+              .findFirst()
+              .orElseThrow();
+      assertThat(summary.indicatesUnreachableBlockEnd()).isFalse();
+      assertThat(h.analysis().deserialize(summary)).isNotEmpty();
     }
   }
 }

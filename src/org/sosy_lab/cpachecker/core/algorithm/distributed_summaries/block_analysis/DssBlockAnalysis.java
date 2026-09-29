@@ -338,10 +338,6 @@ public final class DssBlockAnalysis {
     return messages.build();
   }
 
-  public boolean hasUnresolvedViolations() {
-    return engine.hasUnresolvedViolations();
-  }
-
   public ImmutableMap<String, String> serializedPreconditions() {
     return serialize(preconditions.getKnownPreconditions());
   }

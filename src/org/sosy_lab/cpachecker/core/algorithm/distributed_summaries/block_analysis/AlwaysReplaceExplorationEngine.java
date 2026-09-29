@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
 
-  private boolean unresolvedViolations;
-
   private final DssBlockAnalysis analysis;
   private final AlwaysReplacePreconditionHandler preconditionHandler;
   private final DssViolationConditionHandler violationConditions;
@@ -57,20 +55,14 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
   }
 
   @Override
-  public boolean hasUnresolvedViolations() {
-    return unresolvedViolations;
-  }
-
-  @Override
   public AnalysisResult exploreInitially() throws CPAException, InterruptedException {
     DssBlockAnalysisResult result =
         analysis.runInitialBlockAnalysis(
             analysis.makeStartState(true), analysis.makeStartPrecision());
 
     if (result.getAllViolations().isEmpty()) {
-      // The initial run publishes only the violations that originate inside the block. Its
-      // postcondition stays unpublished, matching explore(boolean), which explores nothing as
-      // long as no violation condition is known.
+      // The initial run starts without a received precondition to discover local violations.
+      // Forward summaries are computed when actual preconditions arrive.
       return AnalysisResult.empty();
     }
     return AnalysisResult.ofViolationConditions(
@@ -84,7 +76,6 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
   @Override
   public AnalysisResult explore(boolean pViolationConditionsChanged)
       throws CPAException, InterruptedException {
-    unresolvedViolations = false;
     BlockToProgramLocationMap preconditions = preconditionHandler.getPreconditions();
     if (!pViolationConditionsChanged && preconditions.isUnreachable()) {
       // every predecessor reported an unreachable block end, so this block cannot be entered.
@@ -136,13 +127,10 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
             exploreFrom(preconditionStates, ImmutableList.of(), precisionOfAnalysis, false));
         continue;
       }
-      // A round under all exit contexts at once is the postcondition this precondition really has,
-      // which is why the per-context rounds below are replaced by exactly such a round whenever
-      // more than one context turns out to be safe. Trying it first pays off because a violation
-      // under one context also shows up in the combined round: if that round finds none, every
-      // context is safe and the per-context rounds would have been discarded anyway. Only if it
-      // does find one do the contexts have to be told apart, because a violation under one of them
-      // must not suppress the postcondition established under another.
+      // Try all exit contexts together first: if the combined round has no violation, it
+      // already provides the summary that separately safe contexts would have been merged into.
+      // Otherwise explore the contexts separately to keep their violation conditions apart.
+      // Completed summaries are retained even when a context also produces violations.
       if (allConditionProgramPoints.size() > 1) {
         AnalysisResult combined =
             exploreFrom(
@@ -164,7 +152,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
                 conditionsPerLocation.get(conditionProgramPoint),
                 precisionOfAnalysis,
                 false);
-        if (!round.summaries().isEmpty()) {
+        if (round.violationConditions().isEmpty() && !round.summaries().isEmpty()) {
           safeConditionProgramPoints.add(conditionProgramPoint);
         }
         rounds.put(ImmutableList.of(preconditionProgramPoint, conditionProgramPoint), round);
@@ -245,31 +233,21 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-      } else if (!pDiscardSummaries) {
+      }
+      if (!pDiscardSummaries) {
+        // runBlockAnalysis exhausts the block waitlist, including when it finds violations.
+        // Publish the reached exits as well: withholding them can starve successor blocks while
+        // the same violation conditions circulate around a loop and are deduplicated.
         summaries.addAll(analysis.summariesOf(result));
       }
     }
 
+    if (pDiscardSummaries) {
+      // A speculative run does not describe the exits reached from actual preconditions.
+      // Report its violations without claiming that the block end is unreachable.
+      return AnalysisResult.ofViolationConditions(violations.build());
+    }
     Set<StateAndPrecision> finalSummaries = summaries.build();
-    Set<ArgPathAndCondition> finalViolations = violations.build();
-
-    if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
-      if (pDiscardSummaries) {
-        // A speculative round throws its summaries away by construction, so finding nothing says
-        // that it found no violation -- not that the block end is out of reach. Reporting it as
-        // unreachable would be a claim about a block this round did not even enter from its real
-        // preconditions, and successors would take it as proof that they can never be entered.
-        return AnalysisResult.empty();
-      }
-      // the exploration produced no state at the final location
-      return AnalysisResult.unreachableBlockEnd();
-    }
-
-    if (!finalViolations.isEmpty()) {
-      unresolvedViolations |= !pDiscardSummaries;
-      // summaries found alongside a violation are discarded: the violation has to be resolved first
-      return AnalysisResult.ofViolationConditions(finalViolations);
-    }
 
     Set<AbstractState> violationsToConsider =
         FluentIterable.from(finalSummaries)
@@ -278,16 +256,16 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
             .transformAndConcat(b -> b.getHinderedByCallstack())
             .toSet();
 
-    if (!violationsToConsider.isEmpty() && !pDiscardSummaries) {
-      finalViolations =
+    if (!violationsToConsider.isEmpty()) {
+      violations.addAll(
           exploreFrom(
                   ImmutableSet.of(analysis.makeStartState(true)),
                   pViolationConditions,
                   precision,
                   true)
-              .violationConditions();
+              .violationConditions());
     }
 
-    return new AnalysisResult(finalSummaries, finalViolations, false);
+    return new AnalysisResult(finalSummaries, violations.build(), finalSummaries.isEmpty());
   }
 }

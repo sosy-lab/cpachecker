@@ -89,9 +89,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final DssSingleWorkerStatistics workerStats;
 
-  /** Read by the executor only after all workers became idle. */
-  private volatile boolean unresolvedViolations;
-
   private boolean shutdown;
   private boolean closed;
 
@@ -159,10 +156,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
                     workerStats));
   }
 
-  public boolean hasUnresolvedViolations() {
-    return unresolvedViolations;
-  }
-
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, SolverException, InterruptedException {
     return analysis.getDssBlockAnalysis().runInitialAnalysis();
@@ -213,10 +206,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     boolean violationConditionsChanged = violationConditionsPending;
     preconditionsPending = false;
     violationConditionsPending = false;
-    DssBlockAnalysis blockAnalysis = analysis.getDssBlockAnalysis();
-    Collection<DssMessage> messages = blockAnalysis.analyze(violationConditionsChanged);
-    unresolvedViolations = blockAnalysis.hasUnresolvedViolations();
-    return messages;
+    return analysis.getDssBlockAnalysis().analyze(violationConditionsChanged);
   }
 
   private Collection<DssMessage> store(DssMessage message) {

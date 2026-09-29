@@ -39,15 +39,12 @@ record AnalysisResult(
     return new AnalysisResult(ImmutableSet.of(), ImmutableSet.of(), false);
   }
 
-  /** A round whose block end is unreachable, i.e., that publishes no postcondition at all. */
+  /** A round whose block end is unreachable and reports false as its postcondition. */
   static AnalysisResult unreachableBlockEnd() {
     return new AnalysisResult(ImmutableSet.of(), ImmutableSet.of(), true);
   }
 
-  /**
-   * A round that found violations. Its summaries are dropped, because the violations have to be
-   * resolved before a postcondition of this block means anything.
-   */
+  /** Backward information from a run that does not publish summaries, such as a speculative run. */
   static AnalysisResult ofViolationConditions(Set<ArgPathAndCondition> pViolationConditions) {
     return new AnalysisResult(ImmutableSet.of(), pViolationConditions, false);
   }
