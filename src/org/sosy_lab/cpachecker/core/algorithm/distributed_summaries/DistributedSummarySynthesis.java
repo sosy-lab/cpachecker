@@ -24,8 +24,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions.DecompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
@@ -131,6 +133,16 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration = pConfig;
     configuration.inject(this);
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
+    if (new DssAnalysisOptions(configuration).getBlockAnalysisType()
+            == DssBlockAnalysisType.PARTIAL_REPLACE
+        && decompositionOptions.getDecompositionType()
+            != DecompositionType.INLINING_DECOMPOSITION) {
+      // PARTIAL_REPLACE ignores program points, which is only correct if every block has exactly
+      // one entry and one exit context, i.e., with the inlining decomposition
+      throw new InvalidConfigurationException(
+          "distributedSummaries.blockAnalysisType=PARTIAL_REPLACE requires"
+              + " distributedSummaries.decomposition.decompositionType=INLINING_DECOMPOSITION");
+    }
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;

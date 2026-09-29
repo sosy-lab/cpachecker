@@ -4650,7 +4650,7 @@ distributedSummaries.abstractAtBlockEntry = true
 
 # Which block analysis to use for the distributed summaries algorithm
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
-  enum:     [ALWAYS_REPLACE]
+  enum:     [ALWAYS_REPLACE, PARTIAL_REPLACE]
 
 # Whether to cache computed, combined, and normalized violation conditions.
 distributedSummaries.cacheViolationConditions = true
