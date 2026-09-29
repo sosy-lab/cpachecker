@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,5 +54,19 @@ public class CompositeViolationConditionOperator implements ViolationConditionOp
       }
     }
     return Optional.of(new CompositeState(states.build()));
+  }
+
+  @Override
+  public boolean supportsGraph() {
+    return CompositeGraphViolationConditionOperator.supports(analyses);
+  }
+
+  @Override
+  public List<AbstractState> computeConditions(ARGPath path, Optional<ARGState> previous)
+      throws InterruptedException, CPATransferException, SolverException {
+    if (path instanceof DssARGPathGraph graph) {
+      return new CompositeGraphViolationConditionOperator(analyses).compute(graph, previous);
+    }
+    return ViolationConditionOperator.super.computeConditions(path, previous);
   }
 }

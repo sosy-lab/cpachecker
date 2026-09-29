@@ -9,10 +9,33 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 
 public class BlockNode extends BlockNodeWithoutGraphInformation {
+  private final Optional<CallstackState> knownEntryCallstack;
+
+  /** A complete entry stack, only present after a successful context preanalysis. */
+  public Optional<CallstackState> getKnownEntryCallstack() {
+    return knownEntryCallstack;
+  }
+
+  /** Returns a copy, keeping shared decomposition caches independent of this analysis run. */
+  public BlockNode withKnownEntryCallstack(CallstackState pStack) {
+    return new BlockNode(
+        getId(),
+        getInitialLocation(),
+        getFinalLocation(),
+        getNodes(),
+        getEdges(),
+        predecessorIds,
+        successorIds,
+        violationConditionLocation,
+        Optional.of(pStack));
+  }
+
   private final ImmutableSet<String> predecessorIds;
   private final ImmutableSet<String> successorIds;
   private final CFANode violationConditionLocation;
@@ -37,7 +60,30 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
       ImmutableSet<String> pPredecessorIds,
       ImmutableSet<String> pSuccessorIds,
       CFANode pViolationConditionLocation) {
+    this(
+        pId,
+        pFirst,
+        pLast,
+        pNodes,
+        pEdges,
+        pPredecessorIds,
+        pSuccessorIds,
+        pViolationConditionLocation,
+        Optional.empty());
+  }
+
+  private BlockNode(
+      String pId,
+      CFANode pFirst,
+      CFANode pLast,
+      ImmutableSet<CFANode> pNodes,
+      ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<String> pPredecessorIds,
+      ImmutableSet<String> pSuccessorIds,
+      CFANode pViolationConditionLocation,
+      Optional<CallstackState> pKnownEntryCallstack) {
     super(pId, pFirst, pLast, pNodes, pEdges);
+    knownEntryCallstack = pKnownEntryCallstack;
     predecessorIds = pPredecessorIds;
     successorIds = pSuccessorIds;
     violationConditionLocation = pViolationConditionLocation;

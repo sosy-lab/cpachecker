@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition;
 
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -32,4 +33,13 @@ public interface ViolationConditionOperator {
   Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException;
+
+  default boolean supportsGraph() {
+    return false;
+  }
+
+  default List<AbstractState> computeConditions(ARGPath path, Optional<ARGState> previous)
+      throws InterruptedException, CPATransferException, SolverException {
+    return computeViolationCondition(path, previous).stream().toList();
+  }
 }

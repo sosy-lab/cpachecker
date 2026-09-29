@@ -77,6 +77,20 @@ public abstract class DssMessage {
   public static final String DSS_MESSAGE_HEADER_TIMESTAMP_KEY = "timestamp";
   public static final String DSS_MESSAGE_HEADER_IDENTIFIER_KEY = "identifier";
 
+  public static final String SHARED_PRECISION_KEY = "sharedPrecision";
+  public static final String PRECISION_UPDATE_KEY = "precisionUpdate";
+  public static final String PRECISION_ONLY_KEY = "precisionOnly";
+
+  /** Whether this message carries a precision shared at block boundaries. */
+  public final boolean hasPrecisionUpdate() {
+    return Boolean.parseBoolean(content.getOrDefault(PRECISION_UPDATE_KEY, "false"));
+  }
+
+  /** A precision-only update does not replace any stored states or reachability information. */
+  public final boolean isPrecisionOnly() {
+    return Boolean.parseBoolean(content.getOrDefault(PRECISION_ONLY_KEY, "false"));
+  }
+
   private final String senderId;
   private final DssMessageType type;
   private final Instant timestamp;
@@ -94,7 +108,7 @@ public abstract class DssMessage {
     senderId = pSenderId;
     type = pType;
     timestamp = Instant.now();
-    content = ImmutableMap.copyOf(pContent);
+    content = PredicatePrecisionDictionary.encode(pContent);
   }
 
   /**
@@ -118,13 +132,17 @@ public abstract class DssMessage {
   }
 
   private ContentReader getArbitraryContent(String pKey) {
+    return getArbitraryContent(pKey, content);
+  }
+
+  private ContentReader getArbitraryContent(String pKey, Map<String, String> pContent) {
     checkArgument(
         type == DssMessageType.POST_CONDITION
             || type == DssMessageType.VIOLATION_CONDITION
             || type == DssMessageType.WITNESS,
         "Cannot get content for type: %s",
         type);
-    Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
+    Map<String, String> stateContent = ContentReader.read(pContent).pushLevel(pKey).getContent();
     checkState(!stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
     checkState(
         stateContent.values().stream().noneMatch(Objects::isNull),
@@ -164,7 +182,9 @@ public abstract class DssMessage {
   }
 
   public final ContentReader getPrecisionContent(Class<? extends Precision> pPrecision) {
-    return getArbitraryContent(pPrecision.getName());
+    return getArbitraryContent(
+        pPrecision.getName(),
+        PredicatePrecisionDictionary.decode(content, pPrecision.getName() + "."));
   }
 
   public final Result getResult() {

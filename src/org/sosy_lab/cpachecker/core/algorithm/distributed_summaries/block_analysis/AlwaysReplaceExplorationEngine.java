@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
 
+  private boolean unresolvedViolations;
+
   private final DssBlockAnalysis analysis;
   private final AlwaysReplacePreconditionHandler preconditionHandler;
   private final DssViolationConditionHandler violationConditions;
@@ -52,6 +54,11 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     analysis = pAnalysis;
     preconditionHandler = pPreconditionHandler;
     violationConditions = pViolationConditions;
+  }
+
+  @Override
+  public boolean hasUnresolvedViolations() {
+    return unresolvedViolations;
   }
 
   @Override
@@ -77,6 +84,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
   @Override
   public AnalysisResult explore(boolean pViolationConditionsChanged)
       throws CPAException, InterruptedException {
+    unresolvedViolations = false;
     BlockToProgramLocationMap preconditions = preconditionHandler.getPreconditions();
     if (!pViolationConditionsChanged && preconditions.isUnreachable()) {
       // every predecessor reported an unreachable block end, so this block cannot be entered.
@@ -201,10 +209,10 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       violations.addAll(round.violationConditions());
       unreachable &= round.blockEndUnreachable();
     }
-    return new AnalysisResult(
-        analysis.deduplicateStatesAndPrecisions(summaries.build()),
-        violations.build(),
-        unreachable);
+    ImmutableSet<StateAndPrecision> exactSummaries = summaries.build();
+    ImmutableList<StateAndPrecision> outgoing = analysis.combineSummaries(exactSummaries);
+    ImmutableSet<ArgPathAndCondition> allViolations = violations.build();
+    return new AnalysisResult(outgoing, allViolations, unreachable);
   }
 
   /**
@@ -221,11 +229,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       throws CPAException, InterruptedException {
 
     statesToProcess = transformedImmutableListCopy(statesToProcess, analysis.getDcpa()::reset);
-    if (analysis.getOptions().combinePreconditionsByHash()) {
-      statesToProcess =
-          ImmutableList.of(
-              analysis.getDcpa().getCombineOperator().combinePreconditions(statesToProcess));
-    }
+    statesToProcess = analysis.combineStates(statesToProcess);
 
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
@@ -259,6 +263,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     }
 
     if (!finalViolations.isEmpty()) {
+      unresolvedViolations |= !pDiscardSummaries;
       // summaries found alongside a violation are discarded: the violation has to be resolved first
       return AnalysisResult.ofViolationConditions(finalViolations);
     }

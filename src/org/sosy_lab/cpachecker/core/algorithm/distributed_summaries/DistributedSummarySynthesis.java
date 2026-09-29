@@ -24,6 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockCallstackAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -110,14 +111,20 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Option(description = "Decomposition type to use for the block analysis.", secure = true)
   private ExecutorType executorType = ExecutorType.DSS;
 
+  @Option(
+      secure = true,
+      description = "Infer unique entry callstacks before speculative block exploration.")
+  private boolean inferEntryCallstacks = false;
+
   private enum ExecutorType {
     DSS,
     SINGLE_WORKER,
     SEQUENTIAL
   }
 
-  // Cache is static because it is shared between different instances of DistributedSummarySynthesis
-  private static final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
+  // Decomposition and instrumentation depend on this analysis configuration. A later restart
+  // may use the same CFA with different boundaries, so it must not reuse this cache.
+  private final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
 
   public DistributedSummarySynthesis(
       Configuration pConfig,
@@ -129,7 +136,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       throws InvalidConfigurationException {
     configuration = pConfig;
     configuration.inject(this);
-
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
@@ -227,6 +233,20 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       }
       CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
+      if (inferEntryCallstacks) {
+        var knownStacks =
+            DssBlockCallstackAnalysis.compute(
+                blockGraph, cfa, logger, shutdownManager.getNotifier());
+        ImmutableSet.Builder<BlockNode> contextualBlocks = ImmutableSet.builder();
+        for (BlockNode block : blockGraph.getNodes()) {
+          var stack = knownStacks.get(block);
+          contextualBlocks.add(stack == null ? block : block.withKnownEntryCallstack(stack));
+        }
+        blockGraph = new BlockGraph(contextualBlocks.build());
+        modification = new Modification(cfa, blockGraph, modification.metadata());
+        logger.logf(
+            Level.FINE, "Inferred unique entry callstacks for %d blocks.", knownStacks.size());
+      }
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
@@ -249,7 +269,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
     } finally {
-      logger.log(Level.INFO, "Block analysis finished.");
+      logger.log(Level.INFO, "Block analysis terminated.");
     }
   }
 

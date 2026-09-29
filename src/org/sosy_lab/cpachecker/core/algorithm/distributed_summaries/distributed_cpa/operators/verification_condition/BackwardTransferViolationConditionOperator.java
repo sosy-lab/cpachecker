@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition;
 
 import com.google.common.collect.Iterables;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -43,30 +42,35 @@ public class BackwardTransferViolationConditionOperator implements ViolationCond
       throws InterruptedException, CPATransferException {
     List<CFAEdge> counterexample = pARGPath.getFullPath();
     CFANode lastLocation = Objects.requireNonNull(counterexample.getLast()).getSuccessor();
-    AbstractState state =
-        cpa.getInitialState(lastLocation, StateSpacePartition.getDefaultPartition());
-    if (pPreviousCondition.isPresent()) {
-      state =
-          Objects.requireNonNull(
-              AbstractStates.extractStateByType(
-                  pPreviousCondition.orElseThrow(), state.getClass()));
-    }
-    for (int i = counterexample.size() - 1; i >= 0; i--) {
-      CFAEdge currentEdge = counterexample.get(i);
-      if (currentEdge instanceof BlankEdge blank
-          && blank.getDescription().equals(BlockGraph.GHOST_EDGE_DESCRIPTION)) {
+    return prepend(initialState(lastLocation, pPreviousCondition), counterexample);
+  }
+
+  public AbstractState initialState(CFANode location, Optional<ARGState> previous)
+      throws InterruptedException {
+    AbstractState state = cpa.getInitialState(location, StateSpacePartition.getDefaultPartition());
+    return previous.isEmpty()
+        ? state
+        : Objects.requireNonNull(
+            AbstractStates.extractStateByType(previous.orElseThrow(), state.getClass()));
+  }
+
+  public Optional<AbstractState> prepend(AbstractState state, List<CFAEdge> edges)
+      throws InterruptedException, CPATransferException {
+    for (CFAEdge edge : edges.reversed()) {
+      if (edge instanceof BlankEdge
+          && edge.getDescription().equals(BlockGraph.GHOST_EDGE_DESCRIPTION)) {
         continue;
       }
-      Collection<? extends AbstractState> successors =
+      var successors =
           transferRelation.getAbstractSuccessorsForEdge(
               state,
               cpa.getInitialPrecision(
-                  currentEdge.getSuccessor(), StateSpacePartition.getDefaultPartition()),
-              currentEdge);
+                  edge.getSuccessor(), StateSpacePartition.getDefaultPartition()),
+              edge);
       if (successors.isEmpty()) {
         return Optional.empty();
       }
-      state = Objects.requireNonNull(Iterables.getOnlyElement(successors));
+      state = Iterables.getOnlyElement(successors);
     }
     return Optional.of(state);
   }

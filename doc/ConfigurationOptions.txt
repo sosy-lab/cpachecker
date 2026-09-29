@@ -2059,6 +2059,9 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
+# Check known DSS callstacks directly at block boundaries.
+cpa.callstack.dssDirectKnownStackCheck = false
+
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -2352,6 +2355,11 @@ cpa.local.localvariables = {}
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
 
+# Create location states only when visited instead of allocating states for
+# the entire CFA. Useful when many analyses each visit only a small part of
+# the CFA.
+cpa.location.lazyStates = false
+
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE
   enum:     [RACE, DEADLOCK]
@@ -2573,6 +2581,12 @@ cpa.predicate.abstraction.computation = BOOLEAN
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
+
+# Use a satisfiability check instead of a full predicate abstraction at
+# target states. Enable only when target states are terminal: their
+# abstraction retains no predicates, but their block formula is preserved for
+# refinement.
+cpa.predicate.abstraction.feasibilityOnlyAtTargets = false
 
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
@@ -4647,9 +4661,6 @@ differential.variableSetMerge = false
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
   enum:     [ALWAYS_REPLACE]
 
-# Whether to combine preconditions at same program location
-distributedSummaries.combinePresByHash = false
-
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true
 
@@ -4698,9 +4709,15 @@ distributedSummaries.decomposition.importDecomposition = no default value
 # allows all merges
 distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT
 
+# Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.
+distributedSummaries.decomposition.mergeBranchBoundaries = false
+
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
+
+# Infer unique entry callstacks before speculative block exploration.
+distributedSummaries.inferEntryCallstacks = false
 
 # output file for visualizing the block graph
 distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
@@ -4708,12 +4725,17 @@ distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
 # output file for visualizing message exchange
 distributedSummaries.logging.reportFiles = "block_analysis/messages"
 
-# Print per-block statistics in addition to aggregate block statistics.
+# Print per-block statistics, including the local CPA and CEGAR statistics,
+# in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
 
 # Whether to reset callstack state before running a block analysis; usually
 # used together with the inlining decomposition
 distributedSummaries.resetCallstackState = false
+
+# Seed each predicate worker's initial precision with guards at its entry and
+# exit. These are candidate predicates, not assumed facts.
+distributedSummaries.seedBoundaryAssumptions = false
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4766,6 +4788,38 @@ distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
 
 # Whether to query the SMT solver before proceeding backwards.
 dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
+
+# Whether to rewrite generalized violation conditions over the predicates of
+# the precondition where possible. These are the predicates the predecessors
+# abstract their block ends with, including the interpolants they learned
+# while refuting violation conditions of this block. Has no effect unless
+# generalizeViolationConditions is enabled.
+dss.cpa.predicate.generalizeOverPreconditionPredicates = true
+
+# Whether to rewrite every violation condition as a disjunction of cubes
+# generalized from models, restricted to the entry states the block can
+# currently be entered with. Each cube really reaches the violation, and the
+# cubes together cover the condition for all states of the current
+# precondition.
+dss.cpa.predicate.generalizeViolationConditions = true
+
+# The maximal number of cubes a generalized violation condition may consist
+# of. A condition that needs more is sent exactly.
+dss.cpa.predicate.maxCubesPerViolationCondition = 16
+
+# Whether graph-condition projection may substitute into nested disjunctions.
+# Disabling this keeps shared intermediate values, which can make large exact
+# conditions easier for the solver even when messages become larger.
+dss.cpa.predicate.projectNestedDisjunctions = true
+
+# Whether to remove the intermediate variables of a violation condition
+# before it is sent. The result is equivalent, but usually much smaller, and
+# conditions of different paths that only differ in intermediate values
+# become equal.
+dss.cpa.predicate.projectViolationConditions = true
+
+# Compute violation conditions over the shared ARG graph.
+dss.graphViolationConditions = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
