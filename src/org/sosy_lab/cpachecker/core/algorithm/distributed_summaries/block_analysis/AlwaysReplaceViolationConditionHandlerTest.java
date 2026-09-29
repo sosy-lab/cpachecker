@@ -93,7 +93,7 @@ public class AlwaysReplaceViolationConditionHandlerTest {
               Collection<StateAndPrecision> second = invocation.getArgument(1);
               return second.stream()
                   .map(StateAndPrecision::precision)
-                  .collect(java.util.stream.Collectors.toSet())
+                  .collect(ImmutableSet.toImmutableSet())
                   .containsAll(first.stream().map(StateAndPrecision::precision).toList());
             });
     when(analysis.deduplicateViolationConditions(any()))
@@ -171,7 +171,7 @@ public class AlwaysReplaceViolationConditionHandlerTest {
               Collection<StateAndPrecision> second = invocation.getArgument(1);
               return second.stream()
                   .map(StateAndPrecision::precision)
-                  .collect(java.util.stream.Collectors.toSet())
+                  .collect(ImmutableSet.toImmutableSet())
                   .containsAll(first.stream().map(StateAndPrecision::precision).toList());
             });
     when(analysis.deduplicateViolationConditions(any()))

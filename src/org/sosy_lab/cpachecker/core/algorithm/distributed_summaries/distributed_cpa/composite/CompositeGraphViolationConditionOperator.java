@@ -174,7 +174,7 @@ final class CompositeGraphViolationConditionOperator<T> {
           Condition<T> old = atParent.get(key);
           if (old != null) {
             nextFormula = mergeable.union(old.condition(), nextFormula);
-            nextWitness = DecisionGraph.union(List.of(old.witness(), nextWitness));
+            nextWitness = DecisionGraph.union(ImmutableList.of(old.witness(), nextWitness));
           }
           atParent.put(key, new Condition<>(next, nextFormula, nextWitness));
         }

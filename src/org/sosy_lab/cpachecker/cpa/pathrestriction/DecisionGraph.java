@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.pathrestriction;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -211,13 +212,13 @@ public final class DecisionGraph {
   }
 
   public static DecisionGraph deserialize(String value) {
-    String[] nodes = value.split("/", -1);
-    Preconditions.checkArgument(nodes[0].equals("D"));
+    List<String> nodes = Splitter.on('/').splitToList(value);
+    Preconditions.checkArgument(nodes.getFirst().equals("D"));
     List<Node> built = new ArrayList<>();
     built.add(END);
-    for (int i = 1; i < nodes.length; i++) {
+    for (int i = 1; i < nodes.size(); i++) {
       List<Arc> arcs = new ArrayList<>();
-      for (String arc : nodes[i].split(",", -1)) {
+      for (String arc : Splitter.on(',').split(nodes.get(i))) {
         int colon = arc.indexOf(':');
         Preconditions.checkArgument(colon > 0);
         int target = Integer.parseInt(arc.substring(0, colon));
