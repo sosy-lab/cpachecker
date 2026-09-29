@@ -181,7 +181,8 @@ final class CompositeGraphViolationConditionOperator<T> {
       }
     }
     List<AbstractState> result = new ArrayList<>();
-    for (Condition<T> condition : values.getOrDefault(graph.getFirstState(), ImmutableMap.of()).values()) {
+    for (Condition<T> condition :
+        values.getOrDefault(graph.getFirstState(), ImmutableMap.of()).values()) {
       Optional<AbstractState> formula =
           mergeable.finishGraph(graph.getFirstState(), condition.condition());
       if (formula.isEmpty()) {

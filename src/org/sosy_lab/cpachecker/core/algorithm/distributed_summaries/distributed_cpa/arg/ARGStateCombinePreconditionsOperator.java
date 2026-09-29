@@ -34,7 +34,7 @@ public class ARGStateCombinePreconditionsOperator implements CombinePrecondition
   public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
       throws CPAException, InterruptedException {
     ImmutableList<AbstractState> wrappedStates =
-        transformedImmutableListCopy(states, s->((ARGState)s).getWrappedState());
+        transformedImmutableListCopy(states, s -> ((ARGState) s).getWrappedState());
     return wrappedCpa
         .getCombineOperator()
         .combineIfPossible(wrappedStates)

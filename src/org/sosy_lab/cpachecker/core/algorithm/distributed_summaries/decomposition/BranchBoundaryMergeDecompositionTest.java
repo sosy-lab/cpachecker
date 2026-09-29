@@ -29,7 +29,13 @@ import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 public class BranchBoundaryMergeDecompositionTest {
   private static Set<List<CFAEdge>> prefixes(BlockGraph graph) {
     Set<List<CFAEdge>> result = new LinkedHashSet<>();
-    collect(graph, graph.getRoot(), graph.getRoot().getInitialLocation(), false, ImmutableList.of(), result);
+    collect(
+        graph,
+        graph.getRoot(),
+        graph.getRoot().getInitialLocation(),
+        false,
+        ImmutableList.of(),
+        result);
     return result;
   }
 
