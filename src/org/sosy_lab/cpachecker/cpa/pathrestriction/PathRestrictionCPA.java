@@ -38,7 +38,7 @@ public class PathRestrictionCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return pathCollection != null && pathCollection.hasGraph()
-        ? new GraphPathRestrictionState(pathCollection.decisionGraph().cursor())
+        ? pathCollection.decisionGraph().cursor()
         : PathRestrictionState.initialState(pathCollection);
   }
 }

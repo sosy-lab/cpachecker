@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,9 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph.Incoming;
@@ -31,11 +35,16 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.PathRestrictionCPA;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -172,5 +181,100 @@ public class DssGraphViolationConditionTest {
     compare(
         "int x; if (flag > 0) x = 1; else x = 2; if (flag < 5) x = x + 3; else x = x + 4; if (x =="
             + " 5) { ERROR: return 1; }");
+  }
+
+  private static CFA diamondCfa() throws Exception {
+    return TestCfaUtils.makeCfaFromString(
+        "int main(int flag) { int x; if (flag) x = 1; else x = 2;"
+            + " if (x) x++; else x--; return 0; }");
+  }
+
+  private static void collectCfaPaths(
+      CFANode node, ImmutableList<CFAEdge> prefix, List<ImmutableList<CFAEdge>> paths) {
+    if (node.getNumLeavingEdges() == 0) {
+      paths.add(prefix);
+    } else {
+      for (CFAEdge edge : node.getLeavingEdges()) {
+        collectCfaPaths(
+            edge.getSuccessor(),
+            ImmutableList.<CFAEdge>builder().addAll(prefix).add(edge).build(),
+            paths);
+      }
+    }
+  }
+
+  private static boolean accepts(SegmentedPaths witness, CFA cfa, List<CFAEdge> path)
+      throws Exception {
+    PathRestrictionCPA cpa = (PathRestrictionCPA) PathRestrictionCPA.factory().createInstance();
+    cpa.init(witness);
+    List<AbstractState> states =
+        ImmutableList.of(
+            cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
+    for (CFAEdge edge : path) {
+      List<AbstractState> successors = new ArrayList<>();
+      for (AbstractState state : states) {
+        successors.addAll(
+            cpa.getTransferRelation()
+                .getAbstractSuccessorsForEdge(state, SingletonPrecision.getInstance(), edge));
+      }
+      states = successors;
+    }
+    return !states.isEmpty();
+  }
+
+  @Test
+  public void graphWitnessReplayPreservesCorrelatedAlternatives() throws Exception {
+    CFA cfa = diamondCfa();
+    List<ImmutableList<CFAEdge>> paths = new ArrayList<>();
+    collectCfaPaths(cfa.getMainFunction(), ImmutableList.of(), paths);
+    assertThat(paths).hasSize(4);
+    // Keep only two correlated choices; the two mixed paths must stay excluded.
+    List<ImmutableList<CFAEdge>> selected = ImmutableList.of(paths.getFirst(), paths.getLast());
+    SegmentedPaths explicit =
+        SegmentedPaths.merge(selected.stream().map(SegmentedPaths.EMPTY::addEdgesToFront).toList());
+    SegmentedPaths graph =
+        SegmentedPaths.EMPTY.addGraphToFront(
+            DecisionGraph.union(selected.stream().map(DecisionGraph.EMPTY::prepend).toList()));
+    SegmentedPaths roundTrip = SegmentedPaths.deserialize(graph.serialize());
+    assertThat(roundTrip).isEqualTo(graph);
+    for (ImmutableList<CFAEdge> path : paths) {
+      assertThat(accepts(explicit, cfa, path)).isEqualTo(selected.contains(path));
+      assertThat(accepts(roundTrip, cfa, path)).isEqualTo(selected.contains(path));
+    }
+    CFAEdge first =
+        selected.getFirst().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    CFAEdge second =
+        selected.getLast().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    ImmutableMap<CFAEdge, CFAEdge> replacements = ImmutableMap.of(first, second, second, first);
+    SegmentedPaths mappedGraph = roundTrip.transformEdges(replacements);
+    SegmentedPaths mappedExplicit = explicit.transformEdges(replacements);
+    for (ImmutableList<CFAEdge> path : paths) {
+      assertThat(accepts(mappedGraph, cfa, path)).isEqualTo(accepts(mappedExplicit, cfa, path));
+    }
+  }
+
+  @Test
+  public void graphWitnessKeepsExponentialChoicesCompact() throws Exception {
+    CFA cfa = diamondCfa();
+    List<ImmutableList<CFAEdge>> paths = new ArrayList<>();
+    collectCfaPaths(cfa.getMainFunction(), ImmutableList.of(), paths);
+    CFAEdge first =
+        paths.getFirst().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    CFAEdge second =
+        paths.getLast().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    DecisionGraph graph = DecisionGraph.EMPTY;
+    for (int i = 0; i < 30; i++) {
+      graph =
+          DecisionGraph.union(
+              ImmutableList.of(
+                  graph.prepend(ImmutableList.of(first)), graph.prepend(ImmutableList.of(second))));
+    }
+    assertThat(graph.size()).isEqualTo(30);
+    assertThat(graph.serialize().length()).isLessThan(10_000);
+    DecisionGraph.Cursor cursor = DecisionGraph.deserialize(graph.serialize()).cursor();
+    for (int i = 0; i < 30; i++) {
+      cursor = cursor.advance(i % 2 == 0 ? first : second);
+      assertThat(cursor.isEmpty()).isFalse();
+    }
   }
 }
