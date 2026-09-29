@@ -426,10 +426,18 @@ public final class DssBlockAnalysis {
     if (first.isEmpty() || second.isEmpty()) {
       return first.isEmpty();
     }
+    // By contract, adding covered precisions does not change the combination. The stored ones go
+    // first, so components without a combine operator keep the stored precision.
     CombinePrecisionOperator operator = dcpa.getCombinePrecisionOperator();
-    return operator.isCoveredBy(
-        operator.union(transformedImmutableListCopy(first, StateAndPrecision::precision)),
-        operator.union(transformedImmutableListCopy(second, StateAndPrecision::precision)));
+    ImmutableList<Precision> stored =
+        transformedImmutableListCopy(second, StateAndPrecision::precision);
+    return operator
+        .combine(
+            ImmutableList.<Precision>builder()
+                .addAll(stored)
+                .addAll(transformedImmutableListCopy(first, StateAndPrecision::precision))
+                .build())
+        .equals(operator.combine(stored));
   }
 
   /**
@@ -765,7 +773,8 @@ public final class DssBlockAnalysis {
             new StateAndPrecision(
                 combined.orElseThrow(),
                 dcpa.getCombinePrecisionOperator()
-                    .union(transformedImmutableListCopy(summaries, StateAndPrecision::precision))));
+                    .combine(
+                        transformedImmutableListCopy(summaries, StateAndPrecision::precision))));
       } else {
         result.addAll(deduplicateStatesAndPrecisions(summaries));
       }
@@ -855,7 +864,8 @@ public final class DssBlockAnalysis {
       }
       Precision precision =
           options.sharePrecision()
-              ? dcpa.getCombinePrecisionOperator().union(precisionPerProgramPoint.get(programPoint))
+              ? dcpa.getCombinePrecisionOperator()
+                  .combine(precisionPerProgramPoint.get(programPoint))
               : makeStartPrecision();
       for (AbstractState condition : combination) {
         vcs.add(new StateAndPrecision(condition, precision));

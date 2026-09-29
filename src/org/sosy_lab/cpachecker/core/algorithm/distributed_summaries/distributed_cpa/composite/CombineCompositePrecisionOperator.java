@@ -28,16 +28,6 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
 
   @Override
   public Precision combine(Collection<Precision> precisions) throws InterruptedException {
-    return combineComponentWise(precisions, false);
-  }
-
-  @Override
-  public Precision union(Collection<Precision> precisions) throws InterruptedException {
-    return combineComponentWise(precisions, true);
-  }
-
-  private Precision combineComponentWise(Collection<Precision> precisions, boolean pUnion)
-      throws InterruptedException {
     Preconditions.checkArgument(!precisions.isEmpty(), "States cannot be empty");
     Preconditions.checkArgument(
         precisions.stream().allMatch(CompositePrecision.class::isInstance),
@@ -59,10 +49,7 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
       }
       ImmutableList<Precision> preparedPrecisions = precisionsToCombine.build();
       if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa) {
-        Precision combinePrecision =
-            pUnion
-                ? dcpa.getCombinePrecisionOperator().union(preparedPrecisions)
-                : dcpa.getCombinePrecisionOperator().combine(preparedPrecisions);
+        Precision combinePrecision = dcpa.getCombinePrecisionOperator().combine(preparedPrecisions);
         Preconditions.checkState(
             combinePrecision.getClass().equals(preparedPrecisions.getFirst().getClass()));
         wrappedPrecisions.add(combinePrecision);
@@ -72,19 +59,5 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
       }
     }
     return new CompositePrecision(wrappedPrecisions.build());
-  }
-
-  @Override
-  public boolean isCoveredBy(Precision pPrecision, Precision pOther) throws InterruptedException {
-    ImmutableList<Precision> first = ((CompositePrecision) pPrecision).getWrappedPrecisions();
-    ImmutableList<Precision> second = ((CompositePrecision) pOther).getWrappedPrecisions();
-    for (int i = 0; i < wrapped.size(); i++) {
-      if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa
-          && !dcpa.getCombinePrecisionOperator().isCoveredBy(first.get(i), second.get(i))) {
-        return false;
-      }
-    }
-    // Non-distributed components do not transport precision; their initial precision is local.
-    return true;
   }
 }
