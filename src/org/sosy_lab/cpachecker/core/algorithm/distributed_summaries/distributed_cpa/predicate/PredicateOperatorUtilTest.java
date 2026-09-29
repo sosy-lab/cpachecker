@@ -10,16 +10,39 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.Optional;
+import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 
-@SuppressWarnings("deprecation") // Tests need formulas with deliberately chosen SSA interfaces.
 public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
+  private PathFormulaManager pathFormulaManager;
+
+  @Before
+  public void createPathFormulaManager() throws InvalidConfigurationException {
+    pathFormulaManager =
+        new PathFormulaManagerImpl(
+            mgrv,
+            config,
+            logger,
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.empty(),
+            AnalysisDirection.FORWARD,
+            Language.C);
+  }
+
   @Override
   protected Solvers solverToUse() {
     return Solvers.SMTINTERPOL;
@@ -30,11 +53,11 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
     var ints = mgrv.getIntegerFormulaManager();
     var formula = ints.equal(ints.makeVariable("x@1"), ints.makeVariable("x@2"));
     var path =
-        PathFormula.createManually(
-            formula,
-            SSAMap.emptySSAMap().builder().setIndex("x", CNumericTypes.INT, 2).build(),
-            PointerTargetSet.emptyPointerTargetSet(),
-            0);
+        pathFormulaManager
+            .makeEmptyPathFormulaWithContext(
+                SSAMap.emptySSAMap().builder().setIndex("x", CNumericTypes.INT, 2).build(),
+                PointerTargetSet.emptyPointerTargetSet())
+            .withFormula(formula);
     var first =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
@@ -56,8 +79,10 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
     var ints = mgrv.getIntegerFormulaManager();
     var formula = ints.equal(ints.makeVariable("local!value"), ints.makeVariable("x"));
     var path =
-        PathFormula.createManually(
-            formula, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
+        pathFormulaManager
+            .makeEmptyPathFormulaWithContext(
+                SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet())
+            .withFormula(formula);
     var first =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
@@ -80,11 +105,14 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
             ints.equal(ints.makeVariable("record.field@1"), ints.makeNumber(0)),
             ints.equal(ints.makeVariable("record.field@2"), ints.makeNumber(1)));
     var path =
-        PathFormula.createManually(
-            formula,
-            SSAMap.emptySSAMap().builder().setIndex("record.field", CNumericTypes.INT, 2).build(),
-            PointerTargetSet.emptyPointerTargetSet(),
-            0);
+        pathFormulaManager
+            .makeEmptyPathFormulaWithContext(
+                SSAMap.emptySSAMap()
+                    .builder()
+                    .setIndex("record.field", CNumericTypes.INT, 2)
+                    .build(),
+                PointerTargetSet.emptyPointerTargetSet())
+            .withFormula(formula);
     var condition =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
@@ -108,11 +136,11 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
             ints.equal(ints.makeVariable("private!v#at2"), ints.makeNumber(4)),
             ints.equal(ints.makeVariable("x@2"), ints.makeNumber(5)));
     var path =
-        PathFormula.createManually(
-            formula,
-            SSAMap.emptySSAMap().builder().setIndex("x", CNumericTypes.INT, 2).build(),
-            PointerTargetSet.emptyPointerTargetSet(),
-            0);
+        pathFormulaManager
+            .makeEmptyPathFormulaWithContext(
+                SSAMap.emptySSAMap().builder().setIndex("x", CNumericTypes.INT, 2).build(),
+                PointerTargetSet.emptyPointerTargetSet())
+            .withFormula(formula);
     var normalized = PredicateOperatorUtil.normalizeForComparison(path, mgrv);
     assertThat(solver.isUnsat(normalized)).isFalse();
     assertThat(solver.implies(normalized, ints.equal(ints.makeVariable("x"), ints.makeNumber(5))))
@@ -126,15 +154,15 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
     var formula =
         ints.equal(ints.makeVariable("__VERIFIER_nondet_int@2"), ints.makeVariable("x@1"));
     var path =
-        PathFormula.createManually(
-            formula,
-            SSAMap.emptySSAMap()
-                .builder()
-                .setIndex("__VERIFIER_nondet_int", CNumericTypes.INT, 2)
-                .setIndex("x", CNumericTypes.INT, 1)
-                .build(),
-            PointerTargetSet.emptyPointerTargetSet(),
-            0);
+        pathFormulaManager
+            .makeEmptyPathFormulaWithContext(
+                SSAMap.emptySSAMap()
+                    .builder()
+                    .setIndex("__VERIFIER_nondet_int", CNumericTypes.INT, 2)
+                    .setIndex("x", CNumericTypes.INT, 1)
+                    .build(),
+                PointerTargetSet.emptyPointerTargetSet())
+            .withFormula(formula);
     var first = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
     var second = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
     var x = ints.makeVariable("x");

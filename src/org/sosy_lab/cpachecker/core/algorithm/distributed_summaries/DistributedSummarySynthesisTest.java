@@ -14,10 +14,12 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 import java.util.regex.Pattern;
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,7 +70,6 @@ public class DistributedSummarySynthesisTest {
   }
 
   @Test
-  @SuppressWarnings("deprecation") // Inspect inherited options without constructing an analysis.
   public void portfolioStagesPreserveCallerLimitsAndSpecification() throws Exception {
     var caller =
         Configuration.builder()
@@ -83,8 +84,10 @@ public class DistributedSummarySynthesisTest {
               .loadFromFile(
                   "config/distributed-summary-synthesis/dss-coverage-" + stage + ".properties")
               .build();
-      assertThat(config.getProperty("limits.time.cpu")).isEqualTo("7800s");
-      assertThat(config.getProperty("specification")).isEqualTo("caller.spc");
+      Properties inherited = new Properties();
+      inherited.load(new StringReader(config.asPropertiesString()));
+      assertThat(inherited.getProperty("limits.time.cpu")).isEqualTo("7800s");
+      assertThat(inherited.getProperty("specification")).isEqualTo("caller.spc");
     }
   }
 
