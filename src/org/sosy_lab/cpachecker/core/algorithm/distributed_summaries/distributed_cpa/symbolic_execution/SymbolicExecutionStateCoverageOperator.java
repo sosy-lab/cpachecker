@@ -67,6 +67,11 @@ public class SymbolicExecutionStateCoverageOperator implements CoverageOperator 
     return false;
   }
 
+  @Override
+  public boolean areStatesSyntacticallyEqual(AbstractState state1, AbstractState state2) {
+    return state1.equals(state2);
+  }
+
   private boolean isSubsumedForValueStates(ValueAnalysisState pState1, ValueAnalysisState pState2)
       throws UnrecognizedCodeException, InterruptedException {
 
