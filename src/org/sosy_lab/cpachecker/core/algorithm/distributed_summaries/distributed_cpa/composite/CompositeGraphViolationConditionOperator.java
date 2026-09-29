@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -31,8 +32,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -110,6 +113,37 @@ final class CompositeGraphViolationConditionOperator {
 
   List<AbstractState> compute(DssARGPathGraph graph, Optional<ARGState> previous)
       throws InterruptedException, CPATransferException, SolverException {
+    // The forward formula describes the union of all paths. Reuse it only while the other
+    // components preserve that whole union: any filtered transition or distinct backward state
+    // requires the original, correlated backward computation instead.
+    BlockState targetBlock =
+        Objects.requireNonNull(
+            AbstractStates.extractStateByType(graph.getLastState(), BlockState.class));
+    boolean matchingCondition =
+        previous.isPresent()
+            ? targetBlock.getType() == BlockState.BlockStateType.ABSTRACTION
+                && targetBlock
+                    .getViolationConditions()
+                    .equals(ImmutableList.of(previous.orElseThrow()))
+            : targetBlock.getType() != BlockState.BlockStateType.ABSTRACTION;
+    boolean eligible =
+        matchingCondition
+            && predicate.supportsExactForwardConditions(graph.getFirstState())
+            && graph.backwardOrder().stream()
+                .allMatch(
+                    n ->
+                        n == graph.getFirstState()
+                            || n == graph.getLastState()
+                            || !Objects.requireNonNull(
+                                    AbstractStates.extractStateByType(
+                                        n, PredicateAbstractState.class))
+                                .isAbstractionState());
+    return compute(graph, previous, eligible);
+  }
+
+  private List<AbstractState> compute(
+      DssARGPathGraph graph, Optional<ARGState> previous, boolean forward)
+      throws InterruptedException, CPATransferException, SolverException {
     var values = new HashMap<ARGState, Map<List<Map<String, String>>, Condition>>();
     List<AbstractState> initial = new ArrayList<>();
     for (Component component : components) {
@@ -149,23 +183,39 @@ final class CompositeGraphViolationConditionOperator {
             next.add(state.orElseThrow());
           }
           if (!feasible) {
+            if (forward) {
+              return compute(graph, previous, false);
+            }
             continue;
           }
-          var nextFormula = predicate.prepend(condition.formula(), incoming.edges());
+          var nextFormula =
+              forward
+                  ? condition.formula()
+                  : predicate.prepend(condition.formula(), incoming.edges());
           var nextWitness = condition.witness().prepend(incoming.edges());
           var key = key(next);
           var old = atParent.get(key);
           if (old != null) {
-            nextFormula = predicate.union(old.formula(), nextFormula);
+            if (!forward) {
+              nextFormula = predicate.union(old.formula(), nextFormula);
+            }
             nextWitness = DecisionGraph.union(List.of(old.witness(), nextWitness));
           }
           atParent.put(key, new Condition(next, nextFormula, nextWitness));
+          if (forward && atParent.size() > 1) {
+            return compute(graph, previous, false);
+          }
         }
       }
     }
     List<AbstractState> result = new ArrayList<>();
     for (Condition condition : values.getOrDefault(graph.getFirstState(), Map.of()).values()) {
-      var formula = predicate.finishGraph(graph.getFirstState(), condition.formula());
+      var formula =
+          predicate.finishGraph(
+              graph.getFirstState(),
+              forward
+                  ? predicate.exactForwardCondition(graph.getFirstState(), graph.getLastState())
+                  : condition.formula());
       if (formula.isEmpty()) {
         continue;
       }

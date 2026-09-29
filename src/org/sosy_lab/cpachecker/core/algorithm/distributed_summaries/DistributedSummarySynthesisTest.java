@@ -68,6 +68,46 @@ public class DistributedSummarySynthesisTest {
   }
 
   @Test
+  public void stalledViolationPropagationMustNotProduceProof() throws Exception {
+    var config =
+        TestUtils.configurationForTestWithOutput(tempFolder)
+            .loadFromFile("config/distributed-summary-synthesis/dss-coverage-fallback.properties")
+            .setOption("specification", "config/specification/sv-comp-reachability.spc")
+            .setOption("analysis.machineModel", "Linux64")
+            .setOption("distributedSummaries.executorType", "SEQUENTIAL")
+            .setOption("output.disable", "true")
+            .build();
+    IntegrationTestRunner.run(config, "test/programs/dss/partial-replace-stalled-loop.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void entryInvariantsDoNotTurnUncertainComparisonIntoTrue() throws Exception {
+    Path program = tempFolder.getRoot().toPath().resolve("comparison.c");
+    Files.writeString(
+        program,
+        "extern unsigned long __VERIFIER_nondet_ulong(void); "
+            + "extern void __VERIFIER_error(void); int main(void) { "
+            + "unsigned long long raw = __VERIFIER_nondet_ulong(); "
+            + "unsigned char special = ((raw | (0x7ULL << 52)) == -1); "
+            + "unsigned char valid = (raw == 0); "
+            + "if (!(special || valid)) __VERIFIER_error(); return 0; }");
+    var config =
+        TestUtils.configurationForTestWithOutput(tempFolder)
+            .loadFromFile("config/distributed-summary-synthesis/dss-coverage-fallback.properties")
+            .setOption("specification", "config/specification/sv-comp-reachability.spc")
+            .setOption("analysis.machineModel", "Linux64")
+            .setOption("distributedSummaries.decomposition.largestHorizontalMerge", "1")
+            .setOption(
+                "distributedSummaries.entryInvariantConfiguration",
+                "config/distributed-summary-synthesis/dss-entry-invariants.properties")
+            .setOption("distributedSummaries.entryInvariantTimeLimit", "10s")
+            .setOption("output.disable", "true")
+            .build();
+    IntegrationTestRunner.run(config, program.toString()).assertIsUnsafe();
+  }
+
+  @Test
   @SuppressWarnings("deprecation") // Inspect inherited options without constructing an analysis.
   public void portfolioStagesPreserveCallerLimitsAndSpecification() throws Exception {
     var caller =

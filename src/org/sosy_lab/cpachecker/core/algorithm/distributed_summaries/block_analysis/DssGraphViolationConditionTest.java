@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -40,7 +42,19 @@ import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+@RunWith(Parameterized.class)
 public class DssGraphViolationConditionTest {
+  @Parameterized.Parameters(name = "exact={0}")
+  public static ImmutableList<Boolean> modes() {
+    return ImmutableList.of(false, true);
+  }
+
+  private final boolean exact;
+
+  public DssGraphViolationConditionTest(boolean pExact) {
+    exact = pExact;
+  }
+
   private static List<ARGPath> enumerate(DssARGPathGraph graph) {
     List<ARGPath> result = new ArrayList<>();
     enumerate(graph, new ArrayList<>(List.of(graph.getLastState())), result);
@@ -68,6 +82,7 @@ public class DssGraphViolationConditionTest {
         TestUtils.configurationForTest()
             .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
             .setOption("dss.graphViolationConditions", "true")
+            .setOption("dss.exactBoundaryRefinement", Boolean.toString(exact))
             .setOption("dss.cpa.predicate.generalizeViolationConditions", "false")
             .build();
     var logger = LogManager.createTestLogManager();

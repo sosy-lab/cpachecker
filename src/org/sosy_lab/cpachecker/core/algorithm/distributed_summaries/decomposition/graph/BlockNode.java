@@ -12,10 +12,31 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssPredicateEntryInvariant;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 
 public class BlockNode extends BlockNodeWithoutGraphInformation {
   private final Optional<CallstackState> knownEntryCallstack;
+  private final Optional<DssPredicateEntryInvariant> entryInvariant;
+
+  public Optional<DssPredicateEntryInvariant> getEntryInvariant() {
+    return entryInvariant;
+  }
+
+  /** Attaches per-run facts without changing the cached decomposition. */
+  public BlockNode withEntryInvariant(DssPredicateEntryInvariant invariant) {
+    return new BlockNode(
+        getId(),
+        getInitialLocation(),
+        getFinalLocation(),
+        getNodes(),
+        getEdges(),
+        predecessorIds,
+        successorIds,
+        violationConditionLocation,
+        knownEntryCallstack,
+        Optional.of(invariant));
+  }
 
   /** A complete entry stack, only present after a successful context preanalysis. */
   public Optional<CallstackState> getKnownEntryCallstack() {
@@ -33,7 +54,8 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
         predecessorIds,
         successorIds,
         violationConditionLocation,
-        Optional.of(pStack));
+        Optional.of(pStack),
+        entryInvariant);
   }
 
   private final ImmutableSet<String> predecessorIds;
@@ -69,6 +91,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
         pPredecessorIds,
         pSuccessorIds,
         pViolationConditionLocation,
+        Optional.empty(),
         Optional.empty());
   }
 
@@ -81,9 +104,11 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
       ImmutableSet<String> pPredecessorIds,
       ImmutableSet<String> pSuccessorIds,
       CFANode pViolationConditionLocation,
-      Optional<CallstackState> pKnownEntryCallstack) {
+      Optional<CallstackState> pKnownEntryCallstack,
+      Optional<DssPredicateEntryInvariant> pEntryInvariant) {
     super(pId, pFirst, pLast, pNodes, pEdges);
     knownEntryCallstack = pKnownEntryCallstack;
+    entryInvariant = pEntryInvariant;
     predecessorIds = pPredecessorIds;
     successorIds = pSuccessorIds;
     violationConditionLocation = pViolationConditionLocation;

@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -119,6 +120,25 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 @Options(prefix = "dss")
 public final class DssBlockAnalysis {
+  @Option(
+      secure = true,
+      description =
+          "Explore acyclic predicate blocks exactly, refine from refuted exit conditions,"
+              + " and abstract summaries only when they may be published.")
+  private boolean exactBoundaryRefinement = false;
+
+  private final @Nullable DssPredicateBoundaryRefinement boundaryRefinement;
+  private long explorationPrecisionVersion;
+
+  boolean usesExactBoundaryRefinement() {
+    return exactBoundaryRefinement;
+  }
+
+  /** Exact exploration depends on non-predicate precision, but not on boundary predicates. */
+  long explorationPrecisionVersion() {
+    return exactBoundaryRefinement ? explorationPrecisionVersion : precisionVersion;
+  }
+
   @Option(secure = true, description = "Compute violation conditions over the shared ARG graph.")
   private boolean graphViolationConditions = false;
 
@@ -146,8 +166,8 @@ public final class DssBlockAnalysis {
    * The violation condition computed for every path of the last report. A violation condition only
    * depends on its path, the condition the path was explored under, and the precondition the path
    * starts in, and {@link ArgPathAndCondition#equals} compares exactly these. An engine that keeps
-   * its paths across rounds reports most of them again, and computing a condition can cost several
-   * solver queries.
+   * its paths across rounds, like {@link PartialReplaceExplorationEngine}, reports most of them
+   * again, and computing a condition can cost several solver queries.
    */
   private Map<ArgPathAndCondition, List<AbstractState>> violationConditionPerPath = new HashMap<>();
 
@@ -189,6 +209,11 @@ public final class DssBlockAnalysis {
             pLogger, pSpecification, pCfa, pConfiguration, pShutdownManager, pBlock);
     algorithm = parts.algorithm();
     ConfigurableProgramAnalysis cpa = parts.cpa();
+    if (block.getEntryInvariant().isPresent()
+        && CPAs.retrieveCPA(cpa, PredicateCPA.class) == null) {
+      throw new InvalidConfigurationException("DSS entry invariants require PredicateCPA");
+    }
+
     dcpa =
         DssFactory.distribute(
             cpa,
@@ -211,6 +236,22 @@ public final class DssBlockAnalysis {
       pWorkerStats.setDcpaStatistics(composite.getStatistics());
     }
 
+    if (exactBoundaryRefinement) {
+      if (!(dcpa instanceof DistributedARGCPA arg
+              && arg.getWrappedCPA() instanceof DistributedCompositeCPA)
+          || !dcpa.getViolationConditionOperator().supportsGraph()) {
+        throw new InvalidConfigurationException(
+            "Exact boundary refinement requires ARG/Composite with the supported DSS predicate,"
+                + " location, callstack, function-pointer, block, and specification CPAs.");
+      }
+      PredicateCPA predicate =
+          Objects.requireNonNull(CPAs.retrieveCPA(dcpa.getCPA(), PredicateCPA.class));
+      predicate.enableExactBlockExploration();
+      boundaryRefinement =
+          new DssPredicateBoundaryRefinement(predicate, block.getFinalLocation(), pConfiguration);
+    } else {
+      boundaryRefinement = null;
+    }
     PredicateCPA predicate = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     boundarySeeds =
         options.seedBoundaryAssumptions() && predicate != null
@@ -259,9 +300,19 @@ public final class DssBlockAnalysis {
         ResourceLimitChecker.fromConfiguration(globalConfig, singleLogger, singleShutdownManager);
     singleLimits.start();
 
+    Configuration analysisConfig = globalConfig;
+    if (exactBoundaryRefinement) {
+      // Targets were checked against the complete block formula. Boundary interpolation below
+      // supplies refinement; another CEGAR feasibility check would duplicate the target SAT check.
+      analysisConfig =
+          Configuration.builder()
+              .copyFrom(globalConfig)
+              .setOption("analysis.algorithm.CEGAR", "false")
+              .build();
+    }
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
-            globalConfig,
+            analysisConfig,
             singleLogger,
             singleShutdownManager.getNotifier(),
             AggregatedReachedSets.empty(),
@@ -461,9 +512,18 @@ public final class DssBlockAnalysis {
     if (union.equals(workerPrecision)) {
       return false;
     }
+    if (exactBoundaryRefinement
+        && !nonPredicatePrecision(union).equals(nonPredicatePrecision(workerPrecision))) {
+      explorationPrecisionVersion++;
+    }
     workerPrecision = union;
     precisionVersion++;
     return true;
+  }
+
+  private static List<Precision> nonPredicatePrecision(Precision precision) {
+    return ((CompositePrecision) precision)
+        .getWrappedPrecisions().stream().filter(p -> !(p instanceof PredicatePrecision)).toList();
   }
 
   private boolean receivePrecision(DssMessage pMessage) throws InterruptedException {
@@ -764,11 +824,24 @@ public final class DssBlockAnalysis {
       throws CPAException, InterruptedException {
     reachedSet.clear();
     retainPrecision(pPrecision);
+    pPrecondition = strengthenEntry(pPrecondition);
     reachedSet.add(pPrecondition, workerPrecision);
     DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet);
     status = status.update(result.getStatus());
     retainPrecision(precisionOfLastAnalysis());
     return result;
+  }
+
+  private AbstractState strengthenEntry(AbstractState state) throws InterruptedException {
+    if (block.getEntryInvariant().isEmpty()) {
+      return state;
+    }
+    return block
+        .getEntryInvariant()
+        .orElseThrow()
+        .strengthen(
+            (ARGState) state,
+            Objects.requireNonNull(CPAs.retrieveCPA(dcpa.getCPA(), PredicateCPA.class)));
   }
 
   /** Explores the block once from the given precondition under the given violation conditions. */
@@ -779,6 +852,7 @@ public final class DssBlockAnalysis {
       throws CPAException, InterruptedException {
     reachedSet.clear();
     retainPrecision(pPrecision);
+    pPrecondition = strengthenEntry(pPrecondition);
     reachedSet.add(pPrecondition, workerPrecision);
     blockStateOf(pPrecondition).setViolationConditions(ImmutableList.copyOf(pViolationConditions));
     try {
@@ -786,6 +860,11 @@ public final class DssBlockAnalysis {
       DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet);
       status = status.update(result.getStatus());
       retainPrecision(precisionOfLastAnalysis());
+      if (boundaryRefinement != null) {
+        retainPrecision(
+            boundaryRefinement.refine(
+                result.getFinalLocationStates(), pViolationConditions, workerPrecision));
+      }
       return result;
     } finally {
       workerStats.getBlockAnalysisTimer().stop();
@@ -829,6 +908,9 @@ public final class DssBlockAnalysis {
    */
   ImmutableList<StateAndPrecision> combineSummaries(Collection<StateAndPrecision> pSummaries)
       throws CPAException, InterruptedException {
+    if (boundaryRefinement != null) {
+      pSummaries = boundaryRefinement.abstractSummaries(pSummaries, workerPrecision);
+    }
     ImmutableListMultimap<Object, StateAndPrecision> groups =
         Multimaps.index(pSummaries, sap -> dcpa.computeProgramPointId(sap.state()));
     ImmutableList.Builder<StateAndPrecision> result = ImmutableList.builder();

@@ -52,7 +52,7 @@ public class DssBlockAnalysisPrecisionTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static ImmutableList<String> modes() {
-    return ImmutableList.of("ALWAYS_REPLACE");
+    return ImmutableList.of("ALWAYS_REPLACE", "PARTIAL_REPLACE");
   }
 
   private final String mode;
