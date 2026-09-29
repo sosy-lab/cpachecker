@@ -39,7 +39,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
     Set<CFANode> protectedBoundaries =
         new LinkedHashSet<>(cfa.getLoopStructure().orElseThrow().getAllLoopHeads());
     Map<String, Set<String>> renamed = new LinkedHashMap<>();
-    nodes.forEach(n -> renamed.put(n.getId(), Set.of("ORIGINAL_" + n.getId())));
+    nodes.forEach(n -> renamed.put(n.getId(), ImmutableSet.of("ORIGINAL_" + n.getId())));
     nodes =
         nodes.stream()
             .map(
@@ -159,7 +159,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
       Set<String> ids, Map<String, Set<String>> replacements) {
     ImmutableSet.Builder<String> result = ImmutableSet.<String>builder();
     for (String id : ids) {
-      result.addAll(replacements.getOrDefault(id, Set.of(id)));
+      result.addAll(replacements.getOrDefault(id, ImmutableSet.of(id)));
     }
     return result.build();
   }

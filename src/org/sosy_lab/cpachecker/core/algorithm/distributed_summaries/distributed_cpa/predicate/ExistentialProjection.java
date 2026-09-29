@@ -353,10 +353,10 @@ final class ExistentialProjection {
                 if (pArgs.size() != 2) {
                   yield null;
                 }
-                if (pArgs.get(0).equals(pVariable)) {
+                if (pArgs.getFirst().equals(pVariable)) {
                   yield pArgs.get(1);
                 }
-                yield pArgs.get(1).equals(pVariable) ? pArgs.get(0) : null;
+                yield pArgs.get(1).equals(pVariable) ? pArgs.getFirst() : null;
               }
               default -> null;
             };
@@ -496,8 +496,8 @@ final class ExistentialProjection {
           if (pArgs.size() != 2) {
             yield null;
           }
-          Definition definition = definitionOf(pArgs.get(0), pArgs.get(1));
-          yield definition != null ? definition : definitionOf(pArgs.get(1), pArgs.get(0));
+          Definition definition = definitionOf(pArgs.getFirst(), pArgs.get(1));
+          yield definition != null ? definition : definitionOf(pArgs.get(1), pArgs.getFirst());
         }
         case NOT -> {
           String name = variableName(pArgs.getFirst());

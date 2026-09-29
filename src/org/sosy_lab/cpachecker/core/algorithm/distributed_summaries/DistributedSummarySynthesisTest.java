@@ -133,6 +133,6 @@ public class DistributedSummarySynthesisTest {
             .map(m -> Integer.parseInt(m.group(1)))
             .toList();
     assertThat(sizes).hasSize(2);
-    assertThat(sizes.get(1)).isGreaterThan(sizes.get(0));
+    assertThat(sizes.get(1)).isGreaterThan(sizes.getFirst());
   }
 }

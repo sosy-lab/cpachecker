@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.pathrestriction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public final class DecisionGraph {
     }
   }
 
-  private static final Node END = new Node(List.of());
+  private static final Node END = new Node(ImmutableList.of());
   public static final DecisionGraph EMPTY = new DecisionGraph(END);
   private final Node root;
   private @Nullable String encoding;
@@ -56,7 +57,7 @@ public final class DecisionGraph {
     for (List<String> path : paths) {
       Node root = END;
       for (String edge : path.reversed()) {
-        root = new Node(List.of(new Arc(edge, root)));
+        root = new Node(ImmutableList.of(new Arc(edge, root)));
       }
       choices.add(new DecisionGraph(root));
     }
@@ -67,7 +68,7 @@ public final class DecisionGraph {
     Node result = root;
     for (CFAEdge edge : edges.reversed()) {
       if (SegmentedPaths.isDecisionEdge(edge)) {
-        result = new Node(List.of(new Arc(SegmentedPaths.edgeToString(edge), result)));
+        result = new Node(ImmutableList.of(new Arc(SegmentedPaths.edgeToString(edge), result)));
       }
     }
     return new DecisionGraph(result);
@@ -83,7 +84,7 @@ public final class DecisionGraph {
   }
 
   public DecisionGraph then(DecisionGraph suffix) {
-    return new DecisionGraph(copy(root, suffix.root, Map.of(), new IdentityHashMap<>()));
+    return new DecisionGraph(copy(root, suffix.root, ImmutableMap.of(), new IdentityHashMap<>()));
   }
 
   public DecisionGraph transformEdges(Map<String, String> replacements) {
@@ -182,7 +183,7 @@ public final class DecisionGraph {
   }
 
   public Cursor cursor() {
-    return new Cursor(List.of(root));
+    return new Cursor(ImmutableList.of(root));
   }
 
   public String serialize() {

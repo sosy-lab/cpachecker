@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,8 +72,8 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
             .booleanFormula();
     IntegerFormula x = ints.makeVariable("x");
-    first = mgrv.substitute(first, java.util.Map.of(x, ints.makeNumber(0)));
-    second = mgrv.substitute(second, java.util.Map.of(x, ints.makeNumber(1)));
+    first = mgrv.substitute(first, ImmutableMap.of(x, ints.makeNumber(0)));
+    second = mgrv.substitute(second, ImmutableMap.of(x, ints.makeNumber(1)));
     // Both instances are satisfiable with their own intermediate value. Reusing x.1 would
     // incorrectly require this private value to be both zero and one.
     assertThat(solver.isUnsat(bmgrv.and(first, second))).isFalse();
@@ -96,8 +97,8 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
             .booleanFormula();
     IntegerFormula x = ints.makeVariable("x");
-    first = mgrv.substitute(first, java.util.Map.of(x, ints.makeNumber(0)));
-    second = mgrv.substitute(second, java.util.Map.of(x, ints.makeNumber(1)));
+    first = mgrv.substitute(first, ImmutableMap.of(x, ints.makeNumber(0)));
+    second = mgrv.substitute(second, ImmutableMap.of(x, ints.makeNumber(1)));
     assertThat(solver.isUnsat(bmgrv.and(first, second))).isFalse();
   }
 
@@ -170,8 +171,8 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
     BooleanFormula first = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
     BooleanFormula second = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
     IntegerFormula x = ints.makeVariable("x");
-    first = mgrv.substitute(first, java.util.Map.of(x, ints.makeNumber(0)));
-    second = mgrv.substitute(second, java.util.Map.of(x, ints.makeNumber(1)));
+    first = mgrv.substitute(first, ImmutableMap.of(x, ints.makeNumber(0)));
+    second = mgrv.substitute(second, ImmutableMap.of(x, ints.makeNumber(1)));
     assertThat(solver.isUnsat(bmgrv.and(first, second))).isFalse();
   }
 }

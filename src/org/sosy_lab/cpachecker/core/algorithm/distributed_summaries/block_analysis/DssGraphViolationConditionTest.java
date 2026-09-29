@@ -50,7 +50,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class DssGraphViolationConditionTest {
   private static List<ARGPath> enumerate(DssARGPathGraph graph) {
     List<ARGPath> result = new ArrayList<>();
-    enumerate(graph, new ArrayList<>(List.of(graph.getLastState())), result);
+    enumerate(graph, new ArrayList<>(ImmutableList.of(graph.getLastState())), result);
     return result;
   }
 

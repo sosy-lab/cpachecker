@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,7 +29,7 @@ import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 public class BranchBoundaryMergeDecompositionTest {
   private static Set<List<CFAEdge>> prefixes(BlockGraph graph) {
     Set<List<CFAEdge>> result = new LinkedHashSet<>();
-    collect(graph, graph.getRoot(), graph.getRoot().getInitialLocation(), false, List.of(), result);
+    collect(graph, graph.getRoot(), graph.getRoot().getInitialLocation(), false, ImmutableList.of(), result);
     return result;
   }
 

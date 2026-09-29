@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -32,9 +34,7 @@ public class ARGStateCombinePreconditionsOperator implements CombinePrecondition
   public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
       throws CPAException, InterruptedException {
     ImmutableList<AbstractState> wrappedStates =
-        states.stream()
-            .map(s -> ((ARGState) s).getWrappedState())
-            .collect(ImmutableList.toImmutableList());
+        transformedImmutableListCopy(states, s->((ARGState)s).getWrappedState());
     return wrappedCpa
         .getCombineOperator()
         .combineIfPossible(wrappedStates)

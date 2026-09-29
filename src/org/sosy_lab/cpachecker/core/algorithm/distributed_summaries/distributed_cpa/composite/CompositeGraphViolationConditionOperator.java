@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -180,7 +181,7 @@ final class CompositeGraphViolationConditionOperator<T> {
       }
     }
     List<AbstractState> result = new ArrayList<>();
-    for (Condition<T> condition : values.getOrDefault(graph.getFirstState(), Map.of()).values()) {
+    for (Condition<T> condition : values.getOrDefault(graph.getFirstState(), ImmutableMap.of()).values()) {
       Optional<AbstractState> formula =
           mergeable.finishGraph(graph.getFirstState(), condition.condition());
       if (formula.isEmpty()) {
