@@ -164,7 +164,7 @@ public abstract class DssMessage {
   }
 
   /** The uncompressed immutable payload, for inspecting messages independently of wire encoding. */
-  public final ImmutableMap<String, String> getContent() {
+  final ImmutableMap<String, String> getContent() {
     return content;
   }
 
