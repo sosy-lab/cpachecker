@@ -150,8 +150,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
             ImmutableSet.builder();
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
-            collectInductiveTransitionInvariants(
-                terminationState, iterationFormula, location, keyPair);
+            collectInductiveTransitionInvariants(terminationState, iterationFormula, location);
 
         // If the BMC queries are UNSAT, we try to compute transition invariant
         // We strengthen the transition invariant with the prefix formula
@@ -227,8 +226,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   protected ImmutableSet.Builder<PartitionedRelationFormula> collectInductiveTransitionInvariants(
       TerminationToReachState terminationState,
       PartitionedRelationFormula iterationFormula,
-      CFANode location,
-      Pair<LocationState, CallstackState> keyPair)
+      CFANode location)
       throws InterruptedException {
     ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
         ImmutableSet.builder();

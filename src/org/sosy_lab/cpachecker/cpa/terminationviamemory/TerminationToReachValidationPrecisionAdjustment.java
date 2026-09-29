@@ -21,14 +21,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -74,19 +70,14 @@ public class TerminationToReachValidationPrecisionAdjustment
   protected ImmutableSet.Builder<PartitionedRelationFormula> collectInductiveTransitionInvariants(
       TerminationToReachState terminationState,
       PartitionedRelationFormula iterationFormula,
-      CFANode location,
-      Pair<LocationState, CallstackState> keyPair)
+      CFANode location)
       throws InterruptedException {
     ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
-        super.collectInductiveTransitionInvariants(
-            terminationState, iterationFormula, location, keyPair);
+        super.collectInductiveTransitionInvariants(terminationState, iterationFormula, location);
 
     // Add the predicates from the witness
     PartitionedRelationFormula invariantFromWitness =
-        new PartitionedRelationFormula(
-            collectCandidateTransitionInvariants(
-                location, terminationState.getPathFormulasForIteration().get(keyPair)),
-            fmgr);
+        new PartitionedRelationFormula(collectCandidateTransitionInvariants(location), fmgr);
     if (isInductiveTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
       builderTransitionInvariants.add(invariantFromWitness);
     }
@@ -98,8 +89,8 @@ public class TerminationToReachValidationPrecisionAdjustment
    * variables of the formula that do not belong to the previous state are renamed to variables of
    * the current state.
    */
-  private BooleanFormula collectCandidateTransitionInvariants(
-      CFANode pLocation, PathFormula pIterationFormula) throws InterruptedException {
+  private BooleanFormula collectCandidateTransitionInvariants(CFANode pLocation)
+      throws InterruptedException {
     BooleanFormula candidateTransitionInvariant = bfmgr.makeTrue();
     for (ExpressionTreeLocationInvariant invariant : candidateInvariants) {
       if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
@@ -112,7 +103,7 @@ public class TerminationToReachValidationPrecisionAdjustment
           if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
             invariantFormula = bfmgr.makeTrue();
           } else {
-            invariantFormula = invariant.getFormula(fmgr, pthfmgr, pIterationFormula);
+            invariantFormula = invariant.getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula());
           }
         } catch (CPATransferException e) {
           invariantFormula = bfmgr.makeTrue();
