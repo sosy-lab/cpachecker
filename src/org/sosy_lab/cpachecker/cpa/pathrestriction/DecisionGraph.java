@@ -95,7 +95,7 @@ public final class DecisionGraph {
     List<Node> result = new ArrayList<>();
     Set<Node> finished = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
     finished.add(END);
-    Deque<Visit> waiting = new ArrayDeque<Visit>();
+    Deque<Visit> waiting = new ArrayDeque<>();
     waiting.push(new Visit(root, root.arcs.iterator()));
     while (!waiting.isEmpty()) {
       Visit visit = waiting.peek();
@@ -140,7 +140,7 @@ public final class DecisionGraph {
     private Cursor(Collection<Node> nodes) {
       Set<Node> closed = new LinkedHashSet<>();
       Set<Node> visited = new LinkedHashSet<>();
-      Deque<Node> waiting = new ArrayDeque<Node>(nodes);
+      Deque<Node> waiting = new ArrayDeque<>(nodes);
       while (!waiting.isEmpty()) {
         Node node = waiting.removeFirst();
         if (!visited.add(node)) {
@@ -187,7 +187,7 @@ public final class DecisionGraph {
 
   public String serialize() {
     if (encoding == null) {
-      IdentityHashMap<Node, Integer> ids = new IdentityHashMap<Node, Integer>();
+      IdentityHashMap<Node, Integer> ids = new IdentityHashMap<>();
       ids.put(END, 0);
       List<String> nodes = new ArrayList<>();
       nodes.add("D");

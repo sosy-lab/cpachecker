@@ -125,8 +125,7 @@ final class CompositeGraphViolationConditionOperator<T> {
 
   List<AbstractState> compute(DssARGPathGraph graph, Optional<ARGState> previous)
       throws InterruptedException, CPATransferException, SolverException {
-    Map<ARGState, Map<List<Map<String, String>>, Condition<T>>> values =
-        new HashMap<ARGState, Map<List<Map<String, String>>, Condition<T>>>();
+    Map<ARGState, Map<List<Map<String, String>>, Condition<T>>> values = new HashMap<>();
     List<AbstractState> initial = new ArrayList<>();
     for (Component component : components) {
       initial.add(
@@ -187,8 +186,7 @@ final class CompositeGraphViolationConditionOperator<T> {
       if (formula.isEmpty()) {
         continue;
       }
-      List<AbstractState> state =
-          new ArrayList<AbstractState>(Collections.nCopies(analyses.size(), null));
+      List<AbstractState> state = new ArrayList<>(Collections.nCopies(analyses.size(), null));
       state.set(mergeableIndex, formula.orElseThrow());
       state.set(
           blockIndex,

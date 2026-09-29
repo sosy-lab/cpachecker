@@ -26,6 +26,10 @@ public interface CombinePreconditionsOperator {
    *
    * <p>This must not introduce additional concrete states. Domains closed under disjunction can opt
    * in; other domains may combine equal states. Unsupported combinations stay separate.
+   *
+   * @param states the states to combine; the default implementation declines every combination
+   * @throws CPAException if a domain-specific combination fails
+   * @throws InterruptedException if a domain-specific combination is interrupted
    */
   default Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
       throws CPAException, InterruptedException {
