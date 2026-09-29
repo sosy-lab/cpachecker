@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
@@ -120,16 +118,18 @@ public class InvariantExchangeFormatTransformer {
         .map(WitnessInvariantType::isTransitionInvariant)
         .orElse(false)) {
       invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
-      // This adds declarations of the fresh variables to the CFA and must happen only once
       previousValueVariables = registerThePrevVariables(pInvariantEntry);
     }
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
 
+    // The fresh variables are not declared in the CFA, so they are added to the scope
     Scope scope =
         switch (cfa.getLanguage()) {
-          case C -> new CProgramScope(cfa, logger);
+          case C ->
+              new CProgramScope(cfa, logger)
+                  .withAdditionalDeclarations(previousValueVariables.keySet());
           default -> DummyScope.getInstance();
         };
 
@@ -163,10 +163,13 @@ public class InvariantExchangeFormatTransformer {
 
   /**
    * In case the witness is termination witness, it may contain x__PREV variables. These variables
-   * need to be registered in the scope. We add arbitrary edges into the head of the main with the
-   * declarations of these variables in CFA.
+   * need to be registered in the scope. This method creates the declarations of these variables.
+   * The CFA is not modified, the declarations have to be added to the scope in which the invariant
+   * is parsed.
    *
    * @param pInvariantEntry the invariant entry
+   * @return the mapping from the declarations of the x__PREV variables to the declarations of the
+   *     corresponding variables x
    */
   public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
       InvariantEntry pInvariantEntry) {
@@ -213,16 +216,6 @@ public class InvariantExchangeFormatTransformer {
               // The scope is not relevant as these variables are not in the original program
               locationNode.getFunctionName() + "::" + prevVariable,
               null);
-      // TODO: Add also the original variable into the scope?
-      cfa.getMainFunction().addOutOfScopeVariables(Collections.singleton(prevDeclaration));
-      cfa.getMainFunction()
-          .addLeavingEdge(
-              new CDeclarationEdge(
-                  currDeclaration.getType() + " " + prevVariable + ";",
-                  cfa.getMainFunction().getFileLocation(),
-                  cfa.getMainFunction(),
-                  CFANode.newDummyCFANode(),
-                  prevDeclaration));
       mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }
     return mapPrevToCurr.buildOrThrow();
