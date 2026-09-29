@@ -20,6 +20,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class CombinePredicateStatePreconditionsOperator implements CombinePreconditionsOperator {
 
@@ -70,8 +72,8 @@ public class CombinePredicateStatePreconditionsOperator implements CombinePrecon
       first = predicateCPA.getPredicateManager().makeOr(first, formulas.get(i));
     }
 
-    var formulaManager = predicateCPA.getSolver().getFormulaManager();
-    var pathFormula =
+    FormulaManagerView formulaManager = predicateCPA.getSolver().getFormulaManager();
+    PathFormula pathFormula =
         predicateCPA
             .getPathFormulaManager()
             .makeEmptyPathFormulaWithContextFrom(first.getBlockFormula());

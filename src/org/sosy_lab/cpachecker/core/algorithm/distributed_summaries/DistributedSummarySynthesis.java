@@ -10,33 +10,22 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.jspecify.annotations.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockCallstackAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockEntryInvariants;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions.DecompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
@@ -55,9 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -110,20 +97,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider {
 
   private final Configuration configuration;
-  private final @Nullable PredicateCPA invariantPredicate;
-
-  @Option(
-      secure = true,
-      description = "Optional complete data-flow pass for proved block-entry invariants.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private @Nullable Path entryInvariantConfiguration = null;
-
-  @Option(
-      secure = true,
-      description = "Wall-time budget for entry invariants; incomplete results are discarded.")
-  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 1)
-  private TimeSpan entryInvariantTimeLimit = TimeSpan.ofSeconds(2);
-
   private final LogManager logger;
   private final CFA initialCFA;
   private final ShutdownManager shutdownManager;
@@ -136,11 +109,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   @Option(description = "Decomposition type to use for the block analysis.", secure = true)
   private ExecutorType executorType = ExecutorType.DSS;
-
-  @Option(
-      secure = true,
-      description = "Infer unique entry callstacks before speculative block exploration.")
-  private boolean inferEntryCallstacks = false;
 
   private enum ExecutorType {
     DSS,
@@ -162,24 +130,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       throws InvalidConfigurationException {
     configuration = pConfig;
     configuration.inject(this);
-    invariantPredicate = CPAs.retrieveCPA(pViolationCPA, PredicateCPA.class);
-    if (entryInvariantConfiguration != null && invariantPredicate == null) {
-      throw new InvalidConfigurationException(
-          "DSS entry invariants require a predicate witness CPA");
-    }
-
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
-    if (new DssAnalysisOptions(configuration).getBlockAnalysisType()
-            == DssBlockAnalysisType.PARTIAL_REPLACE
-        && decompositionOptions.getDecompositionType()
-            != DecompositionType.INLINING_DECOMPOSITION) {
-      // PARTIAL_REPLACE ignores program points, which is only correct if every block has exactly
-      // one entry and one exit context, i.e., with the inlining decomposition
-      throw new InvalidConfigurationException(
-          "distributedSummaries.blockAnalysisType=PARTIAL_REPLACE requires"
-              + " distributedSummaries.decomposition.decompositionType=INLINING_DECOMPOSITION,"
-              + " see config/distributed-summary-synthesis/dss-analysis.properties");
-    }
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
@@ -276,49 +227,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       }
       CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
-      if (inferEntryCallstacks) {
-        var knownStacks =
-            DssBlockCallstackAnalysis.compute(
-                blockGraph, cfa, logger, shutdownManager.getNotifier());
-        ImmutableSet.Builder<BlockNode> contextualBlocks = ImmutableSet.builder();
-        for (BlockNode block : blockGraph.getNodes()) {
-          var stack = knownStacks.get(block);
-          contextualBlocks.add(stack == null ? block : block.withKnownEntryCallstack(stack));
-        }
-        blockGraph = new BlockGraph(contextualBlocks.build());
-        modification = new Modification(cfa, blockGraph, modification.metadata());
-        logger.logf(
-            Level.FINE, "Inferred unique entry callstacks for %d blocks.", knownStacks.size());
-      }
-      if (entryInvariantConfiguration != null) {
-        var originalNodes =
-            modification.metadata().mappingInfo().originalToInstrumentedNodes().inverse();
-        var entries =
-            blockGraph.getNodes().stream()
-                .map(BlockNode::getInitialLocation)
-                .map(n -> Objects.requireNonNull(originalNodes.get(n)))
-                .collect(ImmutableSet.toImmutableSet());
-        var invariantConfig =
-            Configuration.builder().loadFromFile(entryInvariantConfiguration).build();
-        var invariants =
-            DssBlockEntryInvariants.compute(
-                initialCFA,
-                entries,
-                spec,
-                invariantConfig,
-                Objects.requireNonNull(invariantPredicate),
-                logger,
-                shutdownManager,
-                entryInvariantTimeLimit);
-        var withInvariants = ImmutableSet.<BlockNode>builder();
-        for (var block : blockGraph.getNodes()) {
-          var invariant = invariants.get(originalNodes.get(block.getInitialLocation()));
-          withInvariants.add(invariant == null ? block : block.withEntryInvariant(invariant));
-        }
-        blockGraph = new BlockGraph(withInvariants.build());
-        modification = new Modification(cfa, blockGraph, modification.metadata());
-        logger.logf(Level.FINE, "Proved entry invariants for %d CFA locations.", invariants.size());
-      }
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",

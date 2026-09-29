@@ -279,19 +279,6 @@ public class PredicateCPA
     return stop;
   }
 
-  /**
-   * Defer boundary abstractions to the caller and only check target feasibility during exploration.
-   * The caller must refine boundary precision explicitly and abstract outgoing summaries itself.
-   * Enable this only before exploring an acyclic block.
-   */
-  public void enableExactBlockExploration() {
-    prec.enableExactBlockExploration();
-  }
-
-  public boolean usesExactBlockExploration() {
-    return prec.usesExactBlockExploration();
-  }
-
   public PredicateAbstractionManager getPredicateManager() {
     return predAbsManager;
   }

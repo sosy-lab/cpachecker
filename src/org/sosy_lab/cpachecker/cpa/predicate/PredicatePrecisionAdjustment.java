@@ -112,23 +112,12 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
   }
 
-  private boolean exactBlockExploration;
-
-  void enableExactBlockExploration() {
-    exactBlockExploration = true;
-  }
-
-  boolean usesExactBlockExploration() {
-    return exactBlockExploration;
-  }
-
   private boolean shouldComputeAbstraction(
       AbstractState fullState, CFANode location, PredicateAbstractState predicateState) {
     if (predicateState.isAbstractionState()) {
       return false;
     }
-    if (!exactBlockExploration
-        && blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
+    if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
       return true;
     }
     if (AbstractStates.isTargetState(fullState)) {
@@ -197,15 +186,8 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula =
-          (exactBlockExploration || formulaManager.useFeasibilityOnlyAtTargets())
-                  && AbstractStates.isTargetState(fullState)
-              ? formulaManager.buildTargetAbstraction(abstractionFormula, pathFormula)
-              : formulaManager.buildAbstraction(
-                  pLocations,
-                  callstackWrapper,
-                  abstractionFormula,
-                  pathFormula,
-                  additionalPredicates);
+          formulaManager.buildAbstraction(
+              pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
     } finally {
       computingAbstractionTime.stop();
     }

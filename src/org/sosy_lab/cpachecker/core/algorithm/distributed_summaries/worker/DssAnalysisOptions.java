@@ -99,17 +99,37 @@ public class DssAnalysisOptions {
   private boolean syntacticViolationConditionEquality = false;
 
   @Option(
-      secure = true,
-      description =
-          "Seed each predicate worker's initial precision with guards at its entry and exit."
-              + " These are candidate predicates, not assumed facts.")
-  private boolean seedBoundaryAssumptions = false;
-
-  @Option(
       name = "combineVcsByHash",
       description = "Whether to combine violation conditions at same program location",
       secure = true)
   private boolean combineViolationConditionsByHash = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to combine incoming states and outgoing summaries by exact union.")
+  private boolean combineStates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to send and use precision updates in precondition and violation-condition"
+              + " messages.")
+  private boolean sharePrecision = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to cache computed, combined, and normalized violation conditions.")
+  private boolean cacheViolationConditions = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to dictionary-encode repeated text in serialized messages.")
+  private boolean compressMessages = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to add the block entry as an explicit predicate abstraction location.")
+  private boolean abstractAtBlockEntry = true;
 
   // TODO How to make sure the other Witness export does not overwrite this?
   @Option(
@@ -162,16 +182,32 @@ public class DssAnalysisOptions {
     return debug && readableFormulas;
   }
 
+  public boolean abstractAtBlockEntry() {
+    return abstractAtBlockEntry;
+  }
+
+  public boolean combineStates() {
+    return combineStates;
+  }
+
+  public boolean sharePrecision() {
+    return sharePrecision;
+  }
+
+  public boolean cacheViolationConditions() {
+    return cacheViolationConditions;
+  }
+
+  public boolean compressMessages() {
+    return compressMessages;
+  }
+
   public boolean combineViolationConditionsByHash() {
     return combineViolationConditionsByHash;
   }
 
   public boolean useSyntacticViolationConditionEquality() {
     return syntacticViolationConditionEquality;
-  }
-
-  public boolean seedBoundaryAssumptions() {
-    return seedBoundaryAssumptions;
   }
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {

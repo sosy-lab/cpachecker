@@ -28,27 +28,6 @@ public enum DssBlockAnalysisType {
           violationConditions,
           new AlwaysReplaceExplorationEngine(pAnalysis, preconditions, violationConditions));
     }
-  },
-
-  /**
-   * Keeps only the latest message of every neighboring block, skips predecessors whose
-   * preconditions are covered by those of another predecessor, and re-explores only the
-   * predecessors and violation conditions that changed. Ignores program points, so it is meant for
-   * the inlining decomposition.
-   */
-  PARTIAL_REPLACE {
-    @Override
-    DssBlockAnalysisComponents createComponents(DssBlockAnalysis pAnalysis)
-        throws InterruptedException {
-      PartialReplaceViolationConditionHandler violationConditions =
-          new PartialReplaceViolationConditionHandler(pAnalysis);
-      PartialReplacePreconditionHandler preconditions =
-          new PartialReplacePreconditionHandler(pAnalysis);
-      return new DssBlockAnalysisComponents(
-          preconditions,
-          violationConditions,
-          new PartialReplaceExplorationEngine(pAnalysis, preconditions, violationConditions));
-    }
   };
 
   /**

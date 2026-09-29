@@ -26,9 +26,9 @@ public class DssObserverWorkerTest {
 
   private DssObserverWorker observerWithError(ShutdownManager pShutdown, Throwable pError)
       throws Exception {
-    var factory =
+    DssMessageFactory factory =
         new DssMessageFactory(new DssAnalysisOptions(TestUtils.configurationForTest().build()));
-    var observer =
+    DssObserverWorker observer =
         new DssObserverWorker(
             "observer",
             mock(DssConnection.class),
@@ -43,31 +43,32 @@ public class DssObserverWorkerTest {
 
   @Test
   public void stageTimeoutRemainsAnInterruption() throws Exception {
-    var stageShutdown = ShutdownManager.create();
-    var workerShutdown = ShutdownManager.createWithParent(stageShutdown.getNotifier());
-    var observer =
+    ShutdownManager stageShutdown = ShutdownManager.create();
+    ShutdownManager workerShutdown = ShutdownManager.createWithParent(stageShutdown.getNotifier());
+    DssObserverWorker observer =
         observerWithError(workerShutdown, new InterruptedException("worker interrupted"));
     stageShutdown.requestShutdown("The walltime limit of 30s has elapsed.");
 
-    var failure = assertThrows(InterruptedException.class, observer::observe);
+    InterruptedException failure = assertThrows(InterruptedException.class, observer::observe);
     assertThat(failure).hasMessageThat().isEqualTo("The walltime limit of 30s has elapsed.");
   }
 
   @Test
   public void unexpectedWorkerInterruptionRemainsAnError() throws Exception {
-    var observer =
+    DssObserverWorker observer =
         observerWithError(
             ShutdownManager.create(), new InterruptedException("unexpected interrupt"));
 
-    var failure = assertThrows(CPAException.class, observer::observe);
+    CPAException failure = assertThrows(CPAException.class, observer::observe);
     assertThat(failure).hasMessageThat().contains("unexpected interrupt");
   }
 
   @Test
   public void workerFailureRemainsAnError() throws Exception {
-    var observer = observerWithError(ShutdownManager.create(), new CPAException("analysis failed"));
+    DssObserverWorker observer =
+        observerWithError(ShutdownManager.create(), new CPAException("analysis failed"));
 
-    var failure = assertThrows(CPAException.class, observer::observe);
+    CPAException failure = assertThrows(CPAException.class, observer::observe);
     assertThat(failure).hasMessageThat().contains("analysis failed");
   }
 }

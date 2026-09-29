@@ -14,10 +14,13 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Properties;
 import java.util.regex.Pattern;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,6 +28,7 @@ import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -68,63 +72,53 @@ public class DistributedSummarySynthesisTest {
   }
 
   @Test
-  public void stalledViolationPropagationMustNotProduceProof() throws Exception {
-    var config =
-        TestUtils.configurationForTestWithOutput(tempFolder)
-            .loadFromFile("config/distributed-summary-synthesis/dss-coverage-fallback.properties")
-            .setOption("specification", "config/specification/sv-comp-reachability.spc")
-            .setOption("analysis.machineModel", "Linux64")
-            .setOption("distributedSummaries.executorType", "SEQUENTIAL")
-            .setOption("output.disable", "true")
-            .build();
-    IntegrationTestRunner.run(config, "test/programs/dss/partial-replace-stalled-loop.c")
-        .assertIs(Result.UNKNOWN);
-  }
-
-  @Test
-  public void entryInvariantsDoNotTurnUncertainComparisonIntoTrue() throws Exception {
-    Path program = tempFolder.getRoot().toPath().resolve("comparison.c");
-    Files.writeString(
-        program,
-        "extern unsigned long __VERIFIER_nondet_ulong(void); "
-            + "extern void __VERIFIER_error(void); int main(void) { "
-            + "unsigned long long raw = __VERIFIER_nondet_ulong(); "
-            + "unsigned char special = ((raw | (0x7ULL << 52)) == -1); "
-            + "unsigned char valid = (raw == 0); "
-            + "if (!(special || valid)) __VERIFIER_error(); return 0; }");
-    var config =
-        TestUtils.configurationForTestWithOutput(tempFolder)
-            .loadFromFile("config/distributed-summary-synthesis/dss-coverage-fallback.properties")
-            .setOption("specification", "config/specification/sv-comp-reachability.spc")
-            .setOption("analysis.machineModel", "Linux64")
-            .setOption("distributedSummaries.decomposition.largestHorizontalMerge", "1")
-            .setOption(
-                "distributedSummaries.entryInvariantConfiguration",
-                "config/distributed-summary-synthesis/dss-entry-invariants.properties")
-            .setOption("distributedSummaries.entryInvariantTimeLimit", "10s")
-            .setOption("output.disable", "true")
-            .build();
-    IntegrationTestRunner.run(config, program.toString()).assertIsUnsafe();
-  }
-
-  @Test
-  @SuppressWarnings("deprecation") // Inspect inherited options without constructing an analysis.
-  public void portfolioStagesPreserveCallerLimitsAndSpecification() throws Exception {
-    var caller =
-        Configuration.builder()
-            .loadFromFile("config/dss.properties")
-            .setOption("limits.time.cpu", "7800s")
-            .setOption("specification", "caller.spc")
-            .build();
-    for (String stage : new String[] {"boolean", "cartesian", "fallback"}) {
-      var config =
+  public void singleRunConfigurationsPreserveCallerLimitsAndSpecification() throws Exception {
+    for (String name : new String[] {"dss", "dss-plain"}) {
+      Configuration config =
           Configuration.builder()
-              .copyFrom(caller)
-              .loadFromFile(
-                  "config/distributed-summary-synthesis/dss-coverage-" + stage + ".properties")
+              .loadFromFile("config/" + name + ".properties")
+              .setOption("limits.time.cpu", "7800s")
+              .setOption("specification", "caller.spc")
               .build();
-      assertThat(config.getProperty("limits.time.cpu")).isEqualTo("7800s");
-      assertThat(config.getProperty("specification")).isEqualTo("caller.spc");
+      Properties options = new Properties();
+      options.load(new StringReader(config.asPropertiesString()));
+      assertThat(options.getProperty("limits.time.cpu")).isEqualTo("7800s");
+      assertThat(options.getProperty("specification")).isEqualTo("caller.spc");
+      assertThat(options.getProperty("analysis.algorithm.distributedSummarySynthesis"))
+          .isEqualTo("true");
+      assertThat(options.getProperty("analysis.restartAfterUnknown", "false")).isEqualTo("false");
+      assertThat(options.getProperty("restartAlgorithm.configFiles")).isNull();
+      assertThat(options.getProperty("limits.time.wall")).isNull();
+      boolean optimized = name.equals("dss");
+      DssAnalysisOptions analysisOptions = new DssAnalysisOptions(config);
+      assertThat(analysisOptions.sharePrecision()).isEqualTo(optimized);
+      assertThat(analysisOptions.combineStates()).isEqualTo(optimized);
+      assertThat(analysisOptions.cacheViolationConditions()).isEqualTo(optimized);
+      assertThat(analysisOptions.compressMessages()).isEqualTo(optimized);
+      assertThat(analysisOptions.abstractAtBlockEntry()).isEqualTo(optimized);
+      assertThat(analysisOptions.combineViolationConditionsByHash()).isEqualTo(optimized);
+      Properties worker = new Properties();
+      worker.load(
+          new StringReader(
+              Configuration.builder()
+                  .loadFromFile(analysisOptions.getForwardConfiguration())
+                  .build()
+                  .asPropertiesString()));
+      assertThat(worker.getProperty("CompositeCPA.cpas"))
+          .contains(optimized ? ".DssLocationCPA," : "cpa.location.LocationCPA,");
+      for (String option :
+          new String[] {
+            "dss.graphViolationConditions",
+            "dss.cpa.predicate.projectViolationConditions",
+            "dss.cpa.predicate.projectNestedDisjunctions",
+            "dss.cpa.predicate.generalizeViolationConditions",
+            "dss.cpa.predicate.generalizeOverPreconditionPredicates",
+            "staticRefiner.addAllControlFlowAssumes",
+          }) {
+        assertWithMessage("%s in %s", option, name)
+            .that(worker.getProperty(option))
+            .isEqualTo(Boolean.toString(optimized));
+      }
     }
   }
 
@@ -136,11 +130,7 @@ public class DistributedSummarySynthesisTest {
         program,
         "extern int choose(void); int main(void) { int x = choose(); "
             + "if (x) x++; else x--; if (x) x++; else x--; return x; }");
-    String common =
-        "#include "
-            + Path.of("config/distributed-summary-synthesis/dss-analysis.properties")
-                .toAbsolutePath()
-            + "\n";
+    String common = "#include " + Path.of("config/dss.properties").toAbsolutePath() + "\n";
     Path coarse = dir.resolve("coarse.properties");
     Path fine = dir.resolve("fine.properties");
     Files.writeString(coarse, common);
@@ -149,7 +139,7 @@ public class DistributedSummarySynthesisTest {
         common
             + "distributedSummaries.decomposition.mergeBranchBoundaries=false\n"
             + "distributedSummaries.decomposition.largestHorizontalMerge=1\n");
-    var config =
+    Configuration config =
         TestUtils.configurationForTestWithOutput(tempFolder)
             .setOption(
                 "specification",
@@ -160,15 +150,15 @@ public class DistributedSummarySynthesisTest {
             .setOption("restartAlgorithm.configFiles", coarse + "," + fine)
             .setOption("output.disable", "true")
             .build();
-    var result = IntegrationTestRunner.run(config, program.toString());
+    IntegrationTestResult result = IntegrationTestRunner.run(config, program.toString());
     result.assertIsSafe();
-    var sizes =
+    List<Integer> sizes =
         Pattern.compile("Decomposed CFA in (\\d+) blocks")
             .matcher(result.log())
             .results()
             .map(m -> Integer.parseInt(m.group(1)))
             .toList();
     assertThat(sizes).hasSize(2);
-    assertThat(sizes.get(1)).isGreaterThan(sizes.get(0));
+    assertThat(sizes.get(1)).isGreaterThan(sizes.getFirst());
   }
 }

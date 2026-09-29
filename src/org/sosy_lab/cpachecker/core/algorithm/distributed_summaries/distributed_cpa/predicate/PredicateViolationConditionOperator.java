@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.MergeableViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -27,13 +27,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicateViolationConditionOperator implements ViolationConditionOperator {
+public class PredicateViolationConditionOperator
+    implements MergeableViolationConditionOperator<PathFormula> {
 
   private final PathFormulaManagerImpl backwardManager;
   private final PredicateCPA cpa;
   private final @Nullable ExistentialProjection graphProjection;
   private final boolean hasRootAsPredecessor;
-  private final boolean reuseForwardConditions;
 
   /** Projects the local variables out of every condition, or {@code null} to keep them. */
   private final @Nullable ExistentialProjection projection;
@@ -47,7 +47,6 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
       boolean pHasRootAsPredecessor,
       @Nullable ExistentialProjection pProjection,
       boolean pProjectNestedDisjunctions,
-      boolean pReuseForwardConditions,
       @Nullable ModelBasedGeneralization pGeneralization) {
     backwardManager = pBackwardManager;
     cpa = pCpa;
@@ -56,7 +55,6 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
             ? null
             : new ExistentialProjection(cpa.getSolver(), pProjectNestedDisjunctions);
     hasRootAsPredecessor = pHasRootAsPredecessor;
-    reuseForwardConditions = pReuseForwardConditions;
     projection = pProjection;
     generalization = pGeneralization;
   }
@@ -67,53 +65,11 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
       throws InterruptedException, CPATransferException, SolverException {
     return finish(
         pARGPath.getFirstState(),
-        prepend(initialFormula(pPreviousCondition), pARGPath.getFullPath()));
+        prepend(initialCondition(pPreviousCondition), pARGPath.getFullPath()));
   }
 
-  /**
-   * Whether forward formulas retain the complete block relation, without intermediate abstraction.
-   */
-  public boolean supportsExactForwardConditions(ARGState root) {
-    if (!reuseForwardConditions || !cpa.usesExactBlockExploration()) {
-      return false;
-    }
-    var predicate =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(root, PredicateAbstractState.class));
-    var entry = predicate.getAbstractionFormula().asInstantiatedFormula();
-    // DSS inserts the complete entry constraint into the first path formula. Avoid adding a
-    // second copy around its expanded disjunction, which can make projection much more expensive.
-    return cpa.getSolver().getFormulaManager().getBooleanFormulaManager().isTrue(entry)
-        || entry.equals(predicate.getPathFormula().getFormula());
-  }
-
-  /**
-   * Read the target formula as a condition on block-entry values. Output and intermediate values
-   * are existential: projection and per-use renaming use this entry SSA map as their interface. An
-   * unseen variable starts at index 1; its first assignment uses index 2.
-   */
-  public PathFormula exactForwardCondition(ARGState root, ARGState target) {
-    var start =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(root, PredicateAbstractState.class));
-    var end =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(target, PredicateAbstractState.class));
-    var path =
-        end.isAbstractionState()
-            ? end.getAbstractionFormula().getBlockFormula()
-            : end.getPathFormula();
-    var input = start.getPathFormula().getSsa();
-    var interfaceSsa =
-        org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.emptySSAMap().builder();
-    for (var variable : path.getSsa().allVariables()) {
-      interfaceSsa.setIndex(
-          variable, path.getSsa().getType(variable), Math.max(1, input.getIndex(variable)));
-    }
-    return path.withContext(interfaceSsa.build(), path.getPointerTargetSet());
-  }
-
-  public PathFormula initialFormula(Optional<ARGState> pPreviousCondition) {
+  @Override
+  public PathFormula initialCondition(Optional<ARGState> pPreviousCondition) {
     PathFormula result;
     if (pPreviousCondition.isEmpty()) {
       result = backwardManager.makeEmptyPathFormula();
@@ -131,6 +87,7 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     return result;
   }
 
+  @Override
   public PathFormula prepend(PathFormula formula, List<CFAEdge> edges)
       throws InterruptedException, CPATransferException {
     for (CFAEdge edge : edges.reversed()) {
@@ -139,10 +96,12 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     return formula;
   }
 
+  @Override
   public PathFormula union(PathFormula first, PathFormula second) throws InterruptedException {
     return backwardManager.makeOr(first, second);
   }
 
+  @Override
   public Optional<AbstractState> finishGraph(ARGState root, PathFormula result)
       throws InterruptedException, SolverException {
     return finish(

@@ -86,6 +86,16 @@ public class AlwaysReplaceViolationConditionHandlerTest {
               Collection<StateAndPrecision> states2 = invocation.getArgument(1);
               return containsAllStatesOf(states1, states2) && containsAllStatesOf(states2, states1);
             });
+    when(analysis.precisionsCoveredBy(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Collection<StateAndPrecision> first = invocation.getArgument(0);
+              Collection<StateAndPrecision> second = invocation.getArgument(1);
+              return second.stream()
+                  .map(StateAndPrecision::precision)
+                  .collect(ImmutableSet.toImmutableSet())
+                  .containsAll(first.stream().map(StateAndPrecision::precision).toList());
+            });
     when(analysis.deduplicateViolationConditions(any()))
         .thenAnswer(
             invocation -> {
@@ -153,6 +163,16 @@ public class AlwaysReplaceViolationConditionHandlerTest {
               Collection<StateAndPrecision> states1 = invocation.getArgument(0);
               Collection<StateAndPrecision> states2 = invocation.getArgument(1);
               return containsAllStatesOf(states1, states2) && containsAllStatesOf(states2, states1);
+            });
+    when(analysis.precisionsCoveredBy(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Collection<StateAndPrecision> first = invocation.getArgument(0);
+              Collection<StateAndPrecision> second = invocation.getArgument(1);
+              return second.stream()
+                  .map(StateAndPrecision::precision)
+                  .collect(ImmutableSet.toImmutableSet())
+                  .containsAll(first.stream().map(StateAndPrecision::precision).toList());
             });
     when(analysis.deduplicateViolationConditions(any()))
         .thenAnswer(

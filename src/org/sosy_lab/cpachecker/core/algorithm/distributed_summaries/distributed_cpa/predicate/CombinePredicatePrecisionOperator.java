@@ -103,7 +103,7 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
     boolean isAtLeastOneVariableInAllPrecisions =
         count.values().stream().mapToInt(Integer::intValue).max().orElse(0) == precisions.size();
     if (isAtLeastOneVariableInAllPrecisions) {
-      for (var entry : ImmutableList.copyOf(count.entrySet())) {
+      for (Entry<String, Integer> entry : ImmutableList.copyOf(count.entrySet())) {
         String variableName = entry.getKey();
         int numberOfPrecisionsVariableOccursIn = entry.getValue();
         if (numberOfPrecisionsVariableOccursIn < precisions.size()) {
@@ -113,5 +113,10 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
     }
     Set<String> variablesInAllPrecisions = count.keySet();
     return toFilteredUnion(precisions, variablesInAllPrecisions);
+  }
+
+  @Override
+  public boolean isCoveredBy(Precision pPrecision, Precision pOther) throws InterruptedException {
+    return union(ImmutableList.of(pPrecision, pOther)).equals(pOther);
   }
 }

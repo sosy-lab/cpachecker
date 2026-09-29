@@ -21,9 +21,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class LocationTransferRelation implements TransferRelation {
 
-  private final LocationStateFactory factory;
+  private final CachedLocationStateProvider factory;
 
-  public LocationTransferRelation(LocationStateFactory pFactory) {
+  public LocationTransferRelation(CachedLocationStateProvider pFactory) {
     factory = pFactory;
   }
 

@@ -2060,9 +2060,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# Check known DSS callstacks directly at block boundaries.
-cpa.callstack.dssDirectKnownStackCheck = false
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -2356,11 +2353,6 @@ cpa.local.localvariables = {}
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
 
-# Create location states only when visited instead of allocating states for
-# the entire CFA. Useful when many analyses each visit only a small part of
-# the CFA.
-cpa.location.lazyStates = false
-
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE
   enum:     [RACE, DEADLOCK]
@@ -2582,12 +2574,6 @@ cpa.predicate.abstraction.computation = BOOLEAN
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
-
-# Use a satisfiability check instead of a full predicate abstraction at
-# target states. Enable only when target states are terminal: their
-# abstraction retains no predicates, but their block formula is preserved for
-# refinement.
-cpa.predicate.abstraction.feasibilityOnlyAtTargets = false
 
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
@@ -4658,12 +4644,25 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Whether to add the block entry as an explicit predicate abstraction
+# location.
+distributedSummaries.abstractAtBlockEntry = true
+
 # Which block analysis to use for the distributed summaries algorithm
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
-  enum:     [ALWAYS_REPLACE, PARTIAL_REPLACE]
+  enum:     [ALWAYS_REPLACE]
+
+# Whether to cache computed, combined, and normalized violation conditions.
+distributedSummaries.cacheViolationConditions = true
+
+# Whether to combine incoming states and outgoing summaries by exact union.
+distributedSummaries.combineStates = true
 
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true
+
+# Whether to dictionary-encode repeated text in serialized messages.
+distributedSummaries.compressMessages = true
 
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
@@ -4713,18 +4712,9 @@ distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecom
 # Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.
 distributedSummaries.decomposition.mergeBranchBoundaries = false
 
-# Optional complete data-flow pass for proved block-entry invariants.
-distributedSummaries.entryInvariantConfiguration = no default value
-
-# Wall-time budget for entry invariants; incomplete results are discarded.
-distributedSummaries.entryInvariantTimeLimit = 2s
-
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
-
-# Infer unique entry callstacks before speculative block exploration.
-distributedSummaries.inferEntryCallstacks = false
 
 # output file for visualizing the block graph
 distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
@@ -4740,9 +4730,9 @@ distributedSummaries.printBlockLevelStats = false
 # used together with the inlining decomposition
 distributedSummaries.resetCallstackState = false
 
-# Seed each predicate worker's initial precision with guards at its entry and
-# exit. These are candidate predicates, not assumed facts.
-distributedSummaries.seedBoundaryAssumptions = false
+# Whether to send and use precision updates in precondition and
+# violation-condition messages.
+distributedSummaries.sharePrecision = true
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4824,14 +4814,6 @@ dss.cpa.predicate.projectNestedDisjunctions = true
 # conditions of different paths that only differ in intermediate values
 # become equal.
 dss.cpa.predicate.projectViolationConditions = true
-
-# Reuse exact forward formulas for graph violation conditions instead of
-# computing backward formulas.
-dss.cpa.predicate.reuseForwardViolationConditions = true
-
-# Explore acyclic predicate blocks exactly, refine from refuted exit
-# conditions, and abstract summaries only when they may be published.
-dss.exactBoundaryRefinement = false
 
 # Compute violation conditions over the shared ARG graph.
 dss.graphViolationConditions = false

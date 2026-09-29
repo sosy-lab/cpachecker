@@ -55,7 +55,8 @@ public class DistributedFunctionPointerCPA
         new BackwardTransferViolationConditionOperator(
             pParentCPA.getTransferRelation(), pParentCPA);
     coverageOperator = new FunctionPointerStateCoverageOperator();
-    var combination = new FunctionPointerStateCombinePreconditionsOperator();
+    FunctionPointerStateCombinePreconditionsOperator combination =
+        new FunctionPointerStateCombinePreconditionsOperator();
     combinePreconditionsOperator = combination;
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     combineViolationConditionsOperator = combination;

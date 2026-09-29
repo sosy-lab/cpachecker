@@ -59,13 +59,6 @@ class CallstackOptions {
   @Option(description = "analyse the CFA backwards", secure = true)
   private boolean traverseBackwards = false;
 
-  @Option(secure = true, description = "Check known DSS callstacks directly at block boundaries.")
-  private boolean dssDirectKnownStackCheck = false;
-
-  boolean directKnownStackCheck() {
-    return dssDirectKnownStackCheck;
-  }
-
   @Option(
       secure = true,
       name = "domain",

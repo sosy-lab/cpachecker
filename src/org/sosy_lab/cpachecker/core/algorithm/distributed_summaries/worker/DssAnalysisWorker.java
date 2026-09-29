@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -130,13 +131,14 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     block = pBlock;
     connection = pConnection;
 
-    var forwardConfigurationBuilder =
+    ConfigurationBuilder forwardConfigurationBuilder =
         Configuration.builder()
             .loadFromFile(pOptions.getForwardConfiguration())
             .setOption(
                 "cpa.predicate.blk.alwaysAtGivenNodes",
-                pBlock.getInitialLocation().getNodeNumber()
-                    + ","
+                (pOptions.abstractAtBlockEntry()
+                        ? pBlock.getInitialLocation().getNodeNumber() + ","
+                        : "")
                     + pBlock.getFinalLocation().getNodeNumber());
     Configuration forwardConfiguration = forwardConfigurationBuilder.build();
 
@@ -211,8 +213,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     boolean violationConditionsChanged = violationConditionsPending;
     preconditionsPending = false;
     violationConditionsPending = false;
-    var blockAnalysis = analysis.getDssBlockAnalysis();
-    var messages = blockAnalysis.analyze(violationConditionsChanged);
+    DssBlockAnalysis blockAnalysis = analysis.getDssBlockAnalysis();
+    Collection<DssMessage> messages = blockAnalysis.analyze(violationConditionsChanged);
     unresolvedViolations = blockAnalysis.hasUnresolvedViolations();
     return messages;
   }
@@ -298,7 +300,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           broadcaster.broadcastToIds(message, block.getSuccessorIds());
         }
         case VIOLATION_CONDITION -> {
-          if (block.getPredecessorIds().isEmpty() && !message.isPrecisionOnly()) {
+          if (block.getPredecessorIds().isEmpty()) {
             String violationPathString = message.extractBlockStateWitnessString();
             SegmentedPaths violationPath =
                 DeserializeBlockStateOperator.parseWitness(violationPathString).witness();

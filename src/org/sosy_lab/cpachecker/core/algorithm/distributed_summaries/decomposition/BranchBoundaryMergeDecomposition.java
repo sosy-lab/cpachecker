@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -38,7 +39,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
     Set<CFANode> protectedBoundaries =
         new LinkedHashSet<>(cfa.getLoopStructure().orElseThrow().getAllLoopHeads());
     Map<String, Set<String>> renamed = new LinkedHashMap<>();
-    nodes.forEach(n -> renamed.put(n.getId(), Set.of("ORIGINAL_" + n.getId())));
+    nodes.forEach(n -> renamed.put(n.getId(), ImmutableSet.of("ORIGINAL_" + n.getId())));
     nodes =
         nodes.stream()
             .map(
@@ -52,12 +53,13 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
                         replace(n.getPredecessorIds(), renamed),
                         replace(n.getSuccessorIds(), renamed)))
             .toList();
-    var horizontal = new HorizontalMergeDecomposition(child, 2, -1, null, true);
+    HorizontalMergeDecomposition horizontal =
+        new HorizontalMergeDecomposition(child, 2, -1, null, true);
     for (int round = 0; round < 1000; round++) {
       if (Thread.interrupted()) {
         throw new InterruptedException();
       }
-      var merged = mergeRound(nodes, protectedBoundaries);
+      Collection<BlockNode> merged = mergeRound(nodes, protectedBoundaries);
       if (merged == null) {
         break;
       }
@@ -70,7 +72,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
       Collection<BlockNode> nodes, Set<CFANode> protectedBoundaries) {
     Map<String, BlockNode> byId = new LinkedHashMap<>();
     Map<Set<String>, List<BlockNode>> groups = new LinkedHashMap<>();
-    for (var node : nodes) {
+    for (BlockNode node : nodes) {
       byId.put(node.getId(), node);
       groups.computeIfAbsent(node.getSuccessorIds(), unused -> new ArrayList<>()).add(node);
     }
@@ -78,7 +80,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
     // rebuilding every block once for each individual boundary.
     Map<String, Set<String>> replacements = new LinkedHashMap<>();
     List<BlockNode> result = new ArrayList<>();
-    for (var entry : groups.entrySet()) {
+    for (Entry<Set<String>, List<BlockNode>> entry : groups.entrySet()) {
       List<BlockNode> incoming = entry.getValue();
       if (entry.getKey().isEmpty() || incoming.stream().anyMatch(BlockNode::isRoot)) {
         continue;
@@ -100,9 +102,9 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
         continue;
       }
       boolean valid = true;
-      for (var p : incoming) {
-        for (var s : outgoing) {
-          for (var node : p.getNodes()) {
+      for (BlockNode p : incoming) {
+        for (BlockNode s : outgoing) {
+          for (CFANode node : p.getNodes()) {
             if (s.getNodes().contains(node)
                 && node != boundary
                 && !(node == p.getInitialLocation() && node == s.getFinalLocation())) {
@@ -114,8 +116,8 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
       if (!valid) {
         continue;
       }
-      for (var p : incoming) {
-        for (var s : outgoing) {
+      for (BlockNode p : incoming) {
+        for (BlockNode s : outgoing) {
           String id = "MBR" + nextId++;
           replacements.computeIfAbsent(p.getId(), unused -> new LinkedHashSet<>()).add(id);
           replacements.computeIfAbsent(s.getId(), unused -> new LinkedHashSet<>()).add(id);
@@ -134,7 +136,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
     if (replacements.isEmpty()) {
       return null;
     }
-    for (var n : nodes) {
+    for (BlockNode n : nodes) {
       if (!replacements.containsKey(n.getId())) {
         result.add(n);
       }
@@ -155,9 +157,9 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
 
   private static ImmutableSet<String> replace(
       Set<String> ids, Map<String, Set<String>> replacements) {
-    var result = ImmutableSet.<String>builder();
+    ImmutableSet.Builder<String> result = ImmutableSet.<String>builder();
     for (String id : ids) {
-      result.addAll(replacements.getOrDefault(id, Set.of(id)));
+      result.addAll(replacements.getOrDefault(id, ImmutableSet.of(id)));
     }
     return result.build();
   }

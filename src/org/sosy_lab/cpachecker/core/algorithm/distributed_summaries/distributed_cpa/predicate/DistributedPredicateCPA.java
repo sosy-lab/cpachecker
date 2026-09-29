@@ -71,13 +71,6 @@ public class DistributedPredicateCPA
   @Option(
       secure = true,
       description =
-          "Reuse exact forward formulas for graph violation conditions instead of computing"
-              + " backward formulas.")
-  private boolean reuseForwardViolationConditions = true;
-
-  @Option(
-      secure = true,
-      description =
           "Whether to rewrite every violation condition as a disjunction of cubes generalized from"
               + " models, restricted to the entry states the block can currently be entered with."
               + " Each cube really reaches the violation, and the cubes together cover the"
@@ -153,7 +146,9 @@ public class DistributedPredicateCPA
     } else {
       proceedOperator = ProceedOperator.always();
     }
-    stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
+    stateCoverageOperator =
+        new PredicateStateCoverageOperator(
+            predicateCPA.getSolver(), pOptions.cacheViolationConditions());
     ExistentialProjection projection =
         projectViolationConditions ? new ExistentialProjection(predicateCPA.getSolver()) : null;
     verificationConditionOperator =
@@ -169,7 +164,6 @@ public class DistributedPredicateCPA
             pNode.getPredecessorIds().isEmpty(),
             projection,
             projectNestedDisjunctions,
-            reuseForwardViolationConditions,
             generalizeViolationConditions
                 ? new ModelBasedGeneralization(
                     predicateCPA.getSolver(),

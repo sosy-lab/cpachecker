@@ -51,9 +51,6 @@ public class ToBitvectorFormulaVisitor
 
   private final boolean useQualifiedNames;
 
-  private final boolean approximateComparisons;
-  private final ToBitvectorFormulaVisitor exactVisitor;
-
   /**
    * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
    * by using the given formula manager, and evaluation visitor.
@@ -71,30 +68,10 @@ public class ToBitvectorFormulaVisitor
       FormulaManagerView pFmgr,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       boolean pUseQualifiedNames) {
-    this(
-        pFmgr.getBooleanFormulaManager(),
-        pFmgr.getBitvectorFormulaManager(),
-        pEvaluationVisitor,
-        pUseQualifiedNames,
-        true);
-  }
-
-  private ToBitvectorFormulaVisitor(
-      BooleanFormulaManager pBfmgr,
-      BitvectorFormulaManager pBvfmgr,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-      boolean pUseQualifiedNames,
-      boolean pApproximateComparisons) {
-    bfmgr = pBfmgr;
-    bvfmgr = pBvfmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
+    bvfmgr = pFmgr.getBitvectorFormulaManager();
     evaluationVisitor = pEvaluationVisitor;
     useQualifiedNames = pUseQualifiedNames;
-    approximateComparisons = pApproximateComparisons;
-    exactVisitor =
-        approximateComparisons
-            ? new ToBitvectorFormulaVisitor(
-                bfmgr, bvfmgr, evaluationVisitor, useQualifiedNames, false)
-            : this;
   }
 
   /**
@@ -305,9 +282,7 @@ public class ToBitvectorFormulaVisitor
       return pIfThenElse.getNegativeCase().accept(this, pEnvironment);
     }
 
-    // Overapproximating a condition is unsafe here: choosing only its positive branch can
-    // exclude values of the negative branch. If exact conversion fails, keep both outcomes.
-    BooleanFormula conditionFormula = pIfThenElse.getCondition().accept(exactVisitor, pEnvironment);
+    BooleanFormula conditionFormula = pIfThenElse.getCondition().accept(this, pEnvironment);
     if (conditionFormula == null) {
       return InvariantsFormulaManager.INSTANCE
           .union(pIfThenElse.getPositiveCase(), pIfThenElse.getNegativeCase())
@@ -332,8 +307,7 @@ public class ToBitvectorFormulaVisitor
     TypeInfo typeInfo = pEqual.getOperand1().getTypeInfo();
     BitvectorFormula operand1 = pEqual.getOperand1().accept(this, pEnvironment);
     BitvectorFormula operand2 = pEqual.getOperand2().accept(this, pEnvironment);
-    if ((operand1 == null && operand2 == null)
-        || (!approximateComparisons && (operand1 == null || operand2 == null))) {
+    if (operand1 == null && operand2 == null) {
       return null;
     }
     if (operand1 == null || operand2 == null) {
@@ -384,8 +358,7 @@ public class ToBitvectorFormulaVisitor
     TypeInfo typeInfo = pLessThan.getOperand1().getTypeInfo();
     BitvectorFormula operand1 = pLessThan.getOperand1().accept(this, pEnvironment);
     BitvectorFormula operand2 = pLessThan.getOperand2().accept(this, pEnvironment);
-    if ((operand1 == null && operand2 == null)
-        || (!approximateComparisons && (operand1 == null || operand2 == null))) {
+    if (operand1 == null && operand2 == null) {
       return null;
     }
     if (operand1 == null || operand2 == null) {
@@ -423,21 +396,16 @@ public class ToBitvectorFormulaVisitor
   public BooleanFormula visit(
       LogicalAnd<CompoundInterval> pAnd,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    BooleanFormula operand1 = pAnd.getOperand1().accept(this, pEnvironment);
-    BooleanFormula operand2 = pAnd.getOperand2().accept(this, pEnvironment);
-    if (operand1 == null || operand2 == null) {
-      return null;
-    }
-    return bfmgr.and(operand1, operand2);
+    return bfmgr.and(
+        pAnd.getOperand1().accept(this, pEnvironment),
+        pAnd.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
   public BooleanFormula visit(
       LogicalNot<CompoundInterval> pNot,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    // Negating an overapproximation would turn it into an underapproximation.
-    BooleanFormula operand = pNot.getNegated().accept(exactVisitor, pEnvironment);
-    return operand == null ? null : bfmgr.not(operand);
+    return bfmgr.not(pNot.getNegated().accept(this, pEnvironment));
   }
 
   @Override

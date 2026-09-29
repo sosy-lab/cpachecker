@@ -73,4 +73,18 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
     }
     return new CompositePrecision(wrappedPrecisions.build());
   }
+
+  @Override
+  public boolean isCoveredBy(Precision pPrecision, Precision pOther) throws InterruptedException {
+    ImmutableList<Precision> first = ((CompositePrecision) pPrecision).getWrappedPrecisions();
+    ImmutableList<Precision> second = ((CompositePrecision) pOther).getWrappedPrecisions();
+    for (int i = 0; i < wrapped.size(); i++) {
+      if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa
+          && !dcpa.getCombinePrecisionOperator().isCoveredBy(first.get(i), second.get(i))) {
+        return false;
+      }
+    }
+    // Non-distributed components do not transport precision; their initial precision is local.
+    return true;
+  }
 }

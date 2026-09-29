@@ -111,10 +111,13 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
               condition -> analysis.getDcpa().computeProgramPointId(condition));
     }
 
+    ImmutableList<StateAndPrecision> received =
+        ImmutableList.<StateAndPrecision>builder()
+            .addAll(preconditions.getStatesAndPrecisions())
+            .addAll(violationConditions.getKnownConditions())
+            .build();
     Precision precisionOfAnalysis =
-        preconditions.isEmpty()
-            ? analysis.makeStartPrecision()
-            : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
+        received.isEmpty() ? analysis.makeStartPrecision() : analysis.combinePrecisions(received);
 
     ImmutableList<Object> allConditionProgramPoints =
         ImmutableList.copyOf(conditionsPerLocation.keySet());
@@ -212,13 +215,6 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     ImmutableSet<StateAndPrecision> exactSummaries = summaries.build();
     ImmutableList<StateAndPrecision> outgoing = analysis.combineSummaries(exactSummaries);
     ImmutableSet<ArgPathAndCondition> allViolations = violations.build();
-    // Deferred abstraction can prove every explored exit formula false. Report that empty
-    // postcondition explicitly, so successors do not retain an older reachable summary.
-    unreachable |=
-        analysis.usesExactBoundaryRefinement()
-            && !exactSummaries.isEmpty()
-            && outgoing.isEmpty()
-            && allViolations.isEmpty();
     return new AnalysisResult(outgoing, allViolations, unreachable);
   }
 

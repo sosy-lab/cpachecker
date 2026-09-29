@@ -264,16 +264,8 @@ public final class CCfaTransformer {
         }
       }
 
-      // Unreachable call sites can lose their call edge during CFA simplification while the
-      // callee's return edge still refers to their summary. Preserve that metadata when copying
-      // the CFA; it does not create a new executable call edge.
-      return new CFunctionSummaryEdge(
-          pOldSummaryEdge.getRawStatement(),
-          pOldSummaryEdge.getFileLocation(),
-          pNewNodeU,
-          pNewNodeV,
-          (CFunctionCall) substituteAst(pOldSummaryEdge, pOldSummaryEdge.getExpression()),
-          (CFunctionEntryNode) toNew(pOldSummaryEdge.getFunctionEntry()));
+      throw new IllegalStateException(
+          "Missing function call edge for summary edge: " + pOldSummaryEdge);
     }
 
     private CFunctionCallEdge newCFunctionCallEdge(

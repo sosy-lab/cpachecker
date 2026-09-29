@@ -23,10 +23,16 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class PredicateStateCoverageOperator implements CoverageOperator {
 
   private final Solver solver;
+  private final boolean cacheConditions;
   private final LoadingCache<PathFormula, BooleanFormula> normalizedConditions;
 
   public PredicateStateCoverageOperator(Solver pSolver) {
+    this(pSolver, true);
+  }
+
+  public PredicateStateCoverageOperator(Solver pSolver, boolean pCacheConditions) {
     solver = pSolver;
+    cacheConditions = pCacheConditions;
     normalizedConditions =
         CacheBuilder.newBuilder()
             .maximumSize(1024)
@@ -65,8 +71,8 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
       }
       // A condition's SSA map selects its boundary values; other versions are private.
       // Equal raw formulas with different interfaces need not describe the same condition.
-      formula1 = normalizedConditions.getUnchecked(predicateState1.getPathFormula());
-      formula2 = normalizedConditions.getUnchecked(predicateState2.getPathFormula());
+      formula1 = normalize(predicateState1.getPathFormula());
+      formula2 = normalize(predicateState2.getPathFormula());
     } else {
       return false;
     }
@@ -94,9 +100,14 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
             .getPathFormula()
             .getPointerTargetSet()
             .equals(predicateState2.getPathFormula().getPointerTargetSet())
-        && normalizedConditions
-            .getUnchecked(predicateState1.getPathFormula())
-            .equals(normalizedConditions.getUnchecked(predicateState2.getPathFormula()));
+        && normalize(predicateState1.getPathFormula())
+            .equals(normalize(predicateState2.getPathFormula()));
+  }
+
+  private BooleanFormula normalize(PathFormula pPath) {
+    return cacheConditions
+        ? normalizedConditions.getUnchecked(pPath)
+        : PredicateOperatorUtil.normalizeForComparison(pPath, solver.getFormulaManager());
   }
 
   @Override

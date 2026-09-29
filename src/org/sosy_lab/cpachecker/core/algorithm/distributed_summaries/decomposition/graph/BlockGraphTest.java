@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.Map;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -39,8 +40,10 @@ public class BlockGraphTest {
     BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA);
     BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA);
 
-    var exportedBlockGraphFromOriginalCfa = blockGraphFromOriginalCfa.getExportData(originalCFA);
-    var exportedBlockGraphFromShiftedCfa = blockGraphFromShiftedCfa.getExportData(shiftedCFA);
+    Map<String, Map<String, Object>> exportedBlockGraphFromOriginalCfa =
+        blockGraphFromOriginalCfa.getExportData(originalCFA);
+    Map<String, Map<String, Object>> exportedBlockGraphFromShiftedCfa =
+        blockGraphFromShiftedCfa.getExportData(shiftedCFA);
 
     assertThat(exportedBlockGraphFromOriginalCfa).isEqualTo(exportedBlockGraphFromShiftedCfa);
   }

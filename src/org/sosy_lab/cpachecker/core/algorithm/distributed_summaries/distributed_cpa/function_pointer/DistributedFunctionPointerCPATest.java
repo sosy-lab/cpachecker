@@ -56,21 +56,24 @@ public class DistributedFunctionPointerCPATest {
 
   @Test
   public void violationCombinationPreservesIncompatibleFunctionPointerStates() throws Exception {
-    var empty = FunctionPointerState.createEmptyState();
-    var builder = empty.createBuilder();
+    FunctionPointerState empty = FunctionPointerState.createEmptyState();
+    FunctionPointerState.Builder builder = empty.createBuilder();
     builder.setTarget("fp", new NamedFunctionTarget("f"));
-    var target = builder.build();
-    var pointer = mock(DistributedConfigurableProgramAnalysis.class);
+    FunctionPointerState target = builder.build();
+    DistributedConfigurableProgramAnalysis pointer =
+        mock(DistributedConfigurableProgramAnalysis.class);
     when(pointer.getCombineViolationConditionsOperator())
         .thenReturn(new FunctionPointerStateCombinePreconditionsOperator());
-    var composite = mock(DistributedConfigurableProgramAnalysis.class);
+    DistributedConfigurableProgramAnalysis composite =
+        mock(DistributedConfigurableProgramAnalysis.class);
     when(composite.getCombineViolationConditionsOperator())
         .thenReturn(
             new CombineCompositeStateViolationConditionOperator(
                 ImmutableList.of(pointer), CFANode.newDummyCFANode()));
-    var operator = new ARGStateCombineViolationConditionOperator(composite);
-    var first = new ARGState(new CompositeState(ImmutableList.of(empty)), null);
-    var second = new ARGState(new CompositeState(ImmutableList.of(target)), null);
+    ARGStateCombineViolationConditionOperator operator =
+        new ARGStateCombineViolationConditionOperator(composite);
+    ARGState first = new ARGState(new CompositeState(ImmutableList.of(empty)), null);
+    ARGState second = new ARGState(new CompositeState(ImmutableList.of(target)), null);
     assertThat(operator.combineIfPossible(ImmutableList.of(first, second))).isEmpty();
     assertThat(operator.combineIfPossible(ImmutableList.of(second, second))).isPresent();
   }
