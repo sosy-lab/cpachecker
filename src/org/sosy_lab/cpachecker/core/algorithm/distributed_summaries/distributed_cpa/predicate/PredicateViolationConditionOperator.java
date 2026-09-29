@@ -38,7 +38,7 @@ public class PredicateViolationConditionOperator
   /** Projects the local variables out of every condition, or {@code null} to keep them. */
   private final @Nullable ExistentialProjection projection;
 
-  /** Rewrites every condition as cubes relative to the precondition, or {@code null} to not. */
+  /** Rewrites every condition as equivalent cubes, or {@code null} to keep it. */
   private final @Nullable ModelBasedGeneralization generalization;
 
   public PredicateViolationConditionOperator(
@@ -111,16 +111,15 @@ public class PredicateViolationConditionOperator
   public Optional<AbstractState> finish(ARGState root, PathFormula result)
       throws InterruptedException, SolverException {
     if (generalization != null) {
-      // The path starts in the precondition the block was explored from. Predecessors only ever
-      // ask about states of their postconditions, which make up this precondition, so the
-      // condition only has to be exact there.
+      // The precondition supplies a vocabulary only. Generalization must preserve every entry
+      // state of the condition, including states outside the current precondition.
       Optional<PathFormula> generalized = generalization.generalize(result, preconditionOf(root));
       if (generalized.isPresent()) {
         if (cpa.getSolver()
             .getFormulaManager()
             .getBooleanFormulaManager()
             .isFalse(generalized.orElseThrow().getFormula())) {
-          // no state of the precondition takes this path to the violation
+          // The exact violation condition is unsatisfiable.
           return Optional.empty();
         }
         result = generalized.orElseThrow();

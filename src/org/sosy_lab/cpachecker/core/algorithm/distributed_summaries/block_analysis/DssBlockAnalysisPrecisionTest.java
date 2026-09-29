@@ -353,7 +353,7 @@ public class DssBlockAnalysisPrecisionTest {
   }
 
   @Test
-  public void reportsPostconditionsAlongsideViolations() throws Exception {
+  public void reportsViolationsInsteadOfPostconditionsWhenErrorsAreReached() throws Exception {
     CFA cfa =
         TestCfaUtils.makeCfaFromString(
             "extern int choose(void); int main(void) { int x = choose();"
@@ -373,14 +373,7 @@ public class DssBlockAnalysisPrecisionTest {
       assertThat(h.analysis().storePrecondition(input).shouldProceed()).isTrue();
       Collection<DssMessage> output = h.analysis().analyze(false);
       assertThat(output.stream().anyMatch(DssViolationConditionMessage.class::isInstance)).isTrue();
-      DssPostConditionMessage summary =
-          output.stream()
-              .filter(DssPostConditionMessage.class::isInstance)
-              .map(DssPostConditionMessage.class::cast)
-              .findFirst()
-              .orElseThrow();
-      assertThat(summary.indicatesUnreachableBlockEnd()).isFalse();
-      assertThat(h.analysis().deserialize(summary)).isNotEmpty();
+      assertThat(output.stream().anyMatch(DssPostConditionMessage.class::isInstance)).isFalse();
     }
   }
 }

@@ -44,7 +44,7 @@ record AnalysisResult(
     return new AnalysisResult(ImmutableSet.of(), ImmutableSet.of(), true);
   }
 
-  /** Backward information from a run that does not publish summaries, such as a speculative run. */
+  /** A round with errors reports its violation conditions instead of a forward summary. */
   static AnalysisResult ofViolationConditions(Set<ArgPathAndCondition> pViolationConditions) {
     return new AnalysisResult(ImmutableSet.of(), pViolationConditions, false);
   }

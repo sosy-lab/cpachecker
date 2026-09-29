@@ -123,6 +123,25 @@ public class DistributedSummarySynthesisTest {
   }
 
   @Test
+  public void violationUpdatesAreExploredBeforeReplacement() throws Exception {
+    Configuration config =
+        TestUtils.configurationForTest()
+            .loadFromFile("config/dss.properties")
+            .setOption("analysis.machineModel", "Linux64")
+            .setOption("specification", "config/specification/sv-comp-reachability.spc")
+            .setOption("distributedSummaries.executorType", "SEQUENTIAL")
+            .setOption("distributedSummaries.decomposition.mergeBranchBoundaries", "false")
+            .setOption("distributedSummaries.decomposition.largestHorizontalMerge", "1")
+            .setOption("limits.time.wall", "60s")
+            .build();
+    // The sequential executor gives a reproducible message order. Batching violation updates
+    // used to terminate this unsafe loop with TRUE; every update must get its own exploration.
+    IntegrationTestRunner.run(
+            config, "test/programs/simple/block_analysis/inlined_mutex_cycle_unsafe.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
   public void restartedAnalysisUsesItsOwnDecomposition() throws Exception {
     Path dir = tempFolder.getRoot().toPath();
     Path program = dir.resolve("branches.c");

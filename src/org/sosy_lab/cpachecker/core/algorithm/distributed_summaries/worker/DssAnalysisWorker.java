@@ -162,23 +162,25 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   }
 
   /**
-   * Stores what a message carries and explores the block once the worker's queue has run empty.
+   * Explores each changed violation condition immediately, while batching precondition updates.
    *
-   * <p>Exploring after every single message is what makes the multithreaded execution expensive. A
-   * worker is usually handed a burst of messages: the block is explored from the first one, and the
-   * result is superseded by the second before anyone reads it. Storing the whole burst first and
-   * exploring once afterwards produces the same conditions with a fraction of the analyses.
+   * <p>A later violation-condition message replaces the earlier conditions of its sender. Waiting
+   * for the queue to empty can therefore discard an error obligation before it has been explored.
+   * On a cycle, this can stop backward progress and leave an empty queue without a proof. Process
+   * each changed violation-condition update before accepting another message from the queue.
    *
-   * <p>The exploration cannot simply be left to the next message, because there may be no next
-   * message. It has to happen before this worker blocks on its queue again, since {@link
+   * <p>Precondition updates can still be batched. Their pending exploration must run before the
+   * worker waits on an empty queue, because {@link
    * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssWorkCounter}
-   * reads a worker waiting on an empty queue as a worker with nothing left to do, and would report
-   * a verdict while an exploration is still owed.
+   * otherwise interprets that wait as completion of the worker's analysis.
    */
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
     Collection<DssMessage> messages = store(message);
-    if (shutdown || !isAnalysisPending() || getConnection().hasPendingMessages()) {
+    if (shutdown
+        || !isAnalysisPending()
+        || (!(message instanceof DssViolationConditionMessage)
+            && getConnection().hasPendingMessages())) {
       return messages;
     }
     try {
