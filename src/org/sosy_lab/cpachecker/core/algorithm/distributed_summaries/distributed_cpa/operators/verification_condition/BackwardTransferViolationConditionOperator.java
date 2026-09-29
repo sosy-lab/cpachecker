@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition;
 
 import com.google.common.collect.Iterables;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,7 +62,7 @@ public class BackwardTransferViolationConditionOperator implements ViolationCond
           && edge.getDescription().equals(BlockGraph.GHOST_EDGE_DESCRIPTION)) {
         continue;
       }
-      var successors =
+      Collection<? extends AbstractState> successors =
           transferRelation.getAbstractSuccessorsForEdge(
               state,
               cpa.getInitialPrecision(

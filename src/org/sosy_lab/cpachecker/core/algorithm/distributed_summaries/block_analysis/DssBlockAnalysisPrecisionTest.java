@@ -12,8 +12,11 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,13 +27,17 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -38,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
@@ -107,7 +115,8 @@ public class DssBlockAnalysisPrecisionTest {
         new DssBlockAnalysis(logger, block, cfa, spec, config, options, messages, shutdown, stats);
     PredicateCPA cpa =
         (PredicateCPA) CPAs.retrieveCPA(analysis.getDcpa(), DistributedPredicateCPA.class).getCPA();
-    var bv = cpa.getSolver().getFormulaManager().getBitvectorFormulaManager();
+    BitvectorFormulaManagerView bv =
+        cpa.getSolver().getFormulaManager().getBitvectorFormulaManager();
     AbstractionPredicate predicate =
         cpa.getAbstractionManager()
             .makePredicate(bv.equal(bv.makeVariable(32, "main::x"), bv.makeBitvector(32, 0)));
@@ -126,10 +135,10 @@ public class DssBlockAnalysisPrecisionTest {
   @Test
   public void summaryCombinationRetainsPrecisionWithoutSemanticComparisons() throws Exception {
     try (Harness h = createHarness()) {
-      var first = h.analysis().makeStartState(false);
-      var second = h.analysis().makeStartState(false);
+      AbstractState first = h.analysis().makeStartState(false);
+      AbstractState second = h.analysis().makeStartState(false);
       long comparisons = h.stats().getCoverageCounter().getValue();
-      var combined =
+      ImmutableList<StateAndPrecision> combined =
           h.analysis()
               .combineSummaries(
                   ImmutableList.of(
@@ -148,24 +157,24 @@ public class DssBlockAnalysisPrecisionTest {
   @Test
   public void analysisUsesOnlyTheSuppliedPrecision() throws Exception {
     try (Harness h = createHarness()) {
-      var first =
+      DssBlockAnalysisResult first =
           h.analysis()
               .runInitialBlockAnalysis(h.analysis().makeStartState(false), h.updatedPrecision());
       assertThat(h.analysis().summariesOf(first)).isNotEmpty();
-      for (var summary : h.analysis().summariesOf(first)) {
+      for (StateAndPrecision summary : h.analysis().summariesOf(first)) {
         assertThat(
                 Precisions.extractPrecisionByType(summary.precision(), PredicatePrecision.class)
                     .getPredicates(h.analysis().getBlock().getFinalLocation(), 1))
             .contains(h.predicate());
       }
-      var second =
+      DssBlockAnalysisResult second =
           h.analysis()
               .runBlockAnalysis(
                   h.analysis().makeStartState(false),
                   h.analysis().makeStartPrecision(),
                   ImmutableList.of());
       assertThat(h.analysis().summariesOf(second)).isNotEmpty();
-      for (var summary : h.analysis().summariesOf(second)) {
+      for (StateAndPrecision summary : h.analysis().summariesOf(second)) {
         assertThat(
                 Precisions.extractPrecisionByType(summary.precision(), PredicatePrecision.class)
                     .getPredicates(h.analysis().getBlock().getFinalLocation(), 1))
@@ -177,17 +186,18 @@ public class DssBlockAnalysisPrecisionTest {
   @Test
   public void statePrecisionSurvivesMessageRoundTrip() throws Exception {
     try (Harness h = createHarness()) {
-      var content =
+      ImmutableMap<String, String> content =
           h.analysis()
               .serialize(
                   ImmutableList.of(
                       new StateAndPrecision(
                           h.analysis().makeStartState(false), h.updatedPrecision())));
-      var message =
+      DssPostConditionMessage message =
           h.messages()
               .createDssPostConditionMessage(
                   "predecessor", AlgorithmStatus.SOUND_AND_PRECISE, content);
-      var restored = h.analysis().deserialize(DssMessage.fromJson(message.asJson()));
+      ImmutableList<StateAndPrecision> restored =
+          h.analysis().deserialize(DssMessage.fromJson(message.asJson()));
       assertThat(restored).hasSize(1);
       assertThat(
               Precisions.extractPrecisionByType(
@@ -200,7 +210,7 @@ public class DssBlockAnalysisPrecisionTest {
   @Test
   public void newPrecisionOnAnUnchangedPreconditionTriggersOnce() throws Exception {
     try (Harness h = createHarness()) {
-      var original =
+      DssPostConditionMessage original =
           h.messages()
               .createDssPostConditionMessage(
                   "predecessor",
@@ -211,7 +221,7 @@ public class DssBlockAnalysisPrecisionTest {
                               new StateAndPrecision(
                                   h.analysis().makeStartState(false),
                                   h.analysis().makeStartPrecision()))));
-      var updated =
+      DssPostConditionMessage updated =
           h.messages()
               .createDssPostConditionMessage(
                   "predecessor",
@@ -225,7 +235,7 @@ public class DssBlockAnalysisPrecisionTest {
       assertThat(h.analysis().storePrecondition(updated).shouldProceed()).isTrue();
       assertThat(h.analysis().storePrecondition(updated).shouldProceed()).isFalse();
       assertThat(h.analysis().storePrecondition(original).shouldProceed()).isFalse();
-      var messages = h.analysis().analyze(false);
+      Collection<DssMessage> messages = h.analysis().analyze(false);
       assertThat(messages).isNotEmpty();
       assertThat(
               messages.stream()
@@ -250,7 +260,7 @@ public class DssBlockAnalysisPrecisionTest {
   @Test
   public void newPrecisionOnAnUnchangedViolationTriggersOnce() throws Exception {
     try (Harness h = createHarness()) {
-      var original =
+      DssViolationConditionMessage original =
           h.messages()
               .createViolationConditionMessage(
                   "successor",
@@ -261,7 +271,7 @@ public class DssBlockAnalysisPrecisionTest {
                               new StateAndPrecision(
                                   h.analysis().makeStartState(false),
                                   h.analysis().makeStartPrecision()))));
-      var updated =
+      DssViolationConditionMessage updated =
           h.messages()
               .createViolationConditionMessage(
                   "successor",
@@ -281,15 +291,16 @@ public class DssBlockAnalysisPrecisionTest {
   @Test
   public void violationPathsKeepTheirPrecisionWhenAnotherExplorationRuns() throws Exception {
     try (Harness h = createHarness()) {
-      var result =
+      DssBlockAnalysisResult result =
           h.analysis()
               .runInitialBlockAnalysis(h.analysis().makeStartState(false), h.updatedPrecision());
-      var paths = h.analysis().pathsFromOrigin(result.getFinalLocationStates());
+      Set<ArgPathAndCondition> paths =
+          h.analysis().pathsFromOrigin(result.getFinalLocationStates());
       assertThat(paths).isNotEmpty();
       h.analysis()
           .runInitialBlockAnalysis(
               h.analysis().makeStartState(false), h.analysis().makeStartPrecision());
-      for (var path : paths) {
+      for (ArgPathAndCondition path : paths) {
         assertThat(
                 Precisions.extractPrecisionByType(path.precision(), PredicatePrecision.class)
                     .getPredicates(h.analysis().getBlock().getFinalLocation(), 1))

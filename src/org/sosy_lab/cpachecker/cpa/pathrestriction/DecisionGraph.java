@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -94,7 +95,7 @@ public final class DecisionGraph {
     List<Node> result = new ArrayList<>();
     Set<Node> finished = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
     finished.add(END);
-    var waiting = new ArrayDeque<Visit>();
+    Deque<Visit> waiting = new ArrayDeque<Visit>();
     waiting.push(new Visit(root, root.arcs.iterator()));
     while (!waiting.isEmpty()) {
       Visit visit = waiting.peek();
@@ -139,7 +140,7 @@ public final class DecisionGraph {
     private Cursor(Collection<Node> nodes) {
       Set<Node> closed = new LinkedHashSet<>();
       Set<Node> visited = new LinkedHashSet<>();
-      var waiting = new ArrayDeque<Node>(nodes);
+      Deque<Node> waiting = new ArrayDeque<Node>(nodes);
       while (!waiting.isEmpty()) {
         Node node = waiting.removeFirst();
         if (!visited.add(node)) {
@@ -186,7 +187,7 @@ public final class DecisionGraph {
 
   public String serialize() {
     if (encoding == null) {
-      var ids = new IdentityHashMap<Node, Integer>();
+      IdentityHashMap<Node, Integer> ids = new IdentityHashMap<Node, Integer>();
       ids.put(END, 0);
       List<String> nodes = new ArrayList<>();
       nodes.add("D");

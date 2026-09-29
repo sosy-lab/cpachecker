@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph.Cursor;
 
 class PathRestrictionTransferRelation extends SingleEdgeTransferRelation {
 
@@ -22,7 +23,7 @@ class PathRestrictionTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
     if (element instanceof GraphPathRestrictionState graphState) {
-      var next = graphState.cursor().advance(cfaEdge);
+      Cursor next = graphState.cursor().advance(cfaEdge);
       return next.isEmpty()
           ? ImmutableList.of()
           : ImmutableList.of(new GraphPathRestrictionState(next));

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /** Lossless dictionary encoding of repeated text in message values, independent of their CPA. */
 final class MessageContentDictionary {
@@ -37,7 +38,7 @@ final class MessageContentDictionary {
     Map<String, Integer> definitions = new LinkedHashMap<>();
     ImmutableMap.Builder<String, String> encoded = ImmutableMap.builder();
     encoded.put(ENCODING_KEY, "1");
-    for (var entry : content.entrySet()) {
+    for (Entry<String, String> entry : content.entrySet()) {
       List<Integer> references = new ArrayList<>();
       for (String part : PARTS.split(entry.getValue())) {
         references.add(definitions.computeIfAbsent(part, unused -> definitions.size()));
@@ -45,13 +46,13 @@ final class MessageContentDictionary {
       encoded.put(CONTENT_PREFIX + entry.getKey(), Joiner.on(SEPARATOR).join(references));
     }
     definitions.forEach((part, id) -> encoded.put(DEFINITION_PREFIX + id, part));
-    var result = encoded.buildOrThrow();
+    ImmutableMap<String, String> result = encoded.buildOrThrow();
     return size(result) < size(content) ? result : ImmutableMap.copyOf(content);
   }
 
   private static long size(Map<String, String> content) {
     long size = 0;
-    for (var entry : content.entrySet()) {
+    for (Entry<String, String> entry : content.entrySet()) {
       size += entry.getKey().length() + entry.getValue().length() + 6L;
     }
     return size;
@@ -63,7 +64,7 @@ final class MessageContentDictionary {
     }
     checkArgument(content.get(ENCODING_KEY).equals("1"), "Unknown content encoding");
     ImmutableMap.Builder<String, String> decoded = ImmutableMap.builder();
-    for (var entry : content.entrySet()) {
+    for (Entry<String, String> entry : content.entrySet()) {
       if (!entry.getKey().startsWith(CONTENT_PREFIX)) {
         continue;
       }

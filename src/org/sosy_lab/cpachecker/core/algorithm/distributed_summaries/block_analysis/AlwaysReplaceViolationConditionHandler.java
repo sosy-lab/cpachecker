@@ -64,7 +64,7 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
         return DssMessageProcessing.stop();
       }
 
-      var previousConditions = conditions.getStatesAndPrecisions();
+      ImmutableList<StateAndPrecision> previousConditions = conditions.getStatesAndPrecisions();
       ImmutableListMultimap<Object, @NonNull StateAndPrecision> programPointToState =
           Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointId(sap.state()));
       conditions.overwriteStatesForKey(sender, programPointToState);

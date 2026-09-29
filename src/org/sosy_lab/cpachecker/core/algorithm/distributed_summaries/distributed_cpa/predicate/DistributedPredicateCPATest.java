@@ -37,7 +37,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -135,7 +138,8 @@ public class DistributedPredicateCPATest {
       CFANode entry = cfa.getMainFunction();
       CFANode shared = entry.getLeavingEdge(0).getSuccessor();
       CFANode exit = shared.getLeavingEdge(0).getSuccessor();
-      var bmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
+      BooleanFormulaManagerView bmgr =
+          cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
       AbstractionPredicate global =
           cpa.getAbstractionManager().makePredicate(bmgr.makeVariable("g"));
       AbstractionPredicate function =
@@ -172,7 +176,7 @@ public class DistributedPredicateCPATest {
                 "cpa.predicate.blk.alwaysAtGivenNodes",
                 entry.getNodeNumber() + "," + exit.getNodeNumber())
             .build();
-    var operator = new org.sosy_lab.cpachecker.util.predicates.BlockOperator();
+    BlockOperator operator = new org.sosy_lab.cpachecker.util.predicates.BlockOperator();
     config.inject(operator);
     operator.setCFA(cfa);
     for (CFANode node : cfa.nodes()) {
@@ -220,7 +224,7 @@ public class DistributedPredicateCPATest {
     CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     try (PredicateCPA cpa = createPredicateCpa(cfa)) {
       FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
-      var bv = fmgr.getBitvectorFormulaManager();
+      BitvectorFormulaManagerView bv = fmgr.getBitvectorFormulaManager();
       BooleanFormula zero = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 0));
       BooleanFormula one = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 1));
       BooleanFormula two = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 2));
@@ -239,8 +243,9 @@ public class DistributedPredicateCPATest {
               laterPath,
               cpa.getPredicateManager().asAbstraction(one, laterPath),
               PathCopyingPersistentTreeMap.of());
-      var operator = new CombinePredicateStatePreconditionsOperator(cpa);
-      for (var states :
+      CombinePredicateStatePreconditionsOperator operator =
+          new CombinePredicateStatePreconditionsOperator(cpa);
+      for (ImmutableList<PredicateAbstractState> states :
           ImmutableList.of(ImmutableList.of(first), ImmutableList.of(first, second))) {
         PredicateAbstractState combined =
             (PredicateAbstractState)

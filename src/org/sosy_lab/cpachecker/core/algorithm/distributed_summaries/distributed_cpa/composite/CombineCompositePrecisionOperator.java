@@ -76,8 +76,8 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
 
   @Override
   public boolean isCoveredBy(Precision pPrecision, Precision pOther) throws InterruptedException {
-    var first = ((CompositePrecision) pPrecision).getWrappedPrecisions();
-    var second = ((CompositePrecision) pOther).getWrappedPrecisions();
+    ImmutableList<Precision> first = ((CompositePrecision) pPrecision).getWrappedPrecisions();
+    ImmutableList<Precision> second = ((CompositePrecision) pOther).getWrappedPrecisions();
     for (int i = 0; i < wrapped.size(); i++) {
       if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa
           && !dcpa.getCombinePrecisionOperator().isCoveredBy(first.get(i), second.get(i))) {

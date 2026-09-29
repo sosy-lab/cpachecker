@@ -19,6 +19,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import org.junit.Rule;
@@ -71,14 +72,14 @@ public class DistributedSummarySynthesisTest {
 
   @Test
   public void portfolioStagesPreserveCallerLimitsAndSpecification() throws Exception {
-    var caller =
+    Configuration caller =
         Configuration.builder()
             .loadFromFile("config/dss.properties")
             .setOption("limits.time.cpu", "7800s")
             .setOption("specification", "caller.spc")
             .build();
     for (String stage : new String[] {"boolean", "cartesian", "fallback"}) {
-      var config =
+      Configuration config =
           Configuration.builder()
               .copyFrom(caller)
               .loadFromFile(
@@ -112,7 +113,7 @@ public class DistributedSummarySynthesisTest {
         common
             + "distributedSummaries.decomposition.mergeBranchBoundaries=false\n"
             + "distributedSummaries.decomposition.largestHorizontalMerge=1\n");
-    var config =
+    Configuration config =
         TestUtils.configurationForTestWithOutput(tempFolder)
             .setOption(
                 "specification",
@@ -123,9 +124,9 @@ public class DistributedSummarySynthesisTest {
             .setOption("restartAlgorithm.configFiles", coarse + "," + fine)
             .setOption("output.disable", "true")
             .build();
-    var result = IntegrationTestRunner.run(config, program.toString());
+    IntegrationTestResult result = IntegrationTestRunner.run(config, program.toString());
     result.assertIsSafe();
-    var sizes =
+    List<Integer> sizes =
         Pattern.compile("Decomposed CFA in (\\d+) blocks")
             .matcher(result.log())
             .results()

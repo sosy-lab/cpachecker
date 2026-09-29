@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph.Incoming;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.BlockViolationConditionOperator;
@@ -58,7 +59,7 @@ final class CompositeGraphViolationConditionOperator<T> {
   static boolean supports(List<ConfigurableProgramAnalysis> analyses) {
     int mergeable = 0;
     boolean block = false;
-    for (var cpa : analyses) {
+    for (ConfigurableProgramAnalysis cpa : analyses) {
       if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa
           && dcpa.getViolationConditionOperator()
               instanceof MergeableViolationConditionOperator<?>) {
@@ -101,7 +102,7 @@ final class CompositeGraphViolationConditionOperator<T> {
     mergeableIndex = pMergeableIndex;
     int blk = -1;
     for (int i = 0; i < analyses.size(); i++) {
-      var cpa = analyses.get(i);
+      ConfigurableProgramAnalysis cpa = analyses.get(i);
       if (i == mergeableIndex) {
         continue;
       }
@@ -124,7 +125,8 @@ final class CompositeGraphViolationConditionOperator<T> {
 
   List<AbstractState> compute(DssARGPathGraph graph, Optional<ARGState> previous)
       throws InterruptedException, CPATransferException, SolverException {
-    var values = new HashMap<ARGState, Map<List<Map<String, String>>, Condition<T>>>();
+    Map<ARGState, Map<List<Map<String, String>>, Condition<T>>> values =
+        new HashMap<ARGState, Map<List<Map<String, String>>, Condition<T>>>();
     List<AbstractState> initial = new ArrayList<>();
     for (Component component : components) {
       initial.add(
@@ -141,17 +143,18 @@ final class CompositeGraphViolationConditionOperator<T> {
       if (Thread.interrupted()) {
         throw new InterruptedException();
       }
-      var atNode = values.get(node);
+      Map<List<Map<String, String>>, Condition<T>> atNode = values.get(node);
       if (atNode == null) {
         continue;
       }
-      for (var incoming : graph.incoming(node)) {
-        var atParent = values.computeIfAbsent(incoming.parent(), unused -> new LinkedHashMap<>());
+      for (Incoming incoming : graph.incoming(node)) {
+        Map<List<Map<String, String>>, Condition<T>> atParent =
+            values.computeIfAbsent(incoming.parent(), unused -> new LinkedHashMap<>());
         for (Condition<T> condition : atNode.values()) {
           List<AbstractState> next = new ArrayList<>();
           boolean feasible = true;
           for (int i = 0; i < components.size(); i++) {
-            var state =
+            Optional<AbstractState> state =
                 components
                     .get(i)
                     .transfer()
@@ -165,10 +168,10 @@ final class CompositeGraphViolationConditionOperator<T> {
           if (!feasible) {
             continue;
           }
-          var nextFormula = mergeable.prepend(condition.condition(), incoming.edges());
-          var nextWitness = condition.witness().prepend(incoming.edges());
-          var key = key(next);
-          var old = atParent.get(key);
+          T nextFormula = mergeable.prepend(condition.condition(), incoming.edges());
+          DecisionGraph nextWitness = condition.witness().prepend(incoming.edges());
+          List<Map<String, String>> key = key(next);
+          Condition<T> old = atParent.get(key);
           if (old != null) {
             nextFormula = mergeable.union(old.condition(), nextFormula);
             nextWitness = DecisionGraph.union(List.of(old.witness(), nextWitness));
@@ -179,11 +182,13 @@ final class CompositeGraphViolationConditionOperator<T> {
     }
     List<AbstractState> result = new ArrayList<>();
     for (Condition<T> condition : values.getOrDefault(graph.getFirstState(), Map.of()).values()) {
-      var formula = mergeable.finishGraph(graph.getFirstState(), condition.condition());
+      Optional<AbstractState> formula =
+          mergeable.finishGraph(graph.getFirstState(), condition.condition());
       if (formula.isEmpty()) {
         continue;
       }
-      var state = new ArrayList<AbstractState>(Collections.nCopies(analyses.size(), null));
+      List<AbstractState> state =
+          new ArrayList<AbstractState>(Collections.nCopies(analyses.size(), null));
       state.set(mergeableIndex, formula.orElseThrow());
       state.set(
           blockIndex,

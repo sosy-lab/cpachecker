@@ -111,7 +111,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
               condition -> analysis.getDcpa().computeProgramPointId(condition));
     }
 
-    var received =
+    ImmutableList<StateAndPrecision> received =
         ImmutableList.<StateAndPrecision>builder()
             .addAll(preconditions.getStatesAndPrecisions())
             .addAll(violationConditions.getKnownConditions())

@@ -20,7 +20,7 @@ public class MessageContentDictionaryTest {
 
   @Test
   public void sharesRepeatedPartsAcrossUnrelatedNamespaces() {
-    var content =
+    ImmutableMap<String, String> content =
         ImmutableMap.of(
             "states",
             "2",
@@ -30,7 +30,7 @@ public class MessageContentDictionaryTest {
             LONG_VALUE + " , " + "different",
             "state1.domainB.state",
             LONG_VALUE);
-    var encoded = MessageContentDictionary.encode(content);
+    ImmutableMap<String, String> encoded = MessageContentDictionary.encode(content);
     assertThat(encoded.values().stream().filter(LONG_VALUE::equals).count()).isEqualTo(1);
     assertThat(MessageContentDictionary.decode(encoded)).isEqualTo(content);
     assertThat(MessageContentDictionary.encode(encoded)).isEqualTo(encoded);
@@ -49,7 +49,7 @@ public class MessageContentDictionaryTest {
 
   @Test
   public void preservesRepetitionsEmptyPartsAndDelimitersExactly() {
-    var content =
+    ImmutableMap<String, String> content =
         ImmutableMap.of(
             "empty",
             "",
@@ -63,7 +63,7 @@ public class MessageContentDictionaryTest {
 
   @Test
   public void skipsEncodingWhenItWouldGrowTheMessage() {
-    var content = ImmutableMap.of("a", "", "b", "short", "c", "short");
+    ImmutableMap<String, String> content = ImmutableMap.of("a", "", "b", "short", "c", "short");
     assertThat(MessageContentDictionary.encode(content)).isEqualTo(content);
     assertThat(MessageContentDictionary.decode(content)).isEqualTo(content);
   }

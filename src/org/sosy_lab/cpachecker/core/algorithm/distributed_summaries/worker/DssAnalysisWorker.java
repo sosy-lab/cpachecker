@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -130,7 +131,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     block = pBlock;
     connection = pConnection;
 
-    var forwardConfigurationBuilder =
+    ConfigurationBuilder forwardConfigurationBuilder =
         Configuration.builder()
             .loadFromFile(pOptions.getForwardConfiguration())
             .setOption(
@@ -211,8 +212,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     boolean violationConditionsChanged = violationConditionsPending;
     preconditionsPending = false;
     violationConditionsPending = false;
-    var blockAnalysis = analysis.getDssBlockAnalysis();
-    var messages = blockAnalysis.analyze(violationConditionsChanged);
+    DssBlockAnalysis blockAnalysis = analysis.getDssBlockAnalysis();
+    Collection<DssMessage> messages = blockAnalysis.analyze(violationConditionsChanged);
     unresolvedViolations = blockAnalysis.hasUnresolvedViolations();
     return messages;
   }

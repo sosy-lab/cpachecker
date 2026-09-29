@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -419,7 +420,7 @@ public final class DssBlockAnalysis {
     if (first.isEmpty() || second.isEmpty()) {
       return first.isEmpty();
     }
-    var operator = dcpa.getCombinePrecisionOperator();
+    CombinePrecisionOperator operator = dcpa.getCombinePrecisionOperator();
     return operator.isCoveredBy(
         operator.union(transformedImmutableListCopy(first, StateAndPrecision::precision)),
         operator.union(transformedImmutableListCopy(second, StateAndPrecision::precision)));
@@ -802,7 +803,7 @@ public final class DssBlockAnalysis {
       }
       computed.put(pathAndCondition, violationCondition);
       for (AbstractState condition : violationCondition) {
-        var programPoint =
+        ViolationConditionProgramPoint programPoint =
             new ViolationConditionProgramPoint(
                 Optional.ofNullable(pathAndCondition.condition()),
                 dcpa.computeProgramPointId(condition));
@@ -819,7 +820,8 @@ public final class DssBlockAnalysis {
         "The analysis found a feasible counterexample "
             + "which could not be reestablished with the violation-condition operator.");
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
-    var precisionPerProgramPoint = precisions.build();
+    ImmutableListMultimap<ViolationConditionProgramPoint, Precision> precisionPerProgramPoint =
+        precisions.build();
     Map<ImmutableList<AbstractState>, ImmutableList<AbstractState>> combined = new HashMap<>();
     for (ViolationConditionProgramPoint programPoint : statePerProgramCounter.keySet()) {
       ImmutableList<AbstractState> group = statePerProgramCounter.get(programPoint);

@@ -19,12 +19,16 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
   private PathFormulaManager pathFormulaManager;
@@ -50,23 +54,23 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
 
   @Test
   public void intermediateValuesAreIndependentAcrossConditionUses() throws Exception {
-    var ints = mgrv.getIntegerFormulaManager();
-    var formula = ints.equal(ints.makeVariable("x@1"), ints.makeVariable("x@2"));
-    var path =
+    IntegerFormulaManagerView ints = mgrv.getIntegerFormulaManager();
+    BooleanFormula formula = ints.equal(ints.makeVariable("x@1"), ints.makeVariable("x@2"));
+    PathFormula path =
         pathFormulaManager
             .makeEmptyPathFormulaWithContext(
                 SSAMap.emptySSAMap().builder().setIndex("x", CNumericTypes.INT, 2).build(),
                 PointerTargetSet.emptyPointerTargetSet())
             .withFormula(formula);
-    var first =
+    BooleanFormula first =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
             .booleanFormula();
-    var second =
+    BooleanFormula second =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
             .booleanFormula();
-    var x = ints.makeVariable("x");
+    IntegerFormula x = ints.makeVariable("x");
     first = mgrv.substitute(first, java.util.Map.of(x, ints.makeNumber(0)));
     second = mgrv.substitute(second, java.util.Map.of(x, ints.makeNumber(1)));
     // Both instances are satisfiable with their own intermediate value. Reusing x.1 would
@@ -76,22 +80,22 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
 
   @Test
   public void alreadyUninstantiatedPrivateValuesAreStillFreshened() throws Exception {
-    var ints = mgrv.getIntegerFormulaManager();
-    var formula = ints.equal(ints.makeVariable("local!value"), ints.makeVariable("x"));
-    var path =
+    IntegerFormulaManagerView ints = mgrv.getIntegerFormulaManager();
+    BooleanFormula formula = ints.equal(ints.makeVariable("local!value"), ints.makeVariable("x"));
+    PathFormula path =
         pathFormulaManager
             .makeEmptyPathFormulaWithContext(
                 SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet())
             .withFormula(formula);
-    var first =
+    BooleanFormula first =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
             .booleanFormula();
-    var second =
+    BooleanFormula second =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
             .booleanFormula();
-    var x = ints.makeVariable("x");
+    IntegerFormula x = ints.makeVariable("x");
     first = mgrv.substitute(first, java.util.Map.of(x, ints.makeNumber(0)));
     second = mgrv.substitute(second, java.util.Map.of(x, ints.makeNumber(1)));
     assertThat(solver.isUnsat(bmgrv.and(first, second))).isFalse();
@@ -99,12 +103,12 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
 
   @Test
   public void fieldNamesDoNotCollapseDifferentSsaValues() throws Exception {
-    var ints = mgrv.getIntegerFormulaManager();
-    var formula =
+    IntegerFormulaManagerView ints = mgrv.getIntegerFormulaManager();
+    BooleanFormula formula =
         bmgrv.and(
             ints.equal(ints.makeVariable("record.field@1"), ints.makeNumber(0)),
             ints.equal(ints.makeVariable("record.field@2"), ints.makeNumber(1)));
-    var path =
+    PathFormula path =
         pathFormulaManager
             .makeEmptyPathFormulaWithContext(
                 SSAMap.emptySSAMap()
@@ -113,7 +117,7 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
                     .build(),
                 PointerTargetSet.emptyPointerTargetSet())
             .withFormula(formula);
-    var condition =
+    BooleanFormula condition =
         PredicateOperatorUtil.uninstantiate(
                 path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
             .booleanFormula();
@@ -126,8 +130,8 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
 
   @Test
   public void comparisonNormalizationKeepsAllPrivateNamesAndVersionsDistinct() throws Exception {
-    var ints = mgrv.getIntegerFormulaManager();
-    var formula =
+    IntegerFormulaManagerView ints = mgrv.getIntegerFormulaManager();
+    BooleanFormula formula =
         bmgrv.and(
             ints.equal(ints.makeVariable("x@1"), ints.makeNumber(0)),
             ints.equal(ints.makeVariable("x!1"), ints.makeNumber(1)),
@@ -135,13 +139,13 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
             ints.equal(ints.makeVariable("private!v@2"), ints.makeNumber(3)),
             ints.equal(ints.makeVariable("private!v#at2"), ints.makeNumber(4)),
             ints.equal(ints.makeVariable("x@2"), ints.makeNumber(5)));
-    var path =
+    PathFormula path =
         pathFormulaManager
             .makeEmptyPathFormulaWithContext(
                 SSAMap.emptySSAMap().builder().setIndex("x", CNumericTypes.INT, 2).build(),
                 PointerTargetSet.emptyPointerTargetSet())
             .withFormula(formula);
-    var normalized = PredicateOperatorUtil.normalizeForComparison(path, mgrv);
+    BooleanFormula normalized = PredicateOperatorUtil.normalizeForComparison(path, mgrv);
     assertThat(solver.isUnsat(normalized)).isFalse();
     assertThat(solver.implies(normalized, ints.equal(ints.makeVariable("x"), ints.makeNumber(5))))
         .isTrue();
@@ -150,10 +154,10 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
 
   @Test
   public void latestNondeterministicValuesArePrivateOnEveryUse() throws Exception {
-    var ints = mgrv.getIntegerFormulaManager();
-    var formula =
+    IntegerFormulaManagerView ints = mgrv.getIntegerFormulaManager();
+    BooleanFormula formula =
         ints.equal(ints.makeVariable("__VERIFIER_nondet_int@2"), ints.makeVariable("x@1"));
-    var path =
+    PathFormula path =
         pathFormulaManager
             .makeEmptyPathFormulaWithContext(
                 SSAMap.emptySSAMap()
@@ -163,9 +167,9 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
                     .build(),
                 PointerTargetSet.emptyPointerTargetSet())
             .withFormula(formula);
-    var first = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
-    var second = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
-    var x = ints.makeVariable("x");
+    BooleanFormula first = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
+    BooleanFormula second = PredicateOperatorUtil.uninstantiate(path, mgrv).booleanFormula();
+    IntegerFormula x = ints.makeVariable("x");
     first = mgrv.substitute(first, java.util.Map.of(x, ints.makeNumber(0)));
     second = mgrv.substitute(second, java.util.Map.of(x, ints.makeNumber(1)));
     assertThat(solver.isUnsat(bmgrv.and(first, second))).isFalse();
