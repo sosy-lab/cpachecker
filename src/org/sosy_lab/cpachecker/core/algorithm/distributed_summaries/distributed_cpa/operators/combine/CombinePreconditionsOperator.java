@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine;
 
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -19,6 +20,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * <p>The resulting state must follow the contract that it over-approximates all input states.
  */
 public interface CombinePreconditionsOperator {
+
+  /**
+   * Combines states at one program point only if their union is exactly representable.
+   *
+   * <p>This must not introduce additional concrete states. Domains closed under disjunction can opt
+   * in; other domains may combine equal states. Unsupported combinations stay separate.
+   */
+  default Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
+      throws CPAException, InterruptedException {
+    return Optional.empty();
+  }
 
   AbstractState combinePreconditions(Collection<AbstractState> states)
       throws CPAException, InterruptedException;

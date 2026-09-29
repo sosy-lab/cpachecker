@@ -271,6 +271,8 @@ public class BlockOperator {
       return explicitAbstractionNodes.isEmpty();
     }
     return !alwaysAtFunctions
+        && !alwaysAtFunctionHeads
+        && alwaysAtGivenNodes.isEmpty()
         && !alwaysAtEntryFunctionHead
         && !alwaysAtFunctionCallNodes
         && !alwaysAtLoops

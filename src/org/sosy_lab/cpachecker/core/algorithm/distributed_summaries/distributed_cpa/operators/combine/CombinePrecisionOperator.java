@@ -22,4 +22,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public interface CombinePrecisionOperator {
 
   Precision combine(Collection<Precision> precisions) throws InterruptedException;
+
+  /**
+   * The union of the given precisions: everything any of them tracks is tracked by the result.
+   *
+   * <p>Unlike {@link #combine}, which may leave out parts of the given precisions to keep the
+   * result small, this never loses anything. Use it to accumulate a precision, e.g., over the
+   * explorations of one block, where losing a part means refining it again and again.
+   */
+  default Precision union(Collection<Precision> precisions) throws InterruptedException {
+    return combine(precisions);
+  }
 }

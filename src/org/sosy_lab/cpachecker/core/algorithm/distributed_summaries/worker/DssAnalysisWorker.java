@@ -88,6 +88,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final DssSingleWorkerStatistics workerStats;
 
+  /** Read by the executor only after all workers became idle. */
+  private volatile boolean unresolvedViolations;
+
   private boolean shutdown;
   private boolean closed;
 
@@ -127,13 +130,15 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     block = pBlock;
     connection = pConnection;
 
-    Configuration forwardConfiguration =
+    var forwardConfigurationBuilder =
         Configuration.builder()
             .loadFromFile(pOptions.getForwardConfiguration())
             .setOption(
                 "cpa.predicate.blk.alwaysAtGivenNodes",
-                Integer.toString(pBlock.getFinalLocation().getNodeNumber()))
-            .build();
+                pBlock.getInitialLocation().getNodeNumber()
+                    + ","
+                    + pBlock.getFinalLocation().getNodeNumber());
+    Configuration forwardConfiguration = forwardConfigurationBuilder.build();
 
     messageFactory = pMessageFactory;
     workerStats = pWorkerStatistics.createWorkerStats(pId);
@@ -150,6 +155,10 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
                     pMessageFactory,
                     pShutdownManager,
                     workerStats));
+  }
+
+  public boolean hasUnresolvedViolations() {
+    return unresolvedViolations;
   }
 
   public Collection<DssMessage> runInitialAnalysis()
@@ -202,7 +211,10 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     boolean violationConditionsChanged = violationConditionsPending;
     preconditionsPending = false;
     violationConditionsPending = false;
-    return analysis.getDssBlockAnalysis().analyze(violationConditionsChanged);
+    var blockAnalysis = analysis.getDssBlockAnalysis();
+    var messages = blockAnalysis.analyze(violationConditionsChanged);
+    unresolvedViolations = blockAnalysis.hasUnresolvedViolations();
+    return messages;
   }
 
   private Collection<DssMessage> store(DssMessage message) {
@@ -286,7 +298,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           broadcaster.broadcastToIds(message, block.getSuccessorIds());
         }
         case VIOLATION_CONDITION -> {
-          if (block.getPredecessorIds().isEmpty()) {
+          if (block.getPredecessorIds().isEmpty() && !message.isPrecisionOnly()) {
             String violationPathString = message.extractBlockStateWitnessString();
             SegmentedPaths violationPath =
                 DeserializeBlockStateOperator.parseWitness(violationPathString).witness();
@@ -338,8 +350,12 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   @Override
   public void close() {
     if (!closed && analysis.wouldBeCalledFromCorrectThread()) {
-      CPAs.closeCpaIfPossible(analysis.getDssBlockAnalysis().getDcpa(), logger);
-      closed = true;
+      try {
+        analysis.getDssBlockAnalysis().snapshotAnalysisStatistics();
+      } finally {
+        CPAs.closeCpaIfPossible(analysis.getDssBlockAnalysis().getDcpa(), logger);
+        closed = true;
+      }
     }
   }
 }

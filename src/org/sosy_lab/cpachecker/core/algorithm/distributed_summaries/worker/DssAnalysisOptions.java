@@ -99,16 +99,17 @@ public class DssAnalysisOptions {
   private boolean syntacticViolationConditionEquality = false;
 
   @Option(
+      secure = true,
+      description =
+          "Seed each predicate worker's initial precision with guards at its entry and exit."
+              + " These are candidate predicates, not assumed facts.")
+  private boolean seedBoundaryAssumptions = false;
+
+  @Option(
       name = "combineVcsByHash",
       description = "Whether to combine violation conditions at same program location",
       secure = true)
   private boolean combineViolationConditionsByHash = true;
-
-  @Option(
-      name = "combinePresByHash",
-      description = "Whether to combine preconditions at same program location",
-      secure = true)
-  private boolean combinePreconditionsByHash = false;
 
   // TODO How to make sure the other Witness export does not overwrite this?
   @Option(
@@ -169,8 +170,8 @@ public class DssAnalysisOptions {
     return syntacticViolationConditionEquality;
   }
 
-  public boolean combinePreconditionsByHash() {
-    return combinePreconditionsByHash;
+  public boolean seedBoundaryAssumptions() {
+    return seedBoundaryAssumptions;
   }
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {

@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.sosy_lab.common.ShutdownManager;
@@ -145,7 +146,10 @@ public class MultithreadingDssExecutor implements DssExecutor {
         executor.execute(actor);
       }
       DssMessageBroadcaster broadcaster = observer.getConnection().getBroadcaster();
-      executor.execute(() -> broadcastProofOnceNoWorkIsLeft(workCounter, broadcaster));
+      executor.execute(
+          () ->
+              broadcastResultOnceNoWorkIsLeft(
+                  workCounter, broadcaster, actors.getAnalysisWorkers()));
 
       try {
         // Blocks until all WITNESS(es) or EXCEPTION arrives
@@ -162,14 +166,22 @@ public class MultithreadingDssExecutor implements DssExecutor {
     }
   }
 
-  private void broadcastProofOnceNoWorkIsLeft(
-      DssWorkCounter workCounter, DssMessageBroadcaster broadcaster) {
+  private void broadcastResultOnceNoWorkIsLeft(
+      DssWorkCounter workCounter,
+      DssMessageBroadcaster broadcaster,
+      Collection<DssAnalysisWorker> workers) {
     try {
       workCounter.awaitNoWorkLeft();
     } catch (InterruptedException e) {
       // The analysis ended with another verdict, so there is nothing to prove anymore.
       return;
     }
-    broadcaster.broadcastToAll(messageFactory.createDssResultMessage(PROOF_SENDER_ID, Result.TRUE));
+    // A worker may be holding back a new summary while its violations circulate through a loop.
+    // Duplicate suppression can empty all queues in that state without establishing a proof.
+    Result result =
+        workers.stream().anyMatch(DssAnalysisWorker::hasUnresolvedViolations)
+            ? Result.UNKNOWN
+            : Result.TRUE;
+    broadcaster.broadcastToAll(messageFactory.createDssResultMessage(PROOF_SENDER_ID, result));
   }
 }

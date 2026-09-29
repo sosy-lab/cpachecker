@@ -92,6 +92,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
       throws InterruptedException {
     // if the callstack of this block analysis is unknown,
     // the callstack must not restrict any transfer
+    if (node.equals(block.getInitialLocation()) && block.getKnownEntryCallstack().isPresent()) {
+      return DssCallstackState.withCompleteCallstack(block.getKnownEntryCallstack().orElseThrow());
+    }
     return callstackCPA.createState(null, node.getFunctionName(), node, ignoreCallstack);
   }
 
@@ -155,6 +158,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public AbstractState reset(AbstractState pAbstractState) {
     Preconditions.checkArgument(pAbstractState instanceof CallstackState);
+    if (block.getKnownEntryCallstack().isPresent()) {
+      return DssCallstackState.withCompleteCallstack(block.getKnownEntryCallstack().orElseThrow());
+    }
     if (requiresStateResets) {
       return callstackCPA.createState(
           null,

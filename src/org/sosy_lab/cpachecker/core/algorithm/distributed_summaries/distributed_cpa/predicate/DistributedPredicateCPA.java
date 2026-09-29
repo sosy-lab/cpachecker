@@ -10,9 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -35,8 +38,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 @Options(prefix = "dss.cpa.predicate")
@@ -45,6 +51,49 @@ public class DistributedPredicateCPA
 
   @Option(description = "Whether to query the SMT solver before proceeding backwards.")
   private boolean doSatChecksBeforeBackwardAnalysis = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to remove the intermediate variables of a violation condition before it is"
+              + " sent. The result is equivalent, but usually much smaller, and conditions of"
+              + " different paths that only differ in intermediate values become equal.")
+  private boolean projectViolationConditions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether graph-condition projection may substitute into nested disjunctions."
+              + " Disabling this keeps shared intermediate values, which can make large"
+              + " exact conditions easier for the solver even when messages become larger.")
+  private boolean projectNestedDisjunctions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to rewrite every violation condition as a disjunction of cubes generalized from"
+              + " models, restricted to the entry states the block can currently be entered with."
+              + " Each cube really reaches the violation, and the cubes together cover the"
+              + " condition for all states of the current precondition.")
+  private boolean generalizeViolationConditions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "The maximal number of cubes a generalized violation condition may consist of. A"
+              + " condition that needs more is sent exactly.")
+  @IntegerOption(min = 1)
+  private int maxCubesPerViolationCondition = 16;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to rewrite generalized violation conditions over the predicates of the"
+              + " precondition where possible. These are the predicates the predecessors abstract"
+              + " their block ends with, including the interpolants they learned while refuting"
+              + " violation conditions of this block. Has no effect unless"
+              + " generalizeViolationConditions is enabled.")
+  private boolean generalizeOverPreconditionPredicates = true;
 
   private final PredicateCPA predicateCPA;
 
@@ -78,18 +127,28 @@ public class DistributedPredicateCPA
     serialize =
         new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas, pTypeMap);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, pTypeMap);
-    serializePrecisionOperator =
+    ImmutableSet<CFANode> boundaries =
+        ImmutableSet.of(pNode.getInitialLocation(), pNode.getFinalLocation());
+    SerializePredicatePrecisionOperator precisionSerializer =
         new SerializePredicatePrecisionOperator(
             pPredicateCPA.getSolver().getFormulaManager(), pIdToNodeMap.inverse());
-    deserializePrecisionOperator =
+    DeserializePredicatePrecisionOperator precisionDeserializer =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), pIdToNodeMap::get);
+    serializePrecisionOperator =
+        precision ->
+            precisionSerializer.serializePrecision(boundaryPrecision(precision, boundaries));
+    deserializePrecisionOperator =
+        message ->
+            boundaryPrecision(precisionDeserializer.deserializePrecision(message), boundaries);
     if (doSatChecksBeforeBackwardAnalysis) {
       proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
     } else {
       proceedOperator = ProceedOperator.always();
     }
     stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
+    ExistentialProjection projection =
+        projectViolationConditions ? new ExistentialProjection(predicateCPA.getSolver()) : null;
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
             new PathFormulaManagerImpl(
@@ -100,12 +159,59 @@ public class DistributedPredicateCPA
                 pCFA,
                 AnalysisDirection.BACKWARD),
             predicateCPA,
-            pNode.getPredecessorIds().isEmpty());
+            pNode.getPredecessorIds().isEmpty(),
+            projection,
+            projectNestedDisjunctions,
+            generalizeViolationConditions
+                ? new ModelBasedGeneralization(
+                    predicateCPA.getSolver(),
+                    projection != null
+                        ? projection
+                        : new ExistentialProjection(predicateCPA.getSolver()),
+                    maxCubesPerViolationCondition,
+                    generalizeOverPreconditionPredicates)
+                : null);
     combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
     combinePrecisionOperator =
         new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
     combineViolationConditionsOperator =
-        new PredicateStateCombineViolationConditionOperator(predicateCPA.getPathFormulaManager());
+        new PredicateStateCombineViolationConditionOperator(
+            predicateCPA.getPathFormulaManager(), projection);
+  }
+
+  /**
+   * Neighboring blocks share the same CFA node at their boundary. Keep predicates at those nodes,
+   * including predicates over local variables, without turning them into global predicates.
+   * Function-wide and global predicates retain their explicitly configured scope.
+   */
+  static PredicatePrecision boundaryPrecision(
+      Precision pPrecision, ImmutableSet<CFANode> pBoundaries) {
+    PredicatePrecision precision = (PredicatePrecision) pPrecision;
+    ImmutableListMultimap.Builder<CFANode, AbstractionPredicate> local =
+        ImmutableListMultimap.builder();
+    precision
+        .getLocalPredicates()
+        .forEach(
+            (node, predicate) -> {
+              if (pBoundaries.contains(node)) {
+                local.put(node, predicate);
+              }
+            });
+    ImmutableListMultimap.Builder<PredicatePrecision.LocationInstance, AbstractionPredicate>
+        instances = ImmutableListMultimap.builder();
+    precision
+        .getLocationInstancePredicates()
+        .forEach(
+            (location, predicate) -> {
+              if (pBoundaries.contains(location.getLocation())) {
+                instances.put(location, predicate);
+              }
+            });
+    return new PredicatePrecision(
+        instances.build(),
+        local.build(),
+        precision.getFunctionPredicates(),
+        precision.getGlobalPredicates());
   }
 
   @Override

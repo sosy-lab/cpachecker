@@ -78,6 +78,16 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
   }
 
   @Override
+  public Precision union(Collection<Precision> precisions) throws InterruptedException {
+    Preconditions.checkArgument(precisions.stream().allMatch(PredicatePrecision.class::isInstance));
+    Preconditions.checkArgument(
+        !precisions.isEmpty(), "Cannot unite an empty collection of precisions");
+    return precisions.size() == 1
+        ? Iterables.getOnlyElement(precisions)
+        : PredicatePrecision.unionOf(precisions);
+  }
+
+  @Override
   public Precision combine(Collection<Precision> precisions) throws InterruptedException {
     Preconditions.checkArgument(precisions.stream().allMatch(PredicatePrecision.class::isInstance));
     Preconditions.checkArgument(

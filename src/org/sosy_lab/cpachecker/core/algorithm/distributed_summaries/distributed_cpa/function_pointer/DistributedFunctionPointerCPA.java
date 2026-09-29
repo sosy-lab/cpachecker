@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -56,21 +55,10 @@ public class DistributedFunctionPointerCPA
         new BackwardTransferViolationConditionOperator(
             pParentCPA.getTransferRelation(), pParentCPA);
     coverageOperator = new FunctionPointerStateCoverageOperator();
-    combinePreconditionsOperator =
-        new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
+    var combination = new FunctionPointerStateCombinePreconditionsOperator();
+    combinePreconditionsOperator = combination;
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
-    combineViolationConditionsOperator =
-        states -> {
-          FunctionPointerState prev = null;
-          for (AbstractState state : states) {
-            if (prev == null) {
-              prev = (FunctionPointerState) state;
-            } else {
-              Preconditions.checkState(getCoverageOperator().areStatesEqual(prev, state));
-            }
-          }
-          return prev;
-        };
+    combineViolationConditionsOperator = combination;
   }
 
   @Override

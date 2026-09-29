@@ -28,6 +28,16 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
 
   @Override
   public Precision combine(Collection<Precision> precisions) throws InterruptedException {
+    return combineComponentWise(precisions, false);
+  }
+
+  @Override
+  public Precision union(Collection<Precision> precisions) throws InterruptedException {
+    return combineComponentWise(precisions, true);
+  }
+
+  private Precision combineComponentWise(Collection<Precision> precisions, boolean pUnion)
+      throws InterruptedException {
     Preconditions.checkArgument(!precisions.isEmpty(), "States cannot be empty");
     Preconditions.checkArgument(
         precisions.stream().allMatch(CompositePrecision.class::isInstance),
@@ -49,7 +59,10 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
       }
       ImmutableList<Precision> preparedPrecisions = precisionsToCombine.build();
       if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa) {
-        Precision combinePrecision = dcpa.getCombinePrecisionOperator().combine(preparedPrecisions);
+        Precision combinePrecision =
+            pUnion
+                ? dcpa.getCombinePrecisionOperator().union(preparedPrecisions)
+                : dcpa.getCombinePrecisionOperator().combine(preparedPrecisions);
         Preconditions.checkState(
             combinePrecision.getClass().equals(preparedPrecisions.getFirst().getClass()));
         wrappedPrecisions.add(combinePrecision);

@@ -9,6 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -23,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
@@ -112,5 +116,134 @@ public class DssCallstackDomainTest {
         .isFalse();
     assertThat(cpa.isCoveredBy(state, unknown)).isFalse();
     assertThat(cpa.isCoveredByRecursiveState(state, unknown)).isFalse();
+  }
+
+  @Test
+  public void runWithoutSuccessorConditionsDropsOnlyReplayEffect() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromString("void f() {} int main() { f(); }");
+    FunctionCallEdge call =
+        Iterables.getOnlyElement(CFAUtils.allEdges(cfa).filter(FunctionCallEdge.class));
+    DssCallstackState withCall = state.withTraversedEdge(call);
+    BlockState block = mock(BlockState.class);
+    when(block.getViolationConditions()).thenReturn(ImmutableList.of());
+    DssCallstackTransferRelation transfer =
+        new DssCallstackTransferRelation(
+            new CallstackOptions(Configuration.defaultConfiguration()),
+            LogManager.createTestLogManager());
+
+    DssCallstackState strengthened =
+        (DssCallstackState)
+            Iterables.getOnlyElement(
+                transfer.strengthen(
+                    withCall, ImmutableList.of(block), call, SingletonPrecision.getInstance()));
+    assertThat(domain.isLessOrEqual(strengthened, state)).isTrue();
+    assertThat(strengthened.getWrappedState()).isSameInstanceAs(withCall.getWrappedState());
+    assertThat(strengthened.canBeTopState()).isEqualTo(withCall.canBeTopState());
+    assertThat(strengthened.getReversedTraversedEdges())
+        .containsExactlyElementsIn(withCall.getReversedTraversedEdges());
+  }
+
+  @Test
+  public void runWithSuccessorConditionsKeepsReplayEffect() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromString("void f() {} int main() { f(); }");
+    FunctionCallEdge call =
+        Iterables.getOnlyElement(CFAUtils.allEdges(cfa).filter(FunctionCallEdge.class));
+    DssCallstackState withCall = state.withTraversedEdge(call);
+    BlockState block = mock(BlockState.class);
+    doReturn(ImmutableList.of(mock(AbstractState.class))).when(block).getViolationConditions();
+    DssCallstackTransferRelation transfer =
+        new DssCallstackTransferRelation(
+            new CallstackOptions(Configuration.defaultConfiguration()),
+            LogManager.createTestLogManager());
+
+    AbstractState strengthened =
+        Iterables.getOnlyElement(
+            transfer.strengthen(
+                withCall, ImmutableList.of(block), call, SingletonPrecision.getInstance()));
+    assertThat(strengthened).isSameInstanceAs(withCall);
+    assertThat(domain.isLessOrEqual(strengthened, state)).isFalse();
+  }
+
+  @Test
+  public void missingBlockContextKeepsReplayEffect() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromString("void f() {} int main() { f(); }");
+    FunctionCallEdge call =
+        Iterables.getOnlyElement(CFAUtils.allEdges(cfa).filter(FunctionCallEdge.class));
+    DssCallstackState withCall = state.withTraversedEdge(call);
+    DssCallstackTransferRelation transfer =
+        new DssCallstackTransferRelation(
+            new CallstackOptions(Configuration.defaultConfiguration()),
+            LogManager.createTestLogManager());
+    assertThat(
+            Iterables.getOnlyElement(
+                transfer.strengthen(
+                    withCall, ImmutableList.of(), call, SingletonPrecision.getInstance())))
+        .isSameInstanceAs(withCall);
+  }
+
+  @Test
+  public void completenessIsSeparateFromUnknownStackMode() {
+    DssCallstackState complete = DssCallstackState.withCompleteCallstack(stack);
+    assertThat(complete.canBeTopState()).isFalse();
+    assertThat(state.canBeTopState()).isFalse();
+    assertThat(state.hasCompleteCallstack()).isFalse();
+    assertThat(complete.reset().hasCompleteCallstack()).isTrue();
+    assertThat(domain.isLessOrEqual(complete, state)).isFalse();
+    assertThat(domain.isLessOrEqual(state, complete)).isFalse();
+  }
+
+  @Test
+  public void completeStacksCanMergeEvenWithSuccessorConditions() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromString("void f() {} int main() { f(); }");
+    FunctionCallEdge call =
+        Iterables.getOnlyElement(CFAUtils.allEdges(cfa).filter(FunctionCallEdge.class));
+    DssCallstackState complete = DssCallstackState.withCompleteCallstack(stack);
+    DssCallstackState withCall = complete.withTraversedEdge(call);
+    BlockState block = mock(BlockState.class);
+    doReturn(ImmutableList.of(mock(AbstractState.class))).when(block).getViolationConditions();
+    var transfer =
+        new DssCallstackTransferRelation(
+            new CallstackOptions(
+                Configuration.builder()
+                    .setOption("cpa.callstack.dssDirectKnownStackCheck", "true")
+                    .build()),
+            LogManager.createTestLogManager());
+    var strengthened =
+        Iterables.getOnlyElement(
+            transfer.strengthen(
+                withCall, ImmutableList.of(block), call, SingletonPrecision.getInstance()));
+    assertThat(domain.isLessOrEqual(strengthened, complete)).isTrue();
+    DssCallstackState incomplete = state.withTraversedEdge(call);
+    assertThat(
+            Iterables.getOnlyElement(
+                transfer.strengthen(
+                    incomplete, ImmutableList.of(block), call, SingletonPrecision.getInstance())))
+        .isSameInstanceAs(incomplete);
+  }
+
+  @Test
+  public void directMatchingChecksCallSitesButLeavesTheBottomPrefixUnknown() {
+    CFANode main = CFANode.newDummyCFANode("main");
+    CFANode firstCall = CFANode.newDummyCFANode("main");
+    CFANode otherCall = CFANode.newDummyCFANode("main");
+    CallstackState caller = new CallstackState(null, "main", main);
+    CallstackState actual = new CallstackState(caller, "f", firstCall);
+    assertThat(
+            DssCallstackTransferRelation.matchesRequiredStack(
+                actual, new CallstackState(null, "f", node)))
+        .isTrue();
+    assertThat(
+            DssCallstackTransferRelation.matchesRequiredStack(
+                actual, new CallstackState(new CallstackState(null, "main", node), "f", firstCall)))
+        .isTrue();
+    assertThat(
+            DssCallstackTransferRelation.matchesRequiredStack(
+                actual, new CallstackState(caller, "f", otherCall)))
+        .isFalse();
+    assertThat(DssCallstackTransferRelation.matchesRequiredStack(caller, actual)).isFalse();
+    assertThat(
+            DssCallstackTransferRelation.matchesRequiredStack(
+                actual, new CallstackState(null, "g", node)))
+        .isFalse();
   }
 }
