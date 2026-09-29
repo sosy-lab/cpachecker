@@ -20,6 +20,7 @@ import com.google.common.collect.Multimap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.LexicographicRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
@@ -160,16 +161,34 @@ public class TerminationArgumentsToWitnessUtils {
             pLoopHead.getFunctionName());
     for (TerminationArgument argument : pArguments) {
       RankingFunction rankingFunction = argument.getRankingFunction();
+      if (rankingFunction instanceof LexicographicRankingFunction pLexicographicRankingFunction) {
+        for (int i = 0; i < pLexicographicRankingFunction.getComponents().length; i++) {
+          String componentConjunction =
+              constructTransitionInvariantRelation(
+                  pLexicographicRankingFunction.getComponents()[i].toString(),
+                  pLexicographicRankingFunction.getComponents()[i].getVariables(),
+                  true);
+          for (int j = 0; j < pLexicographicRankingFunction.getComponents().length; j++) {
+            componentConjunction +=
+                "&&"
+                    + constructTransitionInvariantRelation(
+                        pLexicographicRankingFunction.getComponents()[j].toString(),
+                        pLexicographicRankingFunction.getComponents()[j].getVariables(),
+                        false);
+          }
+          transitionInvariants.add(componentConjunction);
+        }
+      }
       if (rankingFunction instanceof NestedRankingFunction pNestedRankingFunction) {
         for (AffineFunction nestedRankingFunction : pNestedRankingFunction.getComponents()) {
-          addTransitionInvariant(
-              transitionInvariants,
-              nestedRankingFunction.toString(),
-              nestedRankingFunction.getVariables());
+          transitionInvariants.add(
+              constructTransitionInvariantRelation(
+                  nestedRankingFunction.toString(), nestedRankingFunction.getVariables(), true));
         }
       } else {
-        addTransitionInvariant(
-            transitionInvariants, rankingFunction.toString(), rankingFunction.getVariables());
+        transitionInvariants.add(
+            constructTransitionInvariantRelation(
+                rankingFunction.toString(), rankingFunction.getVariables(), true));
       }
     }
     return new InvariantEntry(
@@ -182,19 +201,19 @@ public class TerminationArgumentsToWitnessUtils {
         locationRecord);
   }
 
-  private static void addTransitionInvariant(
-      ImmutableList.Builder<String> transitionInvariants,
-      String rankingFunction,
-      Iterable<IProgramVar> variables) {
+  private static String constructTransitionInvariantRelation(
+      String rankingFunction, Iterable<IProgramVar> variables, boolean strictRelation) {
     String prevRank =
         rightSideOfRankingFunction(wrapTheVariablesWithAtAnyPrev(rankingFunction, variables));
     String currentRank =
         rightSideOfRankingFunction(wrapTheVariablesWithCastToLongLong(rankingFunction, variables));
     if (prevRank.contains(CParserUtils.CPACHECKER_TMP_PREFIX)) {
-      transitionInvariants.add("0");
-    } else {
-      transitionInvariants.add(prevRank + " > " + currentRank);
+      return "0";
     }
+    if (strictRelation) {
+      return prevRank + " > " + currentRank;
+    }
+    return prevRank + " >= " + currentRank;
   }
 
   public static Set<TerminationArgument> collectArgumentsForNestedLoops(
