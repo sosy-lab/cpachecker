@@ -85,7 +85,7 @@ public class BlockGraphModification {
       return getUnchanged(pCFA, pBlockGraph);
     }
 
-    MutableCFA mutableCfa = MutableCFA.copyOf(pCFA, pConfig, pLogger);
+    MutableCFA mutableCfa = DssCfaCopy.copyOf(pCFA, pConfig, pLogger);
 
     ModificationMetadata modificationMetadata =
         addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
