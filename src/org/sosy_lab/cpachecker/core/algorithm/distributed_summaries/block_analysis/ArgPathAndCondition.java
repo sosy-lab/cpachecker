@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
@@ -24,14 +25,16 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 final class ArgPathAndCondition {
 
   private final ARGPath path;
+  private final Precision precision;
   private final @Nullable ARGState condition;
 
   // Freeze the path identity because refinements may later mutate its ARG.
   private final Object id;
   private final int hash;
 
-  ArgPathAndCondition(ARGPath pPath, @Nullable ARGState pCondition) {
+  ArgPathAndCondition(ARGPath pPath, @Nullable ARGState pCondition, Precision pPrecision) {
     path = pPath;
+    precision = pPrecision;
     condition = pCondition;
     id =
         pPath instanceof DssARGPathGraph graph
@@ -40,6 +43,10 @@ final class ArgPathAndCondition {
                 .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
                 .join(Joiner.on(", "));
     hash = Objects.hash(id, condition, path.getFirstState());
+  }
+
+  Precision precision() {
+    return precision;
   }
 
   ARGPath path() {

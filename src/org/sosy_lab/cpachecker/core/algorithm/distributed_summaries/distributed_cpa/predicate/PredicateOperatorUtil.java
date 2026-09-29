@@ -13,7 +13,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.OptionalInt;
 import java.util.UUID;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -96,10 +98,10 @@ public class PredicateOperatorUtil {
    */
   static BooleanFormula normalizeForComparison(PathFormula path, FormulaManagerView fmgr) {
     Map<Formula, Formula> substitutions = new HashMap<>();
-    for (var entry : fmgr.extractVariables(path.getFormula()).entrySet()) {
+    for (Entry<String, Formula> entry : fmgr.extractVariables(path.getFormula()).entrySet()) {
       String name = entry.getKey();
       Formula variable = entry.getValue();
-      var parsed = FormulaManagerView.parseName(name);
+      Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(name);
       if (isFreshPerUse(name)
           || (parsed.getSecond().isPresent()
               && parsed.getSecond().orElseThrow() != path.getSsa().getIndex(parsed.getFirst()))) {

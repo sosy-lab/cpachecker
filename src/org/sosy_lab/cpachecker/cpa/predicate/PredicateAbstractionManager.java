@@ -184,15 +184,6 @@ public final class PredicateAbstractionManager {
               + " when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
 
-  @Option(
-      secure = true,
-      name = "abstraction.feasibilityOnlyAtTargets",
-      description =
-          "Use a satisfiability check instead of a full predicate abstraction at target states."
-              + " Enable only when target states are terminal: their abstraction retains no"
-              + " predicates, but their block formula is preserved for refinement.")
-  private boolean feasibilityOnlyAtTargets = false;
-
   final Stats stats = new Stats();
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -1278,32 +1269,6 @@ public final class PredicateAbstractionManager {
       throws InterruptedException {
     Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
-  }
-
-  boolean useFeasibilityOnlyAtTargets() {
-    return feasibilityOnlyAtTargets;
-  }
-
-  /**
-   * Checks a terminal target without enumerating predicate valuations that no successor will use.
-   * The exact block formula remains available to the counterexample checker and refiner.
-   */
-  AbstractionFormula buildTargetAbstraction(
-      AbstractionFormula pAbstraction, PathFormula pPathFormula)
-      throws SolverException, InterruptedException {
-    stats.numCallsAbstraction.incrementAndGet();
-    stats.numSatCheckAbstractions.incrementAndGet();
-    BooleanFormula formula =
-        bfmgr.and(pAbstraction.asInstantiatedFormula(), getFormulaFromPathFormula(pPathFormula));
-    stats.abstractionSolveTime.start();
-    try {
-      return makeAbstractionFormula(
-          solver.isUnsat(formula) ? rmgr.makeFalse() : rmgr.makeTrue(),
-          pPathFormula.getSsa(),
-          pPathFormula);
-    } finally {
-      stats.abstractionSolveTime.stop();
-    }
   }
 
   public AbstractionFormula makeTrueAbstractionFormula(PathFormula pPreviousBlockFormula) {

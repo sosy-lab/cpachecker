@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.MergeableViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -24,12 +24,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicateViolationConditionOperator implements ViolationConditionOperator {
+public class PredicateViolationConditionOperator
+    implements MergeableViolationConditionOperator<PathFormula> {
 
   private final PathFormulaManagerImpl backwardManager;
   private final PredicateCPA cpa;
@@ -60,31 +59,17 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     generalization = pGeneralization;
   }
 
-  /** Seed backward construction with the memory layout discovered by forward exploration. */
-  public PathFormula withPointerTargetSetOf(ARGState pState, PathFormula pFormula)
-      throws InterruptedException {
-    PredicateAbstractState predicateState =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
-    PointerTargetSet forward = predicateState.getPathFormula().getPointerTargetSet();
-    SSAMapBuilder ssa = pFormula.getSsa().builder();
-    PointerTargetSet merged =
-        backwardManager.mergePts(pFormula.getPointerTargetSet(), forward, ssa);
-    return pFormula.withContext(ssa.build(), merged);
-  }
-
   @Override
   public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
     return finish(
         pARGPath.getFirstState(),
-        prepend(
-            withPointerTargetSetOf(pARGPath.getLastState(), initialFormula(pPreviousCondition)),
-            pARGPath.getFullPath()));
+        prepend(initialCondition(pPreviousCondition), pARGPath.getFullPath()));
   }
 
-  public PathFormula initialFormula(Optional<ARGState> pPreviousCondition) {
+  @Override
+  public PathFormula initialCondition(Optional<ARGState> pPreviousCondition) {
     PathFormula result;
     if (pPreviousCondition.isEmpty()) {
       result = backwardManager.makeEmptyPathFormula();
@@ -102,6 +87,7 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     return result;
   }
 
+  @Override
   public PathFormula prepend(PathFormula formula, List<CFAEdge> edges)
       throws InterruptedException, CPATransferException {
     for (CFAEdge edge : edges.reversed()) {
@@ -110,10 +96,12 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     return formula;
   }
 
+  @Override
   public PathFormula union(PathFormula first, PathFormula second) throws InterruptedException {
     return backwardManager.makeOr(first, second);
   }
 
+  @Override
   public Optional<AbstractState> finishGraph(ARGState root, PathFormula result)
       throws InterruptedException, SolverException {
     return finish(

@@ -14,8 +14,8 @@ import com.google.common.base.Joiner;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -73,7 +73,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
         ContentBuilder.builder().pushLevel(PredicatePrecision.class.getName());
 
     contentBuilder.pushLevel(DSS_MESSAGE_LOCATION_INSTANCES_KEY);
-    Multimap<String, String> locationInstancePredicates = ArrayListMultimap.create();
+    Multimap<String, String> locationInstancePredicates = LinkedHashMultimap.create();
     predicatePrecision
         .getLocationInstancePredicates()
         .forEach(
@@ -87,7 +87,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
     contentBuilder.popLevel();
 
     contentBuilder.pushLevel(DSS_MESSAGE_LOCAL_PREDICATES_KEY);
-    Multimap<String, String> localPredicates = ArrayListMultimap.create();
+    Multimap<String, String> localPredicates = LinkedHashMultimap.create();
     predicatePrecision
         .getLocalPredicates()
         .forEach(
@@ -100,7 +100,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
     contentBuilder.popLevel();
 
     contentBuilder.pushLevel(DSS_MESSAGE_FUNCTION_PREDICATES_KEY);
-    Multimap<String, String> functionPredicates = ArrayListMultimap.create();
+    Multimap<String, String> functionPredicates = LinkedHashMultimap.create();
     predicatePrecision
         .getFunctionPredicates()
         .forEach((l, p) -> functionPredicates.put(l, serializeAbstractionPredicate(p)));

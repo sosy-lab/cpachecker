@@ -24,7 +24,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockCallstackAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -110,11 +109,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   @Option(description = "Decomposition type to use for the block analysis.", secure = true)
   private ExecutorType executorType = ExecutorType.DSS;
-
-  @Option(
-      secure = true,
-      description = "Infer unique entry callstacks before speculative block exploration.")
-  private boolean inferEntryCallstacks = false;
 
   private enum ExecutorType {
     DSS,
@@ -233,20 +227,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       }
       CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
-      if (inferEntryCallstacks) {
-        var knownStacks =
-            DssBlockCallstackAnalysis.compute(
-                blockGraph, cfa, logger, shutdownManager.getNotifier());
-        ImmutableSet.Builder<BlockNode> contextualBlocks = ImmutableSet.builder();
-        for (BlockNode block : blockGraph.getNodes()) {
-          var stack = knownStacks.get(block);
-          contextualBlocks.add(stack == null ? block : block.withKnownEntryCallstack(stack));
-        }
-        blockGraph = new BlockGraph(contextualBlocks.build());
-        modification = new Modification(cfa, blockGraph, modification.metadata());
-        logger.logf(
-            Level.FINE, "Inferred unique entry callstacks for %d blocks.", knownStacks.size());
-      }
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",

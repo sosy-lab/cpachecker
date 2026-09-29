@@ -237,9 +237,9 @@ public class ExistentialProjectionTest extends SolverViewBasedTest0 {
 
   @Test
   public void nestedProjectionSubstitutesAcrossDisjunction() throws Exception {
-    var nested = new ExistentialProjection(solver, true);
-    var e = existential("e");
-    var choice = bmgrv.or(gt(e, number(2)), lt(e, number(0)));
+    ExistentialProjection nested = new ExistentialProjection(solver, true);
+    BitvectorFormula e = existential("e");
+    BooleanFormula choice = bmgrv.or(gt(e, number(2)), lt(e, number(0)));
     assertEquivalent(
         nested.project(bmgrv.and(eq(e, y), choice), ExistentialProjectionTest::isExistential),
         bmgrv.or(gt(y, number(2)), lt(y, number(0))));
@@ -247,26 +247,26 @@ public class ExistentialProjectionTest extends SolverViewBasedTest0 {
 
   @Test
   public void nestedProjectionRetainsSharedExistentialCorrelation() throws Exception {
-    var nested = new ExistentialProjection(solver, true);
-    var e = existential("e");
-    var choice =
+    ExistentialProjection nested = new ExistentialProjection(solver, true);
+    BitvectorFormula e = existential("e");
+    BooleanFormula choice =
         bmgrv.or(
             bmgrv.and(eq(e, number(0)), gt(y, number(0))),
             bmgrv.and(eq(e, number(1)), lt(y, number(0))));
-    var constraint =
+    BooleanFormula constraint =
         bmgrv.or(
             bmgrv.and(eq(e, number(0)), lt(z, number(0))),
             bmgrv.and(eq(e, number(1)), gt(z, number(0))));
-    var formula = bmgrv.and(choice, constraint);
+    BooleanFormula formula = bmgrv.and(choice, constraint);
     // Moving the quantifier separately into both disjunctions would lose their correlation.
     assertEquivalent(nested.project(formula, ExistentialProjectionTest::isExistential), formula);
   }
 
   @Test
   public void nestedProjectionRemovesContradictoryLocalBranch() throws Exception {
-    var nested = new ExistentialProjection(solver, true);
-    var e = existential("e");
-    var formula =
+    ExistentialProjection nested = new ExistentialProjection(solver, true);
+    BitvectorFormula e = existential("e");
+    BooleanFormula formula =
         bmgrv.and(
             gt(y, number(0)),
             bmgrv.or(eq(z, number(0)), bmgrv.and(eq(e, number(1)), eq(e, number(2)))));

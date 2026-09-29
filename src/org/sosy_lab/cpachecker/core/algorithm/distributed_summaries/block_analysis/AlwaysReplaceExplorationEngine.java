@@ -111,10 +111,13 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
               condition -> analysis.getDcpa().computeProgramPointId(condition));
     }
 
+    ImmutableList<StateAndPrecision> received =
+        ImmutableList.<StateAndPrecision>builder()
+            .addAll(preconditions.getStatesAndPrecisions())
+            .addAll(violationConditions.getKnownConditions())
+            .build();
     Precision precisionOfAnalysis =
-        preconditions.isEmpty()
-            ? analysis.makeStartPrecision()
-            : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
+        received.isEmpty() ? analysis.makeStartPrecision() : analysis.combinePrecisions(received);
 
     ImmutableList<Object> allConditionProgramPoints =
         ImmutableList.copyOf(conditionsPerLocation.keySet());

@@ -58,12 +58,12 @@ public final class DssARGPathGraph extends ARGPath {
       return;
     }
     Preconditions.checkState(active.add(node), "Cyclic ARG inside a DSS block");
-    var edges = ImmutableList.<Incoming>builder();
+    ImmutableList.Builder<Incoming> edges = ImmutableList.<Incoming>builder();
     if (node != root) {
       Preconditions.checkState(!node.getParents().isEmpty(), "Unexpected second ARG root");
       for (ARGState parent : node.getParents()) {
         visit(root, parent, incoming, active);
-        var path = ImmutableList.copyOf(parent.getEdgesToChild(node));
+        ImmutableList<CFAEdge> path = ImmutableList.copyOf(parent.getEdgesToChild(node));
         Preconditions.checkState(!path.isEmpty(), "Missing ARG transition");
         edges.add(new Incoming(parent, path));
       }

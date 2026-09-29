@@ -157,16 +157,6 @@ public final class SSAMap implements Serializable {
           variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
-    /**
-     * The index one step below the current one. Backward analysis flips the direction in which SSA
-     * indices grow, so the value written by an assignment carries the index preceding the current
-     * one.
-     */
-    public int getPreviousIndex(String variable) {
-      return SSAMap.getIndex(variable, vars, ssa.defaultValue)
-          - FreshValueProvider.DEFAULT_INCREMENT;
-    }
-
     @Nullable
     public Type getType(String name) {
       return varTypes.get(name);

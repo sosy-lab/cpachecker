@@ -77,20 +77,6 @@ public abstract class DssMessage {
   public static final String DSS_MESSAGE_HEADER_TIMESTAMP_KEY = "timestamp";
   public static final String DSS_MESSAGE_HEADER_IDENTIFIER_KEY = "identifier";
 
-  public static final String SHARED_PRECISION_KEY = "sharedPrecision";
-  public static final String PRECISION_UPDATE_KEY = "precisionUpdate";
-  public static final String PRECISION_ONLY_KEY = "precisionOnly";
-
-  /** Whether this message carries a precision shared at block boundaries. */
-  public final boolean hasPrecisionUpdate() {
-    return Boolean.parseBoolean(content.getOrDefault(PRECISION_UPDATE_KEY, "false"));
-  }
-
-  /** A precision-only update does not replace any stored states or reachability information. */
-  public final boolean isPrecisionOnly() {
-    return Boolean.parseBoolean(content.getOrDefault(PRECISION_ONLY_KEY, "false"));
-  }
-
   private final String senderId;
   private final DssMessageType type;
   private final Instant timestamp;
@@ -108,7 +94,7 @@ public abstract class DssMessage {
     senderId = pSenderId;
     type = pType;
     timestamp = Instant.now();
-    content = PredicatePrecisionDictionary.encode(pContent);
+    content = ImmutableMap.copyOf(pContent);
   }
 
   /**
@@ -177,14 +163,17 @@ public abstract class DssMessage {
     };
   }
 
+  /** The uncompressed immutable payload, for inspecting messages independently of wire encoding. */
+  public final ImmutableMap<String, String> getContent() {
+    return content;
+  }
+
   public final ContentReader getAbstractStateContent(Class<? extends AbstractState> pType) {
     return getArbitraryContent(pType.getName());
   }
 
   public final ContentReader getPrecisionContent(Class<? extends Precision> pPrecision) {
-    return getArbitraryContent(
-        pPrecision.getName(),
-        PredicatePrecisionDictionary.decode(content, pPrecision.getName() + "."));
+    return getArbitraryContent(pPrecision.getName());
   }
 
   public final Result getResult() {
@@ -286,11 +275,12 @@ public abstract class DssMessage {
    * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
    *     messages produced in one run of DSS should have the same identifier. This simplifies the
    *     separation of old and new messages after the analysis, especially, .
+   * @param pCompress whether to dictionary-encode repeated content
    * @return JSON representation of the message.
    */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
-      int pIdentifier) {
+      int pIdentifier, boolean pCompress) {
     ImmutableMap.Builder<String, String> header =
         ImmutableMap.<String, String>builder()
             .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
@@ -302,12 +292,12 @@ public abstract class DssMessage {
             .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier));
     return ImmutableMap.<String, ImmutableMap<String, String>>builder()
         .put(DSS_MESSAGE_HEADER_ID, header.buildOrThrow())
-        .put(DSS_MESSAGE_CONTENT_ID, content)
+        .put(DSS_MESSAGE_CONTENT_ID, pCompress ? MessageContentDictionary.encode(content) : content)
         .buildOrThrow();
   }
 
   public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
-    return asJsonWithIdentifier(0);
+    return asJsonWithIdentifier(0, true);
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {
@@ -327,6 +317,8 @@ public abstract class DssMessage {
     ImmutableMap<String, String> content =
         Objects.requireNonNull(
             pJson.get(DSS_MESSAGE_CONTENT_ID), "Message JSON does not contain content: " + pJson);
+
+    content = MessageContentDictionary.decode(content);
 
     String senderId = header.get(DSS_MESSAGE_HEADER_SENDER_ID_KEY);
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));

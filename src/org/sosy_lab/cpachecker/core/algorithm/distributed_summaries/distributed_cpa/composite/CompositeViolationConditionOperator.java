@@ -65,7 +65,7 @@ public class CompositeViolationConditionOperator implements ViolationConditionOp
   public List<AbstractState> computeConditions(ARGPath path, Optional<ARGState> previous)
       throws InterruptedException, CPATransferException, SolverException {
     if (path instanceof DssARGPathGraph graph) {
-      return new CompositeGraphViolationConditionOperator(analyses).compute(graph, previous);
+      return CompositeGraphViolationConditionOperator.create(analyses).compute(graph, previous);
     }
     return ViolationConditionOperator.super.computeConditions(path, previous);
   }

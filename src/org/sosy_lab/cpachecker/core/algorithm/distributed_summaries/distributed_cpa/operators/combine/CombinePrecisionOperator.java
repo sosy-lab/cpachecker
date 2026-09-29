@@ -33,4 +33,13 @@ public interface CombinePrecisionOperator {
   default Precision union(Collection<Precision> precisions) throws InterruptedException {
     return combine(precisions);
   }
+
+  /**
+   * Whether the second precision already tracks everything represented by the first.
+   *
+   * @throws InterruptedException if a domain-specific coverage check is interrupted
+   */
+  default boolean isCoveredBy(Precision pPrecision, Precision pOther) throws InterruptedException {
+    return pPrecision.equals(pOther);
+  }
 }

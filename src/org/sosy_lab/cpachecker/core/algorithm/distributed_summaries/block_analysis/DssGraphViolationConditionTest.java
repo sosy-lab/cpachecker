@@ -23,8 +23,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph.Incoming;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,6 +40,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -43,7 +50,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class DssGraphViolationConditionTest {
   private static List<ARGPath> enumerate(DssARGPathGraph graph) {
     List<ARGPath> result = new ArrayList<>();
-    enumerate(graph, new ArrayList<>(List.of(graph.getLastState())), result);
+    enumerate(graph, new ArrayList<>(ImmutableList.of(graph.getLastState())), result);
     return result;
   }
 
@@ -52,8 +59,8 @@ public class DssGraphViolationConditionTest {
       result.add(new ARGPath(path.reversed()));
       return;
     }
-    for (var parent : graph.incoming(path.getLast())) {
-      var next = new ArrayList<>(path);
+    for (Incoming parent : graph.incoming(path.getLast())) {
+      List<ARGState> next = new ArrayList<>(path);
       next.add(parent.parent());
       enumerate(graph, next, result);
     }
@@ -63,24 +70,26 @@ public class DssGraphViolationConditionTest {
     CFA cfa =
         TestCfaUtils.makeCfaFromString(
             "extern void __VERIFIER_error(void); int main(int flag) { " + body + " return 0; }");
-    var block = new SingleBlockDecomposition().decompose(cfa).getRoot();
+    BlockNode block = new SingleBlockDecomposition().decompose(cfa).getRoot();
     Configuration config =
         TestUtils.configurationForTest()
             .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
             .setOption("dss.graphViolationConditions", "true")
+            .setOption("dss.cpa.predicate.projectViolationConditions", "true")
+            .setOption("dss.cpa.predicate.projectNestedDisjunctions", "true")
             .setOption("dss.cpa.predicate.generalizeViolationConditions", "false")
             .build();
-    var logger = LogManager.createTestLogManager();
-    var shutdown = ShutdownManager.create();
-    var spec =
+    LogManager logger = LogManager.createTestLogManager();
+    ShutdownManager shutdown = ShutdownManager.create();
+    Specification spec =
         Specification.fromFiles(
             ImmutableList.of(Path.of("config/specification/default.spc")),
             cfa,
             config,
             logger,
             shutdown.getNotifier());
-    var options = new DssAnalysisOptions(config);
-    var analysis =
+    DssAnalysisOptions options = new DssAnalysisOptions(config);
+    DssBlockAnalysis analysis =
         new DssBlockAnalysis(
             logger,
             block,
@@ -92,16 +101,17 @@ public class DssGraphViolationConditionTest {
             shutdown,
             new DssSingleWorkerStatistics("test"));
     try {
-      var root = analysis.makeStartState(false);
-      var result = analysis.runInitialBlockAnalysis(root, analysis.makeStartPrecision());
+      AbstractState root = analysis.makeStartState(false);
+      DssBlockAnalysisResult result =
+          analysis.runInitialBlockAnalysis(root, analysis.makeStartPrecision());
       assertThat(result.getTargetStates()).isNotEmpty();
-      var operator = analysis.getDcpa().getViolationConditionOperator();
+      ViolationConditionOperator operator = analysis.getDcpa().getViolationConditionOperator();
       assertThat(operator.supportsGraph()).isTrue();
-      var predicateCPA =
+      PredicateCPA predicateCPA =
           (PredicateCPA)
               CPAs.retrieveCPA(analysis.getDcpa(), DistributedPredicateCPA.class).getCPA();
-      var fmgr = predicateCPA.getSolver().getFormulaManager();
-      var bfmgr = fmgr.getBooleanFormulaManager();
+      FormulaManagerView fmgr = predicateCPA.getSolver().getFormulaManager();
+      BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
       int paths = 0;
       for (ARGState target : result.getTargetStates()) {
         // Parameter declarations assign fresh values inside the enclosing block. Compare the
@@ -116,11 +126,12 @@ public class DssGraphViolationConditionTest {
                             .containsVariable("main::flag"))
                 .findFirst()
                 .orElseThrow();
-        var graph = DssARGPathGraph.of(entry, target);
+        DssARGPathGraph graph = DssARGPathGraph.of(entry, target);
         List<BooleanFormula> expected = new ArrayList<>();
         for (ARGPath path : enumerate(graph)) {
           paths++;
-          var condition = operator.computeViolationCondition(path, Optional.empty());
+          Optional<AbstractState> condition =
+              operator.computeViolationCondition(path, Optional.empty());
           condition.ifPresent(state -> expected.add(normalize(state, predicateCPA)));
         }
         List<BooleanFormula> actual =
@@ -140,10 +151,10 @@ public class DssGraphViolationConditionTest {
   }
 
   private static BooleanFormula normalize(AbstractState state, PredicateCPA cpa) {
-    var path =
+    PathFormula path =
         AbstractStates.extractStateByType(state, PredicateAbstractState.class).getPathFormula();
-    var fmgr = cpa.getSolver().getFormulaManager();
-    var uninstantiated = fmgr.uninstantiate(path.getFormula());
+    FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
+    BooleanFormula uninstantiated = fmgr.uninstantiate(path.getFormula());
     // This comparison is valid only when projection removed all intermediate SSA variables.
     assertThat(fmgr.instantiate(uninstantiated, path.getSsa())).isEqualTo(path.getFormula());
     return uninstantiated;

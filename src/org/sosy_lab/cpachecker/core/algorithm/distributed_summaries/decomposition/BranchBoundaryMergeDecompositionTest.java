@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
@@ -27,7 +29,13 @@ import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 public class BranchBoundaryMergeDecompositionTest {
   private static Set<List<CFAEdge>> prefixes(BlockGraph graph) {
     Set<List<CFAEdge>> result = new LinkedHashSet<>();
-    collect(graph, graph.getRoot(), graph.getRoot().getInitialLocation(), false, List.of(), result);
+    collect(
+        graph,
+        graph.getRoot(),
+        graph.getRoot().getInitialLocation(),
+        false,
+        ImmutableList.of(),
+        result);
     return result;
   }
 
@@ -43,14 +51,14 @@ public class BranchBoundaryMergeDecompositionTest {
       return;
     }
     if (location == block.getFinalLocation() && (entered || block.getEdges().isEmpty())) {
-      for (var next : graph.getSuccessorsOf(block)) {
+      for (BlockNode next : graph.getSuccessorsOf(block)) {
         collect(graph, next, next.getInitialLocation(), false, prefix, result);
       }
       return;
     }
-    for (var edge : location.getLeavingEdges()) {
+    for (CFAEdge edge : location.getLeavingEdges()) {
       if (block.getEdges().contains(edge)) {
-        var next = new ArrayList<>(prefix);
+        List<CFAEdge> next = new ArrayList<>(prefix);
         next.add(edge);
         collect(graph, block, edge.getSuccessor(), true, next, result);
       }
@@ -58,15 +66,17 @@ public class BranchBoundaryMergeDecompositionTest {
   }
 
   private static void compare(String body) throws Exception {
-    var cfa =
+    CFA cfa =
         TestCfaUtils.makeCfaFromString("extern int choose(void); int main(void) { " + body + " }");
-    var linear = new LinearBlockNodeDecomposition(DssTestUtils.createBlockOperator(cfa));
-    var old = new MergeBlockNodesDecomposition(linear, 2, -1, null, false, true).decompose(cfa);
-    var merged = new BranchBoundaryMergeDecomposition(unused -> old).decompose(cfa);
+    LinearBlockNodeDecomposition linear =
+        new LinearBlockNodeDecomposition(DssTestUtils.createBlockOperator(cfa));
+    BlockGraph old =
+        new MergeBlockNodesDecomposition(linear, 2, -1, null, false, true).decompose(cfa);
+    BlockGraph merged = new BranchBoundaryMergeDecomposition(unused -> old).decompose(cfa);
     merged.checkConsistency(ShutdownNotifier.createDummy());
     assertThat(prefixes(merged)).containsExactlyElementsIn(prefixes(old));
-    for (var block : merged.getNodes()) {
-      for (var head : cfa.getLoopStructure().orElseThrow().getAllLoopHeads()) {
+    for (BlockNode block : merged.getNodes()) {
+      for (CFANode head : cfa.getLoopStructure().orElseThrow().getAllLoopHeads()) {
         if (block.getNodes().contains(head)) {
           assertThat(head == block.getInitialLocation() || head == block.getFinalLocation())
               .isTrue();
@@ -94,13 +104,14 @@ public class BranchBoundaryMergeDecompositionTest {
 
   @Test
   public void manyIndependentBoundariesAreMergedInBatches() throws Exception {
-    var cfa =
+    CFA cfa =
         TestCfaUtils.makeCfaFromString(
             "extern int choose(void); int main(void) { int x = 0; "
                 + "if (choose()) x++; else x--; ".repeat(1100)
                 + "return x; }");
-    var linear = new LinearBlockNodeDecomposition(DssTestUtils.createBlockOperator(cfa));
-    var merged = new BranchBoundaryMergeDecomposition(linear).decompose(cfa);
+    LinearBlockNodeDecomposition linear =
+        new LinearBlockNodeDecomposition(DssTestUtils.createBlockOperator(cfa));
+    BlockGraph merged = new BranchBoundaryMergeDecomposition(linear).decompose(cfa);
     merged.checkConsistency(ShutdownNotifier.createDummy());
     assertThat(merged.getNodes().size()).isAtMost(3);
   }

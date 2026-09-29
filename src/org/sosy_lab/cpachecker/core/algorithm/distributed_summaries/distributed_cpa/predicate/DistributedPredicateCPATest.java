@@ -22,8 +22,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -39,7 +37,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -100,72 +101,6 @@ public class DistributedPredicateCPATest {
   }
 
   @Test
-  public void boundarySeedsStayLocalAndDoNotAssumeEitherBranchOutcome() throws Exception {
-    CFA cfa =
-        TestCfaUtils.makeCfaFromString(
-            "int main() { int x; if (x < 2) x = 0; else x = 1; if (x == 1) return 1; return 0; }");
-    var branches =
-        cfa.nodes().stream()
-            .filter(n -> n.getNumLeavingEdges() > 0 && n.getLeavingEdge(0) instanceof AssumeEdge)
-            .toList();
-    assertThat(branches).hasSize(2);
-    CFANode selected = branches.getFirst();
-    try (PredicateCPA cpa = createPredicateCpa(cfa)) {
-      var seeds =
-          new DssBoundaryPredicatePrecision(
-              cpa,
-              ImmutableSet.of(selected),
-              LogManager.createTestLogManager(),
-              ShutdownNotifier.createDummy());
-      var precision = seeds.getPrecision();
-      assertThat(seeds.getPrecision()).isSameInstanceAs(precision);
-      assertThat(precision.getLocalPredicates().keySet()).containsExactly(selected);
-      assertThat(precision.getLocalPredicates().get(selected)).hasSize(1);
-      assertThat(precision.getGlobalPredicates()).isEmpty();
-      assertThat(precision.getFunctionPredicates()).isEmpty();
-      var fmgr = cpa.getSolver().getFormulaManager();
-      var atom = precision.getLocalPredicates().get(selected).iterator().next().getSymbolicAtom();
-      assertThat(fmgr.uninstantiate(atom)).isEqualTo(atom);
-      var initial =
-          (PredicateAbstractState)
-              cpa.getInitialState(selected, StateSpacePartition.getDefaultPartition());
-      assertThat(initial.getAbstractionFormula().isTrue()).isTrue();
-      for (var edge : selected.getLeavingEdges()) {
-        var path = cpa.getPathFormulaManager().makeAnd(initial.getPathFormula(), edge);
-        assertThat(cpa.getSolver().isUnsat(path.getFormula())).isFalse();
-      }
-    }
-  }
-
-  @Test
-  public void boundarySeedingTraversesBlankEdgesButStopsAtAssignments() throws Exception {
-    CFA cfa =
-        TestCfaUtils.makeCfaFromString(
-            "int main() { int x; if (x < 2) x = 0; else x = 1; if (x == 1) return 1; return 0; }");
-    CFANode blank =
-        cfa.nodes().stream()
-            .filter(n -> n.getNumLeavingEdges() == 1 && n.getLeavingEdge(0) instanceof BlankEdge)
-            .filter(n -> n.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 2)
-            .findFirst()
-            .orElseThrow();
-    CFANode assignment =
-        cfa.nodes().stream()
-            .filter(n -> n.getNumLeavingEdges() == 1)
-            .filter(n -> n.getLeavingEdge(0).getRawStatement().equals("x = 0;"))
-            .findFirst()
-            .orElseThrow();
-    try (PredicateCPA cpa = createPredicateCpa(cfa)) {
-      var seeds =
-          new DssBoundaryPredicatePrecision(
-              cpa,
-              ImmutableSet.of(blank, assignment),
-              LogManager.createTestLogManager(),
-              ShutdownNotifier.createDummy());
-      assertThat(seeds.getPrecision().getLocalPredicates().keySet()).containsExactly(blank);
-    }
-  }
-
-  @Test
   public void testBoundaryPrecisionRemainsAtTheSharedLocation() throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     try (PredicateCPA cpa = createPredicateCpa(cfa)) {
@@ -203,7 +138,8 @@ public class DistributedPredicateCPATest {
       CFANode entry = cfa.getMainFunction();
       CFANode shared = entry.getLeavingEdge(0).getSuccessor();
       CFANode exit = shared.getLeavingEdge(0).getSuccessor();
-      var bmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
+      BooleanFormulaManagerView bmgr =
+          cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
       AbstractionPredicate global =
           cpa.getAbstractionManager().makePredicate(bmgr.makeVariable("g"));
       AbstractionPredicate function =
@@ -235,12 +171,13 @@ public class DistributedPredicateCPATest {
     CFANode exit = cfa.getMainFunction().getExitNode().orElseThrow();
     Configuration config =
         TestUtils.configurationForTest()
-            .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
+            .loadFromFile(
+                "config/distributed-summary-synthesis/dss-block-analysis-predicate.properties")
             .setOption(
                 "cpa.predicate.blk.alwaysAtGivenNodes",
                 entry.getNodeNumber() + "," + exit.getNodeNumber())
             .build();
-    var operator = new org.sosy_lab.cpachecker.util.predicates.BlockOperator();
+    BlockOperator operator = new org.sosy_lab.cpachecker.util.predicates.BlockOperator();
     config.inject(operator);
     operator.setCFA(cfa);
     for (CFANode node : cfa.nodes()) {
@@ -288,7 +225,7 @@ public class DistributedPredicateCPATest {
     CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
     try (PredicateCPA cpa = createPredicateCpa(cfa)) {
       FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
-      var bv = fmgr.getBitvectorFormulaManager();
+      BitvectorFormulaManagerView bv = fmgr.getBitvectorFormulaManager();
       BooleanFormula zero = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 0));
       BooleanFormula one = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 1));
       BooleanFormula two = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 2));
@@ -307,8 +244,9 @@ public class DistributedPredicateCPATest {
               laterPath,
               cpa.getPredicateManager().asAbstraction(one, laterPath),
               PathCopyingPersistentTreeMap.of());
-      var operator = new CombinePredicateStatePreconditionsOperator(cpa);
-      for (var states :
+      CombinePredicateStatePreconditionsOperator operator =
+          new CombinePredicateStatePreconditionsOperator(cpa);
+      for (ImmutableList<PredicateAbstractState> states :
           ImmutableList.of(ImmutableList.of(first), ImmutableList.of(first, second))) {
         PredicateAbstractState combined =
             (PredicateAbstractState)

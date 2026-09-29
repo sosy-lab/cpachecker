@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -47,8 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Assig
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
@@ -229,17 +225,9 @@ class AssignmentHandler {
     final Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap = new HashMap<>();
     final List<CompositeField> rhsAddressedFields = new ArrayList<>();
 
-    // this flag is for backward analyses
-    // only on the first of multiple assignments should ssa indices be updated
-    boolean firstAssignment = true;
     for (SliceAssignment assignment : assignments) {
       resolveAssignmentBases(
-          assignment,
-          lhsBaseResolutionMap,
-          rhsBaseResolutionMap,
-          rhsAddressedFields,
-          firstAssignment);
-      firstAssignment = false;
+          assignment, lhsBaseResolutionMap, rhsBaseResolutionMap, rhsAddressedFields);
     }
 
     // note that after resolving the slice bases, we can no longer modify them,
@@ -369,52 +357,6 @@ class AssignmentHandler {
   }
 
   /**
-   * Advances the SSA indices of everything an assignment writes. Backward construction has to do
-   * this before the right-hand side is resolved, because the right-hand side has to read the index
-   * that precedes the write.
-   *
-   * <p>A composite target is written member by member, exactly as {@link AssignmentFormulaHandler}
-   * does it in the forward direction, so every member that the assignment can write gets its own
-   * index. Only the members the encoding tracks are relevant; the others are never read back.
-   */
-  private void advanceIndicesOfAssignedTarget(final Expression pTarget, final CType pType) {
-    final CType type = pType;
-    if (pTarget instanceof UnaliasedLocation unaliased) {
-      if (type instanceof CCompositeType composite) {
-        for (CCompositeTypeMemberDeclaration member : composite.getMembers()) {
-          if (conv.isRelevantField(composite, member)) {
-            advanceIndicesOfAssignedTarget(
-                UnaliasedLocation.ofVariableName(
-                    getFieldAccessName(unaliased.getVariableName(), member)),
-                typeHandler.getSimplifiedType(member));
-          }
-        }
-      } else {
-        conv.makeFreshIndex(
-            unaliased.getVariableName(), CTypes.adjustFunctionOrArrayType(type), ssa);
-      }
-    } else if (pTarget instanceof AliasedLocation aliased) {
-      if (type instanceof CCompositeType composite) {
-        for (CCompositeTypeMemberDeclaration member : composite.getMembers()) {
-          if (conv.isRelevantField(composite, member)) {
-            final CType memberType = typeHandler.getSimplifiedType(member);
-            final MemoryRegion memberRegion = regionMgr.makeMemoryRegion(composite, member);
-            advanceIndicesOfAssignedTarget(
-                AliasedLocation.ofAddressWithRegion(aliased.getAddress(), memberRegion),
-                memberType);
-          }
-        }
-      } else {
-        MemoryRegion region = aliased.getMemoryRegion();
-        if (region == null) {
-          region = regionMgr.makeMemoryRegion(type);
-        }
-        conv.makeFreshIndex(regionMgr.getPointerAccessName(region), type, ssa);
-      }
-    }
-  }
-
-  /**
    * Resolves bases of a slice assignment and puts the resolutions to the provided maps.
    *
    * <p>Also calls the DynamicMemoryHandler to handle deferred allocations as necessary.
@@ -433,8 +375,7 @@ class AssignmentHandler {
       SliceAssignment assignment,
       Map<CRightHandSide, ResolvedSlice> lhsBaseResolutionMap,
       Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap,
-      List<CompositeField> rhsAddressedFields,
-      final boolean firstAssignment)
+      List<CompositeField> rhsAddressedFields)
       throws UnrecognizedCodeException, InterruptedException {
     // resolve LHS base using visitor
     final CExpressionVisitorWithPointerAliasing lhsBaseVisitor =
@@ -442,31 +383,6 @@ class AssignmentHandler {
             conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
-
-    // In backward analysis, update the SSA indices at this point
-    // to ensure that the right indices are given to the RHS of the assignment
-    if (conv.direction == AnalysisDirection.BACKWARD && firstAssignment) {
-      // An assignment writes the component the slice modifiers select, not the base: for "s->f = v"
-      // the write goes to the field, not to the whole struct. Resolve the modifiers first so that
-      // the index of exactly what is written is advanced, for aliased and unaliased targets alike.
-      final AssignmentQuantifierHandler assignmentQuantifierHandler =
-          new AssignmentQuantifierHandler(
-              conv,
-              edge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions,
-              regionMgr,
-              assignmentOptions,
-              lhsBaseResolutionMap,
-              rhsBaseResolutionMap);
-      final ResolvedSlice lhsTarget =
-          assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
-              resolvedLhsBase, assignment.lhs);
-      advanceIndicesOfAssignedTarget(lhsTarget.expression(), lhsTarget.type());
-    }
 
     // add initialized and used fields of LHS base to pointer-target set as essential
     // this is only needed for UF heap
@@ -487,7 +403,6 @@ class AssignmentHandler {
       // no resolution of RHS base or deferred memory handling
       return;
     }
-
     final SliceExpression rhs = assignment.rhs.orElseThrow();
 
     // resolve RHS base using visitor
