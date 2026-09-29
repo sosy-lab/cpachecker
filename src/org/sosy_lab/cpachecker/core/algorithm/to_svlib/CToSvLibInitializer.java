@@ -991,11 +991,16 @@ class CToSvLibInitializer {
     // The bounds of the type are only assumed if the values of that type are represented by
     // bitvectors, where they hold anyway. With the representation by integers the analysis of the C
     // program does not bound the value either, and it does not wrap the arithmetic around, so
-    // bounding it here would make paths of the C program disappear from the generated one.
+    // bounding it here would make paths of the C program disappear from the generated one. Bounds
+    // that every value of the bitvector fulfills, as for an int, are left out.
     if (pCReturnType instanceof CSimpleType simpleReturnType
         && simpleReturnType.getType().isIntegerType()
         && pProcedureDeclaration.getReturnValues().getFirst().getType()
-            instanceof SvLibSmtLibBitVectorType) {
+            instanceof SvLibSmtLibBitVectorType bitVectorType
+        && !coversAllValues(
+            bitVectorType.getSize(),
+            cfa.getMachineModel().getMinimalIntegerValue(simpleReturnType),
+            cfa.getMachineModel().getMaximalIntegerValue(simpleReturnType))) {
 
       assumeStatement =
           createAssumeBounds(
@@ -1018,6 +1023,14 @@ class CToSvLibInitializer {
           ImmutableList.of(
               new SvLibTagReference(pProcedureDeclaration.getName(), FileLocation.DUMMY)));
     }
+  }
+
+  /** Are the given bounds those of all signed or of all unsigned bitvectors of the given size? */
+  private static boolean coversAllValues(int pSize, BigInteger pMinimum, BigInteger pMaximum) {
+    BigInteger values = BigInteger.TWO.pow(pSize);
+    return (pMinimum.signum() == 0 && pMaximum.equals(values.subtract(BigInteger.ONE)))
+        || (pMinimum.equals(values.shiftRight(1).negate())
+            && pMaximum.equals(values.shiftRight(1).subtract(BigInteger.ONE)));
   }
 
   private SvLibAssumeStatement createAssumeBounds(
