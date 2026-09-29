@@ -110,17 +110,6 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
   }
 
   /**
-   * Export the given counterexample as a non-termination witness. The number of unrollings of the
-   * loop before the cycle starts is taken from the {@link TerminationToReachState} of the target
-   * state.
-   */
-  @Override
-  protected void exportWitness(
-      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) throws IOException {
-    exportWitness(pCex, pPath, pWitnessVersion, OptionalInt.empty());
-  }
-
-  /**
    * Export the given counterexample to the path as a non-termination witness.
    *
    * @param pCex the counterexample to be exported
