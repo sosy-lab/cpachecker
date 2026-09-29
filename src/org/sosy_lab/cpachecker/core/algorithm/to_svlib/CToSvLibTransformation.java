@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -466,7 +467,7 @@ class CToSvLibTransformation {
                   FileLocation.DUMMY,
                   ImmutableList.of(),
                   ImmutableList.of(),
-                  transformedTerm,
+                  withoutDoubleNegation(transformedTerm),
                   gotoStatement));
         }
       }
@@ -2157,11 +2158,96 @@ class CToSvLibTransformation {
         FileLocation.DUMMY,
         ImmutableList.of(),
         ImmutableList.of(),
-        new SvLibSymbolApplicationTerm(
-            new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY),
-            ImmutableList.of(condition),
-            FileLocation.DUMMY),
+        withoutDoubleNegation(
+            new SvLibSymbolApplicationTerm(
+                new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY),
+                ImmutableList.of(condition),
+                FileLocation.DUMMY)),
         pJump);
+  }
+
+  private static SvLibTerm withoutDoubleNegation(SvLibTerm pTerm) {
+    if (isApplicationOf("not", pTerm)
+        && isApplicationOf("not", ((SvLibSymbolApplicationTerm) pTerm).getTerms().getFirst())) {
+      return withoutDoubleNegation(
+          ((SvLibSymbolApplicationTerm) ((SvLibSymbolApplicationTerm) pTerm).getTerms().getFirst())
+              .getTerms()
+              .getFirst());
+    }
+    return pTerm;
+  }
+
+  private static boolean isApplicationOf(String pFunctionName, SvLibTerm pTerm) {
+    return pTerm instanceof SvLibSymbolApplicationTerm application
+        && application.getSymbol().getName().equals(pFunctionName);
+  }
+
+  /**
+   * The given statements with consecutive conditional jumps to the same label merged into one jump
+   * whose condition is the disjunction of theirs, and without the jumps to the label that directly
+   * follows them.
+   *
+   * <p>The analysis of C splits a condition such as {@code a && b} into one branch per operand, and
+   * each of these branches becomes a conditional jump, so this makes the generated program and its
+   * CFA much smaller. The conditions have no side effects, so they can be evaluated together.
+   */
+  private static ImmutableList<SvLibStatement> simplifyJumps(List<SvLibStatement> pStatements) {
+    List<SvLibStatement> merged = new ArrayList<>();
+    for (SvLibStatement statement : pStatements) {
+      Optional<String> target = getTargetOfConditionalJump(statement);
+      if (target.isPresent()
+          && !merged.isEmpty()
+          && getTargetOfConditionalJump(merged.getLast()).equals(target)) {
+        SvLibIfStatement previous = (SvLibIfStatement) merged.removeLast();
+        SvLibIfStatement current = (SvLibIfStatement) statement;
+        SvLibTerm previousCondition = previous.getCondition();
+        merged.add(
+            new SvLibIfStatement(
+                FileLocation.DUMMY,
+                ImmutableList.of(),
+                ImmutableList.of(),
+                SvLibTerm.booleanDisjunction(
+                    ImmutableList.<SvLibTerm>builder()
+                        .addAll(
+                            isApplicationOf("or", previousCondition)
+                                ? ((SvLibSymbolApplicationTerm) previousCondition).getTerms()
+                                : ImmutableList.of(previousCondition))
+                        .add(current.getCondition())
+                        .build()),
+                current.getThenBranch()));
+      } else {
+        merged.add(statement);
+      }
+    }
+
+    ImmutableList.Builder<SvLibStatement> result = ImmutableList.builder();
+    for (int index = 0; index < merged.size(); index++) {
+      if (merged.get(index) instanceof SvLibGotoStatement jump
+          && hasNoTags(jump)
+          && index + 1 < merged.size()
+          && merged.get(index + 1) instanceof SvLibLabelStatement label
+          && label.getLabel().equals(jump.getLabel())) {
+        continue;
+      }
+      result.add(merged.get(index));
+    }
+    return result.build();
+  }
+
+  /** The label of the given statement if it is a conditional jump without tags. */
+  private static Optional<String> getTargetOfConditionalJump(SvLibStatement pStatement) {
+    if (pStatement instanceof SvLibIfStatement conditionalJump
+        && hasNoTags(conditionalJump)
+        && conditionalJump.getElseBranch().isEmpty()
+        && conditionalJump.getThenBranch() instanceof SvLibGotoStatement jump
+        && hasNoTags(jump)) {
+      return Optional.of(jump.getLabel());
+    }
+    return Optional.empty();
+  }
+
+  private static boolean hasNoTags(SvLibStatement pStatement) {
+    return pStatement.getTagReferences().isEmpty() && pStatement.getTagAttributes().isEmpty();
   }
 
   /** Is the given edge transformed into a jump to the block of its successor? */
@@ -2241,7 +2327,7 @@ class CToSvLibTransformation {
     }
 
     return new SvLibSequenceStatement(
-        statementList.build(),
+        simplifyJumps(statementList.build()),
         FileLocation.DUMMY,
         ImmutableList.of(),
         ImmutableList.of(new SvLibTagReference(pProcedureName, FileLocation.DUMMY)));
