@@ -131,6 +131,9 @@ public class TerminationWitnessValidator implements Algorithm {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
 
+    if (pWitnessPath.isEmpty()) {
+      throw new InvalidConfigurationException("Witness file is missing in specification.");
+    }
     if (pWitnessPath.size() != 1) {
       throw new InvalidConfigurationException(
           "Expected exactly one correctness witness as input of the algorithm.");
