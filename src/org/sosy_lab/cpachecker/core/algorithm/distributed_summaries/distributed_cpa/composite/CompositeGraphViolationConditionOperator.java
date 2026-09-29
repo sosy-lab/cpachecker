@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferViolationConditionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.MergeableViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -35,32 +34,35 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/** Backwards dataflow over a frozen ARG, merging only equal non-predicate components. */
-final class CompositeGraphViolationConditionOperator {
+/**
+ * Backwards dataflow over a frozen ARG, merging alternatives only when the other components are
+ * equal.
+ */
+final class CompositeGraphViolationConditionOperator<T> {
   private record Component(
       int index,
       DistributedConfigurableProgramAnalysis cpa,
       BackwardTransferViolationConditionOperator transfer) {}
 
-  private record Condition(
-      List<AbstractState> components, PathFormula formula, DecisionGraph witness) {}
+  private record Condition<T>(List<AbstractState> components, T condition, DecisionGraph witness) {}
 
   private final List<ConfigurableProgramAnalysis> analyses;
   private final List<Component> components = new ArrayList<>();
-  private final int predicateIndex;
+  private final int mergeableIndex;
   private final int blockIndex;
-  private final PredicateViolationConditionOperator predicate;
+  private final MergeableViolationConditionOperator<T> mergeable;
   private final BlockViolationConditionOperator block;
 
   static boolean supports(List<ConfigurableProgramAnalysis> analyses) {
-    boolean predicate = false;
+    int mergeable = 0;
     boolean block = false;
     for (var cpa : analyses) {
-      if (cpa instanceof DistributedPredicateCPA) {
-        predicate = true;
+      if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa
+          && dcpa.getViolationConditionOperator()
+              instanceof MergeableViolationConditionOperator<?>) {
+        mergeable++;
       } else if (cpa instanceof DistributedBlockCPA) {
         block = true;
       } else if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa) {
@@ -75,18 +77,35 @@ final class CompositeGraphViolationConditionOperator {
         return false;
       }
     }
-    return predicate && block;
+    return mergeable == 1 && block;
   }
 
-  CompositeGraphViolationConditionOperator(List<ConfigurableProgramAnalysis> pAnalyses) {
+  static CompositeGraphViolationConditionOperator<?> create(
+      List<ConfigurableProgramAnalysis> analyses) {
+    for (int i = 0; i < analyses.size(); i++) {
+      if (analyses.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa
+          && dcpa.getViolationConditionOperator()
+              instanceof MergeableViolationConditionOperator<?> op) {
+        return new CompositeGraphViolationConditionOperator<>(analyses, op, i);
+      }
+    }
+    throw new IllegalArgumentException("No mergeable violation-condition operator");
+  }
+
+  private CompositeGraphViolationConditionOperator(
+      List<ConfigurableProgramAnalysis> pAnalyses,
+      MergeableViolationConditionOperator<T> pMergeable,
+      int pMergeableIndex) {
     analyses = pAnalyses;
-    int pred = -1;
+    mergeable = pMergeable;
+    mergeableIndex = pMergeableIndex;
     int blk = -1;
     for (int i = 0; i < analyses.size(); i++) {
       var cpa = analyses.get(i);
-      if (cpa instanceof DistributedPredicateCPA) {
-        pred = i;
-      } else if (cpa instanceof DistributedBlockCPA) {
+      if (i == mergeableIndex) {
+        continue;
+      }
+      if (cpa instanceof DistributedBlockCPA) {
         blk = i;
       } else if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa) {
         components.add(
@@ -96,12 +115,7 @@ final class CompositeGraphViolationConditionOperator {
                 (BackwardTransferViolationConditionOperator) dcpa.getViolationConditionOperator()));
       }
     }
-    predicateIndex = pred;
     blockIndex = blk;
-    predicate =
-        (PredicateViolationConditionOperator)
-            ((DistributedConfigurableProgramAnalysis) analyses.get(pred))
-                .getViolationConditionOperator();
     block =
         (BlockViolationConditionOperator)
             ((DistributedConfigurableProgramAnalysis) analyses.get(blk))
@@ -110,7 +124,7 @@ final class CompositeGraphViolationConditionOperator {
 
   List<AbstractState> compute(DssARGPathGraph graph, Optional<ARGState> previous)
       throws InterruptedException, CPATransferException, SolverException {
-    var values = new HashMap<ARGState, Map<List<Map<String, String>>, Condition>>();
+    var values = new HashMap<ARGState, Map<List<Map<String, String>>, Condition<T>>>();
     List<AbstractState> initial = new ArrayList<>();
     for (Component component : components) {
       initial.add(
@@ -118,10 +132,10 @@ final class CompositeGraphViolationConditionOperator {
               .transfer()
               .initialState(AbstractStates.extractLocation(graph.getLastState()), previous));
     }
-    Map<List<Map<String, String>>, Condition> target = new LinkedHashMap<>();
+    Map<List<Map<String, String>>, Condition<T>> target = new LinkedHashMap<>();
     target.put(
         key(initial),
-        new Condition(initial, predicate.initialFormula(previous), DecisionGraph.EMPTY));
+        new Condition<>(initial, mergeable.initialCondition(previous), DecisionGraph.EMPTY));
     values.put(graph.getLastState(), target);
     for (ARGState node : graph.backwardOrder()) {
       if (Thread.interrupted()) {
@@ -133,7 +147,7 @@ final class CompositeGraphViolationConditionOperator {
       }
       for (var incoming : graph.incoming(node)) {
         var atParent = values.computeIfAbsent(incoming.parent(), unused -> new LinkedHashMap<>());
-        for (Condition condition : atNode.values()) {
+        for (Condition<T> condition : atNode.values()) {
           List<AbstractState> next = new ArrayList<>();
           boolean feasible = true;
           for (int i = 0; i < components.size(); i++) {
@@ -151,26 +165,26 @@ final class CompositeGraphViolationConditionOperator {
           if (!feasible) {
             continue;
           }
-          var nextFormula = predicate.prepend(condition.formula(), incoming.edges());
+          var nextFormula = mergeable.prepend(condition.condition(), incoming.edges());
           var nextWitness = condition.witness().prepend(incoming.edges());
           var key = key(next);
           var old = atParent.get(key);
           if (old != null) {
-            nextFormula = predicate.union(old.formula(), nextFormula);
+            nextFormula = mergeable.union(old.condition(), nextFormula);
             nextWitness = DecisionGraph.union(List.of(old.witness(), nextWitness));
           }
-          atParent.put(key, new Condition(next, nextFormula, nextWitness));
+          atParent.put(key, new Condition<>(next, nextFormula, nextWitness));
         }
       }
     }
     List<AbstractState> result = new ArrayList<>();
-    for (Condition condition : values.getOrDefault(graph.getFirstState(), Map.of()).values()) {
-      var formula = predicate.finishGraph(graph.getFirstState(), condition.formula());
+    for (Condition<T> condition : values.getOrDefault(graph.getFirstState(), Map.of()).values()) {
+      var formula = mergeable.finishGraph(graph.getFirstState(), condition.condition());
       if (formula.isEmpty()) {
         continue;
       }
       var state = new ArrayList<AbstractState>(Collections.nCopies(analyses.size(), null));
-      state.set(predicateIndex, formula.orElseThrow());
+      state.set(mergeableIndex, formula.orElseThrow());
       state.set(
           blockIndex,
           block.withGraph(graph.getFirstState(), previous, condition.witness()).orElseThrow());

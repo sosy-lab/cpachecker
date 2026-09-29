@@ -114,4 +114,9 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
     Set<String> variablesInAllPrecisions = count.keySet();
     return toFilteredUnion(precisions, variablesInAllPrecisions);
   }
+
+  @Override
+  public boolean isCoveredBy(Precision pPrecision, Precision pOther) throws InterruptedException {
+    return union(ImmutableList.of(pPrecision, pOther)).equals(pOther);
+  }
 }

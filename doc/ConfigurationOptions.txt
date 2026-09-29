@@ -2582,12 +2582,6 @@ cpa.predicate.abstraction.computation = BOOLEAN
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# Use a satisfiability check instead of a full predicate abstraction at
-# target states. Enable only when target states are terminal: their
-# abstraction retains no predicates, but their block formula is preserved for
-# refinement.
-cpa.predicate.abstraction.feasibilityOnlyAtTargets = false
-
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
 cpa.predicate.abstraction.identifyTrivialPredicates = false
@@ -4732,10 +4726,6 @@ distributedSummaries.printBlockLevelStats = false
 # Whether to reset callstack state before running a block analysis; usually
 # used together with the inlining decomposition
 distributedSummaries.resetCallstackState = false
-
-# Seed each predicate worker's initial precision with guards at its entry and
-# exit. These are candidate predicates, not assumed facts.
-distributedSummaries.seedBoundaryAssumptions = false
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must

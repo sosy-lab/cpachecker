@@ -298,7 +298,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           broadcaster.broadcastToIds(message, block.getSuccessorIds());
         }
         case VIOLATION_CONDITION -> {
-          if (block.getPredecessorIds().isEmpty() && !message.isPrecisionOnly()) {
+          if (block.getPredecessorIds().isEmpty()) {
             String violationPathString = message.extractBlockStateWitnessString();
             SegmentedPaths violationPath =
                 DeserializeBlockStateOperator.parseWitness(violationPathString).witness();

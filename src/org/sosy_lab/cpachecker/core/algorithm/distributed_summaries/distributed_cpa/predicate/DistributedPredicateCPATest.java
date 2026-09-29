@@ -22,8 +22,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -97,72 +95,6 @@ public class DistributedPredicateCPATest {
       node = edge.getSuccessor();
     }
     return pathFormula;
-  }
-
-  @Test
-  public void boundarySeedsStayLocalAndDoNotAssumeEitherBranchOutcome() throws Exception {
-    CFA cfa =
-        TestCfaUtils.makeCfaFromString(
-            "int main() { int x; if (x < 2) x = 0; else x = 1; if (x == 1) return 1; return 0; }");
-    var branches =
-        cfa.nodes().stream()
-            .filter(n -> n.getNumLeavingEdges() > 0 && n.getLeavingEdge(0) instanceof AssumeEdge)
-            .toList();
-    assertThat(branches).hasSize(2);
-    CFANode selected = branches.getFirst();
-    try (PredicateCPA cpa = createPredicateCpa(cfa)) {
-      var seeds =
-          new DssBoundaryPredicatePrecision(
-              cpa,
-              ImmutableSet.of(selected),
-              LogManager.createTestLogManager(),
-              ShutdownNotifier.createDummy());
-      var precision = seeds.getPrecision();
-      assertThat(seeds.getPrecision()).isSameInstanceAs(precision);
-      assertThat(precision.getLocalPredicates().keySet()).containsExactly(selected);
-      assertThat(precision.getLocalPredicates().get(selected)).hasSize(1);
-      assertThat(precision.getGlobalPredicates()).isEmpty();
-      assertThat(precision.getFunctionPredicates()).isEmpty();
-      var fmgr = cpa.getSolver().getFormulaManager();
-      var atom = precision.getLocalPredicates().get(selected).iterator().next().getSymbolicAtom();
-      assertThat(fmgr.uninstantiate(atom)).isEqualTo(atom);
-      var initial =
-          (PredicateAbstractState)
-              cpa.getInitialState(selected, StateSpacePartition.getDefaultPartition());
-      assertThat(initial.getAbstractionFormula().isTrue()).isTrue();
-      for (var edge : selected.getLeavingEdges()) {
-        var path = cpa.getPathFormulaManager().makeAnd(initial.getPathFormula(), edge);
-        assertThat(cpa.getSolver().isUnsat(path.getFormula())).isFalse();
-      }
-    }
-  }
-
-  @Test
-  public void boundarySeedingTraversesBlankEdgesButStopsAtAssignments() throws Exception {
-    CFA cfa =
-        TestCfaUtils.makeCfaFromString(
-            "int main() { int x; if (x < 2) x = 0; else x = 1; if (x == 1) return 1; return 0; }");
-    CFANode blank =
-        cfa.nodes().stream()
-            .filter(n -> n.getNumLeavingEdges() == 1 && n.getLeavingEdge(0) instanceof BlankEdge)
-            .filter(n -> n.getLeavingEdge(0).getSuccessor().getNumLeavingEdges() == 2)
-            .findFirst()
-            .orElseThrow();
-    CFANode assignment =
-        cfa.nodes().stream()
-            .filter(n -> n.getNumLeavingEdges() == 1)
-            .filter(n -> n.getLeavingEdge(0).getRawStatement().equals("x = 0;"))
-            .findFirst()
-            .orElseThrow();
-    try (PredicateCPA cpa = createPredicateCpa(cfa)) {
-      var seeds =
-          new DssBoundaryPredicatePrecision(
-              cpa,
-              ImmutableSet.of(blank, assignment),
-              LogManager.createTestLogManager(),
-              ShutdownNotifier.createDummy());
-      assertThat(seeds.getPrecision().getLocalPredicates().keySet()).containsExactly(blank);
-    }
   }
 
   @Test

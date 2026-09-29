@@ -99,13 +99,6 @@ public class DssAnalysisOptions {
   private boolean syntacticViolationConditionEquality = false;
 
   @Option(
-      secure = true,
-      description =
-          "Seed each predicate worker's initial precision with guards at its entry and exit."
-              + " These are candidate predicates, not assumed facts.")
-  private boolean seedBoundaryAssumptions = false;
-
-  @Option(
       name = "combineVcsByHash",
       description = "Whether to combine violation conditions at same program location",
       secure = true)
@@ -168,10 +161,6 @@ public class DssAnalysisOptions {
 
   public boolean useSyntacticViolationConditionEquality() {
     return syntacticViolationConditionEquality;
-  }
-
-  public boolean seedBoundaryAssumptions() {
-    return seedBoundaryAssumptions;
   }
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {

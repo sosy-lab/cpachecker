@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.MergeableViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -27,7 +27,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicateViolationConditionOperator implements ViolationConditionOperator {
+public class PredicateViolationConditionOperator
+    implements MergeableViolationConditionOperator<PathFormula> {
 
   private final PathFormulaManagerImpl backwardManager;
   private final PredicateCPA cpa;
@@ -64,10 +65,11 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
       throws InterruptedException, CPATransferException, SolverException {
     return finish(
         pARGPath.getFirstState(),
-        prepend(initialFormula(pPreviousCondition), pARGPath.getFullPath()));
+        prepend(initialCondition(pPreviousCondition), pARGPath.getFullPath()));
   }
 
-  public PathFormula initialFormula(Optional<ARGState> pPreviousCondition) {
+  @Override
+  public PathFormula initialCondition(Optional<ARGState> pPreviousCondition) {
     PathFormula result;
     if (pPreviousCondition.isEmpty()) {
       result = backwardManager.makeEmptyPathFormula();
@@ -85,6 +87,7 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     return result;
   }
 
+  @Override
   public PathFormula prepend(PathFormula formula, List<CFAEdge> edges)
       throws InterruptedException, CPATransferException {
     for (CFAEdge edge : edges.reversed()) {
@@ -93,10 +96,12 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
     return formula;
   }
 
+  @Override
   public PathFormula union(PathFormula first, PathFormula second) throws InterruptedException {
     return backwardManager.makeOr(first, second);
   }
 
+  @Override
   public Optional<AbstractState> finishGraph(ARGState root, PathFormula result)
       throws InterruptedException, SolverException {
     return finish(

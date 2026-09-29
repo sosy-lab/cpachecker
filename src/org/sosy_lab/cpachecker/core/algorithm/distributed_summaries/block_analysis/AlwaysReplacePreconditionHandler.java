@@ -91,10 +91,10 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       for (Object programPoint : programPointToState.keySet()) {
         ImmutableList<@NonNull StateAndPrecision> statesAtLocation =
             programPointToState.get(programPoint);
-        if (!analysis.statesEqual(
-            statesAtLocation,
-            preconditions.getStatesAndPrecisionsForKeyAndId(
-                pReceived.getSenderId(), programPoint))) {
+        var stored =
+            preconditions.getStatesAndPrecisionsForKeyAndId(pReceived.getSenderId(), programPoint);
+        if (!analysis.statesEqual(statesAtLocation, stored)
+            || !analysis.precisionsCoveredBy(statesAtLocation, stored)) {
           preconditions.overwriteStatesForKey(
               pReceived.getSenderId(), programPoint, statesAtLocation);
           stop = false;
