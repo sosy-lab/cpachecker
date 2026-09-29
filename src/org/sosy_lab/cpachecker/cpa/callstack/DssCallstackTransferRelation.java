@@ -107,18 +107,8 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    if (!(pState instanceof DssCallstackState state)) {
+    if (!(pState instanceof DssCallstackState state) || !isGhostEdge(pCfaEdge)) {
       return ImmutableList.of(pState);
-    }
-
-    if (options.directKnownStackCheck() && state.hasCompleteCallstack()) {
-      // Forward transfer has already checked every call, return and recursion bound against
-      // the complete stack. The successor condition can be checked against that stack directly,
-      // so completed calls need not distinguish predicate paths that otherwise merge.
-      state = state.withoutReplayEffect();
-    }
-    if (!isGhostEdge(pCfaEdge) && state.getEffect().equals(DssCallstackEffect.EMPTY)) {
-      return ImmutableList.of(state);
     }
 
     BlockState blockState =
@@ -127,21 +117,14 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
             .filter(BlockState.class)
             .first()
             .orNull();
-    if (blockState == null) {
+    if (blockState == null || blockState.getType() != BlockStateType.ABSTRACTION) {
       return ImmutableList.of(pState);
     }
 
     List<? extends AbstractState> violationConditions = blockState.getViolationConditions();
     if (violationConditions.isEmpty()) {
-      // This reached-set exploration will not check a successor callstack. Retaining its
-      // backwards effect would keep otherwise compatible paths apart at every optional call,
-      // although only the current stack matters for forward transfer and postconditions.
-      // Conditions are fixed at the start of a run (and can only be removed within that run);
-      // a later message starts a fresh run, which records replay effects again.
-      return ImmutableList.of(state.withoutReplayEffect());
-    }
-    if (!isGhostEdge(pCfaEdge) || blockState.getType() != BlockStateType.ABSTRACTION) {
-      return ImmutableList.of(state);
+      // without a violation condition, the callstack at the block end is unknown
+      return ImmutableList.of(pState);
     }
 
     // at abstraction locations, a block state stores exactly one violation condition
@@ -160,8 +143,8 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
   }
 
   /**
-   * Matches a complete forward stack directly, or replays the path backwards when the caller prefix
-   * is unknown. The bottom frame of a backwards condition always leaves its callers open.
+   * Replays all edges that the given state traversed backwards, starting from the callstack at the
+   * end of the block.
    *
    * @param pCallstackAtBlockEnd the callstack that the violation condition of the successor block
    *     reports for the end of the current block
@@ -172,27 +155,7 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
   private boolean fitsCallstackAtBlockEnd(
       CallstackState pCallstackAtBlockEnd, DssCallstackState pState, Precision pPrecision)
       throws CPATransferException {
-    if (options.directKnownStackCheck() && pState.hasCompleteCallstack()) {
-      return matchesRequiredStack(pState.getWrappedState(), pCallstackAtBlockEnd);
-    }
     return pState.getEffect().accepts(pCallstackAtBlockEnd, backwards, pPrecision);
-  }
-
-  /** Matches the concrete stack against the known suffix of a backwards condition. */
-  static boolean matchesRequiredStack(CallstackState pActual, CallstackState pRequired) {
-    @Nullable CallstackState actual = pActual;
-    CallstackState required = checkNotNull(DssCallstackState.unwrap(pRequired));
-    while (required.getPreviousState() != null) {
-      if (actual == null
-          || !actual.getCurrentFunction().equals(required.getCurrentFunction())
-          || !actual.getCallNode().equals(required.getCallNode())) {
-        return false;
-      }
-      required = checkNotNull(required.getPreviousState());
-      actual = actual.getPreviousState();
-    }
-    // The bottom of a backwards condition denotes the unknown caller prefix.
-    return actual != null && actual.getCurrentFunction().equals(required.getCurrentFunction());
   }
 
   private static boolean isGhostEdge(@Nullable CFAEdge pEdge) {

@@ -2059,9 +2059,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# Check known DSS callstacks directly at block boundaries.
-cpa.callstack.dssDirectKnownStackCheck = false
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -4709,9 +4706,6 @@ distributedSummaries.decomposition.mergeBranchBoundaries = false
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
-
-# Infer unique entry callstacks before speculative block exploration.
-distributedSummaries.inferEntryCallstacks = false
 
 # output file for visualizing the block graph
 distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"

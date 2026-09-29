@@ -55,27 +55,15 @@ public class DssCallstackState extends CallstackState {
   private final PersistentList<CFAEdge> reversedTraversedEdges;
 
   private final boolean canBeTopState;
-  private final boolean completeCallstack;
   private final DssCallstackEffect effect;
 
   public DssCallstackState(CallstackState pWrappedState, boolean pCanBeTopState) {
-    this(pWrappedState, pCanBeTopState, false, PersistentLinkedList.of(), DssCallstackEffect.EMPTY);
-  }
-
-  /** Creates a forward state with a stack proven to extend down to the program entry. */
-  public static DssCallstackState withCompleteCallstack(CallstackState pStack) {
-    return new DssCallstackState(
-        pStack, false, true, PersistentLinkedList.of(), DssCallstackEffect.EMPTY);
-  }
-
-  boolean hasCompleteCallstack() {
-    return completeCallstack;
+    this(pWrappedState, pCanBeTopState, PersistentLinkedList.of(), DssCallstackEffect.EMPTY);
   }
 
   private DssCallstackState(
       CallstackState pWrappedState,
       boolean pCanBeTopState,
-      boolean pCompleteCallstack,
       PersistentList<CFAEdge> pReversedTraversedEdges,
       DssCallstackEffect pEffect) {
     super(
@@ -88,7 +76,6 @@ public class DssCallstackState extends CallstackState {
         pWrappedState);
     wrappedState = pWrappedState;
     canBeTopState = pCanBeTopState;
-    completeCallstack = pCompleteCallstack;
     reversedTraversedEdges = pReversedTraversedEdges;
     effect = pEffect;
   }
@@ -118,29 +105,9 @@ public class DssCallstackState extends CallstackState {
     return effect;
   }
 
-  /**
-   * Drops the backwards replay effect when this run has no successor violation condition to check.
-   * Keep the current stack and the diagnostic edge sequence unchanged.
-   */
-  DssCallstackState withoutReplayEffect() {
-    return effect.equals(DssCallstackEffect.EMPTY)
-        ? this
-        : new DssCallstackState(
-            wrappedState,
-            canBeTopState,
-            completeCallstack,
-            reversedTraversedEdges,
-            DssCallstackEffect.EMPTY);
-  }
-
   /** Start another block exploration with the same stack and no replay history. */
   public DssCallstackState reset() {
-    return new DssCallstackState(
-        wrappedState,
-        canBeTopState,
-        completeCallstack,
-        PersistentLinkedList.of(),
-        DssCallstackEffect.EMPTY);
+    return new DssCallstackState(wrappedState, canBeTopState);
   }
 
   public boolean isTopState() {
@@ -171,11 +138,7 @@ public class DssCallstackState extends CallstackState {
   public DssCallstackState withWrappedStateAndTraversedEdge(
       CallstackState pWrappedState, CFAEdge pEdge) {
     return new DssCallstackState(
-        pWrappedState,
-        canBeTopState,
-        completeCallstack,
-        reversedTraversedEdges.with(pEdge),
-        effect.append(pEdge));
+        pWrappedState, canBeTopState, reversedTraversedEdges.with(pEdge), effect.append(pEdge));
   }
 
   @Override
@@ -184,13 +147,12 @@ public class DssCallstackState extends CallstackState {
         || (pOther instanceof DssCallstackState other
             && wrappedState.equals(other.wrappedState)
             && canBeTopState == other.canBeTopState
-            && completeCallstack == other.completeCallstack
             && effect.equals(other.effect));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(wrappedState, canBeTopState, completeCallstack, effect);
+    return Objects.hash(wrappedState, canBeTopState, effect);
   }
 
   @Override
