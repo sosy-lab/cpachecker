@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGCPATransferRelationTest {
 
@@ -168,10 +169,7 @@ public class SMGCPATransferRelationTest {
     LogManagerWithoutDuplicates logManager =
         new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
     Configuration defaultOptionsNoPreciseRead =
-        Configuration.builder()
-            .copyFrom(Configuration.defaultConfiguration())
-            .setOption("cpa.smg2.preciseSMGRead", "false")
-            .build();
+        TestUtils.configurationForTest().setOption("cpa.smg2.preciseSMGRead", "false").build();
     smgOptions = new SMGOptions(defaultOptionsNoPreciseRead, null);
     SMGCPAExpressionEvaluator evaluator =
         new SMGCPAExpressionEvaluator(

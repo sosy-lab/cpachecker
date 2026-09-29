@@ -20,8 +20,6 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--smgSymbolicExecution"/>
   </rundefinition>
 
-  <option name="--option">cpa.smg2.enableMallocFail=false</option>
-
   <tasks name="C.valid-memsafety.Arrays">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -67,7 +65,8 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
-  <tasks name="C.valid-memsafety.Concurrency">
+  <tasks name="C.valid-memsafety.Concurrency-Sequentialized">
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>

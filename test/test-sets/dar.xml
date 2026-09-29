@@ -13,7 +13,6 @@
 
     <option name="--no-output-files"/>
     <option name="--heap">12000M</option>
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
     <rundefinition name="dar">
         <option name="--bmc-interpolationDualSequence"/>

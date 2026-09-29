@@ -28,12 +28,12 @@ public class CallStack {
     }
   }
 
-  private CallStack(CallFrame topFrame) {
-    this.topFrame = Optional.of(topFrame);
+  private CallStack(CallFrame pTopFrame) {
+    this.topFrame = Optional.of(pTopFrame);
   }
 
-  private CallStack(Optional<CallFrame> topFrame) {
-    this.topFrame = topFrame;
+  private CallStack(Optional<CallFrame> pTopFrame) {
+    this.topFrame = pTopFrame;
   }
 
   private CallStack() {
@@ -65,6 +65,19 @@ public class CallStack {
       return builder.toString();
     }
     return "";
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof CallStack other && topFrame.equals(other.topFrame);
+  }
+
+  @Override
+  public int hashCode() {
+    return topFrame.hashCode();
   }
 
   @Override

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
@@ -177,12 +178,16 @@ public class DssFactory {
               TypeAndLocationCache.getOrCreateLocationMapping(pCFA),
               TypeAndLocationCache.getOrCreateTypeMap(
                   pCFA, pConfiguration, pLogManager, pShutdownNotifier));
-      case CallstackCPA callstackCPA ->
+      case DssCallstackCPA callstackCPA ->
           distribute(
               callstackCPA,
               pBlockNode,
               pCFA,
+              pOptions.callStackStateRequiresStateReset(),
               TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
+      case CallstackCPA ignored ->
+          throw new IllegalArgumentException(
+              "Distributed summary synthesis requires DssCallstackCPA instead of CallstackCPA");
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->
@@ -277,11 +282,13 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      CallstackCPA pCallstackCPA,
+      DssCallstackCPA pCallstackCPA,
       BlockNode pBlockNode,
       CFA pCFA,
+      boolean pRequiresStateReset,
       BiMap<Integer, CFANode> pIdToNodeMap) {
-    return new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pCFA, pIdToNodeMap);
+    return new DistributedCallstackCPA(
+        pCallstackCPA, pBlockNode, pCFA, pRequiresStateReset, pIdToNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

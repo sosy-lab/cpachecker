@@ -436,11 +436,11 @@ class KInductionProver implements AutoCloseable {
 
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
-        bfmgr.and(
-            from(CandidateInvariantCombination.getConjunctiveParts(
-                    CandidateInvariantCombination.conjunction(pPredecessorAssumptions)))
-                .transform(conjunctivePart -> assertions.get(conjunctivePart))
-                .toList());
+        CandidateInvariantCombination.getConjunctiveParts(
+                CandidateInvariantCombination.conjunction(pPredecessorAssumptions))
+            .stream()
+            .map(conjunctivePart -> assertions.get(conjunctivePart))
+            .collect(bfmgr.toConjunction());
     // Create the successor violation formula
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
         getSuccessorViolationAssertions(
@@ -457,9 +457,8 @@ class KInductionProver implements AutoCloseable {
 
     // Try to prove the invariance of the assertion
     Object successorExistsAssertionId = prover.push(successorExistsAssertion);
-    Object predecessorAssertionId =
-        prover.push(
-            predecessorAssertion); // Assert the formula we want to prove at the predecessors
+    // Assert the formula we want to prove at the predecessors
+    Object predecessorAssertionId = prover.push(predecessorAssertion);
     // Assert that the formula is violated at a successor
     prover.push(successorViolation);
 
@@ -486,9 +485,7 @@ class KInductionProver implements AutoCloseable {
         // or want to log the model
         if (!loopHeadInvChanged || logger.wouldBeLogged(Level.ALL)) {
           List<ValueAssignment> modelAssignments = prover.getModelAssignments();
-          if (logger.wouldBeLogged(Level.ALL)) {
-            logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
-          }
+          logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
 
           if (!loopHeadInvChanged) {
             // We are in the last iteration and failed to prove the candidate invariant
@@ -673,7 +670,12 @@ class KInductionProver implements AutoCloseable {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
     }
-    return unroll(logger, pReached, pAlg, pCPA);
+    stats.inductionUnrolling.start();
+    try {
+      return unroll(logger, pReached, pAlg, pCPA);
+    } finally {
+      stats.inductionUnrolling.stop();
+    }
   }
 
   private Multimap<String, Integer> extractInputs(

@@ -57,6 +57,25 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
   }
 
   @Override
+  public boolean areStatesSyntacticallyEqual(AbstractState state1, AbstractState state2) {
+    PredicateAbstractState predicateState1 = (PredicateAbstractState) state1;
+    PredicateAbstractState predicateState2 = (PredicateAbstractState) state2;
+    if (predicateState1.isAbstractionState() != predicateState2.isAbstractionState()) {
+      return false;
+    }
+    if (predicateState1.isAbstractionState()) {
+      return predicateState1
+          .getAbstractionFormula()
+          .asFormula()
+          .equals(predicateState2.getAbstractionFormula().asFormula());
+    }
+    return predicateState1
+        .getPathFormula()
+        .getFormula()
+        .equals(predicateState2.getPathFormula().getFormula());
+  }
+
+  @Override
   public boolean isBasedOnEquality() {
     return false;
   }

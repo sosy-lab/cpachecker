@@ -164,15 +164,18 @@ public class SequentializationBuilder {
       for (CVariableDeclaration localDeclaration : localDeclarations) {
         CVariableDeclaration variableDeclarationSubstitute =
             buildVariableDeclarationWithSubstituteType(localDeclaration);
-        rDeclarations.add(
-            buildInputLocalVariableDeclaration(variableDeclarationSubstitute).toASTString());
+        Optional<CVariableDeclaration> variableDeclaration =
+            tryBuildInputLocalVariableDeclaration(pOptions, variableDeclarationSubstitute);
+        if (variableDeclaration.isPresent()) {
+          rDeclarations.add(variableDeclaration.orElseThrow().toASTString());
+        }
       }
     }
     return rDeclarations.toString();
   }
 
-  private static CVariableDeclaration buildInputLocalVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration) {
+  private static Optional<CVariableDeclaration> tryBuildInputLocalVariableDeclaration(
+      MPOROptions pOptions, CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
 
@@ -191,16 +194,16 @@ public class SequentializationBuilder {
               pVariableDeclaration.getOrigName(),
               pVariableDeclaration.getQualifiedName(),
               pVariableDeclaration.getInitializer());
-      return buildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
+      return tryBuildInputLocalVariableDeclaration(pOptions, variableDeclarationWithoutConst);
     }
     // otherwise, for non-const variables
     if (pVariableDeclaration.getInitializer() == null
         || MPORUtil.isFunctionPointer(pVariableDeclaration.getInitializer())) {
       // no initializer or function pointer initializer are returned without modification
-      return pVariableDeclaration;
+      return Optional.of(pVariableDeclaration);
     }
     // everything else: add declaration without initializer (and assign later in statements)
-    return MPORUtil.withInitializer(pVariableDeclaration, null);
+    return Optional.of(MPORUtil.withInitializer(pVariableDeclaration, null));
   }
 
   // Input Parameter Declarations ==================================================================

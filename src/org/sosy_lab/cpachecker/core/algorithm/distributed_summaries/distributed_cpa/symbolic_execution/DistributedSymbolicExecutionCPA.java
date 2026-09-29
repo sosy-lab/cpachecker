@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 
 import com.google.common.collect.Iterables;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -163,8 +162,10 @@ public class DistributedSymbolicExecutionCPA implements DistributedConfigurableP
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
-    return Objects.hash(this, pAbstractState);
+  public Object computeProgramPointId(AbstractState pAbstractState) {
+    // The symbolic execution state has no information about the point in the program, so always
+    // return the same number (arbitrarily chosen)
+    return 0;
   }
 
   @Override

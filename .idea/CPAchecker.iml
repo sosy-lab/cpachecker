@@ -4,7 +4,6 @@
     <output url="file://$MODULE_DIR$/classes" />
     <exclude-output />
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/contrib/worker-visualization/venv/lib64/python3.12/site-packages" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/results" />
       <excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks" />
@@ -30,6 +29,8 @@
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
         <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" />
         <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" type="SOURCES" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" type="SOURCES" />
       </library>
     </orderEntry>
   </component>

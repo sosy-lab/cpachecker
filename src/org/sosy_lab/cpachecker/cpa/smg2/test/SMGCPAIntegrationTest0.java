@@ -14,7 +14,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
-import static org.sosy_lab.cpachecker.core.CPAcheckerIntegrationTest.setUpConfiguration;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.ProgramSubject.assertUsing;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.GRAPHML_VIOLATION;
 
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
  * Base class to execute common configurations of the SMG2-CPA with test programs for multiple
@@ -131,24 +131,13 @@ public abstract class SMGCPAIntegrationTest0 {
   private static Configuration buildConfigForC(
       String cpaConfiguration, String specification, MachineModel machineModel)
       throws IOException, InvalidConfigurationException {
-    return getConfig(
-        CPA_CONFIG_COMMON_PREFIX + cpaConfiguration,
-        Language.C,
-        SPECIFICATION_COMMON_PREFIX + specification,
-        machineModel);
-  }
 
-  /** Uses the default {@link Configuration} and does not allow generated files to be accessed. */
-  protected static Configuration getConfig(
-      String configurationFile,
-      Language inputLanguage,
-      String specificationFile,
-      MachineModel machineModel)
-      throws InvalidConfigurationException, IOException {
-
-    Configuration configForFiles = Configuration.defaultConfiguration();
-    return setUpConfiguration(
-        configurationFile, inputLanguage, specificationFile, configForFiles, machineModel);
+    return TestUtils.configurationForTest()
+        .loadFromFile(CPA_CONFIG_COMMON_PREFIX + cpaConfiguration)
+        .setOption("analysis.machineModel", machineModel.toString())
+        .setOption("language", Language.C.name())
+        .setOption("specification", SPECIFICATION_COMMON_PREFIX + specification)
+        .build();
   }
 
   /**
@@ -262,7 +251,7 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private void verifySafeResult() throws Exception {
-      isExpectedResult(runAnalysis(), Result.TRUE, "TRUE (safe program for chosen specification)");
+      runAnalysis().assertIs(Result.TRUE);
     }
 
     /** Check that the analysis result of the program is UNSAFE in the current analysis. */
@@ -271,10 +260,7 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private void verifyUnsafeResult(IntegrationTestResult verificationResult) throws Exception {
-      isExpectedResult(
-          verificationResult,
-          Result.FALSE,
-          "FALSE (violation found in program for chosen specification)");
+      verificationResult.assertIs(Result.FALSE);
     }
 
     /** Check that the analysis result of the program is UNKNOWN in the current analysis. */
@@ -283,7 +269,7 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private void verifyUnknownResult() throws Exception {
-      isExpectedResult(runAnalysis(), Result.UNKNOWN, "UNKNOWN");
+      runAnalysis().assertIs(Result.UNKNOWN);
     }
 
     /**
@@ -393,32 +379,6 @@ public abstract class SMGCPAIntegrationTest0 {
       checkArgument(
           new File(programPath).isFile(), "Test program could not be found: %s", programPath);
       return IntegrationTestRunner.run(configToRun, programPath);
-    }
-
-    /**
-     * Check that the subject is a certain result, returning an error with the String when failing.
-     */
-    public void isExpectedResult(
-        IntegrationTestResult actualResult, Result expectedResult, String expectedResultString) {
-      Result verdict = actualResult.cpaCheckerResult().getResult();
-
-      if (verdict == expectedResult) {
-        return;
-      }
-
-      String log = checkNotNull(actualResult.log()).trim();
-      if (verdict == Result.NOT_YET_STARTED) {
-        failWithoutActual(
-            Fact.fact("analysis result expected to be", expectedResultString),
-            Fact.fact("but was", verdict),
-            Fact.fact("which has log", log));
-      }
-
-      failWithActual(
-          Fact.fact("analysis result expected to be", expectedResultString),
-          Fact.fact("but was", verdict),
-          Fact.fact("due to", actualResult.cpaCheckerResult().getTargetDescription()),
-          Fact.fact("which has log", log));
     }
 
     /**

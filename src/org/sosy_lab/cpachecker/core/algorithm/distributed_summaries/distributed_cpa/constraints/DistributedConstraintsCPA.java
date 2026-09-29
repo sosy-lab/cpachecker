@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
 import com.google.common.collect.Iterables;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
@@ -120,8 +119,10 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
-    return Objects.hash(this, pAbstractState);
+  public Object computeProgramPointId(AbstractState pAbstractState) {
+    // The constraints state has no information about the point in the program, so always
+    // return the same number (arbitrarily chosen)
+    return 0;
   }
 
   @Override

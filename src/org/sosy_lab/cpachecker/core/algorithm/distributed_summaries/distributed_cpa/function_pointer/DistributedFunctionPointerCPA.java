@@ -138,7 +138,7 @@ public class DistributedFunctionPointerCPA
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
+  public Object computeProgramPointId(AbstractState pAbstractState) {
     return 0;
   }
 

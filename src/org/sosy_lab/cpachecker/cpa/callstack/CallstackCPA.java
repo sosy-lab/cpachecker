@@ -56,6 +56,14 @@ public class CallstackCPA extends AbstractCPA
     return new CallstackState(null, pNode.getFunctionName(), pNode);
   }
 
+  protected final CallstackOptions getCallstackOptions() {
+    return options;
+  }
+
+  protected final LogManager getLogger() {
+    return logger;
+  }
+
   @Override
   public boolean areAbstractSuccessors(
       AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
@@ -111,13 +119,8 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public CallstackTransferRelation getTransferRelation() {
-    if (options.ignoreTransfer() && options.traverseBackwards()) {
-      throw new AssertionError("Ignore and backwards options are mutually exclusive.");
-    }
     if (options.traverseBackwards()) {
       return new CallstackTransferRelationBackwards(options, logger);
-    } else if (options.ignoreTransfer()) {
-      return new IgnoreCallstackTransferRelation(options, logger);
     } else {
       return new CallstackTransferRelation(options, logger);
     }

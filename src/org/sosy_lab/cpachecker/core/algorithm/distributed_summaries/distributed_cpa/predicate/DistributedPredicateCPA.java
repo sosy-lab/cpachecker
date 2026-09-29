@@ -74,7 +74,7 @@ public class DistributedPredicateCPA
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     predicateCPA = pPredicateCPA;
-    final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
+    final boolean writeReadableFormulas = pOptions.writeReadableFormulas();
     serialize =
         new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas, pTypeMap);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, pTypeMap);
@@ -162,7 +162,7 @@ public class DistributedPredicateCPA
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
+  public Object computeProgramPointId(AbstractState pAbstractState) {
     // The predicate state has no information about the point in the program, so always
     // return the same number (arbitrarily chosen)
     return 0;

@@ -181,6 +181,8 @@ public class LocationState
         return locationNode.getEnteringEdge(0).getLineNumber();
       }
       return 0; // DUMMY
+    } else if (pProperty.equalsIgnoreCase("nodenumber")) {
+      return locationNode.getNodeNumber();
     } else {
       return checkProperty(pProperty);
     }

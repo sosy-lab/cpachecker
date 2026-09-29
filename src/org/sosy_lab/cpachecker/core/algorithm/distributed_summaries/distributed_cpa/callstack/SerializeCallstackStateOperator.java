@@ -29,6 +29,8 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
+    boolean canBeTopState = DistributedCallstackCPA.canBeTopState(pCallstackState);
+
     List<String> states = new ArrayList<>();
     CallstackState callstackState = (CallstackState) pCallstackState;
     while (callstackState != null) {
@@ -38,9 +40,12 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
     }
     Collections.reverse(states);
     String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+
     return ContentBuilder.builder()
         .pushLevel(CallstackState.class.getName())
-        .put(STATE_KEY, result)
+        .put(SerializeOperator.STATE_KEY, result)
+        // the receiving block has to know whether the sending block knew its callstack
+        .put(DistributedCallstackCPA.CAN_BE_TOP_STATE_KEY, Boolean.toString(canBeTopState))
         .build();
   }
 }

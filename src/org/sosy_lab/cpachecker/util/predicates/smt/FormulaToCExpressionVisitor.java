@@ -8,13 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor.INT_MIN_LITERAL;
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor.LLONG_MIN_LITERAL;
-
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -28,7 +24,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -84,53 +79,33 @@ public class FormulaToCExpressionVisitor implements FormulaVisitor<SymbolicExpre
   public ConstantSymbolicExpression visitConstant(Formula pF, Object pValue) {
     FormulaType<?> type = fmgr.getFormulaType(pF);
 
-    if (type.isBitvectorType()) {
+    if (type.isBitvectorType() && pValue instanceof BigInteger value) {
       final int size = ((BitvectorType) type).getSize();
-      switch (size) {
-        case 32 -> {
-          Optional<Value> value1 =
-              appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue);
-          if (value1.isPresent()) {
-            return new ConstantSymbolicExpression(value1.orElseThrow(), null);
-          }
-        }
-        case 64 -> {
-          Optional<Value> value1 =
-              appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue);
-          if (value1.isPresent()) {
-            return new ConstantSymbolicExpression(value1.orElseThrow(), null);
-          }
-        }
-      }
-    } else if (pValue instanceof Boolean) {
       return new ConstantSymbolicExpression(
-          ((boolean) pValue) ? BooleanValue.TRUE_VALUE : BooleanValue.FALSE_VALUE, null);
+          new NumericValue(interpretBitvectorValue(value, size)), null);
+    } else if (pValue instanceof Boolean value) {
+      return new ConstantSymbolicExpression(
+          value ? BooleanValue.TRUE_VALUE : BooleanValue.FALSE_VALUE, null);
     }
 
     return new ConstantSymbolicExpression(new NumericValue((Number) pValue), null);
   }
 
   /**
-   * The literals used for INT_MIN or LONG_MIN exceed the positive values of their corresponding
-   * data types and therefore an overflow would occur, if just written as '-[LITERAL]', since in C a
-   * literal is assigned its corresponding type before the unary '-' is applied.
+   * Bitvector values are reported as the unsigned interpretation of their bit pattern, i.e., as a
+   * non-negative number. Whenever the surrounding operation reads its operands as signed, that bit
+   * pattern denotes the corresponding two's-complement value instead, so it has to be converted.
    *
-   * @param pGuardString the representation of a number that would be expected to overflow
-   * @param pValue the value of the observed expression
-   * @return whether a guard was necessary or not
+   * <p>Unlike {@link FormulaToCVisitor}, which renders C source text, this visitor builds symbolic
+   * expressions that carry an explicit type. {@link #convertFormuaTypeToCType} derives that type
+   * from the very same {@code bvSigned} flag, so the value is reinterpreted exactly when the type
+   * it is paired with is signed, and no adjustment for C's implicit literal widening is needed.
    */
-  private Optional<Value> appendOverflowGuardForNegativeIntegralLiterals(
-      String pGuardString, Object pValue) {
-    if (pValue instanceof BigInteger bigInteger) {
-      String valueString = pValue.toString();
-      if (valueString.equals("-" + pGuardString)) {
-        return Optional.of(new NumericValue(bigInteger));
-      }
-      if (bvSigned && valueString.equals(pGuardString)) {
-        return Optional.of(new NumericValue(bigInteger.multiply(BigInteger.valueOf(-1))));
-      }
+  private BigInteger interpretBitvectorValue(BigInteger pValue, int pSize) {
+    if (bvSigned && pValue.signum() >= 0 && pValue.testBit(pSize - 1)) {
+      return pValue.subtract(BigInteger.ONE.shiftLeft(pSize));
     }
-    return Optional.empty();
+    return pValue;
   }
 
   private CType convertFormuaTypeToCType(FormulaType<?> type) {

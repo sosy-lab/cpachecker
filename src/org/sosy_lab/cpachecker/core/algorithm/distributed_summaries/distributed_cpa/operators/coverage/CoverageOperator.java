@@ -30,6 +30,21 @@ public interface CoverageOperator {
    */
   boolean isBasedOnEquality();
 
+  /**
+   * Whether the two states are equal by their representation, without asking a solver.
+   *
+   * <p>Violation conditions are built from the edges of a path, so the same path yields the same
+   * formula and comparing representations decides equality for them. Deciding it this way costs no
+   * solver query, at the price of telling equivalent but differently written states apart.
+   *
+   * <p>The default is the semantic check, so an operator that cannot decide equality syntactically
+   * stays correct.
+   */
+  default boolean areStatesSyntacticallyEqual(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return areStatesEqual(state1, state2);
+  }
+
   default boolean areStatesEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     if (isSubsumed(state1, state2)) {

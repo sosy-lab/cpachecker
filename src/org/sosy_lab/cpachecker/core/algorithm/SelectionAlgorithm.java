@@ -459,24 +459,20 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     try {
       currentAlg = createAlgorithm(chosenConfig, cfa.getMainFunction(), cfa, shutdownManager);
     } catch (InvalidConfigurationException e) {
-      logger.logUserException(
-          Level.WARNING,
-          e,
-          "Skipping SelectionAlgorithm because the configuration file "
-              + chosenConfig
-              + " is invalid");
-      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      throw new CPAException(
+          "Cannot instantiate analysis from %s because config is invalid: %s"
+              .formatted(chosenConfig, e.getMessage()),
+          e);
+
     } catch (IOException e) {
-      String message =
-          "Skipping SelectionAlgorithm because the configuration file "
-              + chosenConfig
-              + " could not be read";
       if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
-        logger.log(Level.WARNING, message);
-      } else {
-        logger.logUserException(Level.WARNING, e, message);
+        logger.logDebugException(e);
+        shutdownNotifier.shutdownIfNecessary();
       }
-      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      throw new CPAException(
+          "Cannot instantiate analysis from %s because config file could not be read: %s"
+              .formatted(chosenConfig, e.getMessage()),
+          e);
     }
 
     chosenAlgorithm = currentAlg.algorithm();

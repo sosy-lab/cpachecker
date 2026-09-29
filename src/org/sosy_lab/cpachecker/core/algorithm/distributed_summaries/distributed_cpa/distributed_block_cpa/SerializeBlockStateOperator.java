@@ -60,7 +60,7 @@ public class SerializeBlockStateOperator implements SerializeOperator {
                 : " H:" + Joiner.on(",").join(b.getHistory().path()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())
-        .put(STATE_KEY, b.getBlockNode().getId() + suffix)
+        .put(STATE_KEY, b.getUniqueId() + " " + b.getBlockNode().getId() + suffix)
         .build();
   }
 }

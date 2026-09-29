@@ -129,31 +129,6 @@ public final class CfaMetadata {
     return machineModel;
   }
 
-  /**
-   * Returns a copy of this metadata instance, but with the specified machine model.
-   *
-   * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
-   *     types)
-   * @return a copy of this metadata instance, but with the specified machine model
-   * @throws NullPointerException if {@code pMachineModel == null}
-   */
-  public CfaMetadata withMachineModel(MachineModel pMachineModel) {
-    return new CfaMetadata(
-        checkNotNull(pMachineModel),
-        cfaLanguage,
-        inputLanguage,
-        fileNames,
-        mainFunctionEntry,
-        connectedness,
-        astCFARelation,
-        loopStructure,
-        variableClassification,
-        liveVariables,
-        edgesToAnnotations,
-        svLibCfaMetadata,
-        transformationMetadata);
-  }
-
   public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
     CfaMetadata newMetadata =
         new CfaMetadata(

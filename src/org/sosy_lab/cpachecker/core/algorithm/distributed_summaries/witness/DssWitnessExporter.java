@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
 
 public class DssWitnessExporter {
 
@@ -111,9 +111,9 @@ public class DssWitnessExporter {
       ResultWithWitnessInformation resultWithWitness,
       ReachedSet reachedSet,
       Modification pModification)
-      throws InvalidConfigurationException {
-    ARGToYAMLWitnessExport exporter =
-        new ARGToYAMLWitnessExport(
+      throws InvalidConfigurationException, InterruptedException {
+    ARGToCorrectnessWitnessV2 exporter =
+        new ARGToCorrectnessWitnessV2(
             configuration,
             pModification.metadata().originalCfa(),
             specification,
@@ -134,8 +134,6 @@ public class DssWitnessExporter {
           e,
           "Could not export the YAML correctness witness directly from the collected ARG states."
               + "Therefore no YAML witness will be exported.");
-    } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
     }
   }
 

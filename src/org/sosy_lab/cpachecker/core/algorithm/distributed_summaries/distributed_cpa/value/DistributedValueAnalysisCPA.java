@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 import com.google.common.collect.Iterables;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -170,8 +169,10 @@ public class DistributedValueAnalysisCPA
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
-    return Objects.hash(pAbstractState, this);
+  public Object computeProgramPointId(AbstractState pAbstractState) {
+    // The value state has no information about the point in the program, so always
+    // return the same number (arbitrarily chosen)
+    return 0;
   }
 
   @Override

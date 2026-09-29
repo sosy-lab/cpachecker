@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.truth.TruthJUnit;
 import com.google.errorprone.annotations.CheckReturnValue;
+import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -80,6 +81,25 @@ public class TestUtils {
   public static ConfigurationBuilder configurationForTest() throws InvalidConfigurationException {
     Configuration typeConverterConfig =
         Configuration.builder().setOption("output.disable", "true").build();
+    FileTypeConverter fileTypeConverter = FileTypeConverter.create(typeConverterConfig);
+    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+    return Configuration.builder().addConverter(FileOption.class, fileTypeConverter);
+  }
+
+  /**
+   * Create a configuration suitable for tests where output files should be enabled. In order to not
+   * clutter the current directory, we require a temporary directory where the files will be
+   * written.
+   *
+   * @return A {@link ConfigurationBuilder} which can be further modified and then can be used to
+   *     {@link ConfigurationBuilder#build()} a {@link Configuration} object.
+   */
+  public static ConfigurationBuilder configurationForTestWithOutput(TemporaryFolder rootDirectory)
+      throws InvalidConfigurationException {
+    Configuration typeConverterConfig =
+        Configuration.builder()
+            .setOption("rootDirectory", rootDirectory.getRoot().toString())
+            .build();
     FileTypeConverter fileTypeConverter = FileTypeConverter.create(typeConverterConfig);
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
     return Configuration.builder().addConverter(FileOption.class, fileTypeConverter);
