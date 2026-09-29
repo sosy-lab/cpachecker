@@ -13,8 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -25,18 +23,9 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
 
 @Options(prefix = "cpa.location")
-public class LocationStateFactory {
+public class LocationStateFactory implements CachedLocationStateProvider {
 
   private final LocationState[] states;
-  private final ImmutableSortedSet<CFANode> allNodes;
-  private final Map<CFANode, LocationState> lazyStateCache = new HashMap<>();
-
-  @Option(
-      secure = true,
-      description =
-          "Create location states only when visited instead of allocating states for the entire"
-              + " CFA. Useful when many analyses each visit only a small part of the CFA.")
-  private boolean lazyStates = false;
 
   private final AnalysisDirection locationType;
 
@@ -53,6 +42,7 @@ public class LocationStateFactory {
     config.inject(this);
     locationType = checkNotNull(pLocationType);
 
+    ImmutableSortedSet<CFANode> allNodes;
     Collection<CFANode> tmpNodes = pCfa.nodes();
     if (tmpNodes instanceof ImmutableSortedSet) {
       allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
@@ -61,29 +51,20 @@ public class LocationStateFactory {
     }
 
     int maxNodeNumber = allNodes.getLast().getNodeNumber();
-    states = new LocationState[lazyStates ? 0 : maxNodeNumber + 1];
-    if (!lazyStates) {
-      for (CFANode node : allNodes) {
-        LocationState state = createLocationState(node);
-        states[node.getNodeNumber()] = state;
-      }
+    states = new LocationState[maxNodeNumber + 1];
+    for (CFANode node : allNodes) {
+      LocationState state = createLocationState(node);
+      states[node.getNodeNumber()] = state;
     }
   }
 
+  @Override
   public LocationState getState(CFANode node) {
     int nodeNumber = checkNotNull(node).getNodeNumber();
 
-    if (nodeNumber >= 0 && nodeNumber <= allNodes.getLast().getNodeNumber()) {
-      LocationState state;
-      if (lazyStates) {
-        state =
-            lazyStateCache.computeIfAbsent(
-                node, n -> allNodes.contains(n) ? createLocationState(n) : null);
-      } else {
-        state = states[nodeNumber];
-      }
+    if (nodeNumber >= 0 && nodeNumber < states.length) {
       return Preconditions.checkNotNull(
-          state,
+          states[nodeNumber],
           "LocationState for CFANode %s in function %s requested,"
               + " but this node is not part of the current CFA.",
           node,

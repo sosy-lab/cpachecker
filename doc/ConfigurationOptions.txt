@@ -263,6 +263,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -2351,11 +2352,6 @@ cpa.local.localvariables = {}
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
-
-# Create location states only when visited instead of allocating states for
-# the entire CFA. Useful when many analyses each visit only a small part of
-# the CFA.
-cpa.location.lazyStates = false
 
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE

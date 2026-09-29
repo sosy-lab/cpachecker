@@ -104,6 +104,8 @@ public class DistributedSummarySynthesisTest {
                   .loadFromFile(analysisOptions.getForwardConfiguration())
                   .build()
                   .asPropertiesString()));
+      assertThat(worker.getProperty("CompositeCPA.cpas"))
+          .contains(optimized ? ".DssLocationCPA," : "cpa.location.LocationCPA,");
       for (String option :
           new String[] {
             "dss.graphViolationConditions",
@@ -111,7 +113,6 @@ public class DistributedSummarySynthesisTest {
             "dss.cpa.predicate.projectNestedDisjunctions",
             "dss.cpa.predicate.generalizeViolationConditions",
             "dss.cpa.predicate.generalizeOverPreconditionPredicates",
-            "cpa.location.lazyStates",
             "staticRefiner.addAllControlFlowAssumes",
           }) {
         assertWithMessage("%s in %s", option, name)

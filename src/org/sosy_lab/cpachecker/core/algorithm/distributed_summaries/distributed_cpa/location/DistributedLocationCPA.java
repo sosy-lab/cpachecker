@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.CachedLocationStateProvider;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationTransferRelationBackwards;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -48,11 +48,14 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
-  private final LocationCPA locationCPA;
+  private final ConfigurableProgramAnalysis locationCPA;
   private final BlockNode node;
 
   public DistributedLocationCPA(
-      LocationCPA pLocationCPA, BlockNode pNode, BiMap<Integer, CFANode> pNodes) {
+      ConfigurableProgramAnalysis pLocationCPA,
+      CachedLocationStateProvider pStateProvider,
+      BlockNode pNode,
+      BiMap<Integer, CFANode> pNodes) {
     locationCPA = pLocationCPA;
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
@@ -61,10 +64,10 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
     combinePreconditionsOperator =
         new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
     serializeOperator = new SerializeLocationStateOperator(pNodes.inverse());
-    deserializeOperator = new DeserializeLocationState(locationCPA.getStateFactory(), pNodes);
+    deserializeOperator = new DeserializeLocationState(pStateProvider, pNodes);
     violationConditionOperator =
         new BackwardTransferViolationConditionOperator(
-            new LocationTransferRelationBackwards(locationCPA.getStateFactory()), locationCPA);
+            new LocationTransferRelationBackwards(pStateProvider), locationCPA);
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     node = pNode;
     combineViolationConditionsOperator = new LocationStateCombineViolationConditionOperator();
