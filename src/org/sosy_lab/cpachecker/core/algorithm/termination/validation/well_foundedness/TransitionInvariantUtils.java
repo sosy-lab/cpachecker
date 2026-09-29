@@ -142,8 +142,9 @@ public class TransitionInvariantUtils {
     for (String variable : fmgr.extractVariables(pFormula).keySet()) {
       String varWithoutFunc = removeFunctionFromVarsName(variable);
       if (pScope.variableNameInUse(varWithoutFunc)
-          && pScope.lookupVariable(varWithoutFunc).getType().getCanonicalType()
-              instanceof CPointerType) {
+          && (pScope.lookupVariable(varWithoutFunc) == null
+              || pScope.lookupVariable(varWithoutFunc).getType().getCanonicalType()
+                  instanceof CPointerType)) {
         return true;
       }
     }
