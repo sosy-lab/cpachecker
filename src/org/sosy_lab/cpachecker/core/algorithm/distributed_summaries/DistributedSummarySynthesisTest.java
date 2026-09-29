@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.io.ByteStreams;
@@ -17,6 +18,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -63,5 +65,70 @@ public class DistributedSummarySynthesisTest {
     assertWithMessage("Block graph JSON '%s' is empty file", BLOCKS_JSON_PATH)
         .that(Files.readString(expectedBlocksJson.toPath(), StandardCharsets.UTF_8))
         .isNotEmpty();
+  }
+
+  @Test
+  @SuppressWarnings("deprecation") // Inspect inherited options without constructing an analysis.
+  public void portfolioStagesPreserveCallerLimitsAndSpecification() throws Exception {
+    var caller =
+        Configuration.builder()
+            .loadFromFile("config/dss.properties")
+            .setOption("limits.time.cpu", "7800s")
+            .setOption("specification", "caller.spc")
+            .build();
+    for (String stage : new String[] {"boolean", "cartesian", "fallback"}) {
+      var config =
+          Configuration.builder()
+              .copyFrom(caller)
+              .loadFromFile(
+                  "config/distributed-summary-synthesis/dss-coverage-" + stage + ".properties")
+              .build();
+      assertThat(config.getProperty("limits.time.cpu")).isEqualTo("7800s");
+      assertThat(config.getProperty("specification")).isEqualTo("caller.spc");
+    }
+  }
+
+  @Test
+  public void restartedAnalysisUsesItsOwnDecomposition() throws Exception {
+    Path dir = tempFolder.getRoot().toPath();
+    Path program = dir.resolve("branches.c");
+    Files.writeString(
+        program,
+        "extern int choose(void); int main(void) { int x = choose(); "
+            + "if (x) x++; else x--; if (x) x++; else x--; return x; }");
+    String common =
+        "#include "
+            + Path.of("config/distributed-summary-synthesis/dss-analysis.properties")
+                .toAbsolutePath()
+            + "\n";
+    Path coarse = dir.resolve("coarse.properties");
+    Path fine = dir.resolve("fine.properties");
+    Files.writeString(coarse, common);
+    Files.writeString(
+        fine,
+        common
+            + "distributedSummaries.decomposition.mergeBranchBoundaries=false\n"
+            + "distributedSummaries.decomposition.largestHorizontalMerge=1\n");
+    var config =
+        TestUtils.configurationForTestWithOutput(tempFolder)
+            .setOption(
+                "specification",
+                Path.of("config/specification/default.spc").toAbsolutePath().toString())
+            .setOption("analysis.restartAfterUnknown", "true")
+            .setOption("analysis.useLoopStructure", "true")
+            .setOption("restartAlgorithm.alwaysRestart", "true")
+            .setOption("restartAlgorithm.configFiles", coarse + "," + fine)
+            .setOption("output.disable", "true")
+            .build();
+    var result = IntegrationTestRunner.run(config, program.toString());
+    result.assertIsSafe();
+    var sizes =
+        Pattern.compile("Decomposed CFA in (\\d+) blocks")
+            .matcher(result.log())
+            .results()
+            .map(m -> Integer.parseInt(m.group(1)))
+            .toList();
+    assertThat(sizes).hasSize(2);
+    assertThat(sizes.get(1)).isGreaterThan(sizes.get(0));
   }
 }

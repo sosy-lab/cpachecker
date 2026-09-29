@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
@@ -35,6 +36,14 @@ public class CombineCompositeStateViolationConditionOperator
   @Override
   public AbstractState combineViolationConditionsAtSameProgramHash(Collection<AbstractState> states)
       throws InterruptedException, CPAException {
+    return combineIfPossible(states)
+        .orElseThrow(
+            () -> new IllegalArgumentException("Cannot combine incompatible violation conditions"));
+  }
+
+  @Override
+  public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
+      throws InterruptedException, CPAException {
     ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
     for (int i = 0; i < wrapped.size(); i++) {
       ImmutableList.Builder<AbstractState> statesToCombine =
@@ -45,15 +54,17 @@ public class CombineCompositeStateViolationConditionOperator
         statesToCombine.add(wrappedState);
       }
       if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa) {
-        AbstractState combinedState =
-            dcpa.getCombineViolationConditionsOperator()
-                .combineViolationConditionsAtSameProgramHash(statesToCombine.build());
-        wrappedStates.add(combinedState);
+        Optional<AbstractState> combinedState =
+            dcpa.getCombineViolationConditionsOperator().combineIfPossible(statesToCombine.build());
+        if (combinedState.isEmpty()) {
+          return Optional.empty();
+        }
+        wrappedStates.add(combinedState.orElseThrow());
       } else {
         wrappedStates.add(
             wrapped.get(i).getInitialState(node, StateSpacePartition.getDefaultPartition()));
       }
     }
-    return new CompositeState(wrappedStates.build());
+    return Optional.of(new CompositeState(wrappedStates.build()));
   }
 }

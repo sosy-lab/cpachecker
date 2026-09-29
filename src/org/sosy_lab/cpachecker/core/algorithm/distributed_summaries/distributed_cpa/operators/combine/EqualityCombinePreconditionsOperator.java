@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -24,6 +25,20 @@ public class EqualityCombinePreconditionsOperator implements CombinePrecondition
       CoverageOperator pCoverageOperator, Class<? extends AbstractState> pStateClass) {
     coverageOperator = pCoverageOperator;
     stateClass = pStateClass;
+  }
+
+  @Override
+  public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
+      throws CPAException, InterruptedException {
+    Preconditions.checkArgument(!states.isEmpty(), "There must be at least one state to combine.");
+    Preconditions.checkArgument(states.stream().allMatch(stateClass::isInstance));
+    AbstractState first = Iterables.get(states, 0);
+    for (AbstractState state : states) {
+      if (!coverageOperator.areStatesEqual(first, state)) {
+        return Optional.empty();
+      }
+    }
+    return Optional.of(first);
   }
 
   @Override

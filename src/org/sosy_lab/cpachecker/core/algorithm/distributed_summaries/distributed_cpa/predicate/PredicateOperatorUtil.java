@@ -25,8 +25,6 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class PredicateOperatorUtil {
 
-  public static final String INDEX_SEPARATOR = ".";
-
   private PredicateOperatorUtil() {}
 
   public static class UniqueIndexProvider {
@@ -43,7 +41,7 @@ public class PredicateOperatorUtil {
     }
 
     public String extend(String pCurrentId) {
-      if (pCurrentId.contains("__VERIFIER_nondet") || pCurrentId.contains("!")) {
+      if (isFreshPerUse(pCurrentId)) {
         return uniquePrefix + "." + index++ + "#" + pCurrentId;
       }
       return pCurrentId;
@@ -55,25 +53,25 @@ public class PredicateOperatorUtil {
     }
   }
 
-  private static class IdIndexProvider extends UniqueIndexProvider {
+  /**
+   * Whether a variable of a violation condition stands for a fresh value every time the condition
+   * is used, e.g., the result of a nondeterministic call. {@link UniqueIndexProvider} renames such
+   * a variable apart on every use, so it never refers to a variable of the block that uses the
+   * condition.
+   */
+  static boolean isFreshPerUse(String pVariableName) {
+    return pVariableName.contains("__VERIFIER_nondet") || pVariableName.contains("!");
+  }
 
-    private static IdIndexProvider instance;
-
-    private IdIndexProvider() {
-      super("ID");
-    }
-
-    static IdIndexProvider getInstance() {
-      if (instance == null) {
-        instance = new IdIndexProvider();
-      }
-      return instance;
-    }
-
-    @Override
-    public String extend(String pCurrentId) {
-      return pCurrentId;
-    }
+  /**
+   * Whether a variable of the given path formula is local to it, i.e., existentially quantified
+   * from the point of view of a block that uses the formula as violation condition: {@link
+   * #uninstantiate(PathFormula, FormulaManagerView, UniqueIndexProvider)} keeps only variables at
+   * their latest SSA index as the interface and renames all others apart.
+   */
+  static boolean isLocalVariable(
+      String pVariableName, SSAMap pSsa, FormulaManagerView pFormulaManagerView) {
+    return isFreshPerUse(pVariableName) || pFormulaManagerView.isIntermediate(pVariableName, pSsa);
   }
 
   public static PathFormula getPathFormula(
@@ -91,15 +89,39 @@ public class PredicateOperatorUtil {
         .withFormula(parsed);
   }
 
+  /**
+   * Gives boundary values stable names for comparison only. Private variables keep distinct,
+   * deterministic names, including their SSA versions. These names must never be used to compose
+   * conditions: actual condition uses still require fresh independent witnesses.
+   */
+  static BooleanFormula normalizeForComparison(PathFormula path, FormulaManagerView fmgr) {
+    Map<Formula, Formula> substitutions = new HashMap<>();
+    for (var entry : fmgr.extractVariables(path.getFormula()).entrySet()) {
+      String name = entry.getKey();
+      Formula variable = entry.getValue();
+      var parsed = FormulaManagerView.parseName(name);
+      if (isFreshPerUse(name)
+          || (parsed.getSecond().isPresent()
+              && parsed.getSecond().orElseThrow() != path.getSsa().getIndex(parsed.getFirst()))) {
+        // Escape injectively, without leaving an SSA separator in the new private name.
+        String privateName = "__dss_compare!" + name.replace("#", "##").replace("@", "#at");
+        substitutions.put(variable, fmgr.makeVariable(fmgr.getFormulaType(variable), privateName));
+      } else {
+        substitutions.put(variable, fmgr.uninstantiate(variable));
+      }
+    }
+    return fmgr.substitute(path.getFormula(), substitutions);
+  }
+
   public static SubstitutedBooleanFormula uninstantiate(
       PathFormula pPathFormula, FormulaManagerView pFormulaManagerView) {
-    return uninstantiate(pPathFormula, pFormulaManagerView, IdIndexProvider.getInstance());
+    return uninstantiate(pPathFormula, pFormulaManagerView, UniqueIndexProvider.withUUID());
   }
 
   /**
    * Uninstantiates a path formula by only keeping the variable with the highest SSA index. All
-   * other variables are renamed to variable.index. This does not change the semantics of the
-   * formula but allow the formula to be used as condition.
+   * other variables receive fresh private names. This does not change the semantics of the formula
+   * but allow the formula to be used as condition.
    *
    * @param pPathFormula an arbitrary path formula
    * @param pFormulaManagerView the formula manager with the correct context
@@ -119,8 +141,9 @@ public class PredicateOperatorUtil {
     boolean alreadyUninstantiated = true;
     for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
       if (!pFormulaManagerView
-          .uninstantiate(stringFormulaEntry.getValue())
-          .equals(stringFormulaEntry.getValue())) {
+              .uninstantiate(stringFormulaEntry.getValue())
+              .equals(stringFormulaEntry.getValue())
+          || isFreshPerUse(stringFormulaEntry.getKey())) {
         alreadyUninstantiated = false;
         break;
       }
@@ -140,9 +163,7 @@ public class PredicateOperatorUtil {
 
       List<String> nameAndIndex =
           Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(name);
-      if (nameAndIndex.size() < 2
-          || nameAndIndex.get(1).isEmpty()
-          || name.contains(INDEX_SEPARATOR)) {
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || isFreshPerUse(name)) {
         substitutions.put(
             formula,
             pFormulaManagerView.makeVariable(
@@ -153,7 +174,9 @@ public class PredicateOperatorUtil {
       int index = Integer.parseInt(nameAndIndex.get(1));
       int highestIndex = ssaMap.getIndex(name);
       if (index != highestIndex) {
-        String newName = name + INDEX_SEPARATOR + index;
+        // Mark intermediate values as private on this and every subsequent use. A stable
+        // name such as x.1 would accidentally identify witnesses of independent conditions.
+        String newName = pUniqueIndexProvider.extend(name + "!" + index);
         substitutions.put(
             formula,
             pFormulaManagerView.makeVariable(pFormulaManagerView.getFormulaType(formula), newName));

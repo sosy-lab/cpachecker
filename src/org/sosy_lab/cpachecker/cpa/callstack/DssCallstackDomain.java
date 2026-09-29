@@ -27,6 +27,7 @@ final class DssCallstackDomain implements AbstractDomain {
         || (pFirst instanceof DssCallstackState first
             && pSecond instanceof DssCallstackState second
             && first.canBeTopState() == second.canBeTopState()
+            && first.hasCompleteCallstack() == second.hasCompleteCallstack()
             && first.getEffect().equals(second.getEffect())
             && first.sameStateInProofChecking(second));
   }

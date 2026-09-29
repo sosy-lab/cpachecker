@@ -186,8 +186,14 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula =
-          formulaManager.buildAbstraction(
-              pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
+          formulaManager.useFeasibilityOnlyAtTargets() && AbstractStates.isTargetState(fullState)
+              ? formulaManager.buildTargetAbstraction(abstractionFormula, pathFormula)
+              : formulaManager.buildAbstraction(
+                  pLocations,
+                  callstackWrapper,
+                  abstractionFormula,
+                  pathFormula,
+                  additionalPredicates);
     } finally {
       computingAbstractionTime.stop();
     }

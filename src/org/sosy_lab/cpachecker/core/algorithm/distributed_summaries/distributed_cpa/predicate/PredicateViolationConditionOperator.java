@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -22,25 +24,50 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class PredicateViolationConditionOperator implements ViolationConditionOperator {
 
   private final PathFormulaManagerImpl backwardManager;
   private final PredicateCPA cpa;
+  private final @Nullable ExistentialProjection graphProjection;
   private final boolean hasRootAsPredecessor;
 
+  /** Projects the local variables out of every condition, or {@code null} to keep them. */
+  private final @Nullable ExistentialProjection projection;
+
+  /** Rewrites every condition as cubes relative to the precondition, or {@code null} to not. */
+  private final @Nullable ModelBasedGeneralization generalization;
+
   public PredicateViolationConditionOperator(
-      PathFormulaManagerImpl pBackwardManager, PredicateCPA pCpa, boolean pHasRootAsPredecessor) {
+      PathFormulaManagerImpl pBackwardManager,
+      PredicateCPA pCpa,
+      boolean pHasRootAsPredecessor,
+      @Nullable ExistentialProjection pProjection,
+      boolean pProjectNestedDisjunctions,
+      @Nullable ModelBasedGeneralization pGeneralization) {
     backwardManager = pBackwardManager;
     cpa = pCpa;
+    graphProjection =
+        pProjection == null
+            ? null
+            : new ExistentialProjection(cpa.getSolver(), pProjectNestedDisjunctions);
     hasRootAsPredecessor = pHasRootAsPredecessor;
+    projection = pProjection;
+    generalization = pGeneralization;
   }
 
   @Override
   public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
+    return finish(
+        pARGPath.getFirstState(),
+        prepend(initialFormula(pPreviousCondition), pARGPath.getFullPath()));
+  }
+
+  public PathFormula initialFormula(Optional<ARGState> pPreviousCondition) {
     PathFormula result;
     if (pPreviousCondition.isEmpty()) {
       result = backwardManager.makeEmptyPathFormula();
@@ -55,8 +82,51 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
         result = counterexampleState.getPathFormula();
       }
     }
-    for (CFAEdge cfaEdge : pARGPath.getFullPath().reverse()) {
-      result = backwardManager.makeAnd(result, cfaEdge);
+    return result;
+  }
+
+  public PathFormula prepend(PathFormula formula, List<CFAEdge> edges)
+      throws InterruptedException, CPATransferException {
+    for (CFAEdge edge : edges.reversed()) {
+      formula = backwardManager.makeAnd(formula, edge);
+    }
+    return formula;
+  }
+
+  public PathFormula union(PathFormula first, PathFormula second) throws InterruptedException {
+    return backwardManager.makeOr(first, second);
+  }
+
+  public Optional<AbstractState> finishGraph(ARGState root, PathFormula result)
+      throws InterruptedException, SolverException {
+    return finish(
+        root, graphProjection == null ? result : graphProjection.projectLocalVariables(result));
+  }
+
+  public Optional<AbstractState> finish(ARGState root, PathFormula result)
+      throws InterruptedException, SolverException {
+    if (generalization != null) {
+      // The path starts in the precondition the block was explored from. Predecessors only ever
+      // ask about states of their postconditions, which make up this precondition, so the
+      // condition only has to be exact there.
+      Optional<PathFormula> generalized = generalization.generalize(result, preconditionOf(root));
+      if (generalized.isPresent()) {
+        if (cpa.getSolver()
+            .getFormulaManager()
+            .getBooleanFormulaManager()
+            .isFalse(generalized.orElseThrow().getFormula())) {
+          // no state of the precondition takes this path to the violation
+          return Optional.empty();
+        }
+        result = generalized.orElseThrow();
+      }
+    }
+    if (projection != null) {
+      // Only the variables at their latest SSA index describe the block entry. All others are
+      // intermediate values of the path or of the previous condition, which a block using this
+      // condition renames apart anyway. Removing them keeps the condition from growing with every
+      // block it passes and lets conditions of different paths become equal.
+      result = projection.projectLocalVariables(result);
     }
     if (hasRootAsPredecessor) {
       if (cpa.getSolver().isUnsat(result.getFormula())) {
@@ -68,8 +138,17 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
             result,
             (PredicateAbstractState)
                 cpa.getInitialState(
-                    Objects.requireNonNull(
-                        AbstractStates.extractLocation(pARGPath.getFirstState())),
+                    Objects.requireNonNull(AbstractStates.extractLocation(root)),
                     StateSpacePartition.getDefaultPartition())));
+  }
+
+  private BooleanFormula preconditionOf(ARGState pStart) {
+    PredicateAbstractState start =
+        Objects.requireNonNull(
+            AbstractStates.extractStateByType(pStart, PredicateAbstractState.class));
+    if (start.isAbstractionState()) {
+      return start.getAbstractionFormula().asFormula();
+    }
+    return cpa.getSolver().getFormulaManager().getBooleanFormulaManager().makeTrue();
   }
 }

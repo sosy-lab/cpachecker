@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -26,7 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 public class SerializePredicatePrecisionOperator implements SerializePrecisionOperator {
 
   private final Map<CFANode, Integer> nodeToId;
-  private final FormulaManagerView formulaManagerView;
+  private final LoadingCache<AbstractionPredicate, String> serializedPredicates;
 
   /** Keys used in the serialized message for global predicates. */
   public static final String DSS_MESSAGE_GLOBAL_KEY = "global";
@@ -43,11 +46,17 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
   public SerializePredicatePrecisionOperator(
       final FormulaManagerView pFormulaManagerView, Map<CFANode, Integer> pNodeToId) {
     nodeToId = pNodeToId;
-    formulaManagerView = pFormulaManagerView;
+    // Predicates are immutable and recur in multiple precision scopes and neighboring messages.
+    serializedPredicates =
+        CacheBuilder.newBuilder()
+            .maximumSize(1024)
+            .build(
+                CacheLoader.from(
+                    p -> pFormulaManagerView.dumpFormula(p.getSymbolicAtom()).toString()));
   }
 
   private String serializeAbstractionPredicate(AbstractionPredicate pPredicate) {
-    return formulaManagerView.dumpFormula(pPredicate.getSymbolicAtom()).toString();
+    return serializedPredicates.getUnchecked(pPredicate);
   }
 
   @Override

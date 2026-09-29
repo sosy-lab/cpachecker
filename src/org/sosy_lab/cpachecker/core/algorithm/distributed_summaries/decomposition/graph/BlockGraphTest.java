@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class BlockGraphTest {
-  private static final String CONFIGURATION_FILE_MERGE_DECOMPOSITION = "config/dss.properties";
+  private static final String CONFIGURATION_FILE_MERGE_DECOMPOSITION =
+      "config/distributed-summary-synthesis/dss-base.properties";
   private static final String PROGRAM = "doc/examples/example.c";
 
   /**

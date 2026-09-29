@@ -19,8 +19,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 class PathRestrictionTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
-  public Collection<PathRestrictionState> getAbstractSuccessorsForEdge(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
+    if (element instanceof GraphPathRestrictionState graphState) {
+      var next = graphState.cursor().advance(cfaEdge);
+      return next.isEmpty()
+          ? ImmutableList.of()
+          : ImmutableList.of(new GraphPathRestrictionState(next));
+    }
     PathRestrictionState pathState = (PathRestrictionState) element;
 
     if (pathState.isInitial) {

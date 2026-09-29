@@ -34,4 +34,17 @@ public class ARGViolationConditionOperator implements ViolationConditionOperator
         .computeViolationCondition(pARGPath, pPreviousCondition)
         .map(state -> new ARGState(state, null));
   }
+
+  @Override
+  public boolean supportsGraph() {
+    return wrappedCPA.getViolationConditionOperator().supportsGraph();
+  }
+
+  @Override
+  public java.util.List<AbstractState> computeConditions(ARGPath path, Optional<ARGState> previous)
+      throws InterruptedException, CPATransferException, SolverException {
+    return wrappedCPA.getViolationConditionOperator().computeConditions(path, previous).stream()
+        .<AbstractState>map(state -> new ARGState(state, null))
+        .toList();
+  }
 }
