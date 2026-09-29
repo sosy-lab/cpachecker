@@ -210,19 +210,22 @@ public class TransitionInvariantUtils {
                   .orElseThrow());
       String prevVar = entry.getKey();
       if (isPrevVariable(prevVarPure, pMapPrevVarsToCurr)) {
-        String currVar =
+        String currVarName =
             pMapPrevVarsToCurr.get(getPrevDeclaration(prevVarPure, pMapPrevVarsToCurr)).getName();
+        String currVar = "";
         for (Map.Entry<String, Formula> entry2 : currMapNamesToVars.entrySet()) {
           String currVarPure =
               removeFunctionFromVarsName(
                   fmgr.extractVariables(fmgr.uninstantiate(entry2.getValue())).keySet().stream()
                       .findAny()
                       .orElseThrow());
-          if (currVar.equals(currVarPure)) {
+          if (currVarName.equals(currVarPure)) {
             currVar = entry2.getKey();
             break;
           }
         }
+        // If the variable does not occur in pCurrFormula, e.g., because it is not changed in the
+        // loop, there is no variable to make equivalent to the previous variable
         if (!currVar.isEmpty()) {
           equivalence =
               fmgr.makeAnd(
