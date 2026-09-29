@@ -146,7 +146,9 @@ public class DistributedPredicateCPA
     } else {
       proceedOperator = ProceedOperator.always();
     }
-    stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
+    stateCoverageOperator =
+        new PredicateStateCoverageOperator(
+            predicateCPA.getSolver(), pOptions.cacheViolationConditions());
     ExistentialProjection projection =
         projectViolationConditions ? new ExistentialProjection(predicateCPA.getSolver()) : null;
     verificationConditionOperator =

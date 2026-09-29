@@ -77,6 +77,10 @@ public class DssBlockAnalysisPrecisionTest {
   }
 
   private Harness createHarness() throws Exception {
+    return createHarness(true);
+  }
+
+  private Harness createHarness(boolean pOptimized) throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromFunctionBody("int x = 0; int y = x + 1; return y;");
     BlockNode root = new SingleBlockDecomposition().decompose(cfa).getRoot();
     BlockNode block =
@@ -92,6 +96,8 @@ public class DssBlockAnalysisPrecisionTest {
         TestUtils.configurationForTest()
             .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
             .setOption("distributedSummaries.blockAnalysisType", mode)
+            .setOption("distributedSummaries.sharePrecision", Boolean.toString(pOptimized))
+            .setOption("distributedSummaries.combineStates", Boolean.toString(pOptimized))
             .setOption("distributedSummaries.resetCallstackState", "true")
             .setOption(
                 "cpa.predicate.blk.alwaysAtGivenNodes",
@@ -180,6 +186,39 @@ public class DssBlockAnalysisPrecisionTest {
                     .getPredicates(h.analysis().getBlock().getFinalLocation(), 1))
             .doesNotContain(h.predicate());
       }
+    }
+  }
+
+  @Test
+  public void plainAnalysisDoesNotCombineStatesOrExchangePrecision() throws Exception {
+    try (Harness h = createHarness(false)) {
+      AbstractState first = h.analysis().makeStartState(false);
+      AbstractState second = h.analysis().makeStartState(false);
+      assertThat(h.analysis().combineStates(ImmutableList.of(first, second)))
+          .containsExactly(first, second)
+          .inOrder();
+      StateAndPrecision updated = new StateAndPrecision(first, h.updatedPrecision());
+      ImmutableMap<String, String> content = h.analysis().serialize(ImmutableList.of(updated));
+      assertThat(content.keySet().stream().anyMatch(key -> key.contains("PredicatePrecision")))
+          .isFalse();
+      DssPostConditionMessage message =
+          h.messages()
+              .createDssPostConditionMessage(
+                  "predecessor", AlgorithmStatus.SOUND_AND_PRECISE, content);
+      ImmutableList<StateAndPrecision> restored = h.analysis().deserialize(message);
+      assertThat(restored).hasSize(1);
+      assertThat(
+              Precisions.extractPrecisionByType(
+                      restored.getFirst().precision(), PredicatePrecision.class)
+                  .getPredicates(h.analysis().getBlock().getFinalLocation(), 1))
+          .doesNotContain(h.predicate());
+      assertThat(
+              Precisions.extractPrecisionByType(
+                      h.analysis().combinePrecisions(ImmutableList.of(updated)),
+                      PredicatePrecision.class)
+                  .getPredicates(h.analysis().getBlock().getFinalLocation(), 1))
+          .doesNotContain(h.predicate());
+      assertThat(h.analysis().precisionsCoveredBy(ImmutableList.of(updated), restored)).isTrue();
     }
   }
 

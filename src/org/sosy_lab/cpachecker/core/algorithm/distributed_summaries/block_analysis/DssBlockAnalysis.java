@@ -409,6 +409,9 @@ public final class DssBlockAnalysis {
   /** Combines the precisions carried by the received conditions. */
   Precision combinePrecisions(Collection<@NonNull StateAndPrecision> pReceived)
       throws InterruptedException {
+    if (!options.sharePrecision()) {
+      return makeStartPrecision();
+    }
     return dcpa.getCombinePrecisionOperator()
         .combine(transformedImmutableListCopy(pReceived, StateAndPrecision::precision));
   }
@@ -417,6 +420,9 @@ public final class DssBlockAnalysis {
   boolean precisionsCoveredBy(
       Collection<StateAndPrecision> first, Collection<StateAndPrecision> second)
       throws InterruptedException {
+    if (!options.sharePrecision()) {
+      return true;
+    }
     if (first.isEmpty() || second.isEmpty()) {
       return first.isEmpty();
     }
@@ -714,6 +720,9 @@ public final class DssBlockAnalysis {
   /** Try an exact union separately for each program point, retaining unsupported groups. */
   ImmutableList<AbstractState> combineStates(Collection<AbstractState> pStates)
       throws CPAException, InterruptedException {
+    if (!options.combineStates()) {
+      return ImmutableList.copyOf(pStates);
+    }
     ImmutableListMultimap<Object, AbstractState> groups =
         Multimaps.index(pStates, dcpa::computeProgramPointId);
     ImmutableList.Builder<AbstractState> result = ImmutableList.builder();
@@ -736,6 +745,9 @@ public final class DssBlockAnalysis {
    */
   ImmutableList<StateAndPrecision> combineSummaries(Collection<StateAndPrecision> pSummaries)
       throws CPAException, InterruptedException {
+    if (!options.combineStates()) {
+      return deduplicateStatesAndPrecisions(pSummaries);
+    }
     ImmutableListMultimap<Object, StateAndPrecision> groups =
         Multimaps.index(pSummaries, sap -> dcpa.computeProgramPointId(sap.state()));
     ImmutableList.Builder<StateAndPrecision> result = ImmutableList.builder();
@@ -801,7 +813,9 @@ public final class DssBlockAnalysis {
                 .computeConditions(
                     pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
       }
-      computed.put(pathAndCondition, violationCondition);
+      if (options.cacheViolationConditions()) {
+        computed.put(pathAndCondition, violationCondition);
+      }
       for (AbstractState condition : violationCondition) {
         ViolationConditionProgramPoint programPoint =
             new ViolationConditionProgramPoint(
@@ -835,10 +849,14 @@ public final class DssBlockAnalysis {
                   .map(ImmutableList::of)
                   .orElse(group);
         }
-        combined.put(group, combination);
+        if (options.cacheViolationConditions()) {
+          combined.put(group, combination);
+        }
       }
       Precision precision =
-          dcpa.getCombinePrecisionOperator().union(precisionPerProgramPoint.get(programPoint));
+          options.sharePrecision()
+              ? dcpa.getCombinePrecisionOperator().union(precisionPerProgramPoint.get(programPoint))
+              : makeStartPrecision();
       for (AbstractState condition : combination) {
         vcs.add(new StateAndPrecision(condition, precision));
       }
@@ -911,13 +929,14 @@ public final class DssBlockAnalysis {
     for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
       serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
       StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
-      ImmutableMap<String, String> content =
+      ImmutableMap.Builder<String, String> contentBuilder =
           ImmutableMap.<String, String>builder()
-              .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()))
-              .putAll(
-                  dcpa.getSerializePrecisionOperator()
-                      .serializePrecision(stateAndPrecision.precision()))
-              .buildOrThrow();
+              .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()));
+      if (options.sharePrecision()) {
+        contentBuilder.putAll(
+            dcpa.getSerializePrecisionOperator().serializePrecision(stateAndPrecision.precision()));
+      }
+      ImmutableMap<String, String> content = contentBuilder.buildOrThrow();
       for (Entry<String, String> contents : content.entrySet()) {
         serializedContent.put(contents.getKey(), contents.getValue());
         totalStateSize += contents.getKey().length() + contents.getValue().length();
@@ -996,7 +1015,9 @@ public final class DssBlockAnalysis {
         state = dcpa.reset(state);
       }
       Precision precision =
-          dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage);
+          options.sharePrecision()
+              ? dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage)
+              : makeStartPrecision();
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();

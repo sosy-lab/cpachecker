@@ -75,6 +75,8 @@ public class DssGraphViolationConditionTest {
         TestUtils.configurationForTest()
             .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
             .setOption("dss.graphViolationConditions", "true")
+            .setOption("dss.cpa.predicate.projectViolationConditions", "true")
+            .setOption("dss.cpa.predicate.projectNestedDisjunctions", "true")
             .setOption("dss.cpa.predicate.generalizeViolationConditions", "false")
             .build();
     LogManager logger = LogManager.createTestLogManager();

@@ -28,6 +28,7 @@ import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -71,24 +72,52 @@ public class DistributedSummarySynthesisTest {
   }
 
   @Test
-  public void portfolioStagesPreserveCallerLimitsAndSpecification() throws Exception {
-    Configuration caller =
-        Configuration.builder()
-            .loadFromFile("config/dss.properties")
-            .setOption("limits.time.cpu", "7800s")
-            .setOption("specification", "caller.spc")
-            .build();
-    for (String stage : new String[] {"boolean", "cartesian", "fallback"}) {
+  public void singleRunConfigurationsPreserveCallerLimitsAndSpecification() throws Exception {
+    for (String name : new String[] {"dss", "dss-plain"}) {
       Configuration config =
           Configuration.builder()
-              .copyFrom(caller)
-              .loadFromFile(
-                  "config/distributed-summary-synthesis/dss-coverage-" + stage + ".properties")
+              .loadFromFile("config/" + name + ".properties")
+              .setOption("limits.time.cpu", "7800s")
+              .setOption("specification", "caller.spc")
               .build();
-      Properties inherited = new Properties();
-      inherited.load(new StringReader(config.asPropertiesString()));
-      assertThat(inherited.getProperty("limits.time.cpu")).isEqualTo("7800s");
-      assertThat(inherited.getProperty("specification")).isEqualTo("caller.spc");
+      Properties options = new Properties();
+      options.load(new StringReader(config.asPropertiesString()));
+      assertThat(options.getProperty("limits.time.cpu")).isEqualTo("7800s");
+      assertThat(options.getProperty("specification")).isEqualTo("caller.spc");
+      assertThat(options.getProperty("analysis.algorithm.distributedSummarySynthesis"))
+          .isEqualTo("true");
+      assertThat(options.getProperty("analysis.restartAfterUnknown", "false")).isEqualTo("false");
+      assertThat(options.getProperty("restartAlgorithm.configFiles")).isNull();
+      assertThat(options.getProperty("limits.time.wall")).isNull();
+      boolean optimized = name.equals("dss");
+      DssAnalysisOptions analysisOptions = new DssAnalysisOptions(config);
+      assertThat(analysisOptions.sharePrecision()).isEqualTo(optimized);
+      assertThat(analysisOptions.combineStates()).isEqualTo(optimized);
+      assertThat(analysisOptions.cacheViolationConditions()).isEqualTo(optimized);
+      assertThat(analysisOptions.compressMessages()).isEqualTo(optimized);
+      assertThat(analysisOptions.abstractAtBlockEntry()).isEqualTo(optimized);
+      assertThat(analysisOptions.combineViolationConditionsByHash()).isEqualTo(optimized);
+      Properties worker = new Properties();
+      worker.load(
+          new StringReader(
+              Configuration.builder()
+                  .loadFromFile(analysisOptions.getForwardConfiguration())
+                  .build()
+                  .asPropertiesString()));
+      for (String option :
+          new String[] {
+            "dss.graphViolationConditions",
+            "dss.cpa.predicate.projectViolationConditions",
+            "dss.cpa.predicate.projectNestedDisjunctions",
+            "dss.cpa.predicate.generalizeViolationConditions",
+            "dss.cpa.predicate.generalizeOverPreconditionPredicates",
+            "cpa.location.lazyStates",
+            "staticRefiner.addAllControlFlowAssumes",
+          }) {
+        assertWithMessage("%s in %s", option, name)
+            .that(worker.getProperty(option))
+            .isEqualTo(Boolean.toString(optimized));
+      }
     }
   }
 
@@ -100,11 +129,7 @@ public class DistributedSummarySynthesisTest {
         program,
         "extern int choose(void); int main(void) { int x = choose(); "
             + "if (x) x++; else x--; if (x) x++; else x--; return x; }");
-    String common =
-        "#include "
-            + Path.of("config/distributed-summary-synthesis/dss-analysis.properties")
-                .toAbsolutePath()
-            + "\n";
+    String common = "#include " + Path.of("config/dss.properties").toAbsolutePath() + "\n";
     Path coarse = dir.resolve("coarse.properties");
     Path fine = dir.resolve("fine.properties");
     Files.writeString(coarse, common);

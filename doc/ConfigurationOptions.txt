@@ -4648,12 +4648,25 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Whether to add the block entry as an explicit predicate abstraction
+# location.
+distributedSummaries.abstractAtBlockEntry = true
+
 # Which block analysis to use for the distributed summaries algorithm
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
   enum:     [ALWAYS_REPLACE]
 
+# Whether to cache computed, combined, and normalized violation conditions.
+distributedSummaries.cacheViolationConditions = true
+
+# Whether to combine incoming states and outgoing summaries by exact union.
+distributedSummaries.combineStates = true
+
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true
+
+# Whether to dictionary-encode repeated text in serialized messages.
+distributedSummaries.compressMessages = true
 
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
@@ -4720,6 +4733,10 @@ distributedSummaries.printBlockLevelStats = false
 # Whether to reset callstack state before running a block analysis; usually
 # used together with the inlining decomposition
 distributedSummaries.resetCallstackState = false
+
+# Whether to send and use precision updates in precondition and
+# violation-condition messages.
+distributedSummaries.sharePrecision = true
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must

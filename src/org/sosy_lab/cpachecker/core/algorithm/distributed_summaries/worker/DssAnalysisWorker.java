@@ -136,8 +136,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             .loadFromFile(pOptions.getForwardConfiguration())
             .setOption(
                 "cpa.predicate.blk.alwaysAtGivenNodes",
-                pBlock.getInitialLocation().getNodeNumber()
-                    + ","
+                (pOptions.abstractAtBlockEntry()
+                        ? pBlock.getInitialLocation().getNodeNumber() + ","
+                        : "")
                     + pBlock.getFinalLocation().getNodeNumber());
     Configuration forwardConfiguration = forwardConfigurationBuilder.build();
 

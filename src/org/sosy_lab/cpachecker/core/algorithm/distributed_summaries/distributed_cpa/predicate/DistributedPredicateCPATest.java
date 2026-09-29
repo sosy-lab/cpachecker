@@ -171,7 +171,8 @@ public class DistributedPredicateCPATest {
     CFANode exit = cfa.getMainFunction().getExitNode().orElseThrow();
     Configuration config =
         TestUtils.configurationForTest()
-            .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
+            .loadFromFile(
+                "config/distributed-summary-synthesis/dss-block-analysis-predicate.properties")
             .setOption(
                 "cpa.predicate.blk.alwaysAtGivenNodes",
                 entry.getNodeNumber() + "," + exit.getNodeNumber())

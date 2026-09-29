@@ -13,6 +13,9 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 
 public class MessageContentDictionaryTest {
   private static final String LONG_VALUE =
@@ -45,6 +48,26 @@ public class MessageContentDictionaryTest {
                     .put("domainB.precision", LONG_VALUE + " , " + "different")
                     .put("domainB.state", LONG_VALUE)
                     .buildOrThrow()));
+  }
+
+  @Test
+  public void messageFactoryCanDisableCompression() throws Exception {
+    ImmutableMap<String, String> content =
+        ImmutableMap.of("state0.value", LONG_VALUE, "state1.value", LONG_VALUE);
+    for (boolean enabled : new boolean[] {true, false}) {
+      DssMessageFactory factory =
+          new DssMessageFactory(
+              new DssAnalysisOptions(
+                  Configuration.builder()
+                      .setOption("distributedSummaries.compressMessages", Boolean.toString(enabled))
+                      .build()));
+      DssMessage message =
+          factory.createDssPostConditionMessage("test", AlgorithmStatus.SOUND_AND_PRECISE, content);
+      ImmutableMap<String, ImmutableMap<String, String>> json = factory.export(message);
+      assertThat(json.get(DssMessage.DSS_MESSAGE_CONTENT_ID).containsKey("dssContentEncoding"))
+          .isEqualTo(enabled);
+      assertThat(DssMessage.fromJson(json).getContent()).isEqualTo(message.getContent());
+    }
   }
 
   @Test
