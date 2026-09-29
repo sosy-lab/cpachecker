@@ -164,7 +164,7 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
                     AbstractStates.extractStateByType(
                         pCex.getTargetState(), TerminationToReachState.class),
                     "Number of unrollings for the non-termination witness is unknown")
-                .getNumberOfUnrollings();
+                .getNumberOfTargetStateVisitsBeforeInfiniteLoop();
     CFANode cycleHead = AbstractStates.extractLocation(pCex.getTargetState());
 
     for (EdgeWithStates edgeWithStates : edges) {

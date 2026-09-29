@@ -81,7 +81,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   private final Optional<PathFormula> pathFormulaFull;
   private final ImmutableList<CFANode> pathSequence;
-  private final int numberOfUnrollings;
+  private final int numberOfTargetStateVisitsBeforeInfiniteLoop;
 
   public TerminationToReachState(
       ImmutableMap<
@@ -104,10 +104,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = false;
     transitionInvariants = pTransitionInvariants;
     transitionPredicates = pAvailableTransitionPredicates;
-    numberOfUnrollings = 0;
+    numberOfTargetStateVisitsBeforeInfiniteLoop = 0;
   }
 
-  public TerminationToReachState(int pNumberOfUnrollings) {
+  public TerminationToReachState(int pNumberOfTargetStateVisitsBeforeInfiniteLoop) {
     storedValues = ImmutableMap.of();
     numberOfIterations = ImmutableMap.of();
     pathFormulaForIteration = ImmutableMap.of();
@@ -117,7 +117,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = false;
     transitionInvariants = ImmutableSet.of();
     transitionPredicates = ImmutableSet.of();
-    numberOfUnrollings = pNumberOfUnrollings;
+    numberOfTargetStateVisitsBeforeInfiniteLoop = pNumberOfTargetStateVisitsBeforeInfiniteLoop;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -159,8 +159,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public int getNumberOfUnrollings() {
-    return numberOfUnrollings;
+  public int getNumberOfTargetStateVisitsBeforeInfiniteLoop() {
+    return numberOfTargetStateVisitsBeforeInfiniteLoop;
   }
 
   public ImmutableSet<PartitionedRelationFormula> getTransitionInvariants() {
