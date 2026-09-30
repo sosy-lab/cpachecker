@@ -130,15 +130,20 @@ public final class PredKRefiner extends InductionRefiner {
       return refinePath(pReached, baseCaseTarget.get());
     }
 
-    // only induction steps are left, which are checked as k-induction does before a refinement
+    // Only induction steps are left, which are checked as k-induction does before a refinement.
+    // The bounding assertion holds only after a concrete path, since an abstraction on the path
+    // hides the paths that its coverage folds.
     Set<ARGState> inductionStarts = new LinkedHashSet<>();
     for (ARGState target : pTargets) {
-      inductionStarts.add(
+      ARGState inductionStart =
           from(abstractionChain(target))
               .firstMatch(s -> inductionStateOf(s).isInductionStart())
-              .get());
+              .get();
+      if (firstLoopHeadAbstraction(inductionStart).orElseThrow() == inductionStart) {
+        inductionStarts.add(inductionStart);
+      }
     }
-    if (removeIfNoneReachable(pReached, inductionStarts)) {
+    if (!inductionStarts.isEmpty() && removeIfNoneReachable(pReached, inductionStarts)) {
       return Optional.empty();
     }
     for (ARGState target : pTargets) {
