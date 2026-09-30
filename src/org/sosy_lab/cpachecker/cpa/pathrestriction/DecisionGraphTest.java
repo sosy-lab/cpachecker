@@ -112,7 +112,7 @@ public final class DecisionGraphTest {
   }
 
   @Test
-  public void cursor_ignoresEdgesThatAreNoDecision() {
+  public void advance_ignoresEdgesThatAreNoDecision() {
     Branch branch = branch(1, 2);
     CFAEdge straight = straightEdge(5, 6);
 
@@ -120,7 +120,7 @@ public final class DecisionGraphTest {
   }
 
   @Test
-  public void cursor_permitsEverythingAfterThePathEnds() {
+  public void advance_permitsEverythingAfterThePathEnds() {
     Branch first = branch(1, 2);
     Branch second = branch(3, 4);
 

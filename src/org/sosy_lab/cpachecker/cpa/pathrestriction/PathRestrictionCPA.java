@@ -21,16 +21,16 @@ import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph.PathPosition;
 
 public class PathRestrictionCPA extends AbstractCPA {
 
-  private @Nullable DecisionGraph pathCollection;
+  private @Nullable DecisionGraph paths;
 
   private PathRestrictionCPA() {
     super("sep", "sep", new FlatLatticeDomain(), new PathRestrictionTransferRelation());
   }
 
-  /** Restricts the analysis to the paths permitted by {@code pPathCollection}. */
-  public void init(DecisionGraph pPathCollection) {
-    Preconditions.checkState(pathCollection == null);
-    pathCollection = Preconditions.checkNotNull(pPathCollection);
+  /** Restricts the analysis to the paths permitted by {@code pPaths}. */
+  public void init(DecisionGraph pPaths) {
+    Preconditions.checkState(paths == null, "The paths can only be set once");
+    paths = Preconditions.checkNotNull(pPaths);
   }
 
   public static CPAFactory factory() {
@@ -41,6 +41,6 @@ public class PathRestrictionCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     // CPAchecker creates an initial state before the paths are known. It must not be explored.
-    return pathCollection == null ? PathPosition.UNINITIALIZED : pathCollection.start();
+    return paths == null ? PathPosition.UNINITIALIZED : paths.start();
   }
 }

@@ -14,15 +14,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -34,6 +38,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 public final class DecisionGraph {
   private record Arc(String edge, Node next) {}
 
+  /**
+   * Nodes are compared by identity. Structural equality would rehash a shared suffix once for every
+   * path leading to it, so this must not become a record.
+   */
   private static final class Node {
     private final ImmutableList<Arc> arcs;
     private final int length;
@@ -48,7 +56,7 @@ public final class DecisionGraph {
   private static final Node END = new Node(ImmutableList.of());
   public static final DecisionGraph EMPTY = new DecisionGraph(END);
   private final Node root;
-  private @Nullable String encoding;
+  @LazyInit private @Nullable String encoding;
 
   private DecisionGraph(Node pRoot) {
     root = pRoot;
@@ -59,12 +67,13 @@ public final class DecisionGraph {
     return root.length;
   }
 
-  static String edgeToString(CFAEdge edge) {
+  /** The label of {@code edge} in a graph, which identifies it by its endpoints. */
+  private static String edgeToString(CFAEdge edge) {
     return "N" + edge.getPredecessor().getNodeNumber() + "N" + edge.getSuccessor().getNodeNumber();
   }
 
   /** Whether another relevant edge leaves the predecessor of {@code edge}. */
-  static boolean isDecisionEdge(CFAEdge edge) {
+  private static boolean isDecisionEdge(CFAEdge edge) {
     return relevantEdge(edge)
         && edge.getPredecessor().getAllLeavingEdges().filter(DecisionGraph::relevantEdge).size()
             > 1;
@@ -119,9 +128,9 @@ public final class DecisionGraph {
   }
 
   private static List<Node> postorder(Node root) {
-    record Visit(Node node, java.util.Iterator<Arc> remaining) {}
+    record Visit(Node node, Iterator<Arc> remaining) {}
     List<Node> result = new ArrayList<>();
-    Set<Node> finished = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+    Set<Node> finished = Collections.newSetFromMap(new IdentityHashMap<>());
     finished.add(END);
     Deque<Visit> waiting = new ArrayDeque<>();
     waiting.push(new Visit(root, root.arcs.iterator()));
@@ -155,10 +164,10 @@ public final class DecisionGraph {
                       a ->
                           new Arc(
                               replacements.getOrDefault(a.edge, a.edge),
-                              java.util.Objects.requireNonNull(memo.get(a.next))))
+                              Objects.requireNonNull(memo.get(a.next))))
                   .toList()));
     }
-    return java.util.Objects.requireNonNull(memo.get(node));
+    return Objects.requireNonNull(memo.get(node));
   }
 
   /**
@@ -228,12 +237,12 @@ public final class DecisionGraph {
     @Override
     public boolean equals(Object other) {
       return other instanceof PathPosition position
-          && java.util.Objects.equals(positions, position.positions);
+          && Objects.equals(positions, position.positions);
     }
 
     @Override
     public int hashCode() {
-      return java.util.Objects.hashCode(positions);
+      return Objects.hashCode(positions);
     }
 
     @Override
@@ -252,19 +261,27 @@ public final class DecisionGraph {
     return new PathPosition(ImmutableList.of(root));
   }
 
+  /**
+   * Encodes this graph as {@code D/<node>/<node>...}, listing every node once, successors first.
+   * Each node is a comma-separated list of arcs {@code <index of target>:<edge label>}, where index
+   * 0 is the end of the graph and an empty label is an epsilon arc. The last node is the root.
+   */
   public String serialize() {
-    if (encoding == null) {
+    // Read the unsynchronized field only once, see LazyInit.
+    String result = encoding;
+    if (result == null) {
       IdentityHashMap<Node, Integer> ids = new IdentityHashMap<>();
       ids.put(END, 0);
       List<String> nodes = new ArrayList<>();
       nodes.add("D");
       encode(root, ids, nodes);
-      encoding = String.join("/", nodes);
+      result = String.join("/", nodes);
+      encoding = result;
     }
-    return encoding;
+    return result;
   }
 
-  private static int encode(Node node, IdentityHashMap<Node, Integer> ids, List<String> nodes) {
+  private static void encode(Node node, IdentityHashMap<Node, Integer> ids, List<String> nodes) {
     for (Node current : postorder(node)) {
       List<String> arcs = new ArrayList<>();
       for (Arc arc : current.arcs) {
@@ -273,21 +290,26 @@ public final class DecisionGraph {
       ids.put(current, nodes.size());
       nodes.add(String.join(",", arcs));
     }
-    return ids.get(node);
   }
 
+  /** The inverse of {@link #serialize()}. */
   public static DecisionGraph deserialize(String value) {
     List<String> nodes = Splitter.on('/').splitToList(value);
-    Preconditions.checkArgument(nodes.getFirst().equals("D"));
+    Preconditions.checkArgument(
+        nodes.getFirst().equals("D"), "Not a serialized DecisionGraph: %s", value);
     List<Node> built = new ArrayList<>();
     built.add(END);
     for (int i = 1; i < nodes.size(); i++) {
       List<Arc> arcs = new ArrayList<>();
       for (String arc : Splitter.on(',').split(nodes.get(i))) {
         int colon = arc.indexOf(':');
-        Preconditions.checkArgument(colon > 0);
+        Preconditions.checkArgument(colon > 0, "Malformed arc %s in %s", arc, value);
         int target = Integer.parseInt(arc.substring(0, colon));
-        Preconditions.checkArgument(target >= 0 && target < i);
+        Preconditions.checkArgument(
+            target >= 0 && target < i,
+            "Arc %s does not point to an earlier node in %s",
+            arc,
+            value);
         arcs.add(new Arc(arc.substring(colon + 1), built.get(target)));
       }
       built.add(new Node(arcs));
