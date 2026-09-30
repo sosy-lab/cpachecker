@@ -377,20 +377,23 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
 
-    Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
-        computeNewPrecision(
-            pUnreachableState,
-            pAffectedStates,
-            pReached,
-            getRefinedTargetState(pReached.asReachedSet(), abstractionStatesTrace),
-            pRepeatedCounterexample);
+    try {
+      Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
+          computeNewPrecision(
+              pUnreachableState,
+              pAffectedStates,
+              pReached,
+              getRefinedTargetState(pReached.asReachedSet(), abstractionStatesTrace),
+              pRepeatedCounterexample);
 
-    PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
-    ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
+      PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
+      ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
 
-    updateARG(newPrecision, refinementRoot, pReached);
-
-    newPredicates = null;
+      updateARG(newPrecision, refinementRoot, pReached);
+    } finally {
+      // a refiner that continues after an exception starts the next refinement afresh
+      newPredicates = null;
+    }
   }
 
   /** The target state whose precision this refinement extends. */
