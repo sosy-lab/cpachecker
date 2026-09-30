@@ -8,16 +8,23 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.Graphs;
+import com.google.common.graph.MutableGraph;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Callstack CPA for the block analyses of distributed summary synthesis. */
 public final class DssCallstackCPA extends CallstackCPA {
@@ -26,12 +33,27 @@ public final class DssCallstackCPA extends CallstackCPA {
     return AutomaticCPAFactory.forType(DssCallstackCPA.class);
   }
 
-  public DssCallstackCPA(Configuration pConfiguration, LogManager pLogger)
+  /** Whether no function of the program can call itself, see {@link DssCallstackEffect}. */
+  private final boolean recursionFree;
+
+  public DssCallstackCPA(Configuration pConfiguration, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
     super(pConfiguration, pLogger);
     if (getCallstackOptions().traverseBackwards()) {
       throw new InvalidConfigurationException("DssCallstackCPA only supports forward analyses");
     }
+    recursionFree = !hasRecursion(pCfa);
+  }
+
+  private static boolean hasRecursion(CFA pCfa) {
+    MutableGraph<String> calls = GraphBuilder.directed().allowsSelfLoops(true).build();
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+      if (edge instanceof FunctionCallEdge) {
+        calls.putEdge(
+            edge.getPredecessor().getFunctionName(), edge.getSuccessor().getFunctionName());
+      }
+    }
+    return Graphs.hasCycle(calls);
   }
 
   @Override
@@ -67,6 +89,6 @@ public final class DssCallstackCPA extends CallstackCPA {
 
   @Override
   public DssCallstackTransferRelation getTransferRelation() {
-    return new DssCallstackTransferRelation(getCallstackOptions(), getLogger());
+    return new DssCallstackTransferRelation(getCallstackOptions(), getLogger(), recursionFree);
   }
 }
