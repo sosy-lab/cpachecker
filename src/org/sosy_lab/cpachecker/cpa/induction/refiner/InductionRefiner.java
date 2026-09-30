@@ -106,7 +106,6 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   private final StatTimer refinementTime = new StatTimer("Time for refinements");
   private final StatTimer satCheckTime = new StatTimer("Time for batch SAT checks");
   private final StatCounter removedStates = new StatCounter("Unreachable states removed");
-  private final StatCounter deferredRefinements = new StatCounter("Deferred refinements");
   private final StatCounter reexploredSubtrees = new StatCounter("Re-explored subtrees");
   private final StatInt maxK = new StatInt(StatKind.MAX, "Maximal k");
 
@@ -158,20 +157,11 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       ARGReachedSet pReached, List<ARGState> pTargets, List<ARGState> pCutOffs)
       throws CPAException, InterruptedException, SolverException;
 
-  /** Whether to continue the exploration before this refinement. */
-  protected boolean deferRefinement(ReachedSet pReached) {
-    return false;
-  }
-
   @Override
   public final boolean performRefinement(ReachedSet pReached)
       throws CPAException, InterruptedException {
     refinementTime.start();
     try {
-      if (deferRefinement(pReached)) {
-        deferredRefinements.inc();
-        return true;
-      }
       ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
       List<ARGState> targets = new ArrayList<>();
       List<ARGState> cutOffs = new ArrayList<>();
@@ -248,7 +238,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
    * the callstack in an induction step, a path can return to another caller, which the path formula
    * does not show, so then every return on the path must match its call.
    */
-  private static boolean isRealPath(ARGState pState) {
+  protected static boolean isRealPath(ARGState pState) {
     boolean restartsCallstack =
         from(abstractionChain(pState))
             .transform(InductionRefiner::inductionStateOf)
@@ -322,6 +312,10 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   }
 
   private void reportCounterexample(ARGState pTarget) throws CPAException, InterruptedException {
+    if (pTarget.getCounterexampleInformation().isPresent()) {
+      // the refiner reported it already
+      return;
+    }
     ARGPath path = ARGUtils.getOnePathTo(pTarget);
     CounterexampleTraceInfo trace =
         interpolationManager.buildCounterexampleTraceWithoutInterpolation(
@@ -581,7 +575,6 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
             .put(refinementTime)
             .put(satCheckTime)
             .put(removedStates)
-            .put(deferredRefinements)
             .put(reexploredSubtrees)
             .put(maxK);
     printRefinerStatistics(writer);
