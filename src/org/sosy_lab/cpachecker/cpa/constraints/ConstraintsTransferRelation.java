@@ -297,7 +297,8 @@ public class ConstraintsTransferRelation
 
       } else if (currStrengtheningState instanceof AbstractStateWithAssumptions) {
         ValueAnalysisState valueState =
-            AbstractStates.extractStateByType(currStrengtheningState, ValueAnalysisState.class);
+            Iterables.getOnlyElement(
+                AbstractStates.projectToType(pStrengtheningStates, ValueAnalysisState.class));
         strengthenOperator = new AssumptionsStrengthenOperator(valueState);
       }
 
