@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -71,9 +72,9 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
 
     for (AbstractState otherState : otherStates) {
-      if (otherState instanceof ConstraintsState constraintsState) {
-        // TODO this is where I think we can communicate with symbolic execution
-        logger.log(logLevel, constraintsState.toString());
+      if(otherState instanceof PredicateAbstractState predicateState) {
+        logger.log(logLevel, predicateState.toString());
+        logger.log(logLevel, predicateState.getPathFormula().toString());
       }
       if (otherState instanceof ValueAnalysisState valueState) {
         logger.log(logLevel, valueState.toString());
