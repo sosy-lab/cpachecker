@@ -4652,7 +4652,7 @@ distributedSummaries.abstractAtBlockEntry = true
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
   enum:     [ALWAYS_REPLACE]
 
-# Whether to cache computed, combined, and normalized violation conditions.
+# Whether to cache violation conditions normalized for comparison.
 distributedSummaries.cacheViolationConditions = true
 
 # Whether to combine incoming states and outgoing summaries by exact union.

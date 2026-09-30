@@ -145,7 +145,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
         executor.execute(actor);
       }
       DssMessageBroadcaster broadcaster = observer.getConnection().getBroadcaster();
-      executor.execute(() -> broadcastResultOnceNoWorkIsLeft(workCounter, broadcaster));
+      executor.execute(() -> broadcastProofOnceNoWorkIsLeft(workCounter, broadcaster));
 
       try {
         // Blocks until all WITNESS(es) or EXCEPTION arrives
@@ -162,7 +162,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
     }
   }
 
-  private void broadcastResultOnceNoWorkIsLeft(
+  private void broadcastProofOnceNoWorkIsLeft(
       DssWorkCounter workCounter, DssMessageBroadcaster broadcaster) {
     try {
       workCounter.awaitNoWorkLeft();

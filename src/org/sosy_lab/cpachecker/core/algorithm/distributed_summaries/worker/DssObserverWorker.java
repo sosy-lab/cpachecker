@@ -119,7 +119,7 @@ public class DssObserverWorker extends DssWorker {
     super.run();
     if (errorMessage.isPresent()) {
       // Worker messages serialize exceptions as text. Preserve a requested cancellation instead
-      // of turning its stack trace into a CPAException (and a failed portfolio stage).
+      // of turning its stack trace into a CPAException.
       shutdownNotifier.shutdownIfNecessary();
       throw new CPAException(errorMessage.orElseThrow());
     }

@@ -130,6 +130,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       throws InvalidConfigurationException {
     configuration = pConfig;
     configuration.inject(this);
+
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
@@ -249,7 +250,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
     } finally {
-      logger.log(Level.INFO, "Block analysis terminated.");
+      logger.log(Level.INFO, "Block analysis finished.");
     }
   }
 

@@ -18,8 +18,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Set;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -49,19 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-@RunWith(Parameterized.class)
 public class DssBlockAnalysisPrecisionTest {
-
-  @Parameterized.Parameters(name = "{0}")
-  public static ImmutableList<String> modes() {
-    return ImmutableList.of("ALWAYS_REPLACE");
-  }
-
-  private final String mode;
-
-  public DssBlockAnalysisPrecisionTest(String pMode) {
-    mode = pMode;
-  }
 
   private record Harness(
       DssBlockAnalysis analysis,
@@ -99,7 +85,7 @@ public class DssBlockAnalysisPrecisionTest {
     Configuration config =
         TestUtils.configurationForTest()
             .loadFromFile(DssTestUtils.DSS_FORWARD_CONFIGURATION_FILE)
-            .setOption("distributedSummaries.blockAnalysisType", mode)
+            .setOption("distributedSummaries.blockAnalysisType", "ALWAYS_REPLACE")
             .setOption("distributedSummaries.sharePrecision", Boolean.toString(pOptimized))
             .setOption("distributedSummaries.combineStates", Boolean.toString(pOptimized))
             .setOption("distributedSummaries.resetCallstackState", "true")
