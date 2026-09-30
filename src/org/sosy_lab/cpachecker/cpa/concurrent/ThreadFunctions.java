@@ -210,7 +210,7 @@ public final class ThreadFunctions {
       if (edge instanceof CDeclarationEdge declarationEdge
           && declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration
           && declaration.isGlobal()
-          && declaration.isThreadLocal()) {
+          && declaration.hasThreadLocalStorage()) {
         byName.putIfAbsent(declaration.getQualifiedName(), declaration);
       }
     }

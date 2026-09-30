@@ -84,7 +84,7 @@ class ConcurrentAstCloner extends CAstCloner {
       CVariableDeclaration decl, boolean pIsWrite) {
     FileLocation loc = decl.getFileLocation();
     if (globalRenamer != null
-        && ((decl.isGlobal() && !decl.isThreadLocal())
+        && ((decl.isGlobal() && !decl.hasThreadLocalStorage())
             || globalRenamer.treatsLocalAsRegion(decl))) {
       // globals, and address-taken locals the renamer wants in the aliasing regime, get a fresh
       // per-access name so every access becomes its own tracked memory event. A __thread global
@@ -100,7 +100,7 @@ class ConcurrentAstCloner extends CAstCloner {
           decl.getOrigName(),
           globalRenamer.freshName(decl, pIsWrite),
           null);
-    } else if (decl.isGlobal() && !decl.isThreadLocal()) {
+    } else if (decl.isGlobal() && !decl.hasThreadLocalStorage()) {
       return decl; // no renamer: non-thread-local globals keep their original name
     } else {
       return new CVariableDeclaration(
