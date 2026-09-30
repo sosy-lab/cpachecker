@@ -65,30 +65,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * condition it sends itself is feasible again, and unrolls the loop forever instead of waiting for
  * the refinement of its other predecessors ({@code for.c}).
  *
- * <p>The violations of the speculative exploration from the unconstrained start state do not hold
- * the postcondition back, again like with {@link AlwaysReplaceExplorationEngine}. From the
- * unconstrained start state, nearly every violation condition is feasible. A loop block is its own
- * predecessor, so it explores speculatively until it published a postcondition, and it would never
- * publish one if those violations counted ({@code for.c}).
+ * <p>A round reports either violations or a postcondition, never both. The violations of the
+ * speculative exploration from the unconstrained start state therefore hold the postcondition back
+ * only in the round they are actually published in. From the unconstrained start state nearly every
+ * violation condition is feasible, so a set that is unchanged is not published again and lets the
+ * postcondition through; otherwise a loop block, which is its own predecessor, would never publish
+ * one ({@code for.c}).
  *
  * <p>Publishing the same result again only makes the neighbors check that nothing changed, so the
  * engine leaves out a postcondition or a set of violations that equals what it published last.
- *
- * <p>With exact boundary refinement, cached exploration is independent of predicate precision: it
- * contains exact exit formulas, which are abstracted only when the ELSE branch publishes them. A
- * predicate update thus invalidates the outgoing abstraction, while an update to another CPA's
- * precision still invalidates the exploration. The gate over all actual sources stays unchanged.
- *
- * <p>Optional speculative reuse retains checks from the unchanged unconstrained entry across
- * predicate-only updates. These runs publish no summaries; their feasible paths and refutations
- * remain valid under a finer predicate precision. New conditions still require exploration,
- * withdrawn conditions are dropped, and changes to another CPA's precision still invalidate the
- * cache. Actual entry groups retain the usual precision-dependent summary refresh.
- *
- * <p>The experimental option to disable speculation starts forward propagation at the real root
- * precondition and omits every unconstrained-entry run. Silent predecessors still remain unknown;
- * omitting their exploration must not turn them into explicit unreachable predecessors. The gate
- * over violations from all actual sources is unchanged.
  *
  * <p>This engine ignores program points. It is meant for the inlining decomposition, where all
  * preconditions and all violation conditions of a block are at the same program point anyway.
@@ -195,6 +180,7 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
     // explores. Every source of this round is therefore explored at the same precision.
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableList.Builder<ArgPathAndCondition> violations = ImmutableList.builder();
+    boolean anySourceHasViolations = false;
     for (Entry<String, ImmutableList<@NonNull StateAndPrecision>> active :
         preconditionHandler.getActivePreconditions().entrySet()) {
       String predecessor = active.getKey();
@@ -208,6 +194,7 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       resultPerPredecessor.put(predecessor, result);
       ImmutableList<ArgPathAndCondition> sourceViolations =
           ImmutableList.copyOf(result.violations());
+      anySourceHasViolations |= !sourceViolations.isEmpty();
       violations.addAll(sourceViolations);
       summaries.addAll(result.summaries);
     }
@@ -221,12 +208,12 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       violations.addAll(startStateResult.violations());
     }
 
-    // See the class documentation for why a violation holds back the whole postcondition. A round
-    // publishes either violations or a postcondition, so the speculative violations hold it back as
-    // well, although they alone would not require that.
-    ImmutableList<ArgPathAndCondition> allViolations = violations.build();
+    // See the class documentation for why a violation of a real source holds back the whole
+    // postcondition. The speculative violations only do so in the round they are published in,
+    // which publish decides.
     ImmutableSet<StateAndPrecision> allSummaries =
-        allViolations.isEmpty() ? summaries.build() : ImmutableSet.of();
+        anySourceHasViolations ? ImmutableSet.of() : summaries.build();
+    ImmutableList<ArgPathAndCondition> allViolations = violations.build();
     return publish(
         allSummaries,
         allViolations,
@@ -379,18 +366,24 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       lastViolations = violations;
     }
 
+    // A round reports either violations or a postcondition, never both. Deciding this here, after
+    // the violations that are not published again were dropped, keeps an unchanged set of
+    // speculative violations from withholding the postcondition round after round.
+    ImmutableSet<StateAndPrecision> toPublish =
+        violations.isEmpty() ? pSummaries : ImmutableSet.of();
+
     ImmutableList<StateAndPrecision> summaries = ImmutableList.of();
     boolean unreachable = false;
-    if (!pSummaries.isEmpty() || pUnreachable) {
+    if (!toPublish.isEmpty() || (pUnreachable && violations.isEmpty())) {
       // Summaries are compared by their states, which are ARG states and thus compared by identity.
       // This is cheap and catches exactly the case that matters: nothing was explored again.
       Postcondition postcondition =
           new Postcondition(
-              FluentIterable.from(pSummaries).transform(StateAndPrecision::state).toSet(),
+              FluentIterable.from(toPublish).transform(StateAndPrecision::state).toSet(),
               pUnreachable);
       if (!postcondition.equals(lastPostcondition)) {
         lastPostcondition = postcondition;
-        summaries = analysis.combineSummaries(pSummaries);
+        summaries = analysis.combineSummaries(toPublish);
         unreachable = pUnreachable;
       }
     }
