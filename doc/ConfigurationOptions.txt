@@ -4715,6 +4715,10 @@ distributedSummaries.logging.reportFiles = "block_analysis/messages"
 # Print per-block statistics in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
 
+# Report UNKNOWN instead of FALSE if the analysis that replays the violation
+# path for the violation witness does not reach a property violation.
+distributedSummaries.requireConfirmedViolation = true
+
 # Whether to reset callstack state before running a block analysis; usually
 # used together with the inlining decomposition
 distributedSummaries.resetCallstackState = false
