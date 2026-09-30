@@ -881,6 +881,10 @@ public final class DssBlockAnalysis {
     return logger;
   }
 
+  DssAnalysisOptions getOptions() {
+    return options;
+  }
+
   public BlockNode getBlock() {
     return block;
   }

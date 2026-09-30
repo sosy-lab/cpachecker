@@ -131,6 +131,15 @@ public class DssAnalysisOptions {
 
   @Option(
       secure = true,
+      description =
+          "Whether a block analyzed with partial replacement publishes the violations it finds from"
+              + " the unconstrained start state while it already knows a real precondition. Such"
+              + " violations need not be reachable, and the violation conditions they cause keep"
+              + " growing around loops.")
+  private boolean publishSpeculativeViolations = true;
+
+  @Option(
+      secure = true,
       description = "Whether to dictionary-encode repeated text in serialized messages.")
   private boolean compressMessages = true;
 
@@ -208,6 +217,10 @@ public class DssAnalysisOptions {
 
   public boolean retireTerminalBlocks() {
     return retireTerminalBlocks;
+  }
+
+  public boolean publishSpeculativeViolations() {
+    return publishSpeculativeViolations;
   }
 
   public boolean compressMessages() {

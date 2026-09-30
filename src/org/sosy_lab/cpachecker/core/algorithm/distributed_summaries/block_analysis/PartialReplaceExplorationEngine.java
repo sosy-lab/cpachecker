@@ -183,6 +183,7 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableList.Builder<ArgPathAndCondition> violations = ImmutableList.builder();
     boolean anySourceHasViolations = false;
+    boolean anyRealSource = false;
     for (Entry<String, ImmutableList<@NonNull StateAndPrecision>> active :
         preconditionHandler.getActivePreconditions().entrySet()) {
       String predecessor = active.getKey();
@@ -194,6 +195,7 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       SourceResult result =
           refresh(resultPerPredecessor.get(predecessor), active.getValue(), conditions, precision);
       resultPerPredecessor.put(predecessor, result);
+      anyRealSource = true;
       ImmutableList<ArgPathAndCondition> sourceViolations =
           ImmutableList.copyOf(result.violations());
       anySourceHasViolations |= !sourceViolations.isEmpty();
@@ -204,7 +206,7 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
     // A silent predecessor leaves the entry unconstrained. Explore from top while one is
     // silent, or when every predecessor is unreachable but a new violation condition arrives.
     boolean speculative = unreachable || preconditionHandler.isAnyPredecessorSilent();
-    if (speculative) {
+    if (speculative && (!anyRealSource || analysis.getOptions().publishSpeculativeViolations())) {
       // its summaries are never published: the start state is not a real precondition
       startStateResult = refresh(startStateResult, startState(), conditions, precision);
       violations.addAll(startStateResult.violations());
