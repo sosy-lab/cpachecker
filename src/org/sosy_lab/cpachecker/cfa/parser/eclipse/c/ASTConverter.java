@@ -2000,7 +2000,7 @@ class ASTConverter {
     CType type = specifier.getSecond();
     // __thread / _Thread_local arrives as a preprocessor-inserted attribute on the decl specifier,
     // because CDT has no thread-local storage class of its own (see EclipseCdtWrapper)
-    boolean isThreadLocal =
+    boolean hasThreadLocalStorage =
         typeConverter.hasCPAcheckerAttributeForThreadLocal(d.getDeclSpecifier());
 
     IASTDeclarator[] declarators = d.getDeclarators();
@@ -2065,7 +2065,8 @@ class ASTConverter {
                   fileLoc.getEndingLineInOrigin(),
                   fileLoc.isOffsetRelatedToOrigin());
         }
-        result.add(createDeclaration(declaratorLocation, cStorageClass, type, c, isThreadLocal));
+        result.add(
+            createDeclaration(declaratorLocation, cStorageClass, type, c, hasThreadLocalStorage));
       }
     }
 
@@ -2077,7 +2078,7 @@ class ASTConverter {
       CStorageClass cStorageClass,
       CType type,
       IASTDeclarator d,
-      boolean isThreadLocal) {
+      boolean hasThreadLocalStorage) {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
@@ -2186,7 +2187,7 @@ class ASTConverter {
               origName,
               scopedName,
               null,
-              isThreadLocal);
+              hasThreadLocalStorage);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.

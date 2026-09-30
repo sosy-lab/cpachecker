@@ -1243,7 +1243,7 @@ public class CFACreator {
                     v.getOrigName(),
                     v.getQualifiedName(),
                     initializer,
-                    v.isThreadLocal());
+                    v.hasThreadLocalStorage());
 
             previouslyInitializedVariables.add(name);
             iterator.set(Pair.of(v, p.getSecond())); // replace declaration
