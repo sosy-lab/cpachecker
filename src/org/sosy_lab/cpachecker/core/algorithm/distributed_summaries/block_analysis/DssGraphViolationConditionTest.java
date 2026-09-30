@@ -196,10 +196,7 @@ public class DssGraphViolationConditionTest {
       paths.add(prefix);
     } else {
       for (CFAEdge edge : node.getLeavingEdges()) {
-        collectCfaPaths(
-            edge.getSuccessor(),
-            listAndElement(prefix, edge),
-            paths);
+        collectCfaPaths(edge.getSuccessor(), listAndElement(prefix, edge), paths);
       }
     }
   }
