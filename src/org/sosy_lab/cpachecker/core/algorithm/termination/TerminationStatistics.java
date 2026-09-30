@@ -20,13 +20,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ConcurrentHashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricNonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
@@ -52,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -93,12 +97,14 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -109,8 +115,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 
 @Options(prefix = "termination", deprecatedPrefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
@@ -138,28 +146,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate violationWitnessYaml =
       PathTemplate.ofFormatString("Counterexample.%s.witness-2.1.yml");
-
-  @Option(
-      secure = true,
-      name = "yamlProofWitness",
-      description =
-          "The template from which the different "
-              + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.yml");
-
-  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
-  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
-  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
-  // added to make it possible to deactivate the export.
-  @Option(
-      secure = true,
-      name = "exportYamlCorrectnessWitness",
-      description = "export correctness witness in YAML format")
-  protected boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
@@ -198,7 +184,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   protected final WitnessExporter witnessExporter;
   protected final TerminationYAMLWitnessExporter terminationWitnessExporter;
-  private final CounterexampleToWitness cexToWitnessEporter;
+  private final NonterminationCounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
@@ -224,22 +210,16 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             Specification.alwaysSatisfied()
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
-    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      terminationWitnessExporter =
-          new TerminationYAMLWitnessExporter(
-              pConfig,
-              pCFA,
-              Specification.alwaysSatisfied()
-                  .withAdditionalProperties(
-                      ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-              pLogger,
-              exportSupportingInvariantsInWitness);
-    } else {
-      terminationWitnessExporter = null;
-    }
+    terminationWitnessExporter =
+        new TerminationYAMLWitnessExporter(
+            pConfig,
+            pCFA,
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+            pLogger);
 
     cexToWitnessEporter =
-        new CounterexampleToWitness(
+        new NonterminationCounterexampleToWitness(
             pConfig,
             pCFA,
             Specification.alwaysSatisfied()
@@ -486,9 +466,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(!violations.hasNext());
     }
 
-    if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
+    if (pResult == Result.TRUE && terminationWitnessExporter.isExportEnabled()) {
       try {
-        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+        terminationWitnessExporter.export(
+            convertRankingFunctionToTransitionInvariant(terminationArguments));
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
@@ -525,6 +506,35 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         logger.logException(WARNING, e, "Could not export (non-)termination arguments.");
       }
     }
+  }
+
+  private ImmutableList<AbstractInvariantEntry> convertRankingFunctionToTransitionInvariant(
+      Multimap<Loop, TerminationArgument> pTerminationArguments) {
+    ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
+
+    for (Loop loop : pTerminationArguments.keySet()) {
+      for (CFANode loopHead : loop.getLoopHeads()) {
+        CFAEdge incomingLoopEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
+        for (TerminationArgument argument : pTerminationArguments.get(loop)) {
+          if (exportSupportingInvariantsInWitness) {
+            // First construct reachability invariants that support the termination argument.
+            for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
+              entries.add(
+                  TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
+                      supportingInvariant, loopHead, incomingLoopEdge));
+            }
+          }
+        }
+        // Construct transition invariants from ranking function
+        entries.add(
+            TerminationArgumentsToWitnessUtils.convertRankgingFunctionsToTransitionInvariants(
+                TerminationArgumentsToWitnessUtils.collectArgumentsForNestedLoops(
+                    loop, pTerminationArguments.keySet(), pTerminationArguments),
+                loopHead,
+                incomingLoopEdge));
+      }
+    }
+    return entries.build();
   }
 
   private void exportViolationWitness(final ARGState root, final ARGState loopStart) {
@@ -578,11 +588,35 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       }
 
       if (violationWitnessYaml != null) {
-        cexToWitnessEporter.export(cexInfo, violationWitnessYaml, 0);
+        cexToWitnessEporter.exportNonTerminationWitness(
+            cexInfo,
+            violationWitnessYaml,
+            0,
+            OptionalInt.of(
+                countLoopHeadVisitsInStem(
+                    cexInfo.getTargetPath(), AbstractStates.extractLocation(loopStart))));
       }
     } catch (InterruptedException | IOException e) {
       logger.logUserException(WARNING, e, "Could not export termination witness.");
     }
+  }
+
+  /**
+   * Counts how often the stem of the lasso leaves the loop head, i.e., how often the loop is
+   * unrolled before the loop part of the lasso starts.
+   */
+  private static int countLoopHeadVisitsInStem(ARGPath pPath, CFANode pLoopHead) {
+    int visits = 0;
+    for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
+      if (AbstractStates.extractStateByType(it.getNextAbstractState(), TerminationState.class)
+          .isPartOfLoop()) {
+        break;
+      }
+      if (it.getOutgoingEdge().getPredecessor().equals(pLoopHead)) {
+        visits++;
+      }
+    }
+    return visits;
   }
 
   protected Collection<ARGState> copyStem(
