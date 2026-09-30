@@ -71,6 +71,13 @@ public final class InductionState
 
   private final Resets resets;
 
+  /**
+   * The abstraction that started the block of this state, or null in the first block. Only the
+   * abstractions of an unrolling compare it, so that they merge within a block but never cover the
+   * abstraction of another path through the loops.
+   */
+  private final @Nullable InductionState blockStart;
+
   private @LazyInit int hashCache = 0;
   private @LazyInit @Nullable PartitionKey partitionKey = null;
 
@@ -104,7 +111,8 @@ public final class InductionState
       boolean pReportsTargets,
       @Nullable CFANode pLoopHead,
       @Nullable LoopPrecision pLoopPrecision,
-      Resets pResets) {
+      Resets pResets,
+      @Nullable InductionState pBlockStart) {
     arrivals = pArrivals;
     abstractions = pAbstractions;
     inInductionStep = pInInductionStep;
@@ -114,6 +122,7 @@ public final class InductionState
     loopHead = pLoopHead;
     loopPrecision = pLoopPrecision;
     resets = pResets;
+    blockStart = pBlockStart;
   }
 
   static InductionState initial(Resets pResets) {
@@ -126,7 +135,8 @@ public final class InductionState
         true,
         null,
         null,
-        pResets);
+        pResets,
+        null);
   }
 
   InductionState concrete(
@@ -140,7 +150,8 @@ public final class InductionState
         pReportsTargets,
         null,
         null,
-        resets);
+        resets,
+        blockStartOfSuccessors());
   }
 
   InductionState abstraction(
@@ -162,7 +173,8 @@ public final class InductionState
         pReportsTargets,
         pLoopHead,
         pLoopPrecision,
-        resets);
+        resets,
+        blockStartOfSuccessors());
   }
 
   InductionState cutOff(
@@ -179,7 +191,17 @@ public final class InductionState
         pReportsTargets,
         pLoopHead,
         pLoopPrecision,
-        resets);
+        resets,
+        blockStartOfSuccessors());
+  }
+
+  private @Nullable InductionState blockStartOfSuccessors() {
+    return isAbstraction() ? this : blockStart;
+  }
+
+  /** Whether both states lie in the block of the same abstraction. */
+  boolean isInSameBlock(InductionState pOther) {
+    return blockStart == pOther.blockStart;
   }
 
   Kind getKind() {

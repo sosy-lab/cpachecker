@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,9 +54,11 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.induction.InductionCPA;
 import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision;
+import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision.LoopPrecision;
 import org.sosy_lab.cpachecker.cpa.induction.InductionState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -106,7 +110,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   private final StatCounter reexploredSubtrees = new StatCounter("Re-explored subtrees");
   private final StatInt maxK = new StatInt(StatKind.MAX, "Maximal k");
 
-  protected InductionRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger)
+  protected InductionRefiner(
+      ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, getClass());
     predicateCpa = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, getClass());
@@ -115,7 +120,6 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     solver = predicateCpa.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    Configuration config = predicateCpa.getConfiguration();
     CFA cfa = predicateCpa.getCfa();
     interpolationManager =
         new InterpolationManager(
@@ -123,18 +127,24 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
             solver,
             cfa.getLoopStructure(),
             cfa.getVarClassification(),
-            config,
+            pConfig,
             predicateCpa.getShutdownNotifier(),
             logger,
             /* pEnableCounterexampleAnalysis= */ true);
     pathChecker =
         new PathChecker(
-            config,
+            pConfig,
             logger,
             predicateCpa.getShutdownNotifier(),
             cfa.getMachineModel(),
             predicateCpa.getPathFormulaManager(),
             solver);
+  }
+
+  /** The configuration of the analysis, which the factory of a refiner does not get. */
+  protected static Configuration configurationOf(
+      ConfigurableProgramAnalysis pCpa, Class<?> pRefiner) throws InvalidConfigurationException {
+    return CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, pRefiner).getConfiguration();
   }
 
   /**
@@ -171,6 +181,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
 
       Optional<ARGState> counterexample = refine(reached, targets, cutOffs);
       if (counterexample.isPresent()) {
+        // cut-offs are targets only for the refinement and violate no property
+        removeUnreachable(reached, cutOffs);
         reportCounterexample(counterexample.orElseThrow());
         return false;
       }
@@ -414,6 +426,12 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
         pReached.asReachedSet().getPrecision(pState), InductionPrecision.class);
   }
 
+  protected static PredicatePrecision predicatePrecisionOf(
+      ARGReachedSet pReached, ARGState pState) {
+    return Precisions.extractPrecisionByType(
+        pReached.asReachedSet().getPrecision(pState), PredicatePrecision.class);
+  }
+
   protected static InductionState inductionStateOf(ARGState pState) {
     return AbstractStates.extractStateByType(pState, InductionState.class);
   }
@@ -468,12 +486,87 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     InductionPrecision precision =
         inductionPrecisionOf(pReached, pState.getParents().getFirst())
             .withAll(p -> p.withK(p.k() + 1));
-    precision.getLoops().values().forEach(p -> maxK.setNextValue(p.k()));
+    recordK(precision);
     reexplore(
         pReached,
         pState,
         ImmutableList.of(precision),
         ImmutableList.of(Predicates.instanceOf(InductionPrecision.class)));
+  }
+
+  protected void recordK(InductionPrecision pPrecision) {
+    pPrecision.getLoops().values().forEach(p -> maxK.setNextValue(p.k()));
+  }
+
+  /**
+   * The refinement of BMC, which IMC and ISMC fall back to: check the targets, then the bounding
+   * assertions for the cut-offs, and increment k at every reachable cut-off.
+   */
+  protected Optional<ARGState> refineAsBmc(
+      ARGReachedSet pReached, List<ARGState> pTargets, List<ARGState> pCutOffs)
+      throws CPAException, InterruptedException, SolverException {
+    Optional<ARGState> counterexample = findFeasibleTarget(pTargets);
+    if (counterexample.isPresent()) {
+      return counterexample;
+    }
+    removeUnreachable(pReached, pTargets);
+    if (pCutOffs.isEmpty() || removeIfNoneReachable(pReached, pCutOffs)) {
+      return Optional.empty();
+    }
+    for (ARGState cutOff : pCutOffs) {
+      increaseK(pReached, cutOff);
+    }
+    return Optional.empty();
+  }
+
+  /** Explore again from the root with the precision of BMC with bound k, at least 1. */
+  protected void restartAsBmc(ARGReachedSet pReached) throws InterruptedException {
+    ARGState root = (ARGState) pReached.asReachedSet().getFirstState();
+    InductionPrecision precision =
+        inductionPrecisionOf(pReached, root)
+            .withAll(
+                p ->
+                    new LoopPrecision(
+                        Math.max(p.k(), 1),
+                        /* induction= */ false,
+                        /* describedAbstractions= */ 0,
+                        /* unrolling= */ false));
+    recordK(precision);
+    pReached.removeAllExceptFirstStateWithPrecision(
+        ImmutableList.of(precision, PredicatePrecision.empty()),
+        ImmutableList.of(
+            Predicates.instanceOf(InductionPrecision.class),
+            Predicates.instanceOf(PredicatePrecision.class)));
+  }
+
+  /**
+   * Explore again as BMC if the exploration reached more loop heads than the limit, as native IMC
+   * and ISMC do for more than one loop head.
+   *
+   * @return whether the refiner continues as BMC
+   */
+  protected boolean fallBackToBmcIfNecessary(ARGReachedSet pReached, int pLoopLimit)
+      throws InterruptedException {
+    if (reachedLoopHeads(pReached.asReachedSet()) <= pLoopLimit) {
+      return false;
+    }
+    logger.log(
+        Level.INFO,
+        "Falling back to BMC, because the exploration reached more than",
+        pLoopLimit,
+        "loop heads");
+    restartAsBmc(pReached);
+    return true;
+  }
+
+  /** The number of loop heads that the exploration reached. */
+  protected int reachedLoopHeads(UnmodifiableReachedSet pReached) {
+    ImmutableSet<CFANode> loopHeads = predicateCpa.getCfa().getAllLoopHeads().orElseThrow();
+    return from(pReached)
+        .transform(AbstractStates::extractLocation)
+        .filter(loopHeads::contains)
+        .toSet()
+        .size();
   }
 
   @Override

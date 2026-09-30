@@ -10,11 +10,15 @@ package org.sosy_lab.cpachecker.cpa.induction.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -30,20 +34,32 @@ import org.sosy_lab.java_smt.api.SolverException;
  * that the SAT queries of native k-induction cannot prove increases k by one. The queries are those
  * of the base case, the bounding assertions and the step case.
  */
+@Options(prefix = "cpa.induction.refinement.kInduction")
 public final class KInductionRefiner extends InductionRefiner {
+
+  @Option(
+      secure = true,
+      description =
+          "Optimization: check the bounding assertions only for the induction starts whose"
+              + " induction steps reach a target. Native k-induction checks all states at the"
+              + " bound, so one reachable state without a target in its step case prevents the"
+              + " proof.")
+  private boolean targetedBoundingAssertions = false;
 
   private final StatCounter provedByBoundingAssertions =
       new StatCounter("Proofs by unreachable induction starts");
   private final StatCounter provedByStepCase = new StatCounter("Proofs by the step case");
 
-  private KInductionRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger)
+  private KInductionRefiner(
+      ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
-    super(pCpa, pLogger);
+    super(pCpa, pLogger, pConfig);
+    pConfig.inject(this);
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa, LogManager pLogger)
       throws InvalidConfigurationException {
-    return new KInductionRefiner(pCpa, pLogger);
+    return new KInductionRefiner(pCpa, pLogger, configurationOf(pCpa, KInductionRefiner.class));
   }
 
   @Override
@@ -70,7 +86,14 @@ public final class KInductionRefiner extends InductionRefiner {
     for (ARGState target : stepTargets) {
       inductionStarts.add(firstLoopHeadAbstraction(target).orElseThrow());
     }
-    if (removeIfNoneReachable(pReached, inductionStarts)) {
+    Collection<ARGState> frontier =
+        targetedBoundingAssertions
+            ? inductionStarts
+            : from(pReached.asReachedSet())
+                .filter(ARGState.class)
+                .filter(s -> inductionStateOf(s).isInductionStart())
+                .toList();
+    if (removeIfNoneReachable(pReached, frontier)) {
       provedByBoundingAssertions.inc();
       return Optional.empty();
     }

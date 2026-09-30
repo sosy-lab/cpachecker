@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.induction.refiner;
 
 import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -28,32 +29,20 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public final class BmcRefiner extends InductionRefiner {
 
-  private BmcRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger)
+  private BmcRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
-    super(pCpa, pLogger);
+    super(pCpa, pLogger, pConfig);
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa, LogManager pLogger)
       throws InvalidConfigurationException {
-    return new BmcRefiner(pCpa, pLogger);
+    return new BmcRefiner(pCpa, pLogger, configurationOf(pCpa, BmcRefiner.class));
   }
 
   @Override
   protected Optional<ARGState> refine(
       ARGReachedSet pReached, List<ARGState> pTargets, List<ARGState> pCutOffs)
       throws CPAException, InterruptedException, SolverException {
-    Optional<ARGState> counterexample = findFeasibleTarget(pTargets);
-    if (counterexample.isPresent()) {
-      return counterexample;
-    }
-    removeUnreachable(pReached, pTargets);
-
-    if (pCutOffs.isEmpty() || removeIfNoneReachable(pReached, pCutOffs)) {
-      return Optional.empty();
-    }
-    for (ARGState cutOff : pCutOffs) {
-      increaseK(pReached, cutOff);
-    }
-    return Optional.empty();
+    return refineAsBmc(pReached, pTargets, pCutOffs);
   }
 }
