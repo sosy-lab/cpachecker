@@ -40,9 +40,11 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.ComponentResettingState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -55,14 +57,19 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 final class CompositeTransferRelation implements WrapperTransferRelation {
 
   private final ImmutableList<TransferRelation> transferRelations;
+  private final ImmutableList<ConfigurableProgramAnalysis> cpas;
   private final CFA cfa;
   private final int size;
   private final boolean predicatesPresent;
   private final boolean aggregateBasicBlocks;
 
   CompositeTransferRelation(
-      ImmutableList<TransferRelation> pTransferRelations, CFA pCFA, boolean pAggregateBasicBlocks) {
+      ImmutableList<TransferRelation> pTransferRelations,
+      ImmutableList<ConfigurableProgramAnalysis> pCpas,
+      CFA pCFA,
+      boolean pAggregateBasicBlocks) {
     transferRelations = pTransferRelations;
+    cpas = pCpas;
     cfa = pCFA;
     size = pTransferRelations.size();
     aggregateBasicBlocks = pAggregateBasicBlocks;
@@ -276,9 +283,32 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
       // finally, create a CompositeState for each result of strengthen
       for (List<AbstractState> lList : lResultingElements) {
-        compositeSuccessors.add(new CompositeState(lList));
+        compositeSuccessors.add(new CompositeState(resetComponents(lList, cfaEdge)));
       }
     }
+  }
+
+  /** Restart the components that a {@link ComponentResettingState} asks for. */
+  private List<AbstractState> resetComponents(List<AbstractState> pStates, CFAEdge pEdge)
+      throws InterruptedException {
+    List<AbstractState> result = pStates;
+    for (AbstractState state : pStates) {
+      if (state instanceof ComponentResettingState resettingState) {
+        for (int i = 0; i < size; i++) {
+          if (resettingState.resets(cpas.get(i))) {
+            if (result == pStates) {
+              result = new ArrayList<>(pStates);
+            }
+            result.set(
+                i,
+                cpas.get(i)
+                    .getInitialState(
+                        pEdge.getSuccessor(), StateSpacePartition.getDefaultPartition()));
+          }
+        }
+      }
+    }
+    return result;
   }
 
   private Collection<List<AbstractState>> callTransferRelation(

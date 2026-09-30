@@ -1311,6 +1311,18 @@ public final class PredicateAbstractionManager {
         fmgr, region, formula, instantiatedFormula, newBlockFormula, noAbstractionReuse);
   }
 
+  /** Disjoin the regions of abstractions of the same block, keeping the given block formula. */
+  AbstractionFormula makeOrOfRegions(
+      Iterable<AbstractionFormula> pAbstractions, PathFormula pBlockFormula)
+      throws InterruptedException {
+    RegionCreator regionCreator = amgr.getRegionCreator();
+    Region region = regionCreator.makeFalse();
+    for (AbstractionFormula abstraction : pAbstractions) {
+      region = regionCreator.makeOr(region, abstraction.asRegion());
+    }
+    return makeAbstractionFormula(region, pBlockFormula.getSsa(), pBlockFormula);
+  }
+
   AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
       throws InterruptedException {
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);

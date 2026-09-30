@@ -147,6 +147,7 @@ public final class CompositeCPA
   public CompositeTransferRelation getTransferRelation() {
     return new CompositeTransferRelation(
         transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getTransferRelation),
+        cpas,
         cfa,
         aggregateBasicBlocks);
   }

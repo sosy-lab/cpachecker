@@ -8,10 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -25,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -117,7 +123,12 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     if (predicateState.isAbstractionState()) {
       return false;
     }
-    if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
+    AbstractionControllingState controllingState =
+        AbstractStates.extractStateByType(fullState, AbstractionControllingState.class);
+    Optional<Boolean> decision =
+        controllingState == null ? Optional.empty() : controllingState.shouldComputeAbstraction();
+    if (decision.orElseGet(
+        () -> blk.isBlockEnd(location, predicateState.getPathFormula().getLength()))) {
       return true;
     }
     if (AbstractStates.isTargetState(fullState)) {
@@ -125,6 +136,33 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       return true;
     }
     return false;
+  }
+
+  /**
+   * The path formulas of the ARG ancestors at the given locations inside the current block, i.e.,
+   * since the last abstraction.
+   */
+  private static List<PathFormula> earlierVisitsInBlock(
+      AbstractState fullState, Collection<CFANode> pLocations) {
+    ARGState argState = AbstractStates.extractStateByType(fullState, ARGState.class);
+    if (argState == null) {
+      return ImmutableList.of();
+    }
+    List<PathFormula> visits = new ArrayList<>();
+    Set<ARGState> seen = new HashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>(argState.getParents());
+    while (!waitlist.isEmpty()) {
+      ARGState ancestor = waitlist.pop();
+      PredicateAbstractState predicateState = getPredicateState(ancestor);
+      if (!seen.add(ancestor) || predicateState.isAbstractionState()) {
+        continue;
+      }
+      if (pLocations.containsAll(ImmutableList.copyOf(AbstractStates.extractLocations(ancestor)))) {
+        visits.add(predicateState.getPathFormula());
+      }
+      waitlist.addAll(ancestor.getParents());
+    }
+    return visits;
   }
 
   /** Compute an abstraction. */
@@ -188,6 +226,25 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       newAbstractionFormula =
           formulaManager.buildAbstraction(
               pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
+
+      AbstractionControllingState controllingState =
+          AbstractStates.extractStateByType(fullState, AbstractionControllingState.class);
+      if (controllingState != null
+          && controllingState.mustCoverEveryVisit()
+          && !additionalPredicates.isEmpty()) {
+        List<AbstractionFormula> abstractions = new ArrayList<>();
+        abstractions.add(newAbstractionFormula);
+        for (PathFormula visit : earlierVisitsInBlock(fullState, pLocations)) {
+          abstractions.add(
+              formulaManager.buildAbstraction(
+                  pLocations,
+                  callstackWrapper,
+                  abstractionFormula,
+                  pathFormula.withContext(visit.getSsa(), visit.getPointerTargetSet()),
+                  additionalPredicates));
+        }
+        newAbstractionFormula = formulaManager.makeOrOfRegions(abstractions, pathFormula);
+      }
     } finally {
       computingAbstractionTime.stop();
     }

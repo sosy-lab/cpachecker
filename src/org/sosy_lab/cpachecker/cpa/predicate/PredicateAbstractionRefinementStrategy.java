@@ -49,6 +49,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -377,7 +378,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       throws CPAException, InterruptedException {
 
     Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
-        computeNewPrecision(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
+        computeNewPrecision(
+            pUnreachableState,
+            pAffectedStates,
+            pReached,
+            getRefinedTargetState(pReached.asReachedSet(), abstractionStatesTrace),
+            pRepeatedCounterexample);
 
     PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
     ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
@@ -385,6 +391,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     updateARG(newPrecision, refinementRoot, pReached);
 
     newPredicates = null;
+  }
+
+  /** The target state whose precision this refinement extends. */
+  protected AbstractState getRefinedTargetState(
+      UnmodifiableReachedSet pReached, List<ARGState> pAbstractionStatesTrace) {
+    return pReached.getLastState();
   }
 
   protected void updateARG(
@@ -428,6 +440,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
+      AbstractState pTargetState,
       boolean pRepeatedCounterexample)
       throws RefinementFailedException {
 
@@ -444,7 +457,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     // get previous precision
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     PredicatePrecision targetStatePrecision =
-        extractPredicatePrecision(reached.getPrecision(reached.getLastState()));
+        extractPredicatePrecision(reached.getPrecision(pTargetState));
 
     ARGState refinementRoot =
         getRefinementRoot(
