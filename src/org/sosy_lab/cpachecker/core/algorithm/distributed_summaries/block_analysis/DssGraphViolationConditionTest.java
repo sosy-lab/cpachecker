@@ -100,11 +100,11 @@ public class DssGraphViolationConditionTest {
       assertThat(result.getTargetStates()).isNotEmpty();
       ViolationConditionOperator operator = analysis.getDcpa().getViolationConditionOperator();
       assertThat(
-              CompositeGraphViolationConditionOperator.supports(
+              CompositeGraphViolationConditionOperator.of(
                   ImmutableList.copyOf(
                       CPAs.retrieveCPA(analysis.getDcpa(), DistributedCompositeCPA.class)
                           .getWrappedCPAs())))
-          .isTrue();
+          .isPresent();
       PredicateCPA predicateCPA =
           (PredicateCPA)
               CPAs.retrieveCPA(analysis.getDcpa(), DistributedPredicateCPA.class).getCPA();

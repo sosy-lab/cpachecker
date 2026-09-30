@@ -15,6 +15,7 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -33,8 +34,12 @@ public class CompositeViolationConditionOperator implements ViolationConditionOp
 
   private final List<ConfigurableProgramAnalysis> analyses;
 
+  /** Merges the paths of a graph, or {@code null} if a component cannot merge conditions. */
+  private final @Nullable CompositeGraphViolationConditionOperator graphOperator;
+
   public CompositeViolationConditionOperator(List<ConfigurableProgramAnalysis> pAnalyses) {
     analyses = pAnalyses;
+    graphOperator = CompositeGraphViolationConditionOperator.of(pAnalyses).orElse(null);
   }
 
   @Override
@@ -44,9 +49,8 @@ public class CompositeViolationConditionOperator implements ViolationConditionOp
     if (!(pARGPath instanceof DssARGPathGraph graph)) {
       return computeForPath(pARGPath, pPreviousCondition);
     }
-    if (CompositeGraphViolationConditionOperator.supports(analyses)) {
-      return CompositeGraphViolationConditionOperator.create(analyses)
-          .compute(graph, pPreviousCondition);
+    if (graphOperator != null) {
+      return graphOperator.compute(graph, pPreviousCondition);
     }
     ImmutableList.Builder<AbstractState> conditions = ImmutableList.builder();
     for (ARGPath path : graph.paths()) {

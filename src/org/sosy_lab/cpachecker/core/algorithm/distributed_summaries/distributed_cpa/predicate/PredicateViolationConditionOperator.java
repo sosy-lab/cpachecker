@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import com.google.common.base.Preconditions;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,93 +28,86 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/** Computes violation conditions as backward path formulas and merges them by disjunction. */
 public class PredicateViolationConditionOperator
     implements MergeableViolationConditionOperator<PathFormula> {
 
-  private final PathFormulaManagerImpl backwardManager;
   private final PredicateCPA cpa;
-  private final @Nullable ExistentialProjection graphProjection;
-  private final boolean hasRootAsPredecessor;
+  private final PathFormulaManagerImpl backwardManager;
 
-  /** Projects the local variables out of every condition, or {@code null} to keep them. */
-  private final @Nullable ExistentialProjection projection;
+  /**
+   * Whether to drop unsatisfiable conditions. The root block has to, because it has no predecessor
+   * that would refute them.
+   */
+  private final boolean checkSatisfiability;
 
   /** Rewrites every condition as equivalent cubes, or {@code null} to keep it. */
   private final @Nullable ModelBasedGeneralization generalization;
 
+  /** Projects the local variables out of every condition, or {@code null} to keep them. */
+  private final @Nullable ExistentialProjection projection;
+
+  /**
+   * Projects the local variables out of a condition merged over a graph before it is generalized,
+   * or {@code null} to keep them.
+   */
+  private final @Nullable ExistentialProjection graphProjection;
+
   public PredicateViolationConditionOperator(
-      PathFormulaManagerImpl pBackwardManager,
       PredicateCPA pCpa,
-      boolean pHasRootAsPredecessor,
+      PathFormulaManagerImpl pBackwardManager,
+      boolean pCheckSatisfiability,
+      @Nullable ModelBasedGeneralization pGeneralization,
       @Nullable ExistentialProjection pProjection,
-      boolean pProjectNestedDisjunctions,
-      @Nullable ModelBasedGeneralization pGeneralization) {
-    backwardManager = pBackwardManager;
+      @Nullable ExistentialProjection pGraphProjection) {
     cpa = pCpa;
-    graphProjection =
-        pProjection == null
-            ? null
-            : new ExistentialProjection(cpa.getSolver(), pProjectNestedDisjunctions);
-    hasRootAsPredecessor = pHasRootAsPredecessor;
-    projection = pProjection;
+    backwardManager = pBackwardManager;
+    checkSatisfiability = pCheckSatisfiability;
     generalization = pGeneralization;
+    projection = pProjection;
+    graphProjection = pGraphProjection;
   }
 
   @Override
-  public List<AbstractState> computeViolationConditions(
-      ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
-      throws InterruptedException, CPATransferException, SolverException {
-    Preconditions.checkArgument(
-        !(pARGPath instanceof DssARGPathGraph), "Component operators expect a single path");
-    return finish(
-            pARGPath.getFirstState(),
-            prepend(initialCondition(pPreviousCondition), pARGPath.getFullPath()))
-        .stream()
-        .toList();
-  }
-
-  @Override
-  public PathFormula initialCondition(Optional<ARGState> pPreviousCondition) {
-    PathFormula result;
+  public PathFormula initialCondition(ARGState pTarget, Optional<ARGState> pPreviousCondition) {
     if (pPreviousCondition.isEmpty()) {
-      result = backwardManager.makeEmptyPathFormula();
-    } else {
-      PredicateAbstractState counterexampleState =
-          Objects.requireNonNull(
-              AbstractStates.extractStateByType(
-                  pPreviousCondition.orElseThrow(), PredicateAbstractState.class));
-      if (counterexampleState.isAbstractionState()) {
-        result = counterexampleState.getAbstractionFormula().getBlockFormula();
-      } else {
-        result = counterexampleState.getPathFormula();
-      }
+      return backwardManager.makeEmptyPathFormula();
     }
-    return result;
+    PredicateAbstractState counterexampleState =
+        Objects.requireNonNull(
+            AbstractStates.extractStateByType(
+                pPreviousCondition.orElseThrow(), PredicateAbstractState.class));
+    if (counterexampleState.isAbstractionState()) {
+      return counterexampleState.getAbstractionFormula().getBlockFormula();
+    }
+    return counterexampleState.getPathFormula();
   }
 
   @Override
-  public PathFormula prepend(PathFormula formula, List<CFAEdge> edges)
+  public Optional<PathFormula> prepend(PathFormula pCondition, List<CFAEdge> pEdges)
       throws InterruptedException, CPATransferException {
-    for (CFAEdge edge : edges.reversed()) {
+    PathFormula formula = pCondition;
+    for (CFAEdge edge : pEdges.reversed()) {
       formula = backwardManager.makeAnd(formula, edge);
     }
-    return formula;
+    return Optional.of(formula);
   }
 
   @Override
-  public PathFormula union(PathFormula first, PathFormula second) throws InterruptedException {
-    return backwardManager.makeOr(first, second);
+  public Optional<PathFormula> merge(PathFormula pFirst, PathFormula pSecond)
+      throws InterruptedException {
+    return Optional.of(backwardManager.makeOr(pFirst, pSecond));
   }
 
   @Override
-  public Optional<AbstractState> finishGraph(ARGState root, PathFormula result)
+  public Optional<AbstractState> finish(
+      ARGPath pPath, Optional<ARGState> pPreviousCondition, PathFormula pCondition)
       throws InterruptedException, SolverException {
-    return finish(
-        root, graphProjection == null ? result : graphProjection.projectLocalVariables(result));
-  }
-
-  public Optional<AbstractState> finish(ARGState root, PathFormula result)
-      throws InterruptedException, SolverException {
+    ARGState root = pPath.getFirstState();
+    PathFormula result = pCondition;
+    if (graphProjection != null && pPath instanceof DssARGPathGraph) {
+      result = graphProjection.projectLocalVariables(result);
+    }
     if (generalization != null) {
       // The precondition supplies a vocabulary only. Generalization must preserve every entry
       // state of the condition, including states outside the current precondition.
@@ -138,10 +130,8 @@ public class PredicateViolationConditionOperator
       // block it passes and lets conditions of different paths become equal.
       result = projection.projectLocalVariables(result);
     }
-    if (hasRootAsPredecessor) {
-      if (cpa.getSolver().isUnsat(result.getFormula())) {
-        return Optional.empty();
-      }
+    if (checkSatisfiability && cpa.getSolver().isUnsat(result.getFormula())) {
+      return Optional.empty();
     }
     return Optional.of(
         PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(

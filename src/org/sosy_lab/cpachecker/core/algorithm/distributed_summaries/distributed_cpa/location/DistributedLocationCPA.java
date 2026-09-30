@@ -67,7 +67,7 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
     deserializeOperator = new DeserializeLocationState(pStateProvider, pNodes);
     violationConditionOperator =
         new BackwardTransferViolationConditionOperator(
-            new LocationTransferRelationBackwards(pStateProvider), locationCPA);
+            new LocationTransferRelationBackwards(pStateProvider), locationCPA, serializeOperator);
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     node = pNode;
     combineViolationConditionsOperator = new LocationStateCombineViolationConditionOperator();

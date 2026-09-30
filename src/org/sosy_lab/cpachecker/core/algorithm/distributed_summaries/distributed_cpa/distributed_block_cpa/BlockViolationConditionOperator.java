@@ -10,14 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.MergeableViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -26,7 +26,13 @@ import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class BlockViolationConditionOperator implements ViolationConditionOperator {
+/**
+ * Records the decisions taken on the way to the violation as the witness of the condition. The
+ * witness only restricts which paths a predecessor explores, so the witnesses of two paths are
+ * always merged.
+ */
+public class BlockViolationConditionOperator
+    implements MergeableViolationConditionOperator<DecisionGraph> {
 
   private final boolean trackHistory;
 
@@ -35,21 +41,30 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
   }
 
   @Override
-  public List<AbstractState> computeViolationConditions(
-      ARGPath pARGPath, Optional<ARGState> pPreviousCondition) {
-    Preconditions.checkArgument(
-        !(pARGPath instanceof DssARGPathGraph), "Component operators expect a single path");
-    return finish(
-            pARGPath.getFirstState(),
-            pPreviousCondition,
-            previousWitness(pPreviousCondition).addEdgesToFront(pARGPath.getFullPath()))
-        .stream()
-        .toList();
+  public DecisionGraph initialCondition(ARGState pTarget, Optional<ARGState> pPreviousCondition) {
+    return DecisionGraph.EMPTY;
   }
 
-  public Optional<AbstractState> withGraph(
-      ARGState root, Optional<ARGState> previous, DecisionGraph graph) {
-    return finish(root, previous, previousWitness(previous).addGraphToFront(graph));
+  @Override
+  public Optional<DecisionGraph> prepend(DecisionGraph pCondition, List<CFAEdge> pEdges) {
+    return Optional.of(pCondition.prepend(pEdges));
+  }
+
+  @Override
+  public Optional<DecisionGraph> merge(DecisionGraph pFirst, DecisionGraph pSecond) {
+    return Optional.of(DecisionGraph.union(ImmutableList.of(pFirst, pSecond)));
+  }
+
+  @Override
+  public Optional<AbstractState> finish(
+      ARGPath pPath, Optional<ARGState> pPreviousCondition, DecisionGraph pCondition) {
+    SegmentedPaths previous = previousWitness(pPreviousCondition);
+    // A single path keeps its compact representation as the list of its decisions.
+    SegmentedPaths witness =
+        pPath instanceof DssARGPathGraph
+            ? previous.addGraphToFront(pCondition)
+            : previous.addEdgesToFront(pPath.getFullPath());
+    return Optional.of(finish(pPath.getFirstState(), pPreviousCondition, witness));
   }
 
   private SegmentedPaths previousWitness(Optional<ARGState> previous) {
@@ -61,22 +76,21 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
         .orElse(SegmentedPaths.EMPTY);
   }
 
-  private Optional<AbstractState> finish(
+  private AbstractState finish(
       ARGState root, Optional<ARGState> pPreviousCondition, SegmentedPaths currentWitness) {
     BlockState topMost =
         Objects.requireNonNull(AbstractStates.extractStateByType(root, BlockState.class));
 
     if (!trackHistory) {
-      return Optional.of(
-          new BlockState(
-              topMost.getUniqueId(),
-              null,
-              topMost.getLocationNode(),
-              topMost.getBlockNode(),
-              topMost.getType(),
-              topMost.getViolationConditions(),
-              topMost.getHistory(),
-              currentWitness));
+      return new BlockState(
+          topMost.getUniqueId(),
+          null,
+          topMost.getLocationNode(),
+          topMost.getBlockNode(),
+          topMost.getType(),
+          topMost.getViolationConditions(),
+          topMost.getHistory(),
+          currentWitness);
     }
     List<String> previousHistory =
         pPreviousCondition
@@ -84,16 +98,14 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
                 state ->
                     AbstractStates.extractStateByType(state, BlockState.class).getHistory().path())
             .orElse(ImmutableList.of());
-    BlockState withHistory =
-        new BlockState(
-            topMost.getUniqueId(),
-            null,
-            topMost.getLocationNode(),
-            topMost.getBlockNode(),
-            topMost.getType(),
-            topMost.getViolationConditions(),
-            BlockGraphPath.of(listAndElement(previousHistory, topMost.getBlockNode().getId())),
-            currentWitness);
-    return Optional.of(withHistory);
+    return new BlockState(
+        topMost.getUniqueId(),
+        null,
+        topMost.getLocationNode(),
+        topMost.getBlockNode(),
+        topMost.getType(),
+        topMost.getViolationConditions(),
+        BlockGraphPath.of(listAndElement(previousHistory, topMost.getBlockNode().getId())),
+        currentWitness);
   }
 }
