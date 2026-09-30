@@ -101,12 +101,19 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
       CounterexampleInfo pCex,
       PathTemplate pOutputFileTemplate,
       int uniqueId,
-      int pNumberOfUnrollings)
+      OptionalInt pNumberOfUnrollings)
       throws IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, witnessVersion.toString());
-      exportWitness(pCex, outputFile, witnessVersion, OptionalInt.of(pNumberOfUnrollings));
+      exportWitness(pCex, outputFile, witnessVersion, pNumberOfUnrollings);
     }
+  }
+
+  /** This method should not be called from this class, but only from the extending one. */
+  @Override
+  protected void exportWitness(
+      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) {
+    throw new UnsupportedOperationException();
   }
 
   /**

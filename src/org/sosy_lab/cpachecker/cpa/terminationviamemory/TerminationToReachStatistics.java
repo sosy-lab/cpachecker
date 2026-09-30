@@ -14,6 +14,7 @@ import static java.util.logging.Level.WARNING;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.OptionalInt;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -77,8 +78,11 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
       int uniqueId = 0;
       for (CounterexampleInfo info : getAllCounterexamples(pReached).values()) {
         try {
-          nonterminationWitnessExporter.export(
-              info, nonterminationWitnessExporter.getOutputFileTemplate(), uniqueId);
+          nonterminationWitnessExporter.exportNonTerminationWitness(
+              info,
+              nonterminationWitnessExporter.getOutputFileTemplate(),
+              uniqueId,
+              OptionalInt.empty());
         } catch (IOException e) {
           logger.logUserException(
               WARNING, e, "There is a problem when writing the witness into a file.");

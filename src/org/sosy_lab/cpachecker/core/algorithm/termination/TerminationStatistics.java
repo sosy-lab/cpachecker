@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -591,8 +592,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             cexInfo,
             violationWitnessYaml,
             0,
-            countLoopHeadVisitsInStem(
-                cexInfo.getTargetPath(), AbstractStates.extractLocation(loopStart)));
+            OptionalInt.of(
+                countLoopHeadVisitsInStem(
+                    cexInfo.getTargetPath(), AbstractStates.extractLocation(loopStart))));
       }
     } catch (InterruptedException | IOException e) {
       logger.logUserException(WARNING, e, "Could not export termination witness.");
