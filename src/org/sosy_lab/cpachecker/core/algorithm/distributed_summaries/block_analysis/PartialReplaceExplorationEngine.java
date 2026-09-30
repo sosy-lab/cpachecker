@@ -136,8 +136,6 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
   /** A postcondition as published to the successors, see {@link #lastPostcondition}. */
   private record Postcondition(ImmutableSet<AbstractState> summaries, boolean unreachable) {}
 
-  private boolean unresolvedViolations;
-
   private final DssBlockAnalysis analysis;
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final PartialReplacePreconditionHandler preconditionHandler;
@@ -172,11 +170,6 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
   }
 
   @Override
-  public boolean hasUnresolvedViolations() {
-    return unresolvedViolations;
-  }
-
-  @Override
   public AnalysisResult exploreInitially() throws CPAException, InterruptedException {
     startStateResult =
         refresh(
@@ -191,7 +184,6 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       throws CPAException, InterruptedException {
     boolean unreachable = preconditionHandler.isUnreachable();
     if (unreachable && !pViolationConditionsChanged) {
-      unresolvedViolations = false;
       // every predecessor reported an unreachable block end, so this block cannot be entered
       return publish(ImmutableSet.of(), ImmutableList.of(), true);
     }
@@ -203,7 +195,6 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
     // explores. Every source of this round is therefore explored at the same precision.
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableList.Builder<ArgPathAndCondition> violations = ImmutableList.builder();
-    boolean anySourceHasViolations = false;
     for (Entry<String, ImmutableList<@NonNull StateAndPrecision>> active :
         preconditionHandler.getActivePreconditions().entrySet()) {
       String predecessor = active.getKey();
@@ -217,7 +208,6 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       resultPerPredecessor.put(predecessor, result);
       ImmutableList<ArgPathAndCondition> sourceViolations =
           ImmutableList.copyOf(result.violations());
-      anySourceHasViolations |= !sourceViolations.isEmpty();
       violations.addAll(sourceViolations);
       summaries.addAll(result.summaries);
     }
@@ -231,13 +221,12 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       violations.addAll(startStateResult.violations());
     }
 
-    unresolvedViolations = anySourceHasViolations;
-
-    // See the class documentation for why a violation holds back the whole postcondition. The
-    // violations of the speculative exploration do not, see there as well.
-    ImmutableSet<StateAndPrecision> allSummaries =
-        anySourceHasViolations ? ImmutableSet.of() : summaries.build();
+    // See the class documentation for why a violation holds back the whole postcondition. A round
+    // publishes either violations or a postcondition, so the speculative violations hold it back as
+    // well, although they alone would not require that.
     ImmutableList<ArgPathAndCondition> allViolations = violations.build();
+    ImmutableSet<StateAndPrecision> allSummaries =
+        allViolations.isEmpty() ? summaries.build() : ImmutableSet.of();
     return publish(
         allSummaries,
         allViolations,

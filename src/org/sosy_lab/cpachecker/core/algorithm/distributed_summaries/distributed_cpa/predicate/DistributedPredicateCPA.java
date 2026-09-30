@@ -72,9 +72,8 @@ public class DistributedPredicateCPA
       secure = true,
       description =
           "Whether to rewrite every violation condition as a disjunction of cubes generalized from"
-              + " models, restricted to the entry states the block can currently be entered with."
-              + " Each cube really reaches the violation, and the cubes together cover the"
-              + " condition for all states of the current precondition.")
+              + " models. The cubes together describe exactly all entry states of the condition;"
+              + " incomplete enumeration falls back to the original condition.")
   private boolean generalizeViolationConditions = true;
 
   @Option(
@@ -174,8 +173,7 @@ public class DistributedPredicateCPA
                     generalizeOverPreconditionPredicates)
                 : null);
     combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
-    combinePrecisionOperator =
-        new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
+    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
     combineViolationConditionsOperator =
         new PredicateStateCombineViolationConditionOperator(
             predicateCPA.getPathFormulaManager(), projection);

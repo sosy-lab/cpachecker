@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
@@ -18,12 +19,15 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Stream;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -33,9 +37,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -45,6 +52,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Assig
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
@@ -225,9 +234,16 @@ class AssignmentHandler {
     final Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap = new HashMap<>();
     final List<CompositeField> rhsAddressedFields = new ArrayList<>();
 
+    // Backward construction advances the SSA index of everything these assignments write; the
+    // symbols advanced so far are tracked so that a symbol several of them write is advanced once.
+    final Set<String> advancedSymbols = new HashSet<>();
     for (SliceAssignment assignment : assignments) {
       resolveAssignmentBases(
-          assignment, lhsBaseResolutionMap, rhsBaseResolutionMap, rhsAddressedFields);
+          assignment,
+          lhsBaseResolutionMap,
+          rhsBaseResolutionMap,
+          rhsAddressedFields,
+          advancedSymbols);
     }
 
     // note that after resolving the slice bases, we can no longer modify them,
@@ -357,6 +373,165 @@ class AssignmentHandler {
   }
 
   /**
+   * Advances the SSA indices of everything an assignment writes. Backward construction has to do
+   * this before the right-hand side is resolved, because the right-hand side has to read the index
+   * that precedes the write.
+   *
+   * <p>An assignment writes the component the slice modifiers select, not the base: for {@code s->f
+   * = v} the write goes to the field, not to the whole struct. The modifier chain is followed here
+   * on names and types alone, without resolving the quantifiers of a slice assignment first. That
+   * is sound because the written symbol does not depend on the index a slice runs over: an aliased
+   * write goes to the pointer-access symbol of the target's memory region whatever the subscript
+   * evaluates to, and that region follows from the type. Resolving the quantifiers is not possible
+   * here anyway, as {@link AssignmentQuantifierHandler} resolves them only once all bases of all
+   * assignments are resolved.
+   *
+   * @param pResolvedBase The resolved base of the left-hand side.
+   * @param pLhs The left-hand side, whose modifiers select the written component of the base.
+   * @param pAdvancedSymbols The symbols advanced for this list of assignments so far.
+   */
+  private void advanceIndicesOfAssignedSlice(
+      final ResolvedSlice pResolvedBase,
+      final SliceExpression pLhs,
+      final Set<String> pAdvancedSymbols)
+      throws UnrecognizedCodeException {
+
+    boolean aliased;
+    String name = null;
+    MemoryRegion region = null;
+    if (pResolvedBase.expression() instanceof UnaliasedLocation unaliased) {
+      aliased = false;
+      name = unaliased.getVariableName();
+    } else if (pResolvedBase.expression() instanceof AliasedLocation aliasedBase) {
+      aliased = true;
+      region = aliasedBase.getMemoryRegion();
+    } else {
+      // a value has no location to write to, e.g. a bit field the encoding does not track
+      return;
+    }
+
+    CType type = pResolvedBase.type();
+    for (SliceModifier modifier : pLhs.modifiers()) {
+      if (modifier instanceof SliceFieldAccessModifier fieldAccess) {
+        final CCompositeTypeMemberDeclaration member = fieldAccess.field();
+        final CCompositeType owner = (CCompositeType) type;
+        if (aliased) {
+          if (typeHandler.getOffset(owner, member.getName()).isEmpty()) {
+            // a bit field without a byte offset resolves to a value, so nothing is written
+            return;
+          }
+          region = regionMgr.makeMemoryRegion(owner, member);
+        } else {
+          name = getFieldAccessName(name, member);
+        }
+        type = typeHandler.getSimplifiedType(member);
+      } else {
+        // A slice index stands for every element of a bulk assignment, so this writes as many
+        // cells of one region as the slice is long.
+        rejectRepeatedBackwardWrite();
+        // Indexing always yields an aliased location: an array is always a pointer-target base, and
+        // indexing anything else dereferences it first. The region then follows from the element
+        // type alone.
+        aliased = true;
+        name = null;
+        region = null;
+        type =
+            typeHandler.simplifyType(
+                ((CPointerType) CTypes.adjustFunctionOrArrayType(type)).getType());
+      }
+    }
+    advanceIndicesOfAssignedTarget(aliased, name, region, type, pAdvancedSymbols);
+  }
+
+  /**
+   * Advances the SSA index of one written target. A composite is written member by member, exactly
+   * as {@link AssignmentFormulaHandler} does it in the forward direction, so every member that the
+   * assignment can write gets its own index. Only the members the encoding tracks are relevant; the
+   * others are never read back.
+   *
+   * @param pAliased Whether the target is an aliased location, i.e., written through the
+   *     pointer-access symbol of {@code pRegion} rather than under its own name.
+   * @param pName The variable name of an unaliased target, {@code null} for an aliased one.
+   * @param pRegion The memory region of an aliased target, {@code null} to derive it from the type.
+   * @param pType The type of the target.
+   * @param pAdvancedSymbols The symbols advanced for this list of assignments so far. A symbol that
+   *     several writes of one edge share is advanced once, mirroring the forward direction, where
+   *     the writes belonging to one assignment also share a single fresh index.
+   */
+  private void advanceIndicesOfAssignedTarget(
+      final boolean pAliased,
+      final @Nullable String pName,
+      final @Nullable MemoryRegion pRegion,
+      final CType pType,
+      final Set<String> pAdvancedSymbols)
+      throws UnrecognizedCodeException {
+
+    if (pAliased && pType instanceof CArrayType) {
+      // Every element of the array is a separate write into the same region.
+      rejectRepeatedBackwardWrite();
+    }
+    if (pType instanceof CCompositeType composite) {
+      for (CCompositeTypeMemberDeclaration member : composite.getMembers()) {
+        if (conv.isRelevantField(composite, member)) {
+          advanceIndicesOfAssignedTarget(
+              pAliased,
+              pAliased ? null : getFieldAccessName(pName, member),
+              pAliased ? regionMgr.makeMemoryRegion(composite, member) : null,
+              typeHandler.getSimplifiedType(member),
+              pAdvancedSymbols);
+        }
+      }
+      return;
+    }
+
+    final String symbol;
+    final CType symbolType;
+    if (pAliased) {
+      final MemoryRegion region = pRegion == null ? regionMgr.makeMemoryRegion(pType) : pRegion;
+      symbol = regionMgr.getPointerAccessName(region);
+      symbolType = pType;
+    } else {
+      symbol = pName;
+      symbolType = CTypes.adjustFunctionOrArrayType(pType);
+    }
+    if (!pAdvancedSymbols.add(symbol)) {
+      // Two writes of one edge into the same region, e.g. two members of a composite that share it.
+      rejectRepeatedBackwardWrite();
+      return;
+    }
+    conv.makeFreshIndex(symbol, symbolType, ssa);
+  }
+
+  /**
+   * Rejects an assignment that writes the same memory region more than once, which backward
+   * construction cannot encode yet.
+   *
+   * <p>Backward construction advances the SSA index of everything an assignment writes once, before
+   * the right-hand side reads it, so all writes of the assignment share the pair of indices that
+   * stands for the states before and after the edge. The forward direction gives each write its own
+   * index instead, and the retention constraints that keep unwritten cells unchanged are built per
+   * write against that pair. With a shared pair, the retention of the second write claims the cell
+   * the first one wrote is unchanged, which makes the assignment say that the state before the edge
+   * already held the written values. That is a strictly stronger condition than the assignment, so
+   * a violation condition built from it can miss violations. Failing here turns that into an honest
+   * unknown result.
+   *
+   * <p>Encoding this properly needs the retention constraints of one assignment to be emitted once,
+   * excluding every cell any of its writes touches, rather than once per write.
+   */
+  private void rejectRepeatedBackwardWrite() throws UnrecognizedCodeException {
+    if (assignmentOptions.useOldSSAIndicesIfAliased()) {
+      // An initialization assignment writes under the index the reads already use and emits no
+      // retention constraints at all, so sharing the index between its writes is harmless.
+      return;
+    }
+    throw new UnsupportedCodeException(
+        "Backward formula construction with pointer aliasing cannot encode an assignment that"
+            + " writes one memory region more than once",
+        edge);
+  }
+
+  /**
    * Resolves bases of a slice assignment and puts the resolutions to the provided maps.
    *
    * <p>Also calls the DynamicMemoryHandler to handle deferred allocations as necessary.
@@ -375,7 +550,8 @@ class AssignmentHandler {
       SliceAssignment assignment,
       Map<CRightHandSide, ResolvedSlice> lhsBaseResolutionMap,
       Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap,
-      List<CompositeField> rhsAddressedFields)
+      List<CompositeField> rhsAddressedFields,
+      final Set<String> pAdvancedSymbols)
       throws UnrecognizedCodeException, InterruptedException {
     // resolve LHS base using visitor
     final CExpressionVisitorWithPointerAliasing lhsBaseVisitor =
@@ -383,6 +559,12 @@ class AssignmentHandler {
             conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
+
+    // In backward analysis, update the SSA indices at this point
+    // to ensure that the right indices are given to the RHS of the assignment
+    if (conv.direction == AnalysisDirection.BACKWARD) {
+      advanceIndicesOfAssignedSlice(resolvedLhsBase, assignment.lhs, pAdvancedSymbols);
+    }
 
     // add initialized and used fields of LHS base to pointer-target set as essential
     // this is only needed for UF heap
@@ -403,6 +585,7 @@ class AssignmentHandler {
       // no resolution of RHS base or deferred memory handling
       return;
     }
+
     final SliceExpression rhs = assignment.rhs.orElseThrow();
 
     // resolve RHS base using visitor

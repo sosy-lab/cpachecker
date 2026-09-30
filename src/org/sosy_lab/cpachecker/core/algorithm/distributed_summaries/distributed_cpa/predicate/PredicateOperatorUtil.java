@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.UUID;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -136,20 +137,16 @@ public class PredicateOperatorUtil {
       UniqueIndexProvider pUniqueIndexProvider) {
     BooleanFormula booleanFormula = pPathFormula.getFormula();
     SSAMap ssaMap = pPathFormula.getSsa();
-    Map<String, Formula> variableToFormula = pFormulaManagerView.extractVariables(booleanFormula);
+    // Symbols, not just variables: the pointer-aliasing encoding puts every heap access into an
+    // uninterpreted function, and such a function carries an SSA index exactly like a variable
+    // does. Renaming only the variables would ship a condition that still mentions the heap of
+    // this block at a fixed index, and the block that receives it cannot instantiate it again.
+    Set<String> symbols = pFormulaManagerView.extractFunctionNames(booleanFormula);
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
-    Map<Formula, Formula> substitutions = new HashMap<>();
+    Map<String, String> renaming = new HashMap<>();
 
-    boolean alreadyUninstantiated = true;
-    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
-      if (!pFormulaManagerView
-              .uninstantiate(stringFormulaEntry.getValue())
-              .equals(stringFormulaEntry.getValue())
-          || isFreshPerUse(stringFormulaEntry.getKey())) {
-        alreadyUninstantiated = false;
-        break;
-      }
-    }
+    boolean alreadyUninstantiated =
+        symbols.stream().noneMatch(symbol -> hasIndex(symbol) || isFreshPerUse(symbol));
 
     if (alreadyUninstantiated) {
       SSAMapBuilder mapBuilder = SSAMap.emptySSAMap().builder();
@@ -159,42 +156,41 @@ public class PredicateOperatorUtil {
       return new SubstitutedBooleanFormula(booleanFormula, mapBuilder.build());
     }
 
-    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
-      String name = stringFormulaEntry.getKey();
-      Formula formula = stringFormulaEntry.getValue();
-
+    for (String symbol : symbols) {
       List<String> nameAndIndex =
-          Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(name);
-      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || isFreshPerUse(name)) {
-        substitutions.put(
-            formula,
-            pFormulaManagerView.makeVariable(
-                pFormulaManagerView.getFormulaType(formula), pUniqueIndexProvider.extend(name)));
+          Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(symbol);
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || isFreshPerUse(symbol)) {
+        renaming.put(symbol, pUniqueIndexProvider.extend(symbol));
         continue;
       }
-      name = nameAndIndex.getFirst();
+      String name = nameAndIndex.getFirst();
       int index = Integer.parseInt(nameAndIndex.get(1));
       int highestIndex = ssaMap.getIndex(name);
       if (index != highestIndex) {
         // Mark intermediate values as private on this and every subsequent use. A stable
         // name such as x.1 would accidentally identify witnesses of independent conditions.
         String newName = pUniqueIndexProvider.extend(name + "!" + index);
-        substitutions.put(
-            formula,
-            pFormulaManagerView.makeVariable(pFormulaManagerView.getFormulaType(formula), newName));
-        builder.setIndex(newName, ssaMap.getType(name), 1);
+        renaming.put(symbol, newName);
+        if (ssaMap.getType(name) != null) {
+          builder.setIndex(newName, ssaMap.getType(name), 1);
+        }
       } else {
-        substitutions.put(
-            formula,
-            pFormulaManagerView.makeVariable(pFormulaManagerView.getFormulaType(formula), name, 1));
+        renaming.put(symbol, name);
         builder = builder.setIndex(name, ssaMap.getType(name), 1);
       }
     }
     SSAMap ssaMapFinal = builder.build();
     return new SubstitutedBooleanFormula(
-        pFormulaManagerView.uninstantiate(
-            pFormulaManagerView.substitute(booleanFormula, substitutions)),
+        pFormulaManagerView.renameFreeVariablesAndUFs(
+            booleanFormula, symbol -> renaming.getOrDefault(symbol, symbol)),
         ssaMapFinal);
+  }
+
+  /** Whether a symbol name carries an SSA index, i.e., whether it is instantiated. */
+  private static boolean hasIndex(String pSymbol) {
+    List<String> nameAndIndex =
+        Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(pSymbol);
+    return nameAndIndex.size() == 2 && !nameAndIndex.get(1).isEmpty();
   }
 
   public record SubstitutedBooleanFormula(BooleanFormula booleanFormula, SSAMap ssaMap) {}

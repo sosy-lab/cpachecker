@@ -57,13 +57,14 @@ final class PartialReplaceViolationConditionHandler implements DssViolationCondi
       ImmutableSet<AbstractState> previousConditions = ImmutableSet.copyOf(states());
       ImmutableList<@NonNull StateAndPrecision> merged =
           reuseEqual(received, FluentIterable.concat(conditions.values()).toList());
-      if (ImmutableSet.copyOf(merged).equals(ImmutableSet.copyOf(stored))) {
+      boolean precisionCovered = analysis.precisionsCoveredBy(received, stored);
+      if (precisionCovered && sameStates(merged, stored)) {
         return DssMessageProcessing.stop();
       }
       conditions.put(sender, merged);
       // Keep ownership per successor, but explore an equivalent condition only once. Withdrawing
       // one owner's copy must leave both the other owner and the cached representative intact.
-      return previousConditions.equals(ImmutableSet.copyOf(states()))
+      return precisionCovered && previousConditions.equals(ImmutableSet.copyOf(states()))
           ? DssMessageProcessing.stop()
           : DssMessageProcessing.proceed();
     } finally {
@@ -87,7 +88,9 @@ final class PartialReplaceViolationConditionHandler implements DssViolationCondi
       StateAndPrecision equal = condition;
       for (StateAndPrecision candidate : representatives) {
         if (analysis.violationConditionEqual(condition.state(), candidate.state())) {
-          equal = candidate;
+          // The state is shared so that the engine still recognizes the condition as explored, but
+          // the received precision is kept so that a refinement is not dropped.
+          equal = new StateAndPrecision(candidate.state(), condition.precision());
           break;
         }
       }
@@ -97,6 +100,16 @@ final class PartialReplaceViolationConditionHandler implements DssViolationCondi
       merged.add(equal);
     }
     return merged.build().asList();
+  }
+
+  /** Whether both sets hold the same conditions, ignoring the precisions they carry. */
+  private static boolean sameStates(
+      ImmutableList<@NonNull StateAndPrecision> pFirst,
+      ImmutableList<@NonNull StateAndPrecision> pSecond) {
+    return FluentIterable.from(pFirst)
+        .transform(StateAndPrecision::state)
+        .toSet()
+        .equals(FluentIterable.from(pSecond).transform(StateAndPrecision::state).toSet());
   }
 
   @Override

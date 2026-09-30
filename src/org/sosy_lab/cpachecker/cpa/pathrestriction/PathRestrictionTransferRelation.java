@@ -22,11 +22,9 @@ class PathRestrictionTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
-    if (element instanceof GraphPathRestrictionState graphState) {
-      Cursor next = graphState.cursor().advance(cfaEdge);
-      return next.isEmpty()
-          ? ImmutableList.of()
-          : ImmutableList.of(new GraphPathRestrictionState(next));
+    if (element instanceof Cursor cursor) {
+      Cursor next = cursor.advance(cfaEdge);
+      return next.isEmpty() ? ImmutableList.of() : ImmutableList.of(next);
     }
     PathRestrictionState pathState = (PathRestrictionState) element;
 

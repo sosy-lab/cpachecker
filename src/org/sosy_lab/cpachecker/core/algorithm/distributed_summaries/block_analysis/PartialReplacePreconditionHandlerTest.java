@@ -65,6 +65,7 @@ public class PartialReplacePreconditionHandlerTest {
               Collection<StateAndPrecision> states2 = invocation.getArgument(1);
               return allMatched(states1, states2, false) && allMatched(states2, states1, false);
             });
+    when(analysis.precisionsCoveredBy(any(), any())).thenReturn(true);
     when(analysis.allCovered(any(), any()))
         .thenAnswer(
             invocation -> allMatched(invocation.getArgument(0), invocation.getArgument(1), true));

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
@@ -28,10 +30,35 @@ record AnalysisResult(
     Set<ArgPathAndCondition> violationConditions,
     boolean blockEndUnreachable) {
 
-  /** A round that reached the block end, so the summaries describe it. */
-  AnalysisResult(
-      Collection<StateAndPrecision> pSummaries, Set<ArgPathAndCondition> pViolationConditions) {
-    this(pSummaries, pViolationConditions, false);
+  AnalysisResult {
+    checkArgument(
+        violationConditions.isEmpty() || (summaries.isEmpty() && !blockEndUnreachable),
+        "A round with violations must not publish a postcondition");
+    checkArgument(
+        !blockEndUnreachable || summaries.isEmpty(),
+        "An unreachable block end must not have reachable summaries");
+  }
+
+  /** Merges runs of one round, retaining every violation and publishing summaries only if safe. */
+  static AnalysisResult merge(Collection<AnalysisResult> pRounds) {
+    ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
+    ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
+    boolean unreachable = !pRounds.isEmpty();
+    for (AnalysisResult round : pRounds) {
+      summaries.addAll(round.summaries());
+      violations.addAll(round.violationConditions());
+      unreachable &= round.blockEndUnreachable();
+    }
+    ImmutableSet<ArgPathAndCondition> allViolations = violations.build();
+    if (!allViolations.isEmpty()) {
+      return ofViolationConditions(allViolations);
+    }
+    return new AnalysisResult(summaries.build(), ImmutableSet.of(), unreachable);
+  }
+
+  /** A round without errors whose summaries describe the reachable block end. */
+  static AnalysisResult ofSummaries(Collection<StateAndPrecision> pSummaries) {
+    return new AnalysisResult(pSummaries, ImmutableSet.of(), false);
   }
 
   /** A round that produced nothing, e.g. because there was nothing to explore. */
@@ -39,15 +66,12 @@ record AnalysisResult(
     return new AnalysisResult(ImmutableSet.of(), ImmutableSet.of(), false);
   }
 
-  /** A round whose block end is unreachable, i.e., that publishes no postcondition at all. */
+  /** A round whose block end is unreachable and reports false as its postcondition. */
   static AnalysisResult unreachableBlockEnd() {
     return new AnalysisResult(ImmutableSet.of(), ImmutableSet.of(), true);
   }
 
-  /**
-   * A round that found violations. Its summaries are dropped, because the violations have to be
-   * resolved before a postcondition of this block means anything.
-   */
+  /** A round with errors reports its violation conditions instead of a forward summary. */
   static AnalysisResult ofViolationConditions(Set<ArgPathAndCondition> pViolationConditions) {
     return new AnalysisResult(ImmutableSet.of(), pViolationConditions, false);
   }

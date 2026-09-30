@@ -50,6 +50,7 @@ public class PartialReplaceViolationConditionHandlerTest {
         new DssMessageFactory(new DssAnalysisOptions(Configuration.defaultConfiguration()));
     analysis = mock(DssBlockAnalysis.class);
     when(analysis.statistics()).thenReturn(new DssSingleWorkerStatistics("test-block"));
+    when(analysis.precisionsCoveredBy(any(), any())).thenReturn(true);
     when(analysis.violationConditionEqual(any(), any()))
         .thenAnswer(
             invocation -> {

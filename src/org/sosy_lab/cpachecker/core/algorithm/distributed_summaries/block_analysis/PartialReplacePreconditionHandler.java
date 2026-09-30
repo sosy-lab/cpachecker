@@ -98,7 +98,9 @@ final class PartialReplacePreconditionHandler implements DssPreconditionHandler 
         }
       }
       ImmutableList<@NonNull StateAndPrecision> previous = preconditions.get(sender);
-      if (previous != null && analysis.statesEqual(previous, received)) {
+      if (previous != null
+          && analysis.statesEqual(previous, received)
+          && analysis.precisionsCoveredBy(received, previous)) {
         // Re-analysing on an update that changes nothing republishes the very same message.
         // Around a cycle in the block graph that never terminates.
         return DssMessageProcessing.stop();

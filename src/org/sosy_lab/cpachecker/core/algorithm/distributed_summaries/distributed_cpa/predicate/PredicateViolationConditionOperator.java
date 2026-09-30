@@ -24,6 +24,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -38,7 +40,7 @@ public class PredicateViolationConditionOperator
   /** Projects the local variables out of every condition, or {@code null} to keep them. */
   private final @Nullable ExistentialProjection projection;
 
-  /** Rewrites every condition as cubes relative to the precondition, or {@code null} to not. */
+  /** Rewrites every condition as equivalent cubes, or {@code null} to keep it. */
   private final @Nullable ModelBasedGeneralization generalization;
 
   public PredicateViolationConditionOperator(
@@ -59,17 +61,38 @@ public class PredicateViolationConditionOperator
     generalization = pGeneralization;
   }
 
+  /**
+   * Adds the pointer-target set the forward analysis built up to {@code pStart} to the context of
+   * {@code pFormula}. The forward state knows which bases exist and which fields are tracked; the
+   * backward walk that starts there needs the same knowledge to encode accesses to them.
+   */
+  private PathFormula withPointerTargetSetOf(ARGState pStart, PathFormula pFormula)
+      throws InterruptedException {
+    PredicateAbstractState predicateState =
+        AbstractStates.extractStateByType(pStart, PredicateAbstractState.class);
+    if (predicateState == null) {
+      return pFormula;
+    }
+    PointerTargetSet forward = predicateState.getPathFormula().getPointerTargetSet();
+    SSAMapBuilder ssa = pFormula.getSsa().builder();
+    PointerTargetSet merged =
+        backwardManager.mergePts(pFormula.getPointerTargetSet(), forward, ssa);
+    return pFormula.withContext(ssa.build(), merged);
+  }
+
   @Override
   public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
     return finish(
         pARGPath.getFirstState(),
-        prepend(initialCondition(pPreviousCondition), pARGPath.getFullPath()));
+        prepend(
+            initialCondition(pARGPath.getLastState(), pPreviousCondition), pARGPath.getFullPath()));
   }
 
   @Override
-  public PathFormula initialCondition(Optional<ARGState> pPreviousCondition) {
+  public PathFormula initialCondition(ARGState pStart, Optional<ARGState> pPreviousCondition)
+      throws InterruptedException {
     PathFormula result;
     if (pPreviousCondition.isEmpty()) {
       result = backwardManager.makeEmptyPathFormula();
@@ -84,7 +107,12 @@ public class PredicateViolationConditionOperator
         result = counterexampleState.getPathFormula();
       }
     }
-    return result;
+    // Walking backwards has to know the memory layout that the forward analysis of this block
+    // discovered up to the state the walk starts from. Starting from an empty pointer-target set
+    // loses the bases and the tracked fields, so a write through a pointer to a field of a
+    // composite cannot be encoded and the condition comes out unsatisfiable even though the path
+    // is feasible. The forward state carries that layout, so seed the walk with it.
+    return withPointerTargetSetOf(pStart, result);
   }
 
   @Override
@@ -111,16 +139,15 @@ public class PredicateViolationConditionOperator
   public Optional<AbstractState> finish(ARGState root, PathFormula result)
       throws InterruptedException, SolverException {
     if (generalization != null) {
-      // The path starts in the precondition the block was explored from. Predecessors only ever
-      // ask about states of their postconditions, which make up this precondition, so the
-      // condition only has to be exact there.
+      // The precondition supplies a vocabulary only. Generalization must preserve every entry
+      // state of the condition, including states outside the current precondition.
       Optional<PathFormula> generalized = generalization.generalize(result, preconditionOf(root));
       if (generalized.isPresent()) {
         if (cpa.getSolver()
             .getFormulaManager()
             .getBooleanFormulaManager()
             .isFalse(generalized.orElseThrow().getFormula())) {
-          // no state of the precondition takes this path to the violation
+          // The exact violation condition is unsatisfiable.
           return Optional.empty();
         }
         result = generalized.orElseThrow();

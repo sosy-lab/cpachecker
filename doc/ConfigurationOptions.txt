@@ -4652,7 +4652,7 @@ distributedSummaries.abstractAtBlockEntry = true
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
   enum:     [ALWAYS_REPLACE, PARTIAL_REPLACE]
 
-# Whether to cache computed, combined, and normalized violation conditions.
+# Whether to cache violation conditions normalized for comparison.
 distributedSummaries.cacheViolationConditions = true
 
 # Whether to combine incoming states and outgoing summaries by exact union.
@@ -4794,10 +4794,9 @@ dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
 dss.cpa.predicate.generalizeOverPreconditionPredicates = true
 
 # Whether to rewrite every violation condition as a disjunction of cubes
-# generalized from models, restricted to the entry states the block can
-# currently be entered with. Each cube really reaches the violation, and the
-# cubes together cover the condition for all states of the current
-# precondition.
+# generalized from models. The cubes together describe exactly all entry
+# states of the condition; incomplete enumeration falls back to the original
+# condition.
 dss.cpa.predicate.generalizeViolationConditions = true
 
 # The maximal number of cubes a generalized violation condition may consist

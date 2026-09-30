@@ -27,9 +27,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 interface DssExplorationEngine {
 
-  /** Whether violations from actual preconditions still prevent publishing a complete summary. */
-  boolean hasUnresolvedViolations();
-
   /** Explores the block before any message was received. */
   AnalysisResult exploreInitially() throws CPAException, InterruptedException;
 
