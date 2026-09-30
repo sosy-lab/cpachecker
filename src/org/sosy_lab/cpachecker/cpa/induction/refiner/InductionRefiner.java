@@ -46,11 +46,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.induction.InductionCPA;
 import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision;
@@ -64,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -100,6 +104,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
 
   /** One prover for all batch queries, as native BMC uses one for all its queries. */
   private @Nullable ProverEnvironment prover = null;
+
+  private @Nullable Boolean hasTargetLocations = null;
 
   private int refinementNumber = 0;
 
@@ -168,6 +174,11 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       for (ARGState state : from(pReached).filter(ARGState.class).filter(ARGState::isTarget)) {
         (isPropertyViolation(state) ? targets : cutOffs).add(state);
       }
+      if (targets.isEmpty() && !hasTargetLocations(pReached)) {
+        // no path violates the specification, which native BMC checks first
+        removeUnreachable(reached, cutOffs);
+        return true;
+      }
 
       Optional<ARGState> counterexample = refine(reached, targets, cutOffs);
       if (counterexample.isPresent()) {
@@ -231,6 +242,24 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     return bfmgr.and(
         getPredicateState(previous).getAbstractionFormula().asInstantiatedFormula(),
         getBlockFormula(getPredicateState(pAbstractionState)));
+  }
+
+  /** Whether the specification can be violated somewhere in the program. */
+  private boolean hasTargetLocations(ReachedSet pReached) {
+    if (hasTargetLocations == null) {
+      ImmutableList<Automaton> automata =
+          AbstractStates.asIterable(pReached.getFirstState())
+              .filter(AutomatonState.class)
+              .transform(AutomatonState::getOwningAutomaton)
+              .toList();
+      CFA cfa = predicateCpa.getCfa();
+      hasTargetLocations =
+          !new TargetLocationProviderImpl(predicateCpa.getShutdownNotifier(), logger, cfa)
+              .tryGetAutomatonTargetLocations(
+                  cfa.getMainFunction(), Specification.fromAutomata(automata))
+              .isEmpty();
+    }
+    return hasTargetLocations;
   }
 
   /**
