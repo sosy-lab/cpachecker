@@ -1,0 +1,53 @@
+; This file is part of SvLibChecker: An extensible and educational model checking
+; framework for SV-LIB benchmarks.
+; https://gitlab.com/sosy-lab/software/svlibchecker
+;
+; SPDX-FileCopyrightText: 2025 Dirk Beyer
+;
+; SPDX-License-Identifier: Apache-2.0
+
+; Proving the check of this program needs the induction step, since the program uses
+; non-linear arithmetic and the refinement therefore learns no predicates from
+; interpolation. The loop head of the second loop is never reachable, so it can never
+; be abstracted on any path and never takes part in the induction. It must not keep a
+; path which abstracted the loop head of the first loop from using the induction
+; hypothesis.
+
+(set-logic QF_LIA)
+
+(set-option :produce-witnesses true)
+
+(set-info :format-version "1.0")
+
+(define-proc
+  main
+  ()
+  ((result Int))
+  ((x Int) (y Int) (z Int) (nondet_bool$1 Int))
+  (!
+    (sequence
+      (if (not (<= 0 (* x y))) (sequence (assign (result 0)) (return)))
+      (!
+        (while
+          true
+          (sequence
+            (if (not (not (= nondet_bool$1 0))) (break))
+            (if
+              (= x 0)
+              (if (< 0 y) (assign (x (+ x 1))) (assign (x (- x 1)))))
+            (if (< 0 x) (assign (y (+ y 1))) (assign (x (- x 1))))))
+        :tag
+        main-while-1)
+      (assign (z 0))
+      (if (< z 0) (! (while (< z 0) (assign (z (+ z 1)))) :tag main-while-2))
+      (! (sequence) :tag main-check-1)
+      (assign (result 0))
+      (return))
+    :tag
+    main))
+
+(annotate-tag main-check-1 :check-true (<= 0 (* x y)))
+
+(verify-call main ())
+
+(get-witness)

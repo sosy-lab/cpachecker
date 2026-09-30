@@ -1,0 +1,47 @@
+; This file is part of the SV-Benchmarks collection of verification tasks:
+; https://github.com/sosy-lab/sv-benchmarks
+;
+; SPDX-FileCopyrightText: 2025 The SV-Benchmarks Community
+;
+; SPDX-License-Identifier: Apache-2.0
+;
+; Derived from the SV-Benchmarks task loop-acceleration/diamond_1-2.svlib by
+; lowering the bound of the loop, so that the counterexample is reachable without
+; unrolling the loop 99 times, while still needing more unrollings than the bound
+; of examples/diamond_1-2.unsafe.svlib.
+;
+; The loop is left with x being 15 if y is even and 16 if it is odd, so the check
+; is violated in both cases. The amount of loop iterations which are needed to
+; reach the violation is not a multiple of the induction k, which makes this task
+; a regression test for the induction step of predk: it may only assume an error
+; away if the error is checked at some other point of the induction.
+
+(set-logic QF_NIA)
+
+(set-option :produce-witnesses true)
+
+(set-info :format-version "1.0")
+
+(define-proc
+  main
+  ()
+  ((result Int))
+  ((x Int) (y Int))
+  (!
+    (sequence
+      (assign (x 0))
+      (!
+        (while
+          (< x 15)
+          (if (= (mod y 2) 0) (assign (x (+ x 1))) (assign (x (+ x 2)))))
+        :tag
+        main-while-1)
+      (! (sequence) :tag main-check-1))
+    :tag
+    main))
+
+(annotate-tag main-check-1 :check-true (= (mod x 2) (mod y 2)))
+
+(verify-call main ())
+
+(get-witness)

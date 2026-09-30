@@ -1,0 +1,72 @@
+; This file is part of the SV-Benchmarks collection of verification tasks:
+; https://github.com/sosy-lab/sv-benchmarks
+;
+; SPDX-FileCopyrightText: 2025 The SV-Benchmarks Community
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic QF_LIA)
+
+(set-option :produce-witnesses true)
+
+(set-info :format-version "1.0")
+
+(declare-var j Int)
+(declare-var x$4 Bool)
+(declare-var nondet_int$3 Int)
+
+(define-proc
+  main
+  ()
+  ((result Int))
+  ((i Int) (pvlen Int) (tmp___1 Int) (k Int) (n Int) (nondet_int$1 Int) (x$2 Bool))
+  (!
+    (sequence
+      (assign (k 0))
+      (assign (i 0))
+      (havoc pvlen)
+      (assign (x$2 (not (= nondet_int$1 0))))
+      (if x$2 (assign (x$2 (<= i 1000000))))
+      (!
+        (while
+          true
+          (sequence (if (not x$2) (break)) (assign (i (+ i 1)))))
+        :tag
+        main-while-1)
+      (if (< pvlen i) (assign (pvlen i)))
+      (assign (i 0))
+      (assign (x$4 (not (= nondet_int$3 0))))
+      (if x$4 (assign (x$4 (<= i 1000000))))
+      (!
+        (while
+          true
+          (sequence
+            (if (not x$4) (break))
+            (assign (tmp___1 i))
+            (assign (i (+ i 1)))
+            (assign (k (+ k 1)))))
+        :tag
+        main-while-2)
+      (assign (j 0))
+      (assign (n i))
+      (!
+        (while
+          (not (= 1 0))
+          (sequence
+            (! (sequence) :tag main-check-1)
+            (assign (k (- k 1)))
+            (assign (i (- i 1)))
+            (assign (j (+ j 1)))
+            (if (<= n j) (break))))
+        :tag
+        main-while-3)
+      (assign (result 0))
+      (return))
+    :tag
+    main))
+
+(annotate-tag main-check-1 :check-true (<= 0 k))
+
+(verify-call main ())
+
+(get-witness)

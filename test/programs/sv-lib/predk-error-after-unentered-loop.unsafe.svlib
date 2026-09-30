@@ -1,0 +1,42 @@
+; This file is part of SvLibChecker: An extensible and educational model checking
+; framework for SV-LIB benchmarks.
+; https://gitlab.com/sosy-lab/software/svlibchecker
+;
+; SPDX-FileCopyrightText: 2025 Dirk Beyer
+;
+; SPDX-License-Identifier: Apache-2.0
+
+; The second loop is never entered, so its loop head never takes part in the
+; induction and the check is reached without any visit of it. The violation therefore
+; has to be found on the concrete path of the base case, as soon as its unrolling of
+; the first loop is long enough: x is 3 when the first loop is left, which is not even.
+;
+; CPAchecker resolves mod only in non-linear logics, so this copy declares QF_NIA.
+
+(set-logic QF_NIA)
+
+(set-option :produce-witnesses true)
+
+(set-info :format-version "1.0")
+
+(define-proc
+  main
+  ()
+  ((result Int))
+  ((x Int))
+  (!
+    (sequence
+      (assign (x 0))
+      (! (while (< x 3) (assign (x (+ x 1)))) :tag main-while-1)
+      (if (< x 0) (! (while (< x 0) (assign (x (+ x 1)))) :tag main-while-2))
+      (! (sequence) :tag main-check-1)
+      (assign (result 0))
+      (return))
+    :tag
+    main))
+
+(annotate-tag main-check-1 :check-true (= (mod x 2) 0))
+
+(verify-call main ())
+
+(get-witness)

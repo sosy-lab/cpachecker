@@ -1,0 +1,44 @@
+; This file is part of the SV-Benchmarks collection of verification tasks:
+; https://github.com/sosy-lab/sv-benchmarks
+;
+; SPDX-FileCopyrightText: 2025 The SV-Benchmarks Community
+;
+; SPDX-License-Identifier: Apache-2.0
+;
+; Derived from the SV-Benchmarks task loop-acceleration/nested_1-2.svlib by
+; lowering the bounds of both loops, so that the counterexample is reachable
+; without unrolling the outer loop 268435455 times.
+
+(set-logic QF_NIA)
+
+(set-option :produce-witnesses true)
+
+(set-info :format-version "1.0")
+
+(define-proc
+  main
+  ()
+  ((result Int))
+  ((x Int) (y Int))
+  (!
+    (sequence
+      (assign (x 0))
+      (assign (y 0))
+      (!
+        (while
+          (< x 3)
+          (sequence
+            (assign (y 0))
+            (! (while (< y 2) (assign (y (+ y 1)))) :tag main-while-2)
+            (assign (x (+ x 1)))))
+        :tag
+        main-while-1)
+      (! (sequence) :tag main-check-1))
+    :tag
+    main))
+
+(annotate-tag main-check-1 :check-true (not (not (= (mod x 2) 0))))
+
+(verify-call main ())
+
+(get-witness)
