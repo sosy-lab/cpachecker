@@ -1,0 +1,170 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.induction;
+
+import static com.google.common.collect.Iterables.getOnlyElement;
+import static com.google.common.truth.Truth.assertThat;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import org.junit.Before;
+import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision.LoopPrecision;
+import org.sosy_lab.cpachecker.cpa.induction.InductionState.Resets;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+
+public class InductionTransferRelationTest {
+
+  private LoopStructure loopStructure;
+  private InductionTransferRelation transferRelation;
+  private InductionState initial;
+
+  /** The edge that enters the loop head from outside and the one that returns to it. */
+  private CFAEdge entry;
+
+  private CFAEdge back;
+
+  /** An edge that leaves the loop head into the body. */
+  private CFAEdge body;
+
+  @Before
+  public void setUp() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromFunctionBody(
+            """
+            int x = 0;
+            while (x < 10) {
+              x++;
+            }
+            """);
+    loopStructure = cfa.getLoopStructure().orElseThrow();
+    Loop loop = getOnlyElement(loopStructure.getAllLoops());
+    CFANode head = getOnlyElement(loop.getLoopHeads());
+    entry = getOnlyElement(loop.getIncomingEdges());
+    back =
+        head.getEnteringEdges()
+            .filter(e -> loop.getLoopNodes().contains(e.getPredecessor()))
+            .first()
+            .get();
+    body =
+        head.getLeavingEdges()
+            .filter(e -> loop.getLoopNodes().contains(e.getSuccessor()))
+            .first()
+            .get();
+    transferRelation = new InductionTransferRelation(loopStructure);
+    initial = InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of()));
+  }
+
+  private InductionPrecision precision(int pK, boolean pInduction, int pDescribedAbstractions) {
+    return InductionPrecision.uniform(
+        loopStructure.getAllLoops(),
+        new LoopPrecision(pK, pInduction, pDescribedAbstractions, false));
+  }
+
+  private Collection<InductionState> successors(
+      InductionState pState, InductionPrecision pPrecision, CFAEdge pEdge) {
+    return transferRelation.getAbstractSuccessorsForEdge(pState, pPrecision, pEdge);
+  }
+
+  private InductionState successor(
+      InductionState pState, InductionPrecision pPrecision, CFAEdge pEdge) {
+    return getOnlyElement(successors(pState, pPrecision, pEdge));
+  }
+
+  @Test
+  public void abstractsAtEveryArrivalWithKZero() {
+    InductionPrecision precision = precision(0, false, LoopPrecision.ALL_ABSTRACTIONS);
+    InductionState first = successor(initial, precision, entry);
+    assertThat(first.isAbstraction()).isTrue();
+    assertThat(first.isInductionStart()).isFalse();
+    assertThat(successor(successor(first, precision, body), precision, back).isAbstraction())
+        .isTrue();
+  }
+
+  @Test
+  public void splitsAtTheArrivalAfterK() {
+    InductionPrecision precision = precision(1, true, LoopPrecision.ALL_ABSTRACTIONS);
+    InductionState first = successor(initial, precision, entry);
+    assertThat(first.isAbstraction()).isFalse();
+
+    ImmutableList<InductionState> split =
+        ImmutableList.copyOf(successors(successor(first, precision, body), precision, back));
+    assertThat(split).hasSize(2);
+    InductionState continuation = split.get(0);
+    InductionState inductionStart = split.get(1);
+    assertThat(continuation.isAbstraction()).isFalse();
+    assertThat(continuation.isInInductionStep()).isFalse();
+    assertThat(inductionStart.isInductionStart()).isTrue();
+    assertThat(inductionStart.isInInductionStep()).isTrue();
+
+    // the base case continues one iteration, up to the next arrival
+    assertThat(successors(successor(continuation, precision, body), precision, back)).isEmpty();
+  }
+
+  @Test
+  public void inductionStepAbstractsWithoutSplit() {
+    InductionPrecision precision = precision(1, true, LoopPrecision.ALL_ABSTRACTIONS);
+    InductionState inductionStart =
+        ImmutableList.copyOf(
+                successors(
+                    successor(successor(initial, precision, entry), precision, body),
+                    precision,
+                    back))
+            .get(1);
+
+    InductionState afterBody = successor(inductionStart, precision, body);
+    assertThat(afterBody.reportsTargets()).isFalse();
+    InductionState first = successor(afterBody, precision, back);
+    assertThat(first.isAbstraction()).isFalse();
+    // the violation after k arrivals is the one of the induction step
+    assertThat(successor(first, precision, body).reportsTargets()).isTrue();
+
+    InductionState second = successor(successor(first, precision, body), precision, back);
+    assertThat(second.isAbstraction()).isTrue();
+    assertThat(second.isInductionStart()).isFalse();
+    assertThat(second.isInInductionStep()).isTrue();
+  }
+
+  @Test
+  public void cutsOffWhereNoAbstractionIsDescribed() {
+    InductionPrecision precision = precision(0, false, 0);
+    InductionState cutOff = successor(initial, precision, entry);
+    assertThat(cutOff.isCutOff()).isTrue();
+    assertThat(cutOff.isTarget()).isTrue();
+    assertThat(successors(cutOff, precision, body)).isEmpty();
+  }
+
+  @Test
+  public void continuationsOfDifferentPrecisionsDoNotCoverEachOther() {
+    InductionPrecision small = precision(1, true, LoopPrecision.ALL_ABSTRACTIONS);
+    InductionPrecision large = precision(2, true, LoopPrecision.ALL_ABSTRACTIONS);
+    InductionState beforeSecondArrival = successor(successor(initial, small, entry), small, body);
+
+    InductionState continuation = successors(beforeSecondArrival, small, back).iterator().next();
+    InductionState concrete = successor(beforeSecondArrival, large, back);
+    assertThat(concrete.getArrivals()).isEqualTo(continuation.getArrivals());
+
+    InductionDomain domain = new InductionDomain();
+    assertThat(domain.isLessOrEqual(concrete, continuation)).isFalse();
+    assertThat(
+            domain.isLessOrEqual(
+                successor(concrete, large, body), successor(continuation, small, body)))
+        .isFalse();
+    assertThat(
+            domain.isLessOrEqual(
+                successors(beforeSecondArrival, small, back).iterator().next(), continuation))
+        .isTrue();
+  }
+}

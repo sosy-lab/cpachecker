@@ -92,7 +92,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
     }
     inductionStarts.inc();
     return ImmutableList.of(
-        state.concrete(arrivals, true, reportsTargets),
+        state.continuation(arrivals, reportsTargets, precision),
         state.abstraction(successor, loopPrecision, true, reportsTargets));
   }
 

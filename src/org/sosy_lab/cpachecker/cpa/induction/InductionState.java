@@ -78,6 +78,12 @@ public final class InductionState
    */
   private final @Nullable InductionState blockStart;
 
+  /**
+   * The precision of the split that this state continues the base case after, or null. A
+   * continuation ends at the bound of its precision, so it never covers a state of another one.
+   */
+  private final @Nullable InductionPrecision continuedPrecision;
+
   private @LazyInit int hashCache = 0;
   private @LazyInit @Nullable PartitionKey partitionKey = null;
 
@@ -112,7 +118,8 @@ public final class InductionState
       @Nullable CFANode pLoopHead,
       @Nullable LoopPrecision pLoopPrecision,
       Resets pResets,
-      @Nullable InductionState pBlockStart) {
+      @Nullable InductionState pBlockStart,
+      @Nullable InductionPrecision pContinuedPrecision) {
     arrivals = pArrivals;
     abstractions = pAbstractions;
     inInductionStep = pInInductionStep;
@@ -123,6 +130,7 @@ public final class InductionState
     loopPrecision = pLoopPrecision;
     resets = pResets;
     blockStart = pBlockStart;
+    continuedPrecision = pContinuedPrecision;
   }
 
   static InductionState initial(Resets pResets) {
@@ -136,6 +144,7 @@ public final class InductionState
         null,
         null,
         pResets,
+        null,
         null);
   }
 
@@ -151,7 +160,27 @@ public final class InductionState
         null,
         null,
         resets,
-        blockStartOfSuccessors());
+        blockStartOfSuccessors(),
+        continuedPrecision);
+  }
+
+  /** The base case after the split at a loop head, next to the induction start. */
+  InductionState continuation(
+      PersistentSortedMap<Loop, Integer> pArrivals,
+      boolean pReportsTargets,
+      InductionPrecision pPrecision) {
+    return new InductionState(
+        pArrivals,
+        abstractions,
+        inInductionStep,
+        Kind.CONCRETE,
+        true,
+        pReportsTargets,
+        null,
+        null,
+        resets,
+        blockStartOfSuccessors(),
+        pPrecision);
   }
 
   InductionState abstraction(
@@ -174,7 +203,8 @@ public final class InductionState
         pLoopHead,
         pLoopPrecision,
         resets,
-        blockStartOfSuccessors());
+        blockStartOfSuccessors(),
+        null);
   }
 
   InductionState cutOff(
@@ -192,7 +222,8 @@ public final class InductionState
         pLoopHead,
         pLoopPrecision,
         resets,
-        blockStartOfSuccessors());
+        blockStartOfSuccessors(),
+        continuedPrecision);
   }
 
   private @Nullable InductionState blockStartOfSuccessors() {
@@ -368,7 +399,8 @@ public final class InductionState
         && arrivals.equals(other.arrivals)
         && abstractions.equals(other.abstractions)
         && Objects.equals(loopHead, other.loopHead)
-        && Objects.equals(loopPrecision, other.loopPrecision);
+        && Objects.equals(loopPrecision, other.loopPrecision)
+        && Objects.equals(continuedPrecision, other.continuedPrecision);
   }
 
   @Override
@@ -383,7 +415,8 @@ public final class InductionState
               atLoopHead,
               reportsTargets,
               loopHead,
-              loopPrecision);
+              loopPrecision,
+              continuedPrecision);
     }
     return hashCache;
   }
