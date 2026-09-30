@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -31,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
  * <p>The graph lets violation-condition computation reuse shared paths instead of enumerating them.
  * It extends {@link ARGPath} to fit the existing operator interface; the inherited single path is
  * only a representative for metadata. Computation must use {@link #backwardOrder()} and {@link
- * #incoming(ARGState)} to include every alternative.
+ * #incoming(ARGState)} to include every alternative, or enumerate them with {@link #paths()}.
  */
 public final class DssARGPathGraph extends ARGPath {
   public record Incoming(ARGState parent, ImmutableList<CFAEdge> edges) {}
@@ -109,6 +110,45 @@ public final class DssARGPathGraph extends ARGPath {
 
   public ImmutableList<Incoming> incoming(ARGState node) {
     return incoming.get(node);
+  }
+
+  /** A path suffix that ends in the target, sharing its tail with other suffixes. */
+  private record Suffix(
+      ARGState first, ImmutableList<CFAEdge> edgesToRest, @Nullable Suffix rest) {}
+
+  /**
+   * Enumerates every path of this graph, using the edges frozen at construction. The number of
+   * paths is exponential in the number of joins.
+   */
+  public ImmutableList<ARGPath> paths() {
+    ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
+    Deque<Suffix> worklist = new ArrayDeque<>();
+    worklist.push(new Suffix(getLastState(), ImmutableList.of(), null));
+    while (!worklist.isEmpty()) {
+      Suffix suffix = worklist.pop();
+      if (suffix.first() == getFirstState()) {
+        paths.add(toPath(suffix));
+        continue;
+      }
+      for (Incoming parent : incoming.get(suffix.first()).reverse()) {
+        worklist.push(new Suffix(parent.parent(), parent.edges(), suffix));
+      }
+    }
+    return paths.build();
+  }
+
+  private static ARGPath toPath(Suffix pSuffix) {
+    List<ARGState> states = new ArrayList<>();
+    List<@Nullable CFAEdge> innerEdges = new ArrayList<>();
+    ImmutableList.Builder<CFAEdge> fullPath = ImmutableList.builder();
+    for (Suffix suffix = pSuffix; suffix != null; suffix = suffix.rest()) {
+      states.add(suffix.first());
+      if (suffix.rest() != null) {
+        innerEdges.add(suffix.edgesToRest().size() == 1 ? suffix.edgesToRest().getFirst() : null);
+        fullPath.addAll(suffix.edgesToRest());
+      }
+    }
+    return new ARGPath(states, Collections.unmodifiableList(innerEdges), fullPath.build());
   }
 
   public Object graphId() {

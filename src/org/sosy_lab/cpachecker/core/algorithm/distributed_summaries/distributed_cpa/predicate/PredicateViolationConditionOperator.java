@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import com.google.common.base.Preconditions;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.MergeableViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -60,12 +62,16 @@ public class PredicateViolationConditionOperator
   }
 
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
+    Preconditions.checkArgument(
+        !(pARGPath instanceof DssARGPathGraph), "Component operators expect a single path");
     return finish(
-        pARGPath.getFirstState(),
-        prepend(initialCondition(pPreviousCondition), pARGPath.getFullPath()));
+            pARGPath.getFirstState(),
+            prepend(initialCondition(pPreviousCondition), pARGPath.getFullPath()))
+        .stream()
+        .toList();
   }
 
   @Override

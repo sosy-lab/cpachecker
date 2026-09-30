@@ -10,10 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,12 +35,16 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
   }
 
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition) {
+    Preconditions.checkArgument(
+        !(pARGPath instanceof DssARGPathGraph), "Component operators expect a single path");
     return finish(
-        pARGPath.getFirstState(),
-        pPreviousCondition,
-        previousWitness(pPreviousCondition).addEdgesToFront(pARGPath.getFullPath()));
+            pARGPath.getFirstState(),
+            pPreviousCondition,
+            previousWitness(pPreviousCondition).addEdgesToFront(pARGPath.getFullPath()))
+        .stream()
+        .toList();
   }
 
   public Optional<AbstractState> withGraph(

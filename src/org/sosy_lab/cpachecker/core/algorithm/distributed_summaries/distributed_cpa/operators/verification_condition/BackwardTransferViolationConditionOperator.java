@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -38,12 +40,15 @@ public class BackwardTransferViolationConditionOperator implements ViolationCond
   }
 
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException {
+    Preconditions.checkArgument(
+        !(pARGPath instanceof DssARGPathGraph), "Component operators expect a single path");
     List<CFAEdge> counterexample = pARGPath.getFullPath();
     CFANode lastLocation = Objects.requireNonNull(counterexample.getLast()).getSuccessor();
-    return prepend(initialState(lastLocation, pPreviousCondition), counterexample);
+    return prepend(initialState(lastLocation, pPreviousCondition), counterexample).stream()
+        .toList();
   }
 
   public AbstractState initialState(CFANode location, Optional<ARGState> previous)

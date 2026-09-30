@@ -42,7 +42,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Backwards dataflow over a frozen ARG, merging alternatives only when the other components are
  * equal.
  */
-final class CompositeGraphViolationConditionOperator<T> {
+public final class CompositeGraphViolationConditionOperator<T> {
   private record Component(
       int index,
       DistributedConfigurableProgramAnalysis cpa,
@@ -57,7 +57,7 @@ final class CompositeGraphViolationConditionOperator<T> {
   private final MergeableViolationConditionOperator<T> mergeable;
   private final BlockViolationConditionOperator block;
 
-  static boolean supports(List<ConfigurableProgramAnalysis> analyses) {
+  public static boolean supports(List<ConfigurableProgramAnalysis> analyses) {
     int mergeable = 0;
     boolean block = false;
     for (ConfigurableProgramAnalysis cpa : analyses) {
