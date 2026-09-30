@@ -482,7 +482,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private PredicateAbstractState replacePathFormula(
       PredicateAbstractState oldElement, PathFormula newPathFormula) {
     assert !oldElement.isAbstractionState();
-    return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement);
+    return mkNonAbstractionStateWithNewPathFormula(
+        newPathFormula, oldElement, oldElement.getPreviousAbstractionState());
   }
 
   private PredicateAbstractState strengthenSatCheck(PredicateAbstractState pElement, CFANode loc)
