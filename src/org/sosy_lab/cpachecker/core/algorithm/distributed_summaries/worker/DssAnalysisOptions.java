@@ -118,7 +118,7 @@ public class DssAnalysisOptions {
 
   @Option(
       secure = true,
-      description = "Whether to cache computed, combined, and normalized violation conditions.")
+      description = "Whether to cache violation conditions normalized for comparison.")
   private boolean cacheViolationConditions = true;
 
   @Option(

@@ -21,7 +21,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
-/** Frozen acyclic ARG fragment; the inherited path is only a representative for legacy metadata. */
+/**
+ * Frozen acyclic ARG fragment representing all paths from a block entry to a target.
+ *
+ * <p>The graph lets violation-condition computation reuse shared paths instead of enumerating them.
+ * It extends {@link ARGPath} to fit the existing operator interface; the inherited single path is
+ * only a representative for metadata. Computation must use {@link #backwardOrder()} and {@link
+ * #incoming(ARGState)} to include every alternative.
+ */
 public final class DssARGPathGraph extends ARGPath {
   public record Incoming(ARGState parent, ImmutableList<CFAEdge> edges) {}
 

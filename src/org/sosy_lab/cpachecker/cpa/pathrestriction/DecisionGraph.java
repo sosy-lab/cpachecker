@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /** An immutable acyclic automaton of decision-edge sequences, with shared suffixes. */
 public final class DecisionGraph {
@@ -85,11 +86,11 @@ public final class DecisionGraph {
   }
 
   public DecisionGraph then(DecisionGraph suffix) {
-    return new DecisionGraph(copy(root, suffix.root, ImmutableMap.of(), new IdentityHashMap<>()));
+    return new DecisionGraph(copy(root, suffix.root, ImmutableMap.of()));
   }
 
   public DecisionGraph transformEdges(Map<String, String> replacements) {
-    return new DecisionGraph(copy(root, END, replacements, new IdentityHashMap<>()));
+    return new DecisionGraph(copy(root, END, replacements));
   }
 
   private static List<Node> postorder(Node root) {
@@ -117,8 +118,8 @@ public final class DecisionGraph {
     return result;
   }
 
-  private static Node copy(
-      Node node, Node end, Map<String, String> replacements, IdentityHashMap<Node, Node> memo) {
+  private static Node copy(Node node, Node end, Map<String, String> replacements) {
+    IdentityHashMap<Node, Node> memo = new IdentityHashMap<>();
     memo.put(END, end);
     for (Node current : postorder(node)) {
       memo.put(
@@ -136,7 +137,7 @@ public final class DecisionGraph {
   }
 
   /** Positions after epsilon closure. A terminal position permits the remainder of the CFA. */
-  public static final class Cursor {
+  public static final class Cursor implements AbstractState {
     private final ImmutableSet<Node> positions;
 
     private Cursor(Collection<Node> nodes) {
@@ -193,22 +194,17 @@ public final class DecisionGraph {
       ids.put(END, 0);
       List<String> nodes = new ArrayList<>();
       nodes.add("D");
-      encode(root, ids, nodes);
+      for (Node current : postorder(root)) {
+        List<String> arcs = new ArrayList<>();
+        for (Arc arc : current.arcs) {
+          arcs.add(ids.get(arc.next) + ":" + arc.edge);
+        }
+        ids.put(current, nodes.size());
+        nodes.add(String.join(",", arcs));
+      }
       encoding = String.join("/", nodes);
     }
     return encoding;
-  }
-
-  private static int encode(Node node, IdentityHashMap<Node, Integer> ids, List<String> nodes) {
-    for (Node current : postorder(node)) {
-      List<String> arcs = new ArrayList<>();
-      for (Arc arc : current.arcs) {
-        arcs.add(ids.get(arc.next) + ":" + arc.edge);
-      }
-      ids.put(current, nodes.size());
-      nodes.add(String.join(",", arcs));
-    }
-    return ids.get(node);
   }
 
   public static DecisionGraph deserialize(String value) {

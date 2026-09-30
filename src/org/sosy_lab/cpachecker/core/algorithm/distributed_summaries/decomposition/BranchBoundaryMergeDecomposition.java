@@ -24,7 +24,59 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
-/** Removes acyclic branch boundaries by composing every incoming and outgoing block. */
+/**
+ * Coarsens a block graph by removing eligible branch and join locations from its block boundaries.
+ * This is a postprocessing step for the child decomposition, including an inlined decomposition;
+ * this class does not itself inline functions.
+ *
+ * <p>At a candidate boundary {@code v}, let {@code P} be the incoming blocks and {@code S} the
+ * outgoing blocks. Every block in {@code P} must have exactly {@code S} as its successors, and
+ * every block in {@code S} must have exactly {@code P} as its predecessors. All incoming blocks end
+ * at {@code v}, and all outgoing blocks start there. The transformation replaces these blocks with
+ * every pairwise composition {@code p;s}, for {@code p} in {@code P} and {@code s} in {@code S}.
+ * Each composition keeps the entry of {@code p}, the exit of {@code s}, and the union of their CFA
+ * nodes and edges. Its external predecessors come from {@code p}, and its external successors come
+ * from {@code s}; references to replaced blocks are expanded accordingly.
+ *
+ * <p>For example, {@code P -> {S1, S2}} becomes {@code {P;S1, P;S2}}. This duplicates the shared
+ * prefix in the block representation, while retaining both branch alternatives. A subsequent {@link
+ * HorizontalMergeDecomposition} combines compatible alternatives with the same surrounding blocks
+ * and exit. Independent compositions are batched into one round, and rounds repeat because a merge
+ * can expose further opportunities.
+ *
+ * <p><b>Why this preserves paths.</b> The argument assumes that the child supplies a valid block
+ * decomposition, with no loops inside blocks. Every original traversal through {@code v} chooses
+ * some incoming {@code p} followed by some outgoing {@code s}, and the corresponding composition
+ * exists because the full cross product is retained. Conversely, an execution through a composed
+ * block follows existing CFA edges from {@code p} and then {@code s}. The overlap check ensures
+ * that their node sets intersect only at {@code v}, with the entry/exit exception below, so an
+ * execution cannot switch between the two interiors elsewhere. Thus each composed traversal can be
+ * split at {@code v} into an original traversal. Edge statements and assumptions are retained, so
+ * this regrouping preserves the concrete executions as well as the control-flow alternatives.
+ *
+ * <p>The checks are important for this argument:
+ *
+ * <ul>
+ *   <li>The complete predecessor/successor relation ensures that removing the old blocks loses no
+ *       external use of either half and introduces no previously absent block pairing.
+ *   <li>The root block and loop-head boundaries are retained. Other shared interior locations are
+ *       rejected to prevent shortcuts or new internal cycles.
+ *   <li>The entry of {@code p} may equal the exit of {@code s}. This yields a block whose entry and
+ *       exit coincide, representing one traversal back to the boundary; repetition still takes
+ *       place between block analyses. It is not an unrestricted loop inside a block.
+ *   <li>A block participates in at most one composition group per round. Disjoint groups can be
+ *       composed together, followed by one update of all predecessor and successor references.
+ * </ul>
+ *
+ * <p><b>Why this helps DSS.</b> Removing an intermediate boundary lets a worker analyze a branch
+ * together with its surrounding statements. This can avoid summary exchanges, boundary
+ * abstractions, and refinements caused by losing correlations at that boundary. After horizontal
+ * merging, fewer blocks can also mean fewer worker CPAs and solver contexts. The tradeoff is that a
+ * composed block has more local work and offers less parallelism, while the cross product can
+ * initially increase the number of blocks. Groups producing more than 64 compositions are skipped,
+ * and the pass stops after at most 1000 rounds. These are effort limits: leaving a boundary in
+ * place preserves the existing decomposition and does not discard any execution.
+ */
 final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
   private final DssBlockDecomposition child;
   private int nextId;
