@@ -97,8 +97,11 @@ public class TerminationWitnessValidator implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
-  private final Scope scope;
-  private final WellFoundednessChecker wellFoundednessChecker;
+  private final Specification specification;
+  // The scope and the checker are created in run(), since the scope has to contain the
+  // declarations of the __PREV variables from the witness
+  private Scope scope;
+  private WellFoundednessChecker wellFoundednessChecker;
 
   public TerminationWitnessValidator(
       final CFA pCfa,
@@ -118,7 +121,7 @@ public class TerminationWitnessValidator implements Algorithm {
       throw new InvalidConfigurationException(
           "The validation of termination witnesses does not support other language than C.");
     }
-    scope = new CProgramScope(cfa, logger);
+    specification = pSpecification;
 
     @SuppressWarnings("resource")
     PredicateCPA predCpa =
@@ -128,17 +131,12 @@ public class TerminationWitnessValidator implements Algorithm {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
 
+    if (pWitnessPath.isEmpty()) {
+      throw new InvalidConfigurationException("Witness file is missing in specification.");
+    }
     if (pWitnessPath.size() != 1) {
       throw new InvalidConfigurationException(
           "Expected exactly one correctness witness as input of the algorithm.");
-    }
-
-    if (checkWithInfiniteSpace) {
-      wellFoundednessChecker =
-          new ImplicitRankingChecker(
-              fmgr, bfmgr, logger, config, shutdownNotifier, pSpecification, scope, cfa);
-    } else {
-      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
     }
 
     witnessPath = pWitnessPath.stream().findAny().orElseThrow();
@@ -158,6 +156,17 @@ public class TerminationWitnessValidator implements Algorithm {
           "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
+    }
+
+    scope =
+        new CProgramScope(cfa, logger)
+            .withAdditionalDeclarations(collectPrevVariableDeclarations(invariants));
+    if (checkWithInfiniteSpace) {
+      wellFoundednessChecker =
+          new ImplicitRankingChecker(
+              fmgr, bfmgr, logger, config, shutdownNotifier, specification, scope, cfa);
+    } else {
+      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
     }
 
     ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
@@ -312,6 +321,15 @@ public class TerminationWitnessValidator implements Algorithm {
     } catch (InvalidConfigurationException | InvalidCmdlineArgumentException | IOException e) {
       throw new CPAException("Supporting invariants check failed: ", e);
     }
+  }
+
+  /** Collects the declarations of the __PREV variables of all transition invariants. */
+  private static ImmutableSet<CSimpleDeclaration> collectPrevVariableDeclarations(
+      Set<ExpressionTreeLocationInvariant> invariants) {
+    return FluentIterable.from(invariants)
+        .filter(ExpressionTreeLocationTransitionInvariant.class)
+        .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().keySet())
+        .toSet();
   }
 
   private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinPrevDeclarationMapsForLoop(

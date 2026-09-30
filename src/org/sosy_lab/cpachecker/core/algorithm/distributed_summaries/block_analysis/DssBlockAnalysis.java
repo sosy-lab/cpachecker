@@ -726,7 +726,7 @@ public final class DssBlockAnalysis {
     for (ArgPathAndCondition pathAndCondition : pRelevantViolations) {
       List<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
-              .computeConditions(
+              .computeViolationConditions(
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
       for (AbstractState condition : violationCondition) {
         ViolationConditionProgramPoint programPoint =
@@ -804,7 +804,7 @@ public final class DssBlockAnalysis {
   private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> pStates) {
     ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
     for (ARGState state : pStates) {
-      if (graphViolationConditions && dcpa.getViolationConditionOperator().supportsGraph()) {
+      if (graphViolationConditions) {
         paths.add(DssARGPathGraph.of((ARGState) reachedSet.getFirstState(), state));
       } else {
         paths.addAll(ARGUtils.getAllPaths(reachedSet, state));

@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
@@ -26,25 +29,13 @@ public class ARGViolationConditionOperator implements ViolationConditionOperator
   }
 
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
-    return wrappedCPA
-        .getViolationConditionOperator()
-        .computeViolationCondition(pARGPath, pPreviousCondition)
-        .map(state -> new ARGState(state, null));
-  }
-
-  @Override
-  public boolean supportsGraph() {
-    return wrappedCPA.getViolationConditionOperator().supportsGraph();
-  }
-
-  @Override
-  public java.util.List<AbstractState> computeConditions(ARGPath path, Optional<ARGState> previous)
-      throws InterruptedException, CPATransferException, SolverException {
-    return wrappedCPA.getViolationConditionOperator().computeConditions(path, previous).stream()
-        .<AbstractState>map(state -> new ARGState(state, null))
-        .toList();
+    return transformedImmutableListCopy(
+        wrappedCPA
+            .getViolationConditionOperator()
+            .computeViolationConditions(pARGPath, pPreviousCondition),
+        state -> new ARGState(state, null));
   }
 }
