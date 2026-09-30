@@ -112,7 +112,7 @@ public class BlockCPA extends AbstractCPA {
         BlockStateType.INITIAL,
         ImmutableList.of(),
         BlockGraphPath.of(),
-        DecisionGraph.EMPTY);
+        DecisionGraph.UNRESTRICTED);
   }
 
   public UniqueIdGenerator getIdGenerator() {

@@ -60,7 +60,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             state ->
                 Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
                     .getWitness())
-        .orElse(DecisionGraph.EMPTY);
+        .orElse(DecisionGraph.UNRESTRICTED);
   }
 
   private Optional<AbstractState> finish(

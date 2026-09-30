@@ -75,21 +75,21 @@ public final class DecisionGraphTest {
   }
 
   private static DecisionGraph path(CFAEdge... edges) {
-    return DecisionGraph.EMPTY.prepend(ImmutableList.copyOf(edges));
+    return DecisionGraph.UNRESTRICTED.prepend(ImmutableList.copyOf(edges));
   }
 
   @Test
-  public void empty_permitsEverything() {
-    assertThat(permits(DecisionGraph.EMPTY, a.taken(), b.other())).isTrue();
-    assertThat(permits(DecisionGraph.EMPTY, a.other(), b.taken())).isTrue();
-    assertThat(DecisionGraph.EMPTY.size()).isEqualTo(0);
+  public void unrestricted_permitsEverything() {
+    assertThat(permits(DecisionGraph.UNRESTRICTED, a.taken(), b.other())).isTrue();
+    assertThat(permits(DecisionGraph.UNRESTRICTED, a.other(), b.taken())).isTrue();
+    assertThat(DecisionGraph.UNRESTRICTED.maxDecisions()).isEqualTo(0);
   }
 
   @Test
   public void prepend_restrictsDecisionEdges() {
     DecisionGraph graph = path(a.taken(), straight);
 
-    assertThat(graph.size()).isEqualTo(1);
+    assertThat(graph.maxDecisions()).isEqualTo(1);
     assertThat(permits(graph, a.taken())).isTrue();
     assertThat(permits(graph, a.other())).isFalse();
   }
@@ -98,7 +98,7 @@ public final class DecisionGraphTest {
   public void prepend_ignoresEdgesWithoutAlternative() {
     DecisionGraph graph = path(straight);
 
-    assertThat(graph.size()).isEqualTo(0);
+    assertThat(graph.maxDecisions()).isEqualTo(0);
     assertThat(permits(graph, a.taken())).isTrue();
     assertThat(permits(graph, a.other())).isTrue();
   }
@@ -107,7 +107,7 @@ public final class DecisionGraphTest {
   public void prepend_putsNewDecisionsBeforeExistingOnes() {
     DecisionGraph graph = path(b.taken()).prepend(ImmutableList.of(a.taken()));
 
-    assertThat(graph.size()).isEqualTo(2);
+    assertThat(graph.maxDecisions()).isEqualTo(2);
     assertThat(permits(graph, a.taken(), b.taken())).isTrue();
     assertThat(permits(graph, a.taken(), b.other())).isFalse();
     assertThat(permits(graph, b.taken())).isFalse();
@@ -152,7 +152,7 @@ public final class DecisionGraphTest {
                 previous.prepend(ImmutableList.of(a.taken())),
                 previous.prepend(ImmutableList.of(a.other()))));
 
-    assertThat(graph.size()).isEqualTo(2);
+    assertThat(graph.maxDecisions()).isEqualTo(2);
     assertThat(permits(graph, a.taken(), b.taken())).isTrue();
     assertThat(permits(graph, a.other(), b.taken())).isTrue();
     assertThat(permits(graph, a.taken(), b.other())).isFalse();
@@ -163,7 +163,7 @@ public final class DecisionGraphTest {
   public void union_ofSingleGraph_permitsTheSamePaths() {
     DecisionGraph union = DecisionGraph.union(ImmutableList.of(path(a.taken())));
 
-    assertThat(union.size()).isEqualTo(1);
+    assertThat(union.maxDecisions()).isEqualTo(1);
     assertThat(permits(union, a.taken())).isTrue();
     assertThat(permits(union, a.other())).isFalse();
   }
@@ -194,7 +194,7 @@ public final class DecisionGraphTest {
     DecisionGraph continuation = path(b.taken());
     List<DecisionGraph> graphs =
         ImmutableList.of(
-            DecisionGraph.EMPTY,
+            DecisionGraph.UNRESTRICTED,
             path(a.taken(), b.other()),
             DecisionGraph.union(
                 ImmutableList.of(
@@ -206,7 +206,7 @@ public final class DecisionGraphTest {
       DecisionGraph deserialized = DecisionGraph.deserialize(graph.serialize());
 
       assertThat(deserialized).isEqualTo(graph);
-      assertThat(deserialized.size()).isEqualTo(graph.size());
+      assertThat(deserialized.maxDecisions()).isEqualTo(graph.maxDecisions());
       for (CFAEdge first : ImmutableList.of(a.taken(), a.other(), c.taken())) {
         for (CFAEdge second : ImmutableList.of(b.taken(), b.other())) {
           assertThat(permits(deserialized, first, second)).isEqualTo(permits(graph, first, second));

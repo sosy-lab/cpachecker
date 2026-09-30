@@ -53,7 +53,10 @@ public final class DecisionGraph {
   }
 
   private static final Node END = new Node(ImmutableList.of());
-  public static final DecisionGraph EMPTY = new DecisionGraph(END);
+
+  /** The graph that permits every path, e.g., for a violation inside the current block. */
+  public static final DecisionGraph UNRESTRICTED = new DecisionGraph(END);
+
   private final Node root;
   @LazyInit private @Nullable String encoding;
 
@@ -62,7 +65,7 @@ public final class DecisionGraph {
   }
 
   /** The number of decisions on the longest path through this graph. */
-  public int size() {
+  public int maxDecisions() {
     return root.length;
   }
 
@@ -96,7 +99,11 @@ public final class DecisionGraph {
     return new DecisionGraph(result);
   }
 
-  /** Returns a graph that permits exactly the paths permitted by any of {@code choices}. */
+  /**
+   * Returns a graph that permits exactly the paths permitted by any of {@code choices}.
+   *
+   * @throws IllegalArgumentException if {@code choices} is empty
+   */
   public static DecisionGraph union(Collection<DecisionGraph> choices) {
     Preconditions.checkArgument(!choices.isEmpty());
     if (choices.size() == 1) {
@@ -312,6 +319,12 @@ public final class DecisionGraph {
     return new DecisionGraph(built.getLast());
   }
 
+  /**
+   * Whether both graphs have the same structure, i.e., the same {@link #serialize() serialization}.
+   * Graphs built the same way are equal, but graphs that permit the same paths need not be: a union
+   * of the same choices in a different order, for example, is not equal. A result of {@code false}
+   * therefore does not mean that the graphs permit different paths.
+   */
   @Override
   public boolean equals(Object other) {
     return other instanceof DecisionGraph graph && serialize().equals(graph.serialize());

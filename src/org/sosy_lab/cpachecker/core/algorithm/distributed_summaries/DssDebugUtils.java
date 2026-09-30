@@ -267,8 +267,8 @@ public final class DssDebugUtils {
       if (!blockState.getHistory().path().isEmpty()) {
         parts.add("hist=" + render(blockState.getHistory()));
       }
-      if (blockState.getWitness().size() > 0) {
-        parts.add("wit=" + blockState.getWitness().size());
+      if (blockState.getWitness().maxDecisions() > 0) {
+        parts.add("witDecisions=" + blockState.getWitness().maxDecisions());
       }
       if (!blockState.getViolationConditions().isEmpty()) {
         parts.add("vcs=" + blockState.getViolationConditions().size());
@@ -700,7 +700,7 @@ public final class DssDebugUtils {
           + " history="
           + render(parsed.history())
           + " witnessDecisions="
-          + parsed.witness().size();
+          + parsed.witness().maxDecisions();
     } catch (RuntimeException e) {
       return "<unparsable: " + e + ">";
     }
