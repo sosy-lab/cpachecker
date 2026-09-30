@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -212,7 +213,7 @@ public class TransitionInvariantUtils {
       if (isPrevVariable(prevVarPure, pMapPrevVarsToCurr)) {
         String currVarName =
             pMapPrevVarsToCurr.get(getPrevDeclaration(prevVarPure, pMapPrevVarsToCurr)).getName();
-        String currVar = "";
+        Optional<String> currVar = Optional.empty();
         for (Map.Entry<String, Formula> entry2 : currMapNamesToVars.entrySet()) {
           String currVarPure =
               removeFunctionFromVarsName(
@@ -220,17 +221,19 @@ public class TransitionInvariantUtils {
                       .findAny()
                       .orElseThrow());
           if (currVarName.equals(currVarPure)) {
-            currVar = entry2.getKey();
+            currVar = Optional.of(entry2.getKey());
             break;
           }
         }
         // If the variable does not occur in pCurrFormula, e.g., because it is not changed in the
         // loop, there is no variable to make equivalent to the previous variable
-        if (!currVar.isEmpty()) {
+        if (currVar.isPresent()) {
           equivalence =
               fmgr.makeAnd(
                   equivalence,
-                  fmgr.makeEqual(prevMapNamesToVars.get(prevVar), currMapNamesToVars.get(currVar)));
+                  fmgr.makeEqual(
+                      prevMapNamesToVars.get(prevVar),
+                      currMapNamesToVars.get(currVar.orElseThrow())));
         }
       }
     }
