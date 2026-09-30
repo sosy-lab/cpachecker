@@ -26,7 +26,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -53,11 +55,19 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 final class CompositeTransferRelation implements WrapperTransferRelation {
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
+
+  /**
+   * One restarted state per component and location, since callstack states cover only themselves.
+   */
+  private final Map<Pair<Integer, CFANode>, AbstractState> restartedStates =
+      new ConcurrentHashMap<>();
+
   private final CFA cfa;
   private final int size;
   private final boolean predicatesPresent;
@@ -299,16 +309,28 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
             if (result == pStates) {
               result = new ArrayList<>(pStates);
             }
-            result.set(
-                i,
-                cpas.get(i)
-                    .getInitialState(
-                        pEdge.getSuccessor(), StateSpacePartition.getDefaultPartition()));
+            result.set(i, restartedState(i, pEdge.getSuccessor()));
           }
         }
       }
     }
     return result;
+  }
+
+  private AbstractState restartedState(int pComponent, CFANode pLocation)
+      throws InterruptedException {
+    Pair<Integer, CFANode> key = Pair.of(pComponent, pLocation);
+    AbstractState state = restartedStates.get(key);
+    if (state == null) {
+      state =
+          cpas.get(pComponent)
+              .getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
+      AbstractState previous = restartedStates.putIfAbsent(key, state);
+      if (previous != null) {
+        state = previous;
+      }
+    }
+    return state;
   }
 
   private Collection<List<AbstractState>> callTransferRelation(

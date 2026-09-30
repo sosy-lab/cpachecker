@@ -50,7 +50,7 @@ public final class InductionState
   }
 
   /** The CPAs that restart at an abstraction, given by their class names. */
-  record Resets(ImmutableSet<String> atAbstraction, ImmutableSet<String> atInductionStart) {
+  record Resets(ImmutableSet<String> atAbstraction, ImmutableSet<String> inInductionStep) {
 
     private static boolean contains(ImmutableSet<String> pNames, ConfigurableProgramAnalysis pCpa) {
       return pNames.contains(pCpa.getClass().getName());
@@ -229,10 +229,9 @@ public final class InductionState
   @Override
   public boolean resets(ConfigurableProgramAnalysis pCpa) {
     return switch (kind) {
-      case ABSTRACTION -> Resets.contains(resets.atAbstraction(), pCpa);
-      case INDUCTION_START ->
+      case ABSTRACTION, INDUCTION_START ->
           Resets.contains(resets.atAbstraction(), pCpa)
-              || Resets.contains(resets.atInductionStart(), pCpa);
+              || (inInductionStep && Resets.contains(resets.inInductionStep(), pCpa));
       case CONCRETE, CUT_OFF -> false;
     };
   }

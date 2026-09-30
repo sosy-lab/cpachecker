@@ -79,9 +79,10 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
   @Option(
       secure = true,
       description =
-          "CPAs (as in CompositeCPA.cpas) that also restart from their initial state when an"
-              + " induction step starts, e.g., the callstack for an arbitrary calling context")
-  private List<String> inductionStartCPAs = ImmutableList.of();
+          "CPAs (as in CompositeCPA.cpas) that also restart from their initial state at every"
+              + " abstraction in an induction step, e.g., the callstack for an arbitrary calling"
+              + " context")
+  private List<String> inductionStepCPAs = ImmutableList.of();
 
   private final LoopStructure loopStructure;
   private final Resets resets;
@@ -97,7 +98,7 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
     pConfig.inject(this);
     loopStructure = loopStructureOf(pCfa);
     transferRelation = (InductionTransferRelation) getTransferRelation();
-    resets = new Resets(toClassNames(abstractedCPAs), toClassNames(inductionStartCPAs));
+    resets = new Resets(toClassNames(abstractedCPAs), toClassNames(inductionStepCPAs));
   }
 
   private static LoopStructure loopStructureOf(CFA pCfa) throws InvalidConfigurationException {
