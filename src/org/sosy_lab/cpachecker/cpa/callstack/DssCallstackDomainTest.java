@@ -122,7 +122,10 @@ public class DssCallstackDomainTest {
             .firstMatch(edge -> edge.getPredecessor().getFunctionName().equals("main"))
             .get();
     FunctionReturnEdge returnEdge =
-        call.getSuccessor().getExitNode().orElseThrow().getLeavingReturnEdges()
+        call.getSuccessor()
+            .getExitNode()
+            .orElseThrow()
+            .getLeavingReturnEdges()
             .filter(FunctionReturnEdge.class)
             .firstMatch(edge -> edge.getSummaryEdge().equals(call.getSummaryEdge()))
             .get();
