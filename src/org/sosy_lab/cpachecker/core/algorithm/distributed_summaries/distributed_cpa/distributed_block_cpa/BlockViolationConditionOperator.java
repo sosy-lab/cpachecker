@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
@@ -38,25 +37,25 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     return finish(
         pARGPath.getFirstState(),
         pPreviousCondition,
-        previousWitness(pPreviousCondition).addEdgesToFront(pARGPath.getFullPath()));
+        previousWitness(pPreviousCondition).prepend(pARGPath.getFullPath()));
   }
 
   public Optional<AbstractState> withGraph(
       ARGState root, Optional<ARGState> previous, DecisionGraph graph) {
-    return finish(root, previous, previousWitness(previous).addGraphToFront(graph));
+    return finish(root, previous, graph.then(previousWitness(previous)));
   }
 
-  private SegmentedPaths previousWitness(Optional<ARGState> previous) {
+  private DecisionGraph previousWitness(Optional<ARGState> previous) {
     return previous
         .map(
             state ->
                 Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
                     .getWitness())
-        .orElse(SegmentedPaths.EMPTY);
+        .orElse(DecisionGraph.EMPTY);
   }
 
   private Optional<AbstractState> finish(
-      ARGState root, Optional<ARGState> pPreviousCondition, SegmentedPaths currentWitness) {
+      ARGState root, Optional<ARGState> pPreviousCondition, DecisionGraph currentWitness) {
     BlockState topMost =
         Objects.requireNonNull(AbstractStates.extractStateByType(root, BlockState.class));
 

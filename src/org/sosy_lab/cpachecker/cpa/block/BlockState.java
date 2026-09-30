@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -62,9 +62,9 @@ public class BlockState
   private final BlockNode blockNode;
   private BlockGraphPath history;
   private ImmutableList<? extends AbstractState> violationConditions;
-  private final SegmentedPaths witness;
+  private final DecisionGraph witness;
 
-  private final Optional<SegmentedPaths> witnessCheckPathState;
+  private final Optional<DecisionGraph> witnessCheckPathState;
 
   private final transient Set<AbstractState> hinderedByCallstack;
 
@@ -84,8 +84,8 @@ public class BlockState
       BlockStateType pType,
       ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
-      SegmentedPaths pWitness,
-      SegmentedPaths pWitnessCheckPathState) {
+      DecisionGraph pWitness,
+      DecisionGraph pWitnessCheckPathState) {
     id = pId;
     predecessor = pPredecessor;
     node = pNode;
@@ -130,7 +130,7 @@ public class BlockState
       BlockStateType pType,
       ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
-      SegmentedPaths pWitness) {
+      DecisionGraph pWitness) {
     this(
         pId,
         pPredecessor,
@@ -175,7 +175,7 @@ public class BlockState
     history = new BlockGraphPath(listAndElement(history.path(), pBlockNode.getId()));
   }
 
-  public SegmentedPaths getWitness() {
+  public DecisionGraph getWitness() {
     return witness;
   }
 

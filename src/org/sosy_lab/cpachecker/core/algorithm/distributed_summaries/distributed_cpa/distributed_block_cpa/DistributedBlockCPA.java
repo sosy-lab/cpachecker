@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class DistributedBlockCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -73,7 +73,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
                 BlockStateType.INITIAL,
                 ImmutableList.of(),
                 BlockGraphPath.of(),
-                SegmentedPaths.EMPTY);
+                DecisionGraph.EMPTY);
 
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode);

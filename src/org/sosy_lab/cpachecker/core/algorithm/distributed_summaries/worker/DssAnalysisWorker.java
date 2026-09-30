@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -302,7 +302,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         case VIOLATION_CONDITION -> {
           if (block.getPredecessorIds().isEmpty()) {
             String violationPathString = message.extractBlockStateWitnessString();
-            SegmentedPaths violationPath =
+            DecisionGraph violationPath =
                 DeserializeBlockStateOperator.parseWitness(violationPathString).witness();
             broadcaster.broadcastToAll(
                 messageFactory.createDssResultMessage(getId(), Result.FALSE));

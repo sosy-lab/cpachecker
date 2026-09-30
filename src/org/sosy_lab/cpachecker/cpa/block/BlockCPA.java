@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class BlockCPA extends AbstractCPA {
 
@@ -112,7 +112,7 @@ public class BlockCPA extends AbstractCPA {
         BlockStateType.INITIAL,
         ImmutableList.of(),
         BlockGraphPath.of(),
-        SegmentedPaths.EMPTY);
+        DecisionGraph.EMPTY);
   }
 
   public UniqueIdGenerator getIdGenerator() {

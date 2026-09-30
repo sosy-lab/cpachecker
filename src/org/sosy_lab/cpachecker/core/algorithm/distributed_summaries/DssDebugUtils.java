@@ -699,7 +699,7 @@ public final class DssDebugUtils {
           + parsed.serializedBlockState()
           + " history="
           + render(parsed.history())
-          + " witnessSegments="
+          + " witnessDecisions="
           + parsed.witness().size();
     } catch (RuntimeException e) {
       return "<unparsable: " + e + ">";

@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.PathRestrictionCPA;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -138,10 +138,10 @@ public class DssWitnessExporter {
   }
 
   private void fillReachedSetWithViolation(
-      ReachedSet reachedSet, SegmentedPaths pViolationPath, Modification modification)
+      ReachedSet reachedSet, DecisionGraph pViolationPath, Modification modification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    SegmentedPaths mappedViolation = convertToOriginalEdges(pViolationPath, modification);
+    DecisionGraph mappedViolation = convertToOriginalEdges(pViolationPath, modification);
     Optional.ofNullable(CPAs.retrieveCPA(violationCPA, PathRestrictionCPA.class))
         .ifPresent(p -> p.init(mappedViolation));
 
@@ -184,8 +184,8 @@ public class DssWitnessExporter {
     }
   }
 
-  private SegmentedPaths convertToOriginalEdges(
-      SegmentedPaths pViolationPath, Modification pModification) {
+  private DecisionGraph convertToOriginalEdges(
+      DecisionGraph pViolationPath, Modification pModification) {
 
     return pViolationPath.transformEdges(
         pModification.metadata().mappingInfo().originalToInstrumentedEdges().inverse());

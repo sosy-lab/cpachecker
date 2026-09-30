@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.pathrestriction;
 
 import com.google.common.base.Preconditions;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -16,16 +17,18 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph.PathPosition;
 
 public class PathRestrictionCPA extends AbstractCPA {
 
-  private SegmentedPaths pathCollection;
+  private @Nullable DecisionGraph pathCollection;
 
   private PathRestrictionCPA() {
     super("sep", "sep", new FlatLatticeDomain(), new PathRestrictionTransferRelation());
   }
 
-  public void init(SegmentedPaths pPathCollection) {
+  /** Restricts the analysis to the paths permitted by {@code pPathCollection}. */
+  public void init(DecisionGraph pPathCollection) {
     Preconditions.checkState(pathCollection == null);
     pathCollection = Preconditions.checkNotNull(pPathCollection);
   }
@@ -37,8 +40,7 @@ public class PathRestrictionCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return pathCollection != null && pathCollection.hasGraph()
-        ? new GraphPathRestrictionState(pathCollection.decisionGraph().cursor())
-        : PathRestrictionState.initialState(pathCollection);
+    // CPAchecker creates an initial state before the paths are known. It must not be explored.
+    return pathCollection == null ? PathPosition.UNINITIALIZED : pathCollection.start();
   }
 }

@@ -10,18 +10,18 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness;
 
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class ResultWithWitnessInformation {
 
   private final Result result;
 
-  private final SegmentedPaths violationPath;
+  private final DecisionGraph violationPath;
   private final DssWitnessArgStateCollector correctnessPreConditionCollector;
 
   private ResultWithWitnessInformation(
       Result pResult,
-      SegmentedPaths pViolationPath,
+      DecisionGraph pViolationPath,
       DssWitnessArgStateCollector pCorrectnessPreConditionCollector) {
     result = pResult;
     violationPath = pViolationPath;
@@ -32,7 +32,7 @@ public class ResultWithWitnessInformation {
     return result;
   }
 
-  public SegmentedPaths getViolationPath() {
+  public DecisionGraph getViolationPath() {
     Preconditions.checkNotNull(violationPath);
     return violationPath;
   }
@@ -46,7 +46,7 @@ public class ResultWithWitnessInformation {
     return violationPath != null || correctnessPreConditionCollector != null;
   }
 
-  public static ResultWithWitnessInformation ofViolationPath(SegmentedPaths violationPath) {
+  public static ResultWithWitnessInformation ofViolationPath(DecisionGraph violationPath) {
     return new ResultWithWitnessInformation(Result.FALSE, violationPath, null);
   }
 

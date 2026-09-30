@@ -13,17 +13,22 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /** An immutable acyclic automaton of decision-edge sequences, with shared suffixes. */
 public final class DecisionGraph {
@@ -49,34 +54,46 @@ public final class DecisionGraph {
     root = pRoot;
   }
 
+  /** The number of decisions on the longest path through this graph. */
   public int size() {
     return root.length;
   }
 
-  public static DecisionGraph fromPaths(Collection<? extends List<String>> paths) {
-    List<DecisionGraph> choices = new ArrayList<>();
-    for (List<String> path : paths) {
-      Node root = END;
-      for (String edge : path.reversed()) {
-        root = new Node(ImmutableList.of(new Arc(edge, root)));
-      }
-      choices.add(new DecisionGraph(root));
-    }
-    return choices.isEmpty() ? EMPTY : union(choices);
+  static String edgeToString(CFAEdge edge) {
+    return "N" + edge.getPredecessor().getNodeNumber() + "N" + edge.getSuccessor().getNodeNumber();
   }
 
+  /** Whether another relevant edge leaves the predecessor of {@code edge}. */
+  static boolean isDecisionEdge(CFAEdge edge) {
+    return relevantEdge(edge)
+        && edge.getPredecessor().getAllLeavingEdges().filter(DecisionGraph::relevantEdge).size()
+            > 1;
+  }
+
+  private static boolean relevantEdge(CFAEdge e) {
+    return !(e instanceof BlankEdge || e instanceof FunctionSummaryEdge);
+  }
+
+  /**
+   * Returns a graph that first takes the decision edges among {@code edges} and then continues like
+   * this graph. Edges where no other edge could have been taken are not stored.
+   */
   public DecisionGraph prepend(List<CFAEdge> edges) {
     Node result = root;
     for (CFAEdge edge : edges.reversed()) {
-      if (SegmentedPaths.isDecisionEdge(edge)) {
-        result = new Node(ImmutableList.of(new Arc(SegmentedPaths.edgeToString(edge), result)));
+      if (isDecisionEdge(edge)) {
+        result = new Node(ImmutableList.of(new Arc(edgeToString(edge), result)));
       }
     }
     return new DecisionGraph(result);
   }
 
+  /** Returns a graph that permits exactly the paths permitted by any of {@code choices}. */
   public static DecisionGraph union(Collection<DecisionGraph> choices) {
     Preconditions.checkArgument(!choices.isEmpty());
+    if (choices.size() == 1) {
+      return Iterables.getOnlyElement(choices);
+    }
     Set<Node> roots = new LinkedHashSet<>();
     choices.forEach(graph -> roots.add(graph.root));
     return roots.size() == 1
@@ -84,11 +101,20 @@ public final class DecisionGraph {
         : new DecisionGraph(new Node(roots.stream().map(n -> new Arc("", n)).toList()));
   }
 
+  /** Returns a graph that first follows this graph and then continues like {@code suffix}. */
   public DecisionGraph then(DecisionGraph suffix) {
     return new DecisionGraph(copy(root, suffix.root, ImmutableMap.of(), new IdentityHashMap<>()));
   }
 
-  public DecisionGraph transformEdges(Map<String, String> replacements) {
+  /**
+   * Returns a graph where every edge that is a key in {@code oldToNew} is replaced by its
+   * corresponding value. Edges that do not appear as a key in {@code oldToNew} are left unchanged.
+   */
+  public DecisionGraph transformEdges(Map<CFAEdge, CFAEdge> oldToNew) {
+    Map<String, String> replacements = new HashMap<>(oldToNew.size());
+    for (Map.Entry<CFAEdge, CFAEdge> entry : oldToNew.entrySet()) {
+      replacements.put(edgeToString(entry.getKey()), edgeToString(entry.getValue()));
+    }
     return new DecisionGraph(copy(root, END, replacements, new IdentityHashMap<>()));
   }
 
@@ -135,11 +161,27 @@ public final class DecisionGraph {
     return java.util.Objects.requireNonNull(memo.get(node));
   }
 
-  /** Positions after epsilon closure. A terminal position permits the remainder of the CFA. */
-  public static final class Cursor {
-    private final ImmutableSet<Node> positions;
+  /**
+   * The nodes of a {@link DecisionGraph} that the decisions taken so far lead to, after following
+   * all epsilon arcs. A position at the end of the graph permits the remainder of the CFA. As the
+   * state of {@link PathRestrictionCPA}, it restricts an analysis to the paths of the graph.
+   */
+  public static final class PathPosition implements AbstractState {
 
-    private Cursor(Collection<Node> nodes) {
+    /**
+     * The initial state of a {@link PathRestrictionCPA} whose paths have not been set yet. It must
+     * never be advanced: an analysis that explores from it would silently ignore the paths.
+     */
+    static final PathPosition UNINITIALIZED = new PathPosition();
+
+    /** {@code null} only for {@link #UNINITIALIZED}. */
+    private final @Nullable ImmutableSet<Node> positions;
+
+    private PathPosition() {
+      positions = null;
+    }
+
+    private PathPosition(Collection<Node> nodes) {
       Set<Node> closed = new LinkedHashSet<>();
       Set<Node> visited = new LinkedHashSet<>();
       Deque<Node> waiting = new ArrayDeque<>(nodes);
@@ -156,35 +198,58 @@ public final class DecisionGraph {
       positions = ImmutableSet.copyOf(closed);
     }
 
-    public boolean isEmpty() {
-      return positions.isEmpty();
+    private ImmutableSet<Node> positions() {
+      Preconditions.checkState(
+          positions != null,
+          "Uninitialized paths, PathRestrictionCPA.getInitialState needs to be called after"
+              + " PathRestrictionCPA.init");
+      return positions;
     }
 
-    public Cursor advance(CFAEdge edge) {
-      if (positions.contains(END) || !SegmentedPaths.isDecisionEdge(edge)) {
+    /** Whether no path of the graph is compatible with the decisions taken so far. */
+    public boolean isEmpty() {
+      return positions().isEmpty();
+    }
+
+    /** The position after taking {@code edge}, which {@link #isEmpty} if the graph forbids it. */
+    public PathPosition advance(CFAEdge edge) {
+      ImmutableSet<Node> current = positions();
+      if (current.contains(END) || !isDecisionEdge(edge)) {
         return this;
       }
-      String token = SegmentedPaths.edgeToString(edge);
+      String token = edgeToString(edge);
       List<Node> next = new ArrayList<>();
-      for (Node node : positions) {
+      for (Node node : current) {
         node.arcs.stream().filter(a -> a.edge.equals(token)).forEach(a -> next.add(a.next));
       }
-      return new Cursor(next);
+      return new PathPosition(next);
     }
 
     @Override
     public boolean equals(Object other) {
-      return other instanceof Cursor cursor && positions.equals(cursor.positions);
+      return other instanceof PathPosition position
+          && java.util.Objects.equals(positions, position.positions);
     }
 
     @Override
     public int hashCode() {
-      return positions.hashCode();
+      return java.util.Objects.hashCode(positions);
+    }
+
+    @Override
+    public String toString() {
+      if (positions == null) {
+        return "Uninitialized path restriction";
+      }
+      return positions.contains(END)
+          ? "Reached end of path"
+          : "At " + positions.size() + " position(s) of the path";
     }
   }
 
-  public Cursor cursor() {
-    return new Cursor(ImmutableList.of(root));
+  /** The position before any decision has been taken. */
+  public PathPosition start() {
+    return new PathPosition(ImmutableList.of(root));
   }
 
   public String serialize() {
@@ -238,5 +303,10 @@ public final class DecisionGraph {
   @Override
   public int hashCode() {
     return serialize().hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return serialize();
   }
 }
