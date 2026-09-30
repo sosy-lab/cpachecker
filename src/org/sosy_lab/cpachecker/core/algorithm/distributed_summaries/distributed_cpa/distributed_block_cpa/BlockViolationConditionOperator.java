@@ -37,15 +37,24 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     return finish(
         pARGPath.getFirstState(),
         pPreviousCondition,
-        previousWitness(pPreviousCondition).prepend(pARGPath.getFullPath()));
+        initialWitness(pPreviousCondition).prepend(pARGPath.getFullPath()));
   }
 
+  /**
+   * The violation condition for a whole ARG path graph whose witness has already been computed.
+   *
+   * @param witness the decisions inside the block, continued by {@link #initialWitness}
+   */
   public Optional<AbstractState> withGraph(
-      ARGState root, Optional<ARGState> previous, DecisionGraph graph) {
-    return finish(root, previous, graph.then(previousWitness(previous)));
+      ARGState root, Optional<ARGState> previous, DecisionGraph witness) {
+    return finish(root, previous, witness);
   }
 
-  private DecisionGraph previousWitness(Optional<ARGState> previous) {
+  /**
+   * The witness a violation condition starts with at the end of the block: the witness of the
+   * condition it was derived from, or no restriction if the violation lies in this block.
+   */
+  public DecisionGraph initialWitness(Optional<ARGState> previous) {
     return previous
         .map(
             state ->

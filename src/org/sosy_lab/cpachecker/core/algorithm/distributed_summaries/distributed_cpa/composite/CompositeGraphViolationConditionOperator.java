@@ -137,7 +137,8 @@ final class CompositeGraphViolationConditionOperator<T> {
     Map<List<Map<String, String>>, Condition<T>> target = new LinkedHashMap<>();
     target.put(
         key(initial),
-        new Condition<>(initial, mergeable.initialCondition(previous), DecisionGraph.EMPTY));
+        new Condition<>(
+            initial, mergeable.initialCondition(previous), block.initialWitness(previous)));
     values.put(graph.getLastState(), target);
     for (ARGState node : graph.backwardOrder()) {
       if (Thread.interrupted()) {

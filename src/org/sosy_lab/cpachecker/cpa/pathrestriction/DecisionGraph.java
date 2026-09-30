@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.pathrestriction;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.concurrent.LazyInit;
@@ -110,11 +109,6 @@ public final class DecisionGraph {
         : new DecisionGraph(new Node(roots.stream().map(n -> new Arc("", n)).toList()));
   }
 
-  /** Returns a graph that first follows this graph and then continues like {@code suffix}. */
-  public DecisionGraph then(DecisionGraph suffix) {
-    return new DecisionGraph(copy(root, suffix.root, ImmutableMap.of(), new IdentityHashMap<>()));
-  }
-
   /**
    * Returns a graph where every edge that is a key in {@code oldToNew} is replaced by its
    * corresponding value. Edges that do not appear as a key in {@code oldToNew} are left unchanged.
@@ -124,7 +118,7 @@ public final class DecisionGraph {
     for (Map.Entry<CFAEdge, CFAEdge> entry : oldToNew.entrySet()) {
       replacements.put(edgeToString(entry.getKey()), edgeToString(entry.getValue()));
     }
-    return new DecisionGraph(copy(root, END, replacements, new IdentityHashMap<>()));
+    return new DecisionGraph(copy(root, replacements));
   }
 
   private static List<Node> postorder(Node root) {
@@ -152,9 +146,10 @@ public final class DecisionGraph {
     return result;
   }
 
-  private static Node copy(
-      Node node, Node end, Map<String, String> replacements, IdentityHashMap<Node, Node> memo) {
-    memo.put(END, end);
+  /** Copies the graph below {@code node}, relabeling its arcs according to {@code replacements}. */
+  private static Node copy(Node node, Map<String, String> replacements) {
+    IdentityHashMap<Node, Node> memo = new IdentityHashMap<>();
+    memo.put(END, END);
     for (Node current : postorder(node)) {
       memo.put(
           current,
