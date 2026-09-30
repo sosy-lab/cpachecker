@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "dss.cpa.predicate")
 public class DistributedPredicateCPA
@@ -148,29 +149,30 @@ public class DistributedPredicateCPA
     stateCoverageOperator =
         new PredicateStateCoverageOperator(
             predicateCPA.getSolver(), pOptions.cacheViolationConditions());
+    Solver solver = predicateCPA.getSolver();
     ExistentialProjection projection =
-        projectViolationConditions ? new ExistentialProjection(predicateCPA.getSolver()) : null;
+        projectViolationConditions ? new ExistentialProjection(solver) : null;
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
+            predicateCPA,
             new PathFormulaManagerImpl(
-                pPredicateCPA.getSolver().getFormulaManager(),
+                solver.getFormulaManager(),
                 pConfiguration,
                 pLogManager,
                 pShutdownNotifier,
                 pCFA,
                 AnalysisDirection.BACKWARD),
-            predicateCPA,
             pNode.getPredecessorIds().isEmpty(),
-            projection,
-            projectNestedDisjunctions,
             generalizeViolationConditions
                 ? new ModelBasedGeneralization(
-                    predicateCPA.getSolver(),
-                    projection != null
-                        ? projection
-                        : new ExistentialProjection(predicateCPA.getSolver()),
+                    solver,
+                    new ExistentialProjection(solver),
                     maxCubesPerViolationCondition,
                     generalizeOverPreconditionPredicates)
+                : null,
+            projection,
+            projectViolationConditions
+                ? new ExistentialProjection(solver, projectNestedDisjunctions)
                 : null);
     combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
     combinePrecisionOperator = new CombinePredicatePrecisionOperator();

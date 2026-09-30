@@ -110,6 +110,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Option(description = "Decomposition type to use for the block analysis.", secure = true)
   private ExecutorType executorType = ExecutorType.DSS;
 
+  @Option(
+      description =
+          "Report UNKNOWN instead of FALSE if the analysis that replays the violation path for the"
+              + " violation witness does not reach a property violation.",
+      secure = true)
+  private boolean requireConfirmedViolation = true;
+
   private enum ExecutorType {
     DSS,
     SINGLE_WORKER,
@@ -195,8 +202,18 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       StatusAndResult statusAndResult, ReachedSet reachedSet, Modification pModification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    witnessExporter.export(statusAndResult.result(), reachedSet, pModification);
+    boolean violationReplayed =
+        witnessExporter.export(statusAndResult.result(), reachedSet, pModification);
 
+    if (!violationReplayed && requireConfirmedViolation) {
+      // The reached set still contains a dummy target state, so an imprecise status makes
+      // CPAchecker report UNKNOWN instead of FALSE.
+      logger.log(
+          Level.WARNING,
+          "Reporting UNKNOWN because the violation found by the block analysis could not be"
+              + " confirmed by the violation witness check.");
+      return statusAndResult.status().withPrecise(false);
+    }
     return statusAndResult.status();
   }
 
