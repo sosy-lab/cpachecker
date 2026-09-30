@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics.SourceRefreshCause;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Explores the block per predecessor and caches what it found, so that an update only costs the
@@ -297,8 +299,24 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       analysis
           .statistics()
           .recordExploration(pResult.preconditions == startState, pConditions.size());
-      DssBlockAnalysisResult result =
-          analysis.runBlockAnalysis(dcpa.reset(precondition), pPrecision, pConditions);
+      DssBlockAnalysisResult result;
+      try {
+        result = analysis.runBlockAnalysis(dcpa.reset(precondition), pPrecision, pConditions);
+      } catch (UnrecognizedCodeException e) {
+        if (!isSpeculative(pResult)) {
+          throw e;
+        }
+        // The unconstrained start state also reaches code that no execution of the program
+        // reaches, and the predicate analysis gives up on some of it, e.g., memset through a void
+        // pointer. Nothing is lost by dropping this run: its summaries are never published, and
+        // every violation it would find is found again from the real preconditions, which fail in
+        // the same way if they reach this code.
+        analysis
+            .getLogger()
+            .logUserException(
+                Level.INFO, e, "Ignoring unsupported code in a speculative block analysis");
+        continue;
+      }
       for (ArgPathAndCondition violation :
           analysis.pathsWithCondition(result.getViolationConditionViolations())) {
         ImmutableSet.Builder<ArgPathAndCondition> forCondition =
@@ -317,6 +335,15 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
     }
     pResult.summaries = summaries.build();
     pResult.violationsFromOrigin = violationsFromOrigin.build();
+  }
+
+  /**
+   * Whether the result belongs to the exploration from the unconstrained start state of a block
+   * that has predecessors. For the root block, the start state is the entry of the program.
+   */
+  private boolean isSpeculative(SourceResult pResult) {
+    return pResult.preconditions == startState
+        && !analysis.getBlock().getPredecessorIds().isEmpty();
   }
 
   private ImmutableList<AbstractState> statesToExplore(
