@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -197,7 +198,7 @@ public class DssGraphViolationConditionTest {
       for (CFAEdge edge : node.getLeavingEdges()) {
         collectCfaPaths(
             edge.getSuccessor(),
-            ImmutableList.<CFAEdge>builder().addAll(prefix).add(edge).build(),
+            listAndElement(prefix, edge),
             paths);
       }
     }
