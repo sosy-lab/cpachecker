@@ -50,6 +50,42 @@ public class BlockGraph {
             FluentIterable.from(pNodes).filter(n -> n.getPredecessorIds().isEmpty()));
   }
 
+  /**
+   * The same graph, but every block that is a loop over its own head and has another predecessor is
+   * no longer its own predecessor and successor.
+   *
+   * <p>Such a block otherwise closes the loop through messages to itself: it analyzes one
+   * iteration, sends itself the violation condition of one more iteration, and waits for its own
+   * postcondition, which it withholds as long as it has violations. Around a loop, these conditions
+   * never converge. Without the self edge, the block analysis iterates the loop itself, with an
+   * abstraction and coverage at the loop head like the predicate analysis of the whole program, see
+   * {@link BlockNode#iteratesItself()}. A block whose only predecessor is itself keeps the edge,
+   * because it would become a second root otherwise.
+   */
+  public BlockGraph withLoopBlocksIteratedInternally() {
+    ImmutableSet.Builder<BlockNode> adjusted = ImmutableSet.builder();
+    for (BlockNode node : nodes) {
+      String id = node.getId();
+      if (!node.getInitialLocation().equals(node.getFinalLocation())
+          || !node.getSuccessorIds().contains(id)
+          || node.getPredecessorIds().size() < 2) {
+        adjusted.add(node);
+        continue;
+      }
+      adjusted.add(
+          new BlockNode(
+              id,
+              node.getInitialLocation(),
+              node.getFinalLocation(),
+              node.getNodes(),
+              node.getEdges(),
+              FluentIterable.from(node.getPredecessorIds()).filter(p -> !p.equals(id)).toSet(),
+              FluentIterable.from(node.getSuccessorIds()).filter(s -> !s.equals(id)).toSet(),
+              node.getViolationConditionLocation()));
+    }
+    return new BlockGraph(adjusted.build());
+  }
+
   public BlockNode getRoot() {
     return root;
   }

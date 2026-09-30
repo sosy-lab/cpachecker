@@ -86,6 +86,17 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
         + '}';
   }
 
+  /**
+   * Whether this block is a loop that its own analysis iterates to a fixpoint: it starts and ends
+   * at the loop head and contains the edge back to it, but it is not its own successor, see {@link
+   * BlockGraph#withLoopBlocksIteratedInternally()}.
+   */
+  public boolean iteratesItself() {
+    return getInitialLocation().equals(getFinalLocation())
+        && !successorIds.contains(getId())
+        && getEdges().stream().anyMatch(edge -> edge.getSuccessor().equals(getInitialLocation()));
+  }
+
   public boolean isRoot() {
     return getPredecessorIds().isEmpty();
   }

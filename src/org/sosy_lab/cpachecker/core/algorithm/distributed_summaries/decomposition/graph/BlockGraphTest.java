@@ -48,11 +48,40 @@ public class BlockGraphTest {
     assertThat(exportedBlockGraphFromOriginalCfa).isEqualTo(exportedBlockGraphFromShiftedCfa);
   }
 
+  @Test
+  public void loopBlocksLoseOnlyTheirSelfEdge() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/simple/block_analysis/for.c");
+    BlockGraph graph = generateBlockGraph(cfa, "config/dss.properties");
+    BlockGraph adjusted = graph.withLoopBlocksIteratedInternally();
+
+    assertThat(adjusted.getRoot().getId()).isEqualTo(graph.getRoot().getId());
+    int loops = 0;
+    for (BlockNode node : adjusted.getNodes()) {
+      BlockNode original =
+          graph.getNodes().stream().filter(n -> n.getId().equals(node.getId())).findFirst().get();
+      if (original.getSuccessorIds().contains(original.getId())
+          && original.getPredecessorIds().size() > 1) {
+        loops++;
+        assertThat(node.iteratesItself()).isTrue();
+        assertThat(node.getSuccessorIds()).doesNotContain(node.getId());
+        assertThat(node.getPredecessorIds()).doesNotContain(node.getId());
+        assertThat(node.getPredecessorIds()).isNotEmpty();
+      } else {
+        assertThat(node.iteratesItself()).isFalse();
+        assertThat(node.getSuccessorIds()).isEqualTo(original.getSuccessorIds());
+        assertThat(node.getPredecessorIds()).isEqualTo(original.getPredecessorIds());
+      }
+    }
+    assertThat(loops).isGreaterThan(0);
+  }
+
   private BlockGraph generateBlockGraph(CFA cfa) throws Exception {
+    return generateBlockGraph(cfa, CONFIGURATION_FILE_MERGE_DECOMPOSITION);
+  }
+
+  private BlockGraph generateBlockGraph(CFA cfa, String pConfigurationFile) throws Exception {
     Configuration configForMergeDecomposition =
-        TestUtils.configurationForTest()
-            .loadFromFile(CONFIGURATION_FILE_MERGE_DECOMPOSITION)
-            .build();
+        TestUtils.configurationForTest().loadFromFile(pConfigurationFile).build();
     DssDecompositionOptions options = new DssDecompositionOptions(configForMergeDecomposition, cfa);
     DssBlockDecomposition decomposer = options.getConfiguredDecomposition();
     return decomposer.decompose(cfa);

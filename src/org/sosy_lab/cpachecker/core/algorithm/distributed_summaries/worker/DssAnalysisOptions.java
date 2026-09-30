@@ -140,6 +140,24 @@ public class DssAnalysisOptions {
 
   @Option(
       secure = true,
+      description =
+          "Let the analysis of a block that is a loop over its own head iterate the loop itself,"
+              + " instead of sending itself one violation condition per iteration. The root block"
+              + " then publishes the postcondition of its first run, because a loop block that"
+              + " covers its later iterations only finds the violations reachable from its real"
+              + " preconditions.")
+  private boolean iterateLoopBlocks = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether a block analyzed with partial replacement keeps what its own refinements learned"
+              + " for all later explorations, like the predicate analysis of the whole program"
+              + " does. Otherwise it only explores with the precisions of the received messages.")
+  private boolean retainLearnedPrecision = false;
+
+  @Option(
+      secure = true,
       description = "Whether to dictionary-encode repeated text in serialized messages.")
   private boolean compressMessages = true;
 
@@ -221,6 +239,14 @@ public class DssAnalysisOptions {
 
   public boolean publishSpeculativeViolations() {
     return publishSpeculativeViolations;
+  }
+
+  public boolean iterateLoopBlocks() {
+    return iterateLoopBlocks;
+  }
+
+  public boolean retainLearnedPrecision() {
+    return retainLearnedPrecision;
   }
 
   public boolean compressMessages() {

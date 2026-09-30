@@ -105,6 +105,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private final DistributedSummarySynthesisStatistics dssStats;
   private final DssExecutor executor;
   private final DssDecompositionOptions decompositionOptions;
+  private final boolean iterateLoopBlocks;
   private final Specification spec;
 
   private final DssWitnessExporter witnessExporter;
@@ -141,6 +142,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration.inject(this);
 
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
+    iterateLoopBlocks = new DssAnalysisOptions(configuration).iterateLoopBlocks();
     if (new DssAnalysisOptions(configuration).getBlockAnalysisType()
             == DssBlockAnalysisType.PARTIAL_REPLACE
         && decompositionOptions.getDecompositionType()
@@ -252,6 +254,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
         } else {
           blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
           modification = modifyBlockGraph(blockGraph);
+          if (iterateLoopBlocks) {
+            modification =
+                new Modification(
+                    modification.cfa(),
+                    modification.blockGraph().withLoopBlocksIteratedInternally(),
+                    modification.metadata());
+          }
           modifiedBlockGraphCache.put(initialCFA, modification);
         }
       }

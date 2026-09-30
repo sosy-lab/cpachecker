@@ -54,12 +54,19 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableSet.of();
     }
 
+    ImmutableList<? extends AbstractState> violationConditions =
+        blockState.getViolationConditions();
     if (blockState.getType() == BlockStateType.FINAL) {
       if (standardVcs) {
         if (!cfaEdge
             .getSuccessor()
             .equals(blockState.getBlockNode().getViolationConditionLocation())) {
-          return ImmutableList.of();
+          if (!blockState.getBlockNode().iteratesItself()) {
+            return ImmutableList.of();
+          }
+          // The next iteration of a loop block owes all conditions again. The block end narrows
+          // its own list to the conditions not processed yet, so take the list of the run.
+          violationConditions = conditionsOfRun(blockState);
         }
       } else {
         for (AbstractState violationCondition : blockState.getViolationConditions()) {
@@ -106,11 +113,20 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               cfaEdge.getSuccessor(),
               blockState.getBlockNode(),
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-              blockState.getViolationConditions(),
+              violationConditions,
               blockState.getHistory(),
               blockState.getWitness()));
     }
     return ImmutableList.of();
+  }
+
+  /** The violation conditions that the run containing {@code pState} started with. */
+  private static ImmutableList<? extends AbstractState> conditionsOfRun(BlockState pState) {
+    BlockState current = pState;
+    while (current.getType() != BlockStateType.INITIAL && current.getPredecessor() != null) {
+      current = current.getPredecessor();
+    }
+    return current.getViolationConditions();
   }
 
   /** A block-wide unique id for a state that succeeds the given one. */

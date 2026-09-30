@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWor
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -140,6 +141,14 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
 
   private @Nullable SourceResult startStateResult;
 
+  /**
+   * Everything the refinements of this block learned so far, or {@code null} if nothing is kept,
+   * see {@link DssAnalysisOptions#retainLearnedPrecision()}. Without it, a block that refutes one
+   * violation condition forgets the predicates of the refutation in the next round, when it refutes
+   * another one, and two conditions can make it alternate between two postconditions.
+   */
+  private @Nullable Precision learnedPrecision;
+
   /** The postcondition the successors currently hold for this block, if any. */
   private @Nullable Postcondition lastPostcondition;
 
@@ -162,8 +171,17 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
         refresh(
             null, startState(), violationConditionHandler.states(), analysis.makeStartPrecision());
     // The initial run publishes only the violations that originate inside the block. Its
-    // postcondition stays unpublished, like in AlwaysReplaceExplorationEngine.
-    return publish(ImmutableSet.of(), startStateResult.violations(), false);
+    // postcondition stays unpublished, like in AlwaysReplaceExplorationEngine, except for the root
+    // block if loop blocks iterate themselves: such a block covers its later iterations, so from
+    // the unconstrained start state it only reports the violations of the iterations it explored,
+    // and it needs real preconditions to find the others. They start at the root, whose start
+    // state is the entry of the program.
+    boolean publishPostcondition =
+        analysis.getBlock().isRoot() && analysis.getOptions().iterateLoopBlocks();
+    return publish(
+        publishPostcondition ? startStateResult.summaries : ImmutableSet.of(),
+        startStateResult.violations(),
+        false);
   }
 
   @Override
@@ -304,6 +322,11 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
       DssBlockAnalysisResult result;
       try {
         result = analysis.runBlockAnalysis(dcpa.reset(precondition), pPrecision, pConditions);
+        if (analysis.getOptions().retainLearnedPrecision()) {
+          Precision learned = analysis.precisionOfLastRun();
+          learnedPrecision =
+              learnedPrecision == null ? learned : analysis.unionOf(learnedPrecision, learned);
+        }
       } catch (UnrecognizedCodeException e) {
         if (!isSpeculative(pResult)) {
           throw e;
@@ -362,7 +385,9 @@ final class PartialReplaceExplorationEngine implements DssExplorationEngine {
    */
   private Precision combinedPrecision() throws InterruptedException {
     ImmutableList<@NonNull StateAndPrecision> known = preconditionHandler.getKnownPreconditions();
-    return known.isEmpty() ? analysis.makeStartPrecision() : analysis.combinePrecisions(known);
+    Precision received =
+        known.isEmpty() ? analysis.makeStartPrecision() : analysis.combinePrecisions(known);
+    return learnedPrecision == null ? received : analysis.unionOf(received, learnedPrecision);
   }
 
   private ImmutableList<@NonNull StateAndPrecision> startState() throws InterruptedException {

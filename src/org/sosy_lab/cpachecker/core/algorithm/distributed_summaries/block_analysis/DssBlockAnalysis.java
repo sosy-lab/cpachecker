@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -372,6 +373,23 @@ public final class DssBlockAnalysis {
     }
     return dcpa.getCombinePrecisionOperator()
         .combine(transformedImmutableListCopy(pReceived, StateAndPrecision::precision));
+  }
+
+  /**
+   * The union of all precisions of the last block analysis, i.e., the precision it started with
+   * plus everything its refinements added.
+   */
+  Precision precisionOfLastRun() throws InterruptedException {
+    Set<Precision> precisions = Sets.newIdentityHashSet();
+    precisions.addAll(reachedSet.getPrecisions());
+    return precisions.size() == 1
+        ? Iterables.getOnlyElement(precisions)
+        : dcpa.getCombinePrecisionOperator().combine(ImmutableList.copyOf(precisions));
+  }
+
+  /** The union of the given precisions. */
+  Precision unionOf(Precision pFirst, Precision pSecond) throws InterruptedException {
+    return dcpa.getCombinePrecisionOperator().combine(ImmutableList.of(pFirst, pSecond));
   }
 
   /** Whether the stored conditions already carry all precision information in the update. */
