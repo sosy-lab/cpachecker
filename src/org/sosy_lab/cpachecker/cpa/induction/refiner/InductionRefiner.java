@@ -13,7 +13,9 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getBl
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -25,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,6 +67,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -90,6 +93,10 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   protected final InterpolationManager interpolationManager;
   private final ARGCPA argCpa;
   private final PathChecker pathChecker;
+
+  /** One prover for all batch queries, as native BMC uses one for all its queries. */
+  private @Nullable ProverEnvironment prover = null;
+
   private int refinementNumber = 0;
 
   private final StatTimer refinementTime = new StatTimer("Time for refinements");
@@ -97,6 +104,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   private final StatCounter removedStates = new StatCounter("Unreachable states removed");
   private final StatCounter deferredRefinements = new StatCounter("Deferred refinements");
   private final StatCounter reexploredSubtrees = new StatCounter("Re-explored subtrees");
+  private final StatInt maxK = new StatInt(StatKind.MAX, "Maximal k");
 
   protected InductionRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -182,22 +190,33 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
         .anyMatch(s -> !(s instanceof InductionState) && AbstractStates.isTargetState(s));
   }
 
-  /** The abstraction states on the path after its first state, which is the root of the ARG. */
-  protected static ImmutableList<ARGState> abstractionStatesOnPath(ARGPath pPath) {
-    return from(pPath.asStatesList())
-        .skip(1)
-        .filter(s -> getPredicateState(s).isAbstractionState())
-        .toList();
+  /**
+   * The abstraction states on one path from the root of the ARG, which is the first of them, to the
+   * given state. The path follows the first parent of every state, which is cheaper than an {@link
+   * ARGPath}. Merges happen only inside blocks, so every path has the same abstractions.
+   */
+  protected static ImmutableList<ARGState> abstractionChain(ARGState pState) {
+    List<ARGState> chain = new ArrayList<>();
+    ARGState state = pState;
+    while (true) {
+      if (getPredicateState(state).isAbstractionState()) {
+        chain.add(state);
+      }
+      if (state.getParents().isEmpty()) {
+        return ImmutableList.copyOf(Lists.reverse(chain));
+      }
+      state = state.getParents().getFirst();
+    }
   }
 
-  protected static ImmutableList<BooleanFormula> blockFormulas(List<ARGState> pAbstractionStates) {
-    return from(pAbstractionStates).transform(s -> getBlockFormula(getPredicateState(s))).toList();
+  /** The block formulas of the abstraction states of the chain after the root. */
+  protected static ImmutableList<BooleanFormula> blockFormulas(List<ARGState> pChain) {
+    return from(pChain).skip(1).transform(s -> getBlockFormula(getPredicateState(s))).toList();
   }
 
   /** The formula of all paths from the root to the given abstraction state. */
   protected BooleanFormula concretePathFormula(ARGState pAbstractionState) {
-    return bfmgr.and(
-        blockFormulas(abstractionStatesOnPath(ARGUtils.getOnePathTo(pAbstractionState))));
+    return bfmgr.and(blockFormulas(abstractionChain(pAbstractionState)));
   }
 
   /**
@@ -205,22 +224,28 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
    * the abstraction before it.
    */
   protected BooleanFormula lastBlockFromRegion(ARGState pAbstractionState) {
-    ARGPath path = ARGUtils.getOnePathTo(pAbstractionState);
-    List<ARGState> abstractions = abstractionStatesOnPath(path);
-    ARGState previous =
-        abstractions.size() < 2 ? path.getFirstState() : abstractions.get(abstractions.size() - 2);
+    List<ARGState> chain = abstractionChain(pAbstractionState);
+    ARGState previous = chain.get(chain.size() - 2);
     return bfmgr.and(
         getPredicateState(previous).getAbstractionFormula().asInstantiatedFormula(),
         getBlockFormula(getPredicateState(pAbstractionState)));
   }
 
   /**
-   * Whether every return on the path matches its call. After a restart of the callstack at an
-   * induction start, the path can return to another caller, which the path formula does not show.
+   * Whether the concrete path formula of the given state describes a real path. After a restart of
+   * the callstack in an induction step, a path can return to another caller, which the path formula
+   * does not show, so then every return on the path must match its call.
    */
-  private static boolean hasMatchingCallsAndReturns(ARGPath pPath) {
+  private static boolean isRealPath(ARGState pState) {
+    boolean restartsCallstack =
+        from(abstractionChain(pState))
+            .transform(InductionRefiner::inductionStateOf)
+            .anyMatch(s -> s.isAbstraction() && s.isInInductionStep());
+    if (!restartsCallstack) {
+      return true;
+    }
     Deque<CFANode> callSites = new ArrayDeque<>();
-    for (CFAEdge edge : pPath.getFullPath()) {
+    for (CFAEdge edge : ARGUtils.getOnePathTo(pState).getFullPath()) {
       if (edge instanceof FunctionCallEdge) {
         callSites.push(edge.getPredecessor());
       } else if (edge instanceof FunctionReturnEdge returnEdge) {
@@ -241,7 +266,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       throws SolverException, InterruptedException {
     Map<ARGState, BooleanFormula> pathFormulas = new LinkedHashMap<>();
     for (ARGState target : pTargets) {
-      if (hasMatchingCallsAndReturns(ARGUtils.getOnePathTo(target))) {
+      if (isRealPath(target)) {
         pathFormulas.put(target, concretePathFormula(target));
       }
     }
@@ -250,24 +275,34 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     }
 
     satCheckTime.start();
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      prover.push(bfmgr.or(pathFormulas.values()));
-      if (prover.isUnsat()) {
-        return Optional.empty();
-      }
-      try (Model model = prover.getModel()) {
-        for (Map.Entry<ARGState, BooleanFormula> entry : pathFormulas.entrySet()) {
-          if (Boolean.TRUE.equals(model.evaluate(entry.getValue()))) {
-            return Optional.of(entry.getKey());
-          }
-        }
-      }
+    try {
+      ProverEnvironment batchProver = batchProver();
+      // no pop after an exception, which ends the analysis
+      batchProver.push(bfmgr.or(pathFormulas.values()));
+      Optional<ARGState> feasibleTarget = findFeasibleTarget(batchProver, pathFormulas);
+      batchProver.pop();
+      return feasibleTarget;
     } finally {
       satCheckTime.stop();
     }
+  }
+
+  private static Optional<ARGState> findFeasibleTarget(
+      ProverEnvironment pProver, Map<ARGState, BooleanFormula> pPathFormulas)
+      throws SolverException, InterruptedException {
+    if (pProver.isUnsat()) {
+      return Optional.empty();
+    }
+    try (Model model = pProver.getModel()) {
+      for (Map.Entry<ARGState, BooleanFormula> entry : pPathFormulas.entrySet()) {
+        if (Boolean.TRUE.equals(model.evaluate(entry.getValue()))) {
+          return Optional.of(entry.getKey());
+        }
+      }
+    }
     // the model does not decide every path, so check one path after the other
-    for (Map.Entry<ARGState, BooleanFormula> entry : pathFormulas.entrySet()) {
-      if (!solver.isUnsat(entry.getValue())) {
+    for (Map.Entry<ARGState, BooleanFormula> entry : pPathFormulas.entrySet()) {
+      if (!isUnsat(pProver, entry.getValue())) {
         return Optional.of(entry.getKey());
       }
     }
@@ -278,7 +313,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     ARGPath path = ARGUtils.getOnePathTo(pTarget);
     CounterexampleTraceInfo trace =
         interpolationManager.buildCounterexampleTraceWithoutInterpolation(
-            new BlockFormulas(blockFormulas(abstractionStatesOnPath(path))), path);
+            new BlockFormulas(blockFormulas(abstractionChain(pTarget))), path);
     if (trace.isSpurious()) {
       throw new CPAException("Feasible counterexample became infeasible when replayed");
     }
@@ -286,19 +321,18 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   }
 
   /**
-   * Remove the given states with their subtrees if the formulas of all of them are unsatisfiable,
-   * checked with one SAT query.
+   * Remove the given abstraction states with their subtrees if no concrete path reaches any of
+   * them, checked with one SAT query, as the bounding assertions of native BMC.
    *
    * @return whether the states were removed
    */
-  protected boolean removeIfNoneReachable(
-      ARGReachedSet pReached,
-      Collection<ARGState> pStates,
-      Function<ARGState, BooleanFormula> pReachability)
+  protected boolean removeIfNoneReachable(ARGReachedSet pReached, Collection<ARGState> pStates)
       throws SolverException, InterruptedException {
+    BooleanFormula reachability =
+        bfmgr.or(from(pStates).transform(this::concretePathFormula).toList());
     satCheckTime.start();
     try {
-      if (!solver.isUnsat(bfmgr.or(from(pStates).transform(pReachability::apply).toList()))) {
+      if (!isUnsat(batchProver(), reachability)) {
         return false;
       }
     } finally {
@@ -306,6 +340,47 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     }
     removeUnreachable(pReached, pStates);
     return true;
+  }
+
+  /**
+   * Remove the given abstraction states with their subtrees if none of them is reachable from the
+   * region of the abstraction before it, checked with one SAT query, as the step case of native
+   * k-induction. As there, the query gets a prover of its own.
+   *
+   * @return whether the states were removed
+   */
+  protected boolean removeIfNoneReachableFromRegion(
+      ARGReachedSet pReached, Collection<ARGState> pStates)
+      throws SolverException, InterruptedException {
+    BooleanFormula reachability =
+        bfmgr.or(from(pStates).transform(this::lastBlockFromRegion).toList());
+    satCheckTime.start();
+    try (ProverEnvironment stepProver = solver.newProverEnvironment()) {
+      if (!isUnsat(stepProver, reachability)) {
+        return false;
+      }
+    } finally {
+      satCheckTime.stop();
+    }
+    removeUnreachable(pReached, pStates);
+    return true;
+  }
+
+  /** The prover for the queries about concrete paths, as native BMC has one for all bounds. */
+  private ProverEnvironment batchProver() {
+    if (prover == null) {
+      prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+    }
+    return prover;
+  }
+
+  private static boolean isUnsat(ProverEnvironment pProver, BooleanFormula pFormula)
+      throws SolverException, InterruptedException {
+    // no pop after an exception, which ends the analysis
+    pProver.push(pFormula);
+    boolean unsat = pProver.isUnsat();
+    pProver.pop();
+    return unsat;
   }
 
   /** Remove the given states with their subtrees, because no concrete path reaches them. */
@@ -345,7 +420,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
 
   /** The first abstraction at a loop head on the path to the given state. */
   protected static Optional<ARGState> firstLoopHeadAbstraction(ARGState pState) {
-    return from(ARGUtils.getOnePathTo(pState).asStatesList())
+    return from(abstractionChain(pState))
         .firstMatch(s -> inductionStateOf(s).isAbstraction())
         .toJavaUtil();
   }
@@ -381,6 +456,26 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     }
   }
 
+  /**
+   * Explore the given state again, with k increased by one for all loops. The state must be a
+   * successor of a loop-head arrival, e.g., an induction start or a cut-off.
+   */
+  protected void increaseK(ARGReachedSet pReached, ARGState pState) throws InterruptedException {
+    if (pState.isDestroyed()) {
+      // inside a subtree that is explored again anyway
+      return;
+    }
+    InductionPrecision precision =
+        inductionPrecisionOf(pReached, pState.getParents().getFirst())
+            .withAll(p -> p.withK(p.k() + 1));
+    precision.getLoops().values().forEach(p -> maxK.setNextValue(p.k()));
+    reexplore(
+        pReached,
+        pState,
+        ImmutableList.of(precision),
+        ImmutableList.of(Predicates.instanceOf(InductionPrecision.class)));
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(this);
@@ -394,7 +489,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
             .put(satCheckTime)
             .put(removedStates)
             .put(deferredRefinements)
-            .put(reexploredSubtrees);
+            .put(reexploredSubtrees)
+            .put(maxK);
     printRefinerStatistics(writer);
   }
 

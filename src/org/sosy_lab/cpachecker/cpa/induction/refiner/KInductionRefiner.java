@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cpa.induction.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -22,11 +20,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -37,7 +32,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public final class KInductionRefiner extends InductionRefiner {
 
-  private final StatInt maxK = new StatInt(StatKind.MAX, "Maximal k");
   private final StatCounter provedByBoundingAssertions =
       new StatCounter("Proofs by unreachable induction starts");
   private final StatCounter provedByStepCase = new StatCounter("Proofs by the step case");
@@ -76,35 +70,23 @@ public final class KInductionRefiner extends InductionRefiner {
     for (ARGState target : stepTargets) {
       inductionStarts.add(firstLoopHeadAbstraction(target).orElseThrow());
     }
-    if (removeIfNoneReachable(pReached, inductionStarts, this::concretePathFormula)) {
+    if (removeIfNoneReachable(pReached, inductionStarts)) {
       provedByBoundingAssertions.inc();
       return Optional.empty();
     }
-    if (removeIfNoneReachable(pReached, stepTargets, this::lastBlockFromRegion)) {
+    if (removeIfNoneReachableFromRegion(pReached, stepTargets)) {
       provedByStepCase.inc();
       return Optional.empty();
     }
 
     for (ARGState start : inductionStarts) {
-      if (start.isDestroyed()) {
-        // inside the subtree of another induction start that is explored again
-        continue;
-      }
-      InductionPrecision precision =
-          inductionPrecisionOf(pReached, start.getParents().getFirst())
-              .withAll(p -> p.withK(p.k() + 1));
-      precision.getLoops().values().forEach(p -> maxK.setNextValue(p.k()));
-      reexplore(
-          pReached,
-          start,
-          ImmutableList.of(precision),
-          ImmutableList.of(Predicates.instanceOf(InductionPrecision.class)));
+      increaseK(pReached, start);
     }
     return Optional.empty();
   }
 
   @Override
   protected void printRefinerStatistics(StatisticsWriter pWriter) {
-    pWriter.put(maxK).put(provedByBoundingAssertions).put(provedByStepCase);
+    pWriter.put(provedByBoundingAssertions).put(provedByStepCase);
   }
 }

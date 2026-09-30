@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cpa.induction;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -70,6 +70,30 @@ public final class InductionState
   private final @Nullable LoopPrecision loopPrecision;
 
   private final Resets resets;
+
+  private @LazyInit int hashCache = 0;
+  private @LazyInit @Nullable PartitionKey partitionKey = null;
+
+  /**
+   * The arrivals and the phase, which states must share to cover each other. The hash is computed
+   * once, because the reached set looks it up for every new state.
+   */
+  private record PartitionKey(
+      PersistentSortedMap<Loop, Integer> arrivals, boolean inInductionStep, int hash) {
+
+    @Override
+    public boolean equals(Object pOther) {
+      return pOther instanceof PartitionKey other
+          && hash == other.hash
+          && inInductionStep == other.inInductionStep
+          && arrivals.equals(other.arrivals);
+    }
+
+    @Override
+    public int hashCode() {
+      return hash;
+    }
+  }
 
   private InductionState(
       PersistentSortedMap<Loop, Integer> pArrivals,
@@ -276,7 +300,26 @@ public final class InductionState
 
   @Override
   public Object getPartitionKey() {
-    return ImmutableList.of(arrivals, inInductionStep);
+    PartitionKey key = partitionKey;
+    if (key == null) {
+      key =
+          new PartitionKey(
+              arrivals, inInductionStep, 31 * hashOf(arrivals) + Boolean.hashCode(inInductionStep));
+      partitionKey = key;
+    }
+    return key;
+  }
+
+  /**
+   * A hash of the counters that separates small counts, unlike {@link Map#hashCode}, which adds up
+   * the entries.
+   */
+  private static int hashOf(PersistentSortedMap<?, Integer> pCounters) {
+    int hash = 1;
+    for (Map.Entry<?, Integer> entry : pCounters.entrySet()) {
+      hash = 31 * (31 * hash + entry.getKey().hashCode()) + entry.getValue();
+    }
+    return hash;
   }
 
   @Override
@@ -295,6 +338,7 @@ public final class InductionState
       return true;
     }
     return pOther instanceof InductionState other
+        && hashCode() == other.hashCode()
         && inInductionStep == other.inInductionStep
         && kind == other.kind
         && atLoopHead == other.atLoopHead
@@ -307,15 +351,19 @@ public final class InductionState
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        arrivals,
-        abstractions,
-        inInductionStep,
-        kind,
-        atLoopHead,
-        reportsTargets,
-        loopHead,
-        loopPrecision);
+    if (hashCache == 0) {
+      hashCache =
+          Objects.hash(
+              hashOf(arrivals),
+              hashOf(abstractions),
+              inInductionStep,
+              kind,
+              atLoopHead,
+              reportsTargets,
+              loopHead,
+              loopPrecision);
+    }
+    return hashCache;
   }
 
   @Override
