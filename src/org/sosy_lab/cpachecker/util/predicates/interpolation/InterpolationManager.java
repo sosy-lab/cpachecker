@@ -19,6 +19,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -1010,16 +1011,20 @@ public final class InterpolationManager {
      * environment. Deletes old environment afterward. The currentlyAssertedFormulas are updated as
      * well. Should be used after an interpolation failed with an exception.
      *
+     * @return the new interpolation group of each old one
      * @throws InterruptedException solver specific
      * @throws SolverException solver specific
      */
-    public void destroyAndRebuildSolverEnvironment() throws InterruptedException, SolverException {
+    public ImmutableMap<T, T> destroyAndRebuildSolverEnvironment()
+        throws InterruptedException, SolverException {
       itpProver.close();
       itpProver = newEnvironment();
       List<Pair<BooleanFormula, T>> newAssertedFormulas = new ArrayList<>();
+      ImmutableMap.Builder<T, T> newGroups = ImmutableMap.builder();
       for (Pair<BooleanFormula, T> formulaAndItpP : currentlyAssertedFormulas) {
-        newAssertedFormulas.add(
-            Pair.of(formulaAndItpP.getFirst(), itpProver.push(formulaAndItpP.getFirst())));
+        T group = itpProver.push(formulaAndItpP.getFirst());
+        newAssertedFormulas.add(Pair.of(formulaAndItpP.getFirst(), group));
+        newGroups.put(formulaAndItpP.getSecond(), group);
       }
       currentlyAssertedFormulas = newAssertedFormulas;
       // One could argue that this should be done manually and not automatically.
@@ -1027,6 +1032,7 @@ public final class InterpolationManager {
       // The result here should not differ from before, but it needs to be done for the internal
       // solver state
       Preconditions.checkArgument(itpProver.isUnsat());
+      return newGroups.buildOrThrow();
     }
 
     /**

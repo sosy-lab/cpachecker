@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Random;
@@ -81,8 +82,7 @@ public class SequentialInterpolation extends ITPStrategy {
       final InterpolationManager.Interpolator<T> interpolator,
       final List<InterpolationGroup<T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
-    final List<T> formulas =
-        Lists.transform(formulasWithStateAndGroupId, InterpolationGroup::groupId);
+    List<T> formulas = Lists.transform(formulasWithStateAndGroupId, InterpolationGroup::groupId);
 
     return switch (sequentialStrategy) {
       case FWD_FALLBACK -> {
@@ -90,8 +90,7 @@ public class SequentialInterpolation extends ITPStrategy {
           yield getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
-          // Rebuild solver env as it might be tainted after an exception
-          interpolator.destroyAndRebuildSolverEnvironment();
+          formulas = rebuild(interpolator, formulas);
         }
         yield getBwdInterpolants(interpolator, formulas);
       }
@@ -101,8 +100,7 @@ public class SequentialInterpolation extends ITPStrategy {
           yield getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_FWD_MSG);
-          // Rebuild solver env as it might be tainted after an exception
-          interpolator.destroyAndRebuildSolverEnvironment();
+          formulas = rebuild(interpolator, formulas);
         }
         yield getFwdInterpolants(interpolator, formulas);
       }
@@ -113,8 +111,7 @@ public class SequentialInterpolation extends ITPStrategy {
           forward = getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
-          // Rebuild solver env as it might be tainted after an exception
-          interpolator.destroyAndRebuildSolverEnvironment();
+          formulas = rebuild(interpolator, formulas);
           yield getBwdInterpolants(interpolator, formulas);
         }
 
@@ -126,13 +123,24 @@ public class SequentialInterpolation extends ITPStrategy {
             throw e;
           } else {
             logger.logDebugException(e, FALLBACK_FWD_MSG);
-            // Rebuild solver env as it might be tainted after an exception
+            // the environment might be tainted after the exception
             interpolator.destroyAndRebuildSolverEnvironment();
             yield forward;
           }
         }
       }
     };
+  }
+
+  /**
+   * Rebuild the solver environment, which may be tainted after an exception, and return the new
+   * interpolation groups of the given ones.
+   */
+  private static <T> List<T> rebuild(
+      final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
+      throws InterruptedException, SolverException {
+    ImmutableMap<T, T> newGroups = interpolator.destroyAndRebuildSolverEnvironment();
+    return ImmutableList.copyOf(Lists.transform(formulas, newGroups::get));
   }
 
   /**
