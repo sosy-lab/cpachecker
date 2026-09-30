@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Transfer relation for Symbolic Execution Analysis. */
@@ -296,8 +297,7 @@ public class ConstraintsTransferRelation
 
       } else if (currStrengtheningState instanceof AbstractStateWithAssumptions) {
         ValueAnalysisState valueState =
-            Iterables.getOnlyElement(
-                Iterables.filter(pStrengtheningStates, ValueAnalysisState.class));
+            AbstractStates.extractStateByType(currStrengtheningState, ValueAnalysisState.class);
         strengthenOperator = new AssumptionsStrengthenOperator(valueState);
       }
 
