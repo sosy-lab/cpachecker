@@ -11,8 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +49,7 @@ public final class DssARGPathGraph extends ARGPath {
 
   public static DssARGPathGraph of(ARGState root, ARGState target) {
     Map<ARGState, ImmutableList<Incoming>> incoming = new LinkedHashMap<>();
-    visit(root, target, incoming, new HashSet<>());
+    collectIncoming(root, target, incoming);
     List<ARGState> path = new ArrayList<>();
     ARGState current = target;
     path.add(current);
@@ -56,27 +60,47 @@ public final class DssARGPathGraph extends ARGPath {
     return new DssARGPathGraph(path.reversed(), incoming);
   }
 
-  private static void visit(
-      ARGState root,
-      ARGState node,
-      Map<ARGState, ImmutableList<Incoming>> incoming,
-      Set<ARGState> active) {
-    if (incoming.containsKey(node)) {
-      return;
-    }
-    Preconditions.checkState(active.add(node), "Cyclic ARG inside a DSS block");
-    ImmutableList.Builder<Incoming> edges = ImmutableList.<Incoming>builder();
-    if (node != root) {
-      Preconditions.checkState(!node.getParents().isEmpty(), "Unexpected second ARG root");
-      for (ARGState parent : node.getParents()) {
-        visit(root, parent, incoming, active);
-        ImmutableList<CFAEdge> path = ImmutableList.copyOf(parent.getEdgesToChild(node));
+  private record Frame(
+      ARGState node, Iterator<ARGState> parents, ImmutableList.Builder<Incoming> edges) {}
+
+  /**
+   * Depth-first search from the target towards the root that inserts each state into {@code
+   * incoming} after all of its parents (post-order). Uses an explicit stack because blocks with
+   * long paths overflow the call stack.
+   */
+  private static void collectIncoming(
+      ARGState root, ARGState target, Map<ARGState, ImmutableList<Incoming>> incoming) {
+    Set<ARGState> active = new HashSet<>();
+    Deque<Frame> stack = new ArrayDeque<>();
+    push(root, target, stack, active);
+    while (!stack.isEmpty()) {
+      Frame frame = stack.peek();
+      if (frame.parents().hasNext()) {
+        ARGState parent = frame.parents().next();
+        ImmutableList<CFAEdge> path = ImmutableList.copyOf(parent.getEdgesToChild(frame.node()));
         Preconditions.checkState(!path.isEmpty(), "Missing ARG transition");
-        edges.add(new Incoming(parent, path));
+        frame.edges().add(new Incoming(parent, path));
+        if (!incoming.containsKey(parent)) {
+          push(root, parent, stack, active);
+        }
+      } else {
+        stack.pop();
+        incoming.put(frame.node(), frame.edges().build());
+        active.remove(frame.node());
       }
     }
-    incoming.put(node, edges.build());
-    active.remove(node);
+  }
+
+  private static void push(ARGState root, ARGState node, Deque<Frame> stack, Set<ARGState> active) {
+    Preconditions.checkState(active.add(node), "Cyclic ARG inside a DSS block");
+    Iterator<ARGState> parents;
+    if (node == root) {
+      parents = Collections.emptyIterator();
+    } else {
+      Preconditions.checkState(!node.getParents().isEmpty(), "Unexpected second ARG root");
+      parents = node.getParents().iterator();
+    }
+    stack.push(new Frame(node, parents, ImmutableList.builder()));
   }
 
   public ImmutableList<ARGState> backwardOrder() {
