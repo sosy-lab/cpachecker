@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -52,8 +53,9 @@ import org.sosy_lab.java_smt.api.SolverException;
  * disjunction of the interpolants learned for the loop head, and the exploration closes a loop when
  * an abstraction is covered by the one before it, which is the fixpoint check of IMC. For a
  * spurious target, the refiner widens φ at the abstraction closest to the error whose interpolant
- * of the path in front against the concrete suffix is not implied by φ. If no abstraction can be
- * widened, k increases by one and φ starts over, as the abort of McMillan's algorithm does.
+ * of the path in front against the concrete suffixes of the targets below it is not implied by φ.
+ * If no abstraction can be widened, k increases by one and φ starts over, as the abort of
+ * McMillan's algorithm does.
  */
 @Options(prefix = "cpa.induction.refinement.imc")
 public final class ImcRefiner extends InductionRefiner {
@@ -130,13 +132,19 @@ public final class ImcRefiner extends InductionRefiner {
 
     for (ARGState target : abstractTargets) {
       if (!target.isDestroyed()) {
-        refine(pReached, target);
+        refine(pReached, target, abstractTargets);
       }
     }
     return Optional.empty();
   }
 
-  private void refine(ARGReachedSet pReached, ARGState pTarget)
+  /**
+   * Widen the abstraction closest to the error on the path to the given target whose interpolant is
+   * not implied by φ, or explore again with a larger k. As native IMC interpolates against all
+   * error paths of its unrolling, the interpolant is taken against the suffixes of all targets
+   * below the abstraction, or against the own suffix if one of the others is reachable.
+   */
+  private void refine(ARGReachedSet pReached, ARGState pTarget, List<ARGState> pTargets)
       throws CPAException, InterruptedException, SolverException {
     if (solver.isUnsat(lastBlockFromRegion(pTarget))) {
       removeUnreachable(pReached, ImmutableList.of(pTarget));
@@ -146,7 +154,22 @@ public final class ImcRefiner extends InductionRefiner {
     for (int i = chain.size() - 2; i > 0; i--) {
       ARGState abstraction = chain.get(i);
       if (inductionStateOf(abstraction).isAbstraction()) {
-        Optional<BooleanFormula> interpolant = interpolate(chain, i);
+        BooleanFormula ownSuffix = suffixOf(chain, i);
+        List<BooleanFormula> suffixes = new ArrayList<>();
+        suffixes.add(ownSuffix);
+        for (ARGState target : pTargets) {
+          if (target != pTarget && !target.isDestroyed()) {
+            List<ARGState> targetChain = abstractionChain(target);
+            int position = targetChain.indexOf(abstraction);
+            if (position >= 0) {
+              suffixes.add(suffixOf(targetChain, position));
+            }
+          }
+        }
+        Optional<BooleanFormula> interpolant = interpolate(chain, i, bfmgr.or(suffixes));
+        if (interpolant.isEmpty() && suffixes.size() > 1) {
+          interpolant = interpolate(chain, i, ownSuffix);
+        }
         if (interpolant.isPresent() && widen(pReached, abstraction, interpolant.orElseThrow())) {
           return;
         }
@@ -155,12 +178,20 @@ public final class ImcRefiner extends InductionRefiner {
     restartWithLargerK(pReached, chain);
   }
 
+  /** The concrete path after the abstraction at the given position of the chain. */
+  private BooleanFormula suffixOf(List<ARGState> pChain, int pPosition) {
+    return bfmgr.and(
+        Lists.transform(
+            pChain.subList(pPosition + 1, pChain.size()),
+            s -> getBlockFormula(getPredicateState(s))));
+  }
+
   /**
    * The interpolant between the path from the region in front of the abstraction at the given
-   * position of the chain to that abstraction and the concrete suffix to the target, without SSA
-   * indices.
+   * position of the chain to that abstraction and the given suffix, without SSA indices.
    */
-  private Optional<BooleanFormula> interpolate(List<ARGState> pChain, int pPosition)
+  private Optional<BooleanFormula> interpolate(
+      List<ARGState> pChain, int pPosition, BooleanFormula pSuffix)
       throws CPAException, InterruptedException {
     BooleanFormula prefix =
         bfmgr.and(
@@ -168,14 +199,9 @@ public final class ImcRefiner extends InductionRefiner {
                 .getAbstractionFormula()
                 .asInstantiatedFormula(),
             getBlockFormula(getPredicateState(pChain.get(pPosition))));
-    BooleanFormula suffix =
-        bfmgr.and(
-            Lists.transform(
-                pChain.subList(pPosition + 1, pChain.size()),
-                s -> getBlockFormula(getPredicateState(s))));
     Optional<ImmutableList<BooleanFormula>> interpolants;
     try {
-      interpolants = interpolationManager.interpolate(ImmutableList.of(prefix, suffix));
+      interpolants = interpolationManager.interpolate(ImmutableList.of(prefix, pSuffix));
     } catch (RefinementFailedException e) {
       logger.logDebugException(e, "Interpolation failed");
       interpolationFailures.inc();
@@ -219,6 +245,7 @@ public final class ImcRefiner extends InductionRefiner {
             localPredicates,
             precision.getFunctionPredicates(),
             precision.getGlobalPredicates());
+    logger.log(Level.FINE, "Widening the abstraction at", loopHead, "to", widened);
     reexplore(
         pReached,
         pAbstraction,
@@ -247,6 +274,7 @@ public final class ImcRefiner extends InductionRefiner {
       precision = precision.with(loop, precision.get(loop).withK(precision.get(loop).k() + 1));
     }
     recordK(precision);
+    logger.log(Level.FINE, "Restarting at", first, "with", precision);
     reexplore(
         pReached,
         first,
