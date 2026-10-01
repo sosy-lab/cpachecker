@@ -307,6 +307,11 @@ public class BlockOperator {
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
 
+  /** Whether the nodes given to {@link #setExplicitAbstractionNodes} are abstraction locations. */
+  public boolean usesExplicitAbstractionNodes() {
+    return alwaysAndOnlyAtExplicitNodes || alwaysAtExplicitNodes;
+  }
+
   public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
     explicitAbstractionNodes = pNodes;
   }
