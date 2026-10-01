@@ -95,6 +95,16 @@ public class DistributedPredicateCPA
               + " generalizeViolationConditions is enabled.")
   private boolean generalizeOverPreconditionPredicates = true;
 
+  @Option(
+      secure = true,
+      description =
+          "The largest share of CFA edges accessing modelled memory, from 0 to 1, for which"
+              + " violation conditions are generalized and projected into nested disjunctions."
+              + " Conditions of programs that use memory more are only projected: with the"
+              + " pointer-aliasing encoding, generalization and nested projection cost much more"
+              + " than they save there.")
+  private double maxMemoryShareForExpensiveSimplification = 1.0;
+
   private final PredicateCPA predicateCPA;
 
   private final SerializeOperator serialize;
@@ -119,9 +129,17 @@ public class DistributedPredicateCPA
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       BiMap<Integer, CFANode> pIdToNodeMap,
-      ImmutableMap<String, Type> pTypeMap)
+      ImmutableMap<String, Type> pTypeMap,
+      double pMemoryShare)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
+    if (maxMemoryShareForExpensiveSimplification < 0
+        || maxMemoryShareForExpensiveSimplification > 1) {
+      throw new InvalidConfigurationException(
+          "dss.cpa.predicate.maxMemoryShareForExpensiveSimplification has to be between 0 and 1");
+    }
+    // decided once for the whole program, see maxMemoryShareForExpensiveSimplification
+    boolean expensiveSimplification = pMemoryShare <= maxMemoryShareForExpensiveSimplification;
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.writeReadableFormulas();
     serialize =
@@ -163,7 +181,7 @@ public class DistributedPredicateCPA
                 pCFA,
                 AnalysisDirection.BACKWARD),
             pNode.getPredecessorIds().isEmpty(),
-            generalizeViolationConditions
+            generalizeViolationConditions && expensiveSimplification
                 ? new ModelBasedGeneralization(
                     solver,
                     new ExistentialProjection(solver),
@@ -172,7 +190,8 @@ public class DistributedPredicateCPA
                 : null,
             projection,
             projectViolationConditions
-                ? new ExistentialProjection(solver, projectNestedDisjunctions)
+                ? new ExistentialProjection(
+                    solver, projectNestedDisjunctions && expensiveSimplification)
                 : null);
     combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
     combinePrecisionOperator = new CombinePredicatePrecisionOperator();
