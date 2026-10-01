@@ -105,10 +105,67 @@ public class DssAnalysisOptions {
   private boolean combineViolationConditionsByHash = true;
 
   @Option(
-      name = "combinePresByHash",
-      description = "Whether to combine preconditions at same program location",
-      secure = true)
-  private boolean combinePreconditionsByHash = false;
+      secure = true,
+      description = "Whether to combine incoming states and outgoing summaries by exact union.")
+  private boolean combineStates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to send and use precision updates in precondition and violation-condition"
+              + " messages.")
+  private boolean sharePrecision = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to cache violation conditions normalized for comparison.")
+  private boolean cacheViolationConditions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether a block without successors stops exploring after its first run. Such a block"
+              + " never receives a violation condition, and its first run, from the unconstrained"
+              + " start state, already finds every violation it can report. A block that iterates"
+              + " its own loop is excluded, because it covers later iterations.")
+  private boolean retireTerminalBlocks = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether a block analyzed with partial replacement publishes the violations it finds from"
+              + " the unconstrained start state while it already knows a real precondition. Such"
+              + " violations need not be reachable, and the violation conditions they cause keep"
+              + " growing around loops.")
+  private boolean publishSpeculativeViolations = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Let the analysis of a block that is a loop over its own head iterate the loop itself,"
+              + " instead of sending itself one violation condition per iteration. The root block"
+              + " then publishes the postcondition of its first run, because a loop block that"
+              + " covers its later iterations only finds the violations reachable from its real"
+              + " preconditions.")
+  private boolean iterateLoopBlocks = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether a block analyzed with partial replacement keeps what its own refinements learned"
+              + " for all later explorations, like the predicate analysis of the whole program"
+              + " does. Otherwise it only explores with the precisions of the received messages.")
+  private boolean retainLearnedPrecision = false;
+
+  @Option(
+      secure = true,
+      description = "Whether to dictionary-encode repeated text in serialized messages.")
+  private boolean compressMessages = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to add the block entry as an explicit predicate abstraction location.")
+  private boolean abstractAtBlockEntry = true;
 
   // TODO How to make sure the other Witness export does not overwrite this?
   @Option(
@@ -161,16 +218,48 @@ public class DssAnalysisOptions {
     return debug && readableFormulas;
   }
 
+  public boolean abstractAtBlockEntry() {
+    return abstractAtBlockEntry;
+  }
+
+  public boolean combineStates() {
+    return combineStates;
+  }
+
+  public boolean sharePrecision() {
+    return sharePrecision;
+  }
+
+  public boolean cacheViolationConditions() {
+    return cacheViolationConditions;
+  }
+
+  public boolean retireTerminalBlocks() {
+    return retireTerminalBlocks;
+  }
+
+  public boolean publishSpeculativeViolations() {
+    return publishSpeculativeViolations;
+  }
+
+  public boolean iterateLoopBlocks() {
+    return iterateLoopBlocks;
+  }
+
+  public boolean retainLearnedPrecision() {
+    return retainLearnedPrecision;
+  }
+
+  public boolean compressMessages() {
+    return compressMessages;
+  }
+
   public boolean combineViolationConditionsByHash() {
     return combineViolationConditionsByHash;
   }
 
   public boolean useSyntacticViolationConditionEquality() {
     return syntacticViolationConditionEquality;
-  }
-
-  public boolean combinePreconditionsByHash() {
-    return combinePreconditionsByHash;
   }
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {

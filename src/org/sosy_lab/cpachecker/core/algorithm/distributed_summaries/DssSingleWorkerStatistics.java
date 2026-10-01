@@ -27,6 +27,7 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   /** Keys defining the statistics that are collected for a single DSS analysis worker. */
   public enum StatisticsKey {
+    INITIALIZED_ANALYSES("number of initialized block analyses", false),
     SERIALIZATION_COUNT("number of serialized states", false),
     DESERIALIZATION_COUNT("number of deserialized states", false),
     PROCEED_COUNT("number of proceeded states", false),
@@ -43,7 +44,14 @@ public class DssSingleWorkerStatistics implements Statistics {
     COVERAGE_TIME("time spent comparing states", true),
     VIOLATION_CONDITION_COUNT("number of violation conditions computed", false),
     VIOLATION_CONDITION_TIME("time spent computing violation conditions", true),
-    SERIALIZED_STATES_SIZE("serialized states size (chars)", false);
+    SERIALIZED_STATES_SIZE("serialized states size (chars)", false),
+    SOURCE_FIRST_EXPLORATION("source cache misses: new source", false),
+    SOURCE_CHANGED_PRECONDITION("source cache misses: changed precondition", false),
+    SOURCE_CHANGED_PRECISION("source cache misses: changed precision", false),
+    SOURCE_NEW_CONDITIONS("source cache misses: new conditions", false),
+    SOURCE_CACHE_HIT("source cache hits", false),
+    SPECULATIVE_ANALYSES("speculative block analyses", false),
+    CONDITION_CHECKS("conditions submitted to block analyses", false);
 
     private final String label;
     private final boolean formatAsTime;
@@ -61,6 +69,23 @@ public class DssSingleWorkerStatistics implements Statistics {
       return formatAsTime;
     }
   }
+
+  /** Why a partial-replace source needs exploration, or why its cached result suffices. */
+  public enum SourceRefreshCause {
+    FIRST_EXPLORATION,
+    CHANGED_PRECONDITION,
+    CHANGED_PRECISION,
+    NEW_CONDITIONS,
+    CACHE_HIT
+  }
+
+  private long firstSourceExplorations;
+  private long changedPreconditions;
+  private long changedPrecisions;
+  private long newConditions;
+  private long sourceCacheHits;
+  private long speculativeAnalyses;
+  private long conditionChecks;
 
   private final String blockId;
 
@@ -90,8 +115,42 @@ public class DssSingleWorkerStatistics implements Statistics {
   private final StatInt serializedStatesSize =
       new StatInt(StatKind.SUM, StatisticsKey.SERIALIZED_STATES_SIZE.getLabel());
 
+  private final boolean collectAnalysisStatistics;
+  private String analysisStatistics = "";
+
   public DssSingleWorkerStatistics(String pBlockId) {
+    this(pBlockId, false);
+  }
+
+  DssSingleWorkerStatistics(String pBlockId, boolean pCollectAnalysisStatistics) {
     blockId = pBlockId;
+    collectAnalysisStatistics = pCollectAnalysisStatistics;
+  }
+
+  public void recordSourceRefresh(SourceRefreshCause cause) {
+    switch (cause) {
+      case FIRST_EXPLORATION -> firstSourceExplorations++;
+      case CHANGED_PRECONDITION -> changedPreconditions++;
+      case CHANGED_PRECISION -> changedPrecisions++;
+      case NEW_CONDITIONS -> newConditions++;
+      case CACHE_HIT -> sourceCacheHits++;
+    }
+  }
+
+  public void recordExploration(boolean speculative, int conditions) {
+    if (speculative) {
+      speculativeAnalyses++;
+    }
+    conditionChecks += conditions;
+  }
+
+  public boolean shouldCollectAnalysisStatistics() {
+    return collectAnalysisStatistics;
+  }
+
+  /** A snapshot taken by the owning worker before its CPA and solver are closed. */
+  public void setAnalysisStatistics(String pAnalysisStatistics) {
+    analysisStatistics = pAnalysisStatistics;
   }
 
   public DssThreadCpuTimer getBlockAnalysisTimer() {
@@ -148,6 +207,7 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   public long getValue(StatisticsKey key) {
     return switch (key) {
+      case INITIALIZED_ANALYSES -> dcpaStatistics == null ? 0 : 1;
       case SERIALIZATION_COUNT ->
           dcpaStatistics != null ? dcpaStatistics.getSerializationCount().getUpdateCount() : 0;
       case DESERIALIZATION_COUNT ->
@@ -171,6 +231,13 @@ public class DssSingleWorkerStatistics implements Statistics {
       case VIOLATION_CONDITION_COUNT -> violationConditionCount.getUpdateCount();
       case VIOLATION_CONDITION_TIME -> violationConditionTime.nanos();
       case SERIALIZED_STATES_SIZE -> serializedStatesSize.getValueSum();
+      case SOURCE_FIRST_EXPLORATION -> firstSourceExplorations;
+      case SOURCE_CHANGED_PRECONDITION -> changedPreconditions;
+      case SOURCE_CHANGED_PRECISION -> changedPrecisions;
+      case SOURCE_NEW_CONDITIONS -> newConditions;
+      case SOURCE_CACHE_HIT -> sourceCacheHits;
+      case SPECULATIVE_ANALYSES -> speculativeAnalyses;
+      case CONDITION_CHECKS -> conditionChecks;
     };
   }
 
@@ -226,7 +293,15 @@ public class DssSingleWorkerStatistics implements Statistics {
         .put(
             StatisticsKey.VIOLATION_CONDITION_TIME.getLabel(),
             formatNanos(violationConditionTime.nanos()))
-        .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString());
+        .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString())
+        .put(StatisticsKey.SOURCE_FIRST_EXPLORATION.getLabel(), firstSourceExplorations)
+        .put(StatisticsKey.SOURCE_CHANGED_PRECONDITION.getLabel(), changedPreconditions)
+        .put(StatisticsKey.SOURCE_CHANGED_PRECISION.getLabel(), changedPrecisions)
+        .put(StatisticsKey.SOURCE_NEW_CONDITIONS.getLabel(), newConditions)
+        .put(StatisticsKey.SOURCE_CACHE_HIT.getLabel(), sourceCacheHits)
+        .put(StatisticsKey.SPECULATIVE_ANALYSES.getLabel(), speculativeAnalyses)
+        .put(StatisticsKey.CONDITION_CHECKS.getLabel(), conditionChecks);
+    out.print(analysisStatistics);
   }
 
   static String formatNanos(long nanos) {

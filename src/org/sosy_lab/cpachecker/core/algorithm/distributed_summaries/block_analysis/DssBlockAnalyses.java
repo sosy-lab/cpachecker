@@ -147,7 +147,9 @@ public final class DssBlockAnalyses {
     if (remainingConditions.size() == pBlockState.getViolationConditions().size()) {
       return;
     }
-    if (remainingConditions.isEmpty()) {
+    // The block end of a loop block has to stay: the analysis may have stopped before it produced
+    // the successor that starts the next iteration.
+    if (remainingConditions.isEmpty() && !pBlockState.getBlockNode().iteratesItself()) {
       pReachedSet.removeOnlyFromWaitlist(pStateInReachedSet);
     }
     pBlockState.setViolationConditions(remainingConditions);

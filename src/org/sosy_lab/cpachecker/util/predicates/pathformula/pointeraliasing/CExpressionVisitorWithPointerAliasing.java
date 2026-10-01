@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -401,6 +403,14 @@ class CExpressionVisitorWithPointerAliasing
 
     final String variableName = e.getDeclaration().getQualifiedName();
     final PointerBase base = new PointerBase(e.getDeclaration());
+    // Backward construction reaches a variable's uses before its declaration, so the pointer-target
+    // set need not know the base yet. Always resolving an addressed variable to its aliased
+    // location avoids converting between the direct and the address encoding.
+    if (conv.direction == AnalysisDirection.BACKWARD
+        && e.getDeclaration() instanceof CDeclaration declaration
+        && conv.isAddressedVariable(declaration)) {
+      return AliasedLocation.ofAddress(conv.makeBaseAddress(base, resultType));
+    }
     if (!pts.isActualBase(base) && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
         return UnaliasedLocation.ofVariableName(variableName);

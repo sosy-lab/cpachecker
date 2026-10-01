@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -20,7 +22,13 @@ public class BlockNodeWithoutGraphInformation {
   private final CFANode finalLocation;
   private final ImmutableSet<CFANode> nodes;
   private final ImmutableSet<CFAEdge> edges;
-  private final String code;
+
+  /**
+   * The code of the block for debugging, computed on first use: the decompositions create many
+   * intermediate blocks, and rendering the code of all of them took a noticeable part of the
+   * decomposition time.
+   */
+  @LazyInit private @Nullable String code;
 
   public BlockNodeWithoutGraphInformation(
       @NonNull String pId,
@@ -33,7 +41,6 @@ public class BlockNodeWithoutGraphInformation {
     finalLocation = pFinalLocation;
     nodes = pNodes;
     edges = pEdges;
-    code = getCodeRepresentation();
   }
 
   public String getId() {
@@ -57,6 +64,9 @@ public class BlockNodeWithoutGraphInformation {
   }
 
   public String getCode() {
+    if (code == null) {
+      code = getCodeRepresentation();
+    }
     return code;
   }
 
@@ -108,7 +118,7 @@ public class BlockNodeWithoutGraphInformation {
 
   @Override
   public String toString() {
-    String niceCode = code.isBlank() ? "" : "code=" + code;
+    String niceCode = getCode().isBlank() ? "" : "code=" + getCode();
     return "BlockNodeWithoutGraphInformation["
         + "id="
         + id

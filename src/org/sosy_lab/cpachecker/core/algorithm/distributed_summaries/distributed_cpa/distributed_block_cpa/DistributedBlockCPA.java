@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -84,8 +83,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     coverageOperator = new BlockStateCoverageOperator();
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
-    combinePreconditionsOperator =
-        new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
+    combinePreconditionsOperator = new BlockStateCombinePreconditionsOperator();
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     combineViolationConditionsOperator = new BlockStateCombineViolationConditionOperator();
   }

@@ -24,8 +24,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions.DecompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
@@ -103,6 +105,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private final DistributedSummarySynthesisStatistics dssStats;
   private final DssExecutor executor;
   private final DssDecompositionOptions decompositionOptions;
+  private final boolean iterateLoopBlocks;
   private final Specification spec;
 
   private final DssWitnessExporter witnessExporter;
@@ -123,8 +126,9 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     SEQUENTIAL
   }
 
-  // Cache is static because it is shared between different instances of DistributedSummarySynthesis
-  private static final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
+  // Decomposition and instrumentation depend on this analysis configuration. A later restart
+  // may use the same CFA with different boundaries, so it must not reuse this cache.
+  private final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
 
   public DistributedSummarySynthesis(
       Configuration pConfig,
@@ -138,6 +142,17 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration.inject(this);
 
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
+    iterateLoopBlocks = new DssAnalysisOptions(configuration).iterateLoopBlocks();
+    if (new DssAnalysisOptions(configuration).getBlockAnalysisType()
+            == DssBlockAnalysisType.PARTIAL_REPLACE
+        && decompositionOptions.getDecompositionType()
+            != DecompositionType.INLINING_DECOMPOSITION) {
+      // PARTIAL_REPLACE ignores program points, which is only correct if every block has exactly
+      // one entry and one exit context, i.e., with the inlining decomposition
+      throw new InvalidConfigurationException(
+          "distributedSummaries.blockAnalysisType=PARTIAL_REPLACE requires"
+              + " distributedSummaries.decomposition.decompositionType=INLINING_DECOMPOSITION");
+    }
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
@@ -239,6 +254,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
         } else {
           blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
           modification = modifyBlockGraph(blockGraph);
+          if (iterateLoopBlocks) {
+            modification =
+                new Modification(
+                    modification.cfa(),
+                    modification.blockGraph().withLoopBlocksIteratedInternally(),
+                    modification.metadata());
+          }
           modifiedBlockGraphCache.put(initialCFA, modification);
         }
       }

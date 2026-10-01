@@ -632,9 +632,7 @@ public final class DssDebugUtils {
    * {@link BlockState} is expanded into block, history and witness.
    */
   public static String describe(DssMessage pMessage) {
-    ImmutableMap<String, ImmutableMap<String, String>> json = pMessage.asJson();
-    ImmutableMap<String, String> content =
-        Objects.requireNonNullElse(json.get(DssMessage.DSS_MESSAGE_CONTENT_ID), ImmutableMap.of());
+    ImmutableMap<String, String> content = contentOf(pMessage);
 
     // Entries that do not belong to a specific state (states, status, result, ...).
     Map<String, String> meta = new LinkedHashMap<>();

@@ -13,7 +13,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.OptionalInt;
+import java.util.Set;
 import java.util.UUID;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -24,8 +27,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class PredicateOperatorUtil {
-
-  public static final String INDEX_SEPARATOR = ".";
 
   private PredicateOperatorUtil() {}
 
@@ -43,7 +44,7 @@ public class PredicateOperatorUtil {
     }
 
     public String extend(String pCurrentId) {
-      if (pCurrentId.contains("__VERIFIER_nondet") || pCurrentId.contains("!")) {
+      if (isFreshPerUse(pCurrentId)) {
         return uniquePrefix + "." + index++ + "#" + pCurrentId;
       }
       return pCurrentId;
@@ -55,25 +56,25 @@ public class PredicateOperatorUtil {
     }
   }
 
-  private static class IdIndexProvider extends UniqueIndexProvider {
+  /**
+   * Whether a variable of a violation condition stands for a fresh value every time the condition
+   * is used, e.g., the result of a nondeterministic call. {@link UniqueIndexProvider} renames such
+   * a variable apart on every use, so it never refers to a variable of the block that uses the
+   * condition.
+   */
+  static boolean isFreshPerUse(String pVariableName) {
+    return pVariableName.contains("__VERIFIER_nondet") || pVariableName.contains("!");
+  }
 
-    private static IdIndexProvider instance;
-
-    private IdIndexProvider() {
-      super("ID");
-    }
-
-    static IdIndexProvider getInstance() {
-      if (instance == null) {
-        instance = new IdIndexProvider();
-      }
-      return instance;
-    }
-
-    @Override
-    public String extend(String pCurrentId) {
-      return pCurrentId;
-    }
+  /**
+   * Whether a variable of the given path formula is local to it, i.e., existentially quantified
+   * from the point of view of a block that uses the formula as violation condition: {@link
+   * #uninstantiate(PathFormula, FormulaManagerView, UniqueIndexProvider)} keeps only variables at
+   * their latest SSA index as the interface and renames all others apart.
+   */
+  static boolean isLocalVariable(
+      String pVariableName, SSAMap pSsa, FormulaManagerView pFormulaManagerView) {
+    return isFreshPerUse(pVariableName) || pFormulaManagerView.isIntermediate(pVariableName, pSsa);
   }
 
   public static PathFormula getPathFormula(
@@ -91,15 +92,39 @@ public class PredicateOperatorUtil {
         .withFormula(parsed);
   }
 
+  /**
+   * Gives boundary values stable names for comparison only. Private variables keep distinct,
+   * deterministic names, including their SSA versions. These names must never be used to compose
+   * conditions: actual condition uses still require fresh independent witnesses.
+   */
+  static BooleanFormula normalizeForComparison(PathFormula path, FormulaManagerView fmgr) {
+    Map<Formula, Formula> substitutions = new HashMap<>();
+    for (Entry<String, Formula> entry : fmgr.extractVariables(path.getFormula()).entrySet()) {
+      String name = entry.getKey();
+      Formula variable = entry.getValue();
+      Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(name);
+      if (isFreshPerUse(name)
+          || (parsed.getSecond().isPresent()
+              && parsed.getSecond().orElseThrow() != path.getSsa().getIndex(parsed.getFirst()))) {
+        // Escape injectively, without leaving an SSA separator in the new private name.
+        String privateName = "__dss_compare!" + name.replace("#", "##").replace("@", "#at");
+        substitutions.put(variable, fmgr.makeVariable(fmgr.getFormulaType(variable), privateName));
+      } else {
+        substitutions.put(variable, fmgr.uninstantiate(variable));
+      }
+    }
+    return fmgr.substitute(path.getFormula(), substitutions);
+  }
+
   public static SubstitutedBooleanFormula uninstantiate(
       PathFormula pPathFormula, FormulaManagerView pFormulaManagerView) {
-    return uninstantiate(pPathFormula, pFormulaManagerView, IdIndexProvider.getInstance());
+    return uninstantiate(pPathFormula, pFormulaManagerView, UniqueIndexProvider.withUUID());
   }
 
   /**
    * Uninstantiates a path formula by only keeping the variable with the highest SSA index. All
-   * other variables are renamed to variable.index. This does not change the semantics of the
-   * formula but allow the formula to be used as condition.
+   * other variables receive fresh private names. This does not change the semantics of the formula
+   * but allow the formula to be used as condition.
    *
    * @param pPathFormula an arbitrary path formula
    * @param pFormulaManagerView the formula manager with the correct context
@@ -112,19 +137,16 @@ public class PredicateOperatorUtil {
       UniqueIndexProvider pUniqueIndexProvider) {
     BooleanFormula booleanFormula = pPathFormula.getFormula();
     SSAMap ssaMap = pPathFormula.getSsa();
-    Map<String, Formula> variableToFormula = pFormulaManagerView.extractVariables(booleanFormula);
+    // Symbols, not just variables: the pointer-aliasing encoding puts every heap access into an
+    // uninterpreted function, and such a function carries an SSA index exactly like a variable
+    // does. Renaming only the variables would ship a condition that still mentions the heap of
+    // this block at a fixed index, and the block that receives it cannot instantiate it again.
+    Set<String> symbols = pFormulaManagerView.extractFunctionNames(booleanFormula);
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
-    Map<Formula, Formula> substitutions = new HashMap<>();
+    Map<String, String> renaming = new HashMap<>();
 
-    boolean alreadyUninstantiated = true;
-    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
-      if (!pFormulaManagerView
-          .uninstantiate(stringFormulaEntry.getValue())
-          .equals(stringFormulaEntry.getValue())) {
-        alreadyUninstantiated = false;
-        break;
-      }
-    }
+    boolean alreadyUninstantiated =
+        symbols.stream().noneMatch(symbol -> hasIndex(symbol) || isFreshPerUse(symbol));
 
     if (alreadyUninstantiated) {
       SSAMapBuilder mapBuilder = SSAMap.emptySSAMap().builder();
@@ -134,42 +156,49 @@ public class PredicateOperatorUtil {
       return new SubstitutedBooleanFormula(booleanFormula, mapBuilder.build());
     }
 
-    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
-      String name = stringFormulaEntry.getKey();
-      Formula formula = stringFormulaEntry.getValue();
-
+    for (String symbol : symbols) {
       List<String> nameAndIndex =
-          Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(name);
-      if (nameAndIndex.size() < 2
-          || nameAndIndex.get(1).isEmpty()
-          || name.contains(INDEX_SEPARATOR)) {
-        substitutions.put(
-            formula,
-            pFormulaManagerView.makeVariable(
-                pFormulaManagerView.getFormulaType(formula), pUniqueIndexProvider.extend(name)));
+          Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(symbol);
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty()) {
+        renaming.put(symbol, pUniqueIndexProvider.extend(symbol));
         continue;
       }
-      name = nameAndIndex.getFirst();
+      if (isFreshPerUse(symbol)) {
+        // The private name must not keep the index, otherwise it still looks instantiated and the
+        // block that uses the condition fails to instantiate it.
+        renaming.put(
+            symbol,
+            pUniqueIndexProvider.extend(nameAndIndex.getFirst() + "!" + nameAndIndex.get(1)));
+        continue;
+      }
+      String name = nameAndIndex.getFirst();
       int index = Integer.parseInt(nameAndIndex.get(1));
       int highestIndex = ssaMap.getIndex(name);
       if (index != highestIndex) {
-        String newName = name + INDEX_SEPARATOR + index;
-        substitutions.put(
-            formula,
-            pFormulaManagerView.makeVariable(pFormulaManagerView.getFormulaType(formula), newName));
-        builder.setIndex(newName, ssaMap.getType(name), 1);
+        // Mark intermediate values as private on this and every subsequent use. A stable
+        // name such as x.1 would accidentally identify witnesses of independent conditions.
+        String newName = pUniqueIndexProvider.extend(name + "!" + index);
+        renaming.put(symbol, newName);
+        if (ssaMap.getType(name) != null) {
+          builder.setIndex(newName, ssaMap.getType(name), 1);
+        }
       } else {
-        substitutions.put(
-            formula,
-            pFormulaManagerView.makeVariable(pFormulaManagerView.getFormulaType(formula), name, 1));
+        renaming.put(symbol, name);
         builder = builder.setIndex(name, ssaMap.getType(name), 1);
       }
     }
     SSAMap ssaMapFinal = builder.build();
     return new SubstitutedBooleanFormula(
-        pFormulaManagerView.uninstantiate(
-            pFormulaManagerView.substitute(booleanFormula, substitutions)),
+        pFormulaManagerView.renameFreeVariablesAndUFs(
+            booleanFormula, symbol -> renaming.getOrDefault(symbol, symbol)),
         ssaMapFinal);
+  }
+
+  /** Whether a symbol name carries an SSA index, i.e., whether it is instantiated. */
+  private static boolean hasIndex(String pSymbol) {
+    List<String> nameAndIndex =
+        Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(pSymbol);
+    return nameAndIndex.size() == 2 && !nameAndIndex.get(1).isEmpty();
   }
 
   public record SubstitutedBooleanFormula(BooleanFormula booleanFormula, SSAMap ssaMap) {}

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -16,6 +18,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
   private final ImmutableSet<String> predecessorIds;
   private final ImmutableSet<String> successorIds;
   private final CFANode violationConditionLocation;
+  private final boolean iteratesItself;
 
   public BlockNode(
       String pId,
@@ -37,10 +40,37 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
       ImmutableSet<String> pPredecessorIds,
       ImmutableSet<String> pSuccessorIds,
       CFANode pViolationConditionLocation) {
+    this(
+        pId,
+        pFirst,
+        pLast,
+        pNodes,
+        pEdges,
+        pPredecessorIds,
+        pSuccessorIds,
+        pViolationConditionLocation,
+        false);
+  }
+
+  BlockNode(
+      String pId,
+      CFANode pFirst,
+      CFANode pLast,
+      ImmutableSet<CFANode> pNodes,
+      ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<String> pPredecessorIds,
+      ImmutableSet<String> pSuccessorIds,
+      CFANode pViolationConditionLocation,
+      boolean pIteratesItself) {
     super(pId, pFirst, pLast, pNodes, pEdges);
+    checkArgument(
+        !pIteratesItself || (pFirst.equals(pLast) && !pSuccessorIds.contains(pId)),
+        "Only a loop over its own head that is not its own successor can iterate itself: %s",
+        pId);
     predecessorIds = pPredecessorIds;
     successorIds = pSuccessorIds;
     violationConditionLocation = pViolationConditionLocation;
+    iteratesItself = pIteratesItself;
   }
 
   public boolean isAbstractionPossible() {
@@ -84,6 +114,15 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
         + ", nodes="
         + getNodes()
         + '}';
+  }
+
+  /**
+   * Whether this block is a loop that its own analysis iterates to a fixpoint: it starts and ends
+   * at the loop head, but it is not its own successor. Only {@link
+   * BlockGraph#withLoopBlocksIteratedInternally()} creates such blocks.
+   */
+  public boolean iteratesItself() {
+    return iteratesItself;
   }
 
   public boolean isRoot() {

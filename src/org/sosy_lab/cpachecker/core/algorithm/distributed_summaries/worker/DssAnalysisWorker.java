@@ -89,6 +89,13 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   private final DssSingleWorkerStatistics workerStats;
 
   private boolean shutdown;
+
+  /**
+   * Whether this block stopped exploring, see {@link DssAnalysisOptions#retireTerminalBlocks()}.
+   */
+  private boolean retired;
+
+  private final boolean retireTerminalBlocks;
   private boolean closed;
 
   /** Whether a stored postcondition still owes an exploration, see {@link #processMessage}. */
@@ -126,13 +133,17 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     super("analysis-worker-" + pId, pMessageFactory, pLogger);
     block = pBlock;
     connection = pConnection;
+    retireTerminalBlocks = pOptions.retireTerminalBlocks();
 
     Configuration forwardConfiguration =
         Configuration.builder()
             .loadFromFile(pOptions.getForwardConfiguration())
             .setOption(
                 "cpa.predicate.blk.alwaysAtGivenNodes",
-                Integer.toString(pBlock.getFinalLocation().getNodeNumber()))
+                (pOptions.abstractAtBlockEntry()
+                        ? pBlock.getInitialLocation().getNodeNumber() + ","
+                        : "")
+                    + pBlock.getFinalLocation().getNodeNumber())
             .build();
 
     messageFactory = pMessageFactory;
@@ -158,23 +169,26 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   }
 
   /**
-   * Stores what a message carries and explores the block once the worker's queue has run empty.
+   * Explores each changed violation condition immediately, while batching precondition updates.
    *
-   * <p>Exploring after every single message is what makes the multithreaded execution expensive. A
-   * worker is usually handed a burst of messages: the block is explored from the first one, and the
-   * result is superseded by the second before anyone reads it. Storing the whole burst first and
-   * exploring once afterwards produces the same conditions with a fraction of the analyses.
+   * <p>A later violation-condition message replaces the earlier conditions of its sender. Waiting
+   * for the queue to empty can therefore discard an error obligation before it has been explored.
+   * On a cycle, this can stop backward progress and leave an empty queue without a proof. Process
+   * each changed violation-condition update before accepting another message from the queue.
    *
-   * <p>The exploration cannot simply be left to the next message, because there may be no next
-   * message. It has to happen before this worker blocks on its queue again, since {@link
+   * <p>Precondition updates can still be batched. Their pending exploration must run before the
+   * worker waits on an empty queue, because {@link
    * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssWorkCounter}
-   * reads a worker waiting on an empty queue as a worker with nothing left to do, and would report
-   * a verdict while an exploration is still owed.
+   * otherwise interprets that wait as completion of the worker's analysis.
    */
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
     Collection<DssMessage> messages = store(message);
-    if (shutdown || !isAnalysisPending() || getConnection().hasPendingMessages()) {
+    if (shutdown
+        || retired
+        || !isAnalysisPending()
+        || (!(message instanceof DssViolationConditionMessage)
+            && getConnection().hasPendingMessages())) {
       return messages;
     }
     try {
@@ -311,6 +325,11 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public void broadcastInitialMessages()
       throws CPAException, SolverException, InterruptedException {
     broadcast(analysis.getDssBlockAnalysis().runInitialAnalysis());
+    retired =
+        retireTerminalBlocks
+            && block.getSuccessorIds().isEmpty()
+            && !block.isRoot()
+            && !block.iteratesItself();
   }
 
   @Override
@@ -338,8 +357,12 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   @Override
   public void close() {
     if (!closed && analysis.wouldBeCalledFromCorrectThread()) {
-      CPAs.closeCpaIfPossible(analysis.getDssBlockAnalysis().getDcpa(), logger);
-      closed = true;
+      try {
+        analysis.getDssBlockAnalysis().snapshotAnalysisStatistics();
+      } finally {
+        CPAs.closeCpaIfPossible(analysis.getDssBlockAnalysis().getDcpa(), logger);
+        closed = true;
+      }
     }
   }
 }

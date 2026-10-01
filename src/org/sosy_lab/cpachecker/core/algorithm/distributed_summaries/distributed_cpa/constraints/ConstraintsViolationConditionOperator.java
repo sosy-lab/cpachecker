@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -19,20 +20,20 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 
 public class ConstraintsViolationConditionOperator implements ViolationConditionOperator {
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition) {
     ImmutableList<ARGState> states = pARGPath.asStatesList();
     assert !states.isEmpty();
 
     AbstractState violation = states.getLast().getWrappedState();
     if (!(violation instanceof CompositeState cS)) {
-      return Optional.of(new ConstraintsState());
+      return ImmutableList.of(new ConstraintsState());
     }
     for (AbstractState state : cS.getWrappedStates()) {
       if (state instanceof ConstraintsState) {
-        return Optional.of(state);
+        return ImmutableList.of(state);
       }
     }
-    return Optional.of(new ConstraintsState());
+    return ImmutableList.of(new ConstraintsState());
   }
 }

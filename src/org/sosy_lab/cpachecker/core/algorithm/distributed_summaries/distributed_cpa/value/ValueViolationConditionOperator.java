@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DeserializeValueAnalysisStateOperator.accessedVariables;
 
+import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -83,11 +85,11 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
   }
 
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws CPATransferException, InterruptedException, SolverException {
     if (!runSymExec) {
-      return computeViolationConditionValueAnalysis(pARGPath, pPreviousCondition);
+      return computeViolationConditionValueAnalysis(pARGPath, pPreviousCondition).stream().toList();
     }
 
     ValueAnalysisState entryValueState =
@@ -129,6 +131,6 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
             variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
       }
     }
-    return Optional.of(violationCondition);
+    return ImmutableList.of(violationCondition);
   }
 }

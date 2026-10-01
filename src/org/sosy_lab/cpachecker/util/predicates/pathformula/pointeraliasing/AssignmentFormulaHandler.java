@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -256,8 +257,7 @@ class AssignmentFormulaHandler {
             rhsResult.type(),
             lhsLocation,
             rhsResult.expression(),
-            assignmentOptions.useOldSSAIndicesIfAliased()
-                && lhsResolved.expression().isAliasedLocation(),
+            useOldSSAIndices,
             updatedRegions,
             conditionFormula,
             useQuantifiers);
@@ -629,14 +629,39 @@ class AssignmentFormulaHandler {
   /**
    * Updates the SSA map for memory UFs.
    *
+   * <p>Only the forward direction advances the index here. Backward construction advanced it in
+   * {@link AssignmentHandler} already, before the right-hand side read it, and the index it left
+   * behind is the one that stands for the state before this edge — which is what the preceding edge
+   * has to read. Advancing it a second time would leave the heap this assignment wrote behind, as
+   * nothing would ever read the index it was written under.
+   *
    * @param regions A set of regions that should be added to the SSA map.
    * @param pSsa The current SSA map.
    */
   private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder pSsa) {
+    if (conv.direction == AnalysisDirection.BACKWARD) {
+      return;
+    }
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
       conv.makeFreshIndex(ufName, region.getType(), pSsa);
     }
+  }
+
+  /**
+   * The index an assignment writes for {@code pName}, given that {@code conv.getExistingOrNewIndex}
+   * gives the index it reads.
+   *
+   * <p>Forward construction reads the current index and writes the next one. Backward construction
+   * reads the index that stands for the state before the edge — which {@link AssignmentHandler}
+   * advanced to before the right-hand side was resolved — and writes the one below it, which stands
+   * for the state after the edge.
+   */
+  private int getWrittenIndex(final String pName, final CType pType) {
+    return switch (conv.direction) {
+      case FORWARD -> conv.getFreshIndex(pName, pType, ssa);
+      case BACKWARD -> conv.getPreviousIndex(pName, pType, ssa);
+    };
   }
 
   /**
@@ -690,7 +715,7 @@ class AssignmentFormulaHandler {
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
       final int oldIndex = conv.getExistingOrNewIndex(ufName, region.getType(), ssa);
-      final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
+      final int newIndex = getWrittenIndex(ufName, region.getType());
       final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       // forall counter : !condition => retentionConstraint
@@ -776,7 +801,7 @@ class AssignmentFormulaHandler {
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
       final int oldIndex = conv.getExistingOrNewIndex(ufName, region.getType(), ssa);
-      final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
+      final int newIndex = getWrittenIndex(ufName, region.getType());
       final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       for (final PointerTarget target : targetLookup.apply(region)) {
@@ -922,7 +947,11 @@ class AssignmentFormulaHandler {
       assert !useOldSSAIndices;
 
       final String targetName = lvalue.asUnaliased().getVariableName();
-      final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+      final int newIndex =
+          switch (conv.direction) {
+            case FORWARD -> conv.makeFreshIndex(targetName, lvalueType, ssa);
+            case BACKWARD -> conv.getPreviousIndex(targetName, lvalueType, ssa);
+          };
 
       if (rhs != null) {
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -932,7 +961,8 @@ class AssignmentFormulaHandler {
       }
 
       // This check is in principle redundant, but is required in order to avoid #1102.
-      if (!bfmgr.isTrue(condition)) {
+      // Backward construction writes the preceding index, so there is no older value to copy.
+      if (!bfmgr.isTrue(condition) && conv.direction == AnalysisDirection.FORWARD) {
         // add the condition
         // either the condition holds and the assignment should be done,
         // or the condition does not hold and the previous value should be copied
@@ -956,8 +986,10 @@ class AssignmentFormulaHandler {
       final int newIndex;
       if (useOldSSAIndices) {
         assert updatedRegions == null : "Returning updated regions is only for new indices";
-        newIndex = oldIndex;
-
+        newIndex =
+            conv.direction == AnalysisDirection.FORWARD
+                ? oldIndex
+                : conv.getPreviousIndex(targetName, lvalueType, ssa);
       } else if (options.useArraysForHeap()) {
         assert updatedRegions == null : "Return updated regions is only for UF encoding";
         if (rhs == null) {
@@ -967,7 +999,11 @@ class AssignmentFormulaHandler {
           rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
-        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+        newIndex =
+            switch (conv.direction) {
+              case FORWARD -> conv.makeFreshIndex(targetName, lvalueType, ssa);
+              case BACKWARD -> conv.getPreviousIndex(targetName, lvalueType, ssa);
+            };
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
@@ -975,7 +1011,7 @@ class AssignmentFormulaHandler {
         // For UFs, we use a new index without storing it such that we use the same index
         // for multiple writes that are part of the same assignment.
         // The new index will be stored in the SSAMap later.
-        newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
+        newIndex = getWrittenIndex(targetName, lvalueType);
       }
 
       final Formula address = lvalue.asAliased().getAddress();

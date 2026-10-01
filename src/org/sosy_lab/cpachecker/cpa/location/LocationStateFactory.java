@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
 
 @Options(prefix = "cpa.location")
-public class LocationStateFactory {
+public class LocationStateFactory implements CachedLocationStateProvider {
 
   private final LocationState[] states;
 
@@ -58,6 +58,7 @@ public class LocationStateFactory {
     }
   }
 
+  @Override
   public LocationState getState(CFANode node) {
     int nodeNumber = checkNotNull(node).getNodeNumber();
 

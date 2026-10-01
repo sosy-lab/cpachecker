@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.symbolic_execution;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -53,7 +55,7 @@ public class SymbolicExecutionViolationConditionOperator implements ViolationCon
   }
 
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
 
@@ -112,7 +114,7 @@ public class SymbolicExecutionViolationConditionOperator implements ViolationCon
             variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
       }
     }
-    return Optional.of(
+    return ImmutableList.of(
         new SymbolicExecutionState(violationCondition, lastState.constraintsState()));
   }
 

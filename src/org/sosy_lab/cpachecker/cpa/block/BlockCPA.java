@@ -59,7 +59,21 @@ public class BlockCPA extends AbstractCPA {
       return pState1 == pState2
           || (pState1 instanceof BlockState state1
               && pState2 instanceof BlockState state2
-              && state2.absorbs(state1));
+              && (state2.absorbs(state1) || coversLoopHead(state1, state2)));
+    }
+
+    /**
+     * Whether {@code pCovering} covers {@code pState} at the head of a block that iterates its own
+     * loop. Without this, every iteration would reach the head as a new state and the loop would be
+     * unrolled forever. The predicate analysis still has to agree, and all block ends of one run
+     * owe the same violation conditions, so the covering state processes every condition the
+     * covered one would, see {@link BlockState#isCovered(BlockState)}.
+     */
+    private static boolean coversLoopHead(BlockState pState, BlockState pCovering) {
+      return pState.getType() == BlockStateType.FINAL
+          && pState.getBlockNode() != null
+          && pState.getBlockNode().iteratesItself()
+          && pState.isCovered(pCovering);
     }
   }
 
