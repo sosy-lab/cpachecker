@@ -86,6 +86,14 @@ final class ExistentialProjection {
   private final Solver solver;
   private final boolean nested;
 
+  /**
+   * The variables of the conjuncts seen during the current call of {@link #project(BooleanFormula,
+   * Predicate)}. The disjuncts of a violation condition share the condition of the successor, and
+   * the rules are applied until nothing changes, so the same conjuncts are split off again and
+   * again; walking each of them anew took most of the time spent on violation conditions.
+   */
+  private final Map<BooleanFormula, ImmutableSet<String>> conjunctVariables = new HashMap<>();
+
   ExistentialProjection(Solver pSolver) {
     this(pSolver, false);
   }
@@ -122,7 +130,11 @@ final class ExistentialProjection {
    */
   BooleanFormula project(BooleanFormula pFormula, Predicate<String> pIsExistential)
       throws InterruptedException, SolverException {
-    return project(pFormula, pIsExistential, new int[] {2000});
+    try {
+      return project(pFormula, pIsExistential, new int[] {2000});
+    } finally {
+      conjunctVariables.clear();
+    }
   }
 
   private BooleanFormula project(
@@ -231,7 +243,8 @@ final class ExistentialProjection {
         pConjuncts.add(
             new Conjunct(
                 conjunct,
-                ImmutableSet.copyOf(fmgr.extractVariableNames(conjunct)),
+                conjunctVariables.computeIfAbsent(
+                    conjunct, c -> ImmutableSet.copyOf(fmgr.extractVariableNames(c))),
                 bfmgr.toDisjunctionArgs(conjunct, false).size() > 1));
       }
     }

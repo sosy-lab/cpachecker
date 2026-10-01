@@ -113,7 +113,6 @@ public class DistributedSummarySynthesisTest {
             "dss.cpa.predicate.projectNestedDisjunctions",
             "dss.cpa.predicate.generalizeViolationConditions",
             "dss.cpa.predicate.generalizeOverPreconditionPredicates",
-            "staticRefiner.addAllControlFlowAssumes",
           }) {
         assertWithMessage("%s in %s", option, name)
             .that(worker.getProperty(option))

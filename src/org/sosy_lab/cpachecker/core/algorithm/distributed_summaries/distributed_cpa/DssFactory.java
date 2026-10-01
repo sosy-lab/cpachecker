@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -112,8 +112,12 @@ public class DssFactory {
         PathFormula pathFormula = pfm.makeEmptyPathFormula();
         for (CFAEdge edge : pCfa.edges()) {
           try {
-            pathFormula = pfm.makeAnd(pathFormula, edge);
-          } catch (UnsupportedCodeException e) {
+            PathFormula next = pfm.makeAnd(pathFormula, edge);
+            // Only the types in the SSA map are needed. Keeping the conjunction of all edges of
+            // the program would let the formula grow with the program for nothing.
+            pathFormula =
+                pfm.makeEmptyPathFormulaWithContext(next.getSsa(), next.getPointerTargetSet());
+          } catch (UnrecognizedCodeException e) {
             // this code might never be executed, so we continue.
           }
         }
