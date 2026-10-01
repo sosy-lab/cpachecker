@@ -2179,6 +2179,9 @@ cpa.constraints.cacheSubsets = false
 # Whether to use superset caching
 cpa.constraints.cacheSupersets = false
 
+# Reset symbolic identifier IDs when initializing globals
+cpa.constraints.globalsResetIdentifiers = true
+
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
   enum:     [SUBSET]
@@ -4050,6 +4053,9 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Where to find the symbolic execution config without cegar.
+cpa.symbolicExecution.symbolicExecutionProperties = no default value
+
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
@@ -4860,6 +4866,10 @@ dss.cpa.predicate.projectNestedDisjunctions = true
 # conditions of different paths that only differ in intermediate values
 # become equal.
 dss.cpa.predicate.projectViolationConditions = true
+
+# Whether to run symbolic execution to compute the violation condition for
+# value analysis.
+dss.cpa.value.runSymExec = true
 
 # Compute violation conditions over the shared ARG graph.
 dss.graphViolationConditions = false
