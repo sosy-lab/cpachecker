@@ -81,7 +81,8 @@ public class BlockGraph {
               node.getEdges(),
               FluentIterable.from(node.getPredecessorIds()).filter(p -> !p.equals(id)).toSet(),
               FluentIterable.from(node.getSuccessorIds()).filter(s -> !s.equals(id)).toSet(),
-              node.getViolationConditionLocation()));
+              node.getViolationConditionLocation(),
+              true));
     }
     return new BlockGraph(adjusted.build());
   }

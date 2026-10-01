@@ -52,6 +52,8 @@ public class BlockGraphTest {
   public void loopBlocksLoseOnlyTheirSelfEdge() throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/simple/block_analysis/for.c");
     BlockGraph graph = generateBlockGraph(cfa, "config/dss.properties");
+    // without the option, no block iterates itself and everything else stays as it was
+    assertThat(graph.getNodes().stream().noneMatch(BlockNode::iteratesItself)).isTrue();
     BlockGraph adjusted = graph.withLoopBlocksIteratedInternally();
 
     assertThat(adjusted.getRoot().getId()).isEqualTo(graph.getRoot().getId());
