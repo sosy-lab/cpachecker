@@ -1998,6 +1998,10 @@ class ASTConverter {
     Pair<CStorageClass, ? extends CType> specifier = convert(d.getDeclSpecifier());
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
+    // __thread / _Thread_local arrives as a preprocessor-inserted attribute on the decl specifier,
+    // because CDT has no thread-local storage class of its own (see EclipseCdtWrapper)
+    boolean hasThreadLocalStorage =
+        typeConverter.hasCPAcheckerAttributeForThreadLocal(d.getDeclSpecifier());
 
     IASTDeclarator[] declarators = d.getDeclarators();
     List<CDeclaration> result = new ArrayList<>();
@@ -2061,7 +2065,8 @@ class ASTConverter {
                   fileLoc.getEndingLineInOrigin(),
                   fileLoc.isOffsetRelatedToOrigin());
         }
-        result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
+        result.add(
+            createDeclaration(declaratorLocation, cStorageClass, type, c, hasThreadLocalStorage));
       }
     }
 
@@ -2069,7 +2074,11 @@ class ASTConverter {
   }
 
   private CDeclaration createDeclaration(
-      FileLocation fileLoc, CStorageClass cStorageClass, CType type, IASTDeclarator d) {
+      FileLocation fileLoc,
+      CStorageClass cStorageClass,
+      CType type,
+      IASTDeclarator d,
+      boolean hasThreadLocalStorage) {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
@@ -2170,7 +2179,15 @@ class ASTConverter {
       final String scopedName = isGlobal ? name : scope.createScopedNameOf(name);
       CVariableDeclaration declaration =
           new CVariableDeclaration(
-              fileLoc, isGlobal, cStorageClass, type, name, origName, scopedName, null);
+              fileLoc,
+              isGlobal,
+              cStorageClass,
+              type,
+              name,
+              origName,
+              scopedName,
+              null,
+              hasThreadLocalStorage);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.
