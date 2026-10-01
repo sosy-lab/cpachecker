@@ -21,8 +21,10 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
@@ -100,11 +102,54 @@ public class DssCallstackDomainTest {
   }
 
   @Test
+  public void matchedCallsCancelOnlyWithoutRecursion() throws Exception {
+    // paths that call different functions on the way to the same location have to be mergeable
+    assertThat(effectAfterCallAndReturn("void f() {} int main() { f(); }"))
+        .isEqualTo(DssCallstackEffect.EMPTY);
+    // with recursion, the backwards replay still has to see the call to report it
+    assertThat(effectAfterCallAndReturn("void f() { f(); } int main() { f(); }"))
+        .isNotEqualTo(DssCallstackEffect.EMPTY);
+  }
+
+  private static DssCallstackEffect effectAfterCallAndReturn(String pProgram) throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromString(pProgram);
+    DssCallstackCPA cpa =
+        new DssCallstackCPA(
+            Configuration.defaultConfiguration(), LogManager.createTestLogManager(), cfa);
+    FunctionCallEdge call =
+        CFAUtils.allEdges(cfa)
+            .filter(FunctionCallEdge.class)
+            .firstMatch(edge -> edge.getPredecessor().getFunctionName().equals("main"))
+            .get();
+    FunctionReturnEdge returnEdge =
+        call.getSuccessor()
+            .getExitNode()
+            .orElseThrow()
+            .getLeavingReturnEdges()
+            .filter(FunctionReturnEdge.class)
+            .firstMatch(edge -> edge.getSummaryEdge().equals(call.getSummaryEdge()))
+            .get();
+    TransferRelation transfer = cpa.getTransferRelation();
+    AbstractState afterCall =
+        Iterables.getOnlyElement(
+            transfer.getAbstractSuccessorsForEdge(
+                cpa.createState(null, "main", cfa.getMainFunction(), false),
+                SingletonPrecision.getInstance(),
+                call));
+    AbstractState afterReturn =
+        Iterables.getOnlyElement(
+            transfer.getAbstractSuccessorsForEdge(
+                afterCall, SingletonPrecision.getInstance(), returnEdge));
+    return ((DssCallstackState) afterReturn).getEffect();
+  }
+
+  @Test
   public void configuredPccDomainCannotBypassDssCompatibility() throws Exception {
     DssCallstackCPA cpa =
         new DssCallstackCPA(
             Configuration.builder().setOption("cpa.callstack.domain", "FLATPCC").build(),
-            LogManager.createTestLogManager());
+            LogManager.createTestLogManager(),
+            TestCfaUtils.makeCfaFromString("int main() { return 0; }"));
     AbstractState unknown = new DssCallstackState(stack, true);
     assertThat(
             cpa.getStopOperator()

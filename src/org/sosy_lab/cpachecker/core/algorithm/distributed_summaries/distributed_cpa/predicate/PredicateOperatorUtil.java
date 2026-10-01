@@ -159,8 +159,16 @@ public class PredicateOperatorUtil {
     for (String symbol : symbols) {
       List<String> nameAndIndex =
           Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(symbol);
-      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || isFreshPerUse(symbol)) {
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty()) {
         renaming.put(symbol, pUniqueIndexProvider.extend(symbol));
+        continue;
+      }
+      if (isFreshPerUse(symbol)) {
+        // The private name must not keep the index, otherwise it still looks instantiated and the
+        // block that uses the condition fails to instantiate it.
+        renaming.put(
+            symbol,
+            pUniqueIndexProvider.extend(nameAndIndex.getFirst() + "!" + nameAndIndex.get(1)));
         continue;
       }
       String name = nameAndIndex.getFirst();
