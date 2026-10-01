@@ -12,15 +12,19 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getBl
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -128,9 +132,18 @@ public final class ImcRefiner extends InductionRefiner {
       return Optional.empty();
     }
 
+    Map<ARGState, List<ARGState>> chains = new HashMap<>();
+    ListMultimap<ARGState, ARGState> targetsBelow = ArrayListMultimap.create();
+    for (ARGState target : abstractTargets) {
+      List<ARGState> chain = abstractionChain(target);
+      chains.put(target, chain);
+      for (ARGState state : chain.subList(1, chain.size() - 1)) {
+        targetsBelow.put(state, target);
+      }
+    }
     for (ARGState target : abstractTargets) {
       if (!target.isDestroyed()) {
-        refine(pReached, target, abstractTargets);
+        refine(pReached, target, chains, targetsBelow);
       }
     }
     return Optional.empty();
@@ -142,26 +155,27 @@ public final class ImcRefiner extends InductionRefiner {
    * error paths of its unrolling, the interpolant is taken against the suffixes of all targets
    * below the abstraction, or against the own suffix if one of the others is reachable.
    */
-  private void refine(ARGReachedSet pReached, ARGState pTarget, List<ARGState> pTargets)
+  private void refine(
+      ARGReachedSet pReached,
+      ARGState pTarget,
+      Map<ARGState, List<ARGState>> pChains,
+      ListMultimap<ARGState, ARGState> pTargetsBelow)
       throws CPAException, InterruptedException, SolverException {
     if (solver.isUnsat(lastBlockFromRegion(pTarget))) {
       removeUnreachable(pReached, ImmutableList.of(pTarget));
       return;
     }
-    List<ARGState> chain = abstractionChain(pTarget);
+    List<ARGState> chain = pChains.get(pTarget);
     for (int i = chain.size() - 2; i > 0; i--) {
       ARGState abstraction = chain.get(i);
       if (inductionStateOf(abstraction).isAbstraction()) {
         BooleanFormula ownSuffix = suffixOf(chain, i);
         List<BooleanFormula> suffixes = new ArrayList<>();
         suffixes.add(ownSuffix);
-        for (ARGState target : pTargets) {
+        // all chains through the abstraction share the path to it, so it has the same position
+        for (ARGState target : pTargetsBelow.get(abstraction)) {
           if (target != pTarget && !target.isDestroyed()) {
-            List<ARGState> targetChain = abstractionChain(target);
-            int position = targetChain.indexOf(abstraction);
-            if (position >= 0) {
-              suffixes.add(suffixOf(targetChain, position));
-            }
+            suffixes.add(suffixOf(pChains.get(target), i));
           }
         }
         Optional<BooleanFormula> interpolant = interpolate(chain, i, bfmgr.or(suffixes));
