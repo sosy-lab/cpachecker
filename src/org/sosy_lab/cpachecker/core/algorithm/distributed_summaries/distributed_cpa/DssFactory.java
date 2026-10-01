@@ -16,6 +16,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,50 +52,70 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DssFactory {
 
+  /**
+   * What the analyses of all blocks need to know about the whole program.
+   *
+   * @param types the types of all variables and functions
+   * @param memoryShare the share of the CFA edges with a non-trivial encoding that access memory
+   *     through the pointer-target symbols of the pointer-aliasing encoding, from 0 to 1
+   */
+  record ProgramFacts(ImmutableMap<String, Type> types, double memoryShare) {}
+
   static final class TypeAndLocationCache {
 
-    private static final Map<CFA, ImmutableMap<String, Type>> cachedVariableAndFunctionToTypeMap =
-        new LinkedHashMap<>();
+    private static final Map<CFA, ProgramFacts> cachedProgramFacts = new LinkedHashMap<>();
     private static final Map<CFA, ImmutableBiMap<Integer, CFANode>> integerToNodeMap =
         new LinkedHashMap<>();
 
+    /**
+     * The prefix of the pointer-target symbols of the pointer-aliasing encoding, see {@code
+     * TypeHandlerWithPointerAliasing#isPointerAccessSymbol}. No C identifier can start with it.
+     */
+    private static final String POINTER_TARGET_PREFIX = "*";
+
     private TypeAndLocationCache() {}
 
-    static synchronized ImmutableMap<String, Type> getOrCreateTypeMap(
+    static synchronized ProgramFacts getOrCreateProgramFacts(
         CFA pCFA,
         Configuration pConfiguration,
         LogManager pLogManager,
         ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException, CPATransferException, InterruptedException {
-      ImmutableMap<String, Type> cached = cachedVariableAndFunctionToTypeMap.get(pCFA);
+      ProgramFacts cached = cachedProgramFacts.get(pCFA);
       if (cached == null) {
-        // computeIfAbsent cannot be used here because getTypeMap throws checked exceptions that the
-        // functional interface cannot propagate.
-        cached =
-            ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
-        cachedVariableAndFunctionToTypeMap.put(pCFA, cached);
+        // computeIfAbsent cannot be used here because computeProgramFacts throws checked exceptions
+        // that the functional interface cannot propagate.
+        cached = computeProgramFacts(pCFA, pConfiguration, pLogManager, pShutdownNotifier);
+        pLogManager.logf(
+            Level.INFO,
+            "%.1f%% of the encoded CFA edges access modelled memory.",
+            100 * cached.memoryShare());
+        cachedProgramFacts.put(pCFA, cached);
       }
       return cached;
     }
 
     /**
-     * Get a mapping from variable and function names to their types.
+     * Get a mapping from variable and function names to their types, and the share of the edges
+     * that access memory through pointer-target symbols.
      *
      * @param pCfa CFA to get the mapping for
      * @param pConfiguration configuration to create the solver for the path formula manager
      * @param pLogManager log manager to create the solver for the path formula manager
      * @param pShutdownNotifier shutdown notifier to create the solver for the path formula manager
-     * @return a mapping from variable and function names to their types
+     * @return the types of all variables and functions, and the share of memory accesses
      * @throws InvalidConfigurationException if the configuration is invalid for the solver
      * @throws CPATransferException if the path formula manager cannot create a path formula for the
      *     given CFA
      * @throws InterruptedException if the thread is interrupted while creating the path formula
      */
-    private static Map<String, Type> getTypeMap(
+    private static ProgramFacts computeProgramFacts(
         CFA pCfa,
         Configuration pConfiguration,
         LogManager pLogManager,
@@ -109,10 +130,22 @@ public class DssFactory {
                 pShutdownNotifier,
                 pCfa,
                 AnalysisDirection.FORWARD);
+        FormulaManagerView fmgr = solver.getFormulaManager();
         PathFormula pathFormula = pfm.makeEmptyPathFormula();
+        int encodedEdges = 0;
+        int memoryEdges = 0;
         for (CFAEdge edge : pCfa.edges()) {
           try {
             PathFormula next = pfm.makeAnd(pathFormula, edge);
+            // The formula of the previous edge was dropped, so this is the formula of this edge.
+            BooleanFormula edgeFormula = next.getFormula();
+            if (!fmgr.getBooleanFormulaManager().isTrue(edgeFormula)) {
+              encodedEdges++;
+              if (fmgr.extractFunctionNames(edgeFormula).stream()
+                  .anyMatch(name -> name.startsWith(POINTER_TARGET_PREFIX))) {
+                memoryEdges++;
+              }
+            }
             // Only the types in the SSA map are needed. Keeping the conjunction of all edges of
             // the program would let the formula grow with the program for nothing.
             pathFormula =
@@ -121,7 +154,10 @@ public class DssFactory {
             // this code might never be executed, so we continue.
           }
         }
-        return Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType);
+        return new ProgramFacts(
+            ImmutableMap.copyOf(
+                Maps.toMap(pathFormula.getSsa().allVariables(), pathFormula.getSsa()::getType)),
+            encodedEdges == 0 ? 0 : (double) memoryEdges / encodedEdges);
       }
     }
 
@@ -175,7 +211,7 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier,
               TypeAndLocationCache.getOrCreateLocationMapping(pCFA),
-              TypeAndLocationCache.getOrCreateTypeMap(
+              TypeAndLocationCache.getOrCreateProgramFacts(
                   pCFA, pConfiguration, pLogManager, pShutdownNotifier));
       case DssCallstackCPA callstackCPA ->
           distribute(
@@ -245,7 +281,7 @@ public class DssFactory {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       BiMap<Integer, CFANode> pCfaNodeIdMap,
-      ImmutableMap<String, Type> pVariableAndFunctionToTypeMap)
+      ProgramFacts pProgramFacts)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
         pPredicateCPA,
@@ -256,7 +292,8 @@ public class DssFactory {
         pLogManager,
         pShutdownNotifier,
         pCfaNodeIdMap,
-        pVariableAndFunctionToTypeMap);
+        pProgramFacts.types(),
+        pProgramFacts.memoryShare());
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

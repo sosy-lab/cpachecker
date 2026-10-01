@@ -4822,6 +4822,13 @@ dss.cpa.predicate.generalizeViolationConditions = true
 # of. A condition that needs more is sent exactly.
 dss.cpa.predicate.maxCubesPerViolationCondition = 16
 
+# The largest share of CFA edges accessing modelled memory, from 0 to 1, for
+# which violation conditions are generalized and projected into nested
+# disjunctions. Conditions of programs that use memory more are only
+# projected: with the pointer-aliasing encoding, generalization and nested
+# projection cost much more than they save there.
+dss.cpa.predicate.maxMemoryShareForExpensiveSimplification = 1.0
+
 # Whether graph-condition projection may substitute into nested disjunctions.
 # Disabling this keeps shared intermediate values, which can make large exact
 # conditions easier for the solver even when messages become larger.
