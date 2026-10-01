@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,6 +49,10 @@ public class PartialReplaceExplorationEngineTest {
     private Precision roundPrecision;
 
     private Fixture() throws Exception {
+      this(Configuration.defaultConfiguration());
+    }
+
+    private Fixture(Configuration pConfiguration) throws Exception {
       DistributedConfigurableProgramAnalysis dcpa =
           mock(DistributedConfigurableProgramAnalysis.class);
       Precision precision = mock(Precision.class);
@@ -62,8 +67,7 @@ public class PartialReplaceExplorationEngineTest {
       when(conditions.states()).thenReturn(ImmutableList.of());
       when(analysis.getDcpa()).thenReturn(dcpa);
       when(analysis.statistics()).thenReturn(new DssSingleWorkerStatistics("test"));
-      when(analysis.getOptions())
-          .thenReturn(new DssAnalysisOptions(Configuration.defaultConfiguration()));
+      when(analysis.getOptions()).thenReturn(new DssAnalysisOptions(pConfiguration));
       when(dcpa.reset(any())).thenAnswer(i -> i.getArgument(0));
       // the precision of the round, which the engine compares a cached source against
       when(analysis.combinePrecisions(any())).thenAnswer(i -> roundPrecision);
@@ -93,6 +97,27 @@ public class PartialReplaceExplorationEngineTest {
     // published again.
     assertThat(engine.explore(false).summaries()).isEmpty();
     verify(fixture.analysis, times(1)).runBlockAnalysis(any(), any(), any());
+  }
+
+  @Test
+  public void learnedPrecisionIsKeptForLaterRounds() throws Exception {
+    Fixture fixture =
+        new Fixture(
+            Configuration.builder()
+                .setOption("distributedSummaries.retainLearnedPrecision", "true")
+                .build());
+    Precision learned = mock(Precision.class);
+    Precision union = mock(Precision.class);
+    when(fixture.analysis.precisionOfLastRun()).thenReturn(learned);
+    when(fixture.analysis.unionOf(fixture.roundPrecision, learned)).thenReturn(union);
+    PartialReplaceExplorationEngine engine = fixture.engine();
+
+    engine.explore(false);
+    // Nothing was received in between, but the second round still explores with what the
+    // refinements of the first one learned.
+    engine.explore(false);
+
+    verify(fixture.analysis).runBlockAnalysis(any(), eq(union), any());
   }
 
   @Test
