@@ -89,6 +89,13 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   private final DssSingleWorkerStatistics workerStats;
 
   private boolean shutdown;
+
+  /**
+   * Whether this block stopped exploring, see {@link DssAnalysisOptions#retireTerminalBlocks()}.
+   */
+  private boolean retired;
+
+  private final boolean retireTerminalBlocks;
   private boolean closed;
 
   /** Whether a stored postcondition still owes an exploration, see {@link #processMessage}. */
@@ -126,6 +133,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     super("analysis-worker-" + pId, pMessageFactory, pLogger);
     block = pBlock;
     connection = pConnection;
+    retireTerminalBlocks = pOptions.retireTerminalBlocks();
 
     Configuration forwardConfiguration =
         Configuration.builder()
@@ -177,6 +185,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public Collection<DssMessage> processMessage(DssMessage message) {
     Collection<DssMessage> messages = store(message);
     if (shutdown
+        || retired
         || !isAnalysisPending()
         || (!(message instanceof DssViolationConditionMessage)
             && getConnection().hasPendingMessages())) {
@@ -316,6 +325,10 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public void broadcastInitialMessages()
       throws CPAException, SolverException, InterruptedException {
     broadcast(analysis.getDssBlockAnalysis().runInitialAnalysis());
+    retired =
+        retireTerminalBlocks
+            && block.getSuccessorIds().isEmpty()
+            && !block.isRoot();
   }
 
   @Override
