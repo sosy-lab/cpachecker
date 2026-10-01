@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -516,13 +517,22 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
    * successor of a loop-head arrival, e.g., an induction start or a cut-off.
    */
   protected void increaseK(ARGReachedSet pReached, ARGState pState) throws InterruptedException {
+    reexploreWith(pReached, pState, p -> p.withK(p.k() + 1));
+  }
+
+  /**
+   * Explore the given state again, with the given change of the precision of all loops. The state
+   * must be a successor of a loop-head arrival, e.g., an induction start or a cut-off.
+   */
+  protected void reexploreWith(
+      ARGReachedSet pReached, ARGState pState, UnaryOperator<LoopPrecision> pChange)
+      throws InterruptedException {
     if (pState.isDestroyed()) {
       // inside a subtree that is explored again anyway
       return;
     }
     InductionPrecision precision =
-        inductionPrecisionOf(pReached, pState.getParents().getFirst())
-            .withAll(p -> p.withK(p.k() + 1));
+        inductionPrecisionOf(pReached, pState.getParents().getFirst()).withAll(pChange);
     recordK(precision);
     reexplore(
         pReached,

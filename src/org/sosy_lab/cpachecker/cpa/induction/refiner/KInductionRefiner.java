@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.induction.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision.LoopPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -31,8 +31,10 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Makes the CEGAR loop behave like k-induction: the abstractions are true, and every induction step
- * that the SAT queries of native k-induction cannot prove increases k by one. The queries are those
- * of the base case, the bounding assertions and the step case.
+ * that the SAT queries of native k-induction cannot prove increases k by one. As native
+ * k-induction, the refiner first checks the base case up to the bound, where the precision cuts the
+ * paths off, and the bounding assertions. Only then the exploration continues with the induction
+ * steps, whose targets the step case checks.
  */
 @Options(prefix = "cpa.induction.refinement.kInduction")
 public final class KInductionRefiner extends InductionRefiner {
@@ -40,10 +42,9 @@ public final class KInductionRefiner extends InductionRefiner {
   @Option(
       secure = true,
       description =
-          "Optimization: check the bounding assertions only for the induction starts whose"
-              + " induction steps reach a target. Native k-induction checks all states at the"
-              + " bound, so one reachable state without a target in its step case prevents the"
-              + " proof.")
+          "Optimization: check the bounding assertions again when the induction steps reach"
+              + " targets, for the induction starts of these steps. Native k-induction checks them"
+              + " only before the step case, for all states at the bound.")
   private boolean targetedBoundingAssertions = false;
 
   private final StatCounter provedByBoundingAssertions =
@@ -66,9 +67,6 @@ public final class KInductionRefiner extends InductionRefiner {
   protected Optional<ARGState> refine(
       ARGReachedSet pReached, List<ARGState> pTargets, List<ARGState> pCutOffs)
       throws CPAException, InterruptedException, SolverException {
-    if (!pCutOffs.isEmpty()) {
-      throw new CPAException("k-induction needs a precision that describes all abstractions");
-    }
     List<ARGState> baseCaseTargets =
         from(pTargets).filter(t -> !inductionStateOf(t).isInInductionStep()).toList();
     Optional<ARGState> counterexample = findFeasibleTarget(baseCaseTargets);
@@ -76,6 +74,19 @@ public final class KInductionRefiner extends InductionRefiner {
       return counterexample;
     }
     removeUnreachable(pReached, baseCaseTargets);
+
+    if (!pCutOffs.isEmpty()) {
+      // the base case reached the bound: the bounding assertions, then the induction steps
+      if (removeIfNoneReachable(pReached, pCutOffs)) {
+        provedByBoundingAssertions.inc();
+        return Optional.empty();
+      }
+      for (ARGState cutOff : pCutOffs) {
+        reexploreWith(
+            pReached, cutOff, p -> p.withDescribedAbstractions(LoopPrecision.ALL_ABSTRACTIONS));
+      }
+      return Optional.empty();
+    }
 
     List<ARGState> stepTargets =
         from(pTargets).filter(t -> inductionStateOf(t).isInInductionStep()).toList();
@@ -86,14 +97,8 @@ public final class KInductionRefiner extends InductionRefiner {
     for (ARGState target : stepTargets) {
       inductionStarts.add(firstLoopHeadAbstraction(target).orElseThrow());
     }
-    Collection<ARGState> frontier =
-        targetedBoundingAssertions
-            ? inductionStarts
-            : from(pReached.asReachedSet())
-                .filter(ARGState.class)
-                .filter(s -> inductionStateOf(s).isInductionStart())
-                .toList();
-    if (removeIfNoneReachable(pReached, frontier)) {
+    // native k-induction checks the bounding assertions only before the step case
+    if (targetedBoundingAssertions && removeIfNoneReachable(pReached, inductionStarts)) {
       provedByBoundingAssertions.inc();
       return Optional.empty();
     }
@@ -103,7 +108,8 @@ public final class KInductionRefiner extends InductionRefiner {
     }
 
     for (ARGState start : inductionStarts) {
-      increaseK(pReached, start);
+      // the base case up to the next bound
+      reexploreWith(pReached, start, p -> p.withK(p.k() + 1).withDescribedAbstractions(0));
     }
     return Optional.empty();
   }
