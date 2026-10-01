@@ -325,7 +325,11 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public void broadcastInitialMessages()
       throws CPAException, SolverException, InterruptedException {
     broadcast(analysis.getDssBlockAnalysis().runInitialAnalysis());
-    retired = retireTerminalBlocks && block.getSuccessorIds().isEmpty() && !block.isRoot();
+    retired =
+        retireTerminalBlocks
+            && block.getSuccessorIds().isEmpty()
+            && !block.isRoot()
+            && !block.iteratesItself();
   }
 
   @Override

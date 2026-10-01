@@ -126,7 +126,8 @@ public class DssAnalysisOptions {
       description =
           "Whether a block without successors stops exploring after its first run. Such a block"
               + " never receives a violation condition, and its first run, from the unconstrained"
-              + " start state, already finds every violation it can report.")
+              + " start state, already finds every violation it can report. A block that iterates"
+              + " its own loop is excluded, because it covers later iterations.")
   private boolean retireTerminalBlocks = false;
 
   @Option(
