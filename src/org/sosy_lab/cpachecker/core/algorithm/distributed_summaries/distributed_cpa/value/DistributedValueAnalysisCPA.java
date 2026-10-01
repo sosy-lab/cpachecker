@@ -145,7 +145,10 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public CombinePreconditionsOperator getCombineOperator() {
-    return null;
+    // Preconditions of this domain are never combined: combineIfPossible declines by default.
+    return states -> {
+      throw new UnsupportedOperationException("Preconditions of this domain cannot be combined");
+    };
   }
 
   @Override
