@@ -20,10 +20,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -60,6 +62,8 @@ public class PartialReplaceExplorationEngineTest {
       when(conditions.states()).thenReturn(ImmutableList.of());
       when(analysis.getDcpa()).thenReturn(dcpa);
       when(analysis.statistics()).thenReturn(new DssSingleWorkerStatistics("test"));
+      when(analysis.getOptions())
+          .thenReturn(new DssAnalysisOptions(Configuration.defaultConfiguration()));
       when(dcpa.reset(any())).thenAnswer(i -> i.getArgument(0));
       // the precision of the round, which the engine compares a cached source against
       when(analysis.combinePrecisions(any())).thenAnswer(i -> roundPrecision);
