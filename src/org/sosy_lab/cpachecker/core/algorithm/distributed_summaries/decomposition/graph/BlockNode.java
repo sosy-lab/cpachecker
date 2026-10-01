@@ -16,6 +16,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
   private final ImmutableSet<String> predecessorIds;
   private final ImmutableSet<String> successorIds;
   private final CFANode violationConditionLocation;
+  private final boolean iteratesItself;
 
   public BlockNode(
       String pId,
@@ -41,6 +42,10 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
     predecessorIds = pPredecessorIds;
     successorIds = pSuccessorIds;
     violationConditionLocation = pViolationConditionLocation;
+    iteratesItself =
+        pFirst.equals(pLast)
+            && !pSuccessorIds.contains(pId)
+            && pEdges.stream().anyMatch(edge -> edge.getSuccessor().equals(pFirst));
   }
 
   public boolean isAbstractionPossible() {
@@ -92,9 +97,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
    * BlockGraph#withLoopBlocksIteratedInternally()}.
    */
   public boolean iteratesItself() {
-    return getInitialLocation().equals(getFinalLocation())
-        && !successorIds.contains(getId())
-        && getEdges().stream().anyMatch(edge -> edge.getSuccessor().equals(getInitialLocation()));
+    return iteratesItself;
   }
 
   public boolean isRoot() {
