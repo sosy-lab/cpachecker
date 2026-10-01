@@ -63,7 +63,6 @@ public final class PdrRefiner extends InductionRefiner {
 
   private final StatCounter blockedCounterexamples = new StatCounter("Blocked counterexamples");
   private final StatCounter pushedFrontiers = new StatCounter("Pushed frontiers");
-  private final StatCounter interpolationFailures = new StatCounter("Failed interpolations");
   private final StatInt frameCount = new StatInt(StatKind.MAX, "Frames per loop head");
 
   private PdrRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
@@ -175,16 +174,10 @@ public final class PdrRefiner extends InductionRefiner {
             Lists.transform(
                 pChain.subList(pPosition + 1, pChain.size()),
                 s -> getBlockFormula(getPredicateState(s))));
-    Optional<ImmutableList<BooleanFormula>> interpolants;
-    try {
-      interpolants = interpolationManager.interpolate(ImmutableList.of(prefix, suffix));
-    } catch (RefinementFailedException e) {
-      logger.logDebugException(e, "Interpolation failed");
-      interpolationFailures.inc();
-      return Optional.empty();
-    }
     // false blocks an abstraction whose block is infeasible, which an empty frame does not check
-    return interpolants.map(ImmutableList::getFirst).filter(itp -> !bfmgr.isTrue(itp));
+    return interpolate(ImmutableList.of(prefix, suffix))
+        .map(ImmutableList::getFirst)
+        .filter(itp -> !bfmgr.isTrue(itp));
   }
 
   /**
@@ -241,10 +234,6 @@ public final class PdrRefiner extends InductionRefiner {
 
   @Override
   protected void printRefinerStatistics(StatisticsWriter pWriter) {
-    pWriter
-        .put(blockedCounterexamples)
-        .put(pushedFrontiers)
-        .put(interpolationFailures)
-        .put(frameCount);
+    pWriter.put(blockedCounterexamples).put(pushedFrontiers).put(frameCount);
   }
 }

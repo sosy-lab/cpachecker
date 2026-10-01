@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision.LoopPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -87,7 +86,6 @@ public final class IsmcRefiner extends InductionRefiner {
 
   private final StatCounter framePhases = new StatCounter("Switches to the frame phase");
   private final StatCounter searches = new StatCounter("Switches to a longer search");
-  private final StatCounter interpolationFailures = new StatCounter("Failed interpolations");
   private final StatInt frameCount = new StatInt(StatKind.MAX, "Frames per loop head");
 
   private IsmcRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
@@ -219,14 +217,7 @@ public final class IsmcRefiner extends InductionRefiner {
             .transform(s -> getBlockFormula(getPredicateState(s)))
             .append(bfmgr.or(Lists.transform(pTargets, t -> getBlockFormula(getPredicateState(t)))))
             .toList();
-    Optional<ImmutableList<BooleanFormula>> interpolants;
-    try {
-      interpolants = interpolationManager.interpolate(formulas);
-    } catch (RefinementFailedException e) {
-      logger.logDebugException(e, "Interpolation failed");
-      interpolationFailures.inc();
-      return;
-    }
+    Optional<ImmutableList<BooleanFormula>> interpolants = interpolate(formulas);
     // a false interpolant shows an infeasible path through the loops, whose frames say nothing
     if (interpolants.isEmpty() || interpolants.orElseThrow().stream().anyMatch(bfmgr::isFalse)) {
       return;
@@ -338,7 +329,6 @@ public final class IsmcRefiner extends InductionRefiner {
     pWriter
         .put(framePhases)
         .put(searches)
-        .put(interpolationFailures)
         .put(frameCount)
         .put("Bound of the counterexample search", bound);
   }

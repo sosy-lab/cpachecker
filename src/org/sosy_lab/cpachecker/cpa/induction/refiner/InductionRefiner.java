@@ -112,6 +112,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   private final StatTimer refinementTime = new StatTimer("Time for refinements");
   private final StatTimer satCheckTime = new StatTimer("Time for batch SAT checks");
   private final StatCounter removedStates = new StatCounter("Unreachable states removed");
+  private final StatCounter interpolationFailures = new StatCounter("Failed interpolations");
   private final StatCounter reexploredSubtrees = new StatCounter("Re-explored subtrees");
   private final StatInt maxK = new StatInt(StatKind.MAX, "Maximal k");
 
@@ -242,6 +243,19 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     return bfmgr.and(
         getPredicateState(previous).getAbstractionFormula().asInstantiatedFormula(),
         getBlockFormula(getPredicateState(pAbstractionState)));
+  }
+
+  /** The interpolants of the formulas, or nothing if they are satisfiable or the solver fails. */
+  protected Optional<ImmutableList<BooleanFormula>> interpolate(List<BooleanFormula> pFormulas)
+      throws CPAException, InterruptedException {
+    try {
+      return interpolationManager.interpolate(pFormulas);
+    } catch (RefinementFailedException | IllegalArgumentException e) {
+      // MathSAT reports some failures, e.g., in non-linear arithmetic, as IllegalArgumentException
+      logger.logDebugException(e, "Interpolation failed");
+      interpolationFailures.inc();
+      return Optional.empty();
+    }
   }
 
   /** Whether the specification can be violated somewhere in the program. */
@@ -604,6 +618,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
             .put(refinementTime)
             .put(satCheckTime)
             .put(removedStates)
+            .put(interpolationFailures)
             .put(reexploredSubtrees)
             .put(maxK);
     printRefinerStatistics(writer);

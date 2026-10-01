@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.induction.InductionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -78,7 +77,6 @@ public final class ImcRefiner extends InductionRefiner {
 
   private final StatCounter widenings = new StatCounter("Widened abstractions");
   private final StatCounter restarts = new StatCounter("Restarts with a larger k");
-  private final StatCounter interpolationFailures = new StatCounter("Failed interpolations");
 
   private ImcRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
@@ -199,15 +197,7 @@ public final class ImcRefiner extends InductionRefiner {
                 .getAbstractionFormula()
                 .asInstantiatedFormula(),
             getBlockFormula(getPredicateState(pChain.get(pPosition))));
-    Optional<ImmutableList<BooleanFormula>> interpolants;
-    try {
-      interpolants = interpolationManager.interpolate(ImmutableList.of(prefix, pSuffix));
-    } catch (RefinementFailedException e) {
-      logger.logDebugException(e, "Interpolation failed");
-      interpolationFailures.inc();
-      return Optional.empty();
-    }
-    return interpolants
+    return interpolate(ImmutableList.of(prefix, pSuffix))
         .map(itps -> fmgr.uninstantiate(itps.getFirst()))
         .filter(itp -> !bfmgr.isTrue(itp));
   }
@@ -287,6 +277,6 @@ public final class ImcRefiner extends InductionRefiner {
 
   @Override
   protected void printRefinerStatistics(StatisticsWriter pWriter) {
-    pWriter.put(widenings).put(restarts).put(interpolationFailures);
+    pWriter.put(widenings).put(restarts);
   }
 }
