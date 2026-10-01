@@ -4737,6 +4737,11 @@ distributedSummaries.requireConfirmedViolation = true
 # used together with the inlining decomposition
 distributedSummaries.resetCallstackState = false
 
+# Whether a block without successors stops exploring after its first run.
+# Such a block never receives a violation condition, and its first run, from
+# the unconstrained start state, already finds every violation it can report.
+distributedSummaries.retireTerminalBlocks = false
+
 # Whether to send and use precision updates in precondition and
 # violation-condition messages.
 distributedSummaries.sharePrecision = true
