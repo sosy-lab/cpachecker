@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -36,13 +37,15 @@ public final class DssCallstackCPA extends CallstackCPA {
   /** Whether no function of the program can call itself, see {@link DssCallstackEffect}. */
   private final boolean recursionFree;
 
-  public DssCallstackCPA(Configuration pConfiguration, LogManager pLogger, CFA pCfa)
+  public DssCallstackCPA(
+      Configuration pConfiguration, LogManager pLogger, @OptionalAnnotation @Nullable CFA pCfa)
       throws InvalidConfigurationException {
     super(pConfiguration, pLogger);
     if (getCallstackOptions().traverseBackwards()) {
       throw new InvalidConfigurationException("DssCallstackCPA only supports forward analyses");
     }
-    recursionFree = !hasRecursion(pCfa);
+    // without a CFA, recursion cannot be ruled out
+    recursionFree = pCfa != null && !hasRecursion(pCfa);
   }
 
   private static boolean hasRecursion(CFA pCfa) {
