@@ -35,14 +35,16 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 final class InductionTransferRelation extends SingleEdgeTransferRelation {
 
   private final LoopStructure loopStructure;
+  private final boolean continueBaseCase;
 
   final StatCounter abstractions = new StatCounter("Abstractions at loop heads");
   final StatCounter inductionStarts = new StatCounter("Induction starts");
   final StatCounter cutOffs = new StatCounter("Cut-offs");
   final StatCounter suppressedTargets = new StatCounter("Targets not reported in induction step");
 
-  InductionTransferRelation(LoopStructure pLoopStructure) {
+  InductionTransferRelation(LoopStructure pLoopStructure, boolean pContinueBaseCase) {
     loopStructure = pLoopStructure;
+    continueBaseCase = pContinueBaseCase;
   }
 
   @Override
@@ -91,9 +93,11 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of(state.abstraction(successor, loopPrecision, false, reportsTargets));
     }
     inductionStarts.inc();
-    return ImmutableList.of(
-        state.continuation(arrivals, reportsTargets, precision),
-        state.abstraction(successor, loopPrecision, true, reportsTargets));
+    InductionState inductionStart =
+        state.abstraction(successor, loopPrecision, true, reportsTargets);
+    return continueBaseCase
+        ? ImmutableList.of(state.continuation(arrivals, reportsTargets, precision), inductionStart)
+        : ImmutableList.of(inductionStart);
   }
 
   @Override

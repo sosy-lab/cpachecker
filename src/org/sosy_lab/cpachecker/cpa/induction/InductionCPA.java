@@ -72,6 +72,13 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
   @Option(
       secure = true,
       description =
+          "let the base case continue one iteration after an induction start, as in the paper of"
+              + " the PredK framework. Native k-induction does not continue the base case.")
+  private boolean continueBaseCase = true;
+
+  @Option(
+      secure = true,
+      description =
           "CPAs (as in CompositeCPA.cpas) that restart from their initial state at every"
               + " abstraction at a loop head")
   private List<String> abstractedCPAs = ImmutableList.of();
@@ -93,12 +100,16 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
   }
 
   private InductionCPA(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
-    super(
-        "sep", "sep", new InductionDomain(), new InductionTransferRelation(loopStructureOf(pCfa)));
+    super("sep", "sep", new InductionDomain(), null);
     pConfig.inject(this);
     loopStructure = loopStructureOf(pCfa);
-    transferRelation = (InductionTransferRelation) getTransferRelation();
+    transferRelation = new InductionTransferRelation(loopStructure, continueBaseCase);
     resets = new Resets(toClassNames(abstractedCPAs), toClassNames(inductionStepCPAs));
+  }
+
+  @Override
+  public InductionTransferRelation getTransferRelation() {
+    return transferRelation;
   }
 
   private static LoopStructure loopStructureOf(CFA pCfa) throws InvalidConfigurationException {

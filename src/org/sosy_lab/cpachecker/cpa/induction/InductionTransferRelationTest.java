@@ -63,7 +63,7 @@ public class InductionTransferRelationTest {
             .filter(e -> loop.getLoopNodes().contains(e.getSuccessor()))
             .first()
             .get();
-    transferRelation = new InductionTransferRelation(loopStructure);
+    transferRelation = new InductionTransferRelation(loopStructure, true);
     initial = InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of()));
   }
 
@@ -80,7 +80,16 @@ public class InductionTransferRelationTest {
 
   private InductionState successor(
       InductionState pState, InductionPrecision pPrecision, CFAEdge pEdge) {
-    return getOnlyElement(successors(pState, pPrecision, pEdge));
+    return successor(pState, pPrecision, pEdge, transferRelation);
+  }
+
+  private static InductionState successor(
+      InductionState pState,
+      InductionPrecision pPrecision,
+      CFAEdge pEdge,
+      InductionTransferRelation pTransferRelation) {
+    return getOnlyElement(
+        pTransferRelation.getAbstractSuccessorsForEdge(pState, pPrecision, pEdge));
   }
 
   @Test
@@ -111,6 +120,20 @@ public class InductionTransferRelationTest {
 
     // the base case continues one iteration, up to the next arrival
     assertThat(successors(successor(continuation, precision, body), precision, back)).isEmpty();
+  }
+
+  @Test
+  public void splitsWithoutContinuationAsNativeKInduction() {
+    InductionPrecision precision = precision(1, true, LoopPrecision.ALL_ABSTRACTIONS);
+    InductionState beforeSecondArrival =
+        successor(successor(initial, precision, entry), precision, body);
+    InductionState inductionStart =
+        successor(
+            beforeSecondArrival,
+            precision,
+            back,
+            new InductionTransferRelation(loopStructure, false));
+    assertThat(inductionStart.isInductionStart()).isTrue();
   }
 
   @Test
