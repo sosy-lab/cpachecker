@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -22,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class PartialReplaceExplorationEngineTest {
 
@@ -118,6 +121,20 @@ public class PartialReplaceExplorationEngineTest {
     engine.explore(false);
 
     verify(fixture.analysis).runBlockAnalysis(any(), eq(union), any());
+  }
+
+  @Test
+  public void unrecognizedCodeInTheSpeculativeRunIsNotIgnored() throws Exception {
+    Fixture fixture = new Fixture();
+    when(fixture.analysis.makeStartState(true)).thenReturn(mock(AbstractState.class));
+    when(fixture.analysis.makeStartPrecision()).thenReturn(fixture.roundPrecision);
+    when(fixture.analysis.runBlockAnalysis(any(), any(), any()))
+        .thenThrow(new UnrecognizedCodeException("memcpy", (CFAEdge) null));
+    PartialReplaceExplorationEngine engine = fixture.engine();
+
+    // Real preconditions only start to flow after a violation condition reached the root, so the
+    // violations of this run would not be found again and the analysis could prove a wrong result.
+    assertThrows(UnrecognizedCodeException.class, engine::exploreInitially);
   }
 
   @Test
