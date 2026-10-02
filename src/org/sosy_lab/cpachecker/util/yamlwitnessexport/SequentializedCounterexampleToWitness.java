@@ -348,7 +348,6 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
   Optional<CExpression> toOriginalVocabulary(CExpression pExpression) {
     ImmutableMap<String, CSimpleDeclaration> originalDeclarations =
         mapping.originalDeclarationsBySubstituteName();
-    boolean[] isTranslatable = {true};
 
     SubstitutingCAstNodeVisitor visitor =
         new SubstitutingCAstNodeVisitor(
@@ -358,7 +357,6 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
               }
               CSimpleDeclaration declaration = idExpression.getDeclaration();
               if (declaration == null) {
-                isTranslatable[0] = false;
                 return null;
               }
               if (declaration instanceof CEnumerator) {
@@ -367,16 +365,12 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
               }
               CSimpleDeclaration original = originalDeclarations.get(declaration.getName());
               if (original == null) {
-                isTranslatable[0] = false;
                 return null;
               }
               return new CIdExpression(idExpression.getFileLocation(), original);
             });
 
-    CAstNode translated = pExpression.accept(visitor);
-    if (!isTranslatable[0] || !(translated instanceof CExpression translatedExpression)) {
-      return Optional.empty();
-    }
-    return Optional.of(translatedExpression);
+    CExpression translated = (CExpression) pExpression.accept(visitor);
+    return Optional.ofNullable(translated);
   }
 }
