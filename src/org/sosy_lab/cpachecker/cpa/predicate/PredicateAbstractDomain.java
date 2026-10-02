@@ -90,7 +90,12 @@ final class PredicateAbstractDomain implements AbstractDomain {
 
       } else {
 
-        if (e1.getPathFormula().equals(e2.getPathFormula())) {
+        // Both states mean abstractionFormula & pathFormula, so comparing only the path formula
+        // is sound only within one ABE block. The PARTITIONED reached set guarantees that by
+        // partitioning on getAbstractionFormula(), other reached sets such as LOCATIONMAPPED do
+        // not.
+        if (e1.getAbstractionFormula() == e2.getAbstractionFormula()
+            && e1.getPathFormula().equals(e2.getPathFormula())) {
           return true;
         }
         // only the fast check which returns true if a merge occurred for this element
