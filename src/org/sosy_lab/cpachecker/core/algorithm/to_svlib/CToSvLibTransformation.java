@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultiset;
@@ -185,6 +186,8 @@ class CToSvLibTransformation {
 
   /** Whether a block that no other block jumps to becomes part of the block before it. */
   private final boolean useLargeBlockEncoding;
+
+  private int numberOfReorderedAssignments = 0;
 
   /** The sizes of the types that the formulas of the analysis assume. */
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -1083,28 +1086,141 @@ class CToSvLibTransformation {
         scope
             .getVariableForQualifiedName(pLeftHandSide.getDeclaration().getQualifiedName())
             .toSimpleDeclaration();
-    SvLibAssignmentStatement assignmentStatement =
-        createAssignmentStatement(
+    List<Map.Entry<SvLibIdTerm, SvLibTerm>> assignments = new ArrayList<>();
+    assignments.add(
+        Map.entry(
             new SvLibIdTerm(assignedVariable, FileLocation.DUMMY),
-            formulaManager.visit(rightHandSide.term(), formulaToSvLibVisitor),
-            pEdge.getPredecessor().getFunctionName());
+            formulaManager.visit(rightHandSide.term(), formulaToSvLibVisitor)));
 
     // Constraints such as the axioms for bitwise operations have to hold in addition to the
-    // assignment itself, so they are assumed directly after it.
-    if (formulaManager.getBooleanFormulaManager().isTrue(rightHandSide.constraints())) {
-      return assignmentStatement;
+    // assignment itself, so they are assumed directly after it. A constraint can also give a
+    // variable a new value, as the call __builtin_mul_overflow(a, b, &c) does for the memory of c,
+    // which then has the form X = t where t contains the old value of X. That is an assignment,
+    // which happens together with the assignment itself, as both use the values before them.
+    ImmutableList.Builder<SvLibTerm> assumptions = ImmutableList.builder();
+    if (!formulaManager.getBooleanFormulaManager().isTrue(rightHandSide.constraints())) {
+      for (SvLibTerm conjunct :
+          flattenConjunction(
+              formulaManager.visit(rightHandSide.constraints(), formulaToSvLibVisitor))) {
+        Optional<SvLibIdTerm> updatedVariable = getUpdatedVariable(conjunct);
+        if (updatedVariable.isPresent()) {
+          assignments.add(
+              Map.entry(
+                  updatedVariable.orElseThrow(),
+                  getOtherSideOfEquality(
+                      (SvLibSymbolApplicationTerm) conjunct, updatedVariable.orElseThrow())));
+        } else {
+          assumptions.add(conjunct);
+        }
+      }
+    }
+    ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
+    statements.addAll(
+        createSimultaneousAssignments(assignments, pEdge.getPredecessor().getFunctionName()));
+    ImmutableList<SvLibTerm> remainingConstraints = assumptions.build();
+    if (!remainingConstraints.isEmpty()) {
+      statements.add(
+          new SvLibAssumeStatement(
+              FileLocation.DUMMY,
+              SvLibTerm.booleanConjunction(remainingConstraints),
+              ImmutableList.of(),
+              ImmutableList.of()));
+    }
+    ImmutableList<SvLibStatement> createdStatements = statements.build();
+    if (createdStatements.size() == 1) {
+      return createdStatements.getFirst();
     }
     return new SvLibSequenceStatement(
-        ImmutableList.of(
-            assignmentStatement,
-            new SvLibAssumeStatement(
-                FileLocation.DUMMY,
-                formulaManager.visit(rightHandSide.constraints(), formulaToSvLibVisitor),
-                ImmutableList.of(),
-                ImmutableList.of())),
-        FileLocation.DUMMY,
-        ImmutableList.of(),
-        ImmutableList.of());
+        createdStatements, FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+  }
+
+  /**
+   * One assignment statement per given assignment, in an order in which they have the effect of
+   * assigning all values at once: an assignment whose value reads a variable that another one
+   * assigns comes first. Single statements are used, because the analysis of SV-LIB executes the
+   * pairs of an assignment statement one after the other.
+   */
+  private ImmutableList<SvLibStatement> createSimultaneousAssignments(
+      List<Map.Entry<SvLibIdTerm, SvLibTerm>> pAssignments, String pFunctionName) {
+    if (FluentIterable.from(pAssignments)
+            .transform(assignment -> assignment.getKey().getDeclaration().getName())
+            .toSet()
+            .size()
+        < pAssignments.size()) {
+      // A variable that is assigned more than once is assigned in a chain, in the given order.
+      return FluentIterable.from(pAssignments)
+          .transform(
+              assignment ->
+                  (SvLibStatement)
+                      createAssignmentStatement(
+                          assignment.getKey(), assignment.getValue(), pFunctionName))
+          .toList();
+    }
+    List<Map.Entry<SvLibIdTerm, SvLibTerm>> remaining = new ArrayList<>(pAssignments);
+    ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
+    boolean reordered = false;
+    while (!remaining.isEmpty()) {
+      Map.Entry<SvLibIdTerm, SvLibTerm> next = null;
+      for (Map.Entry<SvLibIdTerm, SvLibTerm> candidate : remaining) {
+        String variable = candidate.getKey().getDeclaration().getName();
+        if (remaining.stream()
+            .noneMatch(other -> other != candidate && mentions(other.getValue(), variable))) {
+          next = candidate;
+          break;
+        }
+      }
+      if (next == null) {
+        throw new UnsupportedOperationException(
+            "The assignments of "
+                + FluentIterable.from(remaining)
+                    .transform(assignment -> assignment.getKey().toASTString())
+                    .join(Joiner.on(", "))
+                + " read each other's variables, which needs a temporary variable.");
+      }
+      reordered |= next != remaining.getFirst();
+      remaining.remove(next);
+      statements.add(createAssignmentStatement(next.getKey(), next.getValue(), pFunctionName));
+    }
+    if (reordered) {
+      numberOfReorderedAssignments++;
+    }
+    return statements.build();
+  }
+
+  /** The number of assignments with side effects that had to be reordered to keep their effect. */
+  int getNumberOfReorderedAssignments() {
+    return numberOfReorderedAssignments;
+  }
+
+  /**
+   * The variable that the given conjunct gives a new value, if it has the form X = t where X is a
+   * variable that t contains as well, which is only the case if the formula with SSA indices
+   * defined a new instance of X from its old one.
+   */
+  private static Optional<SvLibIdTerm> getUpdatedVariable(SvLibTerm pConjunct) {
+    if (!(pConjunct instanceof SvLibSymbolApplicationTerm equality)
+        || !equality.getSymbol().getName().equals("=")
+        || equality.getTerms().size() != 2) {
+      return Optional.empty();
+    }
+    for (int index = 0; index < 2; index++) {
+      if (equality.getTerms().get(index) instanceof SvLibIdTerm variable
+          && (variable.getDeclaration() instanceof SvLibVariableDeclaration
+              || variable.getDeclaration() instanceof SvLibParameterDeclaration)
+          && mentions(equality.getTerms().get(1 - index), variable.getDeclaration().getName())) {
+        return Optional.of(variable);
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static boolean mentions(SvLibTerm pTerm, String pVariableName) {
+    return switch (pTerm) {
+      case SvLibIdTerm id -> id.getDeclaration().getName().equals(pVariableName);
+      case SvLibSymbolApplicationTerm application ->
+          application.getTerms().stream().anyMatch(term -> mentions(term, pVariableName));
+      default -> false;
+    };
   }
 
   private @NonNull SvLibTerm transformEdgeToSvLibTerm(
@@ -1851,6 +1967,10 @@ class CToSvLibTransformation {
     ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
     ImmutableList.Builder<SvLibTerm> conditions = ImmutableList.builder();
 
+    // The assignments are written in the order of the formula, which is the one in which the
+    // analysis of C evaluates them: a variable can be assigned more than once, as by the
+    // initialization of an array of structures, and each assignment then reads the value that the
+    // one before it created.
     for (SvLibTerm conjunct :
         FluentIterable.from(transformedTerms).transformAndConcat(this::flattenConjunction)) {
       Optional<SvLibIdTerm> assignedTo = getAssignedVariable(conjunct, assignedVariables);

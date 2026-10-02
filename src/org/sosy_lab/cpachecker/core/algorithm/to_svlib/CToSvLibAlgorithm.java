@@ -441,6 +441,15 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
           "by arbitrary values, as the analysis of the C program does.");
     }
 
+    if (transformation.getNumberOfReorderedAssignments() > 0) {
+      logger.log(
+          Level.INFO,
+          "Reordered",
+          transformation.getNumberOfReorderedAssignments(),
+          "assignments with side effects, so that every value is computed from the values before"
+              + " them.");
+    }
+
     // The variables that the transformation and the transformed formulas introduced have to be
     // declared before the procedures that use them.
     for (SvLibParsingVariableDeclaration variableOfTransformation :
