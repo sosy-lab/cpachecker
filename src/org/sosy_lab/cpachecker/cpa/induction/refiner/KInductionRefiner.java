@@ -97,8 +97,11 @@ public final class KInductionRefiner extends InductionRefiner {
     for (ARGState target : stepTargets) {
       inductionStarts.add(firstLoopHeadAbstraction(target).orElseThrow());
     }
-    // native k-induction checks the bounding assertions only before the step case
-    if (targetedBoundingAssertions && removeIfNoneReachable(pReached, inductionStarts)) {
+    // Native k-induction checks the bounding assertions only before the step case. For all
+    // induction starts, the query would repeat the one of the cut-offs at the bound.
+    if (targetedBoundingAssertions
+        && inductionStarts.size() < countInductionStarts(pReached)
+        && removeIfNoneReachable(pReached, inductionStarts)) {
       provedByBoundingAssertions.inc();
       return Optional.empty();
     }
@@ -112,6 +115,13 @@ public final class KInductionRefiner extends InductionRefiner {
       reexploreWith(pReached, start, p -> p.withK(p.k() + 1).withDescribedAbstractions(0));
     }
     return Optional.empty();
+  }
+
+  private static int countInductionStarts(ARGReachedSet pReached) {
+    return from(pReached.asReachedSet())
+        .filter(ARGState.class)
+        .filter(s -> inductionStateOf(s).isInductionStart())
+        .size();
   }
 
   @Override
