@@ -148,7 +148,7 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
       if (step.equals(violatingStep)) {
         break;
       }
-      if (step.createdThread().isPresent()) {
+      if (step.newThread().isPresent()) {
         rSteps.add(step);
       }
     }

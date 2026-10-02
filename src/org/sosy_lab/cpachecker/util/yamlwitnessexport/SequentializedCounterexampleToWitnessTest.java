@@ -146,9 +146,9 @@ public class SequentializedCounterexampleToWitnessTest {
     ImmutableList.Builder<String> createdThreadNames = ImmutableList.builder();
     for (CFAEdge edge : blockEdges()) {
       Optional<WitnessPathStep> step = exporter.projectEdge(edge, createdThreads);
-      if (step.isPresent() && step.orElseThrow().createdThread().isPresent()) {
+      if (step.isPresent() && step.orElseThrow().newThread().isPresent()) {
         assertThat(step.orElseThrow().edge().getRawStatement()).contains("pthread_create");
-        createdThreadNames.add(step.orElseThrow().createdThread().orElseThrow());
+        createdThreadNames.add(step.orElseThrow().newThread().orElseThrow());
       }
     }
     // every pthread_create of the input program creates exactly one thread here

@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -42,7 +41,27 @@ public class CounterexampleToWitness extends AbstractCounterexampleToWitness {
    * An edge of a counterexample together with the {@link ARGState}s before and after it. For edges
    * which fill a hole of the {@link ARGPath} these are the states enclosing the whole hole.
    */
-  protected record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState nextState) {}
+  protected record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState state) {}
+
+  /**
+   * Return all CFA edges of the given path together with their surrounding states. Consecutive
+   * states of an {@link ARGPath} are not necessarily connected by a single CFA edge, since an
+   * analysis may handle a whole basic block in one step (cf. option
+   * cpa.composite.aggregateBasicBlocks). {@link ARGPath#fullPathIterator()} resolves such holes
+   * into the edges they stand for.
+   */
+  protected static ImmutableList<EdgeWithStates> getEdgesWithStates(ARGPath pPath) {
+    ImmutableList.Builder<EdgeWithStates> edgesWithStates = ImmutableList.builder();
+
+    for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
+      ARGState previousState =
+          it.isPositionWithState() ? it.getAbstractState() : it.getPreviousAbstractState();
+      edgesWithStates.add(
+          new EdgeWithStates(it.getOutgoingEdge(), previousState, it.getNextAbstractState()));
+    }
+
+    return edgesWithStates.build();
+  }
 
   /**
    * Return all CFA edges of the given path together with the threads executing them. Consecutive
@@ -73,43 +92,6 @@ public class CounterexampleToWitness extends AbstractCounterexampleToWitness {
     }
 
     return steps.build();
-  }
-
-  private static Optional<String> getNewThreadNameIfExists(
-      ARGState pState, ARGState pPreviousState) {
-    ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
-    if (threadingState == null) {
-      return Optional.empty();
-    }
-
-    ThreadingState previousThreadingState =
-        extractStateByType(pPreviousState, ThreadingState.class);
-    if (previousThreadingState == null) {
-      return Optional.empty();
-    }
-
-    return Sets.difference(threadingState.getThreadIds(), previousThreadingState.getThreadIds())
-        .stream()
-        .findFirst();
-  }
-
-  private static Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
-    ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
-    if (threadingState == null) {
-      return Optional.empty();
-    }
-
-    for (String threadId : threadingState.getThreadIds()) {
-      if (threadingState
-          .getThreadLocation(threadId)
-          .getLocationNode()
-          .equals(pEdge.getSuccessor())) {
-
-        return Optional.of(threadId);
-      }
-    }
-
-    return Optional.empty();
   }
 
   /**
