@@ -14,10 +14,12 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -30,9 +32,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision.LoopPrecision;
 import org.sosy_lab.cpachecker.cpa.induction.InductionState.Resets;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
@@ -79,6 +83,13 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
   @Option(
       secure = true,
       description =
+          "explore nothing if no target location of the specification is reachable, as native"
+              + " BMC, k-induction, IMC and ISMC do")
+  private boolean skipWithoutTargetLocations = false;
+
+  @Option(
+      secure = true,
+      description =
           "CPAs (as in CompositeCPA.cpas) that restart from their initial state at every"
               + " abstraction at a loop head")
   private List<String> abstractedCPAs = ImmutableList.of();
@@ -99,11 +110,23 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
     return AutomaticCPAFactory.forType(InductionCPA.class);
   }
 
-  private InductionCPA(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
+  private InductionCPA(
+      Configuration pConfig,
+      CFA pCfa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
     super("sep", "sep", new InductionDomain(), null);
     pConfig.inject(this);
     loopStructure = loopStructureOf(pCfa);
-    transferRelation = new InductionTransferRelation(loopStructure, continueBaseCase);
+    boolean exploresNothing =
+        skipWithoutTargetLocations
+            && new TargetLocationProviderImpl(pShutdownNotifier, pLogger, pCfa)
+                .tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpecification)
+                .isEmpty();
+    transferRelation =
+        new InductionTransferRelation(loopStructure, continueBaseCase, exploresNothing);
     resets = new Resets(toClassNames(abstractedCPAs), toClassNames(inductionStepCPAs));
   }
 

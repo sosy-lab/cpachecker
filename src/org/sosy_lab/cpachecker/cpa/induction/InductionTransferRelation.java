@@ -38,6 +38,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
 
   private final LoopStructure loopStructure;
   private final boolean continueBaseCase;
+  private final boolean exploresNothing;
 
   final StatCounter abstractions = new StatCounter("Abstractions at loop heads");
   final StatCounter inductionStarts = new StatCounter("Induction starts");
@@ -46,9 +47,11 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
   final StatCounter cutOffs = new StatCounter("Cut-offs");
   final StatCounter suppressedTargets = new StatCounter("Targets not reported in induction step");
 
-  InductionTransferRelation(LoopStructure pLoopStructure, boolean pContinueBaseCase) {
+  InductionTransferRelation(
+      LoopStructure pLoopStructure, boolean pContinueBaseCase, boolean pExploresNothing) {
     loopStructure = pLoopStructure;
     continueBaseCase = pContinueBaseCase;
+    exploresNothing = pExploresNothing;
   }
 
   @Override
@@ -56,7 +59,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pState, Precision pPrecision, CFAEdge pEdge) {
     InductionState state = (InductionState) pState;
     InductionPrecision precision = (InductionPrecision) pPrecision;
-    if (state.isCutOff()) {
+    if (exploresNothing || state.isCutOff()) {
       return ImmutableList.of();
     }
 
