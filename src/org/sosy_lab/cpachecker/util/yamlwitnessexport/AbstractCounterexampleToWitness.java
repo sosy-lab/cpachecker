@@ -94,6 +94,8 @@ public abstract class AbstractCounterexampleToWitness extends AbstractYAMLWitnes
   /** The name under which the thread running {@code main} is registered. */
   static final String MAIN_THREAD_NAME = "main";
 
+  private static final String CPACHECKER_TMP_NAME = "__CPAchecker_TMP";
+
   /**
    * One step of a counterexample: a {@link CFAEdge} together with the threads involved in executing
    * it. Both thread names are empty for analyses that do not track threads.
@@ -147,7 +149,7 @@ public abstract class AbstractCounterexampleToWitness extends AbstractYAMLWitnes
 
     // Do not consider edges which are added internally by CPAchecker, since this may duplicate
     // assumptions
-    if (pEdge.toString().contains("__CPAchecker_TMP")) {
+    if (pEdge.toString().contains(CPACHECKER_TMP_NAME)) {
       return Optional.empty();
     }
 
@@ -613,7 +615,7 @@ public abstract class AbstractCounterexampleToWitness extends AbstractYAMLWitnes
     return assumptions
         .transform(CExpression::toParenthesizedASTString)
         // Remove any temporary variables created by CPAchecker
-        .filter(s -> !s.contains("__CPAchecker_TMP"))
+        .filter(s -> !s.contains(CPACHECKER_TMP_NAME))
         .join(Joiner.on(" && "));
   }
 
@@ -678,7 +680,7 @@ public abstract class AbstractCounterexampleToWitness extends AbstractYAMLWitnes
               assumptions
                   .transform(CExpression::toParenthesizedASTString)
                   // Remove any temporary variables created by CPAchecker
-                  .filter(s -> !s.contains("__CPAchecker_TMP"))
+                  .filter(s -> !s.contains(CPACHECKER_TMP_NAME))
                   .join(Joiner.on(" && "));
         }
 
