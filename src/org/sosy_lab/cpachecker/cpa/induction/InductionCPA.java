@@ -102,6 +102,14 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
               + " context")
   private List<String> inductionStepCPAs = ImmutableList.of();
 
+  @Option(
+      secure = true,
+      description =
+          "let the predicate analysis allocate the memory again at every abstraction in an"
+              + " induction step, as the step case of native k-induction starts with an empty"
+              + " memory model")
+  private boolean resetMemoryInInductionStep = false;
+
   private final LoopStructure loopStructure;
   private final Resets resets;
   private final InductionTransferRelation transferRelation;
@@ -127,7 +135,11 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
                 .isEmpty();
     transferRelation =
         new InductionTransferRelation(loopStructure, continueBaseCase, exploresNothing);
-    resets = new Resets(toClassNames(abstractedCPAs), toClassNames(inductionStepCPAs));
+    resets =
+        new Resets(
+            toClassNames(abstractedCPAs),
+            toClassNames(inductionStepCPAs),
+            resetMemoryInInductionStep);
   }
 
   @Override

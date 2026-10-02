@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -142,13 +143,13 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    * The path formulas of the ARG ancestors at the given locations inside the current block, i.e.,
    * since the last abstraction.
    */
-  private static List<PathFormula> earlierVisitsInBlock(
+  private static ImmutableList<PathFormula> earlierVisitsInBlock(
       AbstractState fullState, Collection<CFANode> pLocations) {
     ARGState argState = AbstractStates.extractStateByType(fullState, ARGState.class);
     if (argState == null) {
       return ImmutableList.of();
     }
-    List<PathFormula> visits = new ArrayList<>();
+    ImmutableList.Builder<PathFormula> visits = ImmutableList.builder();
     Set<ARGState> seen = new HashSet<>();
     Deque<ARGState> waitlist = new ArrayDeque<>(argState.getParents());
     while (!waitlist.isEmpty()) {
@@ -162,7 +163,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
       waitlist.addAll(ancestor.getParents());
     }
-    return visits;
+    return visits.build();
   }
 
   /** Compute an abstraction. */
@@ -211,6 +212,8 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     Set<AbstractionPredicate> additionalPredicates = predicateProvider.getPredicates(fullState);
 
     AbstractionFormula newAbstractionFormula = null;
+    AbstractionControllingState controllingState =
+        AbstractStates.extractStateByType(fullState, AbstractionControllingState.class);
 
     // compute new abstraction
     computingAbstractionTime.start();
@@ -227,8 +230,6 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
           formulaManager.buildAbstraction(
               pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
 
-      AbstractionControllingState controllingState =
-          AbstractStates.extractStateByType(fullState, AbstractionControllingState.class);
       if (controllingState != null
           && controllingState.mustCoverEveryVisit()
           && !additionalPredicates.isEmpty()) {
@@ -258,7 +259,10 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // create new empty path formula
     PathFormula newPathFormula =
-        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
+        controllingState != null && controllingState.forgetsPointerTargets()
+            ? pathFormulaManager.makeEmptyPathFormulaWithContext(
+                pathFormula.getSsa(), PointerTargetSet.emptyPointerTargetSet())
+            : pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
 
     // initialize path formula with current invariants
     // we don't want to add trivially true invariants

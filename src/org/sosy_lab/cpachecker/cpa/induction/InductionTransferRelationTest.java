@@ -65,7 +65,7 @@ public class InductionTransferRelationTest {
             .first()
             .get();
     transferRelation = new InductionTransferRelation(loopStructure, true, false);
-    initial = InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of()));
+    initial = InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of(), false));
   }
 
   private InductionPrecision precision(int pK, boolean pInduction, int pDescribedAbstractions) {

@@ -49,8 +49,14 @@ public final class InductionState
     CUT_OFF
   }
 
-  /** The CPAs that restart at an abstraction, given by their class names. */
-  record Resets(ImmutableSet<String> atAbstraction, ImmutableSet<String> inInductionStep) {
+  /**
+   * The CPAs that restart at an abstraction, given by their class names, and whether the memory
+   * model of the predicate analysis restarts in an induction step.
+   */
+  record Resets(
+      ImmutableSet<String> atAbstraction,
+      ImmutableSet<String> inInductionStep,
+      boolean memoryInInductionStep) {
 
     private static boolean contains(ImmutableSet<String> pNames, ConfigurableProgramAnalysis pCpa) {
       return pNames.contains(pCpa.getClass().getName());
@@ -301,6 +307,11 @@ public final class InductionState
   @Override
   public boolean mustCoverEveryVisit() {
     return kind == Kind.INDUCTION_START;
+  }
+
+  @Override
+  public boolean forgetsPointerTargets() {
+    return isAbstraction() && inInductionStep && resets.memoryInInductionStep();
   }
 
   @Override

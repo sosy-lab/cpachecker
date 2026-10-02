@@ -25,4 +25,10 @@ public interface AbstractionControllingState extends AbstractState {
    * abstraction, instead of only at the current one.
    */
   boolean mustCoverEveryVisit();
+
+  /**
+   * Whether the block after the abstraction starts with an empty pointer-target set, so that it
+   * allocates the memory again, as an analysis that starts at the current location does.
+   */
+  boolean forgetsPointerTargets();
 }
