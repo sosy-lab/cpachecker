@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -304,7 +305,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     }
   }
 
-  private static Optional<ARGState> findFeasibleTarget(
+  private Optional<ARGState> findFeasibleTarget(
       ProverEnvironment pProver, Map<ARGState, BooleanFormula> pPathFormulas)
       throws SolverException, InterruptedException {
     if (pProver.isUnsat()) {
@@ -313,7 +314,16 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     try (Model model = pProver.getModel()) {
       for (Map.Entry<ARGState, BooleanFormula> entry : pPathFormulas.entrySet()) {
         if (Boolean.TRUE.equals(model.evaluate(entry.getValue()))) {
-          return Optional.of(entry.getKey());
+          ARGState target = entry.getKey();
+          @Nullable ARGPath path = pathFromModel(model, target);
+          if (path != null) {
+            // the error path of the model, as native BMC creates it without another query
+            target.addCounterexampleInformation(
+                pathChecker.handleFeasibleCounterexample(
+                    CounterexampleTraceInfo.feasible(ImmutableList.of(entry.getValue()), path),
+                    path));
+          }
+          return Optional.of(target);
         }
       }
     }
@@ -324,6 +334,25 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       }
     }
     return Optional.empty();
+  }
+
+  /** The path to the target that the model describes, or null if the model does not decide it. */
+  private @Nullable ARGPath pathFromModel(Model pModel, ARGState pTarget)
+      throws InterruptedException {
+    ARGState root = pTarget;
+    while (!root.getParents().isEmpty()) {
+      root = root.getParents().getFirst();
+    }
+    try {
+      ARGPath path =
+          predicateCpa
+              .getPathFormulaManager()
+              .getARGPathFromModel(pModel, root, ARGUtils.getAllStatesOnPathsTo(pTarget)::contains);
+      return path.getLastState().equals(pTarget) ? path : null;
+    } catch (CPATransferException | IllegalArgumentException e) {
+      logger.logDebugException(e, "Could not create the error path from the model");
+      return null;
+    }
   }
 
   private void reportCounterexample(ARGState pTarget) throws CPAException, InterruptedException {
