@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision;
+import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision.LoopPrecision;
 import org.sosy_lab.cpachecker.cpa.induction.InductionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -107,7 +108,16 @@ public final class ImcRefiner extends InductionRefiner {
       return Optional.empty();
     }
     if (!pCutOffs.isEmpty()) {
-      throw new CPAException("IMC needs a precision that describes all abstractions");
+      // As native IMC, BMC and the forward condition up to the bound of the cut-offs, then IMC
+      Optional<ARGState> counterexample = findFeasibleTarget(pTargets);
+      if (counterexample.isPresent()) {
+        return counterexample;
+      }
+      removeUnreachable(pReached, pTargets);
+      if (!removeIfNoneReachable(pReached, pCutOffs)) {
+        restartAsImc(pReached);
+      }
+      return Optional.empty();
     }
 
     Optional<ARGState> counterexample = findFeasibleTarget(pTargets);
@@ -257,6 +267,26 @@ public final class ImcRefiner extends InductionRefiner {
         ImmutableList.of(Predicates.instanceOf(PredicatePrecision.class)));
     widenings.inc();
     return true;
+  }
+
+  /** Explore again from the root with an abstraction at every arrival at a loop head. */
+  private void restartAsImc(ARGReachedSet pReached) throws InterruptedException {
+    ARGState root = (ARGState) pReached.asReachedSet().getFirstState();
+    InductionPrecision precision =
+        inductionPrecisionOf(pReached, root)
+            .withAll(
+                p ->
+                    new LoopPrecision(
+                        /* k= */ 0,
+                        /* induction= */ false,
+                        LoopPrecision.ALL_ABSTRACTIONS,
+                        /* unrolling= */ false));
+    recordK(precision);
+    pReached.removeAllExceptFirstStateWithPrecision(
+        ImmutableList.of(precision, PredicatePrecision.empty()),
+        ImmutableList.of(
+            Predicates.instanceOf(InductionPrecision.class),
+            Predicates.instanceOf(PredicatePrecision.class)));
   }
 
   /**
