@@ -1207,7 +1207,8 @@ public class SMGCPABuiltins {
           }
           logger.log(
               logLevel,
-              "Returned unknown value with allocated memory for unknown function " + funCallExpr,
+              "Returned unknown value with potentially newly allocated memory for unknown function "
+                  + funCallExpr,
               cfaEdge);
           builder.addAll(
               evaluateExternalAllocationFunction(funCallExpr, checkedState, functionName));
