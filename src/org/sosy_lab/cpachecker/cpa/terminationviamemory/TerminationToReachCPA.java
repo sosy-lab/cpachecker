@@ -8,17 +8,25 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -28,7 +36,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -40,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * store an already seen state. Transition relation allows to non-deterministically store an already
  * visiting state.
  */
+@Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private Solver solver;
   private InterpolationManager itpMgr;
@@ -53,19 +66,26 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final CFA cfa;
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
+  private final Specification specification;
+
+  @Option(secure = true, description = "Enables use of transition predicates from the witness.")
+  private boolean useTransitionPredicatesFromWitness = false;
 
   public TerminationToReachCPA(
       LogManager pLogger,
       Configuration pConfiguration,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCFA)
+      CFA pCFA,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     super("sep", "sep", new TerminationToReachAbstractDomain(), null);
-    statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
+    pConfiguration.inject(this);
+    statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA, this);
     cfa = pCFA;
     configuration = pConfiguration;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
+    specification = pSpecification;
 
     ImmutableSet.Builder<Loop> builder = ImmutableSet.builder();
     builder.addAll(cfa.getLoopStructure().orElseThrow().getAllLoops());
@@ -77,7 +97,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   }
 
   public void setSolverAndManagers(Solver pSolver, PathFormulaManager pPfmgr)
-      throws InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+    checkState(solver == null, "The solver of %s is already set", getClass().getSimpleName());
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
@@ -93,16 +114,34 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             logger,
             false);
     precisionAdjustment =
-        new TerminationToReachPrecisionAdjustment(
-            solver,
-            statistics,
-            logger,
-            cfa,
-            bfmgr,
-            fmgr,
-            itpMgr,
-            configuration,
-            possiblyNonTerminatingLoops);
+        useTransitionPredicatesFromWitness
+            ? new TerminationToReachValidationPrecisionAdjustment(
+                solver,
+                statistics,
+                logger,
+                cfa,
+                bfmgr,
+                fmgr,
+                pfmgr,
+                itpMgr,
+                configuration,
+                possiblyNonTerminatingLoops,
+                collectCandidateTransitionInvariants())
+            : new TerminationToReachPrecisionAdjustment(
+                solver,
+                statistics,
+                logger,
+                cfa,
+                bfmgr,
+                fmgr,
+                itpMgr,
+                configuration,
+                possiblyNonTerminatingLoops);
+
+    // Statistics need formula manager because it converts the Formula for transition invariant
+    // to a CExpression for witness export.
+    statistics.setFormulaManager(fmgr);
+    statistics.setBooleanFormulaManager(bfmgr);
   }
 
   @Override
@@ -122,6 +161,22 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableList.of(),
         ImmutableSet.of(),
         ImmutableSet.of());
+  }
+
+  private ImmutableSet<ExpressionTreeLocationInvariant> collectCandidateTransitionInvariants()
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+    Set<ExpressionTreeLocationInvariant> invariants = new HashSet<>();
+    try {
+      for (Path witnessPath : specification.getPathToSpecificationAutomata().keySet()) {
+        WitnessInvariantsExtractor invariantsExtractor =
+            new WitnessInvariantsExtractor(
+                configuration, logger, cfa, shutdownNotifier, witnessPath);
+        invariants.addAll(invariantsExtractor.extractInvariantsFromReachedSet());
+      }
+    } catch (InvalidWitnessException e) {
+      throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
+    }
+    return ImmutableSet.copyOf(invariants);
   }
 
   @Override

@@ -91,7 +91,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * An edge of a counterexample together with the {@link ARGState}s before and after it. For edges
    * which fill a hole of the {@link ARGPath} these are the states enclosing the whole hole.
    */
-  private record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState nextState) {}
+  protected record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState nextState) {}
 
   /**
    * Return all CFA edges of the given path together with their surrounding states. Consecutive
@@ -100,7 +100,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * cpa.composite.aggregateBasicBlocks). {@link ARGPath#fullPathIterator()} resolves such holes
    * into the edges they stand for.
    */
-  private static ImmutableList<EdgeWithStates> getEdgesWithStates(ARGPath pPath) {
+  protected static ImmutableList<EdgeWithStates> getEdgesWithStates(ARGPath pPath) {
     ImmutableList.Builder<EdgeWithStates> edgesWithStates = ImmutableList.builder();
 
     for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
@@ -280,7 +280,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return OptionalInt.empty();
   }
 
-  private List<WaypointRecord> buildWaypoints(
+  protected List<WaypointRecord> buildWaypoints(
       CFAEdge pEdge,
       ImmutableListMultimap<CFAEdge, String> pEdgeToAssumptions,
       AstCfaRelation pAstCFARelation,
@@ -568,19 +568,18 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Export the given counterexample to the path as a Witness version 2.0
+   * Computes the assumptions of the given counterexample for each of its edges. The index of the
+   * current assumption of each edge is initialized in the given map.
    *
-   * @param pCex the counterexample to be exported
-   * @param pPath the path to export the witness to
-   * @throws IOException if writing the witness to the path is not possible
+   * @param pCex the counterexample whose assumptions are computed
+   * @param pEdgeToCurrentExpressionIndex the map in which the index of the current assumption is
+   *     initialized for each edge that has assumptions
+   * @return the assumptions at each edge
    */
-  private void exportWitness(
-      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) throws IOException {
-    AstCfaRelation astCFARelation = getASTStructure();
-
+  protected ImmutableListMultimap<CFAEdge, String> computeEdgeToAssumptions(
+      CounterexampleInfo pCex, Map<CFAEdge, Integer> pEdgeToCurrentExpressionIndex) {
     ImmutableListMultimap.Builder<CFAEdge, String> edgeToAssumptionsBuilder =
         new ImmutableListMultimap.Builder<>();
-    Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
         CFAEdge edge = edgeWithAssumptions.getCFAEdge();
@@ -625,11 +624,27 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         }
 
         edgeToAssumptionsBuilder.put(edge, statement);
-        edgeToCurrentExpressionIndex.put(edge, 0);
+        pEdgeToCurrentExpressionIndex.put(edge, 0);
       }
     }
 
-    ImmutableListMultimap<CFAEdge, String> edgeToAssumptions = edgeToAssumptionsBuilder.build();
+    return edgeToAssumptionsBuilder.build();
+  }
+
+  /**
+   * Export the given counterexample to the path as a Witness version 2.0
+   *
+   * @param pCex the counterexample to be exported
+   * @param pPath the path to export the witness to
+   * @throws IOException if writing the witness to the path is not possible
+   */
+  protected void exportWitness(
+      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) throws IOException {
+    AstCfaRelation astCFARelation = getASTStructure();
+
+    Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
+    ImmutableListMultimap<CFAEdge, String> edgeToAssumptions =
+        computeEdgeToAssumptions(pCex, edgeToCurrentExpressionIndex);
 
     ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
     ImmutableList<EdgeWithStates> edges = getEdgesWithStates(pCex.getTargetPath());

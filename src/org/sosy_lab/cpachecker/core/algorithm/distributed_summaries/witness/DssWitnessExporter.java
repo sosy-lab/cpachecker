@@ -62,7 +62,13 @@ public class DssWitnessExporter {
     specification = pSpecification;
   }
 
-  public void export(
+  /**
+   * Prepares the reached set for the witness export of the given result.
+   *
+   * @return {@code false} if the result is {@link Result#FALSE} and replaying the violation path
+   *     did not reach a property violation, {@code true} otherwise
+   */
+  public boolean export(
       ResultWithWitnessInformation resultWithWitness,
       ReachedSet reachedSet,
       Modification pModification)
@@ -86,14 +92,19 @@ public class DssWitnessExporter {
 
       if (resultWithWitness.hasWitnessInformation()) {
         logger.log(Level.INFO, "Preparing Violation Witness");
-        fillReachedSetWithViolation(
-            reachedSet, resultWithWitness.getViolationPath(), pModification);
-        logger.log(Level.INFO, "Violation Witness prepared");
+        boolean violationReplayed =
+            fillReachedSetWithViolation(
+                reachedSet, resultWithWitness.getViolationPath(), pModification);
+        if (violationReplayed) {
+          logger.log(Level.INFO, "Violation Witness prepared");
+        }
+        return violationReplayed;
 
       } else {
         addDummyTargetToReachedSet(reachedSet);
       }
     }
+    return true;
   }
 
   private void addDummyTargetToReachedSet(ReachedSet reachedSet) {
@@ -137,7 +148,7 @@ public class DssWitnessExporter {
     }
   }
 
-  private void fillReachedSetWithViolation(
+  private boolean fillReachedSetWithViolation(
       ReachedSet reachedSet, SegmentedPaths pViolationPath, Modification modification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
@@ -181,7 +192,9 @@ public class DssWitnessExporter {
               StateSpacePartition.getDefaultPartition()));
 
       addDummyTargetToReachedSet(reachedSet);
+      return false;
     }
+    return true;
   }
 
   private SegmentedPaths convertToOriginalEdges(

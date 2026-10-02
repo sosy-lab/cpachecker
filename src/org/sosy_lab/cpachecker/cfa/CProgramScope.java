@@ -227,6 +227,39 @@ public class CProgramScope implements Scope {
   }
 
   /**
+   * Copies the given program scope and adds the given declarations to it.
+   *
+   * @param pScope the old scope.
+   * @param pAdditionalDeclarations the declarations that are added to the scope.
+   */
+  private CProgramScope(
+      CProgramScope pScope, Collection<? extends CSimpleDeclaration> pAdditionalDeclarations) {
+    variableNames =
+        ImmutableSet.<String>builder()
+            .addAll(pScope.variableNames)
+            .addAll(from(pAdditionalDeclarations).transform(CProgramScope::getName))
+            .build();
+    simpleDeclarations =
+        ImmutableListMultimap.<String, CSimpleDeclaration>builder()
+            .putAll(pScope.simpleDeclarations)
+            .putAll(Multimaps.index(pAdditionalDeclarations, CProgramScope::getName))
+            .build();
+    qualifiedDeclarations =
+        ImmutableListMultimap.<String, CSimpleDeclaration>builder()
+            .putAll(pScope.qualifiedDeclarations)
+            .putAll(
+                Multimaps.index(pAdditionalDeclarations, CProgramScope::getOriginalQualifiedName))
+            .build();
+    functionDeclarations = pScope.functionDeclarations;
+    qualifiedTypes = pScope.qualifiedTypes;
+    qualifiedTypeDefs = pScope.qualifiedTypeDefs;
+    retValDeclarations = pScope.retValDeclarations;
+    uses = pScope.uses;
+    functionName = pScope.functionName;
+    locationDescriptor = pScope.locationDescriptor;
+  }
+
+  /**
    * Creates an object of this class.
    *
    * <p>When a single or a block of statements is supposed to be parsed, first a CFA for the whole
@@ -452,6 +485,20 @@ public class CProgramScope implements Scope {
    */
   public CProgramScope withFunctionScope(String pFunctionName) {
     return new CProgramScope(this, pFunctionName, locationDescriptor);
+  }
+
+  /**
+   * Create a CProgramScope that additionally contains the given declarations, e.g., of variables
+   * that are not declared in the program.
+   *
+   * @param pDeclarations the declarations that are added to the scope.
+   */
+  public CProgramScope withAdditionalDeclarations(
+      Collection<? extends CSimpleDeclaration> pDeclarations) {
+    if (pDeclarations.isEmpty()) {
+      return this;
+    }
+    return new CProgramScope(this, pDeclarations);
   }
 
   /**
