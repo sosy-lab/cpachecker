@@ -349,6 +349,9 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
     ImmutableMap<String, CSimpleDeclaration> originalDeclarations =
         mapping.originalDeclarationsBySubstituteName();
 
+    // a single bool cannot be used here sadly:
+    // 'Variable used in lambda expression should be final or effectively final'
+    boolean[] isTranslatable = {true};
     SubstitutingCAstNodeVisitor visitor =
         new SubstitutingCAstNodeVisitor(
             astNode -> {
@@ -357,6 +360,7 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
               }
               CSimpleDeclaration declaration = idExpression.getDeclaration();
               if (declaration == null) {
+                isTranslatable[0] = false;
                 return null;
               }
               if (declaration instanceof CEnumerator) {
@@ -365,12 +369,16 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
               }
               CSimpleDeclaration original = originalDeclarations.get(declaration.getName());
               if (original == null) {
+                isTranslatable[0] = false;
                 return null;
               }
               return new CIdExpression(idExpression.getFileLocation(), original);
             });
 
-    CExpression translated = (CExpression) pExpression.accept(visitor);
-    return Optional.ofNullable(translated);
+    CAstNode translated = pExpression.accept(visitor);
+    if (!isTranslatable[0] || !(translated instanceof CExpression translatedExpression)) {
+      return Optional.empty();
+    }
+    return Optional.of(translatedExpression);
   }
 }
