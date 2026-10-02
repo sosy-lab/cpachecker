@@ -66,7 +66,7 @@ public final class ImcRefiner extends InductionRefiner {
   @Option(
       secure = true,
       description =
-          "continue as BMC if the exploration reaches more loop heads than bmcFallbackLoopLimit,"
+          "continue as BMC if the program has more loop heads than bmcFallbackLoopLimit,"
               + " as native IMC does. Without it, the refiner applies IMC to every loop.")
   private boolean bmcFallback = true;
 

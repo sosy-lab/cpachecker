@@ -15,7 +15,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -597,33 +596,23 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   }
 
   /**
-   * Explore again as BMC if the exploration reached more loop heads than the limit, as native IMC
-   * and ISMC do for more than one loop head.
+   * Explore again as BMC if the program has more loop heads than the limit, as native IMC and ISMC
+   * do for more than one loop head.
    *
    * @return whether the refiner continues as BMC
    */
   protected boolean fallBackToBmcIfNecessary(ARGReachedSet pReached, int pLoopLimit)
       throws InterruptedException {
-    if (reachedLoopHeads(pReached.asReachedSet()) <= pLoopLimit) {
+    if (predicateCpa.getCfa().getAllLoopHeads().orElseThrow().size() <= pLoopLimit) {
       return false;
     }
     logger.log(
         Level.INFO,
-        "Falling back to BMC, because the exploration reached more than",
+        "Falling back to BMC, because the program has more than",
         pLoopLimit,
         "loop heads");
     restartAsBmc(pReached);
     return true;
-  }
-
-  /** The number of loop heads that the exploration reached. */
-  protected int reachedLoopHeads(UnmodifiableReachedSet pReached) {
-    ImmutableSet<CFANode> loopHeads = predicateCpa.getCfa().getAllLoopHeads().orElseThrow();
-    return from(pReached)
-        .transform(AbstractStates::extractLocation)
-        .filter(loopHeads::contains)
-        .toSet()
-        .size();
   }
 
   @Override
