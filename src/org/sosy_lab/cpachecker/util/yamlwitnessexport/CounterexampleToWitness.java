@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
@@ -681,7 +680,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     //  The location has to point to the beginning of a statement.'
     // Therefore, an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
-    for (EdgeWithStates edgeWithStates : edges) {
+    // The index of the edge in `edges` from which each segment was created
+    ImmutableList.Builder<Integer> segmentEdgeIndices = ImmutableList.builder();
+    for (int i = 0; i < edges.size(); i++) {
+      EdgeWithStates edgeWithStates = edges.get(i);
       List<WaypointRecord> waypoints =
           buildWaypoints(
               edgeWithStates.edge(),
@@ -695,6 +697,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
       if (!waypoints.isEmpty()) {
         segments.add(new SegmentRecord(waypoints));
+        segmentEdgeIndices.add(i);
       }
 
       edgeToCurrentExpressionIndex.compute(
@@ -712,10 +715,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     EdgeWithStates lastEdge = edgesWithoutBlankEdges.getLast();
     WaypointRecord waypointRecord = targetWaypoint(lastEdge.edge(), astCFARelation);
-
-    // Required for data races, since sometimes the last
-    // waypoint may collide with the target waypoint
-    boolean removeSecondToLastSegment = false;
 
     if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)) {
       if (getSpecification().getProperties().stream()
@@ -779,10 +778,16 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                 targetWaypoint(lastEdgeOnDifferentThread.orElseThrow().edge(), astCFARelation)
                     .withThreadId(secondToLastThreadId));
 
-        SegmentRecord lastSegment = segments.build().getLast();
-        if (FluentIterable.from(targetWaypoints)
-            .anyMatch(waypoint -> isWaypointAtTheSameLineInSegment(lastSegment, waypoint))) {
-          removeSecondToLastSegment = true;
+        // Drop waypoints of edges at or after the first access. On the path they come after this
+        // access, but the witness would require to pass them before both accesses.
+        int firstAccessIndex = edges.indexOf(lastEdgeOnDifferentThread.orElseThrow());
+        ImmutableList<SegmentRecord> allSegments = segments.build();
+        ImmutableList<Integer> allSegmentEdgeIndices = segmentEdgeIndices.build();
+        segments = ImmutableList.builder();
+        for (int i = 0; i < allSegments.size(); i++) {
+          if (allSegmentEdgeIndices.get(i) < firstAccessIndex) {
+            segments.add(allSegments.get(i));
+          }
         }
 
         segments.add(new SegmentRecord(targetWaypoints));
@@ -799,26 +804,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       segments.add(SegmentRecord.ofOnlyElement(waypointRecord));
     }
 
-    ImmutableList<SegmentRecord> buildSegment = segments.build();
-    if (removeSecondToLastSegment) {
-      buildSegment =
-          Collections3.listAndElement(
-              buildSegment.subList(0, buildSegment.size() - 2), buildSegment.getLast());
-    }
-
-    exportEntries(new ViolationSequenceEntry(getMetadata(pWitnessVersion), buildSegment), pPath);
-  }
-
-  /** Wether there exists a follow waypoint at the same line in the segment. */
-  private static boolean isWaypointAtTheSameLineInSegment(
-      SegmentRecord pSegment, WaypointRecord pWaypoint) {
-    return FluentIterable.from(pSegment.getSegment())
-        .anyMatch(
-            existingWaypoint ->
-                existingWaypoint.getAction().equals(WaypointAction.FOLLOW)
-                    && Objects.equals(
-                        existingWaypoint.getLocation().getLine(),
-                        pWaypoint.getLocation().getLine()));
+    exportEntries(
+        new ViolationSequenceEntry(getMetadata(pWitnessVersion), segments.build()), pPath);
   }
 
   /**
