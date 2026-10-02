@@ -540,6 +540,22 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             null,
             LocationRecord.createLocationRecordAtStart(
                 fullExpressionLocation, pEdge.getPredecessor().getFunction().getOrigName()));
+      } else if (verificationProperty == CommonVerificationProperty.DATA_RACE
+          && pEdge instanceof CCfaEdge cCfaEdge) {
+        // The validator matches the full expression containing the access. The location of an
+        // assume edge only covers a subexpression, e.g., `x` in `if (!(x))`.
+        Optional<FileLocation> fullExpressionLocation =
+            CFAUtils.getClosestFullExpression(cCfaEdge, pAstCfaRelation);
+        if (fullExpressionLocation.isPresent()) {
+          return new WaypointRecord(
+              WaypointType.TARGET,
+              WaypointAction.FOLLOW,
+              null,
+              LocationRecord.createLocationRecordAtStart(
+                  fullExpressionLocation.orElseThrow(),
+                  pEdge.getPredecessor().getFunction().getOrigName()));
+        }
+        return defaultTargetWaypoint(pEdge, pAstCfaRelation);
       } else {
         // This is well-defined for the reeachability property, for all others violation witnesses
         // are not really well-defined
