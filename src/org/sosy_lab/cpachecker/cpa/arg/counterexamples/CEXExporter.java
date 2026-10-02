@@ -170,7 +170,7 @@ public class CEXExporter {
         cexToWitness =
             pSpecification.getProperties().contains(CommonVerificationProperty.TERMINATION)
                 ? new NonterminationCounterexampleToWitness(config, pCFA, pSpecification, pLogger)
-                : new CounterexampleToWitness(config, pCFA, pSpecification, pLogger);
+                : createCexToWitness(config, pCFA, pSpecification, pLogger);
       } else {
         cexToWitness = null;
       }
