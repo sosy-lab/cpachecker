@@ -76,6 +76,9 @@ public final class ImcRefiner extends InductionRefiner {
       description = "the number of loop heads up to which the refiner does not fall back to BMC")
   private int bmcFallbackLoopLimit = 1;
 
+  /** The bound from which native IMC interpolates. */
+  private static final int BOUND_OF_FIRST_INTERPOLATION = 2;
+
   private final PredicateAbstractionManager predicateManager;
   private final LoopStructure loopStructure;
   private boolean fallenBackToBmc = false;
@@ -108,14 +111,22 @@ public final class ImcRefiner extends InductionRefiner {
       return Optional.empty();
     }
     if (!pCutOffs.isEmpty()) {
-      // As native IMC, BMC and the forward condition up to the bound of the cut-offs, then IMC
+      // as native IMC, BMC and the forward condition for every bound before the first interpolation
       Optional<ARGState> counterexample = findFeasibleTarget(pTargets);
       if (counterexample.isPresent()) {
         return counterexample;
       }
       removeUnreachable(pReached, pTargets);
-      if (!removeIfNoneReachable(pReached, pCutOffs)) {
-        restartAsImc(pReached);
+      if (removeIfNoneReachable(pReached, pCutOffs)) {
+        return Optional.empty();
+      }
+      for (ARGState cutOff : pCutOffs) {
+        if (inductionStateOf(cutOff).getLoopPrecision().k() < BOUND_OF_FIRST_INTERPOLATION) {
+          increaseK(pReached, cutOff);
+        } else {
+          restartAsImc(pReached);
+          break;
+        }
       }
       return Optional.empty();
     }
