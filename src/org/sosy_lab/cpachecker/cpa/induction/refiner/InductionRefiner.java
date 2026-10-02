@@ -313,7 +313,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     }
     try (Model model = pProver.getModel()) {
       for (Map.Entry<ARGState, BooleanFormula> entry : pPathFormulas.entrySet()) {
-        if (Boolean.TRUE.equals(model.evaluate(entry.getValue()))) {
+        if (Boolean.TRUE.equals(evaluate(model, entry.getValue()))) {
           ARGState target = entry.getKey();
           @Nullable ARGPath path = pathFromModel(model, target);
           if (path != null) {
@@ -334,6 +334,16 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       }
     }
     return Optional.empty();
+  }
+
+  private @Nullable Boolean evaluate(Model pModel, BooleanFormula pFormula) {
+    try {
+      return pModel.evaluate(pFormula);
+    } catch (IllegalArgumentException e) {
+      // MathSAT fails to evaluate some formulas, e.g., with floats
+      logger.logDebugException(e, "Could not evaluate the model");
+      return null;
+    }
   }
 
   /** The path to the target that the model describes, or null if the model does not decide it. */
