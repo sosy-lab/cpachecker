@@ -9,79 +9,146 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
 import static com.google.common.truth.Truth.assertThat;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DssDefaultQueueTest {
 
-  /** Messages waiting in the local priority buffer are still pending work. */
+  private static final DssMessageFactory MESSAGE_FACTORY = createMessageFactory();
+
+  private static DssMessageFactory createMessageFactory() {
+    try {
+      return new DssMessageFactory(
+          new DssAnalysisOptions(TestUtils.configurationForTest().build()));
+    } catch (InvalidConfigurationException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  private static DssMessage postCondition(String pSenderId) {
+    return MESSAGE_FACTORY.createDssPostConditionMessage(
+        pSenderId, AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of());
+  }
+
+  /**
+   * Messages that end the analysis come first, and messages of the same priority keep the order in
+   * which they were added.
+   */
   @Test
-  public void bufferedMessagesAreStillPending() throws Exception {
-    DssMessageFactory messageFactory =
-        new DssMessageFactory(new DssAnalysisOptions(Configuration.defaultConfiguration()));
+  public void messagesAreTakenByPriorityThenInOrder() throws Exception {
     DssDefaultQueue queue = new DssDefaultQueue();
-    DssMessage postCondition =
-        messageFactory.createDssPostConditionMessage(
-            "worker", AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of());
-    DssMessage result = messageFactory.createDssResultMessage("monitor", Result.TRUE);
+    DssMessage first = postCondition("first");
+    DssMessage second = postCondition("second");
+    DssMessage result = MESSAGE_FACTORY.createDssResultMessage("monitor", Result.TRUE);
 
-    queue.add(postCondition);
-    queue.add(result);
+    queue.offer(first);
+    queue.offer(second);
+    queue.offer(result);
 
+    assertThat(queue.size()).isEqualTo(3);
     assertThat(queue.take()).isSameInstanceAs(result);
+    assertThat(queue.take()).isSameInstanceAs(first);
     assertThat(queue.isEmpty()).isFalse();
-    assertThat(queue.take()).isSameInstanceAs(postCondition);
+    assertThat(queue.take()).isSameInstanceAs(second);
     assertThat(queue.isEmpty()).isTrue();
   }
 
-  /** A worker becomes active before its dequeued message stops counting as pending. */
-  @Test(timeout = 5000)
-  public void workerIsActiveAfterTakingMessage() throws Exception {
-    DssMessageFactory messageFactory =
-        new DssMessageFactory(new DssAnalysisOptions(Configuration.defaultConfiguration()));
-    String workerId = "queue-worker";
-    Set<String> activeWorkers = ConcurrentHashMap.newKeySet();
-    activeWorkers.add(workerId);
-    DssDefaultQueue queue = new DssDefaultQueue(activeWorkers);
-    DssMessage message = messageFactory.createDssResultMessage("monitor", Result.TRUE);
-    CountDownLatch finished = new CountDownLatch(1);
-    AtomicReference<Throwable> failure = new AtomicReference<>();
-    Thread worker =
-        new Thread(
+  /**
+   * Messages that several threads add while the worker takes them are neither lost nor reordered
+   * within the messages of one sender.
+   */
+  @Test(timeout = 10000)
+  public void concurrentSendersLoseNoMessages() throws Exception {
+    int senders = 4;
+    int messagesPerSender = 2000;
+    DssWorkCounter workCounter = new DssWorkCounter();
+    DssDefaultQueue queue = new DssDefaultQueue(workCounter);
+    Map<String, Integer> lastReceived = new HashMap<>();
+
+    try (ExecutorService executor =
+        Executors.newThreadPerTaskExecutor(
+            Thread.ofPlatform()
+                .name(DssDefaultQueueTest.class.getSimpleName() + "-", 0)
+                .factory())) {
+      for (int sender = 0; sender < senders; sender++) {
+        String senderId = "sender-" + sender;
+        executor.execute(
             () -> {
-              try {
-                assertThat(queue.take()).isSameInstanceAs(message);
-                assertThat(activeWorkers).contains(workerId);
-                assertThat(queue.isEmpty()).isTrue();
-              } catch (Throwable t) {
-                failure.set(t);
-              } finally {
-                finished.countDown();
+              for (int i = 0; i < messagesPerSender; i++) {
+                queue.offer(postCondition(senderId + ":" + i));
               }
-            },
-            workerId);
-    worker.start();
-
-    while (activeWorkers.contains(workerId) && worker.isAlive()) {
-      Thread.onSpinWait();
+            });
+      }
+      // this thread is the worker of the queue
+      for (int received = 0; received < senders * messagesPerSender; received++) {
+        List<String> senderAndIndex = Splitter.on(':').splitToList(queue.take().getSenderId());
+        int index = Integer.parseInt(senderAndIndex.get(1));
+        Integer previous = lastReceived.put(senderAndIndex.getFirst(), index);
+        assertThat(index).isEqualTo(previous == null ? 0 : previous + 1);
+      }
     }
-    assertThat(activeWorkers).doesNotContain(workerId);
-    queue.add(message);
+    assertThat(queue.isEmpty()).isTrue();
+    assertThat(lastReceived).hasSize(senders);
+  }
 
-    assertThat(finished.await(1, SECONDS)).isTrue();
-    worker.join();
-    assertThat(failure.get()).isNull();
+  /**
+   * No work is left only after a message that one worker sends to another has been taken by the
+   * receiver and the receiver has become idle again.
+   */
+  @Test(timeout = 5000)
+  public void noWorkLeftOnlyAfterForwardedMessageWasProcessed() throws Exception {
+    DssMessage message = MESSAGE_FACTORY.createDssResultMessage("monitor", Result.TRUE);
+    DssWorkCounter workCounter = new DssWorkCounter();
+    DssDefaultQueue sender = new DssDefaultQueue(workCounter);
+    DssDefaultQueue receiver = new DssDefaultQueue(workCounter);
+    AtomicBoolean received = new AtomicBoolean();
+    sender.offer(message);
+
+    try (ExecutorService executor =
+        Executors.newThreadPerTaskExecutor(
+            Thread.ofPlatform()
+                .name(DssDefaultQueueTest.class.getSimpleName() + "-", 0)
+                .factory())) {
+      executor.execute(
+          () -> {
+            try {
+              receiver.offer(sender.take());
+              sender.take();
+            } catch (InterruptedException e) {
+              // expected once the test is done
+            }
+          });
+      executor.execute(
+          () -> {
+            try {
+              receiver.take();
+              received.set(true);
+              receiver.take();
+            } catch (InterruptedException e) {
+              // expected once the test is done
+            }
+          });
+
+      workCounter.awaitNoWorkLeft();
+      assertThat(received.get()).isTrue();
+      assertThat(sender.isEmpty()).isTrue();
+      assertThat(receiver.isEmpty()).isTrue();
+      executor.shutdownNow();
+    }
   }
 }

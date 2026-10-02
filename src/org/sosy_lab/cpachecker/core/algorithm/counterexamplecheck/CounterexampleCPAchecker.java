@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +24,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -59,18 +58,16 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
 @Options(prefix = "counterexample.checker")
 public class CounterexampleCPAchecker implements CounterexampleChecker {
@@ -144,9 +141,20 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               + " are multiple sub-properties.")
   private boolean checkMemorySafetySubproperty = false;
 
+  private enum CounterexampleFormat {
+    AUTOMATON,
+    WITNESSV2,
+  }
+
+  @Option(
+      secure = true,
+      name = "counterexampleFormat",
+      description = "Internal representation of the counterexample path used for the check.")
+  private CounterexampleFormat counterexampleFormat = CounterexampleFormat.AUTOMATON;
+
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
-  private WitnessExporter witnessExporter;
+  private final @Nullable CounterexampleToWitness yamlWitnessExporter;
 
   public CounterexampleCPAchecker(
       Configuration config,
@@ -163,7 +171,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
-    witnessExporter = new WitnessExporter(config, logger, specification, cfa);
+    yamlWitnessExporter =
+        counterexampleFormat == CounterexampleFormat.WITNESSV2
+            ? new CounterexampleToWitness(config, cfa, specification, logger)
+            : null;
   }
 
   @Override
@@ -171,20 +182,22 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
+    Optional<CounterexampleInfo> cexInfo = getCounterexampleInfo.apply(pErrorState);
+
     try {
       if (specFile != null) {
-        return checkCounterexample(pRootState, pErrorState, pErrorPathStates, specFile);
+        return checkCounterexample(pRootState, pErrorState, pErrorPathStates, specFile, cexInfo);
       }
 
       // This temp file will be automatically deleted when the try block terminates.
       try (DeleteOnCloseFile automatonFile =
           TempFile.builder()
               .prefix("counterexample-automaton")
-              .suffix(".graphml")
+              .suffix(getFileSuffix(counterexampleFormat))
               .createDeleteOnClose()) {
 
         return checkCounterexample(
-            pRootState, pErrorState, pErrorPathStates, automatonFile.toPath());
+            pRootState, pErrorState, pErrorPathStates, automatonFile.toPath(), cexInfo);
       }
 
     } catch (IOException e) {
@@ -193,20 +206,22 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     }
   }
 
+  private String getFileSuffix(CounterexampleFormat format) {
+    return switch (format) {
+      case AUTOMATON -> ".spc";
+      case WITNESSV2 -> ".yaml";
+    };
+  }
+
   private boolean checkCounterexample(
-      ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates, Path automatonFile)
+      ARGState pRootState,
+      ARGState pErrorState,
+      Set<ARGState> pErrorPathStates,
+      Path automatonFile,
+      Optional<CounterexampleInfo> cexInfo)
       throws IOException, CPAException, InterruptedException {
 
-    final Predicate<ARGState> relevantState = Predicates.in(pErrorPathStates);
-    final Witness witness =
-        witnessExporter.generateErrorWitness(
-            pRootState,
-            relevantState,
-            BiPredicates.bothSatisfy(relevantState),
-            getCounterexampleInfo.apply(pErrorState).orElse(null));
-    try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
-      WitnessToOutputFormatsUtils.writeToGraphMl(witness, w);
-    }
+    exportCounterexample(pRootState, pErrorPathStates, automatonFile, cexInfo);
 
     // We assume only one initial node for an analysis, even for mutli-threaded tasks.
     CFANode entryNode = Iterables.getOnlyElement(extractLocations(pRootState));
@@ -301,6 +316,35 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     } catch (InterruptedException e) {
       shutdownNotifier.shutdownIfNecessary();
       throw new CounterexampleAnalysisFailed("Counterexample check aborted", e);
+    }
+  }
+
+  private void exportCounterexample(
+      ARGState pRootState,
+      Set<ARGState> pErrorPathStates,
+      Path automatonFile,
+      Optional<CounterexampleInfo> cexInfo)
+      throws IOException, CPAException {
+    logger.logf(
+        Level.FINE,
+        "Exporting counterexample using %s format for the counterexample check",
+        counterexampleFormat.toString());
+    if (counterexampleFormat == CounterexampleFormat.AUTOMATON) {
+      try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
+        ARGUtils.produceCounterexampleAutomaton(
+            w,
+            pRootState,
+            pErrorPathStates,
+            AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME,
+            cexInfo.orElse(null));
+      }
+    } else {
+      if (cexInfo.isEmpty()) {
+        throw new CounterexampleAnalysisFailed(
+            "Could not determine counterexample information for error state, "
+                + "which is required to export the counterexample in witness version 2.0 format.");
+      }
+      yamlWitnessExporter.export(cexInfo.orElseThrow(), automatonFile);
     }
   }
 

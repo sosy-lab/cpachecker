@@ -39,13 +39,19 @@ public class CounterexampleToWitness extends AbstractCounterexampleToWitness {
   }
 
   /**
+   * An edge of a counterexample together with the {@link ARGState}s before and after it. For edges
+   * which fill a hole of the {@link ARGPath} these are the states enclosing the whole hole.
+   */
+  protected record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState nextState) {}
+
+  /**
    * Return all CFA edges of the given path together with the threads executing them. Consecutive
    * states of an {@link ARGPath} are not necessarily connected by a single CFA edge, since an
    * analysis may handle a whole basic block in one step (cf. option
    * cpa.composite.aggregateBasicBlocks). {@link ARGPath#fullPathIterator()} resolves such holes
    * into the edges they stand for. For such edges the states enclosing the whole hole are used.
    */
-  private static ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
+  protected static ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
     // an analysis that does not track threads has no thread name for any step
     boolean tracksThreads = extractStateByType(pPath.getFirstState(), ThreadingState.class) != null;
     ImmutableList.Builder<WitnessPathStep> steps = ImmutableList.builder();

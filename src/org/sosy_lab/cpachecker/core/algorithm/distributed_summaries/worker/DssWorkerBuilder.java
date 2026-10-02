@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map.Entry;
-import java.util.concurrent.BlockingQueue;
 import java.util.function.Supplier;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -25,12 +24,12 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.CommunicationId;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssCommunicationEntity;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssSchedulerConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -45,14 +44,14 @@ public class DssWorkerBuilder {
 
   private final DssMessageFactory messageFactory;
   private final ImmutableMap.Builder<CommunicationId, WorkerGenerator> workerGenerators;
-  private final Supplier<BlockingQueue<DssMessage>> queueFactory;
+  private final Supplier<DssDefaultQueue> queueFactory;
   private final DssAllWorkerStatistics workerStatistics;
   private final ShutdownManager shutdownManager;
 
   public DssWorkerBuilder(
       CFA pCFA,
       Specification pSpecification,
-      Supplier<BlockingQueue<DssMessage>> pQueueFactory,
+      Supplier<DssDefaultQueue> pQueueFactory,
       DssMessageFactory pMessageFactory,
       DssAllWorkerStatistics pWorkerStatistics,
       ShutdownManager pShutdownManager) {
@@ -70,12 +69,12 @@ public class DssWorkerBuilder {
 
     // create a queue for each worker
     ImmutableMap<CommunicationId, WorkerGenerator> futureWorkers = workerGenerators.buildOrThrow();
-    ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
+    ImmutableMap.Builder<CommunicationId, DssDefaultQueue> queues =
         ImmutableMap.builderWithExpectedSize(futureWorkers.size());
     for (CommunicationId id : futureWorkers.keySet()) {
       queues.put(id, queueFactory.get());
     }
-    ImmutableMap<CommunicationId, BlockingQueue<DssMessage>> allQueues = queues.buildOrThrow();
+    ImmutableMap<CommunicationId, DssDefaultQueue> allQueues = queues.buildOrThrow();
 
     // create a broadcaster for all queues
     DssMessageBroadcaster broadcaster = new DssMessageBroadcaster(allQueues);

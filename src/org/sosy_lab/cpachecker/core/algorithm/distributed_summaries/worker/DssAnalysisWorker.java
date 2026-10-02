@@ -167,9 +167,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
    *
    * <p>The exploration cannot simply be left to the next message, because there may be no next
    * message. It has to happen before this worker blocks on its queue again, since {@link
-   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor} reads a
-   * worker waiting on an empty queue as a worker with nothing left to do, and would report a
-   * verdict while an exploration is still owed.
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssWorkCounter}
+   * reads a worker waiting on an empty queue as a worker with nothing left to do, and would report
+   * a verdict while an exploration is still owed.
    */
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {

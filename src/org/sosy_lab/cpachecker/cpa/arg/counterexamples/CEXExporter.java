@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedCounterexampleToWitness;
 import org.xml.sax.SAXException;
 
@@ -163,10 +165,15 @@ public class CEXExporter {
       harnessExporter = new HarnessExporter(config, pLogger, pCFA);
       testExporter = new TestCaseExporter(pCFA, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
-      cexToWitness =
-          options.getYamlWitnessPathTemplate() == null
-              ? null
-              : createCexToWitness(config, pCFA, pSpecification, pLogger);
+      if (options.getYamlWitnessPathTemplate() != null) {
+        // Counterexamples to termination are exported as non-termination witnesses
+        cexToWitness =
+            pSpecification.getProperties().contains(CommonVerificationProperty.TERMINATION)
+                ? new NonterminationCounterexampleToWitness(config, pCFA, pSpecification, pLogger)
+                : new CounterexampleToWitness(config, pCFA, pSpecification, pLogger);
+      } else {
+        cexToWitness = null;
+      }
     } else {
       cexFilter = null;
       harnessExporter = null;
