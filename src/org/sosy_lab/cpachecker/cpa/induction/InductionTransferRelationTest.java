@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.induction;
 
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -189,5 +190,73 @@ public class InductionTransferRelationTest {
             domain.isLessOrEqual(
                 successors(beforeSecondArrival, small, back).iterator().next(), continuation))
         .isTrue();
+  }
+
+  /** An edge into a head of a loop with two heads, as gotos create it. */
+  private record ArrivalAtLoopWithTwoHeads(LoopStructure loopStructure, CFAEdge edge) {
+
+    static ArrivalAtLoopWithTwoHeads create() throws Exception {
+      CFA cfa =
+          TestCfaUtils.makeCfaFromFunctionBody(
+              """
+              int x = 0;
+              L1:
+              if (x > 3) { x = 0; }
+              if (x == 1) { goto L3; }
+              L2:
+              x++;
+              if (x == 5) { goto L2; }
+              L3:
+              if (x == 7) { goto L1; }
+              goto L2;
+              """);
+      LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
+      Loop loop =
+          from(loopStructure.getAllLoops()).firstMatch(l -> l.getLoopHeads().size() > 1).get();
+      CFANode head = loop.getLoopHeads().iterator().next();
+      return new ArrivalAtLoopWithTwoHeads(loopStructure, head.getEnteringEdges().first().get());
+    }
+
+    Collection<InductionState> successors(InductionState pState, InductionPrecision pPrecision) {
+      return new InductionTransferRelation(loopStructure, false)
+          .getAbstractSuccessorsForEdge(pState, pPrecision, edge);
+    }
+
+    InductionPrecision precision(int pK, boolean pInduction, int pDescribedAbstractions) {
+      return InductionPrecision.uniform(
+          loopStructure.getAllLoops(),
+          new LoopPrecision(pK, pInduction, pDescribedAbstractions, false));
+    }
+  }
+
+  @Test
+  public void startsInductionStepsBeforeTheBoundAtLoopsWithSeveralHeads() throws Exception {
+    ArrivalAtLoopWithTwoHeads arrival = ArrivalAtLoopWithTwoHeads.create();
+    InductionPrecision precision = arrival.precision(2, true, LoopPrecision.ALL_ABSTRACTIONS);
+
+    ImmutableList<InductionState> split =
+        ImmutableList.copyOf(arrival.successors(initial, precision));
+    assertThat(split).hasSize(2);
+    assertThat(split.get(0).isAbstraction()).isFalse();
+    assertThat(split.get(1).isInductionStart()).isTrue();
+
+    // in the induction step every arrival starts a further step
+    ImmutableList<InductionState> inStep =
+        ImmutableList.copyOf(arrival.successors(split.get(1), precision));
+    assertThat(inStep).hasSize(2);
+    assertThat(inStep.get(0).isAbstraction()).isFalse();
+    assertThat(inStep.get(1).isAbstraction()).isTrue();
+    assertThat(inStep.get(1).isInductionStart()).isFalse();
+    assertThat(inStep.get(1).isInInductionStep()).isTrue();
+  }
+
+  @Test
+  public void startsNoInductionStepBeforeTheBoundWithoutDescription() throws Exception {
+    ArrivalAtLoopWithTwoHeads arrival = ArrivalAtLoopWithTwoHeads.create();
+    assertThat(arrival.successors(initial, arrival.precision(2, true, 0))).hasSize(1);
+    assertThat(
+            arrival.successors(
+                initial, arrival.precision(2, false, LoopPrecision.ALL_ABSTRACTIONS)))
+        .hasSize(1);
   }
 }

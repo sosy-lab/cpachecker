@@ -148,6 +148,7 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
     StatisticsWriter.writingStatisticsTo(pOut)
         .put(transferRelation.abstractions)
         .put(transferRelation.inductionStarts)
+        .put(transferRelation.earlyInductionSteps)
         .put(transferRelation.cutOffs)
         .put(transferRelation.suppressedTargets);
   }

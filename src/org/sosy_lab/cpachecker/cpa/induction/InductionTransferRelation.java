@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,7 +31,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 /**
  * Counts the arrivals at the loops as {@link org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA}
  * does, and decides at the (k+1)-th arrival since the last abstraction whether to abstract, to
- * split into the base case and an induction step, or to cut the path off.
+ * split into the base case and an induction step, or to cut the path off. At a loop with several
+ * heads, every arrival also starts an induction step.
  */
 final class InductionTransferRelation extends SingleEdgeTransferRelation {
 
@@ -39,6 +41,8 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
 
   final StatCounter abstractions = new StatCounter("Abstractions at loop heads");
   final StatCounter inductionStarts = new StatCounter("Induction starts");
+  final StatCounter earlyInductionSteps =
+      new StatCounter("Induction steps before the bound at loops with several heads");
   final StatCounter cutOffs = new StatCounter("Cut-offs");
   final StatCounter suppressedTargets = new StatCounter("Targets not reported in induction step");
 
@@ -76,7 +80,10 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     if (boundedLoop == null) {
-      return ImmutableList.of(state.concrete(arrivals, true, reportsTargets));
+      InductionState concrete = state.concrete(arrivals, true, reportsTargets);
+      @Nullable InductionState start =
+          earlyInductionStep(state, precision, loops, successor, reportsTargets);
+      return start == null ? ImmutableList.of(concrete) : ImmutableList.of(concrete, start);
     }
 
     LoopPrecision loopPrecision = precision.get(boundedLoop);
@@ -98,6 +105,35 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
     return continueBaseCase
         ? ImmutableList.of(state.continuation(arrivals, reportsTargets, precision), inductionStart)
         : ImmutableList.of(inductionStart);
+  }
+
+  /**
+   * The induction step that starts before the bound at a head of a loop with several heads, or
+   * null. The abstractions at the bound may always reach the same head of such a loop, so that no
+   * step would check the property after the other heads. Native k-induction starts its step case at
+   * every loop head.
+   */
+  private @Nullable InductionState earlyInductionStep(
+      InductionState pState,
+      InductionPrecision pPrecision,
+      Set<Loop> pLoops,
+      CFANode pLoopHead,
+      boolean pReportsTargets) {
+    for (Loop loop : pLoops) {
+      LoopPrecision loopPrecision = pPrecision.get(loop);
+      if (loop.getLoopHeads().size() > 1
+          && (pState.isInInductionStep() || loopPrecision.induction())
+          && loopPrecision.describes(pState.getAbstractionIndex(pLoopHead))) {
+        abstractions.inc();
+        earlyInductionSteps.inc();
+        boolean startsInductionStep = !pState.isInInductionStep();
+        if (startsInductionStep) {
+          inductionStarts.inc();
+        }
+        return pState.abstraction(pLoopHead, loopPrecision, startsInductionStep, pReportsTargets);
+      }
+    }
+    return null;
   }
 
   @Override
