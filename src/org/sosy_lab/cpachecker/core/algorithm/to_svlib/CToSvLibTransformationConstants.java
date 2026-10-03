@@ -99,6 +99,12 @@ final class CToSvLibTransformationConstants {
    */
   static final String FIRST_ALLOCATED_ADDRESS = "__transformationFirstAllocatedAddress";
 
+  /**
+   * The variable that holds the address of the object into which a run of stores writes, so that
+   * the stores do not repeat the name of that address.
+   */
+  static final String BASE_OF_STORES = "__transformationBase";
+
   private static final String RETURN_VAR_DUMMY_PREFIX = "__transformationDummyReturn_";
   private static final String TMP_VAR_ASSIGNMENT = "__Transformation_TMP_VariableAssignment_";
 

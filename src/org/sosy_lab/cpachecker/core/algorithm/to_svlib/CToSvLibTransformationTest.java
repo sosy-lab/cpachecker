@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -58,6 +60,7 @@ public class CToSvLibTransformationTest {
           Path.of("test", "programs", "to_svlib_transformation", "allocation-in-loop.c"),
           Path.of("test", "programs", "to_svlib_transformation", "allocation-in-loop-field.c"),
           Path.of("test", "programs", "to_svlib_transformation", "reserved-word-variables.c"),
+          Path.of("test", "programs", "to_svlib_transformation", "initialized-array.c"),
           Path.of("test", "programs", "programtranslation", "gotos.c"),
           Path.of("test", "programs", "programtranslation", "functionreturn.c"),
           Path.of("test", "programs", "realc", "test-or.c"),
@@ -84,7 +87,8 @@ public class CToSvLibTransformationTest {
     }
   }
 
-  private void transformAndParse(
+  /** Transform the given program, parse the script, and return it. */
+  private String transformAndParse(
       Path pInputFile,
       String pSolver,
       String pBitVectorEncoding,
@@ -112,7 +116,26 @@ public class CToSvLibTransformationTest {
       script = algorithm.transformCfaToSvLibScript();
     }
 
-    SvLibToAstParser.parseScript(script.toASTString());
+    String text = script.toASTString();
+    SvLibToAstParser.parseScript(text);
+    return text;
+  }
+
+  @Test
+  public void testShortenedAssignmentsOfInitializedArray() throws Exception {
+    String script =
+        transformAndParse(
+            Path.of("test", "programs", "to_svlib_transformation", "initialized-array.c")
+                .toAbsolutePath(),
+            "mathsat5",
+            ENCODE_BITVECTORS_AS_BITVECTORS,
+            // As in the configurations, so that the assignments of a block are consecutive.
+            ImmutableMap.of("analysis.algorithm.toSvLib.useLargeBlockEncoding", "true"));
+
+    // The stores read the address of the array from a variable, and the constants are assigned
+    // at once.
+    assertThat(script).contains("(assign (" + CToSvLibTransformationConstants.BASE_OF_STORES + " ");
+    assertThat(script).contains("(assign (a (_ bv1 32)) (b (_ bv2 32)) (c (_ bv3 32)))");
   }
 
   @Test

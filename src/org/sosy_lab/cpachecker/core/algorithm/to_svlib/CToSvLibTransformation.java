@@ -122,6 +122,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 
 class CToSvLibTransformation {
+  /** The smallest run of stores into one object that reads the address from a variable. */
+  private static final int MIN_STORES_WITH_VARIABLE_FOR_BASE = 1000;
+
   private final CFA cfa;
 
   /** The functions of the program that are transformed. */
@@ -2250,6 +2253,212 @@ class CToSvLibTransformation {
     return pStatement.getTagReferences().isEmpty() && pStatement.getTagAttributes().isEmpty();
   }
 
+  /**
+   * The given statements, and those of the sequences among them, with shorter assignments: each run
+   * of assignments of constants becomes one assignment, and a run of stores into one object reads
+   * the address of the object from a variable.
+   */
+  private ImmutableList<SvLibStatement> shortenAssignments(List<SvLibStatement> pStatements) {
+    ImmutableList<SvLibStatement> statements =
+        FluentIterable.from(pStatements)
+            .transform(
+                statement ->
+                    statement instanceof SvLibSequenceStatement sequence
+                        ? new SvLibSequenceStatement(
+                            shortenAssignments(sequence.getStatements()),
+                            sequence.getFileLocation(),
+                            sequence.getTagAttributes(),
+                            sequence.getTagReferences())
+                        : statement)
+            .toList();
+    return useVariableForBaseOfStores(mergeAssignmentsOfConstants(statements));
+  }
+
+  /**
+   * The given statements with each run of assignments of constants merged into one assignment. The
+   * values read no variable, so it does not matter that the analysis of SV-LIB executes the pairs
+   * of an assignment one after the other.
+   */
+  private static ImmutableList<SvLibStatement> mergeAssignmentsOfConstants(
+      List<SvLibStatement> pStatements) {
+    ImmutableList.Builder<SvLibStatement> result = ImmutableList.builder();
+    List<SvLibAssignmentStatement> run = new ArrayList<>();
+    Set<String> assignedInRun = new LinkedHashSet<>();
+    for (SvLibStatement statement : pStatements) {
+      if (!(statement instanceof SvLibAssignmentStatement assignment
+          && hasNoTags(assignment)
+          && assignment.getAssignments().values().stream()
+              .allMatch(CToSvLibTransformation::isConstant))) {
+        result.addAll(mergeAssignments(run));
+        run.clear();
+        assignedInRun.clear();
+        result.add(statement);
+        continue;
+      }
+      ImmutableSet<String> assigned =
+          FluentIterable.from(assignment.getAssignments().keySet())
+              .transform(declaration -> declaration.toSimpleDeclaration().getName())
+              .toSet();
+      if (!Collections.disjoint(assignedInRun, assigned)) {
+        // An assignment assigns each variable only once.
+        result.addAll(mergeAssignments(run));
+        run.clear();
+        assignedInRun.clear();
+      }
+      run.add(assignment);
+      assignedInRun.addAll(assigned);
+    }
+    result.addAll(mergeAssignments(run));
+    return result.build();
+  }
+
+  private static ImmutableList<SvLibStatement> mergeAssignments(
+      List<SvLibAssignmentStatement> pAssignments) {
+    if (pAssignments.size() <= 1) {
+      return ImmutableList.copyOf(pAssignments);
+    }
+    ImmutableMap.Builder<SvLibSimpleParsingDeclaration, SvLibTerm> pairs = ImmutableMap.builder();
+    for (SvLibAssignmentStatement assignment : pAssignments) {
+      pairs.putAll(assignment.getAssignments());
+    }
+    return ImmutableList.of(
+        new SvLibAssignmentStatement(
+            pairs.buildOrThrow(), FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of()));
+  }
+
+  /** Does the given term read no variable, so that it has the same value everywhere? */
+  private static boolean isConstant(SvLibTerm pTerm) {
+    return switch (pTerm) {
+      case SvLibConstantTerm unused -> true;
+      case SvLibIdTerm id -> id.getDeclaration() instanceof SvLibFunctionDeclaration;
+      case SvLibSymbolApplicationTerm application ->
+          application.getTerms().stream().allMatch(CToSvLibTransformation::isConstant);
+    };
+  }
+
+  /**
+   * The given statements with each long run of stores into the memory of one object reading the
+   * address of the object from a variable that is assigned before the run. The initialization of an
+   * array repeats the address of the array in the store of each element.
+   */
+  private ImmutableList<SvLibStatement> useVariableForBaseOfStores(
+      List<SvLibStatement> pStatements) {
+    ImmutableList.Builder<SvLibStatement> result = ImmutableList.builder();
+    int start = 0;
+    while (start < pStatements.size()) {
+      Optional<SvLibIdTerm> base = getBaseOfStore(pStatements.get(start));
+      Optional<String> nameOfBase = base.map(id -> id.getDeclaration().getName());
+      int end = start + 1;
+      while (nameOfBase.isPresent()
+          && end < pStatements.size()
+          && getBaseOfStore(pStatements.get(end))
+              .map(id -> id.getDeclaration().getName())
+              .equals(nameOfBase)) {
+        end++;
+      }
+      List<SvLibStatement> run = pStatements.subList(start, end);
+      start = end;
+      if (base.isEmpty() || !isShorterWithVariableForBase(base.orElseThrow(), run.size())) {
+        result.addAll(run);
+        continue;
+      }
+
+      SvLibParsingVariableDeclaration variable =
+          declareVariableOfTransformation(
+              CToSvLibTransformationConstants.BASE_OF_STORES,
+              base.orElseThrow().getDeclaration().getType());
+      SvLibIdTerm variableTerm =
+          new SvLibIdTerm(variable.toSimpleDeclaration(), FileLocation.DUMMY);
+      result.add(
+          new SvLibAssignmentStatement(
+              ImmutableMap.<SvLibSimpleParsingDeclaration, SvLibTerm>of(
+                  variable, base.orElseThrow()),
+              FileLocation.DUMMY,
+              ImmutableList.of(),
+              ImmutableList.of()));
+      for (SvLibStatement store : run) {
+        Map.Entry<SvLibSimpleParsingDeclaration, SvLibTerm> pair =
+            Iterables.getOnlyElement(
+                ((SvLibAssignmentStatement) store).getAssignments().entrySet());
+        result.add(
+            new SvLibAssignmentStatement(
+                ImmutableMap.of(
+                    pair.getKey(),
+                    replaceVariable(pair.getValue(), nameOfBase.orElseThrow(), variableTerm)),
+                FileLocation.DUMMY,
+                ImmutableList.of(),
+                ImmutableList.of()));
+      }
+    }
+    return result.build();
+  }
+
+  /**
+   * The address of the object into which the given statement stores, if it is an assignment {@code
+   * (assign (M (store M a v)))} whose address {@code a} contains the address of exactly one object.
+   */
+  private Optional<SvLibIdTerm> getBaseOfStore(SvLibStatement pStatement) {
+    if (!(pStatement instanceof SvLibAssignmentStatement assignment)
+        || !hasNoTags(assignment)
+        || assignment.getAssignments().size() != 1
+        || !isApplicationOf(
+            "store", Iterables.getOnlyElement(assignment.getAssignments().values()))) {
+      return Optional.empty();
+    }
+    SvLibSymbolApplicationTerm store =
+        (SvLibSymbolApplicationTerm) Iterables.getOnlyElement(assignment.getAssignments().values());
+    Map<String, SvLibIdTerm> bases = new LinkedHashMap<>();
+    collectAddressesOfObjects(store.getTerms().get(1), bases);
+    return bases.size() == 1
+        ? Optional.of(Iterables.getOnlyElement(bases.values()))
+        : Optional.empty();
+  }
+
+  private void collectAddressesOfObjects(SvLibTerm pTerm, Map<String, SvLibIdTerm> pAddresses) {
+    switch (pTerm) {
+      case SvLibIdTerm id
+          when PointerBase.fromFormulaEncoding(unquote(id.getDeclaration().getName()))
+              .isPresent() ->
+          pAddresses.putIfAbsent(id.getDeclaration().getName(), id);
+      case SvLibSymbolApplicationTerm application -> {
+        for (SvLibTerm term : application.getTerms()) {
+          collectAddressesOfObjects(term, pAddresses);
+        }
+      }
+      default -> {}
+    }
+  }
+
+  /**
+   * Should a run of the given number of stores read the given address from a variable, which has to
+   * be assigned before the run?
+   *
+   * <p>Only the initialization of a large array does, because a shorter run saves little and the
+   * variable makes MathSAT fail to interpolate the arrays of some programs.
+   */
+  private static boolean isShorterWithVariableForBase(SvLibIdTerm pBase, int pNumberOfStores) {
+    int lengthOfBase = pBase.toASTString().length();
+    int lengthOfVariable = CToSvLibTransformationConstants.BASE_OF_STORES.length();
+    return pNumberOfStores >= MIN_STORES_WITH_VARIABLE_FOR_BASE
+        && pNumberOfStores * (lengthOfBase - lengthOfVariable)
+            > lengthOfBase + lengthOfVariable + "(assign ( ))".length();
+  }
+
+  private static SvLibTerm replaceVariable(
+      SvLibTerm pTerm, String pVariableName, SvLibTerm pReplacement) {
+    return switch (pTerm) {
+      case SvLibIdTerm id when id.getDeclaration().getName().equals(pVariableName) -> pReplacement;
+      case SvLibSymbolApplicationTerm application ->
+          new SvLibSymbolApplicationTerm(
+              application.getSymbol(),
+              FluentIterable.from(application.getTerms())
+                  .transform(term -> replaceVariable(term, pVariableName, pReplacement))
+                  .toList(),
+              FileLocation.DUMMY);
+      default -> pTerm;
+    };
+  }
+
   /** Is the given edge transformed into a jump to the block of its successor? */
   private static boolean isTransformedToJump(CFAEdge pEdge) {
     return switch (pEdge.getEdgeType()) {
@@ -2327,7 +2536,7 @@ class CToSvLibTransformation {
     }
 
     return new SvLibSequenceStatement(
-        simplifyJumps(statementList.build()),
+        shortenAssignments(simplifyJumps(statementList.build())),
         FileLocation.DUMMY,
         ImmutableList.of(),
         ImmutableList.of(new SvLibTagReference(pProcedureName, FileLocation.DUMMY)));
