@@ -581,15 +581,15 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     return Optional.empty();
   }
 
-  /** Explore again from the root with the precision of BMC with bound k, at least 1. */
-  protected void restartAsBmc(ARGReachedSet pReached) throws InterruptedException {
+  /** Explore again from the root with the precision of BMC with bound k, at least the given one. */
+  protected void restartAsBmc(ARGReachedSet pReached, int pMinimalK) throws InterruptedException {
     ARGState root = (ARGState) pReached.asReachedSet().getFirstState();
     InductionPrecision precision =
         inductionPrecisionOf(pReached, root)
             .withAll(
                 p ->
                     new LoopPrecision(
-                        Math.max(p.k(), 1),
+                        Math.max(p.k(), pMinimalK),
                         /* induction= */ false,
                         /* describedAbstractions= */ 0,
                         /* unrolling= */ false));
@@ -617,8 +617,13 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
         "Falling back to BMC, because the program has more than",
         pLoopLimit,
         "loop heads");
-    restartAsBmc(pReached);
+    restartAsBmc(pReached, 1);
     return true;
+  }
+
+  /** Whether an interpolation failed, after which native IMC and ISMC continue as BMC. */
+  protected boolean hasFailedInterpolation() {
+    return interpolationFailures.getValue() > 0;
   }
 
   @Override

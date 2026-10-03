@@ -67,8 +67,9 @@ public final class ImcRefiner extends InductionRefiner {
   @Option(
       secure = true,
       description =
-          "continue as BMC if the program has more loop heads than bmcFallbackLoopLimit,"
-              + " as native IMC does. Without it, the refiner applies IMC to every loop.")
+          "continue as BMC if the program has more loop heads than bmcFallbackLoopLimit or"
+              + " if an interpolation fails, as native IMC does. Without it, the refiner applies"
+              + " IMC to every loop and ignores failed interpolations.")
   private boolean bmcFallback = true;
 
   @Option(
@@ -166,8 +167,19 @@ public final class ImcRefiner extends InductionRefiner {
       if (!target.isDestroyed()) {
         refine(pReached, target, chains, targetsBelow);
       }
+      if (fallsBackAfterFailure()) {
+        logger.log(Level.INFO, "Falling back to BMC, because an interpolation failed");
+        restartAsBmc(pReached, BOUND_OF_FIRST_INTERPOLATION + 1);
+        fallenBackToBmc = true;
+        break;
+      }
     }
     return Optional.empty();
+  }
+
+  /** Whether the refiner continues as BMC, as native IMC does after a failed interpolation. */
+  private boolean fallsBackAfterFailure() {
+    return bmcFallback && hasFailedInterpolation();
   }
 
   /**
@@ -200,8 +212,11 @@ public final class ImcRefiner extends InductionRefiner {
           }
         }
         Optional<BooleanFormula> interpolant = interpolate(chain, i, bfmgr.or(suffixes));
-        if (interpolant.isEmpty() && suffixes.size() > 1) {
+        if (interpolant.isEmpty() && suffixes.size() > 1 && !fallsBackAfterFailure()) {
           interpolant = interpolate(chain, i, ownSuffix);
+        }
+        if (fallsBackAfterFailure()) {
+          return;
         }
         if (interpolant.isPresent() && widen(pReached, abstraction, interpolant.orElseThrow())) {
           return;

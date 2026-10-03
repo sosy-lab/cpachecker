@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -66,8 +67,9 @@ public final class IsmcRefiner extends InductionRefiner {
   @Option(
       secure = true,
       description =
-          "continue as BMC if the program has more loop heads than bmcFallbackLoopLimit,"
-              + " as native ISMC does. Without it, the refiner applies ISMC to every loop.")
+          "continue as BMC if the program has more loop heads than bmcFallbackLoopLimit or"
+              + " if an interpolation fails, as native ISMC does. Without it, the refiner applies"
+              + " ISMC to every loop and ignores failed interpolations.")
   private boolean bmcFallback = true;
 
   @Option(
@@ -150,6 +152,12 @@ public final class IsmcRefiner extends InductionRefiner {
     }
 
     addToFrames(searchTargets);
+    if (bmcFallback && hasFailedInterpolation()) {
+      logger.log(Level.INFO, "Falling back to BMC, because an interpolation failed");
+      restartAsBmc(pReached, bound + 1);
+      fallenBackToBmc = true;
+      return Optional.empty();
+    }
     List<ARGState> searchStates =
         from(searchTargets).append(pCutOffs).filter(state -> !state.isDestroyed()).toList();
     // Only a search changes the frames, so only a search can go on with the frame phase. It does
