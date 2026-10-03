@@ -47,6 +47,13 @@ public final class KInductionRefiner extends InductionRefiner {
               + " only before the step case, for all states at the bound.")
   private boolean targetedBoundingAssertions = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Optimization: share one prover between the step case queries of all bounds. Native"
+              + " k-induction creates a new prover for the step case of every bound.")
+  private boolean sharedStepProver = false;
+
   private final StatCounter provedByBoundingAssertions =
       new StatCounter("Proofs by unreachable induction starts");
   private final StatCounter provedByStepCase = new StatCounter("Proofs by the step case");
@@ -105,7 +112,7 @@ public final class KInductionRefiner extends InductionRefiner {
       provedByBoundingAssertions.inc();
       return Optional.empty();
     }
-    if (removeIfNoneReachableFromRegion(pReached, stepTargets)) {
+    if (removeIfNoneReachableFromRegion(pReached, stepTargets, sharedStepProver)) {
       provedByStepCase.inc();
       return Optional.empty();
     }

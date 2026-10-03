@@ -102,7 +102,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   /** One prover for all batch queries, as native BMC uses one for all its queries. */
   private @Nullable ProverEnvironment prover = null;
 
-  /** One prover for all step case queries, as native k-induction uses one for its step case. */
+  /** One prover for all step case queries, if they share it. */
   private @Nullable ProverEnvironment stepProver = null;
 
   private int refinementNumber = 0;
@@ -407,21 +407,29 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   /**
    * Remove the given abstraction states with their subtrees if none of them is reachable from the
    * region of the abstraction before it, checked with one SAT query, as the step case of native
-   * k-induction. As there, the queries share a prover of their own.
+   * k-induction. As there, the query gets a prover of its own, unless all such queries share one.
    *
    * @return whether the states were removed
    */
   protected boolean removeIfNoneReachableFromRegion(
-      ARGReachedSet pReached, Collection<ARGState> pStates)
+      ARGReachedSet pReached, Collection<ARGState> pStates, boolean pSharedProver)
       throws SolverException, InterruptedException {
     BooleanFormula reachability =
         bfmgr.or(from(pStates).transform(this::lastBlockFromRegion).toList());
     satCheckTime.start();
     try {
-      if (stepProver == null) {
-        stepProver = solver.newProverEnvironment();
+      boolean unsat;
+      if (pSharedProver) {
+        if (stepProver == null) {
+          stepProver = solver.newProverEnvironment();
+        }
+        unsat = isUnsat(stepProver, reachability);
+      } else {
+        try (ProverEnvironment ownProver = solver.newProverEnvironment()) {
+          unsat = isUnsat(ownProver, reachability);
+        }
       }
-      if (!isUnsat(stepProver, reachability)) {
+      if (!unsat) {
         return false;
       }
     } finally {
