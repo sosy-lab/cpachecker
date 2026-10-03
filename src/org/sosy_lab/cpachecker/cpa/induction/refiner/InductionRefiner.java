@@ -407,7 +407,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   /**
    * Remove the given abstraction states with their subtrees if none of them is reachable from the
    * region of the abstraction before it, checked with one SAT query, as the step case of native
-   * k-induction. As there, the query gets a prover of its own, unless all such queries share one.
+   * k-induction. As there, the query gets a prover of its own that generates models, unless all
+   * such queries share one.
    *
    * @return whether the states were removed
    */
@@ -421,11 +422,12 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       boolean unsat;
       if (pSharedProver) {
         if (stepProver == null) {
-          stepProver = solver.newProverEnvironment();
+          stepProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         }
         unsat = isUnsat(stepProver, reachability);
       } else {
-        try (ProverEnvironment ownProver = solver.newProverEnvironment()) {
+        try (ProverEnvironment ownProver =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           unsat = isUnsat(ownProver, reachability);
         }
       }
