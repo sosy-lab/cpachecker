@@ -16,8 +16,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
@@ -25,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
@@ -39,7 +42,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 
 /**
  * This visitor transforms a formula to an ACSL expression. The visitor returns the input formula
@@ -100,7 +105,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
           "TODO: construct AcslPredicateDeclaration for " + variableName);
     } else {
       AcslSimpleDeclaration declaration =
-          // TODO what do I use here??
+          // TODO what do I use here? Is this fine?
           new AcslVariableDeclaration(DUMMY_LOC, false, acslType, variableName, variableName, name);
 
       cache.put(f, new AcslIdTerm(DUMMY_LOC, declaration));
@@ -150,6 +155,12 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
                   getPredicate(newArgs.get(0)),
                   getPredicate(newArgs.get(1)),
                   AcslBinaryPredicate.AcslBinaryPredicateOperator.OR);
+          case IMPLIES ->
+              new AcslBinaryPredicate(
+                  DUMMY_LOC,
+                  getPredicate(newArgs.get(0)),
+                  getPredicate(newArgs.get(1)),
+                  AcslBinaryPredicateOperator.IMPLICATION);
 
           case UMINUS, BV_NEG, FP_NEG ->
               new AcslUnaryTerm(
@@ -166,11 +177,18 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
           case BV_OR -> makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.BINARY_OR);
           case BV_XOR -> makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.BINARY_XOR);
 
-          case ADD, BV_ADD, FP_ADD -> makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.PLUS);
-          case SUB, BV_SUB, FP_SUB -> makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.MINUS);
-          case MUL, BV_MUL, FP_MUL -> makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.MULTIPLY);
+          case ADD, BV_ADD, FP_ADD ->
+              makeBinaryTerm(
+                  f, newArgs, AcslBinaryTermOperator.PLUS, functionDeclaration.getKind());
+          case SUB, BV_SUB, FP_SUB ->
+              makeBinaryTerm(
+                  f, newArgs, AcslBinaryTermOperator.MINUS, functionDeclaration.getKind());
+          case MUL, BV_MUL, FP_MUL ->
+              makeBinaryTerm(
+                  f, newArgs, AcslBinaryTermOperator.MULTIPLY, functionDeclaration.getKind());
           case DIV, BV_SDIV, BV_UDIV, FP_DIV ->
-              makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.DIVIDE);
+              makeBinaryTerm(
+                  f, newArgs, AcslBinaryTermOperator.DIVIDE, functionDeclaration.getKind());
           case MODULO, BV_SREM, BV_UREM ->
               makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.MODULO);
           case BV_SHL -> makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.SHIFT_LEFT);
@@ -208,9 +226,16 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
           case UF -> makeUninterpretedFunction(f, newArgs, functionDeclaration);
 
+          case SELECT ->
+              new AcslArraySubscriptTerm(
+                  DUMMY_LOC, getAcslType(f), getTerm(newArgs.get(0)), getTerm(newArgs.get(1)));
+          // TODO this is important!
+          case STORE -> throw new UnsupportedOperationException("TODO handle Array store");
+
           default ->
               throw new UnsupportedOperationException(
-                  "Not clear how to represent this in ACSL"); // TODO add select and store
+                  "Not clear how to represent function in ACSL. Kind: "
+                      + functionDeclaration.getKind());
         };
 
     cache.put(f, result);
@@ -229,6 +254,23 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
   }
 
   // Helpers:
+  private AcslTerm makeBinaryTerm(
+      Formula f,
+      List<Formula> args,
+      AcslBinaryTermOperator operator,
+      FunctionDeclarationKind kind) {
+
+    // skip first argument for FP operations, it represents the rounding-mode.
+    int offset = kind.name().startsWith("FP_") ? 1 : 0;
+
+    return new AcslBinaryTerm(
+        DUMMY_LOC,
+        getAcslType(f),
+        getTerm(args.get(offset)),
+        getTerm(args.get(offset + 1)),
+        operator);
+  }
+
   private AcslTerm makeBinaryTerm(Formula f, List<Formula> args, AcslBinaryTermOperator operator) {
 
     return new AcslBinaryTerm(
@@ -271,15 +313,19 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
       case "_%_" -> makeBinaryTerm(f, args, AcslBinaryTermOperator.MODULO);
       case "_~_" ->
           throw new UnsupportedOperationException(
-              "Bitwise complement is not representable by current ACSL AST");
+              "Bitwise complement is not currently an option in ACSL see Issue 1640");
       default ->
           throw new UnsupportedOperationException(
-              "TODO: translate UF " + declaration.getName() + " to AcslFunctionCallTerm");
+              "TODO: translate UF " + declaration.getName() + " to an Acsl Function Call");
     };
   }
 
   private AcslType getAcslType(Formula f) {
     FormulaType<?> type = fmgr.getFormulaType(f);
+    return getAcslType(type);
+  }
+
+  private AcslType getAcslType(FormulaType<?> type) {
 
     if (type.isBooleanType()) {
       return AcslBuiltinLogicType.BOOLEAN;
@@ -293,6 +339,11 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
     if (type.isBitvectorType()) {
       // TODO: I think this is not ideal but what else should I use??
       return AcslBuiltinLogicType.INTEGER;
+    }
+    if (type.isArrayType()) {
+      AcslType elementType = getAcslType(((ArrayFormulaType<?, ?>) type).getElementType());
+      // TODO: I think this is not ideal but what else should I use??
+      return new AcslPointerType(elementType);
     }
     throw new UnsupportedOperationException("Cannot convert formula type to ACSL type: " + type);
   }
