@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
-import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
