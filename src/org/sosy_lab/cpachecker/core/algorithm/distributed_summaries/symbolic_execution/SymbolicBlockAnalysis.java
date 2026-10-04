@@ -102,6 +102,43 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
   /** The summary of a block: its transition to the block end and its paths to a target. */
   record BlockEncoding(Optional<PathFormula> transition, Optional<PathFormula> pathsToTarget) {}
 
+  /** The outcome of checking a precondition against a violation condition for a block. */
+  public abstract static sealed class AnalysisResult
+      permits SafeAnalysisResult, UnsafeAnalysisResult {
+
+    private final boolean safe;
+    private final BooleanFormula result;
+
+    protected AnalysisResult(boolean pSafe, BooleanFormula pResult) {
+      safe = pSafe;
+      result = pResult;
+    }
+
+    public boolean isSafe() {
+      return safe;
+    }
+
+    public BooleanFormula getResult() {
+      return result;
+    }
+  }
+
+  /** No state of the precondition reaches the violation condition; holds both conjoined. */
+  public static final class SafeAnalysisResult extends AnalysisResult {
+    SafeAnalysisResult(BooleanFormula pResult) {
+      super(true, pResult);
+    }
+  }
+
+  /**
+   * A state of the precondition reaches the violation condition; holds the block formula and it.
+   */
+  public static final class UnsafeAnalysisResult extends AnalysisResult {
+    UnsafeAnalysisResult(BooleanFormula pResult) {
+      super(false, pResult);
+    }
+  }
+
   /** A location in the block together with the calls entered in the block that are still open. */
   private record Point(
       CFANode location, ImmutableList<FunctionSummaryEdge> calls, boolean isStart) {}
@@ -191,11 +228,11 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
     }
   }
 
-  BooleanFormula parse(String pFormula) {
+  BooleanFormula deserialize(String pFormula) {
     return fmgr.parse(pFormula);
   }
 
-  String dump(BooleanFormula pFormula) {
+  String serialize(BooleanFormula pFormula) {
     return fmgr.dumpFormula(pFormula).toString();
   }
 
@@ -203,12 +240,24 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
     return bfmgr.makeTrue();
   }
 
-  boolean isFalse(BooleanFormula pFormula) {
-    return bfmgr.isFalse(pFormula);
+  BooleanFormula makeFalse() {
+    return bfmgr.makeFalse();
+  }
+
+  BooleanFormula and(BooleanFormula... pFormulas) {
+    return bfmgr.and(pFormulas);
   }
 
   BooleanFormula or(List<BooleanFormula> pFormulas) {
     return bfmgr.or(pFormulas);
+  }
+
+  BooleanFormula not(BooleanFormula pFormula) {
+    return bfmgr.not(pFormula);
+  }
+
+  boolean isUnsat(BooleanFormula pFormula) throws SolverException, InterruptedException {
+    return !isSatisfiable(pFormula);
   }
 
   boolean isSatisfiable(BooleanFormula... pConjuncts) throws SolverException, InterruptedException {
@@ -375,35 +424,29 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
   }
 
   /**
-   * The strongest postcondition of the block for the given precondition, in interface form for the
-   * successors of the block.
+   * The strongest postcondition of a block, in interface form for the successors of the block.
    *
-   * @param pPrecondition a condition in interface form for the entry of the block
-   * @param pTransition the transition of the block, see {@link #encode}
+   * @param pPreconditionAndBlockFormula a precondition in interface form for the block entry
+   *     conjoined with the transition of the block, see {@link #encode}
    * @param pExitSsa the SSA map of the transition
    */
-  BooleanFormula postcondition(
-      BooleanFormula pPrecondition, BooleanFormula pTransition, SSAMap pExitSsa)
+  BooleanFormula postcondition(BooleanFormula pPreconditionAndBlockFormula, SSAMap pExitSsa)
       throws SolverException, InterruptedException {
-    return toInterface(bfmgr.and(pPrecondition, pTransition), exitIndices(pExitSsa));
+    return toInterface(pPreconditionAndBlockFormula, exitIndices(pExitSsa));
   }
 
   /**
-   * The states at the entry of the block from which the block can reach a state at its end that
-   * satisfies the given violation condition (the existential preimage of the condition, i.e., the
-   * negated weakest liberal precondition of its negation), in interface form for the predecessors
-   * of the block.
+   * The states at the entry of a block from which the block reaches a state at its end that
+   * satisfies a violation condition, in interface form for the predecessors of the block. This is
+   * the existential preimage of the condition, i.e., the negated weakest liberal precondition of
+   * its negation.
    *
-   * @param pTransition the transition of the block, see {@link #encode}
-   * @param pExitSsa the SSA map of the transition
-   * @param pViolationCondition a condition in interface form for the end of the block
+   * @param pBlockFormulaAndViolationCondition the transition of the block, see {@link #encode},
+   *     conjoined with a violation condition renamed by {@link #atExit}
    */
-  BooleanFormula preimage(
-      BooleanFormula pTransition, SSAMap pExitSsa, BooleanFormula pViolationCondition)
+  BooleanFormula preimage(BooleanFormula pBlockFormulaAndViolationCondition)
       throws SolverException, InterruptedException {
-    return toInterface(
-        bfmgr.and(pTransition, atExit(pViolationCondition, pExitSsa)),
-        SymbolicBlockAnalysis::entryIndex);
+    return toInterface(pBlockFormulaAndViolationCondition, SymbolicBlockAnalysis::entryIndex);
   }
 
   /**

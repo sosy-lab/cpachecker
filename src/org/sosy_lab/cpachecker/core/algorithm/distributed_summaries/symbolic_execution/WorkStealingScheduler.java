@@ -98,18 +98,18 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
           task = pCoordinator.next(pThread)) {
         pNotifier.shutdownIfNecessary();
         SymbolicBlockWorker worker = task.slot().worker;
-        ImmutableList.Builder<DssMessage> produced = ImmutableList.builder();
-        boolean violation = false;
+        List<DssMessage> produced = new ArrayList<>();
         if (task.initialize()) {
-          ImmutableList<DssMessage> initial = worker.initialize(analysis);
-          produced.addAll(initial);
-          violation =
-              initial.stream().anyMatch(m -> m.getType() == DssMessage.DssMessageType.RESULT);
+          produced.addAll(worker.initialize(analysis));
         }
-        if (!violation && !task.messages().isEmpty()) {
-          produced.addAll(worker.processMessages(analysis, task.messages()));
+        // one message at a time, until the block finds a violation
+        for (DssMessage message : task.messages()) {
+          if (produced.stream().anyMatch(m -> m.getType() == DssMessage.DssMessageType.RESULT)) {
+            break;
+          }
+          produced.addAll(worker.processMessage(analysis, message));
         }
-        pCoordinator.complete(task, produced.build());
+        pCoordinator.complete(task, ImmutableList.copyOf(produced));
       }
     } catch (InterruptedException e) {
       if (!pNotifier.shouldShutdown()) {

@@ -30,7 +30,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution.SymbolicBlockAnalysis.AnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution.SymbolicBlockAnalysis.BlockEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution.SymbolicBlockAnalysis.SafeAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution.SymbolicBlockAnalysis.UnsafeAnalysisResult;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -50,37 +53,32 @@ import org.sosy_lab.java_smt.api.SolverException;
  * is left, every block has seen all states it can reach without a violation, which proves the
  * program safe.
  *
- * <p>A violation condition only travels on while its block has not received a precondition yet.
- * Once a block has received one, the forward direction has reached it and checks every later
- * precondition against all stored violation conditions, so propagating further would only repeat
- * that work.
+ * <p>A block reacts only to the states of a condition that its stored conditions do not contain
+ * yet, and it propagates only these new states. A violation condition only travels on while its
+ * block has not received a precondition yet; once it has, the forward direction has reached the
+ * block and checks every later precondition against all stored violation conditions.
  *
- * <p>A block reacts only to conditions that are not covered by the ones it already stores. This
- * keeps the analysis from running around loops forever once their states repeat, although, like any
- * symbolic execution, it still does not terminate on loops whose states never repeat.
- *
- * <p>The state of a worker is kept as SMT-LIB strings, so any thread can analyze the block with its
- * own {@link SymbolicBlockAnalysis}. The formulas parsed into the context of the last analysis are
- * cached, and are only parsed again when another analysis, e.g., another thread, takes over.
- *
- * <p>A worker is not thread-safe, but it may move between threads as long as accesses are ordered.
+ * <p>The conditions of a worker are also kept as SMT-LIB strings, so any thread can analyze the
+ * block with its own {@link SymbolicBlockAnalysis}. The formulas parsed into the context of the
+ * last analysis are cached, and are only parsed again when another analysis, e.g., another thread,
+ * takes over. A worker is not thread-safe, but it may move between threads as long as accesses are
+ * ordered.
  */
 public final class SymbolicBlockWorker {
 
   static final String FORMULA_KEY = "formula";
 
-  private final BlockNode block;
+  private final BlockNode blockNode;
   private final ImmutableSet<CFANode> targets;
   private final ImmutableSet<String> postconditionReceivers;
-  private final DssMessageFactory messageFactory;
+  private final DssMessageFactory dssMessageFactory;
   private final SymbolicBlockExecutionStatistics statistics;
   private final LogManager logger;
 
-  private boolean initialized;
+  /** The block formula in SMT-LIB, set by {@link #initialize}. */
+  private @Nullable String blockFormula;
 
-  /** The transition of the block in SMT-LIB, or null if no path reaches the block end. */
-  private @Nullable String transition;
-
+  /** The SSA indices of the block formula at the block end. */
   private SSAMap exitSsa = SSAMap.emptySSAMap();
 
   /**
@@ -92,12 +90,14 @@ public final class SymbolicBlockWorker {
   private final List<String> preconditions = new ArrayList<>();
   private final List<String> violationConditions = new ArrayList<>();
 
+  private boolean shutdown;
+
   private @Nullable FormulasInContext formulas;
 
-  /** The stored conditions parsed into the solver context of one analysis. */
+  /** The formulas of the worker parsed into the solver context of one analysis. */
   private static final class FormulasInContext {
     private final SymbolicBlockAnalysis analysis;
-    private final @Nullable BooleanFormula transition;
+    private final BooleanFormula blockFormula;
     private final @Nullable BooleanFormula targetCondition;
     private final List<BooleanFormula> preconditions = new ArrayList<>();
     private final List<BooleanFormula> preconditionsForCoverage = new ArrayList<>();
@@ -106,10 +106,10 @@ public final class SymbolicBlockWorker {
 
     private FormulasInContext(
         SymbolicBlockAnalysis pAnalysis,
-        @Nullable BooleanFormula pTransition,
+        BooleanFormula pBlockFormula,
         @Nullable BooleanFormula pTargetCondition) {
       analysis = pAnalysis;
-      transition = pTransition;
+      blockFormula = pBlockFormula;
       targetCondition = pTargetCondition;
     }
   }
@@ -117,28 +117,28 @@ public final class SymbolicBlockWorker {
   /**
    * Creates the worker of a block.
    *
-   * @param pBlock the block
+   * @param pBlockNode the block
    * @param pTargets all target locations of the program; the block finds the ones it reaches
    * @param pPostconditionReceivers the successors of the block that can reach a target, the only
    *     ones its postconditions matter for
    */
   SymbolicBlockWorker(
-      BlockNode pBlock,
+      BlockNode pBlockNode,
       ImmutableSet<CFANode> pTargets,
       ImmutableSet<String> pPostconditionReceivers,
       DssMessageFactory pMessageFactory,
       SymbolicBlockExecutionStatistics pStatistics,
       LogManager pLogger) {
-    block = pBlock;
+    blockNode = pBlockNode;
     targets = pTargets;
     postconditionReceivers = pPostconditionReceivers;
-    messageFactory = pMessageFactory;
+    dssMessageFactory = pMessageFactory;
     statistics = pStatistics;
     logger = pLogger;
   }
 
   String getBlockId() {
-    return block.getId();
+    return blockNode.getId();
   }
 
   /** The blocks that receive the postconditions of this block. */
@@ -148,186 +148,189 @@ public final class SymbolicBlockWorker {
 
   /** The blocks that receive the violation conditions of this block. */
   ImmutableSet<String> violationConditionReceivers() {
-    return block.getPredecessorIds();
+    return blockNode.getPredecessorIds();
+  }
+
+  /** Whether a result or an exception arrived, after which the worker is not needed anymore. */
+  boolean shutdownRequested() {
+    return shutdown;
   }
 
   /**
-   * Encodes the block and starts the symbolic execution: the root block propagates the
-   * postcondition of all states, and a block with a reachable target location propagates the states
-   * that reach it.
+   * Computes the block formula and starts the symbolic execution: the root block analyzes the
+   * precondition that contains all states, and a block with a reachable target location sends the
+   * states that reach it to its predecessors.
+   *
+   * <p>The block formula needs a solver, which only exists in the thread that analyzes the block,
+   * so it is computed here and not in the constructor.
    */
   ImmutableList<DssMessage> initialize(SymbolicBlockAnalysis pAnalysis)
       throws CPAException, InterruptedException, SolverException {
-    checkState(!initialized, "Block %s is already initialized", block.getId());
-    initialized = true;
-    BlockEncoding encoding = pAnalysis.encode(block, targets);
-
-    BooleanFormula transitionFormula = null;
-    if (encoding.transition().isPresent()) {
-      PathFormula pathFormula = encoding.transition().orElseThrow();
-      transitionFormula = pathFormula.getFormula();
-      transition = pAnalysis.dump(transitionFormula);
-      exitSsa = pathFormula.getSsa();
-    }
-    BooleanFormula targetFormula = null;
-    if (encoding.pathsToTarget().isPresent()) {
-      BooleanFormula condition = pAnalysis.entryCondition(encoding.pathsToTarget().orElseThrow());
-      if (pAnalysis.isSatisfiable(condition)) {
-        targetFormula = condition;
-        targetCondition = pAnalysis.dump(condition);
-      }
-    }
-    formulas = new FormulasInContext(pAnalysis, transitionFormula, targetFormula);
-
-    if (block.isRoot()) {
+    checkState(blockFormula == null, "Block %s is already initialized", blockNode.getId());
+    computeBlockFormula(pAnalysis);
+    if (blockNode.isRoot()) {
       // The program starts in every state at the entry of the root block.
-      return addPreconditions(pAnalysis, ImmutableList.of(pAnalysis.dump(pAnalysis.makeTrue())));
+      return analyzeNewPrecondition(pAnalysis, pAnalysis.makeTrue());
     }
     if (targetCondition != null) {
-      logger.log(Level.FINE, "Block", block.getId(), "contains a reachable target location");
+      logger.log(Level.FINE, "Block", blockNode.getId(), "contains a reachable target location");
+      statistics.violationConditionsSent.increment();
       return ImmutableList.of(violationConditionMessage(targetCondition));
     }
     return ImmutableList.of();
   }
 
   /**
-   * Processes the postconditions of predecessors and the violation conditions of successors among
-   * the given messages, all at once. Other messages are ignored; ending the analysis is up to the
-   * caller.
-   *
-   * @return the conditions to propagate, or a single result message if the program is unsafe
+   * Computes the block formula, i.e., the transition from the block entry to the block end ({@code
+   * false} if no path reaches the block end), and the states at the block entry from which a path
+   * reaches a target location inside the block.
    */
-  ImmutableList<DssMessage> processMessages(
-      SymbolicBlockAnalysis pAnalysis, List<DssMessage> pMessages)
-      throws InterruptedException, SolverException {
-    checkState(initialized, "Block %s must be initialized first", block.getId());
-    List<String> receivedPreconditions = new ArrayList<>();
-    List<String> receivedViolationConditions = new ArrayList<>();
-    for (DssMessage message : pMessages) {
-      switch (message) {
-        case DssPostConditionMessage postcondition ->
-            receivedPreconditions.add(formulaOf(postcondition));
-        case DssViolationConditionMessage violationCondition ->
-            receivedViolationConditions.add(formulaOf(violationCondition));
-        case DssResultMessage result -> {}
-        case DssExceptionMessage exception -> {}
-        case DssWitnessMessage witness -> {}
+  private void computeBlockFormula(SymbolicBlockAnalysis pAnalysis)
+      throws CPAException, InterruptedException, SolverException {
+    BlockEncoding encoding = pAnalysis.encode(blockNode, targets);
+    BooleanFormula transition = pAnalysis.makeFalse();
+    if (encoding.transition().isPresent()) {
+      PathFormula pathFormula = encoding.transition().orElseThrow();
+      transition = pathFormula.getFormula();
+      exitSsa = pathFormula.getSsa();
+    }
+    blockFormula = pAnalysis.serialize(transition);
+    BooleanFormula reachesTarget = null;
+    if (encoding.pathsToTarget().isPresent()) {
+      BooleanFormula condition = pAnalysis.entryCondition(encoding.pathsToTarget().orElseThrow());
+      if (pAnalysis.isSatisfiable(condition)) {
+        reachesTarget = condition;
+        targetCondition = pAnalysis.serialize(condition);
       }
     }
+    formulas = new FormulasInContext(pAnalysis, transition, reachesTarget);
+  }
+
+  public ImmutableList<DssMessage> processMessage(
+      SymbolicBlockAnalysis pAnalysis, DssMessage pMessage)
+      throws SolverException, InterruptedException {
+    checkState(blockFormula != null, "Block %s must be initialized first", blockNode.getId());
     ensureParsedFor(pAnalysis);
-    // Forward first: once a block has a precondition, its violation conditions need not travel on.
-    ImmutableList<DssMessage> forward = addPreconditions(pAnalysis, receivedPreconditions);
-    if (isViolation(forward)) {
-      return forward;
-    }
-    return ImmutableList.<DssMessage>builder()
-        .addAll(forward)
-        .addAll(addViolationConditions(pAnalysis, receivedViolationConditions))
-        .build();
+    return switch (pMessage) {
+      case DssPostConditionMessage precondition ->
+          analyzeNewPrecondition(pAnalysis, pAnalysis.deserialize(formulaOf(precondition)));
+      case DssViolationConditionMessage violation ->
+          analyzeNewViolationCondition(pAnalysis, pAnalysis.deserialize(formulaOf(violation)));
+      case DssExceptionMessage exception -> stop();
+      case DssResultMessage result -> stop();
+      case DssWitnessMessage witness -> stop();
+    };
   }
 
-  private static boolean isViolation(List<DssMessage> pMessages) {
-    return pMessages.stream().anyMatch(DssResultMessage.class::isInstance);
+  private ImmutableList<DssMessage> stop() {
+    shutdown = true;
+    return ImmutableList.of();
   }
 
-  private ImmutableList<DssMessage> addPreconditions(
-      SymbolicBlockAnalysis pAnalysis, List<String> pReceived)
-      throws InterruptedException, SolverException {
-    if (pReceived.isEmpty()) {
-      return ImmutableList.of();
-    }
+  private ImmutableList<DssMessage> analyzeNewPrecondition(
+      SymbolicBlockAnalysis pAnalysis, BooleanFormula newCondition)
+      throws SolverException, InterruptedException {
     FormulasInContext context = ensureParsedFor(pAnalysis);
-    statistics.preconditionsReceived.add(pReceived.size());
-    List<BooleanFormula> parsed = parseAll(pAnalysis, pReceived);
-    BooleanFormula precondition = pAnalysis.or(parsed);
-    if (pAnalysis.isCovered(precondition, context.preconditionsForCoverage)) {
-      statistics.preconditionsCovered.add(pReceived.size());
+    statistics.preconditionsReceived.increment();
+    BooleanFormula newEntryStates =
+        pAnalysis.and(newCondition, pAnalysis.not(pAnalysis.or(context.preconditions)));
+    // The unsatisfiability check of the new entry states, with the private variables of the stored
+    // preconditions quantified, see SymbolicBlockAnalysis#closeForCoverage
+    if (pAnalysis.isCovered(newCondition, context.preconditionsForCoverage)) {
+      // no new states
+      statistics.preconditionsCovered.increment();
       return ImmutableList.of();
     }
-    preconditions.addAll(pReceived);
-    for (BooleanFormula formula : parsed) {
-      context.preconditions.add(formula);
-      context.preconditionsForCoverage.add(pAnalysis.closeForCoverage(formula));
-    }
-
+    preconditions.add(pAnalysis.serialize(newCondition));
+    context.preconditions.add(newCondition);
+    context.preconditionsForCoverage.add(pAnalysis.closeForCoverage(newCondition));
     if (context.targetCondition != null
-        && pAnalysis.isSatisfiable(precondition, context.targetCondition)) {
-      logger.log(Level.FINE, "Block", block.getId(), "reaches a target location");
+        && pAnalysis.isSatisfiable(newEntryStates, context.targetCondition)) {
+      // a target location inside the block is reachable
       return ImmutableList.of(violation());
     }
-    if (context.transition == null) {
-      return ImmutableList.of();
-    }
-    if (!context.violationConditionsAtExit.isEmpty()
-        && pAnalysis.isSatisfiable(
-            precondition, context.transition, pAnalysis.or(context.violationConditionsAtExit))) {
-      logger.log(Level.FINE, "Block", block.getId(), "reaches a violation condition");
-      return ImmutableList.of(violation());
-    }
-    if (postconditionReceivers.isEmpty()) {
-      return ImmutableList.of();
-    }
-    BooleanFormula postcondition =
-        pAnalysis.postcondition(precondition, context.transition, exitSsa);
-    if (pAnalysis.isFalse(postcondition)) {
-      return ImmutableList.of();
-    }
-    statistics.postconditionsSent.increment();
-    return ImmutableList.of(postconditionMessage(pAnalysis.dump(postcondition)));
-  }
-
-  private ImmutableList<DssMessage> addViolationConditions(
-      SymbolicBlockAnalysis pAnalysis, List<String> pReceived)
-      throws InterruptedException, SolverException {
-    if (pReceived.isEmpty()) {
-      return ImmutableList.of();
-    }
-    FormulasInContext context = ensureParsedFor(pAnalysis);
-    statistics.violationConditionsReceived.add(pReceived.size());
-    List<BooleanFormula> parsed = parseAll(pAnalysis, pReceived);
-    BooleanFormula violationCondition = pAnalysis.or(parsed);
-    if (pAnalysis.isCovered(violationCondition, context.violationConditionsForCoverage)) {
-      statistics.violationConditionsCovered.add(pReceived.size());
-      return ImmutableList.of();
-    }
-    violationConditions.addAll(pReceived);
-    for (BooleanFormula formula : parsed) {
-      context.violationConditionsForCoverage.add(pAnalysis.closeForCoverage(formula));
-      context.violationConditionsAtExit.add(pAnalysis.atExit(formula, exitSsa));
-    }
-
-    if (context.transition == null) {
-      // no state at the block end, so none satisfies the condition
-      return ImmutableList.of();
-    }
-    if (!context.preconditions.isEmpty()) {
-      if (pAnalysis.isSatisfiable(
-          pAnalysis.or(context.preconditions),
-          context.transition,
-          pAnalysis.atExit(violationCondition, exitSsa))) {
-        logger.log(Level.FINE, "Block", block.getId(), "reaches a violation condition");
-        return ImmutableList.of(violation());
+    AnalysisResult result =
+        analyze(pAnalysis, newEntryStates, pAnalysis.or(context.violationConditionsAtExit));
+    return switch (result) {
+      case SafeAnalysisResult safe -> {
+        if (postconditionReceivers.isEmpty()) {
+          // no successor would receive it
+          yield ImmutableList.of();
+        }
+        statistics.postconditionsSent.increment();
+        yield ImmutableList.of(
+            dssMessageFactory.createDssPostConditionMessage(
+                blockNode.getId(),
+                AlgorithmStatus.SOUND_AND_PRECISE,
+                content(pAnalysis.serialize(pAnalysis.postcondition(safe.getResult(), exitSsa)))));
       }
-      return ImmutableList.of();
-    }
-    BooleanFormula preimage = pAnalysis.preimage(context.transition, exitSsa, violationCondition);
-    if (pAnalysis.isFalse(preimage)) {
-      return ImmutableList.of();
-    }
-    statistics.violationConditionsSent.increment();
-    return ImmutableList.of(violationConditionMessage(pAnalysis.dump(preimage)));
+      case UnsafeAnalysisResult ignore -> ImmutableList.of(violation());
+    };
   }
 
-  private static List<BooleanFormula> parseAll(
-      SymbolicBlockAnalysis pAnalysis, List<String> pFormulas) {
-    List<BooleanFormula> parsed = new ArrayList<>(pFormulas.size());
-    for (String formula : pFormulas) {
-      parsed.add(pAnalysis.parse(formula));
+  private ImmutableList<DssMessage> analyzeNewViolationCondition(
+      SymbolicBlockAnalysis pAnalysis, BooleanFormula newCondition)
+      throws SolverException, InterruptedException {
+    FormulasInContext context = ensureParsedFor(pAnalysis);
+    statistics.violationConditionsReceived.increment();
+    BooleanFormula newViolatingStates =
+        pAnalysis.and(
+            pAnalysis.atExit(newCondition, exitSsa),
+            pAnalysis.not(pAnalysis.or(context.violationConditionsAtExit)));
+    // The unsatisfiability check of the new violating states, with the private variables of the
+    // stored violation conditions quantified. analyze() would find these states safe.
+    boolean noNewStates = pAnalysis.isCovered(newCondition, context.violationConditionsForCoverage);
+    violationConditions.add(pAnalysis.serialize(newCondition));
+    context.violationConditionsForCoverage.add(pAnalysis.closeForCoverage(newCondition));
+    context.violationConditionsAtExit.add(pAnalysis.atExit(newCondition, exitSsa));
+    if (noNewStates) {
+      statistics.violationConditionsCovered.increment();
+      return ImmutableList.of();
     }
-    return parsed;
+    boolean isUninitialized = context.preconditions.isEmpty();
+    AnalysisResult result =
+        analyze(
+            pAnalysis,
+            isUninitialized ? pAnalysis.makeTrue() : pAnalysis.or(context.preconditions),
+            newViolatingStates);
+    return switch (result) {
+      case SafeAnalysisResult ignore -> ImmutableList.of();
+      case UnsafeAnalysisResult unsafe -> {
+        if (isUninitialized) {
+          statistics.violationConditionsSent.increment();
+          yield ImmutableList.of(
+              violationConditionMessage(
+                  pAnalysis.serialize(pAnalysis.preimage(unsafe.getResult()))));
+        } else {
+          yield ImmutableList.of(violation());
+        }
+      }
+    };
   }
 
-  /** Parses the stored conditions into the context of the given analysis, unless they are. */
+  /**
+   * Checks whether states of the precondition reach states of the violation condition at the block
+   * end. The precondition is in interface form for the block entry, the violation condition already
+   * talks about the block end, see {@link SymbolicBlockAnalysis#atExit}.
+   *
+   * @return the precondition and the block formula if the check fails, otherwise the block formula
+   *     and the violation condition
+   */
+  private AnalysisResult analyze(
+      SymbolicBlockAnalysis pAnalysis,
+      BooleanFormula precondition,
+      BooleanFormula violationCondition)
+      throws SolverException, InterruptedException {
+    BooleanFormula blockFormulaInContext = ensureParsedFor(pAnalysis).blockFormula;
+    BooleanFormula formulaToCheck =
+        pAnalysis.and(precondition, blockFormulaInContext, violationCondition);
+    if (pAnalysis.isUnsat(formulaToCheck)) {
+      return new SafeAnalysisResult(pAnalysis.and(precondition, blockFormulaInContext));
+    }
+    return new UnsafeAnalysisResult(pAnalysis.and(blockFormulaInContext, violationCondition));
+  }
+
+  /** Parses the formulas of the worker into the context of the given analysis, unless they are. */
   private FormulasInContext ensureParsedFor(SymbolicBlockAnalysis pAnalysis) {
     FormulasInContext current = formulas;
     if (current != null && current.analysis == pAnalysis) {
@@ -337,15 +340,15 @@ public final class SymbolicBlockWorker {
     FormulasInContext parsed =
         new FormulasInContext(
             pAnalysis,
-            transition == null ? null : pAnalysis.parse(transition),
-            targetCondition == null ? null : pAnalysis.parse(targetCondition));
+            pAnalysis.deserialize(blockFormula),
+            targetCondition == null ? null : pAnalysis.deserialize(targetCondition));
     for (String precondition : preconditions) {
-      BooleanFormula formula = pAnalysis.parse(precondition);
+      BooleanFormula formula = pAnalysis.deserialize(precondition);
       parsed.preconditions.add(formula);
       parsed.preconditionsForCoverage.add(pAnalysis.closeForCoverage(formula));
     }
     for (String violationCondition : violationConditions) {
-      BooleanFormula formula = pAnalysis.parse(violationCondition);
+      BooleanFormula formula = pAnalysis.deserialize(violationCondition);
       parsed.violationConditionsForCoverage.add(pAnalysis.closeForCoverage(formula));
       parsed.violationConditionsAtExit.add(pAnalysis.atExit(formula, exitSsa));
     }
@@ -353,20 +356,20 @@ public final class SymbolicBlockWorker {
     return parsed;
   }
 
-  private DssMessage postconditionMessage(String pFormula) {
-    return messageFactory.createDssPostConditionMessage(
-        block.getId(), AlgorithmStatus.SOUND_AND_PRECISE, content(pFormula));
-  }
-
   private DssMessage violationConditionMessage(String pFormula) {
-    return messageFactory.createViolationConditionMessage(
-        block.getId(), AlgorithmStatus.SOUND_AND_PRECISE, content(pFormula));
+    return dssMessageFactory.createViolationConditionMessage(
+        blockNode.getId(), AlgorithmStatus.SOUND_AND_PRECISE, content(pFormula));
   }
 
   private DssMessage violation() {
-    return messageFactory.createDssResultMessage(block.getId(), Result.FALSE);
+    logger.log(Level.FINE, "Block", blockNode.getId(), "found a violation");
+    return dssMessageFactory.createDssResultMessage(blockNode.getId(), Result.FALSE);
   }
 
+  /**
+   * The content of a condition message. The formula lies below the level of {@link
+   * PredicateAbstractState}, where {@link DssMessage#getAbstractStateContent} looks for it.
+   */
   private static ImmutableMap<String, String> content(String pFormula) {
     return ContentBuilder.builder()
         .pushLevel(PredicateAbstractState.class.getName())
@@ -380,6 +383,6 @@ public final class SymbolicBlockWorker {
 
   @Override
   public String toString() {
-    return "SymbolicBlockWorker{block=" + block.getId() + "}";
+    return "SymbolicBlockWorker{block=" + blockNode.getId() + "}";
   }
 }

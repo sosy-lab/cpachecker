@@ -8,11 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -27,10 +24,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Runs the {@link SymbolicBlockWorker} of one block like a worker of distributed summary synthesis:
- * in a thread of its own, with a solver context of its own, reading from its own message queue.
- *
- * <p>All messages that are waiting when the actor takes one are processed together, so that a block
- * reacts to a burst of conditions with a single postcondition or violation condition.
+ * in a thread of its own, with a solver context of its own, reading from its own message queue and
+ * processing one message at a time.
  */
 final class SymbolicBlockActor implements DssActor {
 
@@ -42,7 +37,6 @@ final class SymbolicBlockActor implements DssActor {
   private final LogManager logger;
 
   private @Nullable SymbolicBlockAnalysis analysis;
-  private boolean shutdown;
 
   SymbolicBlockActor(
       SymbolicBlockWorker pWorker,
@@ -99,25 +93,11 @@ final class SymbolicBlockActor implements DssActor {
       throws InterruptedException, SolverException {
     // A busy actor only notices an interrupt once its queue is empty, which may never happen.
     shutdownNotifier.shutdownIfNecessary();
-    List<DssMessage> batch = new ArrayList<>();
-    batch.add(pMessage);
-    while (connection.hasPendingMessages()) {
-      batch.add(connection.read());
-    }
-    for (DssMessage message : batch) {
-      switch (message.getType()) {
-        case RESULT, EXCEPTION -> {
-          shutdown = true;
-          return ImmutableList.of();
-        }
-        case POST_CONDITION, VIOLATION_CONDITION, WITNESS -> {}
-      }
-    }
     SymbolicBlockAnalysis current = analysis;
     if (current == null) {
       throw new IllegalStateException("Actor of block " + getId() + " is not running");
     }
-    return worker.processMessages(current, batch);
+    return worker.processMessage(current, pMessage);
   }
 
   @Override
@@ -140,7 +120,7 @@ final class SymbolicBlockActor implements DssActor {
 
   @Override
   public boolean shutdownRequested() {
-    return shutdown;
+    return worker.shutdownRequested();
   }
 
   @Override
