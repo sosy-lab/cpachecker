@@ -73,7 +73,7 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
  * integer equalities, e.g., MathSAT turns {@code v = y + 1} into a sum, which this class does not
  * solve for {@code v}; the result is then still equivalent, just less small.
  */
-final class ExistentialProjection {
+public final class ExistentialProjection {
 
   /** A definition {@code variable = term} found among the conjuncts. */
   private record Definition(
@@ -98,7 +98,7 @@ final class ExistentialProjection {
     this(pSolver, false);
   }
 
-  ExistentialProjection(Solver pSolver, boolean pNested) {
+  public ExistentialProjection(Solver pSolver, boolean pNested) {
     nested = pNested;
     solver = pSolver;
     fmgr = pSolver.getFormulaManager();
@@ -128,7 +128,7 @@ final class ExistentialProjection {
    *     turns out to be unsatisfiable is retained in default mode and replaced by false in nested
    *     mode
    */
-  BooleanFormula project(BooleanFormula pFormula, Predicate<String> pIsExistential)
+  public BooleanFormula project(BooleanFormula pFormula, Predicate<String> pIsExistential)
       throws InterruptedException, SolverException {
     try {
       return project(pFormula, pIsExistential, new int[] {2000});

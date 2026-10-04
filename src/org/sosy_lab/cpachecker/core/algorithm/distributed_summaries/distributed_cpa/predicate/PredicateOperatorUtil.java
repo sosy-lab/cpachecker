@@ -62,7 +62,7 @@ public class PredicateOperatorUtil {
    * a variable apart on every use, so it never refers to a variable of the block that uses the
    * condition.
    */
-  static boolean isFreshPerUse(String pVariableName) {
+  public static boolean isFreshPerUse(String pVariableName) {
     return pVariableName.contains("__VERIFIER_nondet") || pVariableName.contains("!");
   }
 

@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution.SymbolicBlockExecution;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
@@ -430,6 +431,15 @@ public class CoreComponentsFactory {
           "Use distributed summary synthesis. This decomposes the input program into smaller units"
               + " that are analyzed concurrently. See https://doi.org/10.1145/3660766 for details.")
   private boolean useDistributedSummarySynthesis = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.symbolicBlockExecution",
+      description =
+          "Use symbolic execution on the block graph of distributed summary synthesis: every block"
+              + " exchanges exact strongest postconditions and preimages of the target locations"
+              + " with its neighbors, without abstraction.")
+  private boolean useSymbolicBlockExecution = false;
 
   @Option(
       secure = true,
@@ -863,6 +873,10 @@ public class CoreComponentsFactory {
                 ShutdownManager.createWithParent(shutdownNotifier),
                 specification,
                 cpa);
+      }
+      if (useSymbolicBlockExecution) {
+        algorithm =
+            new SymbolicBlockExecution(config, logger, cfa, shutdownNotifier, specification);
       }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
