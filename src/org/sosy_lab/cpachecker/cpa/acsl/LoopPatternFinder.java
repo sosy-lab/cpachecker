@@ -8,26 +8,26 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Detect if a loop follows a certain pattern that makes it possible to infer an ACSL invariant. For
  * now the goal is to detect only one pattern: array initialization with a constant value.
  */
+@SuppressWarnings("unused")
 class LoopPatternFinder {
 
   private final LogManager logger;
@@ -37,114 +37,25 @@ class LoopPatternFinder {
     this.logger = pLogger;
   }
 
-  public Optional<ArrayInitialization> detect(CFANode loopHead) {
-    Optional<CAssumeEdge> boundEdge = Optional.empty();
-    logger.log(logLevel, "[ACSL] Inspecting loop head: " + loopHead);
-
-    for (CFAEdge edge : loopHead.getLeavingEdges()) {
-      if (edge instanceof CAssumeEdge cAssumeEdge && cAssumeEdge.getTruthAssumption()) {
-        boundEdge = Optional.of(cAssumeEdge);
-        logger.log(logLevel, "[ACSL] Loop bound found: " + edge);
-      }
-    }
-
-    if (boundEdge.isEmpty()) {
-      logger.log(logLevel, "[ACSL] Could not detect bound in loop.");
-      return Optional.empty();
-    }
-
-    // Walk through loop body
-    List<ArrayStore> stores =
-        new ArrayList<>(); // TODO pipeline will probably hate this datastructure
-    List<ScalarUpdate> updates = new ArrayList<>();
-
-    CFANode current = boundEdge.orElseThrow().getSuccessor();
-
-    while (current != loopHead) {
-      // Simple Initialization should not branch anywhere
-      if (current.getNumLeavingEdges() != 1) {
-
-        logger.log(logLevel, "[ACSL] Loop body branches. Ignoring loop.");
-
-        return Optional.empty();
-      }
-
-      CFAEdge edge = current.getLeavingEdge(0);
-      if (edge.getSuccessor() == loopHead) {
-        current = loopHead;
-        break;
-      }
-
-      Optional<ArrayStore> store = extractArrayStore(edge);
-      Optional<ScalarUpdate> update = extractScalarUpdate(edge);
-
-      // Deal with edges we do not recognize
-      if (store.isEmpty() && update.isEmpty()) {
-        if (edge instanceof CDeclarationEdge) {
-          // This is fine because it does not change our state
-          logger.log(logLevel, "[ACSL] Found declaration edge" + edge);
-        } else if (edge instanceof CStatementEdge cStatementEdge
-            && cStatementEdge.getStatement() instanceof CExpressionStatement) {
-          // This is fine because there is no function call and no assignment
-          logger.log(logLevel, "[ACSL] Found statement edge" + edge);
-        } else {
-          // The edge might have an effect on the state, so to be safe ignore this loop.
-          logger.log(logLevel, "[ACSL] Loop body contains unwanted edge. Ignoring loop.");
-          return Optional.empty();
+  public Optional<ArrayInitialization> detect(CFAEdge edge, PredicateAbstractState predState) {
+    // TODO once Translater works pass it here so we can translate the Path Formula to an Acsl
+    // expression
+    if (edge.getSuccessor().isLoopStart()) {
+      CFANode loopHead = edge.getSuccessor();
+      for (CFAEdge e : loopHead.getAllLeavingEdges()) {
+        if (e instanceof CAssumeEdge assumeEdge && assumeEdge.getTruthAssumption()) {
+          CExpression condition = assumeEdge.getExpression();
+          logger.log(logLevel, "Loop head condition: " + condition);
         }
       }
-
-      store.ifPresent(
-          pStore -> {
-            logger.log(logLevel, "[ACSL] Array store found: " + pStore);
-
-            stores.add(pStore);
-          });
-
-      update.ifPresent(
-          pUpdate -> {
-            logger.log(logLevel, "[ACSL] Scalar update found: " + pUpdate);
-
-            updates.add(pUpdate);
-          });
-
-      current = edge.getSuccessor();
+      BooleanFormula formula = predState.getPathFormula().getFormula();
     }
 
-    // There should only be one array store and update for this toy example
-    if (stores.size() != 1 || updates.size() != 1) {
-
-      logger.log(
-          logLevel,
-          "[ACSL] Expected exactly one store or update, found "
-              + stores.size()
-              + ", "
-              + updates.size());
-
-      return Optional.empty();
-    }
-    ArrayStore store = stores.getFirst();
-    ScalarUpdate update = updates.getFirst();
-
-    logger.log(
-        logLevel,
-        "[ACSL] Candidate for array initialization pattern found:\n"
-            + "  array = "
-            + store.array()
-            + "\n"
-            + "  index = "
-            + store.index()
-            + "\n"
-            + "  value = "
-            + store.value()
-            + "\n"
-            + "  update = "
-            + update);
-
-    // TODO check that array index in store, incremented variable in update and variable from loop
-    // condition match
-    // TODO check that the increment is by 1
-    // TODO extract bound from loop condition and create actual record with it
+    // TODO
+    // 1. is this an edge leading to a loop head?
+    // 2. is there an A[i] = constant
+    // 3. is there a i2 = i + 1
+    // 4. no branching/no other changes to the array
 
     return Optional.empty();
   }

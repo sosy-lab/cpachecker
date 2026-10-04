@@ -41,7 +41,8 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private final CFA cfa;
   private final LogManager logger;
   private final Solver solver;
-  private final CToFormulaConverterWithPointerAliasing converter;
+  private CToFormulaConverterWithPointerAliasing converter;
+  private FormulaToAcslConverter formulaConverter;
 
   private AcslCPA(
       CFA pCFA, LogManager pLogManager, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
@@ -51,13 +52,11 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     this.logger = pLogManager;
     solver = Solver.create(pConfig, this.logger, pShutdownNotifier);
     FormulaManagerView fmgr = solver.getFormulaManager();
-    converter =
-        initializeCToFormulaConverter(
-            fmgr, this.logger, pConfig, pShutdownNotifier, pCFA.getMachineModel());
+    initializeConverters(fmgr, this.logger, pConfig, pShutdownNotifier, pCFA.getMachineModel());
     logger.log(Level.INFO, "AcslCPA created.");
   }
 
-  private CToFormulaConverterWithPointerAliasing initializeCToFormulaConverter(
+  private void initializeConverters(
       FormulaManagerView pFormulaManager,
       LogManager pLogger,
       Configuration pConfig,
@@ -70,15 +69,18 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, options);
 
-    return new CToFormulaConverterWithPointerAliasing(
-        options,
-        pFormulaManager,
-        pMachineModel,
-        Optional.empty(),
-        pLogger,
-        pShutdownNotifier,
-        typeHandler,
-        AnalysisDirection.FORWARD);
+    converter =
+        new CToFormulaConverterWithPointerAliasing(
+            options,
+            pFormulaManager,
+            pMachineModel,
+            Optional.empty(),
+            pLogger,
+            pShutdownNotifier,
+            typeHandler,
+            AnalysisDirection.FORWARD);
+
+    formulaConverter = new FormulaToAcslConverter(pFormulaManager);
   }
 
   public static CPAFactory factory() {
@@ -87,7 +89,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new AcslTransferRelation(cfa, logger);
+    return new AcslTransferRelation(cfa, logger, formulaConverter);
   }
 
   @Override

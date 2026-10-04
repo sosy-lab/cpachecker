@@ -10,6 +10,12 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public record ArrayInitialization(
-    CExpression array, CExpression index, CExpression bound, CRightHandSide value) {}
+    CFANode loopHead,
+    CExpression array,
+    CExpression index,
+    CExpression lowerbound,
+    CExpression upperbound,
+    CRightHandSide value) {}
