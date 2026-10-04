@@ -118,6 +118,13 @@ public class CToSvLibAlgorithmIntegrationTest {
     testAndVerifyErrorWithBitvectors(inputFilePath, Result.TRUE);
   }
 
+  @Test(timeout = 90000)
+  public void testAndVerifyVariableLengthArray() throws Exception {
+    Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "variable-length-array.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+    testAndVerifyErrorWithBitvectors(inputFilePath, Result.TRUE);
+  }
+
   // ********** witness validation **********
 
   private String examplesWitnessValidation() {

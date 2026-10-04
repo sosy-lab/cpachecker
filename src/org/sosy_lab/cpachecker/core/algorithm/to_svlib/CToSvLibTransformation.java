@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.core.algorithm.to_svlib.CToSvLibInitializer.NondeterministicFunction;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -656,7 +657,92 @@ class CToSvLibTransformation {
           contextBeforeEdge,
           pEdge);
     }
+    if (pEdge instanceof CDeclarationEdge declarationEdge
+        && declarationEdge.getDeclaration() instanceof CVariableDeclaration variable
+        && isArrayOfVariableLength(variable.getType())) {
+      return withMemoryOfArrayOfVariableLength(statementOfEdge, variable, contextBeforeEdge, pEdge);
+    }
     return statementOfEdge;
+  }
+
+  private static boolean isArrayOfVariableLength(CType pType) {
+    return pType.getCanonicalType() instanceof CArrayType array
+        && array.getLength() != null
+        && !array.hasKnownConstantSize();
+  }
+
+  /**
+   * Reserve the memory of the given array of variable length whenever its declaration is executed,
+   * above all memory that has been allocated so far, as for an allocation. Its size is only known
+   * then, so it cannot lie below that memory as the objects of a fixed size do.
+   */
+  private SvLibStatement withMemoryOfArrayOfVariableLength(
+      SvLibStatement pStatementOfEdge,
+      CVariableDeclaration pArray,
+      PathFormula pContext,
+      CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    // The address is declared when a formula refers to it first, which is only after this edge.
+    String base = new PointerBase(pArray).formulaEncoding();
+    SvLibIdTerm addressTerm =
+        (SvLibIdTerm)
+            formulaManager.visit(
+                formulaManager.makeVariable(typeHandler.getPointerType(), base),
+                formulaToSvLibVisitor);
+    SvLibSimpleParsingDeclaration address = scope.getVariable("|" + base + "|");
+    SvLibType addressType = address.getType();
+    SvLibParsingVariableDeclaration limit = getHighestAllocatedAddress(addressType);
+    SvLibIdTerm limitTerm = new SvLibIdTerm(limit.toSimpleDeclaration(), FileLocation.DUMMY);
+    RightHandSideTerm size =
+        pathFormulaManager.rightHandSideToFormula(
+            pContext, getSizeOfType(pArray.getType()), cfa.getMachineModel().getSizeType(), pEdge);
+    SvLibTerm end =
+        applyBinaryOperator(
+            additionDeclaration(addressType),
+            addressTerm,
+            formulaManager.visit(size.term(), formulaToSvLibVisitor));
+
+    ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
+    statements.add(
+        new SvLibHavocStatement(
+            FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of(), ImmutableList.of(address)));
+    // The array does not wrap around the end of the memory.
+    statements.add(
+        new SvLibAssumeStatement(
+            FileLocation.DUMMY,
+            SvLibTerm.booleanConjunction(
+                ImmutableList.of(
+                    applyBinaryOperator(atLeastDeclaration(addressType), addressTerm, limitTerm),
+                    applyBinaryOperator(atLeastDeclaration(addressType), end, addressTerm))),
+            ImmutableList.of(),
+            ImmutableList.of()));
+    if (!(pStatementOfEdge instanceof SvLibSequenceStatement sequence
+        && sequence.getStatements().isEmpty()
+        && hasNoTags(sequence))) {
+      statements.add(pStatementOfEdge);
+    }
+    statements.add(
+        new SvLibAssignmentStatement(
+            ImmutableMap.<SvLibSimpleParsingDeclaration, SvLibTerm>of(limit, end),
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of()));
+    return new SvLibSequenceStatement(
+        statements.build(), FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+  }
+
+  /** The size of the given type in bytes, as an expression that can depend on variables. */
+  private CExpression getSizeOfType(CType pType) throws UnrecognizedCodeException {
+    if (isArrayOfVariableLength(pType)) {
+      CArrayType array = (CArrayType) pType.getCanonicalType();
+      return new CBinaryExpressionBuilder(cfa.getMachineModel(), LogManager.createNullLogManager())
+          .buildBinaryExpression(
+              array.getLength(), getSizeOfType(array.getType()), BinaryOperator.MULTIPLY);
+    }
+    return new CIntegerLiteralExpression(
+        FileLocation.DUMMY,
+        cfa.getMachineModel().getSizeType(),
+        cfa.getMachineModel().getSizeof(pType));
   }
 
   /**
@@ -864,9 +950,14 @@ class CToSvLibTransformation {
     ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
 
     SvLibType addressType = getTypeOfAddresses();
-    if (pIsEntryProcedure && !offsets.isEmpty()) {
+    if (pIsEntryProcedure && !objectsWithAddress.isEmpty()) {
       // The objects lie below the address at which the allocated memory begins, so that address
       // has to be above all of them for the addresses not to wrap around.
+      BigInteger lowestFirstAddress =
+          offsets.values().stream()
+              .max(BigInteger::compareTo)
+              .orElse(BigInteger.ZERO)
+              .add(BigInteger.ONE);
       statements.add(
           new SvLibAssumeStatement(
               FileLocation.DUMMY,
@@ -875,8 +966,7 @@ class CToSvLibTransformation {
                   new SvLibIdTerm(
                       getFirstAllocatedAddress(addressType).toSimpleDeclaration(),
                       FileLocation.DUMMY),
-                  createNumericConstant(
-                      Collections.max(offsets.values()).add(BigInteger.ONE), addressType)),
+                  createNumericConstant(lowestFirstAddress, addressType)),
               ImmutableList.of(),
               ImmutableList.of()));
       // The memory that the program allocates begins above every object that has an address, and
@@ -947,6 +1037,10 @@ class CToSvLibTransformation {
     ImmutableMap.Builder<PointerBase, BigInteger> offsets = ImmutableMap.builder();
     BigInteger offset = BigInteger.ZERO;
     for (Map.Entry<PointerBase, ObjectWithAddress> object : objectsWithAddress.entrySet()) {
+      if (isArrayOfVariableLength(object.getValue().type())) {
+        // Its declaration reserves its memory, see withMemoryOfArrayOfVariableLength.
+        continue;
+      }
       BigInteger size = getSizeOfObject(object.getValue().type());
       BigInteger sizeWithAlignment =
           size.add(alignment).subtract(BigInteger.ONE).divide(alignment).multiply(alignment);

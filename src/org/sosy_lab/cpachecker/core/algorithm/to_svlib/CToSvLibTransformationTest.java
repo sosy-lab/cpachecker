@@ -61,6 +61,7 @@ public class CToSvLibTransformationTest {
           Path.of("test", "programs", "to_svlib_transformation", "allocation-in-loop-field.c"),
           Path.of("test", "programs", "to_svlib_transformation", "reserved-word-variables.c"),
           Path.of("test", "programs", "to_svlib_transformation", "initialized-array.c"),
+          Path.of("test", "programs", "to_svlib_transformation", "variable-length-array.c"),
           Path.of("test", "programs", "programtranslation", "gotos.c"),
           Path.of("test", "programs", "programtranslation", "functionreturn.c"),
           Path.of("test", "programs", "realc", "test-or.c"),
