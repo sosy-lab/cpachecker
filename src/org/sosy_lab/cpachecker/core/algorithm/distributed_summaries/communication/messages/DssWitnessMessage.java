@@ -17,7 +17,7 @@ import java.util.Map;
  * a FALSE result ({@link WitnessType#VIOLATION}), differentiated by the field {@link
  * #DSS_MESSAGE_WITNESS_TYPE_KEY}
  */
-public class DssWitnessMessage extends DssMessage {
+public final class DssWitnessMessage extends DssMessage {
 
   public enum WitnessType {
     CORRECTNESS,

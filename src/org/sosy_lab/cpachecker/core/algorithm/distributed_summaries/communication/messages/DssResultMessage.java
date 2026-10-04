@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
-public class DssResultMessage extends DssMessage {
+public final class DssResultMessage extends DssMessage {
 
   public static final String DSS_MESSAGE_RESULT_KEY = "result";
 

@@ -36,7 +36,12 @@ import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
  * ID, a type, a timestamp, and content. The content is a flat map of key-value pairs, where keys
  * can be hierarchical using dot notation.
  */
-public abstract class DssMessage {
+public abstract sealed class DssMessage
+    permits DssResultMessage,
+        DssExceptionMessage,
+        DssWitnessMessage,
+        DssPostConditionMessage,
+        DssViolationConditionMessage {
 
   public enum DssMessageType {
     POST_CONDITION,
@@ -147,15 +152,21 @@ public abstract class DssMessage {
     return OptionalInt.empty();
   }
 
+  /**
+   * The same message with the content below {@code pPrefix} also available at the top level, e.g.,
+   * to read one of several states that a message contains.
+   */
   public final DssMessage advance(String pPrefix) {
     Map<String, String> prefixContent = ContentReader.read(content).pushLevel(pPrefix).getContent();
-    ImmutableMap.Builder<String, String> advanced = ImmutableMap.builder();
-    advanced.putAll(content).putAll(prefixContent);
-    return new DssMessage(senderId, type, advanced.buildOrThrow()) {
-      @Override
-      boolean isValid(Map<String, String> pContent) {
-        return DssMessage.this.isValid(pContent);
-      }
+    ImmutableMap<String, String> advanced =
+        ImmutableMap.<String, String>builder().putAll(content).putAll(prefixContent).buildOrThrow();
+    return switch (this) {
+      case DssPostConditionMessage postcondition -> new DssPostConditionMessage(senderId, advanced);
+      case DssViolationConditionMessage violationCondition ->
+          new DssViolationConditionMessage(senderId, advanced);
+      case DssResultMessage result -> new DssResultMessage(senderId, advanced);
+      case DssExceptionMessage exception -> new DssExceptionMessage(senderId, advanced);
+      case DssWitnessMessage witness -> new DssWitnessMessage(senderId, advanced);
     };
   }
 

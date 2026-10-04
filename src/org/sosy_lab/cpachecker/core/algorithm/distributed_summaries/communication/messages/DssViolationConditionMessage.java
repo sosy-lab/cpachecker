@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
-public class DssViolationConditionMessage extends DssMessage {
+public final class DssViolationConditionMessage extends DssMessage {
 
   DssViolationConditionMessage(String pSenderId, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.VIOLATION_CONDITION, pContent);
