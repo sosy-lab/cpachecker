@@ -20,7 +20,7 @@ int main() {
     int i = 0;
     while (i < size) {
         A[i] = 42;
-        i++;
+        i = i + 1;
     }
 
     if ((A[10]!=42)){
