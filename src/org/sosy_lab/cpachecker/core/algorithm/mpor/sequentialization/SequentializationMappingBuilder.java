@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Table.Cell;
@@ -17,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -112,14 +112,17 @@ public class SequentializationMappingBuilder {
       for (SeqThreadStatementBlock block : entry.getValue().getBlocks()) {
         ImmutableList.Builder<CFAEdgeForThread> originalEdges = ImmutableList.builder();
         for (SeqThreadStatement statement : block.getStatements()) {
-          // use the first CFAEdgeForThread of the input program that this statement simulates.
-          // a statement that merges several edges is represented by the first one.
-          originalEdges.add(
+          // Use the first CFAEdgeForThread of the input program that this statement simulates.
+          // A statement that merges several edges is represented by the first one. It is possible
+          // that there is no edge at all (declarations of ghost variables), hence optional.
+          Optional<CFAEdgeForThread> firstEdge =
               statement.data().getSubstituteEdges().stream()
                   .map(SubstituteEdge::getThreadEdge)
                   .filter(edge -> edge.cfaEdge.getFileLocation().isRealLocation())
-                  .findFirst()
-                  .orElseThrow());
+                  .findFirst();
+          if (firstEdge.isPresent()) {
+            originalEdges.add(firstEdge.orElseThrow());
+          }
         }
         rBlockOrigins.put(
             SeqNameUtil.buildThreadStatementBlockLabelName(threadId, block.getLabelNumber()),
