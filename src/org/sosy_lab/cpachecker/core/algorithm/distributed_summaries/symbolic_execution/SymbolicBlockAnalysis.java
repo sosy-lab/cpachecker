@@ -42,6 +42,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,6 +63,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution.SymbolicBlockExecutionOptions.QuantifierElimination;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -365,12 +368,21 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
         serialize(bfmgr.and(initial.build())));
   }
 
-  /** Whether the encoding of the edge can declare a base: declarations, calls, and returns. */
+  /**
+   * Whether the encoding of the edge can declare a base: declarations, calls, returns, and edges
+   * that use a function as a value, which puts the function in memory.
+   */
   private static boolean mayDeclareBase(CFAEdge pEdge) {
     return (pEdge instanceof CDeclarationEdge declaration
             && declaration.getDeclaration() instanceof CVariableDeclaration)
         || pEdge instanceof FunctionCallEdge
-        || pEdge instanceof CReturnStatementEdge;
+        || pEdge instanceof CReturnStatementEdge
+        || FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
+            .transformAndConcat(CFAUtils::traverseRecursively)
+            .anyMatch(
+                node ->
+                    node instanceof AIdExpression id
+                        && id.getDeclaration() instanceof AFunctionDeclaration);
   }
 
   /**
@@ -401,10 +413,11 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
    * <p>The block is unfolded from its initial location along its own edges. A point of the
    * unfolding is a location together with the calls entered inside the block that have not returned
    * yet, so a return edge only continues a path whose last open call it belongs to. Returns out of
-   * the function the block starts in are not restricted, which is precise because the inlining
-   * decomposition gives every block exactly one calling context. The final location and the target
-   * locations end a path. Paths do not continue after reaching a target, because the program
-   * violates the specification there already.
+   * the function the block starts in are not restricted, which is precise because the decomposition
+   * gives every block exactly one calling context, see {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition.FunctionCallMerging#UNIQUE_RETURNS}.
+   * The final location and the target locations end a path. Paths do not continue after reaching a
+   * target, because the program violates the specification there already.
    *
    * @throws CPAException if the block contains a cycle that does not pass its final location,
    *     because such a block has no finite path formula

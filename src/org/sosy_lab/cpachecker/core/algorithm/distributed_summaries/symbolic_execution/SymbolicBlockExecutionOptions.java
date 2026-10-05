@@ -24,8 +24,9 @@ final class SymbolicBlockExecutionOptions {
               + " queue of its own, exactly like the workers of distributed summary synthesis."
               + " Otherwise, this many threads take the blocks with pending messages from a"
               + " coordinator, each preferring the blocks it analyzed before; a thread without"
-              + " work steals a block from another thread.")
-  @IntegerOption(min = 0)
+              + " work steals a block from another thread. With -1, there is a thread for every"
+              + " processor available to the JVM.")
+  @IntegerOption(min = -1)
   private int threads = 0;
 
   /** How the solver eliminates the existential variables that the projection keeps. */
@@ -85,7 +86,7 @@ final class SymbolicBlockExecutionOptions {
   }
 
   int threads() {
-    return threads;
+    return threads == -1 ? Runtime.getRuntime().availableProcessors() : threads;
   }
 
   QuantifierElimination quantifierElimination() {

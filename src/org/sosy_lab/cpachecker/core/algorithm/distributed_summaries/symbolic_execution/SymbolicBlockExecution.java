@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions.DecompositionType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
@@ -89,13 +90,13 @@ public class SymbolicBlockExecution implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification)
       throws InvalidConfigurationException {
-    configuration = withRequiredEncoding(pConfiguration);
+    configuration = withRequiredOptions(pConfiguration);
     logger = pLogger;
     initialCfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
     specification = pSpecification;
     options = new SymbolicBlockExecutionOptions(pConfiguration);
-    decompositionOptions = new DssDecompositionOptions(pConfiguration, pCfa);
+    decompositionOptions = new DssDecompositionOptions(configuration, pCfa);
     if (decompositionOptions.getDecompositionType() != DecompositionType.INLINING_DECOMPOSITION) {
       throw new InvalidConfigurationException(
           "Symbolic block execution requires"
@@ -118,23 +119,30 @@ public class SymbolicBlockExecution implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * The encoding that the memory all blocks share relies on, see {@link SymbolicMemoryModel}: the
-   * pointer-aliasing encoding with the heap as SMT arrays, whose contents travel with the
+   * The options the algorithm relies on.
+   *
+   * <p>The encoding that the memory all blocks share relies on, see {@link SymbolicMemoryModel}:
+   * the pointer-aliasing encoding with the heap as SMT arrays, whose contents travel with the
    * conditions like variables, with every base declared right away, and without deferring
    * allocations of unknown type.
+   *
+   * <p>The conditions do not carry a calling context, so no block may leave the function it starts
+   * in towards two different call sites: it could otherwise return from one call to the call site
+   * of another.
    */
-  private static final ImmutableMap<String, String> REQUIRED_ENCODING =
+  private static final ImmutableMap<String, String> REQUIRED_OPTIONS =
       ImmutableMap.of(
           "cpa.predicate.handlePointerAliasing", "true",
           "cpa.predicate.useArraysForHeap", "true",
           "cpa.predicate.useConstraintOptimization", "false",
-          "cpa.predicate.deferUntypedAllocations", "false");
+          "cpa.predicate.deferUntypedAllocations", "false",
+          "distributedSummaries.decomposition.mergeFunctionCalls", "UNIQUE_RETURNS");
 
   @SuppressWarnings("deprecation") // like Solver#adjustConfigForSolver, to see explicit values
-  private static Configuration withRequiredEncoding(Configuration pConfiguration)
+  private static Configuration withRequiredOptions(Configuration pConfiguration)
       throws InvalidConfigurationException {
     ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-    for (Map.Entry<String, String> option : REQUIRED_ENCODING.entrySet()) {
+    for (Map.Entry<String, String> option : REQUIRED_OPTIONS.entrySet()) {
       String value = pConfiguration.getProperty(option.getKey());
       if (value != null && !value.trim().equals(option.getValue())) {
         throw new InvalidConfigurationException(
@@ -181,6 +189,18 @@ public class SymbolicBlockExecution implements Algorithm, StatisticsProvider {
         decomposition,
         relevant.size(),
         targets.size());
+
+    for (BlockNode block : relevant) {
+      if (MergeBlockNodesDecomposition.returnsToSeveralCallSites(
+          block.getInitialLocation(), block.getFinalLocation(), ImmutableList.of(block))) {
+        // the conditions do not say which call a state belongs to
+        throw new CPAException(
+            String.format(
+                "Block %s can return to several call sites, but symbolic block execution requires"
+                    + " one calling context per block.",
+                block.getId()));
+      }
+    }
 
     Result result = relevant.isEmpty() ? Result.TRUE : execute(cfa, relevant, targets);
     logger.log(Level.INFO, "Symbolic block execution finished with result", result);

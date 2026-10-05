@@ -224,6 +224,90 @@ public class SymbolicBlockExecutionTest {
     runProgram(POINTER_TO_LOCAL.replace("CONDITION", "x == 6"), 2).assertIsUnsafe();
   }
 
+  /**
+   * A function with branches called twice. A block that starts inside the function and contains the
+   * returns to both call sites could return from the first call to the second call site.
+   */
+  private static final String TWO_CALLS =
+      """
+      extern void reach_error(void);
+      int f(int a, int b) {
+        int i = 0;
+        if (a != b) {
+          return 0;
+        }
+        if (i < a) {
+          i++;
+        }
+        return i;
+      }
+      int main(void) {
+        int x = f(1, 1);
+        int y = f(1, 1);
+        if (CONDITION) {
+          reach_error();
+        }
+        return 0;
+      }
+      """;
+
+  @Test
+  public void callsReturnToTheirCallSite() throws Exception {
+    runProgram(TWO_CALLS.replace("CONDITION", "x != y"), 0).assertIsSafe();
+    runProgram(TWO_CALLS.replace("CONDITION", "x == 1 && y == 1"), 2).assertIsUnsafe();
+  }
+
+  /** A function used as a value is put in memory, which every block has to know in advance. */
+  private static final String FUNCTION_POINTER =
+      """
+      extern void reach_error(void);
+      extern int __VERIFIER_nondet_int(void);
+      int inc(int x) { return x + 1; }
+      int dec(int x) { return x - 1; }
+      struct ops { int (*op)(int); };
+      int main(void) {
+        struct ops o;
+        o.op = __VERIFIER_nondet_int() ? &inc : dec;
+        int r = o.op(5);
+        if (CONDITION) {
+          reach_error();
+        }
+        return 0;
+      }
+      """;
+
+  @Test
+  public void functionPointersAreSupported() throws Exception {
+    runProgram(FUNCTION_POINTER.replace("CONDITION", "r != 6 && r != 4"), 0).assertIsSafe();
+    runProgram(FUNCTION_POINTER.replace("CONDITION", "r == 4"), 2).assertIsUnsafe();
+  }
+
+  /** memset repeats a byte over a struct, which Z3 used to reject as a bit vector of size zero. */
+  private static final String MEMSET =
+      """
+      extern void reach_error(void);
+      extern void *memset(void *s, int c, unsigned long n);
+      extern void *malloc(unsigned long n);
+      struct table { int count; char flag; long size; };
+      int main(void) {
+        struct table *t = malloc(sizeof(struct table));
+        if (!t) {
+          return 0;
+        }
+        memset(t, VALUE, sizeof(struct table));
+        if (t->count != 0 || t->size != 0) {
+          reach_error();
+        }
+        return 0;
+      }
+      """;
+
+  @Test
+  public void memsetIsSupported() throws Exception {
+    runProgram(MEMSET.replace("VALUE", "'\\0'"), 0).assertIsSafe();
+    runProgram(MEMSET.replace("VALUE", "1"), 2).assertIsUnsafe();
+  }
+
   @Test
   public void arraysAreSupported() throws Exception {
     IntegrationTestRunner.run(configuration(0), PROGRAMS + "simple_array_safe.c").assertIsSafe();

@@ -4733,6 +4733,15 @@ distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecom
 # Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.
 distributedSummaries.decomposition.mergeBranchBoundaries = false
 
+# Which blocks with calls or returns of the same function merging may create.
+# ALWAYS merges regardless of calls; a block can then leave the function it
+# starts in towards several call sites, chosen by the calling context of the
+# states it receives. UNIQUE_RETURNS creates no such block, which analyses
+# whose conditions carry no calling context need. NEVER creates no block with
+# two calls or two returns of the same function.
+distributedSummaries.decomposition.mergeFunctionCalls = ALWAYS
+  enum:     [ALWAYS, UNIQUE_RETURNS, NEVER]
+
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
@@ -5865,7 +5874,8 @@ symbolicBlockExecution.subtractKnownStates = true
 # and a message queue of its own, exactly like the workers of distributed
 # summary synthesis. Otherwise, this many threads take the blocks with
 # pending messages from a coordinator, each preferring the blocks it analyzed
-# before; a thread without work steals a block from another thread.
+# before; a thread without work steals a block from another thread. With -1,
+# there is a thread for every processor available to the JVM.
 symbolicBlockExecution.threads = 0
 
 # compress the produced violation-witness automata using GZIP compression.
