@@ -116,12 +116,10 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
       return;
     }
     if (!projected.violationIsInSimulatedCode()) {
-      logger.log(
-          Level.INFO,
+      throw new AssertionError(
           "The violation in the sequentialized program happens in its simulation of the thread"
               + " scheduling, which has no counterpart in the input program, therefore no violation"
               + " witness will be exported.");
-      return;
     }
 
     ImmutableList<WitnessPathStep> steps = reduceWaypoints(projected.steps());
