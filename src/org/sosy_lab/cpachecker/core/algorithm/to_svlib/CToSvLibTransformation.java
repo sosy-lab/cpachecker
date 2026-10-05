@@ -1506,6 +1506,11 @@ class CToSvLibTransformation {
     storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
 
     CFunctionCall functionCall = pCallEdge.getExpression();
+    if (functionCall instanceof CFunctionCallAssignmentStatement assignment
+        && assignment.getLeftHandSide().getExpressionType().getCanonicalType()
+            instanceof CCompositeType) {
+      return transformCallReturningComposite(pCallEdge, assignment, pEdgeToPointerTargetSet);
+    }
     if (pCallEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment
         && !(assignment.getLeftHandSide() instanceof CIdExpression)) {
       return handleReturnValueAssignmentToHeap(pCallEdge, assignment, pEdgeToPointerTargetSet);
@@ -1536,6 +1541,45 @@ class CToSvLibTransformation {
               + " CFunctionSummaryEdge "
               + pCallEdge);
     }
+  }
+
+  /**
+   * The call of a function that returns a structure or a union. The formulas of the procedure keep
+   * such a value in one variable per member of its return variable, which are assigned to the
+   * left-hand side after the call, as by the call in C.
+   */
+  private SvLibStatement transformCallReturningComposite(
+      CFunctionSummaryEdge pCallEdge,
+      CFunctionCallAssignmentStatement pAssignment,
+      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+    SvLibProcedureDeclaration calledProcedure =
+        scope.getProcedureDeclaration(
+            CToSvLibTransformationConstants.procedureNameOfCall(
+                pAssignment.getRightHandSide(), pCallEdge.getPredecessor().getFunctionName()));
+    InputParameters inputParameters =
+        transformInputParameters(
+            pAssignment.getRightHandSide(), pCallEdge, calledProcedure, pEdgeToPointerTargetSet);
+    SvLibStatement callStatement =
+        createCall(
+            calledProcedure,
+            inputParameters,
+            FluentIterable.from(calledProcedure.getReturnValues())
+                .transform(value -> getReturnDummyVariable(value.getType()))
+                .toList());
+    SvLibStatement assignmentOfResult =
+        transformAssignmentEdge(
+            createAssignmentOfVariable(
+                pCallEdge.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName(),
+                pAssignment.getRightHandSide().getExpressionType(),
+                pAssignment.getLeftHandSide(),
+                pCallEdge),
+            pEdgeToPointerTargetSet);
+    return new SvLibSequenceStatement(
+        ImmutableList.of(callStatement, assignmentOfResult),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   private SvLibStatement createProcedureCallStatement(
@@ -1807,6 +1851,32 @@ class CToSvLibTransformation {
   }
 
   /**
+   * An edge that assigns the given expression to the variable with the given name, which is not
+   * part of the CFA, like {@link #createAssignmentOfVariable}.
+   */
+  private CStatementEdge createAssignmentToVariable(
+      String pVariableName, CType pVariableType, CExpression pValue, CFAEdge pEdge) {
+    CVariableDeclaration variableDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            pVariableType,
+            pVariableName,
+            pVariableName,
+            pVariableName,
+            null);
+    CExpressionAssignmentStatement assignment =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            new CIdExpression(
+                FileLocation.DUMMY, pVariableType, pVariableName, variableDeclaration),
+            pValue);
+    return new CStatementEdge(
+        "", assignment, FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getPredecessor());
+  }
+
+  /**
    * Transform the arguments of a procedure call into SV-LIB terms.
    *
    * <p>Every argument is transformed on its own, so that the shape of the formula that the SMT
@@ -1835,8 +1905,31 @@ class CToSvLibTransformation {
 
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
     ImmutableList.Builder<SvLibTerm> constraintCollector = ImmutableList.builder();
+    ImmutableList.Builder<SvLibStatement> statementsBeforeCall = ImmutableList.builder();
     for (int i = 0; i < arguments.size(); i++) {
       CExpression inputParameter = arguments.get(i);
+      if (pCallEdge instanceof CFunctionSummaryEdge summaryEdge
+          && getTypeOfArgument(pFunctionCall, i).getCanonicalType() instanceof CCompositeType) {
+        // The formulas of the procedure take a structure from one variable per member of the
+        // value that the procedure receives, which are assigned here as by the call in C, so the
+        // input itself is not read.
+        statementsBeforeCall.add(
+            transformAssignmentEdge(
+                createAssignmentToVariable(
+                    summaryEdge.getFunctionEntry().getFunctionName()
+                        + "::"
+                        + pProcedureDeclaration.getParameters().get(i).getName(),
+                    getTypeOfArgument(pFunctionCall, i),
+                    inputParameter,
+                    pCallEdge),
+                pEdgeToPointerTargetSet));
+        callInputParameterCollector.add(
+            new SvLibIdTerm(
+                getReturnDummyVariable(pProcedureDeclaration.getParameters().get(i).getType())
+                    .toSimpleDeclaration(),
+                FileLocation.DUMMY));
+        continue;
+      }
       // The argument is converted to the type that the function declares for the parameter, like
       // the implicit conversion of C does, for example for the call fmodf(x, 2) of a function that
       // takes two floats.
@@ -1858,7 +1951,10 @@ class CToSvLibTransformation {
             formulaManager.visit(argument.constraints(), formulaToSvLibVisitor));
       }
     }
-    return new InputParameters(callInputParameterCollector.build(), constraintCollector.build());
+    return new InputParameters(
+        callInputParameterCollector.build(),
+        constraintCollector.build(),
+        statementsBeforeCall.build());
   }
 
   /**
@@ -1881,10 +1977,12 @@ class CToSvLibTransformation {
   /**
    * The terms for the arguments of a procedure call, together with the constraints (for example
    * axioms for bitwise operations) that were created while building them and that have to be
-   * assumed before the call.
+   * assumed before the call, and the statements that pass the members of structures.
    */
   private record InputParameters(
-      ImmutableList<SvLibTerm> terms, ImmutableList<SvLibTerm> constraints) {}
+      ImmutableList<SvLibTerm> terms,
+      ImmutableList<SvLibTerm> constraints,
+      ImmutableList<SvLibStatement> statementsBeforeCall) {}
 
   /**
    * The call of the given procedure, or the havoc of the given results if the procedure is the one
@@ -1900,15 +1998,27 @@ class CToSvLibTransformation {
       calledNondeterministicFunctions.add(pProcedure.getProcedureName());
     }
     if (function == null) {
-      return withAssumedConstraints(
-          new SvLibProcedureCallStatement(
-              FileLocation.DUMMY,
-              ImmutableList.of(),
-              ImmutableList.of(),
-              pProcedure,
-              pArguments.terms(),
-              pResults),
-          pArguments.constraints());
+      SvLibStatement call =
+          withAssumedConstraints(
+              new SvLibProcedureCallStatement(
+                  FileLocation.DUMMY,
+                  ImmutableList.of(),
+                  ImmutableList.of(),
+                  pProcedure,
+                  pArguments.terms(),
+                  pResults),
+              pArguments.constraints());
+      if (pArguments.statementsBeforeCall().isEmpty()) {
+        return call;
+      }
+      return new SvLibSequenceStatement(
+          ImmutableList.<SvLibStatement>builder()
+              .addAll(pArguments.statementsBeforeCall())
+              .add(call)
+              .build(),
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of());
     }
     if (pResults.isEmpty()) {
       return SvLibSequenceStatement.emptySequence();

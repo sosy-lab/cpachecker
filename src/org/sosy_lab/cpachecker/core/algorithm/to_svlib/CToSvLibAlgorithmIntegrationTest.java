@@ -62,6 +62,23 @@ public class CToSvLibAlgorithmIntegrationTest {
     String resultString = results.toString();
   }
 
+  /**
+   * Verify the transformed program with k-induction, for a program whose arrays the predicate
+   * analysis cannot interpolate.
+   */
+  private void testAndVerifyErrorWithKInduction(
+      Path pInputFilePath, Result pExpectedVerdict, String pConfigurationFile) throws Exception {
+    Configuration config =
+        TestUtils.configurationForTest()
+            .loadFromFile(Path.of(pConfigurationFile))
+            .setOption(
+                "analysis.algorithm.toSvLib.svLibAnalysisConfiguration",
+                "config/kInduction-plain-svlib.properties")
+            .build();
+
+    IntegrationTestRunner.run(config, pInputFilePath.toString()).assertIs(pExpectedVerdict);
+  }
+
   @Test(timeout = 90000)
   public void testAndVerifySimpleDivision() throws Exception {
     Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "simple-division.c");
@@ -116,6 +133,15 @@ public class CToSvLibAlgorithmIntegrationTest {
     Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "initialized-array.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
     testAndVerifyErrorWithBitvectors(inputFilePath, Result.TRUE);
+  }
+
+  @Test(timeout = 90000)
+  public void testAndVerifyStructureByValue() throws Exception {
+    Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "structure-by-value.c");
+    testAndVerifyErrorWithKInduction(
+        inputFilePath, Result.TRUE, "config/transformToSvLib.properties");
+    testAndVerifyErrorWithKInduction(
+        inputFilePath, Result.TRUE, "config/transformToSvLib-bitVec.properties");
   }
 
   @Test(timeout = 90000)
