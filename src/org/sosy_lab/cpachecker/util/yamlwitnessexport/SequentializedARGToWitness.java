@@ -42,11 +42,8 @@ public class SequentializedARGToWitness extends AbstractYAMLWitnessExporter {
   /** Exports an empty invariant set for every requested witness version. */
   public void export(PathTemplate pOutputFileTemplate) throws IOException {
     for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
-      // as in ARGToYAMLWitnessExport, correctness witnesses have no version 2.2
-      YAMLWitnessVersion version =
-          witnessVersion == YAMLWitnessVersion.V2d2 ? YAMLWitnessVersion.V2d1 : witnessVersion;
       exportEntries(
-          new InvariantSetEntry(getMetadata(version), ImmutableList.of()),
+          new InvariantSetEntry(getMetadata(witnessVersion), ImmutableList.of()),
           pOutputFileTemplate.getPath(witnessVersion.toString()));
     }
   }
