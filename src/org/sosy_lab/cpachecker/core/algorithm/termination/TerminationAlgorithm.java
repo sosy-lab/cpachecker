@@ -300,6 +300,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // We did not find a non-terminating loop.
     logger.log(Level.INFO, "Termination algorithm did not find a non-terminating loop.");
+    if (status.isSound()) {
+      // Check the supporting invariants for the export now, while the analysis is still running
+      statistics.confirmSupportingInvariants(shutdownNotifier);
+    }
     while (status.isSound() && pReachedSet.hasWaitingState()) {
       pReachedSet.popFromWaitlist();
     }

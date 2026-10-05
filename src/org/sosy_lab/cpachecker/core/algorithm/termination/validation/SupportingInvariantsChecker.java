@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -60,6 +62,23 @@ public final class SupportingInvariantsChecker {
   public static InvariantCheckResult checkInvariants(
       Path pWitnessPath, CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws CPAException, InterruptedException {
+    return checkInvariants(pWitnessPath, pCfa, pLogger, pShutdownNotifier, ImmutableMap.of());
+  }
+
+  /**
+   * Check whether the invariants of the given correctness witness hold, see {@link
+   * #checkInvariants(Path, CFA, LogManager, ShutdownNotifier)}.
+   *
+   * @param pAdditionalOptions configuration options that are set in addition to the configuration
+   *     for the validation of correctness witnesses
+   */
+  public static InvariantCheckResult checkInvariants(
+      Path pWitnessPath,
+      CFA pCfa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      ImmutableMap<String, String> pAdditionalOptions)
+      throws CPAException, InterruptedException {
     try {
       Path invariantsSpecPath =
           Classes.getCodeLocation(SupportingInvariantsChecker.class)
@@ -76,6 +95,9 @@ public final class SupportingInvariantsChecker {
           "--config",
           validationConfigPath.toString(),
           "--no-output-files");
+      for (Map.Entry<String, String> option : pAdditionalOptions.entrySet()) {
+        arguments.add("--option", option.getKey() + "=" + option.getValue());
+      }
       // The configuration can only be created if the program is given on the command line
       for (Path programFile : pCfa.getFileNames()) {
         arguments.add(programFile.toString());
@@ -101,6 +123,8 @@ public final class SupportingInvariantsChecker {
               supportingInvariantsCPA, pCfa.getMainFunction());
 
       AlgorithmStatus status = invariantCheckingAlgorithm.run(reachedSet);
+      // An interrupted analysis may look as if it finished, so it must not be reported as valid
+      pShutdownNotifier.shutdownIfNecessary();
       if (reachedSet.wasTargetReached()) {
         return InvariantCheckResult.INVALID;
       }

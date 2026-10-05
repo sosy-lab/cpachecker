@@ -125,7 +125,8 @@ public final class LoopStructure {
       return new Loop(pLoopHeads, pNodes);
     }
 
-    private void computeSets() {
+    // The sets are computed lazily, possibly by several analyses that share the CFA in parallel
+    private synchronized void computeSets() {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
         assert outgoingEdges != null;

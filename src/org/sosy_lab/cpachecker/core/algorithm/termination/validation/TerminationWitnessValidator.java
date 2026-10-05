@@ -406,9 +406,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // We first construct the loop formula, i.e. R^k, where k is at least 1
     Preconditions.checkArgument(k >= 1);
-    PathFormula loopFormula =
-        constructStrengthenedLoopFormulaForK(
-            pLoop, pSupportingInvariants, pCandidateInvariant, pMapPrevToCurrVars, k);
+    PathFormula loopFormula = constructStrengthenedLoopFormulaForK(pLoop, pSupportingInvariants, k);
 
     SSAMap fullSSAMap =
         SSAMap.merge(
@@ -479,9 +477,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // We first construct the loop formula, i.e. R^k, where k is at least 1
     Preconditions.checkArgument(k >= 1);
-    PathFormula loopFormula =
-        constructStrengthenedLoopFormulaForK(
-            pLoop, pSupportingInvariants, pCandidateInvariant, pMapPrevToCurrVars, k);
+    PathFormula loopFormula = constructStrengthenedLoopFormulaForK(pLoop, pSupportingInvariants, k);
 
     BooleanFormula firstStep =
         fmgr.instantiate(
@@ -519,51 +515,53 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   private PathFormula constructStrengthenedLoopFormulaForK(
-      Loop pLoop,
-      ImmutableList<BooleanFormula> pSupportingInvariants,
-      BooleanFormula pCandidateInvariant,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
-      int k)
+      Loop pLoop, ImmutableList<BooleanFormula> pSupportingInvariants, int k)
       throws CPATransferException, InterruptedException {
     PathFormula loopFormula =
         constructPathFormulaForLoop(
             pLoop, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
 
-    // The one that is used with the supporting invariants
-    BooleanFormula strengtheningFormula = bfmgr.makeTrue();
-
-    // Strengthening the loop formula with the supporting invariants
-    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+    // The supporting invariants hold at the start of each iteration. The first iteration starts
+    // in the state where all variables have the initial SSA index.
+    BooleanFormula strengtheningFormula =
+        instantiateAtStateOf(pSupportingInvariants, SSAMap.emptySSAMap());
+    for (int i = 1; i < k; i++) {
+      // The next iteration starts in the state where the previous one ended
       strengtheningFormula =
           bfmgr.and(
               strengtheningFormula,
-              fmgr.instantiate(
-                  supportingInvariant,
-                  TransitionInvariantUtils.setIndicesToDifferentValues(
-                      pCandidateInvariant,
-                      PrevStateIndices.INDEX_FIRST,
-                      CurrStateIndices.INDEX_MIDDLE,
-                      fmgr,
-                      scope,
-                      pMapPrevToCurrVars)));
-    }
-    for (int i = 1; i < k; i++) {
+              instantiateAtStateOf(pSupportingInvariants, loopFormula.getSsa()));
       loopFormula =
           pfmgr.makeConjunction(
               ImmutableList.of(
                   loopFormula,
                   constructPathFormulaForLoop(
                       pLoop, loopFormula.getSsa(), loopFormula.getPointerTargetSet())));
-
-      // Strengthening the loop formula with the supporting invariants
-      for (BooleanFormula supportingInvariant : pSupportingInvariants) {
-        strengtheningFormula =
-            bfmgr.and(
-                strengtheningFormula, fmgr.instantiate(supportingInvariant, loopFormula.getSsa()));
-      }
-      strengtheningFormula = bfmgr.and(strengtheningFormula, strengtheningFormula);
     }
-    return pfmgr.makeAnd(loopFormula, strengtheningFormula);
+    // The strengthening formula is already instantiated, so it is conjoined directly
+    return loopFormula.withFormula(bfmgr.and(loopFormula.getFormula(), strengtheningFormula));
+  }
+
+  /**
+   * Instantiates the given (uninstantiated) formulas such that they describe the state given by the
+   * SSA map. Variables that are not in the SSA map have the initial SSA index 1.
+   */
+  private BooleanFormula instantiateAtStateOf(
+      ImmutableList<BooleanFormula> pFormulas, SSAMap pSsa) {
+    BooleanFormula result = bfmgr.makeTrue();
+    for (BooleanFormula formula : pFormulas) {
+      ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
+      for (Map.Entry<String, Formula> variable : fmgr.extractVariables(formula).entrySet()) {
+        substitution.put(
+            variable.getValue(),
+            fmgr.makeVariable(
+                fmgr.getFormulaType(variable.getValue()),
+                variable.getKey(),
+                getIndexOrInitial(pSsa, variable.getKey())));
+      }
+      result = bfmgr.and(result, fmgr.substitute(formula, substitution.buildOrThrow()));
+    }
+    return result;
   }
 
   /**

@@ -8,16 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,14 +38,16 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -46,6 +55,8 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -120,7 +131,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     resetVariablesFromProgram(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
 
     builder.add("}}");
-    String overapproximatingProgam = builder.toString();
+    String overapproximatingProgam = declareNondetFunctions(builder.toString());
 
     try {
       // Initialization:
@@ -153,15 +164,132 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       // Running the algorithm
       Algorithm terminationAlgorithm =
           coreComponents.createAlgorithm(terminationCpa, specification);
-      terminationAlgorithm.run(reachedSet);
+      AlgorithmStatus status = terminationAlgorithm.run(reachedSet);
 
-      if (reachedSet.wasTargetReached()) {
+      // The formula is only well-founded if the termination of the program is proven, i.e., if
+      // there is no non-terminating loop and the analysis is sound
+      if (reachedSet.wasTargetReached() || !status.isSound()) {
         return false;
       }
     } catch (InvalidConfigurationException | IOException | ParserException e) {
       throw new CPAException(
           "The termination algorithm failed to verify the overapproximating program reducing"
               + " well-foundedness!");
+    }
+    return true;
+  }
+
+  private static final Pattern NONDET_CALL = Pattern.compile("__VERIFIER_nondet_(\\w+)\\(\\)");
+
+  /**
+   * Adds the declarations of the functions __VERIFIER_nondet_T that are called in the given
+   * program. Without them, the return type of the functions would be unknown.
+   */
+  private static String declareNondetFunctions(String pProgram) {
+    Set<String> types = new LinkedHashSet<>();
+    Matcher matcher = NONDET_CALL.matcher(pProgram);
+    while (matcher.find()) {
+      types.add(matcher.group(1));
+    }
+    StringJoiner declarations = new StringJoiner(System.lineSeparator());
+    for (String type : types) {
+      declarations.add("extern " + type + " __VERIFIER_nondet_" + type + "(void);");
+    }
+    declarations.add(pProgram);
+    return declarations.toString();
+  }
+
+  /**
+   * Computes the condition under which the body of the loop with the given loop head is entered, as
+   * a C expression. It is the disjunction over all paths through the controlling expression of the
+   * loop from the loop head to the body of the conjunction of the assumptions on the path. If the
+   * condition cannot be expressed, e.g., for loops like while(1) or conditions with side effects,
+   * the condition true ("1") is returned, which overapproximates the loop.
+   */
+  private String computeLoopCondition(CFANode pLoopHead) {
+    Optional<IterationElement> iteration =
+        cfa.getAstCfaRelation().getTightestIterationStructureForNode(pLoopHead);
+    if (iteration.isEmpty() || iteration.orElseThrow().getControllingExpression().isEmpty()) {
+      return "1";
+    }
+    ImmutableSet<CFAEdge> conditionEdges =
+        iteration.orElseThrow().getControllingExpression().orElseThrow().edges();
+    ImmutableSet<CFANode> bodyEntries;
+    try {
+      bodyEntries = iteration.orElseThrow().getNodesBetweenConditionAndBody();
+    } catch (BoundaryNodesComputationFailed e) {
+      logger.logDebugException(e, "Could not compute the condition of the loop");
+      return "1";
+    }
+    ImmutableSet<CFANode> successorsInCondition =
+        FluentIterable.from(conditionEdges).transform(CFAEdge::getSuccessor).toSet();
+    ImmutableSet<CFANode> conditionEntries =
+        FluentIterable.from(conditionEdges)
+            .transform(CFAEdge::getPredecessor)
+            .filter(node -> !successorsInCondition.contains(node))
+            .toSet();
+
+    List<String> pathConditions = new ArrayList<>();
+    for (CFANode entry : conditionEntries) {
+      if (!collectPathConditions(
+          entry, conditionEdges, bodyEntries, ImmutableList.of(), pathConditions)) {
+        return "1";
+      }
+    }
+    if (pathConditions.isEmpty()) {
+      return "1";
+    }
+    return FluentIterable.from(pathConditions)
+        .transform(condition -> "(" + condition + ")")
+        .join(Joiner.on(" || "));
+  }
+
+  /**
+   * Collects the conjunctions of the assumptions on all paths from the given node through the
+   * condition edges to a node of the body.
+   *
+   * @return false if the condition of a path cannot be expressed as a C expression
+   */
+  private static boolean collectPathConditions(
+      CFANode pNode,
+      ImmutableSet<CFAEdge> pConditionEdges,
+      ImmutableSet<CFANode> pBodyEntries,
+      ImmutableList<String> pPath,
+      List<String> pPathConditions) {
+    if (pBodyEntries.contains(pNode)) {
+      pPathConditions.add(pPath.isEmpty() ? "1" : Joiner.on(" && ").join(pPath));
+      return true;
+    }
+    if (pPath.size() > pConditionEdges.size()) {
+      // The condition edges contain a cycle
+      return false;
+    }
+    for (CFAEdge edge : pNode.getLeavingEdges()) {
+      if (!pConditionEdges.contains(edge)) {
+        continue;
+      }
+      ImmutableList<String> path = pPath;
+      if (edge instanceof CAssumeEdge assumeEdge) {
+        String expression = assumeEdge.getExpression().toASTString();
+        if (expression.contains("__CPAchecker_TMP")) {
+          // The condition has side effects, which are not part of the generated program
+          return false;
+        }
+        path =
+            ImmutableList.<String>builder()
+                .addAll(pPath)
+                .add(
+                    assumeEdge.getTruthAssumption()
+                        ? "(" + expression + ")"
+                        : "!(" + expression + ")")
+                .build();
+      } else if (!(edge instanceof BlankEdge)) {
+        return false;
+      }
+      if (!collectPathConditions(
+          edge.getSuccessor(), pConditionEdges, pBodyEntries, path, pPathConditions)) {
+        return false;
+      }
     }
     return true;
   }
@@ -218,20 +346,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     String loopCondition =
         TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
             pFormula, bfmgr, fmgr, scope);
-    String exitCondition =
-        cfa
-            .getAstCfaRelation()
-            .getTightestIterationStructureForNode(loopHead)
-            .orElseThrow()
-            .getControllingExpression()
-            .orElseThrow()
-            .edges()
-            .stream()
-            .filter(e -> e instanceof CAssumeEdge pE && pE.getTruthAssumption())
-            .map(e -> ((CAssumeEdge) e).getExpression())
-            .collect(ImmutableList.toImmutableList())
-            .getFirst()
-            .toASTString();
+    String exitCondition = computeLoopCondition(loopHead);
     loopCondition = loopCondition + " && " + exitCondition;
     for (BooleanFormula invariant : pSupportingInvariants) {
       loopCondition =
@@ -262,7 +377,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow();
     for (AbstractSimpleDeclaration variable : variablesInScope) {
       varDeclaration = variable.toASTString();
-      if (((CType) variable.getType()).getCanonicalType() instanceof CComplexType
+      // Only variables of simple types are declared, since the generated program does not contain
+      // the declarations of the types, e.g., of the structs that pointers point to
+      if (!(((CType) variable.getType()).getCanonicalType() instanceof CSimpleType)
           || isGlobalVariableOverwrittenByLocal(variable, variablesInScope)) {
         continue;
       }
