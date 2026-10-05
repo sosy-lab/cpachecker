@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -134,8 +135,24 @@ public final class PointerTargetSet implements Serializable {
    * Get the highest allocated addresses, i.e., which guarantee that a fresh address that is larger
    * than all addresses returned here was previously not yet allocated.
    */
-  PersistentList<Formula> getHighestAllocatedAddresses() {
+  public PersistentList<Formula> getHighestAllocatedAddresses() {
     return highestAllocatedAddresses;
+  }
+
+  /**
+   * The same set, but the next base is allocated above the given addresses instead of the ones
+   * allocated so far. An analysis that encodes a program piece by piece can pass addresses that
+   * stand for everything the other pieces allocated, e.g., a variable that it threads through the
+   * pieces.
+   */
+  public PointerTargetSet withHighestAllocatedAddresses(Iterable<Formula> pAddresses) {
+    return new PointerTargetSet(
+        bases,
+        fields,
+        deferredAllocations,
+        targets,
+        PersistentLinkedList.copyOf(ImmutableList.copyOf(pAddresses)),
+        allocationCount);
   }
 
   /** Get the number of allocations of memory on the heap. */

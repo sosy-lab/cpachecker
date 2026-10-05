@@ -5833,6 +5833,16 @@ stop = "SEP"
 # current one.
 svlib.config = no default value
 
+# Prove the program safe as soon as no violation condition is queued or
+# processed and no block except the root holds a violation condition while it
+# has a precondition, i.e., once the backward exploration is exhausted.
+symbolicBlockExecution.backwardProof = true
+
+# Prove the program safe as soon as no postcondition is queued or processed,
+# i.e., once the forward exploration is exhausted. Every reachable state was
+# then checked against the target locations of its block.
+symbolicBlockExecution.forwardProof = true
+
 # Quantify the private variables of the known conditions in coverage checks,
 # if the solver supports quantifiers. Without it, a known condition with
 # private variables hardly ever covers a new condition.
@@ -5843,6 +5853,13 @@ symbolicBlockExecution.quantifiedCoverage = true
 # variables of the condition. FULL can be very expensive with bitvectors.
 symbolicBlockExecution.quantifierElimination = LIGHT
   enum:     [NONE, LIGHT, FULL]
+
+# Whether a block analyzes and propagates only the states of a new condition
+# that its known conditions do not contain yet, i.e., the new condition
+# conjoined with the negation of all known ones. Otherwise, it analyzes and
+# propagates the whole new condition, whose messages stay smaller but repeat
+# known states. Conditions that add no state are ignored either way.
+symbolicBlockExecution.subtractKnownStates = true
 
 # Number of threads that analyze blocks. With 0, every block gets a thread
 # and a message queue of its own, exactly like the workers of distributed

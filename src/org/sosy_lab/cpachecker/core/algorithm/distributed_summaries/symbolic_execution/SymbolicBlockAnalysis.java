@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -39,11 +42,17 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -51,17 +60,22 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution.SymbolicBlockExecutionOptions.QuantifierElimination;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DynamicMemoryHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
@@ -158,6 +172,20 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
   private final LogManager logger;
 
   /**
+   * The memory all blocks share, or null while it is being collected, see {@link #collectMemory}.
+   */
+  private final @Nullable SymbolicMemoryModel memory;
+
+  /** The constraints that place the static bases in memory, which hold in every query. */
+  private final BooleanFormula memoryAxioms;
+
+  /** The bases every block starts with; allocations lie above the heap top at the block entry. */
+  private final PointerTargetSet entryPointerTargets;
+
+  private final FormulaType<?> pointerType;
+  private @Nullable BooleanFormula initialStates;
+
+  /**
    * The shutdown requests for the thread that owns this analysis, which are forwarded to the solver
    * only while it is open.
    *
@@ -186,9 +214,11 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
       CFA pCfa,
       SymbolicBlockExecutionOptions pOptions,
       SymbolicBlockExecutionStatistics pStatistics,
-      AtomicLong pPrivateNames)
+      AtomicLong pPrivateNames,
+      @Nullable SymbolicMemoryModel pMemory)
       throws InvalidConfigurationException {
     logger = pLogger;
+    memory = pMemory;
     options = pOptions;
     statistics = pStatistics;
     privateNames = pPrivateNames;
@@ -204,6 +234,16 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
               fmgr, pConfiguration, pLogger, shutdownNotifier, pCfa, AnalysisDirection.FORWARD);
       projection = new ExistentialProjection(solver, true);
       quantifiers = pOptions.useQuantifiers() ? quantifiersIfSupported(fmgr) : null;
+      pointerType =
+          FormulaType.getBitvectorTypeWithSize(pCfa.getMachineModel().getSizeofPtrInBits());
+      if (pMemory == null) {
+        memoryAxioms = bfmgr.makeTrue();
+        entryPointerTargets = PointerTargetSet.emptyPointerTargetSet();
+      } else {
+        memoryAxioms = fmgr.parse(pMemory.axioms());
+        entryPointerTargets =
+            pMemory.staticBases().withHighestAllocatedAddresses(ImmutableList.of(heapTop(1)));
+      }
     } catch (InvalidConfigurationException | RuntimeException e) {
       solver.close();
       throw e;
@@ -263,7 +303,95 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
   boolean isSatisfiable(BooleanFormula... pConjuncts) throws SolverException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     statistics.satisfiabilityChecks.increment();
-    return !solver.isUnsat(bfmgr.and(pConjuncts));
+    return !solver.isUnsat(bfmgr.and(memoryAxioms, bfmgr.and(pConjuncts)));
+  }
+
+  /** The states at the program entry, in interface form for the entry of the root block. */
+  BooleanFormula initialStates() {
+    if (initialStates == null) {
+      initialStates = memory == null ? bfmgr.makeTrue() : fmgr.parse(memory.initialStates());
+    }
+    return initialStates;
+  }
+
+  private Formula heapTop(int pIndex) {
+    return fmgr.makeVariable(pointerType, SymbolicMemoryModel.HEAP_TOP, pIndex);
+  }
+
+  /**
+   * Collects the memory that all blocks share, see {@link SymbolicMemoryModel}: the bases of all
+   * variables, found by encoding every edge that can declare one, and the constraints that place
+   * them in memory. This analysis must not have a memory model yet.
+   */
+  SymbolicMemoryModel collectMemory(CFA pCfa) throws InterruptedException {
+    checkState(memory == null, "The memory is collected already");
+    PathFormula declarations = pathFormulaManager.makeEmptyPathFormula();
+    for (CFANode node : ImmutableList.sortedCopyOf(pCfa.nodes())) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
+        if (mayDeclareBase(edge)) {
+          try {
+            declarations = pathFormulaManager.makeAnd(declarations, edge);
+          } catch (CPATransferException e) {
+            // A block with this edge fails to encode it, too.
+            logger.logDebugException(e, "Cannot collect the memory declared by " + edge);
+          }
+        }
+      }
+    }
+    PointerTargetSet bases = declarations.getPointerTargetSet();
+    ImmutableList.Builder<BooleanFormula> axioms = ImmutableList.builder();
+    for (BooleanFormula conjunct : bfmgr.toConjunctionArgs(declarations.getFormula(), true)) {
+      if (fmgr.extractFunctionNames(conjunct).stream()
+          .allMatch(SymbolicBlockAnalysis::isConstant)) {
+        axioms.add(conjunct);
+      }
+    }
+    // The heap top starts above every static base, and above the null pointer.
+    Formula heapTop = heapTop(INTERFACE_INDEX);
+    ImmutableList.Builder<BooleanFormula> initial = ImmutableList.builder();
+    initial.add(fmgr.makeGreaterThan(heapTop, fmgr.makeNumber(pointerType, 0), true));
+    for (Formula highest : bases.getHighestAllocatedAddresses()) {
+      if (fmgr.extractVariableNames(highest).stream().allMatch(SymbolicBlockAnalysis::isConstant)) {
+        initial.add(fmgr.makeGreaterOrEqual(heapTop, highest, true));
+      }
+    }
+    statistics.staticBases.add(bases.getBases().size());
+    return new SymbolicMemoryModel(
+        bases.withHighestAllocatedAddresses(ImmutableList.of()),
+        FluentIterable.from(bases.getBases().keySet())
+            .filter(base -> !DynamicMemoryHandler.isAllocBase(base))
+            .toSet(),
+        serialize(bfmgr.and(axioms.build())),
+        serialize(bfmgr.and(initial.build())));
+  }
+
+  /** Whether the encoding of the edge can declare a base: declarations, calls, and returns. */
+  private static boolean mayDeclareBase(CFAEdge pEdge) {
+    return (pEdge instanceof CDeclarationEdge declaration
+            && declaration.getDeclaration() instanceof CVariableDeclaration)
+        || pEdge instanceof FunctionCallEdge
+        || pEdge instanceof CReturnStatementEdge;
+  }
+
+  /**
+   * Whether a symbol is the same on every path: no SSA index, not fresh per use, and not the
+   * address of an allocation.
+   */
+  private static boolean isConstant(String pSymbol) {
+    return FormulaManagerView.parseName(pSymbol).getSecond().isEmpty()
+        && !PredicateOperatorUtil.isFreshPerUse(pSymbol)
+        && !isAllocationAddress(pSymbol);
+  }
+
+  /**
+   * Whether a symbol is the address of an object that the program allocated at runtime. Such an
+   * address is fresh on every execution of the block, although the encoding names it the same way
+   * on every execution.
+   */
+  private static boolean isAllocationAddress(String pSymbol) {
+    return PointerBase.fromFormulaEncoding(FormulaManagerView.parseName(pSymbol).getFirst())
+        .filter(DynamicMemoryHandler::isAllocBase)
+        .isPresent();
   }
 
   /**
@@ -294,31 +422,61 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
         Stream.of(encoding.transition(), encoding.pathsToTarget())
             .flatMap(Optional::stream)
             .toList()) {
-      if (accessesMemory(paths)) {
-        throw new CPAException(
-            "Symbolic block execution does not support programs that access memory through"
-                + " pointers or arrays yet, but block "
-                + pBlock.getId()
-                + " does.");
-      }
+      checkOnlySharedBases(pBlock, paths);
     }
-    return encoding;
+    statistics.encodedBlocks.increment();
+    if (memory == null || encoding.transition().isEmpty()) {
+      return encoding;
+    }
+    return new BlockEncoding(
+        Optional.of(raiseHeapTop(encoding.transition().orElseThrow())), encoding.pathsToTarget());
   }
 
   /**
-   * Whether a path formula accesses memory in the pointer-aliasing encoding.
-   *
-   * <p>That encoding decides along a path whether a variable lives in memory, based on the
-   * pointer-target set built up on the path so far, and names dynamic allocations by a counter of
-   * that set. A block encoded on its own starts with an empty set, so two blocks could encode the
-   * same variable differently or give two allocations the same address. Such conditions can be
-   * wrong in either direction. Until the pointer-target set travels with the conditions, like it
-   * does in DSS, blocks that access memory are rejected rather than risking a wrong verdict.
+   * Rejects a block that declares a base outside the memory all blocks share, which can only happen
+   * if collecting the memory missed a kind of declaration. The block would encode the variable of
+   * the base differently than the other blocks, and its conditions could be wrong.
    */
-  private boolean accessesMemory(PathFormula pPaths) {
-    return !pPaths.getPointerTargetSet().getBases().isEmpty()
-        || fmgr.extractFunctionNames(pPaths.getFormula()).stream()
-            .anyMatch(symbol -> symbol.startsWith("*") || symbol.contains("__ADDRESS_OF_"));
+  private void checkOnlySharedBases(BlockNode pBlock, PathFormula pPaths) throws CPAException {
+    for (PointerBase base : pPaths.getPointerTargetSet().getBases().keySet()) {
+      if (!DynamicMemoryHandler.isAllocBase(base)
+          && (memory == null || !memory.staticBaseNames().contains(base))) {
+        throw new CPAException(
+            String.format(
+                "Block %s puts %s in memory, but symbolic block execution did not find it in"
+                    + " advance.",
+                pBlock.getId(), base.name()));
+      }
+    }
+  }
+
+  /**
+   * Adds the heap top at the block exit to the transition if the block allocates: it bounds the
+   * highest addresses the block allocated. Otherwise the heap top does not change.
+   */
+  private PathFormula raiseHeapTop(PathFormula pTransition) {
+    List<Formula> highest = pTransition.getPointerTargetSet().getHighestAllocatedAddresses();
+    if (highest.equals(ImmutableList.of(heapTop(1)))) {
+      return pTransition;
+    }
+    statistics.allocatingBlocks.increment();
+    Formula exit = heapTop(2);
+    ImmutableList.Builder<BooleanFormula> bounds = ImmutableList.builder();
+    for (Formula address : highest) {
+      bounds.add(fmgr.makeGreaterOrEqual(exit, address, true));
+    }
+    SSAMap exitSsa =
+        pTransition
+            .getSsa()
+            .builder()
+            .setIndex(
+                SymbolicMemoryModel.HEAP_TOP,
+                new CPointerType(CTypeQualifiers.NONE, CVoidType.VOID),
+                2)
+            .build();
+    return pTransition
+        .withFormula(bfmgr.and(pTransition.getFormula(), bfmgr.and(bounds.build())))
+        .withContext(exitSsa, pTransition.getPointerTargetSet());
   }
 
   private BlockEncoding unfold(BlockNode pBlock, ImmutableSet<CFANode> pTargets)
@@ -367,7 +525,10 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
 
     // In reverse postorder, every point comes after all points with a step to it.
     Map<Point, PathFormula> formulas = new HashMap<>();
-    formulas.put(start, pathFormulaManager.makeEmptyPathFormula());
+    formulas.put(
+        start,
+        pathFormulaManager.makeEmptyPathFormulaWithContext(
+            SSAMap.emptySSAMap(), entryPointerTargets));
     PathFormula transition = null;
     PathFormula pathsToTarget = null;
     for (Point point : Lists.reverse(postorder)) {
@@ -494,7 +655,7 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
    * values of program symbols at other indices.
    */
   private static boolean isExistential(String pSymbol, ToIntFunction<String> pBoundaryIndices) {
-    if (PredicateOperatorUtil.isFreshPerUse(pSymbol)) {
+    if (PredicateOperatorUtil.isFreshPerUse(pSymbol) || isAllocationAddress(pSymbol)) {
       return true;
     }
     Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(pSymbol);
@@ -683,7 +844,7 @@ public final class SymbolicBlockAnalysis implements AutoCloseable {
     statistics.coverageChecks.increment();
     long start = statistics.coverageTime.start();
     try {
-      return solver.isUnsat(bfmgr.and(pCondition, bfmgr.not(bfmgr.or(pKnown))));
+      return solver.isUnsat(bfmgr.and(memoryAxioms, pCondition, bfmgr.not(bfmgr.or(pKnown))));
     } catch (SolverException e) {
       logger.logDebugException(e, "Coverage check failed, treating the condition as new");
       logger.log(Level.FINE, "Coverage check failed, treating the condition as new");

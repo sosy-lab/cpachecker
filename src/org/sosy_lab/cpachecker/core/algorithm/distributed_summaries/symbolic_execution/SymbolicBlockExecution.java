@@ -19,11 +19,13 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -87,7 +89,7 @@ public class SymbolicBlockExecution implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification)
       throws InvalidConfigurationException {
-    configuration = pConfiguration;
+    configuration = withRequiredEncoding(pConfiguration);
     logger = pLogger;
     initialCfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
@@ -104,8 +106,44 @@ public class SymbolicBlockExecution implements Algorithm, StatisticsProvider {
     // The threads create their solvers and encoders only when the analysis runs. Creating one now
     // reports an invalid configuration before that, and marks the options as used.
     new SymbolicBlockAnalysis(
-            pConfiguration, pLogger, pShutdownNotifier, pCfa, options, statistics, new AtomicLong())
+            configuration,
+            pLogger,
+            pShutdownNotifier,
+            pCfa,
+            options,
+            statistics,
+            new AtomicLong(),
+            null)
         .close();
+  }
+
+  /**
+   * The encoding that the memory all blocks share relies on, see {@link SymbolicMemoryModel}: the
+   * pointer-aliasing encoding with the heap as SMT arrays, whose contents travel with the
+   * conditions like variables, with every base declared right away, and without deferring
+   * allocations of unknown type.
+   */
+  private static final ImmutableMap<String, String> REQUIRED_ENCODING =
+      ImmutableMap.of(
+          "cpa.predicate.handlePointerAliasing", "true",
+          "cpa.predicate.useArraysForHeap", "true",
+          "cpa.predicate.useConstraintOptimization", "false",
+          "cpa.predicate.deferUntypedAllocations", "false");
+
+  @SuppressWarnings("deprecation") // like Solver#adjustConfigForSolver, to see explicit values
+  private static Configuration withRequiredEncoding(Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
+    for (Map.Entry<String, String> option : REQUIRED_ENCODING.entrySet()) {
+      String value = pConfiguration.getProperty(option.getKey());
+      if (value != null && !value.trim().equals(option.getValue())) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "Symbolic block execution requires %s=%s", option.getKey(), option.getValue()));
+      }
+      builder.setOption(option.getKey(), option.getValue());
+    }
+    return builder.build();
   }
 
   @Override
@@ -129,16 +167,26 @@ public class SymbolicBlockExecution implements Algorithm, StatisticsProvider {
     }
 
     ImmutableSet<BlockNode> relevant = blocksThatReachTargets(blockGraph, targets);
+    String decomposition =
+        decompositionOptions.getDecompositionType()
+            + (decompositionOptions.mergeBranchBoundaries()
+                ? " with merged branch boundaries"
+                : "");
+    statistics.setDecomposition(decomposition);
     statistics.setBlockCounts(blockGraph.getNodes().size(), relevant.size(), targets.size());
     logger.logf(
         Level.INFO,
-        "Decomposed CFA in %d blocks, %d of which can reach one of %d target locations.",
+        "Decomposed CFA in %d blocks using %s, %d of which can reach one of %d target locations.",
         blockGraph.getNodes().size(),
+        decomposition,
         relevant.size(),
         targets.size());
 
     Result result = relevant.isEmpty() ? Result.TRUE : execute(cfa, relevant, targets);
     logger.log(Level.INFO, "Symbolic block execution finished with result", result);
+    statistics
+        .proof()
+        .ifPresent(proof -> logger.log(Level.INFO, "The program is safe because", proof + "."));
     if (result == Result.FALSE) {
       addDummyTarget(pReachedSet);
     } else {
@@ -175,20 +223,37 @@ public class SymbolicBlockExecution implements Algorithm, StatisticsProvider {
               block,
               pTargets,
               FluentIterable.from(block.getSuccessorIds()).filter(relevantIds::contains).toSet(),
+              options.subtractKnownStates(),
               messageFactory,
               statistics,
               logger));
     }
     AtomicLong privateNames = new AtomicLong();
+    SymbolicMemoryModel memory;
+    try (SymbolicBlockAnalysis collector =
+        new SymbolicBlockAnalysis(
+            configuration,
+            logger,
+            shutdownNotifier,
+            pCfa,
+            options,
+            statistics,
+            privateNames,
+            null)) {
+      memory = collector.collectMemory(pCfa);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Invalid configuration: " + e.getMessage(), e);
+    }
     SymbolicBlockScheduler.AnalysisFactory analysisFactory =
         notifier ->
             new SymbolicBlockAnalysis(
-                configuration, logger, notifier, pCfa, options, statistics, privateNames);
+                configuration, logger, notifier, pCfa, options, statistics, privateNames, memory);
     SymbolicBlockScheduler scheduler =
         options.threads() == 0
-            ? new ThreadPerBlockScheduler(analysisFactory, messageFactory, shutdownNotifier, logger)
+            ? new ThreadPerBlockScheduler(
+                analysisFactory, messageFactory, options, statistics, shutdownNotifier, logger)
             : new WorkStealingScheduler(
-                options.threads(), analysisFactory, shutdownNotifier, statistics, logger);
+                options.threads(), analysisFactory, options, shutdownNotifier, statistics, logger);
     return scheduler.run(workers.build());
   }
 

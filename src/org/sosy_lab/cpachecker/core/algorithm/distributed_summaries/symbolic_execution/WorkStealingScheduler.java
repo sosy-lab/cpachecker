@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,7 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
 
   private final int threads;
   private final AnalysisFactory analysisFactory;
+  private final SymbolicBlockExecutionOptions options;
   private final ShutdownNotifier shutdownNotifier;
   private final SymbolicBlockExecutionStatistics statistics;
   private final LogManager logger;
@@ -55,12 +57,14 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
   WorkStealingScheduler(
       int pThreads,
       AnalysisFactory pAnalysisFactory,
+      SymbolicBlockExecutionOptions pOptions,
       ShutdownNotifier pShutdownNotifier,
       SymbolicBlockExecutionStatistics pStatistics,
       LogManager pLogger) {
     checkArgument(pThreads > 0, "At least one thread is required, but got %s", pThreads);
     threads = pThreads;
     analysisFactory = pAnalysisFactory;
+    options = pOptions;
     shutdownNotifier = pShutdownNotifier;
     statistics = pStatistics;
     logger = pLogger;
@@ -81,7 +85,11 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
           final int thread = i;
           executor.execute(() -> work(thread, coordinator, workerShutdown.getNotifier()));
         }
-        return coordinator.awaitVerdict();
+        Result result = coordinator.awaitVerdict();
+        if (result == Result.TRUE) {
+          coordinator.proofs.proof().ifPresent(statistics::setProof);
+        }
+        return result;
       } finally {
         // Stops the threads that are still analyzing a block once the verdict is known.
         workerShutdown.requestShutdown("Symbolic block execution finished");
@@ -143,6 +151,7 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
 
   private final class Coordinator {
 
+    private final ProofTracker proofs;
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition changed = lock.newCondition();
     private final ImmutableMap<String, Slot> slots;
@@ -155,6 +164,7 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
     private @Nullable Exception failure;
 
     private Coordinator(ImmutableList<SymbolicBlockWorker> pWorkers) {
+      proofs = new ProofTracker(pWorkers.size(), options.forwardProof(), options.backwardProof());
       queues = new ArrayList<>(threads);
       for (int i = 0; i < threads; i++) {
         queues.add(new ArrayDeque<>());
@@ -223,6 +233,8 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
       lock.lock();
       try {
         Slot slot = pTask.slot();
+        // in this order, see ProofTracker
+        proofs.update(slot.worker);
         // Still running while delivering, so that a message to itself only fills its mailbox.
         for (DssMessage message : pProduced) {
           switch (message.getType()) {
@@ -236,13 +248,21 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
             case EXCEPTION, WITNESS -> {}
           }
         }
+        for (DssMessage message : pTask.messages()) {
+          proofs.processed(message);
+        }
+        if (pTask.initialize()) {
+          proofs.initialized();
+        }
         slot.running = false;
         if (slot.mailbox.isEmpty()) {
           active--;
         } else {
           enqueue(slot);
         }
-        if (active == 0 && !isOver()) {
+        if (!isOver()
+            && (proofs.claimProof().isPresent()
+                || (active == 0 && proofs.claim(ProofTracker.Proof.NO_WORK_LEFT)))) {
           verdict = Result.TRUE;
         }
         changed.signalAll();
@@ -251,7 +271,8 @@ final class WorkStealingScheduler implements SymbolicBlockScheduler {
       }
     }
 
-    private void deliver(DssMessage pMessage, Iterable<String> pReceivers) {
+    private void deliver(DssMessage pMessage, ImmutableSet<String> pReceivers) {
+      proofs.sending(pMessage, pReceivers.size());
       for (String receiver : pReceivers) {
         Slot slot = slots.get(receiver);
         slot.mailbox.add(pMessage);

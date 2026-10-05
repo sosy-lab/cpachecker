@@ -54,6 +54,32 @@ final class SymbolicBlockExecutionOptions {
               + " variables hardly ever covers a new condition.")
   private boolean quantifiedCoverage = true;
 
+  @Option(
+      secure = true,
+      description =
+          "Whether a block analyzes and propagates only the states of a new condition that its"
+              + " known conditions do not contain yet, i.e., the new condition conjoined with the"
+              + " negation of all known ones. Otherwise, it analyzes and propagates the whole new"
+              + " condition, whose messages stay smaller but repeat known states. Conditions that"
+              + " add no state are ignored either way.")
+  private boolean subtractKnownStates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Prove the program safe as soon as no postcondition is queued or processed, i.e., once"
+              + " the forward exploration is exhausted. Every reachable state was then checked"
+              + " against the target locations of its block.")
+  private boolean forwardProof = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Prove the program safe as soon as no violation condition is queued or processed and no"
+              + " block except the root holds a violation condition while it has a precondition,"
+              + " i.e., once the backward exploration is exhausted.")
+  private boolean backwardProof = true;
+
   SymbolicBlockExecutionOptions(Configuration pConfiguration) throws InvalidConfigurationException {
     pConfiguration.inject(this);
   }
@@ -68,6 +94,18 @@ final class SymbolicBlockExecutionOptions {
 
   boolean quantifiedCoverage() {
     return quantifiedCoverage;
+  }
+
+  boolean subtractKnownStates() {
+    return subtractKnownStates;
+  }
+
+  boolean forwardProof() {
+    return forwardProof;
+  }
+
+  boolean backwardProof() {
+    return backwardProof;
   }
 
   boolean useQuantifiers() {

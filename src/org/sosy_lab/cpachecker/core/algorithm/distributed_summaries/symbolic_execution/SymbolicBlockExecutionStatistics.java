@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.symbolic_execution;
 
 import java.io.PrintStream;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -29,6 +31,9 @@ final class SymbolicBlockExecutionStatistics implements Statistics {
   final SharedTimer quantifierEliminationTime = new SharedTimer("Time for quantifier elimination");
   final SharedTimer coverageTime = new SharedTimer("Time for coverage checks");
 
+  final LongAdder encodedBlocks = new LongAdder();
+  final LongAdder allocatingBlocks = new LongAdder();
+  final LongAdder staticBases = new LongAdder();
   final LongAdder satisfiabilityChecks = new LongAdder();
   final LongAdder coverageChecks = new LongAdder();
   final LongAdder quantifierEliminations = new LongAdder();
@@ -43,9 +48,23 @@ final class SymbolicBlockExecutionStatistics implements Statistics {
   final LongAdder contextSwitches = new LongAdder();
   final LongAdder stolenBlocks = new LongAdder();
 
+  private volatile ProofTracker.@Nullable Proof proof;
+  private volatile String decomposition = "none";
   private volatile int blocks;
   private volatile int relevantBlocks;
   private volatile int targetLocations;
+
+  void setProof(ProofTracker.Proof pProof) {
+    proof = pProof;
+  }
+
+  Optional<ProofTracker.Proof> proof() {
+    return Optional.ofNullable(proof);
+  }
+
+  void setDecomposition(String pDecomposition) {
+    decomposition = pDecomposition;
+  }
 
   void setBlockCounts(int pBlocks, int pRelevantBlocks, int pTargetLocations) {
     blocks = pBlocks;
@@ -56,9 +75,14 @@ final class SymbolicBlockExecutionStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter.writingStatisticsTo(pOut)
+        .put("Decomposition", decomposition)
         .put("Number of blocks", blocks)
         .put("Number of blocks that can reach a target", relevantBlocks)
         .put("Number of target locations", targetLocations)
+        .put("Number of encoded blocks", encodedBlocks.sum())
+        .put("Number of static memory objects", staticBases.sum())
+        .put("Number of blocks that allocate memory", allocatingBlocks.sum())
+        .putIf(proof != null, "Proof", String.valueOf(proof))
         .put(decompositionTime)
         .put(targetLocationTime)
         .put(encodingTime.title, encodingTime)

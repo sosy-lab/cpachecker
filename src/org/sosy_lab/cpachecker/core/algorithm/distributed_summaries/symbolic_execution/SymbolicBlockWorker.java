@@ -71,6 +71,10 @@ public final class SymbolicBlockWorker {
   private final BlockNode blockNode;
   private final ImmutableSet<CFANode> targets;
   private final ImmutableSet<String> postconditionReceivers;
+
+  /** See {@link SymbolicBlockExecutionOptions#subtractKnownStates()}. */
+  private final boolean subtractKnownStates;
+
   private final DssMessageFactory dssMessageFactory;
   private final SymbolicBlockExecutionStatistics statistics;
   private final LogManager logger;
@@ -121,11 +125,14 @@ public final class SymbolicBlockWorker {
    * @param pTargets all target locations of the program; the block finds the ones it reaches
    * @param pPostconditionReceivers the successors of the block that can reach a target, the only
    *     ones its postconditions matter for
+   * @param pSubtractKnownStates whether to analyze and propagate only the states of a new condition
+   *     that the known conditions do not contain
    */
   SymbolicBlockWorker(
       BlockNode pBlockNode,
       ImmutableSet<CFANode> pTargets,
       ImmutableSet<String> pPostconditionReceivers,
+      boolean pSubtractKnownStates,
       DssMessageFactory pMessageFactory,
       SymbolicBlockExecutionStatistics pStatistics,
       LogManager pLogger) {
@@ -135,6 +142,7 @@ public final class SymbolicBlockWorker {
     dssMessageFactory = pMessageFactory;
     statistics = pStatistics;
     logger = pLogger;
+    subtractKnownStates = pSubtractKnownStates;
   }
 
   String getBlockId() {
@@ -157,6 +165,16 @@ public final class SymbolicBlockWorker {
   }
 
   /**
+   * Whether this block keeps violation conditions that a later precondition could still meet: it
+   * has a precondition, so it does not send new violation conditions to its predecessors, see
+   * {@link ProofTracker}. The precondition of the root contains all states already, so the root has
+   * checked its violation conditions against everything that can arrive.
+   */
+  boolean blocksBackwardProof() {
+    return !blockNode.isRoot() && !preconditions.isEmpty() && !violationConditions.isEmpty();
+  }
+
+  /**
    * Computes the block formula and starts the symbolic execution: the root block analyzes the
    * precondition that contains all states, and a block with a reachable target location sends the
    * states that reach it to its predecessors.
@@ -170,7 +188,7 @@ public final class SymbolicBlockWorker {
     computeBlockFormula(pAnalysis);
     if (blockNode.isRoot()) {
       // The program starts in every state at the entry of the root block.
-      return analyzeNewPrecondition(pAnalysis, pAnalysis.makeTrue());
+      return analyzeNewPrecondition(pAnalysis, pAnalysis.initialStates());
     }
     if (targetCondition != null) {
       logger.log(Level.FINE, "Block", blockNode.getId(), "contains a reachable target location");
@@ -204,6 +222,9 @@ public final class SymbolicBlockWorker {
       }
     }
     formulas = new FormulasInContext(pAnalysis, transition, reachesTarget);
+    logger.log(Level.FINEST, "Block", blockNode);
+    logger.log(Level.FINEST, "Block", blockNode.getId(), "has the transition", transition);
+    logger.log(Level.FINEST, "Block", blockNode.getId(), "reaches a target from", reachesTarget);
   }
 
   public ImmutableList<DssMessage> processMessage(
@@ -233,7 +254,9 @@ public final class SymbolicBlockWorker {
     FormulasInContext context = ensureParsedFor(pAnalysis);
     statistics.preconditionsReceived.increment();
     BooleanFormula newEntryStates =
-        pAnalysis.and(newCondition, pAnalysis.not(pAnalysis.or(context.preconditions)));
+        subtractKnownStates
+            ? pAnalysis.and(newCondition, pAnalysis.not(pAnalysis.or(context.preconditions)))
+            : newCondition;
     // The unsatisfiability check of the new entry states, with the private variables of the stored
     // preconditions quantified, see SymbolicBlockAnalysis#closeForCoverage
     if (pAnalysis.isCovered(newCondition, context.preconditionsForCoverage)) {
@@ -274,9 +297,11 @@ public final class SymbolicBlockWorker {
     FormulasInContext context = ensureParsedFor(pAnalysis);
     statistics.violationConditionsReceived.increment();
     BooleanFormula newViolatingStates =
-        pAnalysis.and(
-            pAnalysis.atExit(newCondition, exitSsa),
-            pAnalysis.not(pAnalysis.or(context.violationConditionsAtExit)));
+        subtractKnownStates
+            ? pAnalysis.and(
+                pAnalysis.atExit(newCondition, exitSsa),
+                pAnalysis.not(pAnalysis.or(context.violationConditionsAtExit)))
+            : pAnalysis.atExit(newCondition, exitSsa);
     // The unsatisfiability check of the new violating states, with the private variables of the
     // stored violation conditions quantified. analyze() would find these states safe.
     boolean noNewStates = pAnalysis.isCovered(newCondition, context.violationConditionsForCoverage);

@@ -150,6 +150,10 @@ public class DssDecompositionOptions {
     return allowMissingAbstractionNodes;
   }
 
+  public boolean mergeBranchBoundaries() {
+    return mergeBranchBoundaries;
+  }
+
   public boolean generateBlockGraphOnly() {
     return generateBlockGraphOnly;
   }

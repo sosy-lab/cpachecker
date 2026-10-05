@@ -50,16 +50,22 @@ final class ThreadPerBlockScheduler implements SymbolicBlockScheduler {
 
   private final AnalysisFactory analysisFactory;
   private final DssMessageFactory messageFactory;
+  private final SymbolicBlockExecutionOptions options;
+  private final SymbolicBlockExecutionStatistics statistics;
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
 
   ThreadPerBlockScheduler(
       AnalysisFactory pAnalysisFactory,
       DssMessageFactory pMessageFactory,
+      SymbolicBlockExecutionOptions pOptions,
+      SymbolicBlockExecutionStatistics pStatistics,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) {
     analysisFactory = pAnalysisFactory;
     messageFactory = pMessageFactory;
+    options = pOptions;
+    statistics = pStatistics;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
   }
@@ -78,6 +84,8 @@ final class ThreadPerBlockScheduler implements SymbolicBlockScheduler {
     }
     ImmutableMap<CommunicationId, DssDefaultQueue> queues = queueBuilder.buildOrThrow();
     DssMessageBroadcaster broadcaster = new DssMessageBroadcaster(queues);
+    ProofTracker proofs =
+        new ProofTracker(pWorkers.size(), options.forwardProof(), options.backwardProof());
 
     // Stops the blocks that are still busy once the verdict is known.
     ShutdownManager workerShutdown = ShutdownManager.createWithParent(shutdownNotifier);
@@ -98,14 +106,19 @@ final class ThreadPerBlockScheduler implements SymbolicBlockScheduler {
           executor.execute(
               new SymbolicBlockActor(
                   worker,
+                  proofs,
                   new DssSchedulerConnection(queue, broadcaster),
                   analysisFactory,
                   messageFactory,
                   workerShutdown.getNotifier(),
                   logger));
         }
-        executor.execute(() -> broadcastProofOnceNoWorkIsLeft(workCounter, broadcaster));
-        return awaitVerdict(verdicts);
+        executor.execute(() -> broadcastProofOnceNoWorkIsLeft(workCounter, proofs, broadcaster));
+        Result result = awaitVerdict(verdicts);
+        if (result == Result.TRUE) {
+          proofs.proof().ifPresent(statistics::setProof);
+        }
+        return result;
       } finally {
         workerShutdown.requestShutdown("Symbolic block execution finished");
         // Interrupts the actors that wait for a message and the proof detection.
@@ -142,14 +155,16 @@ final class ThreadPerBlockScheduler implements SymbolicBlockScheduler {
   }
 
   private void broadcastProofOnceNoWorkIsLeft(
-      DssWorkCounter pWorkCounter, DssMessageBroadcaster pBroadcaster) {
+      DssWorkCounter pWorkCounter, ProofTracker pProofs, DssMessageBroadcaster pBroadcaster) {
     try {
       pWorkCounter.awaitNoWorkLeft();
     } catch (InterruptedException e) {
       // The analysis ended with another verdict.
       return;
     }
-    pBroadcaster.broadcastToAll(
-        messageFactory.createDssResultMessage(PROOF_SENDER_ID, Result.TRUE));
+    if (pProofs.claim(ProofTracker.Proof.NO_WORK_LEFT)) {
+      pBroadcaster.broadcastToAll(
+          messageFactory.createDssResultMessage(PROOF_SENDER_ID, Result.TRUE));
+    }
   }
 }
