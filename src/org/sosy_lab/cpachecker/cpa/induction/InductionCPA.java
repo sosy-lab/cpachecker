@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -110,6 +111,23 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
               + " memory model")
   private boolean resetMemoryInInductionStep = false;
 
+  @Option(
+      secure = true,
+      description =
+          "split the formulas of BMC, where the precision describes no abstraction, into one block"
+              + " of the predicate analysis per loop iteration, as native IMC and ISMC do with an"
+              + " abstraction to true at every loop head")
+  private boolean bmcBlockPerIteration = false;
+
+  @Option(
+      secure = true,
+      description =
+          "with analysis.traversal.useReverseLoopIterationCount, explore level by level over all"
+              + " arrivals at loop heads since the start of the program, as native IMC and ISMC do"
+              + " with LoopBoundCPA, so that all paths into an arrival merge before the exploration"
+              + " goes on")
+  private boolean levelByLevel = false;
+
   private final LoopStructure loopStructure;
   private final Resets resets;
   private final InductionTransferRelation transferRelation;
@@ -134,7 +152,8 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
                 .tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpecification)
                 .isEmpty();
     transferRelation =
-        new InductionTransferRelation(loopStructure, continueBaseCase, exploresNothing);
+        new InductionTransferRelation(
+            loopStructure, continueBaseCase, exploresNothing, bmcBlockPerIteration);
     resets =
         new Resets(
             toClassNames(abstractedCPAs),
@@ -162,8 +181,27 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
   }
 
   @Override
+  public MergeOperator getMergeOperator() {
+    return InductionCPA::mergeInBlock;
+  }
+
+  /**
+   * Merge-sep that remembers the state of the same block that the first state was merged into, as
+   * only this state covers the end of a block or an abstraction of an unrolling.
+   */
+  private static AbstractState mergeInBlock(
+      AbstractState pState1, AbstractState pState2, Precision pPrecision) {
+    InductionState state1 = (InductionState) pState1;
+    InductionState state2 = (InductionState) pState2;
+    if (state1.isInSameBlock(state2)) {
+      state1.setMergedInto(state2);
+    }
+    return pState2;
+  }
+
+  @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return InductionState.initial(resets);
+    return InductionState.initial(resets, levelByLevel);
   }
 
   @Override

@@ -68,6 +68,10 @@ public final class InductionState
   private final boolean inInductionStep;
   private final Kind kind;
   private final boolean atLoopHead;
+
+  /** Whether the predicate analysis ends a block here although the precision does not abstract. */
+  private final boolean endsBlock;
+
   private final boolean reportsTargets;
 
   /** The loop head and its precision for all kinds except CONCRETE. */
@@ -78,9 +82,9 @@ public final class InductionState
   private final Resets resets;
 
   /**
-   * The abstraction that started the block of this state, or null in the first block. Only the
-   * abstractions of an unrolling compare it, so that they merge within a block but never cover the
-   * abstraction of another path through the loops.
+   * The state that started the block of this state, or null in the first block. Only the
+   * abstractions of an unrolling and the ends of blocks compare it, so that they merge within a
+   * block but never cover a state of another path through the loops.
    */
   private final @Nullable InductionState blockStart;
 
@@ -89,6 +93,18 @@ public final class InductionState
    * continuation ends at the bound of its precision, so it never covers a state of another one.
    */
   private final @Nullable InductionPrecision continuedPrecision;
+
+  /**
+   * The number of arrivals at loop heads since the start of the program. It only orders the
+   * exploration, so equality ignores it.
+   */
+  private final int depth;
+
+  /** Whether the exploration goes level by level over all arrivals at loop heads. */
+  private final boolean levelByLevel;
+
+  /** The state of the same block that this state was merged into, or null. */
+  private @Nullable InductionState mergedInto = null;
 
   private @LazyInit int hashCache = 0;
   private @LazyInit @Nullable PartitionKey partitionKey = null;
@@ -120,54 +136,69 @@ public final class InductionState
       boolean pInInductionStep,
       Kind pKind,
       boolean pAtLoopHead,
+      boolean pEndsBlock,
       boolean pReportsTargets,
       @Nullable CFANode pLoopHead,
       @Nullable LoopPrecision pLoopPrecision,
       Resets pResets,
       @Nullable InductionState pBlockStart,
-      @Nullable InductionPrecision pContinuedPrecision) {
+      @Nullable InductionPrecision pContinuedPrecision,
+      int pDepth,
+      boolean pLevelByLevel) {
     arrivals = pArrivals;
     abstractions = pAbstractions;
     inInductionStep = pInInductionStep;
     kind = pKind;
     atLoopHead = pAtLoopHead;
+    endsBlock = pEndsBlock;
     reportsTargets = pReportsTargets;
     loopHead = pLoopHead;
     loopPrecision = pLoopPrecision;
     resets = pResets;
     blockStart = pBlockStart;
     continuedPrecision = pContinuedPrecision;
+    depth = pDepth;
+    levelByLevel = pLevelByLevel;
   }
 
-  static InductionState initial(Resets pResets) {
+  static InductionState initial(Resets pResets, boolean pLevelByLevel) {
     return new InductionState(
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
         false,
         Kind.CONCRETE,
+        false,
         false,
         true,
         null,
         null,
         pResets,
         null,
-        null);
+        null,
+        0,
+        pLevelByLevel);
   }
 
   InductionState concrete(
-      PersistentSortedMap<Loop, Integer> pArrivals, boolean pAtLoopHead, boolean pReportsTargets) {
+      PersistentSortedMap<Loop, Integer> pArrivals,
+      boolean pAtLoopHead,
+      boolean pEndsBlock,
+      boolean pReportsTargets) {
     return new InductionState(
         pArrivals,
         abstractions,
         inInductionStep,
         Kind.CONCRETE,
         pAtLoopHead,
+        pEndsBlock,
         pReportsTargets,
         null,
         null,
         resets,
         blockStartOfSuccessors(),
-        continuedPrecision);
+        continuedPrecision,
+        pAtLoopHead ? depth + 1 : depth,
+        levelByLevel);
   }
 
   /** The base case after the split at a loop head, next to the induction start. */
@@ -181,12 +212,15 @@ public final class InductionState
         inInductionStep,
         Kind.CONCRETE,
         true,
+        false,
         pReportsTargets,
         null,
         null,
         resets,
         blockStartOfSuccessors(),
-        pPrecision);
+        pPrecision,
+        depth + 1,
+        levelByLevel);
   }
 
   InductionState abstraction(
@@ -205,12 +239,15 @@ public final class InductionState
         pStartsInductionStep || pLoopPrecision.induction(),
         pStartsInductionStep ? Kind.INDUCTION_START : Kind.ABSTRACTION,
         true,
+        false,
         pReportsTargets,
         pLoopHead,
         pLoopPrecision,
         resets,
         blockStartOfSuccessors(),
-        null);
+        null,
+        depth + 1,
+        levelByLevel);
   }
 
   InductionState cutOff(
@@ -224,21 +261,38 @@ public final class InductionState
         inInductionStep,
         Kind.CUT_OFF,
         true,
+        false,
         pReportsTargets,
         pLoopHead,
         pLoopPrecision,
         resets,
         blockStartOfSuccessors(),
-        continuedPrecision);
+        continuedPrecision,
+        depth + 1,
+        levelByLevel);
   }
 
   private @Nullable InductionState blockStartOfSuccessors() {
-    return isAbstraction() ? this : blockStart;
+    return isAbstraction() || endsBlockWithoutAbstraction() ? this : blockStart;
+  }
+
+  /** Whether the predicate analysis ends a block here although the precision does not abstract. */
+  boolean endsBlockWithoutAbstraction() {
+    return endsBlock;
   }
 
   /** Whether both states lie in the block of the same abstraction. */
   boolean isInSameBlock(InductionState pOther) {
     return blockStart == pOther.blockStart;
+  }
+
+  /** Whether this state was merged into the given state of its block. */
+  boolean wasMergedInto(InductionState pOther) {
+    return isInSameBlock(pOther) && mergedInto == pOther;
+  }
+
+  void setMergedInto(InductionState pOther) {
+    mergedInto = pOther;
   }
 
   Kind getKind() {
@@ -301,7 +355,9 @@ public final class InductionState
 
   @Override
   public Optional<Boolean> shouldComputeAbstraction() {
-    return atLoopHead ? Optional.of(isAbstraction()) : Optional.empty();
+    return atLoopHead
+        ? Optional.of(isAbstraction() || endsBlockWithoutAbstraction())
+        : Optional.empty();
   }
 
   @Override
@@ -343,6 +399,9 @@ public final class InductionState
 
   @Override
   public int getDeepestIteration() {
+    if (levelByLevel) {
+      return depth;
+    }
     int deepest = 0;
     for (int count : arrivals.values()) {
       deepest = Math.max(deepest, count);
@@ -406,6 +465,7 @@ public final class InductionState
         && inInductionStep == other.inInductionStep
         && kind == other.kind
         && atLoopHead == other.atLoopHead
+        && endsBlock == other.endsBlock
         && reportsTargets == other.reportsTargets
         && arrivals.equals(other.arrivals)
         && abstractions.equals(other.abstractions)
@@ -424,6 +484,7 @@ public final class InductionState
               inInductionStep,
               kind,
               atLoopHead,
+              endsBlock,
               reportsTargets,
               loopHead,
               loopPrecision,

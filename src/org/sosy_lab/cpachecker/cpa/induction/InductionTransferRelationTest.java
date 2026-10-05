@@ -64,8 +64,9 @@ public class InductionTransferRelationTest {
             .filter(e -> loop.getLoopNodes().contains(e.getSuccessor()))
             .first()
             .get();
-    transferRelation = new InductionTransferRelation(loopStructure, true, false);
-    initial = InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of(), false));
+    transferRelation = new InductionTransferRelation(loopStructure, true, false, false);
+    initial =
+        InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of(), false), false);
   }
 
   private InductionPrecision precision(int pK, boolean pInduction, int pDescribedAbstractions) {
@@ -133,7 +134,7 @@ public class InductionTransferRelationTest {
             beforeSecondArrival,
             precision,
             back,
-            new InductionTransferRelation(loopStructure, false, false));
+            new InductionTransferRelation(loopStructure, false, false, false));
     assertThat(inductionStart.isInductionStart()).isTrue();
   }
 
@@ -218,7 +219,7 @@ public class InductionTransferRelationTest {
     }
 
     Collection<InductionState> successors(InductionState pState, InductionPrecision pPrecision) {
-      return new InductionTransferRelation(loopStructure, false, false)
+      return new InductionTransferRelation(loopStructure, false, false, false)
           .getAbstractSuccessorsForEdge(pState, pPrecision, edge);
     }
 

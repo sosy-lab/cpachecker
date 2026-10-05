@@ -39,6 +39,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
   private final LoopStructure loopStructure;
   private final boolean continueBaseCase;
   private final boolean exploresNothing;
+  private final boolean bmcBlockPerIteration;
 
   final StatCounter abstractions = new StatCounter("Abstractions at loop heads");
   final StatCounter inductionStarts = new StatCounter("Induction starts");
@@ -48,10 +49,14 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
   final StatCounter suppressedTargets = new StatCounter("Targets not reported in induction step");
 
   InductionTransferRelation(
-      LoopStructure pLoopStructure, boolean pContinueBaseCase, boolean pExploresNothing) {
+      LoopStructure pLoopStructure,
+      boolean pContinueBaseCase,
+      boolean pExploresNothing,
+      boolean pBmcBlockPerIteration) {
     loopStructure = pLoopStructure;
     continueBaseCase = pContinueBaseCase;
     exploresNothing = pExploresNothing;
+    bmcBlockPerIteration = pBmcBlockPerIteration;
   }
 
   @Override
@@ -70,7 +75,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
             ? ImmutableSet.of()
             : loopStructure.getLoopsForLoopHead(successor);
     if (loops.isEmpty()) {
-      return ImmutableList.of(state.concrete(state.getArrivals(), false, reportsTargets));
+      return ImmutableList.of(state.concrete(state.getArrivals(), false, false, reportsTargets));
     }
 
     PersistentSortedMap<Loop, Integer> arrivals = state.getArrivals();
@@ -83,7 +88,11 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     if (boundedLoop == null) {
-      InductionState concrete = state.concrete(arrivals, true, reportsTargets);
+      // in BMC, where no loop of the head abstracts, as native IMC and ISMC end a block here
+      boolean endsBlock =
+          bmcBlockPerIteration
+              && loops.stream().allMatch(l -> precision.get(l).describedAbstractions() == 0);
+      InductionState concrete = state.concrete(arrivals, true, endsBlock, reportsTargets);
       @Nullable InductionState start =
           earlyInductionStep(state, precision, loops, successor, reportsTargets);
       return start == null ? ImmutableList.of(concrete) : ImmutableList.of(concrete, start);
