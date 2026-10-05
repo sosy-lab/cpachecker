@@ -226,7 +226,7 @@ public class ExpressionTransformer
   @Override
   public Collection<SymbolicExpressionAndSMGState> visit(
       final CTypeIdExpression pIastTypeIdExpression) throws CPATransferException {
-    throw new AssertionError("Type id expression invalid for constraint");
+    return evaluateToValue(pIastTypeIdExpression);
   }
 
   @Override
