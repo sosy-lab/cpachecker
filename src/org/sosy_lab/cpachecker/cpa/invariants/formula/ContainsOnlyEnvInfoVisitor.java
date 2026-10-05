@@ -13,6 +13,8 @@ class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Bool
 
   private final CollectVarsVisitor<T> collectVarsVisitor = new CollectVarsVisitor<>();
 
+  private final ContainsVisitor<T> containsVisitor = new ContainsVisitor<>();
+
   @Override
   public Boolean visit(Equal<T> pEqual) {
     return isPushedExactly(pEqual.getOperand1(), pEqual.getOperand2());
@@ -25,11 +27,19 @@ class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Bool
 
   /**
    * Pushing a relation onto the environment yields exactly the values that satisfy it only if its
-   * single variable occurs on one side, not e.g. in {@code INT_MAX - a < a}.
+   * single variable occurs on one side (not e.g. in {@code INT_MAX - a < a}) and not in the
+   * denominator of a division, which truncates.
    */
   private boolean isPushedExactly(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return pOperand1.accept(collectVarsVisitor).size() + pOperand2.accept(collectVarsVisitor).size()
-        == 1;
+            == 1
+        && !pOperand1.accept(containsVisitor, this::isDivisionByVariable)
+        && !pOperand2.accept(containsVisitor, this::isDivisionByVariable);
+  }
+
+  private boolean isDivisionByVariable(NumeralFormula<T> pFormula) {
+    return pFormula instanceof Divide<T> divide
+        && !divide.getDenominator().accept(collectVarsVisitor).isEmpty();
   }
 
   @Override

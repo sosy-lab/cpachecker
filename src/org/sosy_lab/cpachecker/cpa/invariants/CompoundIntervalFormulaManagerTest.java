@@ -54,6 +54,24 @@ public class CompoundIntervalFormulaManagerTest {
   }
 
   @Test
+  public void testDefinitelyImpliesDivision() {
+    // fails for x = -9
+    assertThat(
+            fmgr.definitelyImplies(
+                xInRange(-12, -9), fmgr.equal(fmgr.divide(x, constant(4)), constant(-3)), true))
+        .isFalse();
+    // fails for x = 3
+    assertThat(
+            fmgr.definitelyImplies(
+                xInRange(3, 7), fmgr.lessThan(fmgr.divide(constant(10), x), constant(2)), true))
+        .isFalse();
+    assertThat(
+            fmgr.definitelyImplies(
+                xInRange(-15, -12), fmgr.equal(fmgr.divide(x, constant(4)), constant(-3)), true))
+        .isTrue();
+  }
+
+  @Test
   public void testDefinitelyImpliesSingleOccurrence() {
     assertThat(
             fmgr.definitelyImplies(

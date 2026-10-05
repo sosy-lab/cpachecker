@@ -186,6 +186,11 @@ class PushValueToEnvironmentVisitor
     return getCompoundIntervalManager(pConstant).doIntersect(pConstant.getValue(), pParameter);
   }
 
+  /**
+   * C division truncates towards zero: {@code n / d == q} means {@code n = q * d + r} with {@code
+   * |r| < |d|} and {@code r} having the sign of {@code n}, and {@code |n| / (|q| + 1) < |d| <= |n|
+   * / |q|}.
+   */
   @Override
   public Boolean visit(Divide<CompoundInterval> pDivide, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
@@ -199,20 +204,38 @@ class PushValueToEnvironmentVisitor
     CompoundInterval leftValue = evaluate(pDivide.getNumerator());
     CompoundInterval rightValue = evaluate(pDivide.getDenominator());
 
-    // Determine the numerator but consider integer division
+    // Determine the numerator: q * d widened by the remainder
+    CompoundInterval signedDenominatorBound =
+        cim.add(rightValue, cim.negate(rightValue.signum())); // sign(d) * (|d| - 1)
+    CompoundInterval remainder =
+        cim.intersect(
+            cim.span(signedDenominatorBound, cim.negate(signedDenominatorBound)),
+            cim.singleton(BigInteger.ZERO).extendToMaxValue()); // [0, |d| - 1]
     CompoundInterval computedLeftValue = cim.multiply(parameter, rightValue);
     for (CompoundInterval interval : computedLeftValue.splitIntoIntervals()) {
+      // the remainder has the sign of n, which is that of q * d unless q is 0
+      CompoundInterval remainderSign =
+          interval.contains(BigInteger.ZERO) ? leftValue.signum() : interval.signum();
       CompoundInterval borderA = interval;
-      CompoundInterval borderB =
-          cim.add(borderA, cim.add(rightValue, cim.negate(rightValue.signum())));
+      CompoundInterval borderB = cim.add(borderA, cim.multiply(remainder, remainderSign));
       computedLeftValue = cim.union(computedLeftValue, cim.span(borderA, borderB));
     }
 
     CompoundInterval pushLeftValue = cim.intersect(leftValue, computedLeftValue);
-    CompoundInterval pushRightValue =
-        parameter.isSingleton() && parameter.contains(BigInteger.ZERO)
-            ? cim.allPossibleValues()
-            : cim.divide(leftValue, parameter);
+
+    // Determine the denominator: between n / q and, as |q| + 1 <= 2 * |q|, half of it
+    CompoundInterval pushRightValue;
+    if (parameter.contains(BigInteger.ZERO)) {
+      pushRightValue = cim.allPossibleValues();
+    } else {
+      CompoundInterval two = cim.singleton(2);
+      pushRightValue = cim.bottom();
+      for (CompoundInterval quotient : parameter.splitIntoIntervals()) {
+        CompoundInterval border = cim.divide(leftValue, quotient);
+        pushRightValue = cim.union(pushRightValue, cim.span(border, cim.divide(border, two)));
+      }
+    }
+
     if (!pDivide.getNumerator().accept(this, pushLeftValue)
         || !pDivide.getDenominator().accept(this, pushRightValue)) {
       return false;
