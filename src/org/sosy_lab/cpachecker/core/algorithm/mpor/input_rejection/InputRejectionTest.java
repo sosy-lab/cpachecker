@@ -47,9 +47,9 @@ public class InputRejectionTest {
   }
 
   /**
-   * Tests if {@link Sequentialization#tryBuildProgramString(MPOROptions, CFA,
-   * SequentializationUtils)} throws a {@link UnsupportedCodeException} when invoked with the
-   * program in {@code pInputFilePath}.
+   * Tests if {@link Sequentialization#tryBuildProgram(MPOROptions, CFA, SequentializationUtils)}
+   * throws a {@link UnsupportedCodeException} when invoked with the program in {@code
+   * pInputFilePath}.
    */
   private void testExpectedRejectionWhenBuildingProgram(
       MPOROptions pOptions,
