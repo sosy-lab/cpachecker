@@ -21,7 +21,8 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,9 @@ public final class ImcRefiner extends InductionRefiner {
    * Whether an interpolation failed also in the form of native IMC, which then continues as BMC.
    */
   private boolean nativeInterpolationFailed = false;
+
+  /** Whether the next refinement interpolates as native IMC, after k increased for it. */
+  private boolean interpolatesAsNativeImc = false;
 
   private final StatCounter widenings = new StatCounter("Widened abstractions");
   private final StatCounter restarts = new StatCounter("Restarts with a larger k");
@@ -160,7 +164,7 @@ public final class ImcRefiner extends InductionRefiner {
       return Optional.empty();
     }
 
-    Map<ARGState, List<ARGState>> chains = new HashMap<>();
+    Map<ARGState, List<ARGState>> chains = new LinkedHashMap<>();
     ListMultimap<ARGState, ARGState> targetsBelow = ArrayListMultimap.create();
     for (ARGState target : abstractTargets) {
       List<ARGState> chain = abstractionChain(target);
@@ -169,8 +173,12 @@ public final class ImcRefiner extends InductionRefiner {
         targetsBelow.put(state, target);
       }
     }
+    if (interpolatesAsNativeImc) {
+      interpolatesAsNativeImc = false;
+      refineAsNativeImc(pReached, chains, targetsBelow);
+    }
     for (ARGState target : abstractTargets) {
-      if (!target.isDestroyed()) {
+      if (!nativeInterpolationFailed && !target.isDestroyed()) {
         refine(pReached, target, chains, targetsBelow);
       }
       if (nativeInterpolationFailed) {
@@ -218,7 +226,7 @@ public final class ImcRefiner extends InductionRefiner {
           interpolant = interpolate(chain, i, ownSuffix);
         }
         if (bmcFallback && failedInterpolations() > failures) {
-          refineAsNativeImc(pReached, pTarget, pChains, pTargetsBelow);
+          refineAsNativeImc(pReached, pChains, pTargetsBelow);
           return;
         }
         if (interpolant.isPresent() && widen(pReached, abstraction, interpolant.orElseThrow())) {
@@ -230,26 +238,31 @@ public final class ImcRefiner extends InductionRefiner {
   }
 
   /**
-   * After a failed interpolation, interpolate as native IMC does: the path from the start through
-   * the first loop iteration against the rest of the paths. Native IMC continues as BMC only if
-   * this interpolation fails as well, or if no block ends after the first loop iteration.
+   * After a failed interpolation, interpolate as native IMC does on the path to the deepest target:
+   * the path from the start through the first loop iteration against the rest of the paths to the
+   * targets. Native IMC continues as BMC only if this interpolation fails as well, or if no block
+   * ends after the first loop iteration. If the ARG ends after the first iteration, native IMC
+   * would unroll another one, so k increases, and the next refinement interpolates in this way.
    */
   private void refineAsNativeImc(
       ARGReachedSet pReached,
-      ARGState pTarget,
       Map<ARGState, List<ARGState>> pChains,
       ListMultimap<ARGState, ARGState> pTargetsBelow)
       throws CPAException, InterruptedException, SolverException {
-    List<ARGState> chain = pChains.get(pTarget);
-    int first = chain.indexOf(firstLoopHeadAbstraction(pTarget).orElseThrow());
+    ARGState deepest =
+        pChains.keySet().stream()
+            .filter(t -> !t.isDestroyed())
+            .max(Comparator.comparingInt(t -> pChains.get(t).size()))
+            .orElseThrow();
+    List<ARGState> chain = pChains.get(deepest);
+    int first = chain.indexOf(firstLoopHeadAbstraction(deepest).orElseThrow());
     int k = inductionStateOf(chain.get(first)).getLoopPrecision().k();
     // the abstraction at the second arrival at the loop head
     int position = first + 1 - k;
     if (k <= 1 && position < chain.size() - 1) {
       List<BooleanFormula> suffixes = new ArrayList<>();
-      suffixes.add(suffixOf(chain, position));
       for (ARGState target : pTargetsBelow.get(chain.get(position))) {
-        if (target != pTarget && !target.isDestroyed()) {
+        if (!target.isDestroyed()) {
           suffixes.add(suffixOf(pChains.get(target), position));
         }
       }
@@ -265,6 +278,11 @@ public final class ImcRefiner extends InductionRefiner {
         }
         return;
       }
+    } else if (k == 0) {
+      // The second arrival is covered by the first, but native IMC interpolates only after it.
+      interpolatesAsNativeImc = true;
+      restartWithLargerK(pReached, chain);
+      return;
     }
     nativeInterpolationFailed = true;
   }
