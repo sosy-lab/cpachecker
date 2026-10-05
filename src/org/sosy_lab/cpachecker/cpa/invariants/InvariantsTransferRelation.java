@@ -578,16 +578,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (usePointerAliasStrengthening) {
-      return pointerAliasStrengthening(pElement, pOtherElements, pCfaEdge, state);
+      return pointerAliasStrengthening(pOtherElements, pCfaEdge, state);
     }
-    return Collections.singleton(pElement);
+    return Collections.singleton(state);
   }
 
   private Collection<? extends AbstractState> pointerAliasStrengthening(
-      AbstractState pElement,
-      Iterable<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge,
-      InvariantsState state)
+      Iterable<AbstractState> pOtherElements, CFAEdge pCfaEdge, InvariantsState state)
       throws UnrecognizedCodeException {
     CFAEdge edge = pCfaEdge;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
@@ -654,7 +651,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
       return Collections.singleton(result);
     }
-    return Collections.singleton(pElement);
+    return Collections.singleton(state);
   }
 
   private InvariantsState clearAddressedVariables(InvariantsState pState) {
