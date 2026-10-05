@@ -73,7 +73,8 @@ public final class SequentializationMapping {
 
   /**
    * Returns the value in the internal substitute-to-original mapping for the fuzzy key {@code
-   * pSubstitute}, but without checking whether the variable is global and {@link CType}.
+   * pSubstitute}, but without checking whether the variable is global, {@link CInitializer} and
+   * {@link CType}, because of all of these an be changed by the sequentialization.
    */
   public Optional<CSimpleDeclaration> getOriginalDeclarationBySubstitute(
       CSimpleDeclaration pSubstitute) {
@@ -84,9 +85,6 @@ public final class SequentializationMapping {
       if (key.getName().equals(substitute.getName())
           && key.getOrigName().equals(substitute.getOrigName())
           && key.getQualifiedName().equals(substitute.getQualifiedName())
-          // prevent NPE
-          && (key.getInitializer() != null
-              && key.getInitializer().equals(substitute.getInitializer()))
           && key.hasThreadLocalStorage() == substitute.hasThreadLocalStorage()
           && key.getCStorageClass().equals(substitute.getCStorageClass())) {
         return Optional.of(entry.getValue());
