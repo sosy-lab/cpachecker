@@ -228,20 +228,25 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     BooleanFormula oneStep = fmgr.instantiate(pFormula, pSSAMap);
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
-      supportingInvariant =
-          instantiateWithNewIndices(
-              supportingInvariant,
-              PrevStateIndices.INDEX_S,
-              CurrStateIndices.INDEX_S_PRIME,
-              pMapPrevToCurrVars);
-      oneStep = bfmgr.and(oneStep, supportingInvariant);
-      supportingInvariant =
-          instantiateWithNewIndices(
-              supportingInvariant,
-              PrevStateIndices.INDEX_S,
-              CurrStateIndices.INDEX_S,
-              pMapPrevToCurrVars);
-      oneStep = bfmgr.and(oneStep, supportingInvariant);
+      // Both instantiations have to start from the uninstantiated supporting invariant
+      // I(s')
+      oneStep =
+          bfmgr.and(
+              oneStep,
+              instantiateWithNewIndices(
+                  supportingInvariant,
+                  PrevStateIndices.INDEX_S,
+                  CurrStateIndices.INDEX_S_PRIME,
+                  pMapPrevToCurrVars));
+      // I(s)
+      oneStep =
+          bfmgr.and(
+              oneStep,
+              instantiateWithNewIndices(
+                  supportingInvariant,
+                  PrevStateIndices.INDEX_S,
+                  CurrStateIndices.INDEX_S,
+                  pMapPrevToCurrVars));
 
       oneStep =
           bfmgr.and(

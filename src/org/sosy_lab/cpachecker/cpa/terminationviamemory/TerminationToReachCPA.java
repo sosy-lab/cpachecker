@@ -27,6 +27,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker.InvariantCheckResult;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 
 /**
  * CPA for termination analysis of C programs. Abstract states represent a memory, where we can
@@ -171,7 +174,22 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         WitnessInvariantsExtractor invariantsExtractor =
             new WitnessInvariantsExtractor(
                 configuration, logger, cfa, shutdownNotifier, witnessPath);
-        invariants.addAll(invariantsExtractor.extractInvariantsFromReachedSet());
+        Set<ExpressionTreeLocationInvariant> witnessInvariants =
+            invariantsExtractor.extractInvariantsFromReachedSet();
+        // The supporting invariants are used to strengthen the checks of the transition
+        // invariants, so they have to be proven to be invariants of the program first.
+        if (witnessInvariants.stream()
+            .anyMatch(
+                invariant -> !(invariant instanceof ExpressionTreeLocationTransitionInvariant))) {
+          InvariantCheckResult result =
+              SupportingInvariantsChecker.checkInvariants(
+                  witnessPath, cfa, logger, shutdownNotifier);
+          if (result != InvariantCheckResult.VALID) {
+            throw new CPAException(
+                "The supporting invariants of the witness could not be confirmed (" + result + ")");
+          }
+        }
+        invariants.addAll(witnessInvariants);
       }
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);

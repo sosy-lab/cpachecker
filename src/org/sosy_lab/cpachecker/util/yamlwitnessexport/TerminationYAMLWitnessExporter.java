@@ -75,6 +75,18 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   }
 
   /**
+   * Export a YAML witness (version 2.1) with the given invariants into the given file, independent
+   * of the option witness.yamlexporter.terminationWitness.
+   *
+   * @param pInvariants the invariants of the witness
+   * @param pPath the file into which the witness is exported
+   */
+  public void exportToFile(ImmutableList<AbstractInvariantEntry> pInvariants, Path pPath)
+      throws IOException {
+    constructWitness(pInvariants, pPath);
+  }
+
+  /**
    * Export YAML witness from termination arguments in form of transition invariants and supporting
    * invariants. Termination property is supported only by witnesses of version 2.1 and higher.
    *
