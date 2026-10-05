@@ -15,12 +15,21 @@ class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Bool
 
   @Override
   public Boolean visit(Equal<T> pEqual) {
-    return pEqual.accept(collectVarsVisitor).size() == 1;
+    return isPushedExactly(pEqual.getOperand1(), pEqual.getOperand2());
   }
 
   @Override
   public Boolean visit(LessThan<T> pLessThan) {
-    return pLessThan.accept(collectVarsVisitor).size() == 1;
+    return isPushedExactly(pLessThan.getOperand1(), pLessThan.getOperand2());
+  }
+
+  /**
+   * Pushing a relation onto the environment yields exactly the values that satisfy it only if its
+   * single variable occurs on one side, not e.g. in {@code INT_MAX - a < a}.
+   */
+  private boolean isPushedExactly(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
+    return pOperand1.accept(collectVarsVisitor).size() + pOperand2.accept(collectVarsVisitor).size()
+        == 1;
   }
 
   @Override
