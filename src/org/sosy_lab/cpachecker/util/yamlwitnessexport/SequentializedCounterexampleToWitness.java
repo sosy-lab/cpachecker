@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * dropped.
  */
 @Options(prefix = "witness.yamlexporter")
-public class SequentializedCounterexampleToWitness extends AbstractCounterexampleToWitness {
+public class SequentializedCounterexampleToWitness extends CounterexampleToWitness {
 
   /** Which waypoints to export for a counterexample of a sequentialized program. */
   public enum SequentializedWaypoints {

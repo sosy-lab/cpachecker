@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractCounterexampleToWitness.WitnessPathStep;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness.WitnessPathStep;
 
 /** Tests that steps of a sequentialized program are mapped back to the concurrent input program. */
 public class SequentializedCounterexampleToWitnessTest {
@@ -133,7 +133,7 @@ public class SequentializedCounterexampleToWitnessTest {
         assertThat(reachErrorLines)
             .contains(originalEdge.getFileLocation().getStartingLineInOrigin());
         assertThat(step.orElseThrow().currentThread())
-            .isNotEqualTo(Optional.of(AbstractCounterexampleToWitness.MAIN_THREAD_NAME));
+            .isNotEqualTo(Optional.of(CounterexampleToWitness.MAIN_THREAD_NAME));
         foundTarget = true;
       }
     }

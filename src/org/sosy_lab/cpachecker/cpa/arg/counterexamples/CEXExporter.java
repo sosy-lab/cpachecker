@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.CounterexampleToSvLibWitnessExport;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedCounterexampleToWitness;
@@ -122,7 +121,7 @@ public class CEXExporter {
   private final CEXExportOptions options;
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
-  private final AbstractCounterexampleToWitness cexToWitness;
+  private final CounterexampleToWitness cexToWitness;
   private final CounterexampleToSvLibWitnessExport cexToSvLibWitness;
   private final PathTemplate svLibWitnessOutputPath;
   private final ExtendedWitnessExporter extendedWitnessExporter;
@@ -187,7 +186,7 @@ public class CEXExporter {
    * Returns the exporter for the analyzed CFA. A CFA created by sequentializing a concurrent
    * program needs one that maps the counterexample back to the input program first.
    */
-  private static AbstractCounterexampleToWitness createCexToWitness(
+  private static CounterexampleToWitness createCexToWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
 
