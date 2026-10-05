@@ -18,6 +18,7 @@ import java.util.Comparator;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition.FunctionCallMerging;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -31,7 +32,7 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
   private final int mergeLimit;
   private int id;
 
-  private final boolean mergeFunctionCalls;
+  private final FunctionCallMerging functionCallMerging;
 
   private record BlockScope(
       ImmutableSet<String> predecessors, ImmutableSet<String> successors, CFANode finalLocation) {}
@@ -42,11 +43,25 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
       int pMergeLimit,
       Comparator<BlockNode> pSort,
       boolean pMergeFunctionCalls) {
+    this(
+        pDecomposition,
+        pTargetNumber,
+        pMergeLimit,
+        pSort,
+        FunctionCallMerging.of(pMergeFunctionCalls));
+  }
+
+  public HorizontalMergeDecomposition(
+      DssBlockDecomposition pDecomposition,
+      long pTargetNumber,
+      int pMergeLimit,
+      Comparator<BlockNode> pSort,
+      FunctionCallMerging pFunctionCallMerging) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     mergeLimit = pMergeLimit;
     sort = pSort;
-    mergeFunctionCalls = pMergeFunctionCalls;
+    functionCallMerging = pFunctionCallMerging;
   }
 
   @Override
@@ -95,9 +110,12 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
         continue;
       }
 
-      if (!mergeFunctionCalls
-          && MergeBlockNodesDecomposition.containCallsOrReturnsOfSameFunction(
-              blockScopes.get(blockScope))) {
+      Collection<BlockNode> candidates = blockScopes.get(blockScope);
+      if (!MergeBlockNodesDecomposition.mayMerge(
+          functionCallMerging,
+          candidates.iterator().next().getInitialLocation(),
+          blockScope.finalLocation(),
+          candidates)) {
         continue;
       }
 

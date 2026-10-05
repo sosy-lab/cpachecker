@@ -17,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition.FunctionCallMerging;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -27,17 +28,25 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
   private final Comparator<BlockNode> sort;
   private int id;
 
-  private final boolean mergeFunctionCalls;
+  private final FunctionCallMerging functionCallMerging;
 
   public VerticalMergeDecomposition(
       DssBlockDecomposition pDecomposition,
       long pTargetNumber,
       Comparator<BlockNode> pSort,
       boolean pMergeFunctionCalls) {
+    this(pDecomposition, pTargetNumber, pSort, FunctionCallMerging.of(pMergeFunctionCalls));
+  }
+
+  public VerticalMergeDecomposition(
+      DssBlockDecomposition pDecomposition,
+      long pTargetNumber,
+      Comparator<BlockNode> pSort,
+      FunctionCallMerging pFunctionCallMerging) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;
-    mergeFunctionCalls = pMergeFunctionCalls;
+    functionCallMerging = pFunctionCallMerging;
   }
 
   @Override
@@ -87,9 +96,11 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
           String uniquePredecessorID = Iterables.getOnlyElement(successor.getPredecessorIds());
           assert uniquePredecessorID.equals(node.getId());
 
-          if (!mergeFunctionCalls
-              && MergeBlockNodesDecomposition.containCallsOrReturnsOfSameFunction(
-                  ImmutableList.of(successor, node))) {
+          if (!MergeBlockNodesDecomposition.mayMerge(
+              functionCallMerging,
+              node.getInitialLocation(),
+              successor.getFinalLocation(),
+              ImmutableList.of(node, successor))) {
             continue;
           }
           if (MergeBlockNodesDecomposition.passesFinalLocationEarly(

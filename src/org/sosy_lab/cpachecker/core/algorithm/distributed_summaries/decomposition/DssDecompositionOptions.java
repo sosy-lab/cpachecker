@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition.FunctionCallMerging;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.InliningDecomposition;
@@ -88,6 +89,17 @@ public class DssDecompositionOptions {
       description = "Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.")
   private boolean mergeBranchBoundaries = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Which blocks with calls or returns of the same function merging may create. ALWAYS"
+              + " merges regardless of calls; a block can then leave the function it starts in"
+              + " towards several call sites, chosen by the calling context of the states it"
+              + " receives. UNIQUE_RETURNS creates no such block, which analyses whose conditions"
+              + " carry no calling context need. NEVER creates no block with two calls or two"
+              + " returns of the same function.")
+  private FunctionCallMerging mergeFunctionCalls = FunctionCallMerging.ALWAYS;
+
   private final BlockOperator blockOperator;
 
   public DssDecompositionOptions(Configuration pConfiguration, CFA pCFA)
@@ -124,7 +136,7 @@ public class DssDecompositionOptions {
                   largestHorizontalMerge,
                   Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
                   allowSingleBlockDecompositionWhenMerging,
-                  true);
+                  mergeFunctionCalls);
           case INLINING_DECOMPOSITION ->
               new MergeBlockNodesDecomposition(
                   new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd)),
@@ -132,10 +144,12 @@ public class DssDecompositionOptions {
                   largestHorizontalMerge,
                   Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
                   allowSingleBlockDecompositionWhenMerging,
-                  true);
+                  mergeFunctionCalls);
           case NO_DECOMPOSITION -> new SingleBlockDecomposition();
         };
-    return mergeBranchBoundaries ? new BranchBoundaryMergeDecomposition(result) : result;
+    return mergeBranchBoundaries
+        ? new BranchBoundaryMergeDecomposition(result, mergeFunctionCalls)
+        : result;
   }
 
   public Path getBlockCFAFile() {

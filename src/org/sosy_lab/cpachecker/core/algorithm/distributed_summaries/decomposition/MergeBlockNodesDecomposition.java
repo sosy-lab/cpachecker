@@ -11,12 +11,20 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -36,12 +44,28 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
       int pHorizontalMergeLimit,
       Comparator<BlockNode> pSort,
       boolean pAllowSingleBlockDecomposition,
-      boolean mergeFunctionCalls) {
+      boolean pMergeFunctionCalls) {
+    this(
+        pDecomposition,
+        pTargetNumber,
+        pHorizontalMergeLimit,
+        pSort,
+        pAllowSingleBlockDecomposition,
+        FunctionCallMerging.of(pMergeFunctionCalls));
+  }
+
+  public MergeBlockNodesDecomposition(
+      DssBlockDecomposition pDecomposition,
+      long pTargetNumber,
+      int pHorizontalMergeLimit,
+      Comparator<BlockNode> pSort,
+      boolean pAllowSingleBlockDecomposition,
+      FunctionCallMerging pFunctionCallMerging) {
     horizontalMerger =
         new HorizontalMergeDecomposition(
-            pDecomposition, pTargetNumber, pHorizontalMergeLimit, pSort, mergeFunctionCalls);
+            pDecomposition, pTargetNumber, pHorizontalMergeLimit, pSort, pFunctionCallMerging);
     verticalMerger =
-        new VerticalMergeDecomposition(pDecomposition, pTargetNumber, pSort, mergeFunctionCalls);
+        new VerticalMergeDecomposition(pDecomposition, pTargetNumber, pSort, pFunctionCallMerging);
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;
@@ -68,6 +92,108 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
     }
     return new BlockGraph(ImmutableSet.copyOf(nodes));
   }
+
+  /** Which blocks with calls or returns of the same function merging may create. */
+  public enum FunctionCallMerging {
+    /** Merging ignores calls and returns. */
+    ALWAYS,
+    /**
+     * Merging creates no block that can leave the function it starts in towards two different call
+     * sites, see {@link #returnsToSeveralCallSites}. An analysis whose conditions do not carry a
+     * calling context needs this: from the start of such a block, it could return from one call to
+     * the call site of another.
+     */
+    UNIQUE_RETURNS,
+    /** Merging creates no block with two calls or two returns of the same function. */
+    NEVER;
+
+    static FunctionCallMerging of(boolean pMergeFunctionCalls) {
+      return pMergeFunctionCalls ? ALWAYS : NEVER;
+    }
+  }
+
+  /**
+   * Whether merging may create a block with the given initial and final location from the given
+   * blocks.
+   */
+  static boolean mayMerge(
+      FunctionCallMerging pMerging,
+      CFANode pInitialLocation,
+      CFANode pFinalLocation,
+      Collection<BlockNode> pBlocks) {
+    return switch (pMerging) {
+      case ALWAYS -> true;
+      case UNIQUE_RETURNS -> !returnsToSeveralCallSites(pInitialLocation, pFinalLocation, pBlocks);
+      case NEVER -> !containCallsOrReturnsOfSameFunction(pBlocks);
+    };
+  }
+
+  /**
+   * Whether a block made of the given blocks can return to two different call sites from a function
+   * it did not call itself. The paths of the block start at its initial location and end at its
+   * final location. A return edge continues a path that entered the function through a call edge of
+   * the block only towards that call. Returns out of the function the block starts in, and out of
+   * the functions these returns lead to, are not determined by the block: these are compared level
+   * by level, so the block returns to several call sites if two paths take different return edges
+   * at the same level.
+   */
+  public static boolean returnsToSeveralCallSites(
+      CFANode pInitialLocation, CFANode pFinalLocation, Collection<BlockNode> pBlocks) {
+    Set<CFAEdge> edges =
+        FluentIterable.from(pBlocks).transformAndConcat(BlockNode::getEdges).toSet();
+    Map<Integer, FunctionSummaryEdge> returnPerLevel = new HashMap<>();
+    // a point is a location, the calls entered in the block that are still open, and the level
+    record Point(CFANode location, ImmutableList<FunctionSummaryEdge> calls, int level) {}
+    Set<Point> reached = new HashSet<>();
+    Deque<Point> waitlist = new ArrayDeque<>();
+    Point start = new Point(pInitialLocation, ImmutableList.of(), 0);
+    waitlist.push(start);
+    reached.add(start);
+    while (!waitlist.isEmpty()) {
+      Point point = waitlist.pop();
+      if (point != start && point.location().equals(pFinalLocation)) {
+        continue;
+      }
+      for (CFAEdge edge : point.location().getLeavingEdges()) {
+        if (!edges.contains(edge)) {
+          continue;
+        }
+        ImmutableList<FunctionSummaryEdge> calls = point.calls();
+        int level = point.level();
+        if (edge instanceof FunctionCallEdge call) {
+          if (calls.size() >= MAX_OPEN_CALLS) {
+            // only recursion opens that many calls, and then the context is ambiguous anyway
+            return true;
+          }
+          calls =
+              ImmutableList.<FunctionSummaryEdge>builder()
+                  .addAll(calls)
+                  .add(call.getSummaryEdge())
+                  .build();
+        } else if (edge instanceof FunctionReturnEdge returnEdge) {
+          if (calls.isEmpty()) {
+            FunctionSummaryEdge previous =
+                returnPerLevel.putIfAbsent(level, returnEdge.getSummaryEdge());
+            if (previous != null && !previous.equals(returnEdge.getSummaryEdge())) {
+              return true;
+            }
+            level++;
+          } else if (calls.getLast().equals(returnEdge.getSummaryEdge())) {
+            calls = calls.subList(0, calls.size() - 1);
+          } else {
+            continue;
+          }
+        }
+        Point successor = new Point(edge.getSuccessor(), calls, level);
+        if (reached.add(successor)) {
+          waitlist.push(successor);
+        }
+      }
+    }
+    return false;
+  }
+
+  private static final int MAX_OPEN_CALLS = 100;
 
   public static boolean containCallsOrReturnsOfSameFunction(Iterable<BlockNode> toMerge) {
 

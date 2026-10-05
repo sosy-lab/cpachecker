@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,6 +22,7 @@ import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition.FunctionCallMerging;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -79,10 +81,21 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
  */
 final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
   private final DssBlockDecomposition child;
+  private final FunctionCallMerging functionCallMerging;
   private int nextId;
 
   BranchBoundaryMergeDecomposition(DssBlockDecomposition pChild) {
+    this(pChild, FunctionCallMerging.ALWAYS);
+  }
+
+  /**
+   * @param pFunctionCallMerging which compositions and merges with calls or returns of the same
+   *     function are allowed, see {@link FunctionCallMerging}
+   */
+  BranchBoundaryMergeDecomposition(
+      DssBlockDecomposition pChild, FunctionCallMerging pFunctionCallMerging) {
     child = pChild;
+    functionCallMerging = pFunctionCallMerging;
   }
 
   @Override
@@ -106,7 +119,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
                         replace(n.getSuccessorIds(), renamed)))
             .toList();
     HorizontalMergeDecomposition horizontal =
-        new HorizontalMergeDecomposition(child, 2, -1, null, true);
+        new HorizontalMergeDecomposition(child, 2, -1, null, functionCallMerging);
     for (int round = 0; round < 1000; round++) {
       if (Thread.interrupted()) {
         throw new InterruptedException();
@@ -156,6 +169,13 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
       boolean valid = true;
       for (BlockNode p : incoming) {
         for (BlockNode s : outgoing) {
+          if (!MergeBlockNodesDecomposition.mayMerge(
+              functionCallMerging,
+              p.getInitialLocation(),
+              s.getFinalLocation(),
+              ImmutableList.of(p, s))) {
+            valid = false;
+          }
           for (CFANode node : p.getNodes()) {
             if (s.getNodes().contains(node)
                 && node != boundary

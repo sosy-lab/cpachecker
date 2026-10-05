@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 import java.io.IOException;
 import java.util.Comparator;
@@ -22,6 +23,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition.FunctionCallMerging;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
@@ -93,6 +95,36 @@ public class MergeBlockNodesDecompositionTest {
               block.getEdges().stream()
                   .filter(e -> e.getPredecessor().equals(block.getFinalLocation())))
           .isEmpty();
+    }
+  }
+
+  /**
+   * With {@link FunctionCallMerging#UNIQUE_RETURNS}, no block returns from the function it starts
+   * in towards two call sites, also after merging branch boundaries.
+   */
+  @Test
+  public void testUniqueReturnsAfterInliningAndBranchBoundaryMerging() throws Exception {
+
+    CFA cfa = TestCfaUtils.makeCfaFromFile(path);
+
+    DssBlockDecomposition decomposition =
+        new BranchBoundaryMergeDecomposition(
+            new MergeBlockNodesDecomposition(
+                new InliningDecomposition(
+                    new LinearBlockNodeDecomposition(DssTestUtils.createBlockOperator(cfa))),
+                2,
+                -1,
+                Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+                false,
+                FunctionCallMerging.UNIQUE_RETURNS),
+            FunctionCallMerging.UNIQUE_RETURNS);
+
+    for (BlockNode block : decomposition.decompose(cfa).getNodes()) {
+      Truth.assertWithMessage("Block %s returns to several call sites", block.getId())
+          .that(
+              MergeBlockNodesDecomposition.returnsToSeveralCallSites(
+                  block.getInitialLocation(), block.getFinalLocation(), ImmutableList.of(block)))
+          .isFalse();
     }
   }
 }

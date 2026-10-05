@@ -49,6 +49,9 @@ public class DecompositionTestBase {
     // bug in merging after inlining: a block ended at the entry of a function and contained an
     // earlier call of it, so its analysis stopped there and never reached the later call
     "test/programs/dss/function_called_twice.c",
+    // bug in merging branch boundaries: a block started at the exit of a function and contained
+    // the returns to both call sites
+    "test/programs/dss/function_with_early_return_called_twice.c",
   };
 
   public static List<Object[]> getFiles() {
