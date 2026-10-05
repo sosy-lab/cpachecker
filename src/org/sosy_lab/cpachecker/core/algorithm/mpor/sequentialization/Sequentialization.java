@@ -44,15 +44,6 @@ public class Sequentialization {
         SequentializationMappingBuilder.buildMapping(fields));
   }
 
-  /** Like {@link #tryBuildProgram}, but without building the {@link SequentializationMapping}. */
-  @CanIgnoreReturnValue
-  public static String tryBuildProgramString(
-      MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
-      throws UnrecognizedCodeException, InterruptedException {
-
-    return buildProgramString(pOptions, buildFields(pOptions, pCfa, pUtils), pUtils);
-  }
-
   private static SequentializationFields buildFields(
       MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
