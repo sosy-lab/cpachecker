@@ -58,6 +58,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
@@ -86,6 +89,11 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private final Random random;
 
   /**
+   * Per-edge handover of the active thread's witness identifier, see {@link ActiveWitnessThread}.
+   */
+  private final ActiveWitnessThread activeWitnessThread;
+
+  /**
    * Thread-specific precision is not implemented properly yet, as thread-specific CPAs do not use a
    * precision for current analyses. The wrapper precision of the POR CPA should be extended to also
    * include thread-specific precisions (similarly to this transfer relation), if needed.
@@ -111,9 +119,11 @@ public class ConcurrentTransferRelation implements TransferRelation {
       PartialOrderReductionStrategy pPor,
       boolean pAggregateBasicBlocks,
       LogManager pLogger,
-      Random pRandom)
+      Random pRandom,
+      ActiveWitnessThread pActiveWitnessThread)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
+    activeWitnessThread = pActiveWitnessThread;
 
     // Construct thread specific CPA
     threadSpecificCPA = pThreadSpecificCPA;
@@ -231,6 +241,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
       int pid,
       Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
+    activeWitnessThread.set(state.witnessThreadIdOf(pid));
     Collection<? extends AbstractState> wrappedSuccessors =
         applyEdgeWithForgetting(precision, state.getWrappedState(), cfaEdge, pid);
     if (wrappedSuccessors.isEmpty()) {
@@ -366,7 +377,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
           if (!(threadSpecificSuccessor instanceof CompositeState nextWrappedState)) {
             throw new CPATransferException("Thread-specific successor is not a ThreadState");
           }
-          ThreadState nextThreadState = new ThreadState(nextWrappedState);
+          ThreadState nextThreadState = threadState.withWrappedState(nextWrappedState);
           ConcurrentState exited = state.stepThread(pid, nextThreadState);
           finishEdge(exited, cfaEdge, pid, wrappedSuccessors, result);
         }
@@ -397,15 +408,36 @@ public class ConcurrentTransferRelation implements TransferRelation {
       if (!(nextThreadSpecificState instanceof CompositeState nextWrappedState)) {
         throw new CPATransferException("Thread-specific successor is not a ThreadState");
       }
-      ThreadState nextThreadState = new ThreadState(nextWrappedState);
+      ThreadState nextThreadState = threadState.withWrappedState(nextWrappedState);
       successors.add(old.stepThread(pid, nextThreadState));
     }
 
     for (ConcurrentState porSuccessor : successors) {
       for (AbstractState wrappedSuccessor : wrappedSuccessors) {
-        result.add(porSuccessor.withWrappedState(wrappedSuccessor));
+        result.add(bindWitnessThreadIds(porSuccessor.withWrappedState(wrappedSuccessor), pid));
       }
     }
+  }
+
+  /**
+   * Binds the identifiers by which a violation witness refers to threads, cf. {@link
+   * ConcurrentState#bindWitnessThreadIds}. The presence of the automaton's thread-id variable is
+   * what says the witness refers to threads at all; without it nothing is bound, so the state space
+   * of a plain verification run is unaffected.
+   */
+  private ConcurrentState bindWitnessThreadIds(ConcurrentState pState, int pPid) {
+    for (AutomatonState automatonState :
+        AbstractStates.asIterable(pState).filter(AutomatonState.class)) {
+      if (!"WitnessAutomaton".equals(automatonState.getOwningAutomatonName())) {
+        continue;
+      }
+      AutomatonVariable threadId =
+          automatonState.getVars().get(AutomatonGraphmlParser.THREAD_ID_VAR_NAME);
+      if (threadId != null) {
+        return pState.bindWitnessThreadIds(pPid, threadId.getValue());
+      }
+    }
+    return pState;
   }
 
   /**
