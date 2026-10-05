@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -90,10 +91,7 @@ public class SequentializationMappingBuilder {
       CIdExpression pSubstitute,
       CSimpleDeclaration pOriginal) {
 
-    CSimpleDeclaration substituteDeclaration = pSubstitute.getDeclaration();
-    if (substituteDeclaration == null) {
-      return;
-    }
+    CSimpleDeclaration substituteDeclaration = Objects.requireNonNull(pSubstitute.getDeclaration());
     String substituteName = substituteDeclaration.getName();
     CSimpleDeclaration existing = pDeclarations.get(substituteName);
     if (existing != null && !existing.getName().equals(pOriginal.getName())) {
