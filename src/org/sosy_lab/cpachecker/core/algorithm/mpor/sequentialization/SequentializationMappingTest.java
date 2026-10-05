@@ -185,7 +185,7 @@ public class SequentializationMappingTest {
     assertThat(creationLines).isEqualTo(pthreadCreateLines);
     for (CFAEdgeForThread creationEdge : creationEdges.keySet()) {
       assertThat(creationEdge.cfaEdge.getRawStatement()).contains("pthread_create");
-      assertThat(CFAUtils.allEdges(inputCfa).toSet()).contains(creationEdge);
+      assertThat(CFAUtils.allEdges(inputCfa).toSet()).contains(creationEdge.cfaEdge);
     }
   }
 
