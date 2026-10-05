@@ -92,6 +92,12 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
                   ImmutableList.of(successor, node))) {
             continue;
           }
+          if (MergeBlockNodesDecomposition.passesFinalLocationEarly(
+              node.getInitialLocation(),
+              successor.getFinalLocation(),
+              ImmutableList.of(node, successor))) {
+            continue;
+          }
 
           BlockNode result = mergeBlocksVertically(node, successor);
 

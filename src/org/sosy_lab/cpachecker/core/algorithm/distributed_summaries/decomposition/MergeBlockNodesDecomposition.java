@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Comparator;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -78,6 +79,21 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
         .entrySet()
         .stream()
         .anyMatch(entry -> entry.getCount() > 1);
+  }
+
+  /**
+   * Whether a block made of the given blocks would pass its final location before its end. The
+   * analysis of a block stops at the final location, so such a block would never explore the paths
+   * that continue from there, e.g., the second call of a function whose entry is the final location
+   * and whose first call lies in the block, too. A block whose initial and final location coincide
+   * passes the final location only at its start.
+   */
+  public static boolean passesFinalLocationEarly(
+      CFANode pInitialLocation, CFANode pFinalLocation, Iterable<BlockNode> pBlocks) {
+    return !pInitialLocation.equals(pFinalLocation)
+        && FluentIterable.from(pBlocks)
+            .transformAndConcat(BlockNode::getEdges)
+            .anyMatch(e -> e.getPredecessor().equals(pFinalLocation));
   }
 
   private Collection<BlockNode> sorted(Collection<BlockNode> pSort) {
