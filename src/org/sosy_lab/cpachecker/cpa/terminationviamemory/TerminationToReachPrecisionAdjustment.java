@@ -21,6 +21,7 @@ import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -219,7 +220,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   iterationFormula,
                   prefixPathFormula,
                   latestSameStateFormula,
-                  callstackState);
+                  callstackState,
+                  location);
           if (newCandidateTransInv.isEmpty()) {
             return Optional.of(result);
           }
@@ -359,7 +361,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PartitionedRelationFormula iterationFormula,
       PathFormula prefixPathFormula,
       BooleanFormula latestSameStateFormula,
-      CallstackState callstackState)
+      CallstackState callstackState,
+      CFANode location)
       throws CPAException, InterruptedException {
     candidateTransInv = candidateTransInv.withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD);
     candidateTransInv = candidateTransInv.withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
@@ -372,7 +375,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             iterationFormula,
             prefixPathFormula,
             latestSameStateFormula,
-            callstackState);
+            callstackState,
+            location);
 
     try {
       if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
@@ -438,6 +442,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     candidateTransInv.getFormula(),
                     getSupportingInvariants(pLocation),
                     iterationFormula.getFormula(),
+                    buildFrameCondition(sameStateFormulaRelation.getFormula(), iterationFormula),
                     sameStateFormulaRelation.getFormula()));
       } else {
         isTargetStateReachable =
@@ -484,27 +489,36 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PartitionedRelationFormula iterationFormula,
       PathFormula prefixPathFormula,
       BooleanFormula latestSameStateFormula,
-      CallstackState callstackState)
+      CallstackState callstackState,
+      CFANode location)
       throws CPAException, InterruptedException {
 
     BooleanFormula firstStep = prefixPathFormula.getFormula();
     if (isOverapproximating) {
       // If this is more then first unrolling, we replace the prefix formula with
       // the previously computed candidate transition invariant
-      firstStep = candidateTransInv.getFormula();
       // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
       iterationFormula = iterationFormula.withPrevVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
       iterationFormula = iterationFormula.withCurrVarsWrapped(EMPTY_PREFIX, CURR2_KEYWORD);
+      // Use the same supporting invariants and frame condition as in findNonterminatingLoop
+      firstStep =
+          bfmgr.and(
+              candidateTransInv.getFormula(),
+              getSupportingInvariants(location),
+              buildFrameCondition(latestSameStateFormula, iterationFormula));
     }
-    BooleanFormula interpolant;
 
-    interpolant =
+    Optional<BooleanFormula> interpolationResult =
         itpMgr
             .interpolate(
                 ImmutableList.of(
                     bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
-            .orElseThrow()
-            .getFirst();
+            .map(interpolants -> interpolants.getFirst());
+    if (interpolationResult.isEmpty()) {
+      // The formulas are satisfiable, so there is no new interpolant
+      return candidateTransInv;
+    }
+    BooleanFormula interpolant = interpolationResult.orElseThrow();
     if (containsOnlyVariablesOutOfScope(interpolant, callstackState)) {
       return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
     }
@@ -594,6 +608,35 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return bfmgr.makeTrue();
   }
 
+  /**
+   * Builds the equalities x__CURR = x__CURR2 (with the keywords {@code CURR_KEYWORD} and {@code
+   * CURR2_KEYWORD}) for all variables x such that the given formula contains x__CURR2, but the
+   * iteration formula Tr(x__CURR, x__CURR2) does not. These variables are not changed by the
+   * iteration: a variable that occurs only once in the iteration formula belongs only to its
+   * previous state (see {@link PartitionedRelationFormula}), so its value after the iteration would
+   * be unconstrained otherwise.
+   */
+  private BooleanFormula buildFrameCondition(
+      BooleanFormula pFormula, PartitionedRelationFormula pIterationFormula) {
+    Set<String> iterationVariables = fmgr.extractVariableNames(pIterationFormula.getFormula());
+    BooleanFormula frameCondition = bfmgr.makeTrue();
+    for (Entry<String, Formula> variable : fmgr.extractVariables(pFormula).entrySet()) {
+      String name = variable.getKey();
+      if (name.endsWith(CURR2_KEYWORD) && !iterationVariables.contains(name)) {
+        String unchangedVariable =
+            name.substring(0, name.length() - CURR2_KEYWORD.length()) + CURR_KEYWORD;
+        frameCondition =
+            bfmgr.and(
+                frameCondition,
+                fmgr.makeEqual(
+                    variable.getValue(),
+                    fmgr.makeVariable(
+                        fmgr.getFormulaType(variable.getValue()), unchangedVariable)));
+      }
+    }
+    return frameCondition;
+  }
+
   protected boolean isInductiveTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
@@ -632,10 +675,17 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           candidateTransitionInvariant.withPrevVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
 
       return solver.implies(
-              bfmgr.and(firstStepInTransInv, supportingInvariants, iterationFormula.getFormula()),
+              bfmgr.and(
+                  firstStepInTransInv,
+                  supportingInvariants,
+                  iterationFormula.getFormula(),
+                  buildFrameCondition(secondStepInTransInv, iterationFormula)),
               secondStepInTransInv)
           && solver.implies(
-              bfmgr.and(supportingInvariants, iterationFormula.getFormula()),
+              bfmgr.and(
+                  supportingInvariants,
+                  iterationFormula.getFormula(),
+                  buildFrameCondition(candidateTransitionInvariant.getFormula(), iterationFormula)),
               candidateTransitionInvariant.getFormula());
     } catch (SolverException e) {
       logger.logDebugException(e);
