@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 
@@ -145,17 +143,6 @@ public record SeqThreadStatement(
       ImmutableList<SeqInstrumentation> pInstrumentation) {
 
     return new SeqThreadStatement(data, targetPc, targetGoto, pInstrumentation, exportStatements);
-  }
-
-  /**
-   * Returns the {@link CFAEdgeForThread} of the input program that this statement simulates. A
-   * statement that merges several edges is represented by the first one.
-   */
-  public Optional<CFAEdgeForThread> originEdge() {
-    return data.getSubstituteEdges().stream()
-        .map(SubstituteEdge::getThreadEdge)
-        .filter(edge -> edge.cfaEdge.getFileLocation().isRealLocation())
-        .findFirst();
   }
 
   @Override

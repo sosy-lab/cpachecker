@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -30,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.LocalVariableDeclarationSubstitute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
@@ -110,16 +110,20 @@ public class SequentializationMappingBuilder {
     for (Entry<MPORThread, SeqThreadStatementClause> entry : pFields.clauses.entries()) {
       int threadId = entry.getKey().id();
       for (SeqThreadStatementBlock block : entry.getValue().getBlocks()) {
-        ImmutableList<SeqThreadStatement> statements = block.getStatements();
-        if (statements.stream().allMatch(statement -> statement.originEdge().isPresent())) {
-          rBlockOrigins.put(
-              SeqNameUtil.buildThreadStatementBlockLabelName(threadId, block.getLabelNumber()),
-              new BlockOrigin(
-                  threadId,
-                  transformedImmutableListCopy(
-                      statements,
-                      statement -> Objects.requireNonNull(statement).originEdge().orElseThrow())));
+        ImmutableList.Builder<CFAEdgeForThread> originalEdges = ImmutableList.builder();
+        for (SeqThreadStatement statement : block.getStatements()) {
+          // use the first CFAEdgeForThread of the input program that this statement simulates.
+          // a statement that merges several edges is represented by the first one.
+          originalEdges.add(
+              statement.data().getSubstituteEdges().stream()
+                  .map(SubstituteEdge::getThreadEdge)
+                  .filter(edge -> edge.cfaEdge.getFileLocation().isRealLocation())
+                  .findFirst()
+                  .orElseThrow());
         }
+        rBlockOrigins.put(
+            SeqNameUtil.buildThreadStatementBlockLabelName(threadId, block.getLabelNumber()),
+            new BlockOrigin(threadId, originalEdges.build()));
       }
     }
     return rBlockOrigins.buildOrThrow();
