@@ -68,8 +68,9 @@ public final class ImcRefiner extends InductionRefiner {
       secure = true,
       description =
           "continue as BMC if the program has more loop heads than bmcFallbackLoopLimit or"
-              + " if an interpolation fails, as native IMC does. Without it, the refiner applies"
-              + " IMC to every loop and ignores failed interpolations.")
+              + " if an interpolation fails also in the form of native IMC, as native IMC does."
+              + " Without it, the refiner applies IMC to every loop and ignores failed"
+              + " interpolations.")
   private boolean bmcFallback = true;
 
   @Option(
@@ -83,6 +84,11 @@ public final class ImcRefiner extends InductionRefiner {
   private final PredicateAbstractionManager predicateManager;
   private final LoopStructure loopStructure;
   private boolean fallenBackToBmc = false;
+
+  /**
+   * Whether an interpolation failed also in the form of native IMC, which then continues as BMC.
+   */
+  private boolean nativeInterpolationFailed = false;
 
   private final StatCounter widenings = new StatCounter("Widened abstractions");
   private final StatCounter restarts = new StatCounter("Restarts with a larger k");
@@ -167,7 +173,7 @@ public final class ImcRefiner extends InductionRefiner {
       if (!target.isDestroyed()) {
         refine(pReached, target, chains, targetsBelow);
       }
-      if (fallsBackAfterFailure()) {
+      if (nativeInterpolationFailed) {
         logger.log(Level.INFO, "Falling back to BMC, because an interpolation failed");
         restartAsBmc(pReached, BOUND_OF_FIRST_INTERPOLATION + 1);
         fallenBackToBmc = true;
@@ -175,11 +181,6 @@ public final class ImcRefiner extends InductionRefiner {
       }
     }
     return Optional.empty();
-  }
-
-  /** Whether the refiner continues as BMC, as native IMC does after a failed interpolation. */
-  private boolean fallsBackAfterFailure() {
-    return bmcFallback && hasFailedInterpolation();
   }
 
   /**
@@ -211,11 +212,13 @@ public final class ImcRefiner extends InductionRefiner {
             suffixes.add(suffixOf(pChains.get(target), i));
           }
         }
+        long failures = failedInterpolations();
         Optional<BooleanFormula> interpolant = interpolate(chain, i, bfmgr.or(suffixes));
-        if (interpolant.isEmpty() && suffixes.size() > 1 && !fallsBackAfterFailure()) {
+        if (interpolant.isEmpty() && suffixes.size() > 1 && failedInterpolations() == failures) {
           interpolant = interpolate(chain, i, ownSuffix);
         }
-        if (fallsBackAfterFailure()) {
+        if (bmcFallback && failedInterpolations() > failures) {
+          refineAsNativeImc(pReached, pTarget, pChains, pTargetsBelow);
           return;
         }
         if (interpolant.isPresent() && widen(pReached, abstraction, interpolant.orElseThrow())) {
@@ -224,6 +227,46 @@ public final class ImcRefiner extends InductionRefiner {
       }
     }
     restartWithLargerK(pReached, chain);
+  }
+
+  /**
+   * After a failed interpolation, interpolate as native IMC does: the path from the start through
+   * the first loop iteration against the rest of the paths. Native IMC continues as BMC only if
+   * this interpolation fails as well, or if no block ends after the first loop iteration.
+   */
+  private void refineAsNativeImc(
+      ARGReachedSet pReached,
+      ARGState pTarget,
+      Map<ARGState, List<ARGState>> pChains,
+      ListMultimap<ARGState, ARGState> pTargetsBelow)
+      throws CPAException, InterruptedException, SolverException {
+    List<ARGState> chain = pChains.get(pTarget);
+    int first = chain.indexOf(firstLoopHeadAbstraction(pTarget).orElseThrow());
+    int k = inductionStateOf(chain.get(first)).getLoopPrecision().k();
+    // the abstraction at the second arrival at the loop head
+    int position = first + 1 - k;
+    if (k <= 1 && position < chain.size() - 1) {
+      List<BooleanFormula> suffixes = new ArrayList<>();
+      suffixes.add(suffixOf(chain, position));
+      for (ARGState target : pTargetsBelow.get(chain.get(position))) {
+        if (target != pTarget && !target.isDestroyed()) {
+          suffixes.add(suffixOf(pChains.get(target), position));
+        }
+      }
+      long failures = failedInterpolations();
+      Optional<ImmutableList<BooleanFormula>> interpolants =
+          interpolate(
+              ImmutableList.of(
+                  bfmgr.and(blockFormulas(chain.subList(0, position + 1))), bfmgr.or(suffixes)));
+      if (interpolants.isPresent() && failedInterpolations() == failures) {
+        BooleanFormula interpolant = fmgr.uninstantiate(interpolants.orElseThrow().getFirst());
+        if (!widen(pReached, chain.get(position), interpolant)) {
+          restartWithLargerK(pReached, chain);
+        }
+        return;
+      }
+    }
+    nativeInterpolationFailed = true;
   }
 
   /** The concrete path after the abstraction at the given position of the chain. */
@@ -343,6 +386,12 @@ public final class ImcRefiner extends InductionRefiner {
             Predicates.instanceOf(InductionPrecision.class),
             Predicates.instanceOf(PredicatePrecision.class)));
     restarts.inc();
+  }
+
+  @Override
+  protected boolean sharesBatchProver() {
+    // native IMC creates a prover for every query
+    return false;
   }
 
   @Override

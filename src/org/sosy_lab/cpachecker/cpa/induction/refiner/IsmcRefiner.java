@@ -333,6 +333,12 @@ public final class IsmcRefiner extends InductionRefiner {
   }
 
   @Override
+  protected boolean sharesBatchProver() {
+    // native ISMC creates a prover for every query
+    return false;
+  }
+
+  @Override
   protected void printRefinerStatistics(StatisticsWriter pWriter) {
     pWriter
         .put(framePhases)

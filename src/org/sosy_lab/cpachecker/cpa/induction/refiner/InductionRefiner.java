@@ -296,6 +296,13 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
 
     satCheckTime.start();
     try {
+      if (!sharesBatchProver()) {
+        try (ProverEnvironment ownProver =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          ownProver.push(bfmgr.or(pathFormulas.values()));
+          return findFeasibleTarget(ownProver, pathFormulas);
+        }
+      }
       ProverEnvironment batchProver = batchProver();
       // no pop after an exception, which ends the analysis
       batchProver.push(bfmgr.or(pathFormulas.values()));
@@ -305,6 +312,14 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     } finally {
       satCheckTime.stop();
     }
+  }
+
+  /**
+   * Whether all queries about concrete paths share one prover, as native BMC and k-induction do.
+   * Native IMC and ISMC create a prover for every query.
+   */
+  protected boolean sharesBatchProver() {
+    return true;
   }
 
   private Optional<ARGState> findFeasibleTarget(
@@ -394,7 +409,9 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
         bfmgr.or(from(pStates).transform(this::concretePathFormula).toList());
     satCheckTime.start();
     try {
-      if (!isUnsat(batchProver(), reachability)) {
+      boolean unsat =
+          sharesBatchProver() ? isUnsat(batchProver(), reachability) : solver.isUnsat(reachability);
+      if (!unsat) {
         return false;
       }
     } finally {
@@ -633,7 +650,12 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
 
   /** Whether an interpolation failed, after which native IMC and ISMC continue as BMC. */
   protected boolean hasFailedInterpolation() {
-    return interpolationFailures.getValue() > 0;
+    return failedInterpolations() > 0;
+  }
+
+  /** The number of interpolations that failed so far. */
+  protected long failedInterpolations() {
+    return interpolationFailures.getValue();
   }
 
   @Override
