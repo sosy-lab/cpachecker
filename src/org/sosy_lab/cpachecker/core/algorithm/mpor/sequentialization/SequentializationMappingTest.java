@@ -32,7 +32,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -191,16 +190,10 @@ public class SequentializationMappingTest {
 
   @Test
   public void testSubstitutedVariablesMapBackToInputProgram() {
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> originalDeclarations =
-        mapping.substituteToOriginalDeclarations();
-
-    assertThat(originalDeclarations).isNotEmpty();
+    assertThat(mapping.isSubstituteToOriginalDeclarationsMapEmpty()).isFalse();
     // every global variable declared in the input program itself, as opposed to in a header it
     // includes, must have a substitute in the sequentialization
-    ImmutableSet<String> originalNames =
-        originalDeclarations.values().stream()
-            .map(CSimpleDeclaration::getName)
-            .collect(ImmutableSet.toImmutableSet());
+    ImmutableSet<String> originalNames = mapping.getOriginalNames();
     boolean checkedAny = false;
     for (AVariableDeclaration global : CFAUtils.getGlobalVariableDeclarations(inputCfa)) {
       if (global.getFileLocation().getFileName().equals(INPUT_PROGRAM)) {
