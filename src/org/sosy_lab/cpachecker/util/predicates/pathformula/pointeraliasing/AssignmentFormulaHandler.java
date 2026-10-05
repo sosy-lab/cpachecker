@@ -581,8 +581,10 @@ class AssignmentFormulaHandler {
     if (minimumRepeatedBitSize % fromBitSizeof != 0) {
       numRepeats += 1;
     }
-    BitvectorFormula repeatedFormula = bvmgr.makeBitvector(0, 0);
-    for (long i = 0; i < numRepeats; ++i) {
+    // start with the first repetition: solvers like Z3 have no bitvectors of size zero
+    verify(numRepeats > 0);
+    BitvectorFormula repeatedFormula = bitvectorFormula;
+    for (long i = 1; i < numRepeats; ++i) {
       repeatedFormula = bvmgr.concat(repeatedFormula, bitvectorFormula);
     }
 
