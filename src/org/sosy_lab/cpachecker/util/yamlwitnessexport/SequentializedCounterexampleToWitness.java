@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -319,7 +318,9 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
   private boolean onlyUsesGeneratedVariables(CFAEdge pEdge) {
     boolean usesVariable = false;
     for (CSimpleDeclaration declaration : variablesOf(pEdge)) {
-      if (mapping.originalDeclarationsBySubstituteName().containsKey(declaration.getName())) {
+      Optional<CSimpleDeclaration> original =
+          mapping.getOriginalDeclarationBySubstitute(declaration);
+      if (original.isPresent()) {
         return false;
       }
       usesVariable = true;
@@ -344,9 +345,6 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
    * counterpart in the input program.
    */
   Optional<CExpression> toOriginalVocabulary(CExpression pExpression) {
-    ImmutableMap<String, CSimpleDeclaration> originalDeclarations =
-        mapping.originalDeclarationsBySubstituteName();
-
     // a single bool cannot be used here sadly:
     // 'Variable used in lambda expression should be final or effectively final'
     boolean[] isTranslatable = {true};
@@ -365,12 +363,13 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
                 // enum constants of the input program are used unchanged
                 return idExpression;
               }
-              CSimpleDeclaration original = originalDeclarations.get(declaration.getName());
-              if (original == null) {
+              Optional<CSimpleDeclaration> original =
+                  mapping.getOriginalDeclarationBySubstitute(declaration);
+              if (original.isEmpty()) {
                 isTranslatable[0] = false;
                 return null;
               }
-              return new CIdExpression(idExpression.getFileLocation(), original);
+              return new CIdExpression(idExpression.getFileLocation(), original.orElseThrow());
             });
 
     CAstNode translated = pExpression.accept(visitor);

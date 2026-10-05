@@ -183,9 +183,9 @@ public class SequentializedCounterexampleToWitnessTest {
 
   private CIdExpression findVariable(String pOriginalName) {
     for (CVariableDeclaration declaration : variableDeclarations()) {
-      CSimpleDeclaration original =
-          mapping.originalDeclarationsBySubstituteName().get(declaration.getName());
-      if (original != null && original.getName().equals(pOriginalName)) {
+      Optional<CSimpleDeclaration> original =
+          mapping.getOriginalDeclarationBySubstitute(declaration);
+      if (original.isPresent() && original.orElseThrow().getName().equals(pOriginalName)) {
         return new CIdExpression(FileLocation.DUMMY, declaration);
       }
     }
@@ -194,7 +194,9 @@ public class SequentializedCounterexampleToWitnessTest {
 
   private CIdExpression findGhostVariable() {
     for (CVariableDeclaration declaration : variableDeclarations()) {
-      if (!mapping.originalDeclarationsBySubstituteName().containsKey(declaration.getName())) {
+      Optional<CSimpleDeclaration> original =
+          mapping.getOriginalDeclarationBySubstitute(declaration);
+      if (original.isEmpty()) {
         return new CIdExpression(FileLocation.DUMMY, declaration);
       }
     }

@@ -46,11 +46,11 @@ public class SequentializationMappingBuilder {
   }
 
   /** Substitutes that stand for input program variables with different names are left out. */
-  private static ImmutableMap<String, CSimpleDeclaration> buildOriginalDeclarations(
+  private static ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> buildOriginalDeclarations(
       SequentializationFields pFields) {
 
-    Map<String, CSimpleDeclaration> rDeclarations = new LinkedHashMap<>();
-    Set<String> ambiguous = new LinkedHashSet<>();
+    Map<CSimpleDeclaration, CSimpleDeclaration> rDeclarations = new LinkedHashMap<>();
+    Set<CSimpleDeclaration> ambiguous = new LinkedHashSet<>();
     for (MPORSubstitution substitution : pFields.substitutions) {
       for (Entry<CVariableDeclaration, CIdExpression> entry :
           substitution.getGlobalVariableSubstitutes()) {
@@ -86,18 +86,17 @@ public class SequentializationMappingBuilder {
    * in {@code pAmbiguous} instead.
    */
   private static void put(
-      Map<String, CSimpleDeclaration> pDeclarations,
-      Set<String> pAmbiguous,
+      Map<CSimpleDeclaration, CSimpleDeclaration> pDeclarations,
+      Set<CSimpleDeclaration> pAmbiguous,
       CIdExpression pSubstitute,
       CSimpleDeclaration pOriginal) {
 
     CSimpleDeclaration substituteDeclaration = Objects.requireNonNull(pSubstitute.getDeclaration());
-    String substituteName = substituteDeclaration.getName();
-    CSimpleDeclaration existing = pDeclarations.get(substituteName);
+    CSimpleDeclaration existing = pDeclarations.get(substituteDeclaration);
     if (existing != null && !existing.getName().equals(pOriginal.getName())) {
-      pAmbiguous.add(substituteName);
+      pAmbiguous.add(substituteDeclaration);
     }
-    pDeclarations.put(substituteName, pOriginal);
+    pDeclarations.put(substituteDeclaration, pOriginal);
   }
 
   /**

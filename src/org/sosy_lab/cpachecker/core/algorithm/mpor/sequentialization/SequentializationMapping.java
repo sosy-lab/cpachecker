@@ -10,8 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 
 /**
  * Information that relates elements of a sequentialized program to the concurrent input program it
@@ -21,8 +25,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * transformation unchanged. Everything here is therefore keyed by a name of the output program and
  * holds the elements of the input program themselves, which is what keeps their source locations.
  *
- * @param originalDeclarationsBySubstituteName Maps the name of a variable of the sequentialization
- *     to the declaration of the input program variable it substitutes. Variables of the
+ * @param substituteToOriginalDeclarations Maps declarations of substituted variables in the
+ *     sequentialization to the declaration of the input program variable. Variables of the
  *     sequentialization that have no counterpart in the input program, e.g. program counters, are
  *     absent.
  * @param blockOriginsByLabel Maps the name of the label that precedes a block of statements in the
@@ -33,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  *     because which of them an execution of the edge creates cannot be told apart.
  */
 public record SequentializationMapping(
-    ImmutableMap<String, CSimpleDeclaration> originalDeclarationsBySubstituteName,
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> substituteToOriginalDeclarations,
     ImmutableMap<String, BlockOrigin> blockOriginsByLabel,
     ImmutableMap<CFAEdge, Integer> threadIdByCreationEdge) {
 
@@ -46,4 +50,29 @@ public record SequentializationMapping(
    *     branching.
    */
   public record BlockOrigin(int threadId, ImmutableList<CFAEdge> originalEdgeByStatement) {}
+
+  /**
+   * Returns the value in {@link SequentializationMapping#substituteToOriginalDeclarations()} for
+   * the fuzzy key {@code pSubstitute} but without checking whether the variable is global and
+   * {@link CType}.
+   */
+  public Optional<CSimpleDeclaration> getOriginalDeclarationBySubstitute(
+      CSimpleDeclaration pSubstitute) {
+
+    CVariableDeclaration substitute = MPORUtil.convertToVariableDeclaration(pSubstitute);
+    for (var entry : substituteToOriginalDeclarations.entrySet()) {
+      CVariableDeclaration key = MPORUtil.convertToVariableDeclaration(entry.getKey());
+      if (key.getName().equals(substitute.getName())
+          && key.getOrigName().equals(substitute.getOrigName())
+          && key.getQualifiedName().equals(substitute.getQualifiedName())
+          // prevent NPE
+          && (key.getInitializer() != null
+              && key.getInitializer().equals(substitute.getInitializer()))
+          && key.hasThreadLocalStorage() == substitute.hasThreadLocalStorage()
+          && key.getCStorageClass().equals(substitute.getCStorageClass())) {
+        return Optional.of(entry.getValue());
+      }
+    }
+    return Optional.empty();
+  }
 }

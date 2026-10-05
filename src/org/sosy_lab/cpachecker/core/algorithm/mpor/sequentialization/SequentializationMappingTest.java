@@ -191,8 +191,8 @@ public class SequentializationMappingTest {
 
   @Test
   public void testSubstitutedVariablesMapBackToInputProgram() {
-    ImmutableMap<String, CSimpleDeclaration> originalDeclarations =
-        mapping.originalDeclarationsBySubstituteName();
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> originalDeclarations =
+        mapping.substituteToOriginalDeclarations();
 
     assertThat(originalDeclarations).isNotEmpty();
     // every global variable declared in the input program itself, as opposed to in a header it
