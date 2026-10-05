@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization.SequentializationResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationMapping.BlockOrigin;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -170,7 +171,7 @@ public class SequentializationMappingTest {
 
   @Test
   public void testThreadCreationEdgesAreFromInputProgram() throws IOException {
-    ImmutableMap<CFAEdge, Integer> creationEdges = mapping.threadIdByCreationEdge();
+    ImmutableMap<CFAEdgeForThread, Integer> creationEdges = mapping.threadIdByCreationEdge();
 
     // every pthread_create of the input program creates exactly one thread here, the main thread
     // is created by no edge
@@ -178,12 +179,12 @@ public class SequentializationMappingTest {
     assertThat(creationEdges).hasSize(pthreadCreateLines.size());
     ImmutableList<Integer> creationLines =
         creationEdges.keySet().stream()
-            .map(edge -> edge.getFileLocation().getStartingLineInOrigin())
+            .map(edge -> edge.cfaEdge.getFileLocation().getStartingLineInOrigin())
             .sorted()
             .collect(ImmutableList.toImmutableList());
     assertThat(creationLines).isEqualTo(pthreadCreateLines);
-    for (CFAEdge creationEdge : creationEdges.keySet()) {
-      assertThat(creationEdge.getRawStatement()).contains("pthread_create");
+    for (CFAEdgeForThread creationEdge : creationEdges.keySet()) {
+      assertThat(creationEdge.cfaEdge.getRawStatement()).contains("pthread_create");
       assertThat(CFAUtils.allEdges(inputCfa).toSet()).contains(creationEdge);
     }
   }

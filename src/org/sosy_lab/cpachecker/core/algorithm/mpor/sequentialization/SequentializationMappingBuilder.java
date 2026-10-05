@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationMapping.BlockOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
@@ -31,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.LocalVariableDeclarationSubstitute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
@@ -117,7 +117,8 @@ public class SequentializationMappingBuilder {
               new BlockOrigin(
                   threadId,
                   transformedImmutableListCopy(
-                      statements, statement -> statement.originEdge().orElseThrow())));
+                      statements,
+                      statement -> Objects.requireNonNull(statement).originEdge().orElseThrow())));
         }
       }
     }
@@ -125,25 +126,21 @@ public class SequentializationMappingBuilder {
   }
 
   /**
-   * An edge that creates several threads, because it is executed in several call contexts, is left
-   * out: which thread an execution of it creates cannot be told apart afterwards.
+   * Maps {@link CFAEdgeForThread} to the unique thread id they create. Note that {@link
+   * CFAEdgeForThread} considers the call context in which the thread is created.
    */
-  private static ImmutableMap<CFAEdge, Integer> buildThreadIdByCreationEdge(
+  private static ImmutableMap<CFAEdgeForThread, Integer> buildThreadIdByCreationEdge(
       SequentializationFields pFields) {
 
-    Map<CFAEdge, Integer> rCreationEdges = new LinkedHashMap<>();
-    Set<CFAEdge> ambiguous = new LinkedHashSet<>();
+    ImmutableMap.Builder<CFAEdgeForThread, Integer> rCreationEdges = ImmutableMap.builder();
     for (MPORThread thread : pFields.threads) {
       thread
           .startRoutineCall()
           .ifPresent(
               threadEdge -> {
-                if (rCreationEdges.put(threadEdge.cfaEdge, thread.id()) != null) {
-                  ambiguous.add(threadEdge.cfaEdge);
-                }
+                rCreationEdges.put(threadEdge, thread.id());
               });
     }
-    rCreationEdges.keySet().removeAll(ambiguous);
-    return ImmutableMap.copyOf(rCreationEdges);
+    return rCreationEdges.buildOrThrow();
   }
 }

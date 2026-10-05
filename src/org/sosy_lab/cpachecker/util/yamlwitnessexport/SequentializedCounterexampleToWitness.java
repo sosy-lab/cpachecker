@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationMapping;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationMapping.BlockOrigin;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -235,14 +236,14 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
       // the creation of this thread was not exported, so referring to it would be meaningless
       return Optional.empty();
     }
-    Optional<CFAEdge> originalEdge = originalEdgeOf(blockOrigin.orElseThrow(), pEdge);
+    Optional<CFAEdgeForThread> originalEdge = originalEdgeOf(blockOrigin.orElseThrow(), pEdge);
     if (originalEdge.isEmpty()) {
       return Optional.empty();
     }
 
     // a thread may only be referred to once the waypoint that introduces it can be exported
     Integer createdThreadId = null;
-    if (introducesThread(originalEdge.orElseThrow(), getASTStructure())) {
+    if (introducesThread(originalEdge.orElseThrow().cfaEdge, getASTStructure())) {
       createdThreadId = mapping.threadIdByCreationEdge().get(originalEdge.orElseThrow());
       if (createdThreadId != null) {
         pCreatedThreads.add(createdThreadId);
@@ -250,7 +251,7 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
     }
     return Optional.of(
         new WitnessPathStep(
-            originalEdge.orElseThrow(),
+            originalEdge.orElseThrow().cfaEdge,
             Optional.of(threadName(threadId)),
             Optional.ofNullable(createdThreadId)
                 .map(SequentializedCounterexampleToWitness::threadName)));
@@ -268,8 +269,9 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
     return Optional.empty();
   }
 
-  private static Optional<CFAEdge> originalEdgeOf(BlockOrigin pBlockOrigin, CFAEdge pEdge) {
-    ImmutableList<CFAEdge> originalEdges = pBlockOrigin.originalEdgeByStatement();
+  private static Optional<CFAEdgeForThread> originalEdgeOf(
+      BlockOrigin pBlockOrigin, CFAEdge pEdge) {
+    ImmutableList<CFAEdgeForThread> originalEdges = pBlockOrigin.originalEdgeByStatement();
     if (originalEdges.size() == 1) {
       return Optional.of(originalEdges.getFirst());
     }

@@ -15,9 +15,9 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /**
  * Information that relates elements of a sequentialized program to the concurrent input program it
@@ -47,18 +47,19 @@ public final class SequentializationMapping {
   private final ImmutableMap<String, BlockOrigin> blockOriginsByLabel;
 
   /**
-   * Maps the {@link CFAEdge} of the input program that creates a thread, e.g. a {@code
+   * Maps the {@link CFAEdgeForThread} of the input program that creates a thread, e.g. a {@code
    * pthread_create} call, to the ID of the created thread.
    *
    * <p>The main thread is created by no edge and hence absent, and so is an edge that creates
    * several threads, because which of them an execution of the edge creates cannot be told apart.
    */
-  private final ImmutableMap<CFAEdge, Integer> threadIdByCreationEdge;
+  private final ImmutableMap<CFAEdgeForThread, Integer> threadIdByCreationEdge;
 
   public SequentializationMapping(
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pSubstituteToOriginalDeclarations,
       ImmutableMap<String, BlockOrigin> pBlockOriginsByLabel,
-      ImmutableMap<CFAEdge, Integer> pThreadIdByCreationEdge) {
+      ImmutableMap<CFAEdgeForThread, Integer> pThreadIdByCreationEdge) {
+
     substituteToOriginalDeclarations = pSubstituteToOriginalDeclarations;
     blockOriginsByLabel = pBlockOriginsByLabel;
     threadIdByCreationEdge = pThreadIdByCreationEdge;
@@ -68,7 +69,7 @@ public final class SequentializationMapping {
     return blockOriginsByLabel;
   }
 
-  public ImmutableMap<CFAEdge, Integer> threadIdByCreationEdge() {
+  public ImmutableMap<CFAEdgeForThread, Integer> threadIdByCreationEdge() {
     return threadIdByCreationEdge;
   }
 
@@ -108,9 +109,10 @@ public final class SequentializationMapping {
    * The input program elements that one block of statements of the sequentialization simulates.
    *
    * @param threadId The ID of the thread that executes the block.
-   * @param originalEdgeByStatement For each statement of the block, the {@link CFAEdge} of the
-   *     input program it simulates. A block with two statements simulates the two assume edges of a
-   *     branching.
+   * @param originalEdgeByStatement For each statement of the block, the {@link CFAEdgeForThread} of
+   *     the input program it simulates. A block with two statements simulates the two assume edges
+   *     of a branching.
    */
-  public record BlockOrigin(int threadId, ImmutableList<CFAEdge> originalEdgeByStatement) {}
+  public record BlockOrigin(
+      int threadId, ImmutableList<CFAEdgeForThread> originalEdgeByStatement) {}
 }
