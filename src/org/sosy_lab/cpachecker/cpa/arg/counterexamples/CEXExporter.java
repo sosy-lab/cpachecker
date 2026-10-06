@@ -125,7 +125,6 @@ public class CEXExporter {
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
-  private final Specification specification;
 
   public CEXExporter(
       Configuration config,
@@ -138,7 +137,6 @@ public class CEXExporter {
       ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
-    specification = pSpecification;
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
