@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -79,6 +80,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -88,9 +93,11 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 @Options(prefix = "cfa.unrollBoundedLoops")
-public class LoopUnroller {
+public class LoopUnroller implements StatisticsProvider {
 
   // Every part of the unrolling that looks at an AST expects it to be a C one. LLVM is supported
   // as well because it is parsed into the same AST.
@@ -98,6 +105,8 @@ public class LoopUnroller {
       ImmutableSet.of(Language.C, Language.LLVM);
 
   private final LogManager logger;
+
+  private final LoopUnrollerStatistics stats = new LoopUnrollerStatistics();
 
   @Option(
       secure = true,
@@ -123,7 +132,39 @@ public class LoopUnroller {
     pConfig.inject(this);
   }
 
+  private static class LoopUnrollerStatistics implements Statistics {
+    private final StatTimer totalTime = new StatTimer("Time for loop unrolling");
+    private final StatCounter unrolledLoops = new StatCounter("Number of unrolled loops");
+
+    @Override
+    public String getName() {
+      return "";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+      if (totalTime.getUpdateCount() > 0) {
+        put(out, 2, totalTime);
+        put(out, 3, unrolledLoops);
+      }
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
   public void unrollBoundedLoops(MutableCFA cfa) {
+    stats.totalTime.start();
+    try {
+      unrollBoundedLoops0(cfa);
+    } finally {
+      stats.totalTime.stop();
+    }
+  }
+
+  private void unrollBoundedLoops0(MutableCFA cfa) {
 
     // A language we do not handle has to be turned away here instead of somewhere in the middle,
     // because we must not modify the CFA and give up afterwards.
@@ -232,6 +273,7 @@ public class LoopUnroller {
 
     redirectIncomingEdges(pLoop, entryNodeInFirstIteration);
     removeOriginalLoop(pCfa, pLoop, exitEdge);
+    stats.unrolledLoops.inc();
 
     logger.logf(
         Level.FINE,
@@ -730,9 +772,8 @@ public class LoopUnroller {
    * Creates a copy of the given node. A label inside the loop ends up on all copies, so the
    * resulting CFA has several nodes with the same label. TODO export to C will fail
    *
-   * <p>The variables that go out of scope at the node do so at the copy as well.
-   * The parser marks the end of every block this
-   * way, e.g. the end of the body before the loop starts over.
+   * <p>The variables that go out of scope at the node do so at the copy as well. The parser marks
+   * the end of every block this way, e.g. the end of the body before the loop starts over.
    *
    * @param pRenamedVariables the map of original nested variables to the ones of the iteration that
    *     the copy belongs to
@@ -776,8 +817,7 @@ public class LoopUnroller {
    *     every path that reaches the loop, or is more than the {@link #maxUnrollingsOf} iterations
    *     that we are willing to unroll this loop
    */
-  @VisibleForTesting
-  OptionalInt findExactLoopIterationCount(MutableCFA pCfa, Loop pLoop) {
+  private OptionalInt findExactLoopIterationCount(MutableCFA pCfa, Loop pLoop) {
     ImmutableSet<CFANode> entryNodes =
         transformedImmutableSetCopy(pLoop.getIncomingEdges(), CFAEdge::getSuccessor);
     if (entryNodes.size() != 1 || pLoop.getOutgoingEdges().size() != 1) {

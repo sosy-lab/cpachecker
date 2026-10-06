@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<!--
+  Integration tests for unrolling loops with a bounded number of iterations (cfa.unrollBoundedLoops).
+
+  Every program comes in two variants. The safe one checks the exact state after the loop, and the
+  unsafe one reaches the error exactly in that state. An unrolling that runs the body too often or
+  too rarely therefore makes the safe variant fail or makes the error of the unsafe one unreachable.
+
+  The column "unrolled loops" shows which loops the heuristic counts. The comment at the top of
+  each program says what is expected, but a change there is not an error by itself: it is how
+  supporting a new kind of loop shows up.
+
+  The baseline runs the same tasks without unrolling, to tell a wrong task from a wrong unrolling.
+-->
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">1500M</option>
+
+  <rundefinition name="unrolling">
+    <option name="--option">cfa.unrollBoundedLoops=true</option>
+  </rundefinition>
+
+  <rundefinition name="baseline">
+    <option name="--option">cfa.unrollBoundedLoops=false</option>
+  </rundefinition>
+
+  <tasks name="ReachSafety">
+    <includesfile>../programs/simple/loop-unrolling/LoopUnrolling-Reach.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <option name="--valueAnalysis"/>
+  </tasks>
+
+  <!-- The lifetime of variables that the loop declares -->
+  <tasks name="MemSafety">
+    <includesfile>../programs/simple/loop-unrolling/LoopUnrolling-MemSafety.set</includesfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+    <option name="--smg"/>
+  </tasks>
+
+  <!-- Unrolled loops in threads, which the sequentialization has to translate correctly -->
+  <tasks name="Concurrency">
+    <includesfile>../programs/simple/loop-unrolling/LoopUnrolling-Concurrency.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <option name="--sequentialization-concurrency"/>
+    <option name="--preprocess"/>
+  </tasks>
+
+  <columns>
+    <column title="unrolled loops">Number of unrolled loops</column>
+    <column title="loops">Number of loops</column>
+    <column title="total">time for CPAchecker</column>
+  </columns>
+</benchmark>

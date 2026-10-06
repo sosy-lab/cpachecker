@@ -10,17 +10,14 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
@@ -43,16 +40,26 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
+/**
+ * Tests for the parts of the unrolling that only the CFA shows, like which edges and variables the
+ * copies contain.
+ *
+ * <p>Which loops the heuristic counts, and whether the unrolled program still behaves like the
+ * original one, is checked by the verification tasks in {@value #PROGRAMS}, which {@code
+ * test/test-sets/integration-loop-unrolling.xml} runs. The tests here use some of their programs.
+ */
 public class LoopUnrollerTest {
+
+  private static final String PROGRAMS = "test/programs/simple/loop-unrolling/";
 
   private static final LogManager logger = LogManager.createTestLogManager();
 
-  /** Builds a CFA for the given function body and returns it in a mutable form. */
-  private static MutableCFA createCfa(String pFunctionBody) throws Exception {
+  /** Builds a CFA for the given program from {@link #PROGRAMS} and returns it in a mutable form. */
+  private static MutableCFA createCfa(String pProgram) throws Exception {
     // The tests below unroll explicitly, so the loops have to still be there when we start.
     CFA cfa =
-        TestCfaUtils.makeCfaFromFunctionBody(
-            pFunctionBody, Map.entry("cfa.unrollBoundedLoops", "false"));
+        TestCfaUtils.makeCfaFromFile(
+            PROGRAMS + pProgram, Map.entry("cfa.unrollBoundedLoops", "false"));
     MutableCFA mutableCfa =
         MutableCFA.copyOf(cfa, TestUtils.configurationForTest().build(), logger);
     // Loop detection needs these, they are usually assigned after all CFA post-processings.
@@ -60,15 +67,8 @@ public class LoopUnrollerTest {
     return mutableCfa;
   }
 
-  /** A loop unroller that uses the given options on top of the defaults. */
-  @SafeVarargs
-  private static LoopUnroller createUnroller(Map.Entry<String, String>... pOptions)
-      throws Exception {
-    ConfigurationBuilder config = TestUtils.configurationForTest();
-    for (Map.Entry<String, String> option : pOptions) {
-      config.setOption(option.getKey(), option.getValue());
-    }
-    return new LoopUnroller(logger, config.build());
+  private static LoopUnroller createUnroller() throws Exception {
+    return new LoopUnroller(logger, TestUtils.configurationForTest().build());
   }
 
   /** The loop with the most nodes, which is the outermost one if the loops are nested. */
@@ -236,10 +236,10 @@ public class LoopUnrollerTest {
     }
   }
 
-  /** Unrolls the outermost loop of the given function body and returns the resulting CFA. */
-  private static MutableCFA unrollOutermostLoop(String pFunctionBody, int pEntryVisits)
+  /** Unrolls the outermost loop of the given program and returns the resulting CFA. */
+  private static MutableCFA unrollOutermostLoop(String pProgram, int pEntryVisits)
       throws Exception {
-    MutableCFA cfa = createCfa(pFunctionBody);
+    MutableCFA cfa = createCfa(pProgram);
     createUnroller().unrollLoopExactly(cfa, outermostLoop(cfa), pEntryVisits);
     assertIsValidCfa(cfa);
     return cfa;
@@ -248,17 +248,7 @@ public class LoopUnrollerTest {
   @Test
   public void testWhileLoop() throws Exception {
     // The head is visited 4 times, so the body runs 3 times.
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 3) {
-              s = s + i;
-              i = i + 1;
-            }
-            """,
-            4);
+    MutableCFA cfa = unrollOutermostLoop("counted-while-safe.c", 4);
 
     assertThat(loopCount(cfa)).isEqualTo(0);
     assertThat(statementCount(cfa, "s = s + i")).isEqualTo(3);
@@ -267,100 +257,10 @@ public class LoopUnrollerTest {
     assertThat(conditionCount(cfa, "i < 3")).isEqualTo(4);
   }
 
-  @Test
-  public void testDoWhileLoop() throws Exception {
-    // The condition comes last, so the entry node is visited as often as the body runs.
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            do {
-              s = s + i;
-              i = i + 1;
-            } while (i < 3);
-            """,
-            3);
-
-    assertThat(loopCount(cfa)).isEqualTo(0);
-    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(3);
-    assertThat(conditionCount(cfa, "i < 3")).isEqualTo(3);
-  }
-
-  @Test
-  public void testContinue() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 3) {
-              i = i + 1;
-              if (i == 2) {
-                continue;
-              }
-              s = s + i;
-            }
-            """,
-            4);
-
-    assertThat(loopCount(cfa)).isEqualTo(0);
-    assertThat(statementCount(cfa, "i = i + 1")).isEqualTo(3);
-    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(3);
-  }
-
-  /**
-   * The loop is entered in the middle of its body, so its exit is not where one iteration ends. The
-   * last unrolling must stop at the exit instead of running the rest of the body once more.
-   */
-  @Test
-  public void testLoopThatIsLeftInTheMiddleOfItsBody() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            goto middle;
-            body:
-              s = s + i;
-            middle:
-              i = i + 1;
-              if (i < 3) {
-                goto body;
-              }
-            """,
-            3);
-
-    assertThat(loopCount(cfa)).isEqualTo(0);
-    // Everything before the exit runs once per visit of the entry node, everything after it once
-    // less, because the last unrolling leaves the loop before reaching it.
-    assertThat(statementCount(cfa, "i = i + 1")).isEqualTo(3);
-    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(2);
-  }
-
   /** The condition of the loop is reached twice per iteration, so it has to stay a condition. */
   @Test
   public void testLoopWithSeveralChecksOfItsCondition() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            goto start;
-            start:
-              s = s + 1;
-            check:
-              if (i >= 4) {
-                goto end;
-              }
-              i = i + 1;
-              if (i == 2) {
-                goto check;
-              }
-              goto start;
-            end: ;
-            """,
-            4);
+    MutableCFA cfa = unrollOutermostLoop("shape-several-checks-of-the-condition-safe.c", 4);
 
     assertThat(statementCount(cfa, "s = s + 1")).isEqualTo(4);
     // Every unrolling contains the condition, but only the last one still branches on it. The
@@ -375,22 +275,7 @@ public class LoopUnrollerTest {
   /** A loop nested in the unrolled loop is copied along and stays a loop. */
   @Test
   public void testNestedLoopIsKept() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            int j = 0;
-            while (i < 3) {
-              j = 0;
-              while (j < i) {
-                s = s + 1;
-                j = j + 1;
-              }
-              i = i + 1;
-            }
-            """,
-            4);
+    MutableCFA cfa = unrollOutermostLoop("counted-outer-of-uncounted-inner-safe.c", 4);
 
     // The three unrollings that run the body each contain their own copy of the inner loop, the
     // last unrolling only leaves the outer loop and does not contain it.
@@ -400,44 +285,6 @@ public class LoopUnrollerTest {
     assertThat(branchingConditionCount(cfa, "j < i")).isEqualTo(6);
   }
 
-  @Test
-  public void testLoopThatRunsItsBodyOnce() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 2;
-            int s = 0;
-            while (i < 3) {
-              s = s + 1;
-              i = i + 1;
-            }
-            """,
-            2);
-
-    assertThat(loopCount(cfa)).isEqualTo(0);
-    assertThat(statementCount(cfa, "s = s + 1")).isEqualTo(1);
-  }
-
-  /** A loop whose body never runs still visits its entry node once and checks its condition. */
-  @Test
-  public void testLoopThatNeverRunsItsBody() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 5;
-            int s = 0;
-            while (i < 3) {
-              s = s + 1;
-              i = i + 1;
-            }
-            """,
-            1);
-
-    assertThat(loopCount(cfa)).isEqualTo(0);
-    assertThat(statementCount(cfa, "s = s + 1")).isEqualTo(0);
-    assertThat(conditionCount(cfa, "i < 3")).isEqualTo(1);
-  }
-
   /**
    * Sharing one declaration between the copies would declare the same variable again in every
    * unrolling, which no C program does and which would let an uninitialized variable keep the value
@@ -445,18 +292,7 @@ public class LoopUnrollerTest {
    */
   @Test
   public void testLoopThatDeclaresAVariableGivesEveryCopyItsOwn() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 3) {
-              int j = i + 1;
-              s = s + j;
-              i = i + 1;
-            }
-            """,
-            4);
+    MutableCFA cfa = unrollOutermostLoop("counted-declares-a-variable-safe.c", 4);
 
     assertThat(loopCount(cfa)).isEqualTo(0);
     // One for each of the three copies of the body.
@@ -469,19 +305,7 @@ public class LoopUnrollerTest {
   /** The initializer of one variable can read another one that the same copy declares. */
   @Test
   public void testDeclarationsThatReadEachOtherAreRenamedTogether() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 3) {
-              int a = i + 1;
-              int b = a + 1;
-              s = s + b;
-              i = i + 1;
-            }
-            """,
-            4);
+    MutableCFA cfa = unrollOutermostLoop("counted-declarations-read-each-other-safe.c", 4);
 
     assertThat(declarationsOf(cfa, "a")).hasSize(3);
     assertThat(declarationsOf(cfa, "b")).hasSize(3);
@@ -494,20 +318,7 @@ public class LoopUnrollerTest {
   /** A condition of the loop can read a variable that the loop declares as well. */
   @Test
   public void testConditionsThatReadADeclaredVariableAreRenamed() throws Exception {
-    MutableCFA cfa =
-        unrollOutermostLoop(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 3) {
-              int j = i + 1;
-              if (j > 1) {
-                s = s + 1;
-              }
-              i = i + 1;
-            }
-            """,
-            4);
+    MutableCFA cfa = unrollOutermostLoop("counted-condition-reads-a-declared-variable-safe.c", 4);
 
     assertThat(loopCount(cfa)).isEqualTo(0);
     // The condition still branches in each of the three copies, and both of its edges read the
@@ -528,20 +339,8 @@ public class LoopUnrollerTest {
   @Test
   public void testDeclaredVariablesGoOutOfScopeInEveryCopy() throws Exception {
     CFA cfa =
-        TestCfaUtils.makeCfaFromFunctionBody(
-            """
-            int i = 0;
-            int *p;
-            while (i < 3) {
-              int a[2];
-              p = a;
-              {
-                int b[2];
-                p = b;
-              }
-              i = i + 1;
-            }
-            """,
+        TestCfaUtils.makeCfaFromFile(
+            PROGRAMS + "scope-arrays-used-in-their-iteration-safe.c",
             Map.entry("cfa.unrollBoundedLoops", "true"));
 
     for (String variable : ImmutableList.of("a", "b")) {
@@ -555,532 +354,12 @@ public class LoopUnrollerTest {
   }
 
   /**
-   * The length of a variable length array is an expression that reads another variable, and it
-   * lives in the type, which the renaming does not reach into.
+   * Unrolling a loop replaces the loops nested in it by a copy per iteration, so the loop structure
+   * is computed again until nothing is left of the nest.
    */
   @Test
-  public void testLoopThatDeclaresAVariableLengthArrayIsNotUnrolled() throws Exception {
-    assertIsNotUnrolled(
-        """
-        int i = 0;
-        int s = 0;
-        while (i < 3) {
-          int n = i + 2;
-          int a[n];
-          a[0] = 1;
-          s = s + a[0];
-          i = i + 1;
-        }
-        """,
-        4);
-  }
-
-  /** With several ways out of the loop we cannot tell which one is the exit condition. */
-  @Test
-  public void testLoopWithSeveralExitsIsNotUnrolled() throws Exception {
-    assertIsNotUnrolled(
-        """
-        int i = 0;
-        int s = 0;
-        while (i < 3) {
-          if (s > 100) {
-            break;
-          }
-          s = s + i;
-          i = i + 1;
-        }
-        """,
-        4);
-  }
-
-  /** We would not know which unrolling the second entry belongs to. */
-  @Test
-  public void testLoopWithSeveralEntryNodesIsNotUnrolled() throws Exception {
-    assertIsNotUnrolled(
-        """
-        int i = 0;
-        int s = 0;
-        if (s == 0) {
-          goto body;
-        }
-        while (i < 3) {
-        body:
-          s = s + i;
-          i = i + 1;
-        }
-        """,
-        4);
-  }
-
-  @Test
-  public void testLoopThatIsNotLeftAtAllIsNotUnrolled() throws Exception {
-    assertIsNotUnrolled(
-        """
-        int s = 0;
-        while (1) {
-          s = s + 1;
-        }
-        """,
-        4);
-  }
-
-  /** The loop is always entered, so it always visits its entry node at least once. */
-  @Test
-  public void testUnrollingZeroTimesIsRejected() throws Exception {
-    MutableCFA cfa =
-        createCfa(
-            """
-            int i = 0;
-            while (i < 3) {
-              i = i + 1;
-            }
-            """);
-    Loop loop = outermostLoop(cfa);
-    LoopUnroller unroller = createUnroller();
-
-    assertThrows(IllegalArgumentException.class, () -> unroller.unrollLoopExactly(cfa, loop, 0));
-  }
-
-  /** Asserts that the loop is left untouched, so that the CFA still contains it. */
-  private static void assertIsNotUnrolled(String pFunctionBody, int pEntryVisits) throws Exception {
-    MutableCFA cfa = createCfa(pFunctionBody);
-    int nodesBefore = cfa.nodes().size();
-
-    createUnroller().unrollLoopExactly(cfa, outermostLoop(cfa), pEntryVisits);
-
-    assertThat(cfa.nodes()).hasSize(nodesBefore);
-    assertThat(loopCount(cfa)).isAtLeast(1);
-  }
-
-  /** The number of visits of its entry node after which the outermost loop is left. */
-  private static OptionalInt entryVisitsOf(String pFunctionBody) throws Exception {
-    MutableCFA cfa = createCfa(pFunctionBody);
-    return createUnroller().findExactLoopIterationCount(cfa, outermostLoop(cfa));
-  }
-
-  @Test
-  public void testCountsVisitsOfAWhileLoop() throws Exception {
-    // The condition is checked with 0, 1, 2 and 3, and the last check leaves the loop.
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i < 3) {
-                  i = i + 1;
-                }
-                """))
-        .hasValue(4);
-  }
-
-  @Test
-  public void testCountsVisitsOfADoWhileLoop() throws Exception {
-    // The counter is already increased when the condition is checked, so it is checked with 1, 2
-    // and 3 instead.
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                do {
-                  i = i + 1;
-                } while (i < 3);
-                """))
-        .hasValue(3);
-  }
-
-  /** The entry node is in the middle of the body, so an iteration is not a run of the body. */
-  @Test
-  public void testCountsVisitsOfALoopThatIsLeftInTheMiddleOfItsBody() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                int s = 0;
-                goto middle;
-                body:
-                  s = s + i;
-                middle:
-                  i = i + 1;
-                  if (i < 3) {
-                    goto body;
-                  }
-                """))
-        .hasValue(3);
-  }
-
-  @Test
-  public void testCountsALoopThatCountsDown() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 10;
-                while (i > 4) {
-                  i = i - 2;
-                }
-                """))
-        .hasValue(4);
-  }
-
-  @Test
-  public void testCountsALoopWithTheConstantOnTheLeft() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (3 > i) {
-                  i = i + 1;
-                }
-                """))
-        .hasValue(4);
-  }
-
-  @Test
-  public void testCountsALoopThatCountsPastItsBound() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i != 6) {
-                  i = i + 2;
-                }
-                """))
-        .hasValue(4);
-  }
-
-  @Test
-  public void testCountsALoopThatNeverRunsItsBody() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 5;
-                while (i < 3) {
-                  i = i + 1;
-                }
-                """))
-        .hasValue(1);
-  }
-
-  /** The counter jumps over the bound, so the loop only ends by overflowing. */
-  @Test
-  public void testGivesUpOnALoopThatMissesItsBound() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i != 5) {
-                  i = i + 2;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** The counter moves away from the bound, so the loop only ends by overflowing. */
-  @Test
-  public void testGivesUpOnACounterThatMovesAwayFromItsBound() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i < 3) {
-                  i = i - 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  @Test
-  public void testGivesUpOnACounterThatMovesAwayFromItsBoundWhileCountingDown() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 10;
-                while (i > 4) {
-                  i = i + 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** An inequality is never reached from the wrong side either. */
-  @Test
-  public void testGivesUpOnACounterThatMovesAwayFromItsInequality() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i != 5) {
-                  i = i - 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /**
-   * The direction of the counter does not matter if the loop is left before it ever moves, so the
-   * shortcut for a counter that moves the wrong way must not reject this.
-   */
-  @Test
-  public void testCountsALoopThatIsLeftBeforeItsCounterMovesTheWrongWay() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 5;
-                while (i < 3) {
-                  i = i - 1;
-                }
-                """))
-        .hasValue(1);
-  }
-
-  @Test
-  public void testGivesUpOnALoopThatRunsTooOften() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i < 1000) {
-                  i = i + 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** The values we compute are only the ones of the program as long as they fit into its type. */
-  @Test
-  public void testGivesUpOnAnOverflowingCounter() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                char c = 100;
-                while (c < 126) {
-                  c = c + 10;
-                }
-                """))
-        .isEmpty();
-  }
-
-  @Test
-  public void testGivesUpOnAnUninitializedCounter() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i;
-                while (i < 3) {
-                  i = i + 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  @Test
-  public void testGivesUpOnDifferentStartValues() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                int x = 1;
-                if (x > 0) {
-                  i = 1;
-                }
-                while (i < 3) {
-                  i = i + 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** Which iteration leaves the loop would depend on the values of the other variables. */
-  @Test
-  public void testGivesUpOnAConditionalModification() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                int x = 1;
-                while (i < 3) {
-                  if (x > 0) {
-                    i = i + 1;
-                  }
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** How often a nested loop runs would have to be known as well. */
-  @Test
-  public void testGivesUpOnAModificationInsideANestedLoop() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                int j = 0;
-                while (i < 6) {
-                  j = 0;
-                  while (j < 2) {
-                    i = i + 1;
-                    j = j + 1;
-                  }
-                }
-                """))
-        .isEmpty();
-  }
-
-  @Test
-  public void testGivesUpOnSeveralModifications() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i < 8) {
-                  i = i + 1;
-                  i = i + 2;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** Something we do not see could write the counter through the pointer. */
-  @Test
-  public void testGivesUpOnACounterWhoseAddressIsTaken() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                int *p = &i;
-                while (i < 3) {
-                  i = i + 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** The address of an element of an array is not the address of the index. */
-  @Test
-  public void testCountsALoopWhoseCounterIsUsedInsideAnAddress() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int a[8];
-                int i = 0;
-                int *p = &a[i];
-                while (i < 3) {
-                  i = i + 1;
-                }
-                """))
-        .hasValue(4);
-  }
-
-  /** The parser folds a constant expression, so the offset arrives here as a literal. */
-  @Test
-  public void testCountsALoopThatStepsByAConstantExpression() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                while (i < 12) {
-                  i = i + sizeof(int);
-                }
-                """))
-        .hasValue(4);
-  }
-
-  @Test
-  public void testCountsALoopThatStepsByAnEnumConstant() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                enum { STEP = 3 };
-                int i = 0;
-                while (i < 9) {
-                  i = i + STEP;
-                }
-                """))
-        .hasValue(4);
-  }
-
-  /** The parser rewrites a condition that is not a comparison into a comparison to zero. */
-  @Test
-  public void testCountsALoopWhoseConditionIsNotWrittenAsAComparison() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 3;
-                while (i) {
-                  i = i - 1;
-                }
-                """))
-        .hasValue(4);
-  }
-
-  /** A static variable keeps its value, so the next call of the function starts somewhere else. */
-  @Test
-  public void testGivesUpOnAStaticCounter() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                static int i = 0;
-                while (i < 3) {
-                  i = i + 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  @Test
-  public void testGivesUpOnAVariableBound() throws Exception {
-    assertThat(
-            entryVisitsOf(
-                """
-                int i = 0;
-                int n = 3;
-                while (i < n) {
-                  i = i + 1;
-                }
-                """))
-        .isEmpty();
-  }
-
-  /** The count that the heuristic finds has to be the one that the unrolling expects. */
-  @Test
-  public void testUnrollBoundedLoopsRemovesACountedLoop() throws Exception {
-    MutableCFA cfa =
-        createCfa(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 3) {
-              s = s + i;
-              i = i + 1;
-            }
-            """);
-
-    createUnroller().unrollBoundedLoops(cfa);
-
-    assertIsValidCfa(cfa);
-    assertThat(loopCount(cfa)).isEqualTo(0);
-    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(3);
-  }
-
-  /**
-   * Unrolling the outer loop replaces the inner one by a copy per iteration. Those only become
-   * visible after the loop structure is computed again, so each of them is unrolled in a later
-   * round and nothing is left of the nest.
-   */
-  @Test
-  public void testUnrollBoundedLoopsUnrollsTheCopiesOfANestedLoop() throws Exception {
-    MutableCFA cfa =
-        createCfa(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 3) {
-              int j = 0;
-              while (j < 2) {
-                s = s + 1;
-                j = j + 1;
-              }
-              i = i + 1;
-            }
-            """);
+  public void testUnrollBoundedLoopsUnrollsANestOfCountedLoops() throws Exception {
+    MutableCFA cfa = createCfa("counted-nested-safe.c");
 
     createUnroller().unrollBoundedLoops(cfa);
 
@@ -1092,115 +371,5 @@ public class LoopUnrollerTest {
     // inner loops only use the counter of the copy they are in.
     assertThat(declarationsOf(cfa, "j")).hasSize(3);
     assertEveryUseSeesTheClosestDeclaration(cfa, "j");
-  }
-
-  /**
-   * How often a loop may be unrolled follows from how big it is, so a body of a few nodes is
-   * unrolled far more often than a fixed limit for all loops could allow.
-   */
-  @Test
-  public void testUnrollBoundedLoopsUnrollsASmallLoopManyTimes() throws Exception {
-    MutableCFA cfa =
-        createCfa(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 50) {
-              s = s + i;
-              i = i + 1;
-            }
-            """);
-
-    createUnroller().unrollBoundedLoops(cfa);
-
-    assertIsValidCfa(cfa);
-    assertThat(loopCount(cfa)).isEqualTo(0);
-    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(50);
-  }
-
-  /**
-   * The number of copies is limited on its own as well, so that a loop whose body is small enough
-   * to leave the node budget alone is not taken apart into an arbitrarily long chain.
-   */
-  @Test
-  public void testUnrollBoundedLoopsKeepsALoopWithTooManyIterations() throws Exception {
-    MutableCFA cfa =
-        createCfa(
-            """
-            int i = 0;
-            int s = 0;
-            while (i < 50) {
-              s = s + i;
-              i = i + 1;
-            }
-            """);
-    // The budget would allow all 50 copies of this body, this does not.
-    LoopUnroller unroller = createUnroller(Map.entry("cfa.unrollBoundedLoops.maxIterations", "10"));
-
-    unroller.unrollBoundedLoops(cfa);
-
-    assertIsValidCfa(cfa);
-    assertThat(loopCount(cfa)).isEqualTo(1);
-    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(1);
-  }
-
-  /** Nested loops multiply, so the unrolling stops before a function grows without bound. */
-  @Test
-  public void testUnrollBoundedLoopsKeepsAFunctionWithinItsNodeBudget() throws Exception {
-    String functionBody =
-        """
-        int i = 0;
-        int s = 0;
-        while (i < 10) {
-          int j = 0;
-          while (j < 10) {
-            s = s + 1;
-            j = j + 1;
-          }
-          i = i + 1;
-        }
-        """;
-
-    MutableCFA withoutBudget = createCfa(functionBody);
-    createUnroller().unrollBoundedLoops(withoutBudget);
-
-    assertIsValidCfa(withoutBudget);
-    // Nothing is left of the nest, at the price of one copy of the innermost body per pair of
-    // iterations of the two loops.
-    assertThat(loopCount(withoutBudget)).isEqualTo(0);
-    assertThat(statementCount(withoutBudget, "s = s + 1")).isEqualTo(100);
-
-    MutableCFA withBudget = createCfa(functionBody);
-    // Enough for the inner loop on its own, but not for copying the result of that ten times.
-    LoopUnroller unroller =
-        createUnroller(Map.entry("cfa.unrollBoundedLoops.maxAddedNodes", "100"));
-    unroller.unrollBoundedLoops(withBudget);
-
-    assertIsValidCfa(withBudget);
-    // The inner loop is unrolled inside the outer one, which stays a loop.
-    assertThat(loopCount(withBudget)).isEqualTo(1);
-    assertThat(statementCount(withBudget, "s = s + 1")).isEqualTo(10);
-  }
-
-  /** A loop that the heuristic cannot count has to survive the post-processing unchanged. */
-  @Test
-  public void testUnrollBoundedLoopsKeepsAnUncountedLoop() throws Exception {
-    MutableCFA cfa =
-        createCfa(
-            """
-            int i;
-            int s = 0;
-            while (i < 3) {
-              s = s + i;
-              i = i + 1;
-            }
-            """);
-    int nodesBefore = cfa.nodes().size();
-
-    createUnroller().unrollBoundedLoops(cfa);
-
-    assertIsValidCfa(cfa);
-    assertThat(cfa.nodes()).hasSize(nodesBefore);
-    assertThat(loopCount(cfa)).isEqualTo(1);
   }
 }

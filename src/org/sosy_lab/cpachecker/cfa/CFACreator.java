@@ -907,6 +907,7 @@ public class CFACreator {
     if (unrollBoundedLoops) {
       final LoopUnroller unroller = new LoopUnroller(logger, config);
       unroller.unrollBoundedLoops(cfa);
+      unroller.collectStatistics(stats.statisticsCollection);
     }
 
     if (useCFACloningForMultiThreadedPrograms && isMultiThreadedProgram(cfa)) {
