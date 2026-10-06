@@ -14,6 +14,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -41,8 +43,8 @@ public class SimpleChecksIntegrationTest {
             .setOption("analysis.entryFunction", "main")
             .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, "test/programs/" + pProgram);
-    var reached = result.cpaCheckerResult().getReached();
-    for (var state : reached) {
+    ReachedSet reached = result.cpaCheckerResult().getReached();
+    for (AbstractState state : reached) {
       assertThat(reached.getReached(state)).contains(state);
     }
     return result;
