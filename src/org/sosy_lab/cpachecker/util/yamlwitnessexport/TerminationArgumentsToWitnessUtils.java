@@ -24,6 +24,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -84,6 +85,33 @@ public class TerminationArgumentsToWitnessUtils {
     return replaceVariables(pRankingFunction, pVars, varName -> "((__int128)" + varName + ")");
   }
 
+  private static final Pattern INTEGER_LITERAL = Pattern.compile("(?<![\\w.])\\d+(?![\\w.])");
+  private static final BigInteger MAX_LONG_LONG = BigInteger.valueOf(Long.MAX_VALUE);
+  private static final int SPLIT_BITS = 62;
+
+  /**
+   * Replaces the integer literals that do not fit into long long, which C does not allow, by
+   * expressions of type __int128, e.g., ((__int128)hi * 2^62 + lo).
+   */
+  private static String replaceLargeLiterals(String pExpression) {
+    return INTEGER_LITERAL
+        .matcher(pExpression)
+        .replaceAll(match -> Matcher.quoteReplacement(toLiteral(new BigInteger(match.group()))));
+  }
+
+  private static String toLiteral(BigInteger pValue) {
+    if (pValue.compareTo(MAX_LONG_LONG) <= 0) {
+      return pValue.toString();
+    }
+    return "(((__int128)"
+        + toLiteral(pValue.shiftRight(SPLIT_BITS))
+        + ") * "
+        + BigInteger.ONE.shiftLeft(SPLIT_BITS)
+        + " + "
+        + pValue.subtract(pValue.shiftRight(SPLIT_BITS).shiftLeft(SPLIT_BITS))
+        + ")";
+  }
+
   /**
    * Replaces every occurrence of the given variables in the expression by the result of the given
    * function. Only whole variable names are replaced, i.e., for variables t and tmp the variable t
@@ -134,8 +162,9 @@ public class TerminationArgumentsToWitnessUtils {
     // to our CExpression. Maybe in future, we could implement such transformer, however, so far,
     // we did not have problems with just using it as string.
     String invariant =
-        wrapTheVariablesWithCastToLongLong(
-            pSupportingInvariant.toString(), pSupportingInvariant.getVariables());
+        replaceLargeLiterals(
+            wrapTheVariablesWithCastToLongLong(
+                pSupportingInvariant.toString(), pSupportingInvariant.getVariables()));
     return new InvariantEntry(
         TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
@@ -210,6 +239,8 @@ public class TerminationArgumentsToWitnessUtils {
     if (prevRank.contains(CParserUtils.CPACHECKER_TMP_PREFIX)) {
       return "0";
     }
+    prevRank = replaceLargeLiterals(prevRank);
+    currentRank = replaceLargeLiterals(currentRank);
     if (strictRelation) {
       return prevRank + " > " + currentRank;
     }

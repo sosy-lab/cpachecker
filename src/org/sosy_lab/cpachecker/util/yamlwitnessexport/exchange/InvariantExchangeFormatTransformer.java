@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -178,7 +179,18 @@ public class InvariantExchangeFormatTransformer {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
 
-    Scope scope = new CProgramScope(cfa, logger);
+    CFANode locationNode =
+        cfa.getAstCfaRelation()
+            .getNodeForStatementLocation(
+                pInvariantEntry.getLocation().getLine(),
+                pInvariantEntry.getLocation().getColumn().orElseThrow())
+            .orElseThrow();
+    // The node may belong to a function called in the statement, so the function of the invariant
+    // location is preferred
+    String functionName =
+        Objects.requireNonNullElse(
+            pInvariantEntry.getLocation().getFunction(), locationNode.getFunctionName());
+    Scope scope = new CProgramScope(cfa, logger).withFunctionScope(functionName);
     Set<String> alreadyDeclaredVariables = new HashSet<>();
 
     while (matcher.find()) {
@@ -192,12 +204,6 @@ public class InvariantExchangeFormatTransformer {
       }
       alreadyDeclaredVariables.add(prevVariable);
       CDeclaration prevDeclaration;
-      CFANode locationNode =
-          cfa.getAstCfaRelation()
-              .getNodeForStatementLocation(
-                  pInvariantEntry.getLocation().getLine(),
-                  pInvariantEntry.getLocation().getColumn().orElseThrow())
-              .orElseThrow();
       if (currDeclaration == null) {
         currDeclaration =
             (CVariableDeclaration)
@@ -214,7 +220,7 @@ public class InvariantExchangeFormatTransformer {
               prevVariable,
               prevVariable,
               // The scope is not relevant as these variables are not in the original program
-              locationNode.getFunctionName() + "::" + prevVariable,
+              functionName + "::" + prevVariable,
               null);
       mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }

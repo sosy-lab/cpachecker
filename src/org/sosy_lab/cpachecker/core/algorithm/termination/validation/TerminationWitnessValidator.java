@@ -41,6 +41,11 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -122,6 +127,8 @@ public class TerminationWitnessValidator implements Algorithm {
   // run().
   private Set<ExpressionTreeLocationInvariant> witnessInvariants = ImmutableSet.of();
   private ImmutableMap<Loop, BooleanFormula> transitionInvariantsOfLoops = ImmutableMap.of();
+  private final Set<String> functionsOnCallStack = new HashSet<>();
+  private final Map<Loop, ImmutableList<BooleanFormula>> strengtheningOfLoops = new HashMap<>();
   private ImmutableListMultimap<Loop, BooleanFormula> supportingInvariantsOfLoops =
       ImmutableListMultimap.of();
 
@@ -213,6 +220,22 @@ public class TerminationWitnessValidator implements Algorithm {
       }
     }
 
+    try {
+      return checkTransitionInvariants(
+          pReachedSet, loops, invariants, loopsToTransitionInvariants, loopsToSupportingInvariants);
+    } catch (UnsupportedLoopException e) {
+      logger.logUserException(Level.INFO, e, "Transition invariants cannot be checked");
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    }
+  }
+
+  private AlgorithmStatus checkTransitionInvariants(
+      ReachedSet pReachedSet,
+      ImmutableCollection<Loop> loops,
+      Set<ExpressionTreeLocationInvariant> invariants,
+      ImmutableMap<Loop, BooleanFormula> loopsToTransitionInvariants,
+      ImmutableListMultimap<Loop, BooleanFormula> loopsToSupportingInvariants)
+      throws CPAException, InterruptedException {
     // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
       if (loop.getIncomingEdges().isEmpty()) {
@@ -267,7 +290,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       // Transition invariants that strengthen the hypothesis of the induction step
       ImmutableList<BooleanFormula> strengthening =
-          computeStrengtheningTransitionInvariants(
+          getStrengtheningTransitionInvariants(
               loop, invariant, supportingInvariants, mapPrevVarsToCurrVars);
       // Do k-inductivity checks for k > 1
       for (int k = 1; true; k++) {
@@ -572,16 +595,34 @@ public class TerminationWitnessValidator implements Algorithm {
    *   <li>for every atom A(s,t) of T, the negation of the atom with the roles of s and t swapped,
    *       e.g., f(s) >= f(t) for the atom f(s) > f(t),
    *   <li>for every variable x of T, x(t) <= x(s) and x(t) >= x(s),
-   *   <li>the disjunctions of the subsets of the atoms of T, if T has at most {@link
-   *       #MAX_ATOMS_FOR_SUBSET_CANDIDATES} atoms,
-   *   <li>for every two atoms f(s) > f(t) and g(s) > g(t) of T, min(f(t),g(t)) < min(f(s),g(s)),
-   *       i.e., (f(t) < f(s) && f(t) < g(s)) || (g(t) < f(s) && g(t) < g(s)).
+   *   <li>for every two variables x and y of T, x(t) - y(t) = x(s) - y(s),
+   *   <li>the disjunctions of the subsets of the atoms of T, each also with one of the negated
+   *       atoms with s and t swapped, if T has at most {@link #MAX_ATOMS_FOR_SUBSET_CANDIDATES}
+   *       atoms,
+   *   <li>for every two atoms f(s) > f(t) and g(s) > g(t) of T, min(f(t),g(t)) < min(f(s),g(s)) and
+   *       max(f(t),g(t)) < max(f(s),g(s)).
    * </ul>
    *
    * <p>The candidates are filtered in the style of Houdini: a candidate is dropped if R => C does
    * not hold, or if the conjunction of all remaining candidates is not sufficient to prove the
    * induction step for C. The remaining candidates are therefore transition invariants.
    */
+  private ImmutableList<BooleanFormula> getStrengtheningTransitionInvariants(
+      Loop pLoop,
+      BooleanFormula pCandidateInvariant,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      throws CPATransferException, InterruptedException {
+    ImmutableList<BooleanFormula> strengthening = strengtheningOfLoops.get(pLoop);
+    if (strengthening == null) {
+      strengthening =
+          computeStrengtheningTransitionInvariants(
+              pLoop, pCandidateInvariant, pSupportingInvariants, pMapPrevToCurrVars);
+      strengtheningOfLoops.put(pLoop, strengthening);
+    }
+    return strengthening;
+  }
+
   private ImmutableList<BooleanFormula> computeStrengtheningTransitionInvariants(
       Loop pLoop,
       BooleanFormula pCandidateInvariant,
@@ -594,6 +635,7 @@ public class TerminationWitnessValidator implements Algorithm {
       allCandidates.add(bfmgr.not(swapStates(atom, pMapPrevToCurrVars)));
     }
     Map<String, String> swappedNames = swapVariableNames(pMapPrevToCurrVars);
+    List<Pair<Formula, Formula>> variables = new ArrayList<>();
     for (Map.Entry<String, Formula> variable :
         fmgr.extractVariables(pCandidateInvariant).entrySet()) {
       if (TransitionInvariantUtils.isPrevVariable(variable.getKey(), pMapPrevToCurrVars)
@@ -603,19 +645,40 @@ public class TerminationWitnessValidator implements Algorithm {
             fmgr.makeVariable(fmgr.getFormulaType(previous), swappedNames.get(variable.getKey()));
         allCandidates.add(fmgr.makeLessOrEqual(current, previous, true));
         allCandidates.add(fmgr.makeGreaterOrEqual(current, previous, true));
+        variables.add(Pair.of(previous, current));
+      }
+    }
+    // x(t) - y(t) = x(s) - y(s)
+    for (int i = 0; i < variables.size(); i++) {
+      for (int j = i + 1; j < variables.size(); j++) {
+        Pair<Formula, Formula> x = variables.get(i);
+        Pair<Formula, Formula> y = variables.get(j);
+        if (fmgr.getFormulaType(x.getFirst()).equals(fmgr.getFormulaType(y.getFirst()))) {
+          allCandidates.add(
+              fmgr.makeEqual(
+                  fmgr.makeMinus(x.getSecond(), y.getSecond()),
+                  fmgr.makeMinus(x.getFirst(), y.getFirst())));
+        }
       }
     }
     if (atoms.size() <= MAX_ATOMS_FOR_SUBSET_CANDIDATES) {
-      // The subsets with at least two and less than all atoms, as bit masks
-      for (int subset = 1; subset < (1 << atoms.size()) - 1; subset++) {
-        if (Integer.bitCount(subset) >= 2) {
-          List<BooleanFormula> disjuncts = new ArrayList<>();
-          for (int i = 0; i < atoms.size(); i++) {
-            if ((subset & (1 << i)) != 0) {
-              disjuncts.add(atoms.get(i));
-            }
+      // The non-empty subsets of the atoms as bit masks, each also with one non-strict atom
+      for (int subset = 1; subset < (1 << atoms.size()); subset++) {
+        List<BooleanFormula> disjuncts = new ArrayList<>();
+        for (int i = 0; i < atoms.size(); i++) {
+          if ((subset & (1 << i)) != 0) {
+            disjuncts.add(atoms.get(i));
           }
+        }
+        if (Integer.bitCount(subset) >= 2 && subset < (1 << atoms.size()) - 1) {
           allCandidates.add(bfmgr.or(disjuncts));
+        }
+        for (int i = 0; i < atoms.size(); i++) {
+          if ((subset & (1 << i)) == 0) {
+            allCandidates.add(
+                bfmgr.or(
+                    bfmgr.or(disjuncts), bfmgr.not(swapStates(atoms.get(i), pMapPrevToCurrVars))));
+          }
         }
       }
     }
@@ -631,12 +694,22 @@ public class TerminationWitnessValidator implements Algorithm {
         Formula gBefore = comparisons.get(j).getFirst();
         Formula gAfter = comparisons.get(j).getSecond();
         if (fmgr.getFormulaType(fBefore).equals(fmgr.getFormulaType(gBefore))) {
+          // min(f(t),g(t)) < min(f(s),g(s))
           allCandidates.add(
               bfmgr.or(
                   bfmgr.and(
                       fmgr.makeLessThan(fAfter, fBefore, true),
                       fmgr.makeLessThan(fAfter, gBefore, true)),
                   bfmgr.and(
+                      fmgr.makeLessThan(gAfter, fBefore, true),
+                      fmgr.makeLessThan(gAfter, gBefore, true))));
+          // max(f(t),g(t)) < max(f(s),g(s))
+          allCandidates.add(
+              bfmgr.and(
+                  bfmgr.or(
+                      fmgr.makeLessThan(fAfter, fBefore, true),
+                      fmgr.makeLessThan(fAfter, gBefore, true)),
+                  bfmgr.or(
                       fmgr.makeLessThan(gAfter, fBefore, true),
                       fmgr.makeLessThan(gAfter, gBefore, true))));
         }
@@ -900,7 +973,7 @@ public class TerminationWitnessValidator implements Algorithm {
       Loop pLoop, SSAMap pContextSSAMap, PointerTargetSet pContextPointerSet)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths =
-        collectAllThePaths(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads());
+        collectAllThePaths(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), pLoop.getLoopHeads());
     ImmutableSet<Loop> nestedLoops =
         FluentIterable.from(cfa.getLoopStructure().orElseThrow().getAllLoops())
             .filter(
@@ -935,7 +1008,7 @@ public class TerminationWitnessValidator implements Algorithm {
         if (summarizedLoop.isPresent()) {
           anotherPath = summarizeNestedLoop(anotherPath, summarizedLoop.orElseThrow());
         } else {
-          anotherPath = pfmgr.makeAnd(anotherPath, edge);
+          anotherPath = makeStep(anotherPath, edge);
         }
       }
       if (!initialized) {
@@ -973,9 +1046,15 @@ public class TerminationWitnessValidator implements Algorithm {
       throws CPATransferException, InterruptedException {
     // Collect the variables assigned in the nested loop: an edge assigns a variable iff the SSA
     // index of the variable increases. The formula for all edges makes all variables known first.
+    List<CFAEdge> steps = new ArrayList<>(pNestedLoop.getInnerLoopEdges());
+    for (CFANode node : pNestedLoop.getLoopNodes()) {
+      if (node.getLeavingSummaryEdge() != null) {
+        steps.add(node.getLeavingSummaryEdge());
+      }
+    }
     PathFormula allEdges = pPath;
-    for (CFAEdge edge : pNestedLoop.getInnerLoopEdges()) {
-      allEdges = pfmgr.makeAnd(allEdges, edge);
+    for (CFAEdge edge : steps) {
+      allEdges = makeStep(allEdges, edge);
     }
     Map<String, Formula> instantiatedVariables = fmgr.extractVariables(allEdges.getFormula());
     Map<String, Formula> uninstantiatedVariables = new HashMap<>();
@@ -985,9 +1064,8 @@ public class TerminationWitnessValidator implements Algorithm {
           fmgr.uninstantiate(variable.getValue()));
     }
     Set<String> assignedVariables = new HashSet<>();
-    for (CFAEdge edge : pNestedLoop.getInnerLoopEdges()) {
-      PathFormula oneEdge =
-          pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContextFrom(allEdges), edge);
+    for (CFAEdge edge : steps) {
+      PathFormula oneEdge = makeStep(pfmgr.makeEmptyPathFormulaWithContextFrom(allEdges), edge);
       for (String variable : oneEdge.getSsa().allVariables()) {
         if (oneEdge.getSsa().getIndex(variable) > allEdges.getSsa().getIndex(variable)) {
           assignedVariables.add(variable);
@@ -1040,10 +1118,16 @@ public class TerminationWitnessValidator implements Algorithm {
       return pPath.withContext(exitSsa, allEdges.getPointerTargetSet());
     }
 
-    // T(s_entry, s_exit)
+    // T(s_entry, s_exit) and the transition invariants that strengthen it
+    BooleanFormula transitionRelation =
+        bfmgr.and(
+            transitionInvariant,
+            bfmgr.and(
+                getStrengtheningTransitionInvariants(
+                    pNestedLoop, transitionInvariant, supportingInvariants, mapPrevToCurrVars)));
     ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
     for (Map.Entry<String, Formula> variable :
-        fmgr.extractVariables(transitionInvariant).entrySet()) {
+        fmgr.extractVariables(transitionRelation).entrySet()) {
       FormulaType<Formula> type = fmgr.getFormulaType(variable.getValue());
       String name = variable.getKey();
       if (TransitionInvariantUtils.isPrevVariable(name, mapPrevToCurrVars)) {
@@ -1060,7 +1144,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
     }
     BooleanFormula summary =
-        bfmgr.or(identity, fmgr.substitute(transitionInvariant, substitution.buildOrThrow()));
+        bfmgr.or(identity, fmgr.substitute(transitionRelation, substitution.buildOrThrow()));
 
     // ¬I(s_entry), the transition invariant is only valid for states satisfying I
     if (!supportingInvariants.isEmpty()) {
@@ -1079,11 +1163,33 @@ public class TerminationWitnessValidator implements Algorithm {
     return pSsa.containsVariable(pVariable) ? pSsa.getIndex(pVariable) : 1;
   }
 
+  /**
+   * Collects all paths from a start node to an end node that consist of the given edges. A call of
+   * a function is represented by its summary edge. Paths that end in a node without successors,
+   * e.g., after abort(), are omitted, since they do not reach an end node.
+   *
+   * @throws UnsupportedLoopException if a path ends in another node
+   */
   private List<List<CFAEdge>> collectAllThePaths(
-      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pLoopHeads) {
-    List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
+      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pStartNodes, Set<CFANode> pEndNodes)
+      throws UnsupportedLoopException {
+    Set<CFAEdge> edges = new LinkedHashSet<>(pEdges);
+    List<CFANode> waitlist = new ArrayList<>(pStartNodes);
     for (CFAEdge edge : pEdges) {
-      if (pLoopHeads.contains(edge.getPredecessor())) {
+      waitlist.add(edge.getPredecessor());
+      waitlist.add(edge.getSuccessor());
+    }
+    // A call may directly follow another call, i.e., its node is reached only by a summary edge
+    while (!waitlist.isEmpty()) {
+      FunctionSummaryEdge summaryEdge = waitlist.removeLast().getLeavingSummaryEdge();
+      if (summaryEdge != null && edges.add(summaryEdge)) {
+        waitlist.add(summaryEdge.getSuccessor());
+      }
+    }
+
+    List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
+    for (CFAEdge edge : edges) {
+      if (pStartNodes.contains(edge.getPredecessor())) {
         listOfAllPaths.add(new ArrayList<>());
         listOfAllPaths.getLast().add(edge);
       }
@@ -1095,14 +1201,14 @@ public class TerminationWitnessValidator implements Algorithm {
       for (List<CFAEdge> path : listOfAllPaths) {
         CFAEdge lastEdge = path.getLast();
         // An edge is taken at most once on a path. Otherwise, a path through a nested loop would
-        // be extended forever, since only the heads of the analyzed loop end a path. The edges of
-        // the nested loops are overapproximated when the formula for the paths is constructed.
+        // be extended forever, since only the end nodes end a path. The edges of the nested loops
+        // are overapproximated when the formula for the paths is constructed.
         List<CFAEdge> succEdges =
-            pEdges.stream()
+            edges.stream()
                 .filter(
                     e ->
                         e.getPredecessor().equals(lastEdge.getSuccessor())
-                            && !pLoopHeads.contains(e.getPredecessor())
+                            && !pEndNodes.contains(e.getPredecessor())
                             && !path.contains(e))
                 .toList();
         if (!succEdges.isEmpty()) {
@@ -1120,6 +1226,104 @@ public class TerminationWitnessValidator implements Algorithm {
         listOfAllPaths.addAll(newPaths);
       }
     }
-    return listOfAllPaths;
+
+    List<List<CFAEdge>> completePaths = new ArrayList<>();
+    for (List<CFAEdge> path : listOfAllPaths) {
+      CFANode last = path.getLast().getSuccessor();
+      if (pEndNodes.contains(last)) {
+        completePaths.add(path);
+      } else if (last.getNumLeavingEdges() > 0 || last.getLeavingSummaryEdge() != null) {
+        throw new UnsupportedLoopException("A path ends unexpectedly in " + last);
+      }
+    }
+    return completePaths;
+  }
+
+  /**
+   * Extends the path formula by a call of a function: the function call edge, all paths through the
+   * called function, and the matching function return edge.
+   *
+   * @throws UnsupportedLoopException if the called function contains a loop or is recursive
+   */
+  private PathFormula makeFunctionCall(PathFormula pPath, FunctionSummaryEdge pSummaryEdge)
+      throws CPATransferException, InterruptedException {
+    FunctionEntryNode entry = pSummaryEdge.getFunctionEntry();
+    String function = entry.getFunctionName();
+    if (!cfa.getLoopStructure().orElseThrow().getLoopsForFunction(function).isEmpty()
+        || !functionsOnCallStack.add(function)) {
+      throw new UnsupportedLoopException(
+          "The function " + function + " contains a loop or is recursive");
+    }
+    try {
+      PathFormula result = pPath;
+      for (CFAEdge edge : pSummaryEdge.getPredecessor().getLeavingEdges()) {
+        if (edge instanceof FunctionCallEdge) {
+          result = pfmgr.makeAnd(result, edge);
+        }
+      }
+      if (entry.getExitNode().isEmpty()) {
+        // The function never returns
+        return result.withFormula(bfmgr.makeFalse());
+      }
+      FunctionExitNode exit = entry.getExitNode().orElseThrow();
+
+      // The edges of the called function, calls in it are represented by their summary edges
+      Set<CFAEdge> edges = new LinkedHashSet<>();
+      Set<CFANode> visited = new HashSet<>();
+      List<CFANode> waitlist = new ArrayList<>(ImmutableList.of(entry));
+      while (!waitlist.isEmpty()) {
+        CFANode node = waitlist.removeLast();
+        if (!visited.add(node) || node.equals(exit)) {
+          continue;
+        }
+        for (CFAEdge edge : node.getLeavingEdges()) {
+          if (!(edge instanceof FunctionCallEdge)) {
+            edges.add(edge);
+            waitlist.add(edge.getSuccessor());
+          }
+        }
+        if (node.getLeavingSummaryEdge() != null) {
+          waitlist.add(node.getLeavingSummaryEdge().getSuccessor());
+        }
+      }
+      List<List<CFAEdge>> paths =
+          collectAllThePaths(
+              ImmutableSet.copyOf(edges), ImmutableSet.of(entry), ImmutableSet.of(exit));
+      if (paths.isEmpty()) {
+        return result.withFormula(bfmgr.makeFalse());
+      }
+      PathFormula body =
+          constructFormulaForPaths(
+              result.getSsa(), result.getPointerTargetSet(), ImmutableSet.of(), paths);
+      result = pfmgr.makeConjunction(ImmutableList.of(result, body));
+
+      for (CFAEdge edge : exit.getLeavingReturnEdges()) {
+        if (edge instanceof FunctionReturnEdge returnEdge
+            && returnEdge.getSummaryEdge().equals(pSummaryEdge)) {
+          result = pfmgr.makeAnd(result, edge);
+        }
+      }
+      return result;
+    } finally {
+      functionsOnCallStack.remove(function);
+    }
+  }
+
+  /** Extends the path formula by the edge, function calls are given by their summary edges. */
+  private PathFormula makeStep(PathFormula pPath, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    if (pEdge instanceof FunctionSummaryEdge summaryEdge) {
+      return makeFunctionCall(pPath, summaryEdge);
+    }
+    return pfmgr.makeAnd(pPath, pEdge);
+  }
+
+  /** Thrown if the formula for a loop cannot be constructed soundly. */
+  private static final class UnsupportedLoopException extends CPATransferException {
+    private static final long serialVersionUID = 1L;
+
+    UnsupportedLoopException(String pMessage) {
+      super(pMessage);
+    }
   }
 }
