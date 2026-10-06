@@ -2565,6 +2565,13 @@ cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
 # use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
 
+# Use the entries of the blocks into which distributed summary synthesis
+# decomposes the program as explicit abstraction locations. The decomposition
+# is configured with the options distributedSummaries.decomposition.*, and
+# the locations are only used with blk.alwaysAndOnlyAtExplicitNodes or
+# blk.alwaysAtExplicitNodes.
+cpa.predicate.abstractAtDssBlockEntries = false
+
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
 
