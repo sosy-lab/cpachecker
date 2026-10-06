@@ -20,8 +20,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -56,10 +59,19 @@ import org.sosy_lab.java_smt.api.SolverException;
  * still holds one step later, which is the clause propagation of PDR. The loops close when an
  * abstraction is covered by one in front of it.
  */
+@Options(prefix = "cpa.induction.refinement.pdr")
 public final class PdrRefiner extends InductionRefiner {
+
+  @Option(
+      secure = true,
+      description =
+          "continue as BMC if no spurious counterexample can be blocked because an interpolation"
+              + " failed, as the refiners of IMC and ISMC do")
+  private boolean bmcFallback = false;
 
   private final PredicateAbstractionManager predicateManager;
   private final LoopStructure loopStructure;
+  private boolean fallenBackToBmc = false;
 
   private final StatCounter blockedCounterexamples = new StatCounter("Blocked counterexamples");
   private final StatCounter pushedFrontiers = new StatCounter("Pushed frontiers");
@@ -68,6 +80,7 @@ public final class PdrRefiner extends InductionRefiner {
   private PdrRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa, pLogger, pConfig);
+    pConfig.inject(this);
     predicateManager = predicateCpa.getPredicateManager();
     loopStructure = predicateCpa.getCfa().getLoopStructure().orElseThrow();
   }
@@ -81,11 +94,15 @@ public final class PdrRefiner extends InductionRefiner {
   protected Optional<ARGState> refine(
       ARGReachedSet pReached, List<ARGState> pTargets, List<ARGState> pCutOffs)
       throws CPAException, InterruptedException, SolverException {
+    if (fallenBackToBmc) {
+      return refineAsBmc(pReached, pTargets, pCutOffs);
+    }
     Optional<ARGState> counterexample = findFeasibleTarget(pTargets);
     if (counterexample.isPresent()) {
       return counterexample;
     }
 
+    long failures = failedInterpolations();
     boolean blocked = false;
     boolean unblocked = false;
     for (ARGState target : pTargets) {
@@ -106,6 +123,12 @@ public final class PdrRefiner extends InductionRefiner {
       return Optional.empty();
     }
     if (unblocked) {
+      if (bmcFallback && failedInterpolations() > failures) {
+        logger.log(Level.INFO, "Falling back to BMC, because an interpolation failed");
+        restartAsBmc(pReached, 1);
+        fallenBackToBmc = true;
+        return Optional.empty();
+      }
       throw new RefinementFailedException(Reason.InterpolationFailed, null);
     }
 
