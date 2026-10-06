@@ -47,10 +47,12 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
     ImmutableList<CFANode> lastIterationOfTheBranch =
         newPath.subList(reachedPath.size(), newPath.size());
 
+    // Only cover the state by the abstract state of the previous visit of its loop head, i.e., the
+    // path between them is exactly one iteration of the loop. It may contain iterations of
+    // nested loops.
     return newPath.subList(0, reachedPath.size()).equals(reachedPath)
-        // Only cover the state, if it is covered by the previous abstract state at a loop head.
-        // In other words, we check that no CFANode repeats in the last iteration between the
-        // reachedPath and the newPath.
-        && lastIterationOfTheBranch.stream().distinct().count() == lastIterationOfTheBranch.size();
+        && !lastIterationOfTheBranch.isEmpty()
+        && lastIterationOfTheBranch.indexOf(newPath.getLast())
+            == lastIterationOfTheBranch.size() - 1;
   }
 }

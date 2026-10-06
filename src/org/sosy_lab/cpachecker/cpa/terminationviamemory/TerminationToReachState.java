@@ -63,10 +63,25 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       pathFormulaForIteration;
 
   /**
-   * For every loop-head (given by location and call-stack), we track the path formula until
-   * reaching this abstract state. This is the part before reaching the loop.
+   * The path formula until the previous visit of the loop head of this abstract state, i.e., the
+   * part before the last loop iteration.
    */
   private final Optional<PathFormula> pathFormulaForPrefix;
+
+  /**
+   * For every loop-head (given by location and call-stack), the path formula until its most recent
+   * visit.
+   */
+  private final ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      pathFormulaAtLastVisit;
+
+  /**
+   * For every loop-head (given by location and call-stack), the path formula from its most recent
+   * visit until the most recent visit of any loop head. It is empty if no loop head was visited in
+   * between.
+   */
+  private final ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      pathFormulaSinceLastVisit;
 
   /**
    * We collect transition invariants that hold for previous iteration formulas at this abstract
@@ -90,6 +105,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaAtLastVisit,
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaSinceLastVisit,
       Optional<PathFormula> pPathFormulaFull,
       ImmutableList<CFANode> pPathSequence,
       ImmutableSet<PartitionedRelationFormula> pTransitionInvariants,
@@ -99,6 +116,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
+    pathFormulaAtLastVisit = pPathFormulaAtLastVisit;
+    pathFormulaSinceLastVisit = pPathFormulaSinceLastVisit;
     pathFormulaFull = pPathFormulaFull;
     pathSequence = pPathSequence;
     isTarget = false;
@@ -112,6 +131,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     numberOfIterations = ImmutableMap.of();
     pathFormulaForIteration = ImmutableMap.of();
     pathFormulaForPrefix = Optional.empty();
+    pathFormulaAtLastVisit = ImmutableMap.of();
+    pathFormulaSinceLastVisit = ImmutableMap.of();
     pathFormulaFull = Optional.empty();
     pathSequence = ImmutableList.of();
     isTarget = false;
@@ -144,6 +165,16 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public Optional<PathFormula> getPathFormulasForPrefix() {
     return pathFormulaForPrefix;
+  }
+
+  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      getPathFormulaAtLastVisit() {
+    return pathFormulaAtLastVisit;
+  }
+
+  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      getPathFormulaSinceLastVisit() {
+    return pathFormulaSinceLastVisit;
   }
 
   public Optional<PathFormula> getPathFormulaFull() {

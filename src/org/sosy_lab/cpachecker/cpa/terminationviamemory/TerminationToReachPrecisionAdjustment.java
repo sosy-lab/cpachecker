@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -321,6 +322,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               terminationState.getNumberOfIterations(),
               terminationState.getPathFormulasForIteration(),
               terminationState.getPathFormulasForPrefix(),
+              terminationState.getPathFormulaAtLastVisit(),
+              terminationState.getPathFormulaSinceLastVisit(),
               terminationState.getPathFormulaFull(),
               terminationState.getPathSequence(),
               builderTransitionInvariants.build(),
@@ -349,14 +352,20 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     candidateTransInv = candidateTransInv.withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
 
     PartitionedRelationFormula newInterpolant;
-    newInterpolant =
-        computeNewRelationalInterpolant(
-            isOverapproximating,
-            candidateTransInv,
-            iterationFormula,
-            prefixPathFormula,
-            latestSameStateFormula,
-            callstackState);
+    try {
+      newInterpolant =
+          computeNewRelationalInterpolant(
+              isOverapproximating,
+              candidateTransInv,
+              iterationFormula,
+              prefixPathFormula,
+              latestSameStateFormula,
+              callstackState);
+    } catch (RefinementFailedException e) {
+      // The solver cannot interpolate the formulas, so no transition invariant is found
+      logger.logDebugException(e);
+      return Optional.empty();
+    }
 
     try {
       if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {

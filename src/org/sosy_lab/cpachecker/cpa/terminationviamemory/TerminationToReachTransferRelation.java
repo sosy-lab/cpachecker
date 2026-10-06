@@ -59,6 +59,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
             terminationState.getNumberOfIterations(),
             terminationState.getPathFormulasForIteration(),
             terminationState.getPathFormulasForPrefix(),
+            terminationState.getPathFormulaAtLastVisit(),
+            terminationState.getPathFormulaSinceLastVisit(),
             terminationState.getPathFormulaFull(),
             Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
             ImmutableSet.of(),
@@ -94,18 +96,35 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula>
           newPathFormulaForIteration = ImmutableMap.builder();
 
-      // Set prefix path formula first
-      Optional<PathFormula> newPrefixFormula = terminationState.getPathFormulaFull();
+      // The path formula since the most recent visit of any loop head
+      PathFormula block = predicateState.getPathFormula();
       PathFormula newFullFormula;
       if (terminationState.getPathFormulaFull().isEmpty()) {
-        newFullFormula = predicateState.getPathFormula();
+        newFullFormula = block;
       } else {
         newFullFormula =
             pfmgr.makeConjunction(
-                ImmutableList.of(
-                    terminationState.getPathFormulaFull().orElseThrow(),
-                    predicateState.getPathFormula()));
+                ImmutableList.of(terminationState.getPathFormulaFull().orElseThrow(), block));
       }
+
+      // The last iteration of this loop head is the path since its most recent visit, which may
+      // contain iterations of other (nested) loops. Its prefix is the path until that visit.
+      Optional<PathFormula> newPrefixFormula =
+          Optional.ofNullable(terminationState.getPathFormulaAtLastVisit().get(pairKey));
+      PathFormula iterationFormula = appendBlock(terminationState, pairKey, block);
+      ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula> newAtLastVisit =
+          ImmutableMap.builder();
+      ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula> newSinceLastVisit =
+          ImmutableMap.builder();
+      for (Pair<LocationState, CallstackState> visitedKey :
+          terminationState.getPathFormulaAtLastVisit().keySet()) {
+        if (!visitedKey.equals(pairKey)) {
+          newAtLastVisit.put(
+              visitedKey, terminationState.getPathFormulaAtLastVisit().get(visitedKey));
+          newSinceLastVisit.put(visitedKey, appendBlock(terminationState, visitedKey, block));
+        }
+      }
+      newAtLastVisit.put(pairKey, newFullFormula);
 
       // Copy the information for other loops
       for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
@@ -131,7 +150,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
-        newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
+        newPathFormulaForIteration.put(pairKey, iterationFormula);
       } else {
         newValues.put(0, extractLoopHeadVariables(newFullFormula));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
@@ -143,6 +162,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow(),
               newPrefixFormula,
+              newAtLastVisit.buildOrThrow(),
+              newSinceLastVisit.buildOrThrow(),
               Optional.of(newFullFormula),
               terminationState.getPathSequence(),
               ImmutableSet.of(),
@@ -150,6 +171,20 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       return ImmutableList.of(newState);
     }
     return ImmutableList.of(pState);
+  }
+
+  /**
+   * Returns the path formula since the most recent visit of the loop head, extended by the block.
+   */
+  private PathFormula appendBlock(
+      TerminationToReachState pState,
+      Pair<LocationState, CallstackState> pLoopHead,
+      PathFormula pBlock) {
+    PathFormula sinceLastVisit = pState.getPathFormulaSinceLastVisit().get(pLoopHead);
+    if (sinceLastVisit == null) {
+      return pBlock;
+    }
+    return pfmgr.makeConjunction(ImmutableList.of(sinceLastVisit, pBlock));
   }
 
   private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
