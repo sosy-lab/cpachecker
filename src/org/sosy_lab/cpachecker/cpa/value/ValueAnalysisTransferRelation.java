@@ -877,6 +877,8 @@ public class ValueAnalysisTransferRelation
 
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
+        // Keep the functions that are handled here in sync with the list of handled functions in
+        // handleUnknownOrUnhandledFunctionCalls below, which must not report them as unhandled.
         if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
@@ -1862,8 +1864,16 @@ public class ValueAnalysisTransferRelation
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    // These calls have their own handling in the transfer relation or expression visitor.
-    // Nondeterministic inputs are exact nondeterminism; ExecutionCPA handles their sampling.
+    // These calls are handled elsewhere, so they are neither unknown nor unhandled.
+    // Keep in sync with the places that handle them: whenever the value analysis learns to handle
+    // another function, it has to be added here as well, otherwise this method keeps reporting the
+    // call as unhandled and needlessly weakens the verdict of every analysis that asks. The
+    // handling of the entries below is in
+    //   - handleStatementEdge of this class ("free", the builtin overflow functions, and fscanf),
+    //   - AbstractExpressionValueVisitor.visit(CFunctionCallExpression) (the builtin float,
+    //     overflow, and popcount functions), and
+    //   - ExpressionValueVisitorWithRandomSampling (the inputs "__VERIFIER_nondet_*", which are
+    //     exact nondeterminism rather than an unknown function; ExecutionCPA samples them).
     if (calledFunctionName.equals("free")
         || BuiltinIoFunctions.matchesFscanf(calledFunctionName)
         || calledFunctionName.startsWith(

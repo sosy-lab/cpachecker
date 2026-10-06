@@ -26,6 +26,13 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVisitor {
+
+  /**
+   * Prefix of the functions that return an input of the program. A call of such a function is
+   * handled here and is exact nondeterminism rather than an unknown function, so it is also in the
+   * list of handled functions in {@link
+   * ValueAnalysisTransferRelation#handleUnknownOrUnhandledFunctionCalls}; keep the two in sync.
+   */
   public static final String PATTERN_FOR_RANDOM = "__VERIFIER_nondet_";
 
   private final LogManagerWithoutDuplicates logger;

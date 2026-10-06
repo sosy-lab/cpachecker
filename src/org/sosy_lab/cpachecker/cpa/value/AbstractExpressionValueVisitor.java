@@ -742,6 +742,9 @@ public abstract class AbstractExpressionValueVisitor
 
     if (functionNameExp instanceof CIdExpression cIdExpression) {
       // We only handle builtin functions
+      // Keep the functions that are handled here in sync with the list of handled functions in
+      // ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls, which must not report
+      // them as unhandled.
       String calledFunctionName = cIdExpression.getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
