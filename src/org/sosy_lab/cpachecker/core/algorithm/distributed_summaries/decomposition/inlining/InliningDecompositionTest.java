@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Test;
@@ -22,6 +23,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DecompositionTestBase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.HorizontalMergeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
@@ -41,9 +46,19 @@ public class InliningDecompositionTest {
 
     DssBlockDecomposition decomposition = createDecomposition(cfa);
 
-    decomposition.decompose(cfa);
+    BlockGraph graph = decomposition.decompose(cfa);
 
     // TODO the assumptions for the normal decompositions no longer  hold -> find sensible checks?
+    DecompositionTestBase.checkFinalLocationReachedOnlyAtEnd(graph);
+  }
+
+  @Test
+  public void testMergedInliningDecomposition() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(path);
+
+    BlockGraph graph = createMergedDecomposition(cfa).decompose(cfa);
+
+    DecompositionTestBase.checkFinalLocationReachedOnlyAtEnd(graph);
   }
 
   private static DssBlockDecomposition createDecomposition(CFA cfa)
@@ -51,5 +66,17 @@ public class InliningDecompositionTest {
     Predicate<CFANode> isBlockEnd = DssTestUtils.createBlockOperator(cfa);
 
     return new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd));
+  }
+
+  /** The decomposition that {@code decompositionType=INLINING_DECOMPOSITION} creates. */
+  private static DssBlockDecomposition createMergedDecomposition(CFA cfa)
+      throws InvalidConfigurationException, IOException {
+    return new MergeBlockNodesDecomposition(
+        createDecomposition(cfa),
+        2,
+        HorizontalMergeDecomposition.NO_MERGE_LIMIT,
+        Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+        false,
+        true);
   }
 }
