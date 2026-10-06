@@ -271,8 +271,6 @@ public class BlockOperator {
       return explicitAbstractionNodes.isEmpty();
     }
     return !alwaysAtFunctions
-        && !alwaysAtFunctionHeads
-        && alwaysAtGivenNodes.isEmpty()
         && !alwaysAtEntryFunctionHead
         && !alwaysAtFunctionCallNodes
         && !alwaysAtLoops
@@ -305,11 +303,6 @@ public class BlockOperator {
   protected boolean isFunctionCall(CFANode succLoc) {
     return isFunctionHead(succLoc)
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
-  }
-
-  /** Whether the nodes given to {@link #setExplicitAbstractionNodes} are abstraction locations. */
-  public boolean usesExplicitAbstractionNodes() {
-    return alwaysAndOnlyAtExplicitNodes || alwaysAtExplicitNodes;
   }
 
   public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {

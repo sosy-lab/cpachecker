@@ -8,10 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,9 +24,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -89,15 +83,6 @@ public class PredicateCPA
       name = "enableBlockreducer",
       description = "Enable the possibility to precompute explicit abstraction locations.")
   private boolean enableBlockreducer = false;
-
-  @Option(
-      secure = true,
-      description =
-          "Use the entries of the blocks into which distributed summary synthesis decomposes the"
-              + " program as explicit abstraction locations. The decomposition is configured with"
-              + " the options distributedSummaries.decomposition.*, and the locations are only used"
-              + " with blk.alwaysAndOnlyAtExplicitNodes or blk.alwaysAtExplicitNodes.")
-  private boolean abstractAtDssBlockEntries = false;
 
   @Option(
       secure = true,
@@ -163,27 +148,9 @@ public class PredicateCPA
     cfa = pCfa;
     blk = pBlk;
 
-    if (enableBlockreducer && abstractAtDssBlockEntries) {
-      throw new InvalidConfigurationException(
-          "Only one of cpa.predicate.enableBlockreducer and cpa.predicate.abstractAtDssBlockEntries"
-              + " can compute the explicit abstraction locations.");
-    }
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
-    }
-    if (abstractAtDssBlockEntries) {
-      if (!blk.usesExplicitAbstractionNodes()) {
-        throw new InvalidConfigurationException(
-            "cpa.predicate.abstractAtDssBlockEntries needs"
-                + " cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes or"
-                + " cpa.predicate.blk.alwaysAtExplicitNodes.");
-      }
-      ImmutableSet<CFANode> blockEntries = dssBlockEntries(config, cfa);
-      logger.logf(
-          Level.INFO, "Using the %d block entries of the DSS decomposition.", blockEntries.size());
-      logger.log(Level.FINE, "Block entries of the DSS decomposition:", blockEntries);
-      blk.setExplicitAbstractionNodes(blockEntries);
     }
     blk.setCFA(cfa);
 
@@ -398,31 +365,6 @@ public class PredicateCPA
     } else {
       return false;
     }
-  }
-
-  /** The initial locations of the blocks of the decomposition that DSS would use for the CFA. */
-  private static ImmutableSet<CFANode> dssBlockEntries(Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException, InterruptedException {
-    // The block operator of the decomposition falls back to the options of the predicate analysis,
-    // but it cannot depend on the explicit abstraction locations it is about to compute.
-    String prefix = "distributedSummaries.decomposition.cpa.predicate.blk.";
-    Configuration decompositionConfig =
-        Configuration.builder()
-            .copyFrom(pConfig)
-            .setOption(prefix + "alwaysAndOnlyAtExplicitNodes", "false")
-            .setOption(prefix + "alwaysAtExplicitNodes", "false")
-            .build();
-    BlockGraph blockGraph;
-    try {
-      blockGraph =
-          new DssDecompositionOptions(decompositionConfig, pCfa)
-              .getConfiguredDecomposition()
-              .decompose(pCfa);
-    } catch (IOException e) {
-      throw new InvalidConfigurationException(
-          "Could not import the decomposition: " + e.getMessage(), e);
-    }
-    return transformedImmutableSetCopy(blockGraph.getNodes(), BlockNode::getInitialLocation);
   }
 
   public CFA getCfa() {

@@ -13,16 +13,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.location.CachedLocationStateProvider;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 
 public class DeserializeLocationState implements DeserializeOperator {
 
-  private final CachedLocationStateProvider locationStateFactory;
+  private final LocationStateFactory locationStateFactory;
   private final Map<Integer, CFANode> availableNodes;
 
   public DeserializeLocationState(
-      CachedLocationStateProvider pLocationStateFactory, Map<Integer, CFANode> pAvailableNodes) {
+      LocationStateFactory pLocationStateFactory, Map<Integer, CFANode> pAvailableNodes) {
     locationStateFactory = pLocationStateFactory;
     availableNodes = pAvailableNodes;
   }

@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -245,12 +244,6 @@ public class DssFactory {
               pMessageFactory,
               pLogManager,
               pShutdownNotifier);
-      case DssLocationCPA locationCPA ->
-          new DistributedLocationCPA(
-              locationCPA,
-              locationCPA.getStateProvider(),
-              pBlockNode,
-              TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
       case LocationCPA locationCPA ->
           distribute(
               locationCPA, pBlockNode, TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
@@ -268,8 +261,7 @@ public class DssFactory {
 
   private static DistributedConfigurableProgramAnalysis distribute(
       LocationCPA pLocationCPA, BlockNode pNode, BiMap<Integer, CFANode> pNodeMap) {
-    return new DistributedLocationCPA(
-        pLocationCPA, pLocationCPA.getStateFactory(), pNode, pNodeMap);
+    return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
