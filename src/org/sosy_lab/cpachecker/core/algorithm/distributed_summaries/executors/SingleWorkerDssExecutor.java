@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -181,8 +183,12 @@ public class SingleWorkerDssExecutor implements DssExecutor {
 
         List<DssMessage> newMessages = new ArrayList<>(preparedBatches.newMessages());
         newMessages.sort(Comparator.comparing(DssMessage::getTimestamp));
+        DssMessageBroadcaster broadcaster = actor.getConnection().getBroadcaster();
         for (DssMessage message : newMessages) {
-          response.addAll(actor.processMessage(message));
+          broadcaster.broadcastToIds(message, ImmutableSet.of(actor.getBlockId()));
+        }
+        while (actor.getConnection().hasPendingMessages()) {
+          response.addAll(actor.processMessage(actor.nextMessage()));
         }
       }
       writeAllMessages(response);

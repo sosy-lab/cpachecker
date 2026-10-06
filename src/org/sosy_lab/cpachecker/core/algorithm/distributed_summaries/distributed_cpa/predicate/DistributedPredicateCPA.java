@@ -102,8 +102,7 @@ public class DistributedPredicateCPA
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
     combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
-    combinePrecisionOperator =
-        new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
+    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
     combineViolationConditionsOperator =
         new PredicateStateCombineViolationConditionOperator(predicateCPA.getPathFormulaManager());
   }
