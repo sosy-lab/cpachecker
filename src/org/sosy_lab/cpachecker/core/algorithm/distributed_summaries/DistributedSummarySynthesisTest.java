@@ -104,6 +104,8 @@ public class DistributedSummarySynthesisTest {
                   .loadFromFile(analysisOptions.getForwardConfiguration())
                   .build()
                   .asPropertiesString()));
+      assertThat(worker.getProperty("CompositeCPA.cpas"))
+          .contains(optimized ? ".DssLocationCPA," : "cpa.location.LocationCPA,");
       for (String option :
           new String[] {
             "dss.graphViolationConditions",
