@@ -133,9 +133,8 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
       // the merged block starts at its end, so it must not return to it before its last edge
       return pFirst.getEdges().stream().anyMatch(e -> e.getSuccessor().equals(initial));
     }
-    return Iterables.any(
-        Iterables.concat(pFirst.getEdges(), pSecond.getEdges()),
-        e -> e.getPredecessor().equals(end));
+    return Iterables.any(pFirst.getEdges(), e -> e.getPredecessor().equals(end))
+        || Iterables.any(pSecond.getEdges(), e -> e.getPredecessor().equals(end));
   }
 
   private BlockNode mergeBlocksVertically(BlockNode pBlockNode1, BlockNode pBlockNode2) {
