@@ -61,11 +61,6 @@ class CallstackOptions {
 
   @Option(
       secure = true,
-      description = "ignore the callstack and do not track it this heavily over-approximates.")
-  private boolean ignoreTransfer = false;
-
-  @Option(
-      secure = true,
       name = "domain",
       toUppercase = true,
       values = {"FLAT", "FLATPCC"},
@@ -100,10 +95,6 @@ class CallstackOptions {
 
   boolean traverseBackwards() {
     return traverseBackwards;
-  }
-
-  boolean ignoreTransfer() {
-    return ignoreTransfer;
   }
 
   String getDomainType() {

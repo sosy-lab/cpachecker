@@ -66,6 +66,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
@@ -509,10 +510,12 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
+    boolean isComponentConfig =
+        configFile instanceof Path configFilePath
+            && Iterables.contains(configFilePath, Path.of("components"));
     if (Strings.isNullOrEmpty(config.getProperty(SPECIFICATION_OPTION))
         && configFile instanceof Path configFilePath
-        && (Iterables.contains(configFilePath, Path.of("components"))
-            || configFilePath.endsWith("ltl.properties"))) {
+        && (isComponentConfig || configFilePath.endsWith("ltl.properties"))) {
       // Some configs require a specification due to the use of $specification.
       // For config/components/ we do not want to hard-code a specification in the config file,
       // but we still want to instantiate the config for testing here. So provide a dummy spec.
@@ -558,10 +561,18 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
+      if (isComponentConfig) {
+        // Component configs are not expected to be used for CFA creation,
+        // so if they have cfa options that do not match their subcomponents,
+        // it does not matter.
+        NestingAlgorithm.checkCfaOptionMisMatch = false;
+      }
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);
+    } finally {
+      NestingAlgorithm.checkCfaOptionMisMatch = true;
     }
 
     assert_()

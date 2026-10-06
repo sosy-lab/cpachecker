@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -20,9 +19,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -41,12 +38,7 @@ public class InputRejectionTest {
   private void testExpectedRejection(Path pInputFilePath, InputRejectionMessage pExpected)
       throws Exception {
 
-    // create cfa for test program pFileName
-    LogManager logger = LogManager.createTestLogManager();
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
-    CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
-
+    CFA inputCfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
     UnsupportedCodeException unsupportedCodeException =
         assertThrows(
@@ -55,9 +47,9 @@ public class InputRejectionTest {
   }
 
   /**
-   * Tests if {@link Sequentialization#tryBuildProgramString(MPOROptions, CFA,
-   * SequentializationUtils)} throws a {@link UnsupportedCodeException} when invoked with the
-   * program in {@code pInputFilePath}.
+   * Tests if {@link Sequentialization#tryBuildProgram(MPOROptions, CFA, SequentializationUtils)}
+   * throws a {@link UnsupportedCodeException} when invoked with the program in {@code
+   * pInputFilePath}.
    */
   private void testExpectedRejectionWhenBuildingProgram(
       MPOROptions pOptions,
@@ -66,25 +58,22 @@ public class InputRejectionTest {
       InputRejectionMessage pExpected)
       throws InvalidConfigurationException, ParserException, IOException, InterruptedException {
 
-    // create cfa for test program pFileName
+    CFA cfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     LogManager logger = LogManager.createTestLogManager();
-    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
-
     SequentializationUtils utils =
         SequentializationUtils.of(cfa, pConfig, logger, shutdownNotifier);
     // test if MPORAlgorithm rejects program with correct error message
     UnsupportedCodeException throwable =
         assertThrows(
             UnsupportedCodeException.class,
-            () -> Sequentialization.tryBuildProgramString(pOptions, cfa, utils));
+            () -> Sequentialization.tryBuildProgram(pOptions, cfa, utils));
     assertThat(throwable.getMessage()).contains(pExpected.message);
   }
 
   @Test
   public void testRejectLanguageNotC() throws Exception {
-    String inputFile = "test/programs/mpor/input_rejections/HelloJava.java";
+    String inputFile = "./test/programs/mpor/input_rejections/HelloJava.java";
     CParserException exception =
         assertThrows(CParserException.class, () -> TestCfaUtils.makeCfaFromFile(inputFile));
     assertThat(exception).isNotNull();

@@ -165,7 +165,7 @@ public class SequentializationBuilder {
         CVariableDeclaration variableDeclarationSubstitute =
             buildVariableDeclarationWithSubstituteType(localDeclaration);
         Optional<CVariableDeclaration> variableDeclaration =
-            tryBuildInputLocalVariableDeclaration(pOptions, variableDeclarationSubstitute);
+            tryBuildInputLocalVariableDeclaration(variableDeclarationSubstitute);
         if (variableDeclaration.isPresent()) {
           rDeclarations.add(variableDeclaration.orElseThrow().toASTString());
         }
@@ -175,17 +175,12 @@ public class SequentializationBuilder {
   }
 
   private static Optional<CVariableDeclaration> tryBuildInputLocalVariableDeclaration(
-      MPOROptions pOptions, CVariableDeclaration pVariableDeclaration) {
+      CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
 
     // try remove const qualifier from variable
     if (pVariableDeclaration.getType().getQualifiers().containsConst()) {
-      // based on the options, const CPAchecker_TMP variables are not declared globally
-      if (!pOptions.declareConstAuxiliaryVariablesGlobally()
-          && MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration)) {
-        return Optional.empty();
-      }
       // create an identical copy of pVariableDeclaration, but remove const qualifier
       CType type = pVariableDeclaration.getType();
       CType typeWithoutConst = type.withQualifiersSetTo(type.getQualifiers().withoutConst());
@@ -199,7 +194,7 @@ public class SequentializationBuilder {
               pVariableDeclaration.getOrigName(),
               pVariableDeclaration.getQualifiedName(),
               pVariableDeclaration.getInitializer());
-      return tryBuildInputLocalVariableDeclaration(pOptions, variableDeclarationWithoutConst);
+      return tryBuildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
     }
     // otherwise, for non-const variables
     if (pVariableDeclaration.getInitializer() == null

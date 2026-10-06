@@ -26,7 +26,7 @@
       input_files:
         - "./concurrent-data-race.c"
       input_file_hashes:
-        "./concurrent-data-race.c": "85fd508d1da6f285eb1111c4796c8bcbfa117ac42ac8d541cba2a956bd2ae7ca"
+        "./concurrent-data-race.c": "25619f1dbccb50a3f3bd9f9066be48b40ab6cbf9d1f2b58db1846de490e2db39"
       specification: "G ! data-race"
       data_model: "ILP32"
       language: "C"
@@ -39,7 +39,7 @@
             thread_id: 0
             location:
               file_name: "./concurrent-data-race.c"
-              line: 27
+              line: 43
               column: 19
               function: "main"
     - segment:
@@ -51,7 +51,7 @@
             thread_id: 0
             location:
               file_name: "./concurrent-data-race.c"
-              line: 27
+              line: 43
               column: 19
               function: "main"
         - waypoint:
@@ -61,7 +61,7 @@
             thread_id: 0
             location:
               file_name: "./concurrent-data-race.c"
-              line: 28
+              line: 44
               column: 19
               function: "main"
     - segment:
@@ -72,7 +72,7 @@
             thread_id: 1
             location:
               file_name: "./concurrent-data-race.c"
-              line: 16
+              line: 32
               column: 5
               function: "t1_func"
         - waypoint:
@@ -81,6 +81,6 @@
             thread_id: 2
             location:
               file_name: "./concurrent-data-race.c"
-              line: 21
+              line: 37
               column: 5
               function: "t2_func"
