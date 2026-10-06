@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -254,16 +255,26 @@ public class LoopUnroller {
       int pIterations,
       CFAEdge pExitEdge) {
     Set<CFANode> nodesOfLastIteration = nodesThatCanLeaveTheLoop(pLoop, pEntryNode, pConditionNode);
+    ImmutableSet<AVariableDeclaration> declaredVariables = pLoop.collectDeclaredVariables();
 
+    List<ImmutableMap<ASimpleDeclaration, AVariableDeclaration>> iterationVariables =
+        new ArrayList<>(pIterations);
     List<Map<CFANode, CFANode>> iterationNodes = new ArrayList<>(pIterations);
     for (int iteration = 0; iteration < pIterations; iteration++) {
+      ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables =
+          renameDeclarations(declaredVariables, pEntryNode.getFunctionName(), iteration);
+      iterationVariables.add(renamedVariables);
       iterationNodes.add(
           createNodeCopy(
-              pCfa, pLoop, pEntryNode, iteration + 1 == pIterations, nodesOfLastIteration));
+              pCfa,
+              pLoop,
+              pEntryNode,
+              iteration + 1 == pIterations,
+              nodesOfLastIteration,
+              renamedVariables));
     }
 
     ImmutableSet<CFAEdge> innerEdges = pLoop.getInnerLoopEdges();
-    ImmutableSet<AVariableDeclaration> declaredVariables = pLoop.collectDeclaredVariables();
 
     for (int iteration = 0; iteration < pIterations; iteration++) {
       Map<CFANode, CFANode> nodeCopies = iterationNodes.get(iteration);
@@ -277,10 +288,7 @@ public class LoopUnroller {
           filterEdgesAndCollectSuccessors(
               pEntryNode, pExitEdge, innerEdges, nodeCopies, nextIterationEntryNode);
 
-      ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables =
-          renameDeclarations(declaredVariables, pEntryNode.getFunctionName(), iteration);
-
-      createEdgeCopies(successors, nodeCopies, renamedVariables);
+      createEdgeCopies(successors, nodeCopies, iterationVariables.get(iteration));
     }
 
     return iterationNodes.getFirst().get(pEntryNode);
@@ -370,6 +378,7 @@ public class LoopUnroller {
    * @param pEntryNode the single node where the loop is entered
    * @param lastIteration if this is the last iteration
    * @param nodesOfLastIteration the nodes to keep in the last iteration
+   * @param renamedVariables the map of original nested variables to the ones of this iteration
    * @return a map from the original edges to the copies
    */
   private static Map<CFANode, CFANode> createNodeCopy(
@@ -377,13 +386,14 @@ public class LoopUnroller {
       Loop pLoop,
       CFANode pEntryNode,
       boolean lastIteration,
-      Set<CFANode> nodesOfLastIteration) {
+      Set<CFANode> nodesOfLastIteration,
+      ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables) {
     Map<CFANode, CFANode> nodeCopies = new LinkedHashMap<>();
     for (CFANode node : pLoop.getLoopNodes()) {
       if (lastIteration && !nodesOfLastIteration.contains(node)) {
         continue;
       }
-      CFANode copy = copyNode(node);
+      CFANode copy = copyNode(node, renamedVariables);
       if (node.isLoopStart() && !node.equals(pEntryNode) && !pLoop.getLoopHeads().contains(node)) {
         copy.setLoopStart(); // keep the flag for nested loops
       }
@@ -719,12 +729,29 @@ public class LoopUnroller {
   /**
    * Creates a copy of the given node. A label inside the loop ends up on all copies, so the
    * resulting CFA has several nodes with the same label. TODO export to C will fail
+   *
+   * <p>The variables that go out of scope at the node do so at the copy as well.
+   * The parser marks the end of every block this
+   * way, e.g. the end of the body before the loop starts over.
+   *
+   * @param pRenamedVariables the map of original nested variables to the ones of the iteration that
+   *     the copy belongs to
    */
-  private static CFANode copyNode(CFANode pNode) {
-    if (pNode instanceof CFALabelNode labelNode) {
-      return new CFALabelNode(pNode.getFunction(), labelNode.getLabel());
-    }
-    return new CFANode(pNode.getFunction());
+  private static CFANode copyNode(
+      CFANode pNode, ImmutableMap<ASimpleDeclaration, AVariableDeclaration> pRenamedVariables) {
+    CFANode copy =
+        pNode instanceof CFALabelNode labelNode
+            ? new CFALabelNode(pNode.getFunction(), labelNode.getLabel())
+            : new CFANode(pNode.getFunction());
+    copy.addOutOfScopeVariables(
+        transformedImmutableSetCopy(
+            pNode.getOutOfScopeVariables(),
+            variable -> {
+              // The renaming of a C loop only contains C declarations, cf. renameDeclarations.
+              CSimpleDeclaration renamed = (CSimpleDeclaration) pRenamedVariables.get(variable);
+              return renamed != null ? renamed : variable;
+            }));
+    return copy;
   }
 
   /**

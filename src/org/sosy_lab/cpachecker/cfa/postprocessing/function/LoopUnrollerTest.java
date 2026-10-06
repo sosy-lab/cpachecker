@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -22,9 +24,15 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -97,6 +105,60 @@ public class LoopUnrollerTest {
         .filter(ADeclarationEdge.class)
         .transform(edge -> edge.getDeclaration().getQualifiedName())
         .toList();
+  }
+
+  /**
+   * The variables that the CFA declares for the one with the given name in the source code. Looks
+   * at the name in the source code because the unrolling renames the copies.
+   */
+  private static ImmutableSet<ASimpleDeclaration> declarationsOf(CFA pCfa, String pSourceName) {
+    return CFAUtils.allEdges(pCfa)
+        .filter(ADeclarationEdge.class)
+        .<ASimpleDeclaration>transform(ADeclarationEdge::getDeclaration)
+        .filter(declaration -> declaration.getOrigName().equals(pSourceName))
+        .toSet();
+  }
+
+  /** The variables for the one with the given name in the source code that go out of scope. */
+  private static ImmutableSet<ASimpleDeclaration> outOfScopeVariablesOf(
+      CFA pCfa, String pSourceName) {
+    return pCfa.nodes().stream()
+        .flatMap(node -> node.getOutOfScopeVariables().stream())
+        .filter(variable -> variable.getOrigName().equals(pSourceName))
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  /**
+   * Asserts that every variable that the CFA declares for the one with the given name in the source
+   * code goes out of scope after its declaration and before the next one is declared, i.e. within
+   * its own copy of the loop body.
+   */
+  private static void assertEveryCopyGoesOutOfScopeInItsIteration(CFA pCfa, String pSourceName) {
+    for (ADeclarationEdge declarationEdge :
+        CFAUtils.allEdges(pCfa).filter(ADeclarationEdge.class)) {
+      ASimpleDeclaration declaration = declarationEdge.getDeclaration();
+      if (!declaration.getOrigName().equals(pSourceName)) {
+        continue;
+      }
+      NodeCollectingCFAVisitor reached =
+          new NodeCollectingCFAVisitor(
+              new DefaultCFAVisitor() {
+                @Override
+                public TraversalProcess visitEdge(CFAEdge pEdge) {
+                  // Declaring the next copy starts the next iteration.
+                  return pEdge instanceof ADeclarationEdge nextDeclaration
+                          && nextDeclaration.getDeclaration().getOrigName().equals(pSourceName)
+                      ? TraversalProcess.SKIP
+                      : TraversalProcess.CONTINUE;
+                }
+              });
+      CFATraversal.dfs().traverseOnce(declarationEdge.getSuccessor(), reached);
+      assertWithMessage("nodes where %s goes out of scope", declaration.getQualifiedName())
+          .that(
+              reached.getVisitedNodes().stream()
+                  .filter(node -> node.getOutOfScopeVariables().contains(declaration)))
+          .isNotEmpty();
+    }
   }
 
   /** How often the given declaration occurs in the CFA. */
@@ -401,6 +463,43 @@ public class LoopUnrollerTest {
     assertThat(branchingConditionCount(cfa, "__j_0 > 1")).isEqualTo(2);
     assertThat(branchingConditionCount(cfa, "__j_2 > 1")).isEqualTo(2);
     assertThat(branchingConditionCount(cfa, "[j > 1]")).isEqualTo(0);
+  }
+
+  /**
+   * Analyses like SMG2 end the lifetime of a variable where it goes out of scope, so a pointer to
+   * it dangles afterwards. Every copy has to keep that for its own variables, both at the end of
+   * the body and at the end of a block nested in it.
+   *
+   * <p>Unrolls during CFA creation instead of using {@link #createCfa}, because {@link
+   * MutableCFA#copyOf} does not keep which variables go out of scope.
+   */
+  @Test
+  public void testDeclaredVariablesGoOutOfScopeInEveryCopy() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromFunctionBody(
+            """
+            int i = 0;
+            int *p;
+            while (i < 3) {
+              int a[2];
+              p = a;
+              {
+                int b[2];
+                p = b;
+              }
+              i = i + 1;
+            }
+            """,
+            Map.entry("cfa.unrollBoundedLoops", "true"));
+
+    for (String variable : ImmutableList.of("a", "b")) {
+      // One per copy of the body that runs, and none of them is the variable of the original loop.
+      assertThat(declarationsOf(cfa, variable)).hasSize(3);
+      assertEveryCopyGoesOutOfScopeInItsIteration(cfa, variable);
+      // Nothing refers to a variable that is no longer declared, like the one of the original loop.
+      assertThat(declarationsOf(cfa, variable))
+          .containsAtLeastElementsIn(outOfScopeVariablesOf(cfa, variable));
+    }
   }
 
   /**
