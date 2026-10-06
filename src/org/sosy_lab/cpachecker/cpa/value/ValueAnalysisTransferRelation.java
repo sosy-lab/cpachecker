@@ -126,7 +126,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
-import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -877,12 +876,13 @@ public class ValueAnalysisTransferRelation
 
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
-        // Keep the functions that are handled here in sync with the list of handled functions in
-        // handleUnknownOrUnhandledFunctionCalls below, which must not report them as unhandled.
-        if (func.equals("free")) {
+        // The kinds that are handled here, cf. HandledFunction. The other kinds are handled by the
+        // expression visitor while the assignment below is evaluated.
+        HandledFunction handled = HandledFunction.of(func);
+        if (handled == HandledFunction.FREE) {
           return handleCallToFree(functionCall);
 
-        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+        } else if (handled == HandledFunction.BUILTIN_OVERFLOW) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
             if (isUnsupportedFunction(func, options)) {
               throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
@@ -893,7 +893,7 @@ public class ValueAnalysisTransferRelation
 
           handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, options, logger);
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
-        } else if (BuiltinIoFunctions.matchesFscanf(func)) {
+        } else if (handled == HandledFunction.FSCANF) {
           return handleFunctionAssignment(
               BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExp, cfaEdge));
         } else {
@@ -1864,25 +1864,11 @@ public class ValueAnalysisTransferRelation
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    // These calls are handled elsewhere, so they are neither unknown nor unhandled.
-    // Keep in sync with the places that handle them: whenever the value analysis learns to handle
-    // another function, it has to be added here as well, otherwise this method keeps reporting the
-    // call as unhandled and needlessly weakens the verdict of every analysis that asks. The
-    // handling of the entries below is in
-    //   - handleStatementEdge of this class ("free", the builtin overflow functions, and fscanf),
-    //   - AbstractExpressionValueVisitor.visit(CFunctionCallExpression) (the builtin float,
-    //     overflow, and popcount functions), and
-    //   - ExpressionValueVisitorWithRandomSampling (the inputs "__VERIFIER_nondet_*", which are
-    //     exact nondeterminism rather than an unknown function; InterpreterCPA samples them).
-    if (calledFunctionName.equals("free")
-        || BuiltinIoFunctions.matchesFscanf(calledFunctionName)
-        || calledFunctionName.startsWith(
-            ExpressionValueVisitorWithRandomSampling.PATTERN_FOR_RANDOM)
-        || (functionCall instanceof CFunctionCallAssignmentStatement
-            && (BuiltinFloatFunctions.isBuiltinFloatFunction(calledFunctionName)
-                || BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)
-                || (BuiltinFunctions.isBuiltinFunction(calledFunctionName)
-                    && BuiltinFunctions.isPopcountFunction(calledFunctionName))))) {
+    // A call that the value analysis handles itself is neither unknown nor unhandled. Which calls
+    // these are is decided by HandledFunction alone, so that this method cannot disagree with the
+    // dispatch that does the handling.
+    if (HandledFunction.isHandled(
+        calledFunctionName, functionCall instanceof CFunctionCallAssignmentStatement)) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
