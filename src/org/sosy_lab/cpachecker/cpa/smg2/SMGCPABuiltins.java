@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling.ASSUME_EXTERNALLY_ALLOCATED_WARN;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryDeallocatingFunction;
@@ -1196,13 +1197,18 @@ public class SMGCPABuiltins {
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
 
-      case ASSUME_EXTERNAL_ALLOCATED -> {
+      case ASSUME_EXTERNALLY_ALLOCATED, ASSUME_EXTERNALLY_ALLOCATED_WARN -> {
         ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
         for (SMGState checkedState :
             checkAllParametersForValidity(state, cfaEdge, funCallExpr, functionName)) {
+          Level logLevel = Level.FINE;
+          if (options.getHandleUnknownFunctions() == ASSUME_EXTERNALLY_ALLOCATED_WARN) {
+            logLevel = Level.WARNING;
+          }
           logger.log(
-              Level.FINE,
-              "Returned unknown value with allocated memory for unknown function " + funCallExpr,
+              logLevel,
+              "Returned unknown value with potentially newly allocated memory for unknown function "
+                  + funCallExpr,
               cfaEdge);
           builder.addAll(
               evaluateExternalAllocationFunction(funCallExpr, checkedState, functionName));

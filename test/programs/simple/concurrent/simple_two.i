@@ -199,6 +199,10 @@ int * return_pointer() {
    int* return_value = malloc(sizeof(int));
    return return_value;
 }
+static void thread_create_call_context() {
+    pthread_t another;
+    pthread_create(&another, (void *)0, task1, (void *)0);
+}
 const int global_const = 0;
 int main() {
     const int local_const = 7;
@@ -223,6 +227,9 @@ int main() {
     /* pthread_mutex_t uninit_mutex;
     uninit_mutex = mutexA;
     pass_mutex(mutexA); */
+
+    thread_create_call_context();
+    thread_create_call_context();
 
     // passing a pointer to a mutex is fine and not undefined behavior
     pthread_mutex_t *mutex_ptr;
