@@ -17,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -93,6 +94,10 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
             continue;
           }
 
+          if (mergeReachesFinalLocationEarly(node, successor)) {
+            continue;
+          }
+
           BlockNode result = mergeBlocksVertically(node, successor);
 
           blocks.remove(uniqueSuccessorID);
@@ -112,6 +117,25 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
     }
 
     return idTracker.mapBlockNodeEdges(blocks.values());
+  }
+
+  /**
+   * The block analysis stops at the first arrival at the final location of a block. Merging must
+   * therefore not create a block whose final location is passed before its end, or the edges behind
+   * that first arrival become unreachable. In a CFA, this cannot happen because every block end is
+   * a block boundary, but the copies of the inlining decomposition share their CFA nodes, so the
+   * end of one copy can lie inside the merged block as a node of an earlier copy.
+   */
+  private static boolean mergeReachesFinalLocationEarly(BlockNode pFirst, BlockNode pSecond) {
+    CFANode initial = pFirst.getInitialLocation();
+    CFANode end = pSecond.getFinalLocation();
+    if (initial.equals(end)) {
+      // the merged block starts at its end, so it must not return to it before its last edge
+      return pFirst.getEdges().stream().anyMatch(e -> e.getSuccessor().equals(initial));
+    }
+    return Iterables.any(
+        Iterables.concat(pFirst.getEdges(), pSecond.getEdges()),
+        e -> e.getPredecessor().equals(end));
   }
 
   private BlockNode mergeBlocksVertically(BlockNode pBlockNode1, BlockNode pBlockNode2) {
