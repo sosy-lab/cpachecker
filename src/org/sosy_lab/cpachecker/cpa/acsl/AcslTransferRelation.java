@@ -36,7 +36,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       CFA pCFA, LogManager pLogManager, FormulaToAcslConverter pFormulaConverter) {
     this.cfa = pCFA;
     this.logger = pLogManager;
-    this.loopPatternFinder = new LoopPatternFinder(logger);
+    this.loopPatternFinder = new LoopPatternFinder(logger, pFormulaConverter);
     this.formulaConverter = pFormulaConverter;
   }
 
@@ -71,18 +71,18 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
                   logger.log(logLevel, "Detected array initialization: " + arrayInit);
                 });
 
-        System.out.println(
-            "Edge:"
-                + cfaEdge
-                + " Predicate state: "
-                + predicateState.getPathFormula().getFormula());
+        //        System.out.println(
+        //            "Edge:"
+        //                + cfaEdge
+        //                + " Predicate state: "
+        //                + predicateState.getPathFormula().getFormula());
         logger.log(logLevel, predicateState.getPathFormula().getFormula());
         try {
           // TODO This does not work with select and store yet, and needs to be fixed
           AcslPredicate pred =
               formulaConverter.formulaToAcslExpression(
                   predicateState.getPathFormula().getFormula());
-          System.out.println("Converted to ACSL: " + pred);
+          // System.out.println("Converted to ACSL: " + pred);
         } catch (Exception pE) {
           logger.log(
               Level.WARNING, "Error converting formula to Acsl expression: " + pE.getMessage());

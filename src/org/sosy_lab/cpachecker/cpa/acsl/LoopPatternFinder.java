@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -31,15 +32,15 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 class LoopPatternFinder {
 
   private final LogManager logger;
-  private final Level logLevel = Level.FINER; // TODO change to INFO for debugging
+  private final FormulaToAcslConverter formulaConverter;
+  private final Level logLevel = Level.INFO; // TODO change to INFO for debugging
 
-  LoopPatternFinder(LogManager pLogger) {
+  LoopPatternFinder(LogManager pLogger, FormulaToAcslConverter pFormulaConverter) {
     this.logger = pLogger;
+    this.formulaConverter = pFormulaConverter;
   }
 
   public Optional<ArrayInitialization> detect(CFAEdge edge, PredicateAbstractState predState) {
-    // TODO once Translater works pass it here so we can translate the Path Formula to an Acsl
-    // expression
     if (edge.getSuccessor().isLoopStart()) {
       CFANode loopHead = edge.getSuccessor();
       for (CFAEdge e : loopHead.getAllLeavingEdges()) {
@@ -49,13 +50,23 @@ class LoopPatternFinder {
         }
       }
       BooleanFormula formula = predState.getPathFormula().getFormula();
+      logger.log(logLevel, "Path formula leading to loop head: " + formula);
+      try {
+        AcslPredicate acsl = formulaConverter.formulaToAcslExpression(formula);
+        // TODO hier mit dem fmg kucken, ob da deklarationen drin sind... wenn nur in deklaration ->
+        // Skip
+        logger.log(logLevel, "Formula in ACSL: " + acsl);
+      } catch (Exception pE) {
+        logger.log(Level.WARNING, "Error converting formula to ACSL: " + pE.getMessage());
+      }
     }
 
     // TODO
+    // Abstraction locations: Abstraction formula: true, Pathformula: was ich übersetze
     // 1. is this an edge leading to a loop head?
     // 2. is there an A[i] = constant
     // 3. is there a i2 = i + 1
-    // 4. no branching/no other changes to the array
+    // 4. no branching and no other changes to the array
 
     return Optional.empty();
   }
