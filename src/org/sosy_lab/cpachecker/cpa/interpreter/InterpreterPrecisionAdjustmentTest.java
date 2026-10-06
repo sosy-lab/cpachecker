@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -28,15 +28,15 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.execution.ExecutionState.StackFrame;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class ExecutionPrecisionAdjustmentTest {
+public class InterpreterPrecisionAdjustmentTest {
 
   private Optional<PrecisionAdjustmentResult> adjust(
-      ExecutionState pState, Optional<AbstractState> pAdjustedState) throws Exception {
-    ExecutionPrecisionAdjustment adjustment =
-        new ExecutionPrecisionAdjustment(
+      InterpreterState pState, Optional<AbstractState> pAdjustedState) throws Exception {
+    InterpreterPrecisionAdjustment adjustment =
+        new InterpreterPrecisionAdjustment(
             (state, precision, states, projection, fullState) ->
                 pAdjustedState.map(
                     adjusted ->
@@ -63,9 +63,9 @@ public class ExecutionPrecisionAdjustmentTest {
           AlgorithmStatus.UNSOUND_AND_PRECISE,
           AlgorithmStatus.UNSOUND_AND_IMPRECISE,
         }) {
-      ExecutionState state = new ExecutionState(SingletonAbstractState.INSTANCE, stack, status);
-      ExecutionState adjusted =
-          (ExecutionState) adjust(state, Optional.of(replacement)).orElseThrow().abstractState();
+      InterpreterState state = new InterpreterState(SingletonAbstractState.INSTANCE, stack, status);
+      InterpreterState adjusted =
+          (InterpreterState) adjust(state, Optional.of(replacement)).orElseThrow().abstractState();
       assertThat(adjusted.getWrappedState()).isSameInstanceAs(replacement);
       assertThat(adjusted.getCallStack()).isSameInstanceAs(stack);
       assertThat(adjusted.getStatus()).isEqualTo(status);
@@ -74,8 +74,8 @@ public class ExecutionPrecisionAdjustmentTest {
 
   @Test
   public void targetIntroducedByPrecisionAdjustmentNeedsPrecision() {
-    ExecutionState state =
-        new ExecutionState(
+    InterpreterState state =
+        new InterpreterState(
             SingletonAbstractState.INSTANCE, null, AlgorithmStatus.SOUND_AND_IMPRECISE);
     assertThrows(
         CPATransferException.class,
@@ -84,16 +84,16 @@ public class ExecutionPrecisionAdjustmentTest {
 
   @Test
   public void removingUnsoundStateCannotProveSafety() {
-    ExecutionState state =
-        new ExecutionState(
+    InterpreterState state =
+        new InterpreterState(
             SingletonAbstractState.INSTANCE, null, AlgorithmStatus.UNSOUND_AND_PRECISE);
     assertThrows(CPATransferException.class, () -> adjust(state, Optional.empty()));
   }
 
   @Test
   public void removingSoundButImpreciseStateIsAllowed() throws Exception {
-    ExecutionState state =
-        new ExecutionState(
+    InterpreterState state =
+        new InterpreterState(
             SingletonAbstractState.INSTANCE, null, AlgorithmStatus.SOUND_AND_IMPRECISE);
     assertThat(adjust(state, Optional.empty())).isEmpty();
   }

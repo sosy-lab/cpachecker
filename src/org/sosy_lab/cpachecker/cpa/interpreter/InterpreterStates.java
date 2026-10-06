@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +15,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
-/** Helpers for the states that {@link ExecutionCPA} wraps. */
-final class ExecutionStates {
+/** Helpers for the states that {@link InterpreterCPA} wraps. */
+final class InterpreterStates {
 
-  private ExecutionStates() {}
+  private InterpreterStates() {}
 
   /**
    * The state of the value analysis of the given state, if the state is a composite state that has
@@ -37,7 +37,7 @@ final class ExecutionStates {
 
   /**
    * Create a state that is like the given one but uses the given state of the value analysis. This
-   * is how {@link ExecutionCPA} changes values that the value analysis cannot compute on its own,
+   * is how {@link InterpreterCPA} changes values that the value analysis cannot compute on its own,
    * i.e. the values of a caller after a recursive call and the sampled values of the inputs.
    *
    * @return the new state, or an empty {@link Optional} if the given state does not have a value

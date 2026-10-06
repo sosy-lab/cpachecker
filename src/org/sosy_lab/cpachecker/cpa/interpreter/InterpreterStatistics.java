@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-class ExecutionStatistics implements Statistics {
+class InterpreterStatistics implements Statistics {
 
   final StatCounter executedSteps = new StatCounter("Number of executed program steps");
   final StatInt maxCallStackDepth =
@@ -37,6 +37,6 @@ class ExecutionStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return "ExecutionCPA";
+    return "InterpreterCPA";
   }
 }

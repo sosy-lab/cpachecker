@@ -53,16 +53,16 @@ public class SimpleChecksIntegrationTest {
   @Test
   public void executionDecidesWhensimpleRulesAbstain() throws Exception {
     IntegrationTestResult result =
-        run("unreach-call", "simple/execution/recursive-factorial-false.c");
+        run("unreach-call", "simple/interpreter/recursive-factorial-false.c");
     result.assertIsUnsafe();
-    assertThat(result.log()).contains("execution.properties finished successfully");
+    assertThat(result.log()).contains("interpreter.properties finished successfully");
   }
 
   @Test
   public void executionProvesCountedLoopTerminates() throws Exception {
     IntegrationTestResult result = run("termination", "simplerules/counted-loop-unknown.c");
     result.assertIsSafe();
-    assertThat(result.log()).contains("execution--termination.properties finished successfully");
+    assertThat(result.log()).contains("interpreter--termination.properties finished successfully");
   }
 
   @Test(timeout = 30000)
@@ -85,7 +85,7 @@ public class SimpleChecksIntegrationTest {
 
   @Test
   public void memorySafetyUsesTheSmgExecution() throws Exception {
-    run("valid-memsafety", "simple/execution/heap-recursion-true.i").assertIsSafe();
+    run("valid-memsafety", "simple/interpreter/heap-recursion-true.i").assertIsSafe();
   }
 
   @Test

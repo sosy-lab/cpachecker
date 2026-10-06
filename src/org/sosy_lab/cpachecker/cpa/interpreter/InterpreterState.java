@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -20,23 +20,23 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * State of the {@link ExecutionCPA}. Besides the state of the wrapped CPA it stores the stack of
+ * State of the {@link InterpreterCPA}. Besides the state of the wrapped CPA it stores the stack of
  * currently active function calls, which is needed to restore the values of a caller after
  * returning from a recursive function call (cf. {@link StackFrame}), and whether the execution
  * still permits a sound proof of safety or a precise counterexample.
  */
-public class ExecutionState extends AbstractSingleWrapperState {
+public class InterpreterState extends AbstractSingleWrapperState {
 
   /** Stack of active function calls, {@code null} if no function call is active. */
   private final @Nullable StackFrame callStack;
 
   private final AlgorithmStatus status;
 
-  ExecutionState(AbstractState pWrappedState, @Nullable StackFrame pCallStack) {
+  InterpreterState(AbstractState pWrappedState, @Nullable StackFrame pCallStack) {
     this(pWrappedState, pCallStack, AlgorithmStatus.SOUND_AND_PRECISE);
   }
 
-  ExecutionState(
+  InterpreterState(
       AbstractState pWrappedState, @Nullable StackFrame pCallStack, AlgorithmStatus pStatus) {
     super(checkNotNull(pWrappedState));
     callStack = pCallStack;
@@ -56,7 +56,7 @@ public class ExecutionState extends AbstractSingleWrapperState {
     if (!status.isSound()) {
       throw new CPATransferException(
           "The execution ended without violating the specification, but it is no longer sound"
-              + " because function side effects were ignored or inputs were sampled. ExecutionCPA"
+              + " because function side effects were ignored or inputs were sampled. InterpreterCPA"
               + " cannot prove that the program is safe.");
     }
   }
@@ -66,7 +66,7 @@ public class ExecutionState extends AbstractSingleWrapperState {
     if (isTarget() && !status.isPrecise()) {
       throw new CPATransferException(
           "The execution reached a target state, but it is no longer precise because a return"
-              + " value of an unhandled function call was overapproximated. ExecutionCPA cannot"
+              + " value of an unhandled function call was overapproximated. InterpreterCPA cannot"
               + " report a property violation.");
     }
   }
@@ -79,7 +79,7 @@ public class ExecutionState extends AbstractSingleWrapperState {
    * share the same memory locations. For a recursive call this means that the callee overwrites the
    * local variables of its caller and that returning from the callee discards them. A stack frame
    * therefore remembers the values that a recursive call is about to overwrite, so that {@link
-   * ExecutionTransferRelation} can restore them when the call returns. This is done in this CPA
+   * InterpreterTransferRelation} can restore them when the call returns. This is done in this CPA
    * only, the value analysis itself is not affected.
    *
    * @param parent the frame of the caller, {@code null} for the outermost call

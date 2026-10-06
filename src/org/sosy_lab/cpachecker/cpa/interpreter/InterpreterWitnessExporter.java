@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.witnesses.LocationWitnessExporter;
 
 /**
- * Collects the information that {@link ExecutionCPA} needs for its witnesses and writes them when
+ * Collects the information that {@link InterpreterCPA} needs for its witnesses and writes them when
  * the analysis is finished.
  *
  * <p>For a correctness witness we collect all assignments that the execution has at loop heads and
@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.util.witnesses.LocationWitnessExporter;
  * location, because the program has only this one execution. For a violation witness we only need
  * the location whose execution violates the specification.
  */
-@Options(prefix = "cpa.execution")
-class ExecutionWitnessExporter implements Statistics {
+@Options(prefix = "cpa.interpreter")
+class InterpreterWitnessExporter implements Statistics {
 
   @Option(
       secure = true,
@@ -70,7 +70,7 @@ class ExecutionWitnessExporter implements Statistics {
 
   private @Nullable CFAEdge violatingEdge = null;
 
-  ExecutionWitnessExporter(
+  InterpreterWitnessExporter(
       Configuration pConfig,
       CFA pCfa,
       Specification pSpecification,

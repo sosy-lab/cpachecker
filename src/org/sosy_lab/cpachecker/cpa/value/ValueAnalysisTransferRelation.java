@@ -1873,7 +1873,7 @@ public class ValueAnalysisTransferRelation
     //   - AbstractExpressionValueVisitor.visit(CFunctionCallExpression) (the builtin float,
     //     overflow, and popcount functions), and
     //   - ExpressionValueVisitorWithRandomSampling (the inputs "__VERIFIER_nondet_*", which are
-    //     exact nondeterminism rather than an unknown function; ExecutionCPA samples them).
+    //     exact nondeterminism rather than an unknown function; InterpreterCPA samples them).
     if (calledFunctionName.equals("free")
         || BuiltinIoFunctions.matchesFscanf(calledFunctionName)
         || calledFunctionName.startsWith(

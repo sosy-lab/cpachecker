@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class ExecutionWitnessIntegrationTest {
+public class InterpreterWitnessIntegrationTest {
 
   @Rule public TemporaryFolder temporary = new TemporaryFolder();
 
@@ -98,7 +98,7 @@ public class ExecutionWitnessIntegrationTest {
   public void violationOnlyMarksTheTarget() throws Exception {
     IntegrationTestResult result =
         run(
-            config("execution"),
+            config("interpreter"),
             """
             extern void reach_error(void);
             int main(void) {
@@ -123,7 +123,7 @@ public class ExecutionWitnessIntegrationTest {
   public void loopAndFunctionSnapshotsReachBothWitnessVersions() throws Exception {
     IntegrationTestResult result =
         run(
-            config("execution").setOption("witness.yamlexporter.witnessVersions", "V2,V2d1"),
+            config("interpreter").setOption("witness.yamlexporter.witnessVersions", "V2,V2d1"),
             PROGRAM);
     result.assertIsSafe();
     assertThat(result.cpaCheckerResult().getReached().size()).isAtMost(2);
@@ -170,7 +170,7 @@ public class ExecutionWitnessIntegrationTest {
 
   @Test
   public void exceedingTheLimitDropsTheWholeInvariant() throws Exception {
-    run(config("execution").setOption("cpa.execution.maxAssignmentsPerLocation", "2"), PROGRAM)
+    run(config("interpreter").setOption("cpa.interpreter.maxAssignmentsPerLocation", "2"), PROGRAM)
         .assertIsSafe();
     String yaml = Files.readString(output("proof-2.0.yml"));
     assertThat(yaml).doesNotContain("loop_invariant");
@@ -183,7 +183,7 @@ public class ExecutionWitnessIntegrationTest {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
             config("simpleChecks").build(),
-            "test/programs/simple/execution/recursive-factorial-false.c");
+            "test/programs/simple/interpreter/recursive-factorial-false.c");
     result.assertIsUnsafe();
     result.cpaCheckerResult().writeOutputFiles();
     assertThat(witness("violation.yml").get("content").size()).isEqualTo(1);
@@ -210,7 +210,8 @@ public class ExecutionWitnessIntegrationTest {
   public void unknownDoesNotExportAWitness() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
-            config("execution").build(), "test/programs/simple/execution/nondeterministic-input.c");
+            config("interpreter").build(),
+            "test/programs/simple/interpreter/nondeterministic-input.c");
     result.assertIs(Result.UNKNOWN);
     result.cpaCheckerResult().writeOutputFiles();
     assertThat(Files.exists(output("proof-2.0.yml"))).isFalse();

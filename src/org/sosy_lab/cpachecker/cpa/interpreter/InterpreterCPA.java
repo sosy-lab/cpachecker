@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import java.util.Collection;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * CPA that executes a program instead of abstracting it.
+ * CPA that interprets a program concretely instead of abstracting it.
  *
  * <p>This CPA wraps another CPA, usually a {@link
  * org.sosy_lab.cpachecker.cpa.composite.CompositeCPA} consisting of {@link
@@ -90,11 +90,11 @@ import org.sosy_lab.cpachecker.util.CPAs;
  *       built on top of it.
  *   <li>Conversely, the compactor supports BAM and reconstructs the hidden states for a refinement
  *       (cf. {@code SSCBasedRefiner}). An execution is never refined and needs neither, and {@code
- *       cpa.execution.stepsPerTransfer = 1} already yields a complete ARG.
+ *       cpa.interpreter.stepsPerTransfer = 1} already yields a complete ARG.
  * </ul>
  */
-@Options(prefix = "cpa.execution")
-public class ExecutionCPA extends AbstractSingleWrapperCPA {
+@Options(prefix = "cpa.interpreter")
+public class InterpreterCPA extends AbstractSingleWrapperCPA {
 
   @Option(
       secure = true,
@@ -114,22 +114,22 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
               + " returns. A value analysis identifies local variables by the name of their"
               + " function, so all invocations of a function share the same memory locations and a"
               + " recursive call overwrites the variables of its caller. This option lets"
-              + " ExecutionCPA remember and restore those values, such that recursive programs can"
-              + " be executed precisely. The value analysis itself is not changed by this.")
+              + " InterpreterCPA remember and restore those values, such that recursive programs"
+              + " can be executed precisely. The value analysis itself is not changed by this.")
   private boolean restoreCallerValuesOnRecursion = true;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ExecutionCPA.class);
+    return AutomaticCPAFactory.forType(InterpreterCPA.class);
   }
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final ExecutionStatistics stats = new ExecutionStatistics();
-  private final ExecutionWitnessExporter witnessExporter;
-  private final ExecutionSampler sampler;
+  private final InterpreterStatistics stats = new InterpreterStatistics();
+  private final InterpreterWitnessExporter witnessExporter;
+  private final InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
 
-  private ExecutionCPA(
+  private InterpreterCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
@@ -141,13 +141,13 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
     pConfig.inject(this);
     if (stepsPerTransfer == 0) {
       throw new InvalidConfigurationException(
-          "cpa.execution.stepsPerTransfer needs to be at least 1 (or -1 for no limit),"
+          "cpa.interpreter.stepsPerTransfer needs to be at least 1 (or -1 for no limit),"
               + " otherwise the analysis would not make any progress");
     }
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    witnessExporter = new ExecutionWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa);
-    sampler = new ExecutionSampler(pConfig, pCfa, pLogger, stats);
+    witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa);
+    sampler = new InterpreterSampler(pConfig, pCfa, pLogger, stats);
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();
   }
@@ -159,8 +159,8 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public ExecutionTransferRelation getTransferRelation() {
-    return new ExecutionTransferRelation(
+  public InterpreterTransferRelation getTransferRelation() {
+    return new InterpreterTransferRelation(
         getWrappedCpa().getTransferRelation(),
         shutdownNotifier,
         logger,
@@ -190,13 +190,13 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new ExecutionPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
+    return new InterpreterPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new ExecutionState(super.getInitialState(pNode, pPartition), null);
+    return new InterpreterState(super.getInitialState(pNode, pPartition), null);
   }
 
   @Override

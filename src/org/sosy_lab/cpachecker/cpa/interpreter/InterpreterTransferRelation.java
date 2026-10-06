@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.execution.ExecutionState.StackFrame;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Transfer relation of the {@link ExecutionCPA}. It executes the program edge by edge and checks
+ * Transfer relation of the {@link InterpreterCPA}. It executes the program edge by edge and checks
  * after every step that the wrapped CPA produced exactly one or zero successors. If a state has
  * more than one successor, the program makes a nondeterministic choice, which this analysis does
  * not support, and an {@link UnsupportedCodeException} is thrown.
@@ -55,27 +55,27 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * <p>Because there is at most one successor, several execution steps can be performed within a
  * single call of this transfer relation. The intermediate states are then never added to the
  * reached set and can be garbage collected immediately, which is what makes this analysis use only
- * a constant amount of memory for the state space (cf. {@code cpa.execution.stepsPerTransfer}).
+ * a constant amount of memory for the state space (cf. {@code cpa.interpreter.stepsPerTransfer}).
  */
-class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
+class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation {
 
   private final ShutdownNotifier shutdownNotifier;
   private final LogManagerWithoutDuplicates logger;
-  private final ExecutionStatistics stats;
-  private final ExecutionWitnessExporter witnessExporter;
-  private final ExecutionSampler sampler;
+  private final InterpreterStatistics stats;
+  private final InterpreterWitnessExporter witnessExporter;
+  private final InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
   private final boolean collectInvariants;
   private final int stepsPerTransfer;
   private final boolean restoreCallerValues;
 
-  ExecutionTransferRelation(
+  InterpreterTransferRelation(
       TransferRelation pWrapped,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger,
-      ExecutionStatistics pStats,
-      ExecutionWitnessExporter pWitnessExporter,
-      ExecutionSampler pSampler,
+      InterpreterStatistics pStats,
+      InterpreterWitnessExporter pWitnessExporter,
+      InterpreterSampler pSampler,
       @Nullable ValueTransferOptions pValueTransferOptions,
       int pStepsPerTransfer,
       boolean pRestoreCallerValues) {
@@ -96,12 +96,12 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
-    ExecutionState current = (ExecutionState) pState;
+    InterpreterState current = (InterpreterState) pState;
     // A negative value of stepsPerTransfer means that the whole program is executed here.
     for (int steps = 0; stepsPerTransfer < 0 || steps < stepsPerTransfer; steps++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      ExecutionState next = executeStep(current, pPrecision);
+      InterpreterState next = executeStep(current, pPrecision);
       if (next == null) {
         // The program ends here (or the specification excludes this path),
         // so this execution has no successor at all.
@@ -124,7 +124,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
    * @return the successor state, or {@code null} if the execution ends at the given state
    * @throws UnsupportedCodeException if the given state has more than one successor
    */
-  private @Nullable ExecutionState executeStep(ExecutionState pState, Precision pPrecision)
+  private @Nullable InterpreterState executeStep(InterpreterState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
     final AbstractState wrappedState = pState.getWrappedState();
@@ -140,7 +140,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
 
     AbstractState state = wrappedState;
     AlgorithmStatus status = statusAfterUnhandledCalls(pState.getStatus(), locationState);
-    List<ExecutionStep> steps =
+    List<InterpreterStep> steps =
         computeSteps(
             state,
             callStack,
@@ -159,12 +159,12 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     }
 
     if (steps.isEmpty()) {
-      new ExecutionState(wrappedState, callStack, status).checkMayProveSafety();
+      new InterpreterState(wrappedState, callStack, status).checkMayProveSafety();
       return null;
     }
-    ExecutionStep step = steps.getFirst();
-    ExecutionState successor =
-        new ExecutionState(step.successor(), updateCallStack(pState, step.edge(), state), status);
+    InterpreterStep step = steps.getFirst();
+    InterpreterState successor =
+        new InterpreterState(step.successor(), updateCallStack(pState, step.edge(), state), status);
     if (AbstractStates.isTargetState(successor)) {
       successor.checkMayReportViolation();
       // Remember where the specification was violated for the violation witness.
@@ -181,7 +181,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
         AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
     if (locationState == null) {
       throw new CPATransferException(
-          "ExecutionCPA needs a CPA that tracks the program location, e.g., LocationCPA");
+          "InterpreterCPA needs a CPA that tracks the program location, e.g., LocationCPA");
     }
     return locationState;
   }
@@ -218,7 +218,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
    *
    * @throws UnsupportedCodeException if no assignment of the inputs could be computed
    */
-  private AbstractState sampleInputs(AbstractState pState, List<ExecutionStep> pSteps)
+  private AbstractState sampleInputs(AbstractState pState, List<InterpreterStep> pSteps)
       throws UnsupportedCodeException {
     AbstractState sampledState = sampler.sample(pState, pSteps);
     if (sampledState == null) {
@@ -236,7 +236,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
    * @throws UnsupportedCodeException if there is more than one successor and {@code
    *     pAllowSeveralSuccessors} is false
    */
-  private List<ExecutionStep> computeSteps(
+  private List<InterpreterStep> computeSteps(
       AbstractState pState,
       @Nullable StackFrame pCallStack,
       AbstractStateWithLocations pLocationState,
@@ -248,7 +248,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     // because this is necessary only when returning from a recursive function call.
     AbstractState restoredState = null;
 
-    List<ExecutionStep> steps = new ArrayList<>(1);
+    List<InterpreterStep> steps = new ArrayList<>(1);
     for (CFAEdge edge : pLocationState.getOutgoingEdges()) {
       AbstractState predecessor = pState;
       if (edge instanceof FunctionReturnEdge returnEdge && pCallStack != null) {
@@ -264,15 +264,15 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
           if (!steps.isEmpty() && !pAllowSeveralSuccessors) {
             throw nondeterminismException(steps.getFirst().edge(), edge);
           }
-          steps.add(new ExecutionStep(edge, newState));
+          steps.add(new InterpreterStep(edge, newState));
         }
       }
     }
     return steps;
   }
 
-  private static boolean isNewSuccessor(List<ExecutionStep> pSteps, AbstractState pState) {
-    for (ExecutionStep step : pSteps) {
+  private static boolean isNewSuccessor(List<InterpreterStep> pSteps, AbstractState pState) {
+    for (InterpreterStep step : pSteps) {
       if (isSameState(step.successor(), pState)) {
         return false;
       }
@@ -320,13 +320,13 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     return new UnsupportedCodeException(
         "nondeterministic choice ("
             + reason
-            + "); ExecutionCPA requires that the behavior of the program is fully determined",
+            + "); InterpreterCPA requires that the behavior of the program is fully determined",
         pSecondEdge);
   }
 
   /** Push a stack frame for a function call and pop one for a function return. */
   private @Nullable StackFrame updateCallStack(
-      ExecutionState pState, CFAEdge pEdge, AbstractState pCallerState) {
+      InterpreterState pState, CFAEdge pEdge, AbstractState pCallerState) {
     final StackFrame callStack = pState.getCallStack();
 
     if (pEdge instanceof FunctionCallEdge callEdge) {
@@ -406,7 +406,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       // entry). In both cases the state of the value analysis is already correct.
       return pState;
     }
-    Optional<ValueAnalysisState> valueState = ExecutionStates.valueState(pState);
+    Optional<ValueAnalysisState> valueState = InterpreterStates.valueState(pState);
     if (valueState.isEmpty()) {
       logRestoringNotPossible();
       return pState;
@@ -427,7 +427,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
             restored.assignConstant(
                 memoryLocation, valueAndType.getValue(), valueAndType.getType()));
 
-    return ExecutionStates.withValueState(pState, restored).orElse(pState);
+    return InterpreterStates.withValueState(pState, restored).orElse(pState);
   }
 
   private static @Nullable MemoryLocation returnVariable(FunctionEntryNode pEntryNode) {
@@ -441,14 +441,14 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     logger.logOnce(
         Level.WARNING,
         "Could not find the value analysis for restoring the values of a recursive function call."
-            + " ExecutionCPA needs to wrap a CompositeCPA that contains ValueAnalysisCPA directly,"
-            + " otherwise recursive functions are analyzed imprecisely.");
+            + " InterpreterCPA needs to wrap a CompositeCPA that contains ValueAnalysisCPA"
+            + " directly, otherwise recursive functions are analyzed imprecisely.");
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
     throw new UnsupportedOperationException(
-        "ExecutionCPA does not support the computation of successors for a single edge");
+        "InterpreterCPA does not support the computation of successors for a single edge");
   }
 }

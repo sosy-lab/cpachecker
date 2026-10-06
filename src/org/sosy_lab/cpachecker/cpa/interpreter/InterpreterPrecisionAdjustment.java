@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -21,18 +21,18 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Applies the precision adjustment of the wrapped CPA to the wrapped state and keeps the additional
- * information of the {@link ExecutionState}.
+ * information of the {@link InterpreterState}.
  *
  * <p>Note that this is applied only to the states that the transfer relation actually returns, not
- * to the intermediate states of an execution (cf. {@code cpa.execution.stepsPerTransfer}). An
+ * to the intermediate states of an execution (cf. {@code cpa.interpreter.stepsPerTransfer}). An
  * execution must not abstract from any information anyway, so the precision adjustment of the
  * wrapped CPA should not change the state.
  */
-class ExecutionPrecisionAdjustment implements PrecisionAdjustment {
+class InterpreterPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
 
-  ExecutionPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
+  InterpreterPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
     wrappedPrecisionAdjustment = Preconditions.checkNotNull(pWrappedPrecisionAdjustment);
   }
 
@@ -45,13 +45,13 @@ class ExecutionPrecisionAdjustment implements PrecisionAdjustment {
       AbstractState pFullState)
       throws CPAException, InterruptedException {
 
-    ExecutionState state = (ExecutionState) pState;
+    InterpreterState state = (InterpreterState) pState;
     Optional<PrecisionAdjustmentResult> result =
         wrappedPrecisionAdjustment.prec(
             state.getWrappedState(),
             pPrecision,
             pStates,
-            Functions.compose(s -> ((ExecutionState) s).getWrappedState(), pProjection),
+            Functions.compose(s -> ((InterpreterState) s).getWrappedState(), pProjection),
             pFullState);
 
     if (result.isEmpty()) {
@@ -60,10 +60,10 @@ class ExecutionPrecisionAdjustment implements PrecisionAdjustment {
       return result;
     }
     PrecisionAdjustmentResult unwrapped = result.orElseThrow();
-    ExecutionState adjustedState =
+    InterpreterState adjustedState =
         unwrapped.abstractState() == state.getWrappedState()
             ? state
-            : new ExecutionState(
+            : new InterpreterState(
                 unwrapped.abstractState(), state.getCallStack(), state.getStatus());
     adjustedState.checkMayReportViolation();
     return Optional.of(

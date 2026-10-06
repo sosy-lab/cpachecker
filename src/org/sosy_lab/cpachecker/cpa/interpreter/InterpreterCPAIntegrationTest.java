@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,9 +17,9 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class ExecutionCPAIntegrationTest {
+public class InterpreterCPAIntegrationTest {
 
-  private static final String PROGRAM_DIR = "test/programs/simple/execution/";
+  private static final String PROGRAM_DIR = "test/programs/simple/interpreter/";
 
   private static final String PROPERTY_DIR = "test/config/properties/";
 
@@ -70,27 +70,27 @@ public class ExecutionCPAIntegrationTest {
   public void recursionIsExecutedPrecisely() throws Exception {
     // The plain value analysis reports a spurious counterexample here, because it loses the
     // values of a caller during a recursive call.
-    run("config/execution.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-true.c")
+    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-true.c")
         .assertIsSafe();
   }
 
   @Test
   public void recursionViolationIsFound() throws Exception {
-    run("config/execution.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-false.c")
+    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-false.c")
         .assertIsUnsafe();
   }
 
   @Test
   public void mutualRecursionIsExecutedPrecisely() throws Exception {
-    run("config/execution.properties", REACHABILITY_SPECIFICATION, "mutual-recursion-true.c")
+    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "mutual-recursion-true.c")
         .assertIsSafe();
   }
 
   @Test
   public void nondeterministicProgramIsRejected() throws Exception {
-    // The program has more than one execution, so ExecutionCPA is not applicable to it
+    // The program has more than one execution, so InterpreterCPA is not applicable to it
     // and must not claim any result.
-    run("config/execution.properties", REACHABILITY_SPECIFICATION, "nondeterministic-input.c")
+    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "nondeterministic-input.c")
         .assertIs(Result.UNKNOWN);
   }
 
@@ -100,16 +100,16 @@ public class ExecutionCPAIntegrationTest {
     // instead of executing the whole program within a single call of the transfer relation.
     Configuration config =
         TestUtils.configurationForTest()
-            .loadFromFile("config/execution.properties")
+            .loadFromFile("config/interpreter.properties")
             .setOption("specification", REACHABILITY_SPECIFICATION)
-            .setOption("cpa.execution.stepsPerTransfer", "1")
+            .setOption("cpa.interpreter.stepsPerTransfer", "1")
             .build();
     IntegrationTestRunner.run(config, PROGRAM_DIR + "recursive-factorial-true.c").assertIsSafe();
   }
 
   @Test
   public void terminationIsProvenByExecution() throws Exception {
-    run("config/execution--termination.properties", "terminating-loop-true.c").assertIsSafe();
+    run("config/interpreter--termination.properties", "terminating-loop-true.c").assertIsSafe();
   }
 
   @Test
@@ -123,12 +123,13 @@ public class ExecutionCPAIntegrationTest {
 
   @Test
   public void memorySafetyViolationIsFound() throws Exception {
-    run("config/execution--memorysafety.properties", "heap-out-of-bounds-false.i").assertIsUnsafe();
+    run("config/interpreter--memorysafety.properties", "heap-out-of-bounds-false.i")
+        .assertIsUnsafe();
   }
 
   @Test
   public void memorySafetyWithRecursionIsProven() throws Exception {
-    run("config/execution--memorysafety.properties", "heap-recursion-true.i").assertIsSafe();
+    run("config/interpreter--memorysafety.properties", "heap-recursion-true.i").assertIsSafe();
   }
 
   // The following tests use the SV-COMP property files, i.e., they check that the execution
@@ -137,24 +138,25 @@ public class ExecutionCPAIntegrationTest {
 
   @Test
   public void unreachCallProperty() throws Exception {
-    runWithProperty("config/execution.properties", "unreach-call.prp", "recursive-factorial-true.c")
+    runWithProperty(
+            "config/interpreter.properties", "unreach-call.prp", "recursive-factorial-true.c")
         .assertIsSafe();
     runWithProperty(
-            "config/execution.properties", "unreach-call.prp", "recursive-factorial-false.c")
+            "config/interpreter.properties", "unreach-call.prp", "recursive-factorial-false.c")
         .assertIsUnsafe();
   }
 
   @Test
   public void terminationProperty() throws Exception {
     runWithProperty(
-            "config/execution--termination.properties",
+            "config/interpreter--termination.properties",
             "termination.prp",
             "terminating-loop-true.c")
         .assertIsSafe();
     // A non-terminating program cannot be shown to be non-terminating by executing it, so the
     // analysis must not report FALSE. (It runs into the time limit, hence the small limit here.)
     Configuration config =
-        configWithProperty("config/execution--termination.properties", "termination.prp")
+        configWithProperty("config/interpreter--termination.properties", "termination.prp")
             .setOption("limits.time.cpu", "10s")
             .build();
     IntegrationTestRunner.run(config, PROGRAM_DIR + "nonterminating.c").assertIs(Result.UNKNOWN);
@@ -163,22 +165,22 @@ public class ExecutionCPAIntegrationTest {
   @Test
   public void noOverflowProperty() throws Exception {
     runWithProperty(
-            "config/execution--overflow.properties", "no-overflow.prp", "terminating-loop-true.c")
+            "config/interpreter--overflow.properties", "no-overflow.prp", "terminating-loop-true.c")
         .assertIsSafe();
     runWithProperty(
-            "config/execution--overflow.properties", "no-overflow.prp", "signed-overflow-false.c")
+            "config/interpreter--overflow.properties", "no-overflow.prp", "signed-overflow-false.c")
         .assertIsUnsafe();
   }
 
   @Test
   public void validMemsafetyProperty() throws Exception {
     runWithProperty(
-            "config/execution--memorysafety.properties",
+            "config/interpreter--memorysafety.properties",
             "valid-memsafety.prp",
             "heap-recursion-true.i")
         .assertIsSafe();
     runWithProperty(
-            "config/execution--memorysafety.properties",
+            "config/interpreter--memorysafety.properties",
             "valid-memsafety.prp",
             "heap-out-of-bounds-false.i")
         .assertIsUnsafe();
@@ -218,12 +220,12 @@ public class ExecutionCPAIntegrationTest {
   @Test
   public void validMemcleanupProperty() throws Exception {
     runWithProperty(
-            "config/execution--memorycleanup.properties",
+            "config/interpreter--memorycleanup.properties",
             "valid-memcleanup.prp",
             "heap-recursion-true.i")
         .assertIsSafe();
     runWithProperty(
-            "config/execution--memorycleanup.properties",
+            "config/interpreter--memorycleanup.properties",
             "valid-memcleanup.prp",
             "heap-leak-false.i")
         .assertIsUnsafe();

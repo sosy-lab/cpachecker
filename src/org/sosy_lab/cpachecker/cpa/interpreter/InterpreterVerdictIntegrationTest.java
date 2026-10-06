@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
-public class ExecutionVerdictIntegrationTest {
+public class InterpreterVerdictIntegrationTest {
 
   @Parameters(name = "stepsPerTransfer={0}")
   public static Object[] stepsPerTransfer() {
@@ -51,11 +51,11 @@ public class ExecutionVerdictIntegrationTest {
     Files.writeString(program, pProgram);
     Configuration config =
         TestUtils.configurationForTest()
-            .loadFromFile("config/execution.properties")
+            .loadFromFile("config/interpreter.properties")
             .setOption("specification", "config/specification/sv-comp-reachability.spc")
             // Keep addressed variables out of the process-wide blacklist for other tests.
             .setOption("analysis.entryFunction", "execution_verdict_test")
-            .setOption("cpa.execution.stepsPerTransfer", Integer.toString(stepsPerTransfer))
+            .setOption("cpa.interpreter.stepsPerTransfer", Integer.toString(stepsPerTransfer))
             .setOptions(pOptions)
             .build();
     return IntegrationTestRunner.run(config, program.toString());

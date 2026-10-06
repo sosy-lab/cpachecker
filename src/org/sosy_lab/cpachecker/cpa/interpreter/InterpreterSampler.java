@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.execution;
+package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
- * Picks one assignment for the nondeterministic values of a program, so that {@link ExecutionCPA}
+ * Picks one assignment for the nondeterministic values of a program, so that {@link InterpreterCPA}
  * can execute a program that has inputs.
  *
  * <p>The values of the inputs are symbolic (cf. {@code cpa.value.unknownValueHandling}) and the
@@ -69,8 +69,8 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  * real one, but the absence of a violation does not prove anything: an analysis that samples must
  * never report TRUE.
  */
-@Options(prefix = "cpa.execution")
-class ExecutionSampler {
+@Options(prefix = "cpa.interpreter")
+class InterpreterSampler {
 
   @Option(
       secure = true,
@@ -95,7 +95,7 @@ class ExecutionSampler {
 
   private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
-  private final ExecutionStatistics stats;
+  private final InterpreterStatistics stats;
 
   /**
    * Number of edges from a node to the nearest loop head or function call. Nodes from which neither
@@ -108,7 +108,8 @@ class ExecutionSampler {
 
   private int samples = 0;
 
-  ExecutionSampler(Configuration pConfig, CFA pCfa, LogManager pLogger, ExecutionStatistics pStats)
+  InterpreterSampler(
+      Configuration pConfig, CFA pCfa, LogManager pLogger, InterpreterStatistics pStats)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
@@ -121,7 +122,7 @@ class ExecutionSampler {
         logger.log(
             Level.WARNING,
             "The program reads an input inside a loop, so the number of inputs is not bounded by"
-                + " the program. ExecutionCPA samples the inputs anyway, but at most",
+                + " the program. InterpreterCPA samples the inputs anyway, but at most",
             maxSamples,
             "times.");
       }
@@ -143,7 +144,7 @@ class ExecutionSampler {
    * @return a state that behaves like the given one but has concrete values for all inputs, or
    *     {@code null} if no assignment could be computed
    */
-  @Nullable AbstractState sample(AbstractState pState, List<ExecutionStep> pSuccessors) {
+  @Nullable AbstractState sample(AbstractState pState, List<InterpreterStep> pSuccessors) {
     if (maxSamples >= 0 && samples >= maxSamples) {
       logger.logOnce(
           Level.WARNING,
@@ -161,7 +162,7 @@ class ExecutionSampler {
       return null;
     }
 
-    ExecutionStep chosen = chooseSuccessor(pSuccessors);
+    InterpreterStep chosen = chooseSuccessor(pSuccessors);
     ConstraintsState constraints =
         AbstractStates.extractStateByType(chosen.successor(), ConstraintsState.class);
     if (constraints == null) {
@@ -173,7 +174,7 @@ class ExecutionSampler {
 
     ValueAnalysisState concreteState =
         concretize(valueState, constraints.getModel(), chosen.edge().getPredecessor());
-    Optional<AbstractState> result = ExecutionStates.withValueState(pState, concreteState);
+    Optional<AbstractState> result = InterpreterStates.withValueState(pState, concreteState);
     if (result.isEmpty()) {
       logger.logOnce(
           Level.WARNING,
@@ -194,10 +195,10 @@ class ExecutionSampler {
   }
 
   /** Choose the successor that is closest to a loop head or a function call. */
-  private ExecutionStep chooseSuccessor(List<ExecutionStep> pSuccessors) {
-    ExecutionStep best = pSuccessors.getFirst();
+  private InterpreterStep chooseSuccessor(List<InterpreterStep> pSuccessors) {
+    InterpreterStep best = pSuccessors.getFirst();
     int bestDistance = distance(best.edge().getSuccessor());
-    for (ExecutionStep step : pSuccessors.subList(1, pSuccessors.size())) {
+    for (InterpreterStep step : pSuccessors.subList(1, pSuccessors.size())) {
       int stepDistance = distance(step.edge().getSuccessor());
       if (stepDistance < bestDistance) {
         best = step;
@@ -251,7 +252,7 @@ class ExecutionSampler {
     Map<CFANode, Integer> distances = new HashMap<>();
     Deque<CFANode> waitlist = new ArrayDeque<>();
     for (CFANode node : pCfa.nodes()) {
-      if (node.isLoopStart() || node.getLeavingEdges().anyMatch(ExecutionSampler::isCall)) {
+      if (node.isLoopStart() || node.getLeavingEdges().anyMatch(InterpreterSampler::isCall)) {
         distances.put(node, 0);
         waitlist.add(node);
       }
