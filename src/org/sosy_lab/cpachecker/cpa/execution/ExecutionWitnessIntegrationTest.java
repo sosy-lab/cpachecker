@@ -194,7 +194,7 @@ public class ExecutionWitnessIntegrationTest {
   public void nonterminationExportsOnlyTheReportedLocation() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
-            config("trivialRules--termination")
+            config("simpleRules--termination")
                 .setOption("specification", "test/programs/benchmarks/properties/termination.prp")
                 .build(),
             "test/programs/simplerules/endless-loop-false.c");

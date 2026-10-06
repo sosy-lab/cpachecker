@@ -557,7 +557,7 @@ analysis.algorithm.terminationWitnessCheck = false
 
 # decide the specification with trivial rules, i.e., with arguments that need
 # no reasoning about what the program computes
-analysis.algorithm.trivialRules = false
+analysis.algorithm.simpleRules = false
 
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
@@ -5964,7 +5964,7 @@ traceformula.reduceSelectors = false
 # Use only the trivial rules with these names, e.g. to measure a single rule.
 # Leave empty to use all rules that can decide a proposition of the
 # specification. The names of the rules are printed in the statistics.
-trivialrules.rules = {}
+simpleRules.rules = {}
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

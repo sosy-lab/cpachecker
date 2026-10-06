@@ -356,11 +356,11 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.trivialRules",
+      name = "algorithm.simpleRules",
       description =
           "decide the specification with trivial rules, i.e., with arguments that need no reasoning"
               + " about what the program computes")
-  private boolean useTrivialRules = false;
+  private boolean usesimpleRules = false;
 
   @Option(
       secure = true,
@@ -587,7 +587,7 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
-    } else if (useTrivialRules) {
+    } else if (usesimpleRules) {
       logger.log(Level.INFO, "Using trivial rules");
       algorithm =
           new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification, cpa);
@@ -977,7 +977,7 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
-        || useTrivialRules
+        || usesimpleRules
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction

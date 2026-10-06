@@ -51,7 +51,7 @@ public class SimpleChecksIntegrationTest {
   }
 
   @Test
-  public void executionDecidesWhenTrivialRulesAbstain() throws Exception {
+  public void executionDecidesWhensimpleRulesAbstain() throws Exception {
     IntegrationTestResult result =
         run("unreach-call", "simple/execution/recursive-factorial-false.c");
     result.assertIsUnsafe();
@@ -66,10 +66,10 @@ public class SimpleChecksIntegrationTest {
   }
 
   @Test(timeout = 30000)
-  public void trivialRulesCancelAnEndlessExecution() throws Exception {
+  public void simpleRulesCancelAnEndlessExecution() throws Exception {
     IntegrationTestResult result = run("termination", "simplerules/endless-loop-false.c");
     result.assertIsUnsafe();
-    assertThat(result.log()).contains("trivialRules--termination.properties finished successfully");
+    assertThat(result.log()).contains("simpleRules--termination.properties finished successfully");
     assertThat(result.cpaCheckerResult().getReached().hasWaitingState()).isFalse();
   }
 
