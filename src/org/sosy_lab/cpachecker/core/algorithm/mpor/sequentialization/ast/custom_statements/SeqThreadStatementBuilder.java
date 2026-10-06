@@ -463,7 +463,8 @@ public record SeqThreadStatementBuilder(
             ImmutableSet.of(pSubstituteEdge),
             thread.id(),
             pcLeftHandSide,
-            pAssumeEdge.getExpression());
+            pAssumeEdge.getExpression(),
+            pAssumeEdge.getTruthAssumption());
 
     // just return with empty statements, the block handles the if-else branch
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of());

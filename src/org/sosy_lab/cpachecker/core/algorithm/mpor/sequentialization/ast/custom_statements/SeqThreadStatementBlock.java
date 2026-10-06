@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
@@ -79,14 +80,24 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
     } else {
       // 2 statements (= assume statements): create if-else statement
       SeqThreadStatement firstAssume = statements.getFirst();
+      SeqThreadStatement secondAssume = statements.getLast();
       SeqThreadStatementDataWithIfExpression firstAssumeData =
           (SeqThreadStatementDataWithIfExpression) firstAssume.data();
-      SeqThreadStatement secondAssume = statements.getLast();
+      SeqThreadStatementDataWithIfExpression secondAssumeData =
+          (SeqThreadStatementDataWithIfExpression) secondAssume.data();
+      checkState(
+          firstAssumeData.getTruthAssumption() != secondAssumeData.getTruthAssumption(),
+          "the two assume statements of a block must have opposite truth assumptions");
+      boolean firstIsThen = firstAssumeData.getTruthAssumption();
+      SeqThreadStatement thenAssume = firstIsThen ? firstAssume : secondAssume;
+      SeqThreadStatement elseAssume = firstIsThen ? secondAssume : firstAssume;
+      SeqThreadStatementDataWithIfExpression thenAssumeData =
+          firstIsThen ? firstAssumeData : secondAssumeData;
       CIfStatement ifStatement =
           new CIfStatement(
-              new CExpressionWrapper(firstAssumeData.getIfExpression()),
-              new CCompoundStatement(firstAssume.toCExportStatements()),
-              new CCompoundStatement(secondAssume.toCExportStatements()));
+              new CExpressionWrapper(thenAssumeData.getIfExpression()),
+              new CCompoundStatement(thenAssume.toCExportStatements()),
+              new CCompoundStatement(elseAssume.toCExportStatements()));
       exportStatements.add(ifStatement);
     }
 

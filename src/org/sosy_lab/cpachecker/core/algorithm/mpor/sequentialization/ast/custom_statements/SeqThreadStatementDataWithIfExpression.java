@@ -28,6 +28,8 @@ public final class SeqThreadStatementDataWithIfExpression extends SeqThreadState
 
   private final CExpression ifExpression;
 
+  private final boolean truthAssumption;
+
   /**
    * Returns a new {@link SeqThreadStatementDataWithIfExpression} instance.
    *
@@ -40,21 +42,33 @@ public final class SeqThreadStatementDataWithIfExpression extends SeqThreadState
    *     {@code pc0 = 42;}.
    * @param pIfExpression The {@link CExpression} used in a {@link CAssumeEdge}, can only be present
    *     if this data instance is tied to {@link SeqThreadStatementType#ASSUME}
+   * @param pTruthAssumption Whether this statement is executed if {@code pIfExpression} holds or if
+   *     it does not hold, cf. {@link CAssumeEdge#getTruthAssumption()}.
    */
   public SeqThreadStatementDataWithIfExpression(
       SeqThreadStatementType pType,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pThreadId,
       CLeftHandSide pPcLeftHandSide,
-      CExpression pIfExpression) {
+      CExpression pIfExpression,
+      boolean pTruthAssumption) {
 
     super(pType, pSubstituteEdges, pThreadId, pPcLeftHandSide);
     checkArgument(
         pType.equals(SeqThreadStatementType.ASSUME), "pType must be SeqThreadStatementType.ASSUME");
     ifExpression = pIfExpression;
+    truthAssumption = pTruthAssumption;
   }
 
   public CExpression getIfExpression() {
     return ifExpression;
+  }
+
+  /**
+   * Whether this statement is executed if {@link #getIfExpression()} holds, i.e. whether it belongs
+   * into the then-branch instead of the else-branch.
+   */
+  public boolean getTruthAssumption() {
+    return truthAssumption;
   }
 }
