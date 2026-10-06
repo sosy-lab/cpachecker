@@ -23,8 +23,10 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
@@ -38,6 +40,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.api.Formula;
@@ -100,6 +105,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
     AcslType acslType = getAcslType(f);
 
     if (fmgr.getFormulaType(f).isBooleanType()) {
+      // scope von Program übergeben getScope mit dem CFA
       // TODO AcslPredicateDeclaration declaration = ...
       throw new UnsupportedOperationException(
           "TODO: construct AcslPredicateDeclaration for " + variableName);
@@ -210,7 +216,12 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
                   newArgs, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.GREATER_EQUAL);
 
           case EQ_ZERO -> makeEqualsZero(newArgs.getFirst());
-          case GTE_ZERO -> makeGreaterOrEqualZero(newArgs.getFirst());
+          case GTE_ZERO ->
+              new AcslBinaryTermPredicate(
+                  DUMMY_LOC,
+                  getTerm(newArgs.getFirst()),
+                  AcslIntegerLiteralTerm.ZERO,
+                  AcslBinaryTermExpressionOperator.GREATER_EQUAL);
 
           case ITE ->
               new AcslTernaryTerm(
@@ -229,8 +240,13 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
           case SELECT ->
               new AcslArraySubscriptTerm(
                   DUMMY_LOC, getAcslType(f), getTerm(newArgs.get(0)), getTerm(newArgs.get(1)));
-          // TODO this is important!
-          case STORE -> throw new UnsupportedOperationException("TODO handle Array store");
+          // TODO maybe simplify the adress calculation in here a bit
+          case STORE ->
+              new AcslBinaryTermPredicate(
+                  DUMMY_LOC,
+                  getTerm(newArgs.get(1)),
+                  getTerm(newArgs.get(2)),
+                  AcslBinaryTermExpressionOperator.EQUALS);
 
           default ->
               throw new UnsupportedOperationException(
@@ -280,6 +296,14 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
   private AcslPredicate makeBinaryPredicate(
       List<Formula> args, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator operator) {
 
+    // Special case: for array store we see formulas like (= *int@x (store ...)) where store itself
+    // creates the relevant ACSL predicates
+    if (operator == AcslBinaryTermExpressionOperator.EQUALS
+        && getTerm(args.get(0)) instanceof AcslIdTerm
+        && getTerm(args.get(0)).toString().startsWith("*int@")) {
+      return getPredicate(args.get(1));
+    }
+
     return new AcslBinaryTermPredicate(
         DUMMY_LOC, getTerm(args.get(0)), getTerm(args.get(1)), operator);
   }
@@ -290,14 +314,6 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
         getTerm(operand),
         AcslIntegerLiteralTerm.ZERO,
         AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.EQUALS);
-  }
-
-  private AcslPredicate makeGreaterOrEqualZero(Formula operand) {
-    return new AcslBinaryTermPredicate(
-        DUMMY_LOC,
-        getTerm(operand),
-        AcslIntegerLiteralTerm.ZERO,
-        AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.GREATER_EQUAL);
   }
 
   private AcslAstNode makeUninterpretedFunction(
@@ -337,12 +353,20 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
       return AcslBuiltinLogicType.REAL;
     }
     if (type.isBitvectorType()) {
-      // TODO: I think this is not ideal but what else should I use??
-      return AcslBuiltinLogicType.INTEGER;
+      return new AcslCType(
+          new CSimpleType(
+              CTypeQualifiers.NONE,
+              CBasicType.INT,
+              false,
+              false,
+              true,
+              false,
+              false,
+              false,
+              false));
     }
     if (type.isArrayType()) {
       AcslType elementType = getAcslType(((ArrayFormulaType<?, ?>) type).getElementType());
-      // TODO: I think this is not ideal but what else should I use??
       return new AcslPointerType(elementType);
     }
     throw new UnsupportedOperationException("Cannot convert formula type to ACSL type: " + type);
