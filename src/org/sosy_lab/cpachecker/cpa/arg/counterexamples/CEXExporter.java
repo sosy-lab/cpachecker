@@ -26,8 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -75,7 +73,6 @@ import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedCounterexampleToWitness;
-import org.xml.sax.SAXException;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -377,23 +374,11 @@ public class CEXExporter {
           || options.getYamlWitnessPathTemplate() != null) {
         ProgramTransformation transformation = cfa.getMetadata().getTransformation();
         if (transformation != null) {
-          // The analyzed program was transformed, so a GraphML witness cannot describe the path
-          // through the original program. A witness without any path information is exported.
-          try {
-            String witnessString =
-                SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
-                    transformation.originalCfa(), specification);
-            writeErrorPathFile(options.getWitnessFile(), uniqueId, witnessString, compressWitness);
-          } catch (ParserConfigurationException
-              | IOException
-              | SAXException
-              | TransformerException e) {
-            logger.logUserException(
-                Level.WARNING, e, "Could not export default witness for sequentialized program");
-          }
-
+          logger.log(
+              Level.WARNING,
+              "Cannot export GraphML witness for sequentialized programs, skipping witness"
+                  + " export.");
         } else {
-
           try {
             final Witness witness =
                 witnessExporter.generateErrorWitness(
