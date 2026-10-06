@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -84,22 +84,22 @@ final class MemorySafetyRules {
     UNKNOWN,
   }
 
-  static ImmutableList<TrivialRule> rules() {
+  static ImmutableList<SimpleRule> rules() {
     return ImmutableList.of(
-        new TrivialRule(
+        new SimpleRule(
             "no-memory-operation",
             "A program that does not allocate memory and that contains no dereference, no array"
                 + " subscript and no address-of operator performs no memory operation that could"
                 + " be invalid.",
             ALL_PROPOSITIONS,
             MemorySafetyRules::checkNoMemoryOperation),
-        new TrivialRule(
+        new SimpleRule(
             "no-heap-allocation",
             "A program that never allocates memory has no block that could be freed invalidly, be"
                 + " leaked, or still be allocated when the program ends.",
             PROPOSITIONS_ABOUT_BLOCKS,
             MemorySafetyRules::checkNoHeapAllocation),
-        new TrivialRule(
+        new SimpleRule(
             "all-accesses-inside-their-object",
             "A program without pointers can only access the objects it declares, and it can only"
                 + " access them through an array subscript. If the value of every subscript is"
@@ -107,14 +107,14 @@ final class MemorySafetyRules {
                 + " object it belongs to.",
             ALL_PROPOSITIONS,
             MemorySafetyRules::checkAllAccessesInsideTheirObject),
-        new TrivialRule(
+        new SimpleRule(
             "access-outside-object-on-every-execution",
             "Every execution of the program executes the same sequence of edges as long as every"
                 + " location on it has exactly one possible successor. An access outside of an"
                 + " object on that sequence is therefore performed by every execution.",
             ImmutableSet.of(CommonVerificationProperty.VALID_DEREF),
             MemorySafetyRules::checkAccessOutsideObjectOnEveryExecution),
-        new TrivialRule(
+        new SimpleRule(
             "free-of-non-heap-object-on-every-execution",
             "Every execution of the program executes the same sequence of edges as long as every"
                 + " location on it has exactly one possible successor. A call of free() with the"

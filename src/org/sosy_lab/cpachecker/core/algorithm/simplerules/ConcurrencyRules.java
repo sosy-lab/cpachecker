@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -33,9 +33,9 @@ final class ConcurrencyRules {
           ThreadingTransferRelation.THREAD_START + "_N",
           "thrd_create");
 
-  static ImmutableList<TrivialRule> rules() {
+  static ImmutableList<SimpleRule> rules() {
     return ImmutableList.of(
-        new TrivialRule(
+        new SimpleRule(
             "single-threaded",
             "A program that creates no thread has only one thread of execution, so no two accesses"
                 + " to a memory location are concurrent and no two threads can wait for each"

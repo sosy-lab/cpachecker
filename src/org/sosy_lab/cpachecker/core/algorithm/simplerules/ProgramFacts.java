@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.core.algorithm.trivialrules.RangeEstimator.Truth;
+import org.sosy_lab.cpachecker.core.algorithm.simplerules.RangeEstimator.Truth;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -40,16 +40,16 @@ final class ReachabilityRules {
           CommonVerificationProperty.REACHABILITY_LABEL,
           CommonVerificationProperty.ASSERT);
 
-  static ImmutableList<TrivialRule> rules() {
+  static ImmutableList<SimpleRule> rules() {
     return ImmutableList.of(
-        new TrivialRule(
+        new SimpleRule(
             "no-reachable-target-location",
             "A specification that is given by an automaton holds if the automaton cannot match: no"
                 + " location that an execution of the program can reach is a target location of"
                 + " the automaton.",
             SPECIFICATIONS,
             ReachabilityRules::checkNoReachableTargetLocation),
-        new TrivialRule(
+        new SimpleRule(
             "violation-on-every-execution",
             "Every execution of the program executes the same sequence of edges as long as every"
                 + " location on it has exactly one possible successor. If a target location is on"

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.specification.Property;
@@ -22,9 +22,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * @param check applies the rule to a program; returns {@link RuleVerdict#abstained()} if the rule
  *     abstains, which it has to do whenever its argument does not hold for the program
  */
-record TrivialRule(String name, String argument, ImmutableSet<Property> decides, Check check) {
+record SimpleRule(String name, String argument, ImmutableSet<Property> decides, Check check) {
 
-  /** The check of a rule, cf. {@link TrivialRule#check()}. */
+  /** The check of a rule, cf. {@link SimpleRule#check()}. */
   @FunctionalInterface
   interface Check {
     RuleVerdict apply(ProgramFacts pFacts) throws CPAException, InterruptedException;

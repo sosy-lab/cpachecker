@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * first component of a portfolio: an instant answer for the tasks that need no analysis leaves the
  * time limit to the tasks that do.
  */
-@Options(prefix = "trivialrules")
-public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
+@Options(prefix = "simplerules")
+public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
@@ -67,7 +67,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
   private static final Joiner COMMA = Joiner.on(", ");
 
   /** The rule that decided the task, together with the answer it gave. */
-  private record Decision(TrivialRule rule, RuleVerdict verdict) {}
+  private record Decision(SimpleRule rule, RuleVerdict verdict) {}
 
   /**
    * What the rules found out about the propositions of the specification.
@@ -76,8 +76,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
    * @param violation the rule that refuted a proposition, if there is one; a single violated
    *     proposition violates the whole specification
    */
-  private record Outcome(
-      ImmutableMap<Property, TrivialRule> proven, @Nullable Decision violation) {}
+  private record Outcome(ImmutableMap<Property, SimpleRule> proven, @Nullable Decision violation) {}
 
   private final CFA cfa;
   private final Specification specification;
@@ -85,10 +84,10 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ImmutableSet<Property> propositions;
-  private final TrivialRulesStatistics stats = new TrivialRulesStatistics();
-  private final TrivialRulesWitnessExporter witnessExporter;
+  private final SimpleRulesStatistics stats = new SimpleRulesStatistics();
+  private final SimpleRulesWitnessExporter witnessExporter;
 
-  public TrivialRulesAlgorithm(
+  public SimpleRulesAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -106,7 +105,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
         pSpecification.getProperties().stream()
             .filter(Property::isVerification)
             .collect(toImmutableSet());
-    witnessExporter = new TrivialRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa);
+    witnessExporter = new SimpleRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa);
   }
 
   @Override
@@ -145,11 +144,11 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
    * one of them refutes a proposition or no rule is left.
    */
   private Outcome applyRules(ProgramFacts pFacts) throws CPAException, InterruptedException {
-    Map<Property, TrivialRule> proven = new LinkedHashMap<>();
+    Map<Property, SimpleRule> proven = new LinkedHashMap<>();
 
     stats.totalTime().start();
     try {
-      for (TrivialRule rule : TrivialRules.all()) {
+      for (SimpleRule rule : SimpleRules.all()) {
         if (!isEnabled(rule) || Collections.disjoint(rule.decides(), propositions)) {
           continue;
         }
@@ -177,13 +176,13 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
     return new Outcome(ImmutableMap.copyOf(proven), null);
   }
 
-  /** Whether the given rule is selected by the option {@code trivialrules.rules}. */
-  private boolean isEnabled(TrivialRule pRule) {
+  /** Whether the given rule is selected by the option {@code simplerules.rules}. */
+  private boolean isEnabled(SimpleRule pRule) {
     return rules.isEmpty() || rules.contains(pRule.name());
   }
 
   /** Report all propositions of the given rule that the specification asks about. */
-  private void settle(TrivialRule pRule, RuleVerdict pVerdict) {
+  private void settle(SimpleRule pRule, RuleVerdict pVerdict) {
     for (Property proposition : Sets.intersection(pRule.decides(), propositions)) {
       stats.settled(proposition, pRule, pVerdict);
     }
@@ -215,12 +214,12 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
 
   /** The answer TRUE: an empty proof, because no rule reasons about the state of the program. */
   private AlgorithmStatus reportProof(ReachedSet pReachedSet, Outcome pOutcome) {
-    for (Map.Entry<Property, TrivialRule> entry : pOutcome.proven().entrySet()) {
+    for (Map.Entry<Property, SimpleRule> entry : pOutcome.proven().entrySet()) {
       logger.logf(
           Level.INFO,
           "Trivial rule %s proves %s",
           entry.getValue().name(),
-          TrivialRules.nameOf(entry.getKey()));
+          SimpleRules.nameOf(entry.getKey()));
     }
     witnessExporter.prepareCorrectnessWitness(pReachedSet, ImmutableListMultimap.of());
     return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -244,7 +243,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
     if (pPropositions.isEmpty()) {
       return "specification";
     }
-    return COMMA.join(pPropositions.stream().map(TrivialRules::nameOf).iterator());
+    return COMMA.join(pPropositions.stream().map(SimpleRules::nameOf).iterator());
   }
 
   @Override

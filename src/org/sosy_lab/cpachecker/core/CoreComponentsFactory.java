@@ -74,10 +74,10 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.simplerules.SimpleRulesAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
-import org.sosy_lab.cpachecker.core.algorithm.trivialrules.TrivialRulesAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -590,7 +590,7 @@ public class CoreComponentsFactory {
     } else if (useTrivialRules) {
       logger.log(Level.INFO, "Using trivial rules");
       algorithm =
-          new TrivialRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification, cpa);
+          new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification, cpa);
     } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere

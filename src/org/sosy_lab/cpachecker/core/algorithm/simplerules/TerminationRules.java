@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.trivialrules.ProgramFacts.ChainEnd;
+import org.sosy_lab.cpachecker.core.algorithm.simplerules.ProgramFacts.ChainEnd;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -35,16 +35,16 @@ final class TerminationRules {
    */
   private static final String REMOVE_TRIVIAL_LOOPS_OPTION = "cfa.removeTrivialLoops";
 
-  static ImmutableList<TrivialRule> rules() {
+  static ImmutableList<SimpleRule> rules() {
     return ImmutableList.of(
-        new TrivialRule(
+        new SimpleRule(
             "no-reachable-loop",
             "An execution that runs forever has to repeat a location, which needs a loop or a"
                 + " recursion. A program in which no execution reaches a loop or a recursive call"
                 + " therefore terminates.",
             PROPOSITIONS,
             TerminationRules::checkNoReachableLoop),
-        new TrivialRule(
+        new SimpleRule(
             "endless-loop-on-every-execution",
             "Every execution of the program executes the same sequence of edges as long as every"
                 + " location on it has exactly one possible successor. If that sequence reaches a"

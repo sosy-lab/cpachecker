@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -34,11 +34,11 @@ import org.sosy_lab.cpachecker.util.witnesses.LocationWitnessExporter;
  * prepared by one of the {@code prepare...} methods; the answer UNKNOWN leaves the reached set
  * empty and there is nothing to export.
  */
-class TrivialRulesWitnessExporter extends LocationWitnessExporter {
+class SimpleRulesWitnessExporter extends LocationWitnessExporter {
 
   private boolean decided = false;
 
-  TrivialRulesWitnessExporter(
+  SimpleRulesWitnessExporter(
       Configuration pConfig,
       CFA pCfa,
       Specification pSpecification,

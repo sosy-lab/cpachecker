@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
@@ -31,9 +31,9 @@ final class DoesNothingRule {
           .filter(Property::isVerification)
           .collect(toImmutableSet());
 
-  static ImmutableList<TrivialRule> rules() {
+  static ImmutableList<SimpleRule> rules() {
     return ImmutableList.of(
-        new TrivialRule(
+        new SimpleRule(
             "program-does-nothing",
             "A program whose executions perform no operation at all does nothing, and a program"
                 + " that does nothing satisfies every specification.",

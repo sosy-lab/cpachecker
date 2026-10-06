@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * Reports which rule decided a task and why, such that the answer can be checked by hand, and which
  * rules abstained.
  */
-class TrivialRulesStatistics implements Statistics {
+class SimpleRulesStatistics implements Statistics {
 
   /** How many unknown functions are listed before the rest is summarized as a count. */
   private static final int MAX_LISTED_FUNCTIONS = 3;
@@ -54,14 +54,14 @@ class TrivialRulesStatistics implements Statistics {
   }
 
   /** Report the answer that the given rule gave for this program. */
-  void recordVerdict(TrivialRule pRule, RuleVerdict pVerdict) {
+  void recordVerdict(SimpleRule pRule, RuleVerdict pVerdict) {
     outcomes.put(pRule.name(), describe(pVerdict));
   }
 
   /** Report which rule settled the given proposition, and how. */
-  void settled(Property pProposition, TrivialRule pRule, RuleVerdict pVerdict) {
+  void settled(Property pProposition, SimpleRule pRule, RuleVerdict pVerdict) {
     propositions.put(
-        TrivialRules.nameOf(pProposition),
+        SimpleRules.nameOf(pProposition),
         (pVerdict.isViolation() ? "violated according to " : "proven by ") + pRule.name());
     arguments.put(pRule.name(), pRule.argument());
   }

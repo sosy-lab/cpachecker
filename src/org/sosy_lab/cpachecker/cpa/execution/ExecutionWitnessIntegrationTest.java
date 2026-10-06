@@ -182,7 +182,8 @@ public class ExecutionWitnessIntegrationTest {
   public void portfolioExportsTheWinningExecutionWitness() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
-            config("simpleChecks").build(), "test/programs/simple/execution/recursive-factorial-false.c");
+            config("simpleChecks").build(),
+            "test/programs/simple/execution/recursive-factorial-false.c");
     result.assertIsUnsafe();
     result.cpaCheckerResult().writeOutputFiles();
     assertThat(witness("violation.yml").get("content").size()).isEqualTo(1);
@@ -196,7 +197,7 @@ public class ExecutionWitnessIntegrationTest {
             config("trivialRules--termination")
                 .setOption("specification", "test/programs/benchmarks/properties/termination.prp")
                 .build(),
-            "test/programs/trivialrules/endless-loop-false.c");
+            "test/programs/simplerules/endless-loop-false.c");
     result.assertIsUnsafe();
     result.cpaCheckerResult().writeOutputFiles();
     JsonNode marker = witness("violation.yml");

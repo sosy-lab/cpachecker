@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -65,9 +65,9 @@ final class OverflowRules {
     }
   }
 
-  static ImmutableList<TrivialRule> rules() {
+  static ImmutableList<SimpleRule> rules() {
     return ImmutableList.of(
-        new TrivialRule(
+        new SimpleRule(
             "no-signed-overflow-possible",
             "An operation overflows if its mathematical result is outside the range of the type it"
                 + " is computed in, and the types of the operands bound the values of that result."
@@ -76,7 +76,7 @@ final class OverflowRules {
                 + " arithmetic is unsigned, and a program whose operands are narrow enough.",
             PROPOSITIONS,
             OverflowRules::checkNoSignedOverflowPossible),
-        new TrivialRule(
+        new SimpleRule(
             "signed-overflow-on-every-execution",
             "Every execution of the program executes the same sequence of edges as long as every"
                 + " location on it has exactly one possible successor. If an operation on that"

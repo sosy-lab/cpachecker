@@ -12,6 +12,6 @@
  * that never allocates memory cannot leak memory" is another one. Every rule may abstain, and the
  * analysis answers UNKNOWN if no rule decides the task, so a rule never guesses.
  *
- * @see org.sosy_lab.cpachecker.core.algorithm.trivialrules.TrivialRulesAlgorithm
+ * @see org.sosy_lab.cpachecker.core.algorithm.simplerules.SimpleRulesAlgorithm
  */
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;

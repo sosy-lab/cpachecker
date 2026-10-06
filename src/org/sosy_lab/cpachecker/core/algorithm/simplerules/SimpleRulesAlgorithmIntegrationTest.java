@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
  * Tests for the trivial rules. A rule has to abstain whenever its argument does not hold, so a
  * large part of these tests expects the result UNKNOWN.
  */
-public class TrivialRulesAlgorithmIntegrationTest {
+public class SimpleRulesAlgorithmIntegrationTest {
 
-  private static final String PROGRAM_DIR = "test/programs/trivialrules/";
+  private static final String PROGRAM_DIR = "test/programs/simplerules/";
 
   private static final String PROPERTY_DIR = "test/programs/benchmarks/properties/";
 
@@ -65,7 +65,7 @@ public class TrivialRulesAlgorithmIntegrationTest {
   private static IntegrationTestResult runWithRules(
       String pConfigFile, String pProperty, String pRules, String pProgram) throws Exception {
     Configuration configuration =
-        configWithProperty(pConfigFile, pProperty).setOption("trivialrules.rules", pRules).build();
+        configWithProperty(pConfigFile, pProperty).setOption("simplerules.rules", pRules).build();
     return IntegrationTestRunner.run(configuration, PROGRAM_DIR + pProgram);
   }
 
@@ -73,7 +73,7 @@ public class TrivialRulesAlgorithmIntegrationTest {
   // unreach-call
   // ------------------------------------------------------------------------------------------
 
-  private static final String REACHABILITY_CONFIG = "config/trivialRules.properties";
+  private static final String REACHABILITY_CONFIG = "config/simpleRules.properties";
 
   @Test
   public void programWithoutErrorCallIsProven() throws Exception {
@@ -122,7 +122,7 @@ public class TrivialRulesAlgorithmIntegrationTest {
   // termination
   // ------------------------------------------------------------------------------------------
 
-  private static final String TERMINATION_CONFIG = "config/trivialRules--termination.properties";
+  private static final String TERMINATION_CONFIG = "config/simpleRules--termination.properties";
 
   @Test
   public void loopFreeProgramTerminates() throws Exception {
@@ -164,7 +164,7 @@ public class TrivialRulesAlgorithmIntegrationTest {
   // no-overflow
   // ------------------------------------------------------------------------------------------
 
-  private static final String OVERFLOW_CONFIG = "config/trivialRules--overflow.properties";
+  private static final String OVERFLOW_CONFIG = "config/simpleRules--overflow.properties";
 
   @Test
   public void programWithoutArithmeticHasNoOverflow() throws Exception {
@@ -218,10 +218,10 @@ public class TrivialRulesAlgorithmIntegrationTest {
   // memory safety
   // ------------------------------------------------------------------------------------------
 
-  private static final String MEMORY_SAFETY_CONFIG = "config/trivialRules--memorysafety.properties";
+  private static final String MEMORY_SAFETY_CONFIG = "config/simpleRules--memorysafety.properties";
 
   private static final String MEMORY_CLEANUP_CONFIG =
-      "config/trivialRules--memorycleanup.properties";
+      "config/simpleRules--memorycleanup.properties";
 
   @Test
   public void programWithoutMemoryOperationIsSafe() throws Exception {
@@ -277,7 +277,7 @@ public class TrivialRulesAlgorithmIntegrationTest {
   // no-data-race and programs that do nothing
   // ------------------------------------------------------------------------------------------
 
-  private static final String DATA_RACE_CONFIG = "config/trivialRules--datarace.properties";
+  private static final String DATA_RACE_CONFIG = "config/simpleRules--datarace.properties";
 
   @Test
   public void singleThreadedProgramHasNoDataRace() throws Exception {

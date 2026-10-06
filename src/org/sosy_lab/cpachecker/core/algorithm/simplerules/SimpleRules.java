@@ -6,20 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 
 /** All trivial rules, and the propositions they talk about. */
-final class TrivialRules {
+final class SimpleRules {
 
-  private TrivialRules() {}
+  private SimpleRules() {}
 
   /** All rules, in the order in which they are checked. */
-  static ImmutableList<TrivialRule> all() {
-    return ImmutableList.<TrivialRule>builder()
+  static ImmutableList<SimpleRule> all() {
+    return ImmutableList.<SimpleRule>builder()
         .addAll(ReachabilityRules.rules())
         .addAll(TerminationRules.rules())
         .addAll(OverflowRules.rules())

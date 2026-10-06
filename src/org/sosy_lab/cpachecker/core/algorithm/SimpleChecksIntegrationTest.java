@@ -52,21 +52,22 @@ public class SimpleChecksIntegrationTest {
 
   @Test
   public void executionDecidesWhenTrivialRulesAbstain() throws Exception {
-    IntegrationTestResult result = run("unreach-call", "simple/execution/recursive-factorial-false.c");
+    IntegrationTestResult result =
+        run("unreach-call", "simple/execution/recursive-factorial-false.c");
     result.assertIsUnsafe();
     assertThat(result.log()).contains("execution.properties finished successfully");
   }
 
   @Test
   public void executionProvesCountedLoopTerminates() throws Exception {
-    IntegrationTestResult result = run("termination", "trivialrules/counted-loop-unknown.c");
+    IntegrationTestResult result = run("termination", "simplerules/counted-loop-unknown.c");
     result.assertIsSafe();
     assertThat(result.log()).contains("execution--termination.properties finished successfully");
   }
 
   @Test(timeout = 30000)
   public void trivialRulesCancelAnEndlessExecution() throws Exception {
-    IntegrationTestResult result = run("termination", "trivialrules/endless-loop-false.c");
+    IntegrationTestResult result = run("termination", "simplerules/endless-loop-false.c");
     result.assertIsUnsafe();
     assertThat(result.log()).contains("trivialRules--termination.properties finished successfully");
     assertThat(result.cpaCheckerResult().getReached().hasWaitingState()).isFalse();
@@ -74,12 +75,12 @@ public class SimpleChecksIntegrationTest {
 
   @Test
   public void bothAnalysesCanAbstain() throws Exception {
-    run("unreach-call", "trivialrules/error-behind-input-unknown.c").assertIs(Result.UNKNOWN);
+    run("unreach-call", "simplerules/error-behind-input-unknown.c").assertIs(Result.UNKNOWN);
   }
 
   @Test
   public void overflowIsPreservedInTheSharedCfa() throws Exception {
-    run("no-overflow", "trivialrules/constant-overflow-false.c").assertIsUnsafe();
+    run("no-overflow", "simplerules/constant-overflow-false.c").assertIsUnsafe();
   }
 
   @Test
@@ -89,6 +90,6 @@ public class SimpleChecksIntegrationTest {
 
   @Test
   public void memoryCleanupCanBeProved() throws Exception {
-    run("valid-memcleanup", "trivialrules/no-memory-operation-true.c").assertIsSafe();
+    run("valid-memcleanup", "simplerules/no-memory-operation-true.c").assertIsSafe();
   }
 }

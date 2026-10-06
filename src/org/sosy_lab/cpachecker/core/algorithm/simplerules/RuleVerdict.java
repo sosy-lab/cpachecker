@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -15,7 +15,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * The answer of a {@link TrivialRule}: whether the rule abstains, whether the propositions of the
+ * The answer of a {@link SimpleRule}: whether the rule abstains, whether the propositions of the
  * rule hold, or whether they are violated, together with the concrete reason, such that the answer
  * can be checked by hand.
  *
@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  */
 record RuleVerdict(Outcome outcome, String reason, @Nullable CFAEdge violatingEdge) {
 
-  /** What a {@link TrivialRule} says about the propositions it decides. */
+  /** What a {@link SimpleRule} says about the propositions it decides. */
   enum Outcome {
     /** The argument of the rule does not hold for this program, so the rule says nothing. */
     ABSTAINED,
