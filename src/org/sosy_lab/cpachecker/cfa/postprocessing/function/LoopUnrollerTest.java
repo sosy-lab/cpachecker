@@ -15,8 +15,10 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
@@ -24,6 +26,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -99,14 +103,6 @@ public class LoopUnrollerTest {
         .size();
   }
 
-  /** The qualified names of all variables that the CFA declares. */
-  private static ImmutableList<String> declaredVariables(CFA pCfa) {
-    return CFAUtils.allEdges(pCfa)
-        .filter(ADeclarationEdge.class)
-        .transform(edge -> edge.getDeclaration().getQualifiedName())
-        .toList();
-  }
-
   /**
    * The variables that the CFA declares for the one with the given name in the source code. Looks
    * at the name in the source code because the unrolling renames the copies.
@@ -161,12 +157,65 @@ public class LoopUnrollerTest {
     }
   }
 
-  /** How often the given declaration occurs in the CFA. */
-  private static int declarationCount(CFA pCfa, String pDeclaration) {
-    return CFAUtils.allEdges(pCfa)
-        .filter(ADeclarationEdge.class)
-        .filter(edge -> edge.getDeclaration().toASTString().equals(pDeclaration))
-        .size();
+  /**
+   * The uses of the variables for the one with the given name in the source code, each together
+   * with the edge it is on. Both reads and writes count as a use.
+   */
+  private static ImmutableList<Map.Entry<CFAEdge, AIdExpression>> usesOf(
+      CFA pCfa, String pSourceName) {
+    ImmutableList.Builder<Map.Entry<CFAEdge, AIdExpression>> uses = ImmutableList.builder();
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+      for (AAstNode astNode : CFAUtils.getAstNodesFromCfaEdge(edge)) {
+        for (AAstNode subNode : CFAUtils.traverseRecursively(astNode)) {
+          if (subNode instanceof AIdExpression use
+              && use.getDeclaration() != null
+              && use.getDeclaration().getOrigName().equals(pSourceName)) {
+            uses.add(Map.entry(edge, use));
+          }
+        }
+      }
+    }
+    return uses.build();
+  }
+
+  /**
+   * The declarations of the variables for the one with the given name in the source code that come
+   * last before the given edge, i.e. the first ones that a backwards search from it finds on each
+   * path.
+   */
+  private static ImmutableSet<ASimpleDeclaration> closestDeclarationsBefore(
+      CFAEdge pEdge, String pSourceName) {
+    Set<ASimpleDeclaration> closest = new HashSet<>();
+    CFATraversal.dfs()
+        .backwards()
+        .traverseOnce(
+            pEdge.getPredecessor(),
+            new DefaultCFAVisitor() {
+              @Override
+              public TraversalProcess visitEdge(CFAEdge pVisited) {
+                if (pVisited instanceof ADeclarationEdge declarationEdge
+                    && declarationEdge.getDeclaration().getOrigName().equals(pSourceName)) {
+                  closest.add(declarationEdge.getDeclaration());
+                  // Anything further back is hidden by this declaration.
+                  return TraversalProcess.SKIP;
+                }
+                return TraversalProcess.CONTINUE;
+              }
+            });
+    return ImmutableSet.copyOf(closest);
+  }
+
+  /**
+   * Asserts that every use of a variable for the one with the given name in the source code refers
+   * to the declaration that comes last before it on every path. In an unrolled loop this is the one
+   * of the same copy of the body, and a use of a variable that is no longer declared fails as well.
+   */
+  private static void assertEveryUseSeesTheClosestDeclaration(CFA pCfa, String pSourceName) {
+    for (Map.Entry<CFAEdge, AIdExpression> use : usesOf(pCfa, pSourceName)) {
+      assertWithMessage("closest declarations of %s before %s", pSourceName, use.getKey())
+          .that(closestDeclarationsBefore(use.getKey(), pSourceName))
+          .containsExactly(use.getValue().getDeclaration());
+    }
   }
 
   /** How often the given condition still branches instead of being assumed to hold. */
@@ -390,8 +439,9 @@ public class LoopUnrollerTest {
   }
 
   /**
-   * Every unrolling would declare the same variable again, which no C program does and which some
-   * analyses do not expect, so such loops are not unrolled.
+   * Sharing one declaration between the copies would declare the same variable again in every
+   * unrolling, which no C program does and which would let an uninitialized variable keep the value
+   * of the copy before. So every copy of the body declares a variable of its own.
    */
   @Test
   public void testLoopThatDeclaresAVariableGivesEveryCopyItsOwn() throws Exception {
@@ -409,14 +459,11 @@ public class LoopUnrollerTest {
             4);
 
     assertThat(loopCount(cfa)).isEqualTo(0);
-    // Sharing one declaration would let an uninitialized variable keep the value of the copy
-    // before, so each of the three copies of the body declares its own variable.
-    assertThat(declaredVariables(cfa)).containsAtLeast("main::__j_0", "main::__j_1", "main::__j_2");
-    assertThat(declaredVariables(cfa)).doesNotContain("main::j");
-    // The reads are renamed along with the declaration, so no copy reads the variable of another.
-    assertThat(statementCount(cfa, "s = s + __j_0")).isEqualTo(1);
-    assertThat(statementCount(cfa, "s = s + __j_1")).isEqualTo(1);
-    assertThat(statementCount(cfa, "s = s + __j_2")).isEqualTo(1);
+    // One for each of the three copies of the body.
+    assertThat(declarationsOf(cfa, "j")).hasSize(3);
+    // The reads change along with the declaration, so no copy reads the variable of another.
+    assertThat(usesOf(cfa, "j")).hasSize(3);
+    assertEveryUseSeesTheClosestDeclaration(cfa, "j");
   }
 
   /** The initializer of one variable can read another one that the same copy declares. */
@@ -436,9 +483,12 @@ public class LoopUnrollerTest {
             """,
             4);
 
-    assertThat(declarationCount(cfa, "int __b_0 = __a_0 + 1;")).isEqualTo(1);
-    assertThat(declarationCount(cfa, "int __b_2 = __a_2 + 1;")).isEqualTo(1);
-    assertThat(declarationCount(cfa, "int __b_0 = __a_1 + 1;")).isEqualTo(0);
+    assertThat(declarationsOf(cfa, "a")).hasSize(3);
+    assertThat(declarationsOf(cfa, "b")).hasSize(3);
+    // Each initializer of b reads the a of its own copy.
+    assertThat(usesOf(cfa, "a")).hasSize(3);
+    assertEveryUseSeesTheClosestDeclaration(cfa, "a");
+    assertEveryUseSeesTheClosestDeclaration(cfa, "b");
   }
 
   /** A condition of the loop can read a variable that the loop declares as well. */
@@ -460,9 +510,11 @@ public class LoopUnrollerTest {
             4);
 
     assertThat(loopCount(cfa)).isEqualTo(0);
-    assertThat(branchingConditionCount(cfa, "__j_0 > 1")).isEqualTo(2);
-    assertThat(branchingConditionCount(cfa, "__j_2 > 1")).isEqualTo(2);
-    assertThat(branchingConditionCount(cfa, "[j > 1]")).isEqualTo(0);
+    // The condition still branches in each of the three copies, and both of its edges read the
+    // variable of their own copy.
+    assertThat(branchingConditionCount(cfa, " > 1")).isEqualTo(6);
+    assertThat(usesOf(cfa, "j")).hasSize(6);
+    assertEveryUseSeesTheClosestDeclaration(cfa, "j");
   }
 
   /**
@@ -1036,8 +1088,10 @@ public class LoopUnrollerTest {
     assertThat(loopCount(cfa)).isEqualTo(0);
     // Three runs of the outer body, each of which runs the inner body twice.
     assertThat(statementCount(cfa, "s = s + 1")).isEqualTo(6);
-    // Every copy of the outer body declares its own counter for the inner loop.
-    assertThat(declaredVariables(cfa)).containsAtLeast("main::__j_0", "main::__j_1", "main::__j_2");
+    // Every copy of the outer body declares its own counter for the inner loop, and the unrolled
+    // inner loops only use the counter of the copy they are in.
+    assertThat(declarationsOf(cfa, "j")).hasSize(3);
+    assertEveryUseSeesTheClosestDeclaration(cfa, "j");
   }
 
   /**
