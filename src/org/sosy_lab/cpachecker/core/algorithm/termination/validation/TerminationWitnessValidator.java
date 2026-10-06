@@ -20,14 +20,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -58,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -72,7 +76,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLoc
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 @Options(prefix = "termination.validation")
 public class TerminationWitnessValidator implements Algorithm {
@@ -87,6 +93,14 @@ public class TerminationWitnessValidator implements Algorithm {
               + " is ran only if the infinite state space is detected.")
   private boolean checkWithInfiniteSpace = false;
 
+  @Option(
+      secure = true,
+      description =
+          "maximal k for the k-induction that checks whether a disjunctively well-founded"
+              + " candidate is a transition invariant, i.e., R^+ => T")
+  @IntegerOption(min = 1)
+  private int maxInductionDepth = 5;
+
   private static final DummyTargetState DUMMY_TARGET_STATE =
       DummyTargetState.withSimpleTargetInformation("termination");
 
@@ -99,7 +113,6 @@ public class TerminationWitnessValidator implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
-  private final Specification specification;
   // The scope and the checker are created in run(), since the scope has to contain the
   // declarations of the __PREV variables from the witness
   private Scope scope;
@@ -130,7 +143,6 @@ public class TerminationWitnessValidator implements Algorithm {
       throw new InvalidConfigurationException(
           "The validation of termination witnesses does not support other language than C.");
     }
-    specification = pSpecification;
 
     @SuppressWarnings("resource")
     PredicateCPA predCpa =
@@ -171,9 +183,12 @@ public class TerminationWitnessValidator implements Algorithm {
         new CProgramScope(cfa, logger)
             .withAdditionalDeclarations(collectPrevVariableDeclarations(invariants));
     if (checkWithInfiniteSpace) {
-      wellFoundednessChecker =
-          new ImplicitRankingChecker(
-              fmgr, bfmgr, logger, config, shutdownNotifier, specification, scope, cfa);
+      try {
+        wellFoundednessChecker =
+            new ImplicitRankingChecker(fmgr, bfmgr, logger, config, shutdownNotifier, scope, cfa);
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Invalid configuration of the well-foundedness check", e);
+      }
     } else {
       wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
     }
@@ -250,8 +265,20 @@ public class TerminationWitnessValidator implements Algorithm {
       if (!isWellFounded) {
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
+      // Transition invariants that strengthen the hypothesis of the induction step
+      ImmutableList<BooleanFormula> strengthening =
+          computeStrengtheningTransitionInvariants(
+              loop, invariant, supportingInvariants, mapPrevVarsToCurrVars);
       // Do k-inductivity checks for k > 1
       for (int k = 1; true; k++) {
+        if (k > maxInductionDepth) {
+          logger.logf(
+              Level.INFO,
+              "The transition invariant of the loop could not be proven with k-induction up to k ="
+                  + " %d.",
+              maxInductionDepth);
+          return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+        }
         // Base case of the induction, i.e. R^k(s,s') => T(s,s')
         if (!isCandidateInvariantTransitionInvariant(
             loop,
@@ -262,13 +289,17 @@ public class TerminationWitnessValidator implements Algorithm {
           return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         }
 
-        // Step case of the induction, i.e. T(s,s') && R^k(s',s'') => T(s,s'')
+        // Step case of the induction, i.e.
+        // T(s,t_0) && R(t_0,t_1) && ... && R(t_{k-1},t_k) && T(s,t_1) && ... && T(s,t_{k-1})
+        //   => T(s,t_k)
         if (isCandidateInvariantInductiveTransitionInvariant(
             loop,
             loopsToTransitionInvariants.get(loop),
             supportingInvariants,
             mapPrevVarsToCurrVars,
-            k)) {
+            k,
+            strengthening,
+            ImmutableList.of())) {
           break;
         }
       }
@@ -456,13 +487,22 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * This function assumes that the loop formula R applied k times implies the candidate transition
-   * invariant T, i.e. R^k => T. We also need to check that T(s,s') and R^k(s',s'') => T(s,s''),
-   * i.e. T is k-inductive because it is not well-founded but disjunctively well-founded.
+   * This function assumes that the loop formula R applied j times implies the candidate transition
+   * invariant T for all j <= k, i.e. R^j => T. Then it checks the step case of the k-induction:
+   *
+   * <p>T(s,t_0) && R(t_0,t_1) && ... && R(t_{k-1},t_k) && T(s,t_1) && ... && T(s,t_{k-1}) =>
+   * T(s,t_k)
+   *
+   * <p>Together, this implies R^+ => T, i.e. T is a transition invariant. This is needed, because T
+   * is not well-founded but only disjunctively well-founded.
    *
    * @param pLoop for which we construct the path formula
    * @param pCandidateInvariant that we need to check
    * @param pSupportingInvariants that help to strengthen the formula
+   * @param pProvenTransitionInvariants transition invariants of the loop, i.e., they hold for
+   *     (s,t_0), ..., (s,t_k)
+   * @param pAssumedTransitionInvariants candidate transition invariants that are proven together
+   *     with the candidate invariant, i.e., they are assumed for (s,t_0), ..., (s,t_{k-1})
    * @return true if the candidate invariant is a transition invariant, false otherwise
    * @throws InterruptedException If an interruption event happens
    * @throws CPATransferException If a satisfiability check fails
@@ -472,41 +512,49 @@ public class TerminationWitnessValidator implements Algorithm {
       BooleanFormula pCandidateInvariant,
       ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
-      int k)
+      int k,
+      ImmutableList<BooleanFormula> pProvenTransitionInvariants,
+      ImmutableList<BooleanFormula> pAssumedTransitionInvariants)
       throws InterruptedException, CPATransferException {
 
-    // We first construct the loop formula, i.e. R^k, where k is at least 1
+    // We first construct the loop formula, i.e. R^k, where k is at least 1. The states t_0, ...,
+    // t_k are given by their SSA maps.
     Preconditions.checkArgument(k >= 1);
-    PathFormula loopFormula = constructStrengthenedLoopFormulaForK(pLoop, pSupportingInvariants, k);
+    List<SSAMap> states = new ArrayList<>();
+    PathFormula loopFormula =
+        constructStrengthenedLoopFormulaForK(pLoop, pSupportingInvariants, k, states);
 
-    BooleanFormula firstStep =
-        fmgr.instantiate(
-            pCandidateInvariant,
-            TransitionInvariantUtils.setIndicesToDifferentValues(
-                pCandidateInvariant,
-                PrevStateIndices.INDEX_FIRST,
-                CurrStateIndices.INDEX_MIDDLE,
-                fmgr,
-                scope,
-                pMapPrevToCurrVars));
+    // T(s,t_0) && T(s,t_1) && ... && T(s,t_{k-1})
+    // The state s is the first state of a pair in R^+, so it is a reachable loop head that has a
+    // successor, i.e., the supporting invariants hold in s and there is u with R(s,u)
+    BooleanFormula hypothesis =
+        buildFactsAboutStartState(pLoop, pSupportingInvariants, pMapPrevToCurrVars);
+    for (SSAMap state : states.subList(0, k)) {
+      hypothesis =
+          bfmgr.and(
+              hypothesis,
+              instantiateTransitionInvariant(pCandidateInvariant, state, pMapPrevToCurrVars));
+      for (BooleanFormula assumed : pAssumedTransitionInvariants) {
+        hypothesis =
+            bfmgr.and(
+                hypothesis, instantiateTransitionInvariant(assumed, state, pMapPrevToCurrVars));
+      }
+    }
+    for (SSAMap state : states) {
+      for (BooleanFormula proven : pProvenTransitionInvariants) {
+        hypothesis =
+            bfmgr.and(
+                hypothesis, instantiateTransitionInvariant(proven, state, pMapPrevToCurrVars));
+      }
+    }
+    // T(s,t_k)
+    BooleanFormula conclusion =
+        instantiateTransitionInvariant(pCandidateInvariant, states.get(k), pMapPrevToCurrVars);
 
-    BooleanFormula secondStep =
-        fmgr.instantiate(
-            pCandidateInvariant,
-            SSAMap.merge(
-                loopFormula.getSsa(),
-                TransitionInvariantUtils.setIndicesToDifferentValues(
-                    pCandidateInvariant,
-                    PrevStateIndices.INDEX_FIRST,
-                    CurrStateIndices.INDEX_LATEST,
-                    fmgr,
-                    scope,
-                    pMapPrevToCurrVars),
-                MapsDifference.ignoreMapsDifference()));
     boolean isTransitionInvariant;
     try {
       isTransitionInvariant =
-          solver.implies(bfmgr.and(firstStep, loopFormula.getFormula()), secondStep);
+          solver.implies(bfmgr.and(hypothesis, loopFormula.getFormula()), conclusion);
     } catch (SolverException e) {
       logger.logUserException(Level.WARNING, e, "Transition invariant check failed!");
       return false;
@@ -514,12 +562,289 @@ public class TerminationWitnessValidator implements Algorithm {
     return isTransitionInvariant;
   }
 
+  /**
+   * Computes transition invariants of the loop that can strengthen the induction step for the
+   * candidate transition invariant T. Such invariants often exist even if T alone is not inductive,
+   * e.g., for the transition invariants derived from lexicographic ranking functions. The
+   * candidates are:
+   *
+   * <ul>
+   *   <li>for every atom A(s,t) of T, the negation of the atom with the roles of s and t swapped,
+   *       e.g., f(s) >= f(t) for the atom f(s) > f(t),
+   *   <li>for every variable x of T, x(t) <= x(s) and x(t) >= x(s),
+   *   <li>the disjunctions of the subsets of the atoms of T, if T has at most {@link
+   *       #MAX_ATOMS_FOR_SUBSET_CANDIDATES} atoms,
+   *   <li>for every two atoms f(s) > f(t) and g(s) > g(t) of T, min(f(t),g(t)) < min(f(s),g(s)),
+   *       i.e., (f(t) < f(s) && f(t) < g(s)) || (g(t) < f(s) && g(t) < g(s)).
+   * </ul>
+   *
+   * <p>The candidates are filtered in the style of Houdini: a candidate is dropped if R => C does
+   * not hold, or if the conjunction of all remaining candidates is not sufficient to prove the
+   * induction step for C. The remaining candidates are therefore transition invariants.
+   */
+  private ImmutableList<BooleanFormula> computeStrengtheningTransitionInvariants(
+      Loop pLoop,
+      BooleanFormula pCandidateInvariant,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      throws CPATransferException, InterruptedException {
+    ImmutableList<BooleanFormula> atoms = fmgr.extractAtoms(pCandidateInvariant, false).asList();
+    Set<BooleanFormula> allCandidates = new LinkedHashSet<>();
+    for (BooleanFormula atom : atoms) {
+      allCandidates.add(bfmgr.not(swapStates(atom, pMapPrevToCurrVars)));
+    }
+    Map<String, String> swappedNames = swapVariableNames(pMapPrevToCurrVars);
+    for (Map.Entry<String, Formula> variable :
+        fmgr.extractVariables(pCandidateInvariant).entrySet()) {
+      if (TransitionInvariantUtils.isPrevVariable(variable.getKey(), pMapPrevToCurrVars)
+          && swappedNames.containsKey(variable.getKey())) {
+        Formula previous = variable.getValue();
+        Formula current =
+            fmgr.makeVariable(fmgr.getFormulaType(previous), swappedNames.get(variable.getKey()));
+        allCandidates.add(fmgr.makeLessOrEqual(current, previous, true));
+        allCandidates.add(fmgr.makeGreaterOrEqual(current, previous, true));
+      }
+    }
+    if (atoms.size() <= MAX_ATOMS_FOR_SUBSET_CANDIDATES) {
+      // The subsets with at least two and less than all atoms, as bit masks
+      for (int subset = 1; subset < (1 << atoms.size()) - 1; subset++) {
+        if (Integer.bitCount(subset) >= 2) {
+          List<BooleanFormula> disjuncts = new ArrayList<>();
+          for (int i = 0; i < atoms.size(); i++) {
+            if ((subset & (1 << i)) != 0) {
+              disjuncts.add(atoms.get(i));
+            }
+          }
+          allCandidates.add(bfmgr.or(disjuncts));
+        }
+      }
+    }
+
+    List<Pair<Formula, Formula>> comparisons = new ArrayList<>();
+    for (BooleanFormula atom : atoms) {
+      splitStrictComparison(atom).ifPresent(comparisons::add);
+    }
+    for (int i = 0; i < comparisons.size(); i++) {
+      for (int j = i + 1; j < comparisons.size(); j++) {
+        Formula fBefore = comparisons.get(i).getFirst();
+        Formula fAfter = comparisons.get(i).getSecond();
+        Formula gBefore = comparisons.get(j).getFirst();
+        Formula gAfter = comparisons.get(j).getSecond();
+        if (fmgr.getFormulaType(fBefore).equals(fmgr.getFormulaType(gBefore))) {
+          allCandidates.add(
+              bfmgr.or(
+                  bfmgr.and(
+                      fmgr.makeLessThan(fAfter, fBefore, true),
+                      fmgr.makeLessThan(fAfter, gBefore, true)),
+                  bfmgr.and(
+                      fmgr.makeLessThan(gAfter, fBefore, true),
+                      fmgr.makeLessThan(gAfter, gBefore, true))));
+        }
+      }
+    }
+
+    Set<BooleanFormula> candidates = new LinkedHashSet<>();
+    for (BooleanFormula candidate : allCandidates) {
+      if (isCandidateInvariantTransitionInvariant(
+          pLoop, candidate, pSupportingInvariants, pMapPrevToCurrVars, 1)) {
+        candidates.add(candidate);
+      }
+    }
+
+    boolean changed = true;
+    while (changed && !candidates.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
+      changed = false;
+      ImmutableList<BooleanFormula> assumed = ImmutableList.copyOf(candidates);
+      for (BooleanFormula candidate : assumed) {
+        if (!isCandidateInvariantInductiveTransitionInvariant(
+            pLoop,
+            candidate,
+            pSupportingInvariants,
+            pMapPrevToCurrVars,
+            1,
+            ImmutableList.of(),
+            assumed)) {
+          candidates.remove(candidate);
+          changed = true;
+        }
+      }
+    }
+    logger.logf(
+        Level.FINE, "Transition invariants strengthening the induction step: %s", candidates);
+    return ImmutableList.copyOf(candidates);
+  }
+
+  /**
+   * Swaps the roles of the states s and t in the (uninstantiated) formula over the previous
+   * variables, describing s, and the current variables, describing t.
+   */
+  private BooleanFormula swapStates(
+      BooleanFormula pFormula,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+    Map<String, String> swappedNames = swapVariableNames(pMapPrevToCurrVars);
+    ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
+    for (Map.Entry<String, Formula> variable : fmgr.extractVariables(pFormula).entrySet()) {
+      if (swappedNames.containsKey(variable.getKey())) {
+        substitution.put(
+            variable.getValue(),
+            fmgr.makeVariable(
+                fmgr.getFormulaType(variable.getValue()), swappedNames.get(variable.getKey())));
+      }
+    }
+    return fmgr.substitute(pFormula, substitution.buildOrThrow());
+  }
+
+  /**
+   * Splits a strict signed comparison into its greater and its smaller argument, e.g., the atom
+   * f(s) > f(t) into (f(s), f(t)).
+   */
+  private Optional<Pair<Formula, Formula>> splitStrictComparison(BooleanFormula pAtom) {
+    return fmgr.visit(
+        pAtom,
+        new DefaultFormulaVisitor<Optional<Pair<Formula, Formula>>>() {
+          @Override
+          protected Optional<Pair<Formula, Formula>> visitDefault(Formula pF) {
+            return Optional.empty();
+          }
+
+          @Override
+          public Optional<Pair<Formula, Formula>> visitFunction(
+              Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pDeclaration) {
+            if (pArgs.size() != 2) {
+              return Optional.empty();
+            }
+            return switch (pDeclaration.getKind()) {
+              case GT, BV_SGT -> Optional.of(Pair.of(pArgs.get(0), pArgs.get(1)));
+              case LT, BV_SLT -> Optional.of(Pair.of(pArgs.get(1), pArgs.get(0)));
+              default -> Optional.empty();
+            };
+          }
+        });
+  }
+
+  /** Maps the qualified names of previous variables to current ones and vice versa. */
+  private static Map<String, String> swapVariableNames(
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+    Map<String, String> swappedNames = new HashMap<>();
+    for (Map.Entry<CSimpleDeclaration, CSimpleDeclaration> entry : pMapPrevToCurrVars.entrySet()) {
+      swappedNames.put(entry.getKey().getQualifiedName(), entry.getValue().getQualifiedName());
+      swappedNames.put(entry.getValue().getQualifiedName(), entry.getKey().getQualifiedName());
+    }
+    return swappedNames;
+  }
+
+  private static final String START_STATE_SUFFIX = "__start_successor";
+
+  private static final int MAX_ATOMS_FOR_SUBSET_CANDIDATES = 5;
+
+  /**
+   * Builds the formula I(s) && R(s,u), where s is the start state of a transition invariant T(s,t),
+   * which is given by the previous variables with the index {@link PrevStateIndices#INDEX_FIRST}.
+   * The variables that do not have a previous variable, and the variables of the successor u, are
+   * renamed to fresh variables.
+   */
+  private BooleanFormula buildFactsAboutStartState(
+      Loop pLoop,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      throws CPATransferException, InterruptedException {
+    Map<String, String> currentToPrevious = new HashMap<>();
+    for (Map.Entry<CSimpleDeclaration, CSimpleDeclaration> entry : pMapPrevToCurrVars.entrySet()) {
+      currentToPrevious.put(entry.getValue().getQualifiedName(), entry.getKey().getQualifiedName());
+    }
+
+    // R(s,u): the loop formula starts with the initial SSA index 1
+    PathFormula step =
+        constructPathFormulaForLoop(
+            pLoop, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
+    ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
+    for (Map.Entry<String, Formula> variable :
+        fmgr.extractVariables(step.getFormula()).entrySet()) {
+      Pair<String, OptionalInt> nameAndIndex = FormulaManagerView.parseName(variable.getKey());
+      String name = nameAndIndex.getFirst();
+      OptionalInt index = nameAndIndex.getSecond();
+      FormulaType<Formula> type = fmgr.getFormulaType(variable.getValue());
+      Formula renamed;
+      if (index.isPresent() && index.orElseThrow() == 1 && currentToPrevious.containsKey(name)) {
+        renamed =
+            fmgr.makeVariable(
+                type, currentToPrevious.get(name), PrevStateIndices.INDEX_FIRST.getIndex());
+      } else if (index.isPresent()) {
+        renamed = fmgr.makeVariable(type, name + START_STATE_SUFFIX, index.orElseThrow());
+      } else {
+        renamed = fmgr.makeVariable(type, name + START_STATE_SUFFIX);
+      }
+      substitution.put(variable.getValue(), renamed);
+    }
+    BooleanFormula facts = fmgr.substitute(step.getFormula(), substitution.buildOrThrow());
+
+    // I(s)
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      ImmutableMap.Builder<Formula, Formula> invariantSubstitution = ImmutableMap.builder();
+      for (Map.Entry<String, Formula> variable :
+          fmgr.extractVariables(supportingInvariant).entrySet()) {
+        String name = variable.getKey();
+        FormulaType<Formula> type = fmgr.getFormulaType(variable.getValue());
+        invariantSubstitution.put(
+            variable.getValue(),
+            currentToPrevious.containsKey(name)
+                ? fmgr.makeVariable(
+                    type, currentToPrevious.get(name), PrevStateIndices.INDEX_FIRST.getIndex())
+                : fmgr.makeVariable(type, name + START_STATE_SUFFIX, 1));
+      }
+      facts =
+          bfmgr.and(
+              facts, fmgr.substitute(supportingInvariant, invariantSubstitution.buildOrThrow()));
+    }
+    return facts;
+  }
+
+  /**
+   * Instantiates the (uninstantiated) transition invariant T(s,t) such that s is the state given by
+   * the previous variables with the index {@link PrevStateIndices#INDEX_FIRST} and t is the state
+   * given by the SSA map. Variables that are not in the SSA map have the initial SSA index 1.
+   */
+  private BooleanFormula instantiateTransitionInvariant(
+      BooleanFormula pTransitionInvariant,
+      SSAMap pState,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+    ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
+    for (Map.Entry<String, Formula> variable :
+        fmgr.extractVariables(pTransitionInvariant).entrySet()) {
+      String name = variable.getKey();
+      int index =
+          TransitionInvariantUtils.isPrevVariable(name, pMapPrevToCurrVars)
+              ? PrevStateIndices.INDEX_FIRST.getIndex()
+              : getIndexOrInitial(pState, name);
+      substitution.put(
+          variable.getValue(),
+          fmgr.makeVariable(fmgr.getFormulaType(variable.getValue()), name, index));
+    }
+    return fmgr.substitute(pTransitionInvariant, substitution.buildOrThrow());
+  }
+
   private PathFormula constructStrengthenedLoopFormulaForK(
       Loop pLoop, ImmutableList<BooleanFormula> pSupportingInvariants, int k)
       throws CPATransferException, InterruptedException {
+    return constructStrengthenedLoopFormulaForK(pLoop, pSupportingInvariants, k, new ArrayList<>());
+  }
+
+  /**
+   * Constructs the formula R^k strengthened with the supporting invariants at the start of each
+   * iteration.
+   *
+   * @param pStates the list to which the SSA maps of the states t_0, ..., t_k between the
+   *     iterations are added
+   */
+  private PathFormula constructStrengthenedLoopFormulaForK(
+      Loop pLoop, ImmutableList<BooleanFormula> pSupportingInvariants, int k, List<SSAMap> pStates)
+      throws CPATransferException, InterruptedException {
+    pStates.add(SSAMap.emptySSAMap());
     PathFormula loopFormula =
         constructPathFormulaForLoop(
             pLoop, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
+    pStates.add(loopFormula.getSsa());
 
     // The supporting invariants hold at the start of each iteration. The first iteration starts
     // in the state where all variables have the initial SSA index.
@@ -537,6 +862,7 @@ public class TerminationWitnessValidator implements Algorithm {
                   loopFormula,
                   constructPathFormulaForLoop(
                       pLoop, loopFormula.getSsa(), loopFormula.getPointerTargetSet())));
+      pStates.add(loopFormula.getSsa());
     }
     // The strengthening formula is already instantiated, so it is conjoined directly
     return loopFormula.withFormula(bfmgr.and(loopFormula.getFormula(), strengtheningFormula));

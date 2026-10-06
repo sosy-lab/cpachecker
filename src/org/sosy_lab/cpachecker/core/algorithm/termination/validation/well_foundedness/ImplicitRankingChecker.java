@@ -17,19 +17,25 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -51,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -59,10 +66,30 @@ import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
+@Options(prefix = "termination.validation")
 public class ImplicitRankingChecker implements WellFoundednessChecker {
+
+  @Option(
+      secure = true,
+      description =
+          "configuration of the termination analysis that proves the well-foundedness of the"
+              + " transition invariants by proving the termination of an overapproximating program")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path wellFoundednessConfig =
+      Classes.getCodeLocation(ImplicitRankingChecker.class)
+          .resolveSibling("config/terminationToSafety.properties");
+
+  @Option(
+      secure = true,
+      description =
+          "wall-time limit for proving the well-foundedness of one transition invariant (0 means"
+              + " no limit)")
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
+  private TimeSpan wellFoundednessCheckTimeLimit = TimeSpan.ofSeconds(60);
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -71,7 +98,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
   private final Scope scope;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final Specification specification;
+
+  // The declarations of the functions returning nondeterministic values that are used in the
+  // generated program, see nondetCall
+  private final Map<String, String> nondetDeclarations = new LinkedHashMap<>();
 
   public ImplicitRankingChecker(
       final FormulaManagerView pFmgr,
@@ -79,16 +109,16 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       final LogManager pLogger,
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
-      final Specification pSpecification,
       final Scope pScope,
-      final CFA pCFA) {
+      final CFA pCFA)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     fmgr = pFmgr;
     bfmgr = pBfmgr;
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     scope = pScope;
-    specification = pSpecification;
     cfa = pCFA;
   }
 
@@ -109,6 +139,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       throws InterruptedException, CPAException {
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
     StringJoiner builder = new StringJoiner(System.lineSeparator());
+    nondetDeclarations.clear();
     builder.add("int main() {");
     CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
 
@@ -131,7 +162,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     resetVariablesFromProgram(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
 
     builder.add("}}");
-    String overapproximatingProgam = declareNondetFunctions(builder.toString());
+    String overapproximatingProgam = finishProgram(builder.toString());
 
     try {
       // Initialization:
@@ -145,31 +176,51 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
       CFA overapproximatingCFA = cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
       CFANode mainEntryNode = overapproximatingCFA.getMainFunction();
-      // CPA
-      Path lassoRankerConfigPath =
-          Classes.getCodeLocation(ImplicitRankingChecker.class)
-              .resolveSibling("config/lassoRankerAnalysis.properties");
-      CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(
-              Configuration.builder().loadFromFile(lassoRankerConfigPath).build(),
-              logger,
-              shutdownNotifier,
-              AggregatedReachedSets.empty(),
-              overapproximatingCFA);
-      ConfigurableProgramAnalysis terminationCpa = coreComponents.createCPA(specification);
-      // Reached Set
-      ReachedSet reachedSet =
-          coreComponents.createInitializedReachedSet(terminationCpa, mainEntryNode);
 
-      // Running the algorithm
-      Algorithm terminationAlgorithm =
-          coreComponents.createAlgorithm(terminationCpa, specification);
-      AlgorithmStatus status = terminationAlgorithm.run(reachedSet);
+      // The termination analysis may not terminate, so it gets its own time limit
+      ShutdownManager checkShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
+      ResourceLimitChecker limitChecker =
+          ResourceLimitChecker.createWallTimeLimitChecker(
+              checkShutdownManager, wellFoundednessCheckTimeLimit);
+      limitChecker.start();
+      try {
+        // CPA
+        CoreComponentsFactory coreComponents =
+            new CoreComponentsFactory(
+                Configuration.builder().loadFromFile(wellFoundednessConfig).build(),
+                logger,
+                checkShutdownManager.getNotifier(),
+                AggregatedReachedSets.empty(),
+                overapproximatingCFA);
+        // Only the termination of the generated program is checked, the witness does not belong
+        // to the generated program
+        Specification terminationSpecification =
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION));
+        ConfigurableProgramAnalysis terminationCpa =
+            coreComponents.createCPA(terminationSpecification);
+        // Reached Set
+        ReachedSet reachedSet =
+            coreComponents.createInitializedReachedSet(terminationCpa, mainEntryNode);
 
-      // The formula is only well-founded if the termination of the program is proven, i.e., if
-      // there is no non-terminating loop and the analysis is sound
-      if (reachedSet.wasTargetReached() || !status.isSound()) {
+        // Running the algorithm
+        Algorithm terminationAlgorithm =
+            coreComponents.createAlgorithm(terminationCpa, terminationSpecification);
+        AlgorithmStatus status = terminationAlgorithm.run(reachedSet);
+        checkShutdownManager.getNotifier().shutdownIfNecessary();
+
+        // The formula is only well-founded if the termination of the program is proven, i.e., if
+        // there is no non-terminating loop and the analysis is sound
+        if (reachedSet.wasTargetReached() || !status.isSound()) {
+          return false;
+        }
+      } catch (InterruptedException e) {
+        // Only the time limit of the check stops the check without stopping the validation
+        shutdownNotifier.shutdownIfNecessary();
+        logger.log(Level.FINE, "Proving the well-foundedness reached the time limit.");
         return false;
+      } finally {
+        limitChecker.cancel();
       }
     } catch (InvalidConfigurationException | IOException | ParserException e) {
       throw new CPAException(
@@ -179,24 +230,28 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     return true;
   }
 
-  private static final Pattern NONDET_CALL = Pattern.compile("__VERIFIER_nondet_(\\w+)\\(\\)");
+  /**
+   * Returns a call of a function that returns a nondeterministic value of the given type, and
+   * records the declaration of the function, see {@link #finishProgram}.
+   */
+  private String nondetCall(CType pType) {
+    String typeName = pType.getCanonicalType().toASTString("").trim();
+    String functionName = "__VERIFIER_nondet_" + typeName.replaceAll("\\W+", "_");
+    nondetDeclarations.putIfAbsent(
+        functionName, "extern " + typeName + " " + functionName + "(void);");
+    return functionName + "()";
+  }
 
   /**
-   * Adds the declarations of the functions __VERIFIER_nondet_T that are called in the given
-   * program. Without them, the return type of the functions would be unknown.
+   * Finishes the generated program: the functions returning nondeterministic values are declared,
+   * since otherwise their return types would be unknown, and the variables for the previous values
+   * are renamed, since the termination analyses use the keywords of these names internally.
    */
-  private static String declareNondetFunctions(String pProgram) {
-    Set<String> types = new LinkedHashSet<>();
-    Matcher matcher = NONDET_CALL.matcher(pProgram);
-    while (matcher.find()) {
-      types.add(matcher.group(1));
-    }
-    StringJoiner declarations = new StringJoiner(System.lineSeparator());
-    for (String type : types) {
-      declarations.add("extern " + type + " __VERIFIER_nondet_" + type + "(void);");
-    }
-    declarations.add(pProgram);
-    return declarations.toString();
+  private String finishProgram(String pProgram) {
+    StringJoiner program = new StringJoiner(System.lineSeparator());
+    nondetDeclarations.values().forEach(program::add);
+    program.add(pProgram.replace(TransitionInvariantUtils.PREV_KEYWORD, "__validation_previous"));
+    return program.toString();
   }
 
   /**
@@ -303,8 +358,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
         if (scope.lookupVariable(variable).getType() instanceof CSimpleType) {
-          nondetVerifierCall =
-              "__VERIFIER_nondet_" + scope.lookupVariable(variable).getType() + "();";
+          nondetVerifierCall = nondetCall(scope.lookupVariable(variable).getType()) + ";";
         } else {
           throw new CPAException(
               "We currently do not support nondeterministic initialization of complex types.");
@@ -376,22 +430,32 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     FluentIterable<AbstractSimpleDeclaration> variablesInScope =
         cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow();
     for (AbstractSimpleDeclaration variable : variablesInScope) {
-      varDeclaration = variable.toASTString();
+      CType type = (CType) variable.getType();
       // Only variables of simple types are declared, since the generated program does not contain
       // the declarations of the types, e.g., of the structs that pointers point to
-      if (!(((CType) variable.getType()).getCanonicalType() instanceof CSimpleType)
+      if (!(type.getCanonicalType() instanceof CSimpleType)
           || isGlobalVariableOverwrittenByLocal(variable, variablesInScope)) {
         continue;
       }
       if (alreadyDeclaredVars.add(variable.getName())) {
-        builder.add(varDeclaration);
+        // The variables have arbitrary initial values, the termination analyses may treat
+        // uninitialized variables imprecisely
+        builder.add(type.toASTString(variable.getName()) + " = " + nondetCall(type) + ";");
       }
     }
     for (String variable : mapNamesToVariables.keySet()) {
       String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
-      varDeclaration =
-          TransitionInvariantUtils.removeFunctionFromVarsName(
-              scope.lookupVariable(variable).toString());
+      CSimpleDeclaration declaration = scope.lookupVariable(variable);
+      if (declaration.getType().getCanonicalType() instanceof CSimpleType) {
+        varDeclaration =
+            declaration.getType().toASTString(variableName)
+                + " = "
+                + nondetCall(declaration.getType())
+                + ";";
+      } else {
+        varDeclaration =
+            TransitionInvariantUtils.removeFunctionFromVarsName(declaration.toString());
+      }
       if (alreadyDeclaredVars.add(variableName)) {
         builder.add(varDeclaration);
       }

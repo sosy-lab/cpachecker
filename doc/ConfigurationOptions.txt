@@ -5803,8 +5803,9 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
 
-# wall-time limit for checking whether a supporting invariant is an invariant
-# of the program before it is exported into the witness (0 means no limit)
+# wall-time limit for checking whether the supporting invariants are
+# invariants of the program before they are exported into the witness. The
+# limit is for all supporting invariants together (0 means no limit).
 termination.supportingInvariantsCheckTimeLimit = 60s
 
 # consider counterexamples for loops for which only pointer variables are
@@ -5818,6 +5819,19 @@ termination.useCexImpreciseHeuristic = false
 # option is not set, then such analysis is ran only if the infinite state
 # space is detected.
 termination.validation.checkWithInfiniteSpace = false
+
+# maximal k for the k-induction that checks whether a disjunctively
+# well-founded candidate is a transition invariant, i.e., R^+ => T
+termination.validation.maxInductionDepth = 5
+
+# wall-time limit for proving the well-foundedness of one transition
+# invariant (0 means no limit)
+termination.validation.wellFoundednessCheckTimeLimit = 60s
+
+# configuration of the termination analysis that proves the well-foundedness
+# of the transition invariants by proving the termination of an
+# overapproximating program
+termination.validation.wellFoundednessConfig = "config/terminationToSafety.properties"
 
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
