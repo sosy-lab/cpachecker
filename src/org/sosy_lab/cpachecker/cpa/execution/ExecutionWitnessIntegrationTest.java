@@ -182,7 +182,7 @@ public class ExecutionWitnessIntegrationTest {
   public void portfolioExportsTheWinningExecutionWitness() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
-            config("simpleChecks").build(), "test/programs/execution/recursive-factorial-false.c");
+            config("simpleChecks").build(), "test/programs/simple/execution/recursive-factorial-false.c");
     result.assertIsUnsafe();
     result.cpaCheckerResult().writeOutputFiles();
     assertThat(witness("violation.yml").get("content").size()).isEqualTo(1);
@@ -209,7 +209,7 @@ public class ExecutionWitnessIntegrationTest {
   public void unknownDoesNotExportAWitness() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
-            config("execution").build(), "test/programs/execution/nondeterministic-input.c");
+            config("execution").build(), "test/programs/simple/execution/nondeterministic-input.c");
     result.assertIs(Result.UNKNOWN);
     result.cpaCheckerResult().writeOutputFiles();
     assertThat(Files.exists(output("proof-2.0.yml"))).isFalse();

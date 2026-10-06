@@ -52,7 +52,7 @@ public class SimpleChecksIntegrationTest {
 
   @Test
   public void executionDecidesWhenTrivialRulesAbstain() throws Exception {
-    IntegrationTestResult result = run("unreach-call", "execution/recursive-factorial-false.c");
+    IntegrationTestResult result = run("unreach-call", "simple/execution/recursive-factorial-false.c");
     result.assertIsUnsafe();
     assertThat(result.log()).contains("execution.properties finished successfully");
   }
@@ -84,7 +84,7 @@ public class SimpleChecksIntegrationTest {
 
   @Test
   public void memorySafetyUsesTheSmgExecution() throws Exception {
-    run("valid-memsafety", "execution/heap-recursion-true.c").assertIsSafe();
+    run("valid-memsafety", "simple/execution/heap-recursion-true.i").assertIsSafe();
   }
 
   @Test

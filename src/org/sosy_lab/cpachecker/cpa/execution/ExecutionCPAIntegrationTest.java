@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class ExecutionCPAIntegrationTest {
 
-  private static final String PROGRAM_DIR = "test/programs/execution/";
+  private static final String PROGRAM_DIR = "test/programs/simple/execution/";
 
-  private static final String PROPERTY_DIR = "test/programs/benchmarks/properties/";
+  private static final String PROPERTY_DIR = "test/config/properties/";
 
   private static final String REACHABILITY_SPECIFICATION =
       "config/specification/sv-comp-reachability.spc";
@@ -123,12 +123,12 @@ public class ExecutionCPAIntegrationTest {
 
   @Test
   public void memorySafetyViolationIsFound() throws Exception {
-    run("config/execution--memorysafety.properties", "heap-out-of-bounds-false.c").assertIsUnsafe();
+    run("config/execution--memorysafety.properties", "heap-out-of-bounds-false.i").assertIsUnsafe();
   }
 
   @Test
   public void memorySafetyWithRecursionIsProven() throws Exception {
-    run("config/execution--memorysafety.properties", "heap-recursion-true.c").assertIsSafe();
+    run("config/execution--memorysafety.properties", "heap-recursion-true.i").assertIsSafe();
   }
 
   // The following tests use the SV-COMP property files, i.e., they check that the execution
@@ -175,12 +175,12 @@ public class ExecutionCPAIntegrationTest {
     runWithProperty(
             "config/execution--memorysafety.properties",
             "valid-memsafety.prp",
-            "heap-recursion-true.c")
+            "heap-recursion-true.i")
         .assertIsSafe();
     runWithProperty(
             "config/execution--memorysafety.properties",
             "valid-memsafety.prp",
-            "heap-out-of-bounds-false.c")
+            "heap-out-of-bounds-false.i")
         .assertIsUnsafe();
   }
 
@@ -220,12 +220,12 @@ public class ExecutionCPAIntegrationTest {
     runWithProperty(
             "config/execution--memorycleanup.properties",
             "valid-memcleanup.prp",
-            "heap-recursion-true.c")
+            "heap-recursion-true.i")
         .assertIsSafe();
     runWithProperty(
             "config/execution--memorycleanup.properties",
             "valid-memcleanup.prp",
-            "heap-leak-false.c")
+            "heap-leak-false.i")
         .assertIsUnsafe();
   }
 }
