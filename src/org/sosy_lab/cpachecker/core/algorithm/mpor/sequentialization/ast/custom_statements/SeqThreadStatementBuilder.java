@@ -377,10 +377,10 @@ public record SeqThreadStatementBuilder(
       case PTHREAD_COND_WAIT ->
           throw new AssertionError(
               "pthread_cond_wait is handled separately, it requires two clauses");
-      case PTHREAD_CREATE ->
-          buildThreadCreationStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc);
+      case PTHREAD_CREATE -> buildThreadCreationStatement(pThreadEdge, pSubstituteEdge, pTargetPc);
       case PTHREAD_EXIT -> buildThreadExitStatement(pThreadEdge, pSubstituteEdge, pTargetPc);
-      case PTHREAD_JOIN -> buildThreadJoinStatement(functionCall, pSubstituteEdge, pTargetPc);
+      case PTHREAD_JOIN ->
+          buildThreadJoinStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexStatement(
               SeqThreadStatementType.MUTEX_LOCK, functionType, pSubstituteEdge, pTargetPc);
@@ -450,10 +450,7 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildThreadCreationStatement(
-      CFunctionCall pFunctionCall,
-      CFAEdgeForThread pThreadEdge,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
+      CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
@@ -465,8 +462,11 @@ public record SeqThreadStatementBuilder(
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_CREATION, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
+    // use the original function call, not the substituted, to find the thread objects
+    CFunctionCall originalFunctionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge).orElseThrow();
     CExpression pthreadTObject =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_T);
+        PthreadUtil.extractPthreadObject(originalFunctionCall, PthreadObjectType.PTHREAD_T);
     MPORThread createdThread =
         MPORThreadUtil.getThreadByObject(allThreads, Optional.of(pthreadTObject));
 
@@ -507,14 +507,21 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadStatement buildThreadJoinStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      CFunctionCall pFunctionCall,
+      CFAEdgeForThread pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc)
       throws UnsupportedCodeException {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_JOIN, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
-    MPORThread targetThread = MPORThreadUtil.getThreadByCFunctionCall(allThreads, pFunctionCall);
+    // use the original function call, not the substituted, to find the thread objects
+    CFunctionCall originalFunctionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge).orElseThrow();
+    MPORThread targetThread =
+        MPORThreadUtil.getThreadByCFunctionCall(allThreads, originalFunctionCall);
     CStatementWrapper assumeCall =
         new CStatementWrapper(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(

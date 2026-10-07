@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.ALLCPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
@@ -65,6 +66,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.Inval
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
@@ -343,10 +346,14 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     //
     // Note that this will be problematic if there is an assumption and a branching
     // waypoint at the same location directly after a function call.
+    Optional<ImmutableSet<CFANode>> nodesBeforeEmptyBody =
+        enterElement.edges().isEmpty() ? nodesBeforeEmptyLoopBody(enterElement) : Optional.empty();
     AutomatonBoolExpr expr =
         restrictToThread(
-            new AutomatonBoolExpr.Or(
-                new CheckReachesElement(enterElement), new CheckEntersElement(enterElement)),
+            nodesBeforeEmptyBody.isPresent()
+                ? new CheckEndsAtNodes(nodesBeforeEmptyBody.orElseThrow())
+                : new AutomatonBoolExpr.Or(
+                    new CheckReachesElement(enterElement), new CheckEntersElement(enterElement)),
             threadId);
 
     AutomatonTransition.Builder transitionBuilder =
@@ -356,6 +363,38 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     handleConstraint(constraint, Optional.ofNullable(function), followLine, transitionBuilder);
 
     transitions.add(transitionBuilder.build());
+  }
+
+  /**
+   * An empty loop body, like in {@code while (c);}, has no CFA edges. The sequence point before it
+   * is directly after the controlling expression enters the loop, i.e., at the successors of the
+   * controlling expression which stay inside the loop.
+   */
+  private Optional<ImmutableSet<CFANode>> nodesBeforeEmptyLoopBody(ASTElement pBody) {
+    Optional<ASTElement> controllingExpression =
+        cfa.getAstCfaRelation()
+            .getIterationStructureWithBody(pBody)
+            .flatMap(IterationElement::getControllingExpression);
+    if (controllingExpression.isEmpty() || cfa.getLoopStructure().isEmpty()) {
+      return Optional.empty();
+    }
+
+    LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
+    ImmutableSet<CFAEdge> conditionEdges = controllingExpression.orElseThrow().edges();
+    ImmutableSet<CFANode> conditionNodes =
+        transformedImmutableSetCopy(conditionEdges, CFAEdge::getPredecessor);
+    ImmutableSet<CFANode> loopNodes =
+        FluentIterable.from(conditionNodes)
+            .filter(CFANode::isLoopStart)
+            .transformAndConcat(loopStructure::getLoopsForLoopHead)
+            .transformAndConcat(Loop::getLoopNodes)
+            .toSet();
+    ImmutableSet<CFANode> nodes =
+        FluentIterable.from(conditionEdges)
+            .transform(CFAEdge::getSuccessor)
+            .filter(node -> loopNodes.contains(node) && !conditionNodes.contains(node))
+            .toSet();
+    return nodes.isEmpty() ? Optional.empty() : Optional.of(nodes);
   }
 
   /**
@@ -756,9 +795,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
             follows.add(waypoint);
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
             containsCycle = true;
-            // TODO: It is a bug to build it here, since there may be avoid
-            //  waypoints which are not collected
-            segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
+            follows.add(waypoint);
           }
         }
       }

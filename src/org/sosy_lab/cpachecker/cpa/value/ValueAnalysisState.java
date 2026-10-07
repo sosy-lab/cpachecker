@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -32,6 +33,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -944,6 +946,8 @@ public final class ValueAnalysisState
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
+    FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+        ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
 
     return getFormulaApproximation(
         pFunctionScope,
@@ -951,10 +955,7 @@ public final class ValueAnalysisState
         varName ->
             (pFunctionScope.getReturnVariable().isEmpty()
                     || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
-                && pAstCfaRelation
-                    .getVariablesAndParametersInScope(pLocation)
-                    .orElseThrow()
-                    .anyMatch(v -> v.getName().equals(varName))
+                && variablesInScope.anyMatch(v -> v.getName().equals(varName))
                 && !varName.contains("__CPAchecker_"),
         varName ->
             useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(varName) : varName);

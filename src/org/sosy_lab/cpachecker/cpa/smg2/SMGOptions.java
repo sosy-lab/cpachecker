@@ -144,15 +144,16 @@ public class SMGOptions {
               + " is checked for validity and the result is a UNKNOWN value (which may itself"
               + " violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound due to side"
               + " effects, the unknown return value etc.!\n"
-              + "ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and may"
-              + " cause memory based errors. Returned values are unknown, but in a valid new memory"
-              + " section that can be freed normally. Functions allocating external memory and"
-              + " returning their address can be defined with option externalAllocationFunction and"
-              + " externalAllocationSize.\n"
+              + "ASSUME_EXTERNALLY_ALLOCATED: Input into the function is checked for validity and"
+              + " may cause memory based errors. Returned values are unknown, but in a valid new"
+              + " memory section that can be freed normally. Functions allocating external memory"
+              + " and returning their address can be defined with option externalAllocationFunction"
+              + " and externalAllocationSize. ASSUME_EXTERNALLY_ALLOCATED_WARN is equal, but prints"
+              + " warnings.\n"
               + "Functions defined in option \"safeUnknownFunctions\" are handled equally to"
               + " ASSUME_SAFE in all cases.")
   private UnknownFunctionHandling handleUnknownFunctions =
-      UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
+      UnknownFunctionHandling.ASSUME_EXTERNALLY_ALLOCATED;
 
   @Option(
       secure = true,
@@ -293,7 +294,8 @@ public class SMGOptions {
   public enum UnknownFunctionHandling {
     STRICT,
     ASSUME_SAFE,
-    ASSUME_EXTERNAL_ALLOCATED
+    ASSUME_EXTERNALLY_ALLOCATED,
+    ASSUME_EXTERNALLY_ALLOCATED_WARN
   }
 
   @Option(
