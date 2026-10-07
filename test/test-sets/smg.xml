@@ -14,15 +14,28 @@ SPDX-License-Identifier: Apache-2.0
 This run-collection defines run-definitions for all important CPAchecker SMG based configurations
 on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memcleanup and/or no-overflow. 
 -->
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 <benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
 
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
   <option name="--timelimit">900s</option>
 
-  <!-- It can help to debug incorrect results using this option, highlighting the usage of UNKNOWN values, by using: WARNING -->
-  <option name="--option">cpa.smg2.logLevelOfUnknownValueAssumptions=FINE</option>
+  <!-- 
+    Using the option below with argument "WARNING" can help to debug incorrect results, 
+    highlighting the usage of UNKNOWN values as warnings.
+    FINER is the default for this option.
+  -->
+  <option name="--option">cpa.smg2.logLevelOfUnknownValueAssumptions=FINER</option>
+
+
+  <!-- 
+    Similarly, this option can help find unhandled functions if used with: ASSUME_EXTERNALLY_ALLOCATED_WARN 
+    Note: not all unhandled functions are unsafe!
+    ASSUME_EXTERNALLY_ALLOCATED is the default for this option.
+  -->
+  <option name="--option">cpa.smg2.handleUnknownFunctions=ASSUME_EXTERNALLY_ALLOCATED</option>
+
 
   <!-- #################### Unreach-call (includes all unreach-call tasks of the C.ReachSafety and C.SoftwareSystems categories) #################### -->
   <rundefinition name="SV-COMP27_unreach-call_SMG-SymEx">

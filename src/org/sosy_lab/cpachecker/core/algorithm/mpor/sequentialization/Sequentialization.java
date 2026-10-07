@@ -27,14 +27,29 @@ public class Sequentialization {
 
   public static final String MPOR_PREFIX = "__MPOR__";
 
+  /**
+   * The sequentialized program together with the information needed to map results for it back to
+   * the input program.
+   */
+  public record SequentializationResult(String program, SequentializationMapping mapping) {}
+
   @CanIgnoreReturnValue
-  public static String tryBuildProgramString(
+  public static SequentializationResult tryBuildProgram(
       MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
 
+    SequentializationFields fields = buildFields(pOptions, pCfa, pUtils);
+    return new SequentializationResult(
+        buildProgramString(pOptions, fields, pUtils),
+        SequentializationMappingBuilder.buildMapping(fields));
+  }
+
+  private static SequentializationFields buildFields(
+      MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
+
     InputRejection.handleRejections(pCfa);
-    SequentializationFields fields = new SequentializationFields(pOptions, pCfa, pUtils);
-    return buildProgramString(pOptions, fields, pUtils);
+    return new SequentializationFields(pOptions, pCfa, pUtils);
   }
 
   private static String buildProgramString(

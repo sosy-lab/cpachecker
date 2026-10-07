@@ -526,6 +526,11 @@ public class MPORSubstitution {
     return rGlobalDeclarations.build();
   }
 
+  /** Returns the entries mapping input program global variables to their substitutes. */
+  public ImmutableList<Entry<CVariableDeclaration, CIdExpression>> getGlobalVariableSubstitutes() {
+    return globalVariableSubstitutes;
+  }
+
   public ImmutableList<CVariableDeclaration> getLocalVariableDeclarationSubstitutes() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
     for (LocalVariableDeclarationSubstitute localSubstitute : localVariableSubstitutes.values()) {
