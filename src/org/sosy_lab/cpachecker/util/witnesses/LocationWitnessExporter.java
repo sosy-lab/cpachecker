@@ -139,6 +139,9 @@ public class LocationWitnessExporter extends ARGStatistics {
           calls.put(node, entry.getValue());
         }
         if (node instanceof FunctionEntryNode functionEntry) {
+          // Function contracts are not part of every witness version and are not exported by
+          // default, so the entry is also reported as a location invariant at the function body.
+          calls.put(node, entry.getValue());
           entries.put(functionEntry, entry.getValue());
         }
       }

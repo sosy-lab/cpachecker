@@ -534,7 +534,13 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
           getASTStructure()
               .getTightestIterationStructureForNode(pNode)
               .map(iteration -> iteration.getCompleteElement().location());
-      case LOCATION_INVARIANT -> getASTStructure().getStatementFileLocationForNode(pNode);
+      case LOCATION_INVARIANT ->
+          pNode instanceof FunctionEntryNode functionEntry
+              // An invariant at a function entry belongs before the first statement of its body.
+              ? Optional.of(
+                  getASTStructure()
+                      .nextStartStatementLocation(functionEntry.getFileLocation().getNodeOffset()))
+              : getASTStructure().getStatementFileLocationForNode(pNode);
       default -> throw new AssertionError("Cannot export invariants of type " + pType);
     };
   }
