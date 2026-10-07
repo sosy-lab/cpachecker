@@ -13,9 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -107,76 +105,6 @@ public class ConcurrentState extends AbstractSingleWrapperState
     return threads;
   }
 
-  /**
-   * The identifier by which the witness refers to the thread with the given PID, or a marker from
-   * {@link ThreadState} if the witness does not refer to it (yet).
-   */
-  int witnessThreadIdOf(int pPid) {
-    ThreadState threadState = threads.get(pPid);
-    return threadState == null
-        ? ThreadState.NO_WITNESS_THREAD_ID
-        : threadState.getWitnessThreadId();
-  }
-
-  /**
-   * Binds the identifiers by which a violation witness refers to threads to this path's PIDs, the
-   * way {@link org.sosy_lab.cpachecker.cpa.threading.ThreadingState#updateThreadIdsForWitness} does
-   * for the ThreadingCPA. A witness hands out an identifier only at a waypoint for a thread's
-   * creation, so a thread whose creation the witness skips gets none, and the identifiers do not
-   * follow the creation order that POR numbers its PIDs by.
-   *
-   * <p>A thread created by the current edge cannot be bound yet: the automaton's assignment is not
-   * visible until the next edge, so such a thread is parked as {@link
-   * ThreadState#AWAITING_WITNESS_THREAD_ID} and resolved on the following edge — if the automaton
-   * has by then advanced to an identifier no thread holds, that identifier is the parked thread's,
-   * otherwise the witness never referred to it.
-   *
-   * @param pPid the PID of the thread executing the current edge
-   * @param pAutomatonThreadId the current value of the witness automaton's thread-id variable
-   */
-  ConcurrentState bindWitnessThreadIds(int pPid, int pAutomatonThreadId) {
-    Map<Integer, Integer> ids = new LinkedHashMap<>();
-    for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
-      ids.put(entry.getKey(), entry.getValue().getWitnessThreadId());
-    }
-
-    // On the very first edge the initial thread receives the identifier the witness starts with.
-    if (ids.values().stream().allMatch(id -> id == ThreadState.UNSEEN_WITNESS_THREAD_ID)
-        && ids.containsKey(pPid)) {
-      ids.put(pPid, pAutomatonThreadId);
-    }
-
-    // Resolve the thread created by the previous edge, see above.
-    for (Entry<Integer, Integer> entry : ImmutableMap.copyOf(ids).entrySet()) {
-      if (entry.getValue() == ThreadState.AWAITING_WITNESS_THREAD_ID) {
-        ids.put(
-            entry.getKey(),
-            ids.containsValue(pAutomatonThreadId)
-                ? ThreadState.NO_WITNESS_THREAD_ID
-                : pAutomatonThreadId);
-      }
-    }
-
-    // A thread created by this edge only learns its identifier on the next edge, see above.
-    for (Entry<Integer, Integer> entry : ids.entrySet()) {
-      if (entry.getValue() == ThreadState.UNSEEN_WITNESS_THREAD_ID) {
-        entry.setValue(ThreadState.AWAITING_WITNESS_THREAD_ID);
-      }
-    }
-
-    ImmutableMap.Builder<Integer, ThreadState> newThreads =
-        ImmutableMap.builderWithExpectedSize(threads.size());
-    boolean changed = false;
-    for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
-      ThreadState bound = entry.getValue().withWitnessThreadId(ids.get(entry.getKey()));
-      changed |= bound != entry.getValue();
-      newThreads.put(entry.getKey(), bound);
-    }
-    return changed
-        ? update(getWrappedState(), newThreads.buildKeepingLast(), livePids, handleHints)
-        : this;
-  }
-
   public ImmutableSet<Integer> livePids() {
     return livePids;
   }
@@ -193,9 +121,8 @@ public class ConcurrentState extends AbstractSingleWrapperState
   /**
    * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
    * POR node. Since the CFA is cloned per thread, a cloned node uniquely identifies the thread it
-   * belongs to. The PID is assigned in creation order with the main thread having PID 0; a witness
-   * numbers only the threads it passes a creation waypoint for, so this is not the identifier a
-   * witness would use, cf. {@link #bindWitnessThreadIds}.
+   * belongs to. The PID is assigned in creation order with the main thread having PID 0, which
+   * matches the thread IDs used in the witnesses.
    */
   public static OptionalInt getThreadIdForClonedNode(CFANode pNode) {
     return ConcurrentEdgeCloner.getThreadIdForNode(pNode);

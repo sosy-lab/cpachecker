@@ -130,20 +130,16 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
               throw new InvalidConfigurationException(
                   "Unknown partial order reduction algorithm: " + partialOrderReductionAlgorithm);
         };
-    ActiveWitnessThread activeWitnessThread = new ActiveWitnessThread();
     transferRelation =
         new ConcurrentTransferRelation(
-            matchAutomataOnOriginalEdges
-                ? withOriginalEdgesForAutomata(pCpa, pConfig, pCfa, activeWitnessThread)
-                : pCpa,
+            matchAutomataOnOriginalEdges ? withOriginalEdgesForAutomata(pCpa, pConfig, pCfa) : pCpa,
             threadSpecificCPA,
             pConfig,
             pCfa,
             strategy,
             aggregateBasicBlocks,
             pLogger,
-            new Random(randomSeed),
-            activeWitnessThread);
+            new Random(randomSeed));
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
     precisionAdjustment =
@@ -177,10 +173,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
    * Only the transfer relation uses it; the CPA tree itself stays as the builder made it.
    */
   private static ConfigurableProgramAnalysis withOriginalEdgesForAutomata(
-      ConfigurableProgramAnalysis pCpa,
-      Configuration pConfig,
-      CFA pCfa,
-      ActiveWitnessThread pActiveWitnessThread)
+      ConfigurableProgramAnalysis pCpa, Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     if (!(pCpa instanceof WrapperCPA wrapper)) {
       return pCpa;
@@ -195,7 +188,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
             children,
             child ->
                 child instanceof ControlAutomatonCPA
-                    ? (ConfigurableProgramAnalysis) new OriginalEdgeCPA(child, pActiveWitnessThread)
+                    ? (ConfigurableProgramAnalysis) new OriginalEdgeCPA(child)
                     : child);
     return CompositeCPA.factory()
         .setConfiguration(pConfig)

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -31,10 +32,9 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
 
   private final TransferRelation transferRelation;
 
-  OriginalEdgeCPA(ConfigurableProgramAnalysis pWrapped, ActiveWitnessThread pActiveWitnessThread) {
+  OriginalEdgeCPA(ConfigurableProgramAnalysis pWrapped) {
     super(pWrapped);
-    transferRelation =
-        new OriginalEdgeTransferRelation(pWrapped.getTransferRelation(), pActiveWitnessThread);
+    transferRelation = new OriginalEdgeTransferRelation(pWrapped.getTransferRelation());
   }
 
   @Override
@@ -42,8 +42,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
     return transferRelation;
   }
 
-  private record OriginalEdgeTransferRelation(
-      TransferRelation delegate, ActiveWitnessThread activeWitnessThread)
+  private record OriginalEdgeTransferRelation(TransferRelation delegate)
       implements TransferRelation {
 
     @Override
@@ -70,12 +69,18 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
         throws CPATransferException, InterruptedException {
       Iterable<AbstractState> others = pOtherStates;
       if (pEdge != null) {
-        // which thread the witness means is not something any state of the composite knows
-        others =
-            ImmutableList.<AbstractState>builder()
-                .addAll(pOtherStates)
-                .add(new ActiveThreadState(activeWitnessThread.get()))
-                .build();
+        // the clone the edge belongs to names the thread, which no state of the composite knows
+        OptionalInt pid = ConcurrentEdgeCloner.getThreadIdForNode(pEdge.getSuccessor());
+        if (pid.isEmpty()) {
+          pid = ConcurrentEdgeCloner.getThreadIdForNode(pEdge.getPredecessor());
+        }
+        if (pid.isPresent()) {
+          others =
+              ImmutableList.<AbstractState>builder()
+                  .addAll(pOtherStates)
+                  .add(new ActiveThreadState(pid.orElseThrow()))
+                  .build();
+        }
       }
       return delegate.strengthen(
           pState,
@@ -86,7 +91,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
   }
 
   /** Answers the witness automaton's thread query, which only a sibling state can. */
-  private record ActiveThreadState(int witnessThreadId) implements AbstractQueryableState {
+  private record ActiveThreadState(int pid) implements AbstractQueryableState {
 
     @Override
     public String getCPAName() {
@@ -101,8 +106,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
       String expected =
           pProperty.substring(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY.length());
       try {
-        // a thread the witness hands out no identifier for matches none of its waypoints
-        return witnessThreadId >= 0 && witnessThreadId == Integer.parseInt(expected);
+        return pid == Integer.parseInt(expected);
       } catch (NumberFormatException e) {
         throw new InvalidQueryException(
             "Query '" + pProperty + "' does not compare against an integer.", e);
