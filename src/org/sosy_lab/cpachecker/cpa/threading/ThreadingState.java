@@ -18,7 +18,9 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -81,8 +83,12 @@ public class ThreadingState
   // String :: lock-id  -->  String :: thread-id
   private final PersistentMap<String, String> locks;
 
-  // String :: lock-id of a held recursive mutex  -->  Integer :: how often its holder acquired it
-  private final PersistentMap<String, Integer> recursiveLockCounts;
+  // String :: lock-id of a mutex of type PTHREAD_MUTEX_RECURSIVE
+  //   -->  Integer :: how often its holder locked it again
+  private final PersistentMap<String, Integer> recursiveMutexes;
+
+  // String :: identifier of a mutex attribute of type PTHREAD_MUTEX_RECURSIVE
+  private final ImmutableSet<String> recursiveMutexAttributes;
 
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
@@ -119,7 +125,8 @@ public class ThreadingState
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
-    recursiveLockCounts = PathCopyingPersistentTreeMap.of();
+    recursiveMutexes = PathCopyingPersistentTreeMap.of();
+    recursiveMutexAttributes = ImmutableSet.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -128,13 +135,15 @@ public class ThreadingState
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
-      PersistentMap<String, Integer> pRecursiveLockCounts,
+      PersistentMap<String, Integer> pRecursiveMutexes,
+      ImmutableSet<String> pRecursiveMutexAttributes,
       String pActiveThread,
       FunctionCallEdge entryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness) {
     threads = pThreads;
     locks = pLocks;
-    recursiveLockCounts = pRecursiveLockCounts;
+    recursiveMutexes = pRecursiveMutexes;
+    recursiveMutexAttributes = pRecursiveMutexAttributes;
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
@@ -142,19 +151,49 @@ public class ThreadingState
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
     return new ThreadingState(
-        pThreads, locks, recursiveLockCounts, activeThread, entryFunction, threadIdsForWitness);
+        pThreads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
   }
 
   private ThreadingState withLocks(
-      PersistentMap<String, String> pLocks, PersistentMap<String, Integer> pRecursiveLockCounts) {
+      PersistentMap<String, String> pLocks, PersistentMap<String, Integer> pRecursiveMutexes) {
     return new ThreadingState(
-        threads, pLocks, pRecursiveLockCounts, activeThread, entryFunction, threadIdsForWitness);
+        threads,
+        pLocks,
+        pRecursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
+  }
+
+  private ThreadingState withRecursiveMutexAttributes(
+      ImmutableSet<String> pRecursiveMutexAttributes) {
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        pRecursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
   }
 
   private ThreadingState withThreadIdsForWitness(
       PersistentMap<String, Integer> pThreadIdsForWitness) {
     return new ThreadingState(
-        threads, locks, recursiveLockCounts, activeThread, entryFunction, pThreadIdsForWitness);
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        pThreadIdsForWitness);
   }
 
   public ThreadingState addThreadAndCopy(
@@ -216,22 +255,17 @@ public class ThreadingState
         "blocking non-existant thread: %s with lock: %s",
         threadId,
         lockId);
-    return withLocks(locks.putAndCopy(lockId, threadId), recursiveLockCounts);
+    return withLocks(locks.putAndCopy(lockId, threadId), recursiveMutexes);
   }
 
-  /**
-   * Acquires the recursive mutex for the thread, which must not be held by another thread, and
-   * counts how often the thread acquired it.
-   */
-  public ThreadingState addRecursiveLockAndCopy(String threadId, String lockId) {
+  /** The thread locks the recursive mutex again, which it already holds. */
+  public ThreadingState increaseRecursiveLockAndCopy(String threadId, String lockId) {
     checkArgument(
-        !hasLock(lockId) || hasLock(threadId, lockId),
-        "thread %s cannot acquire lock %s of another thread",
+        hasLock(threadId, lockId) && isRecursiveMutex(lockId),
+        "thread %s does not hold recursive lock %s",
         threadId,
         lockId);
-    int count = recursiveLockCounts.getOrDefault(lockId, 0);
-    ThreadingState state = addLockAndCopy(threadId, lockId);
-    return state.withLocks(state.locks, recursiveLockCounts.putAndCopy(lockId, count + 1));
+    return withLocks(locks, recursiveMutexes.putAndCopy(lockId, recursiveMutexes.get(lockId) + 1));
   }
 
   public ThreadingState removeLockAndCopy(String threadId, String lockId) {
@@ -242,11 +276,48 @@ public class ThreadingState
         "unblocking non-existant thread: %s with lock: %s",
         threadId,
         lockId);
-    int count = recursiveLockCounts.getOrDefault(lockId, 0);
-    if (count > 1 && hasLock(threadId, lockId)) {
-      return withLocks(locks, recursiveLockCounts.putAndCopy(lockId, count - 1));
+    int count = recursiveMutexes.getOrDefault(lockId, 0);
+    if (count > 0 && hasLock(threadId, lockId)) {
+      return withLocks(locks, recursiveMutexes.putAndCopy(lockId, count - 1));
     }
-    return withLocks(locks.removeAndCopy(lockId), recursiveLockCounts.removeAndCopy(lockId));
+    return withLocks(
+        locks.removeAndCopy(lockId),
+        count > 0 ? recursiveMutexes.putAndCopy(lockId, 0) : recursiveMutexes);
+  }
+
+  public boolean isRecursiveMutex(String lockId) {
+    return recursiveMutexes.containsKey(lockId);
+  }
+
+  /** Sets whether the mutex is recursive, e.g. when it is initialized. */
+  public ThreadingState setRecursiveMutexAndCopy(String lockId, boolean recursive) {
+    if (recursive == isRecursiveMutex(lockId)) {
+      return this;
+    }
+    return withLocks(
+        locks,
+        recursive
+            ? recursiveMutexes.putAndCopy(lockId, 0)
+            : recursiveMutexes.removeAndCopy(lockId));
+  }
+
+  public boolean isRecursiveMutexAttribute(String attributeId) {
+    return recursiveMutexAttributes.contains(attributeId);
+  }
+
+  /** Sets whether the mutex attribute has the type PTHREAD_MUTEX_RECURSIVE. */
+  public ThreadingState setRecursiveMutexAttributeAndCopy(String attributeId, boolean recursive) {
+    if (recursive == isRecursiveMutexAttribute(attributeId)) {
+      return this;
+    }
+    return withRecursiveMutexAttributes(
+        recursive
+            ? ImmutableSet.<String>builder()
+                .addAll(recursiveMutexAttributes)
+                .add(attributeId)
+                .build()
+            : ImmutableSet.copyOf(
+                Sets.difference(recursiveMutexAttributes, ImmutableSet.of(attributeId))));
   }
 
   /** returns whether any of the threads has the lock */
@@ -278,10 +349,10 @@ public class ThreadingState
         + "}\n and locks={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
         + "}"
-        + (recursiveLockCounts.isEmpty()
+        + (recursiveMutexes.isEmpty()
             ? ""
-            : ("\n and recursive lock counts={"
-                + Joiner.on(", ").withKeyValueSeparator("=").join(recursiveLockCounts)
+            : ("\n and recursive mutexes={"
+                + Joiner.on(", ").withKeyValueSeparator("=").join(recursiveMutexes)
                 + "}"))
         + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
         + " \n"
@@ -294,14 +365,21 @@ public class ThreadingState
     return other instanceof ThreadingState ts
         && threads.equals(ts.threads)
         && locks.equals(ts.locks)
-        && recursiveLockCounts.equals(ts.recursiveLockCounts)
+        && recursiveMutexes.equals(ts.recursiveMutexes)
+        && recursiveMutexAttributes.equals(ts.recursiveMutexAttributes)
         && Objects.equals(activeThread, ts.activeThread)
         && threadIdsForWitness.equals(ts.threadIdsForWitness);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, locks, recursiveLockCounts, activeThread, threadIdsForWitness);
+    return Objects.hash(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        threadIdsForWitness);
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
@@ -423,7 +501,7 @@ public class ThreadingState
       return false;
     }
     // the holder of a recursive mutex can acquire it again
-    return !recursiveLockCounts.containsKey(newLock)
+    return !isRecursiveMutex(newLock)
         || !Iterables.contains(getThreadLocation(locks.get(newLock)).getOutgoingEdges(), edge);
   }
 
@@ -506,7 +584,13 @@ public class ThreadingState
   /** See {@link #activeThread}. */
   public ThreadingState withActiveThread(@Nullable String pActiveThread) {
     return new ThreadingState(
-        threads, locks, recursiveLockCounts, pActiveThread, entryFunction, threadIdsForWitness);
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        pActiveThread,
+        entryFunction,
+        threadIdsForWitness);
   }
 
   String getActiveThread() {
@@ -516,7 +600,13 @@ public class ThreadingState
   /** See {@link #entryFunction}. */
   public ThreadingState withEntryFunction(@Nullable FunctionCallEdge pEntryFunction) {
     return new ThreadingState(
-        threads, locks, recursiveLockCounts, activeThread, pEntryFunction, threadIdsForWitness);
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        pEntryFunction,
+        threadIdsForWitness);
   }
 
   /** See {@link #entryFunction}. */
