@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -164,6 +165,10 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
     CFANode cycleHead = AbstractStates.extractLocation(pCex.getTargetState());
 
     for (EdgeWithStates edgeWithStates : edges) {
+      Optional<String> currentThread =
+          getCurrentThreadNameIfExists(edgeWithStates.state(), edgeWithStates.edge());
+      Optional<String> newThread =
+          getNewThreadNameIfExists(edgeWithStates.state(), edgeWithStates.previousState());
       List<WaypointRecord> waypoints =
           buildWaypoints(
               edgeWithStates.edge(),
@@ -171,8 +176,8 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
               astCFARelation,
               edgeToCurrentExpressionIndex,
               threadNameToIdBuilder,
-              edgeWithStates.nextState(),
-              edgeWithStates.previousState(),
+              currentThread,
+              newThread,
               pWitnessVersion);
 
       // The cycle starts when the cycle head is left after it was already left

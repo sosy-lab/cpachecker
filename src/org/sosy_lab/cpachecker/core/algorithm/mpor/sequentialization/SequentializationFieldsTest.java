@@ -301,11 +301,11 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads).isEqualTo(4);
+    assertThat(fields.numThreads).isEqualTo(6);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(24);
-    assertThat(pointerAliasingMap.pointerAssignments).hasSize(20);
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(30);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(24);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
         .hasSize(5);
@@ -316,7 +316,7 @@ public class SequentializationFieldsTest {
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(
                 SeqPointerAssignmentType.START_ROUTINE_EXIT))
-        .hasSize(2);
+        .hasSize(4);
     assertThat(pointerAliasingMap.pointerDereferences).hasSize(4);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(
