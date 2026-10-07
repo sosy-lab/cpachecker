@@ -43,11 +43,18 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
     // An abstract state in this domain expresses paths.
     // Therefore, one abstract state can cover other only if they are on the same path.
     // A state with more transition invariants represents fewer pairs of states.
-    return !reachedTerminationState.getTransitionInvariants().isEmpty()
-        && newTerminationState
+    if (newTerminationState.isTarget() != reachedTerminationState.isTarget()
+        || !newTerminationState
             .getTransitionInvariants()
-            .containsAll(reachedTerminationState.getTransitionInvariants())
-        && newTerminationState.isTarget() == reachedTerminationState.isTarget()
+            .containsAll(reachedTerminationState.getTransitionInvariants())) {
+      return false;
+    }
+    if (newTerminationState.getPathSequence().equals(reachedTerminationState.getPathSequence())) {
+      return newTerminationState
+          .getTransitionPredicates()
+          .equals(reachedTerminationState.getTransitionPredicates());
+    }
+    return !reachedTerminationState.getTransitionInvariants().isEmpty()
         && isSubsequence(
             newTerminationState.getPathSequence(), reachedTerminationState.getPathSequence());
   }

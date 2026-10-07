@@ -141,9 +141,8 @@ class NestedLoopSummarizer {
   private BooleanFormula summarizeFurtherIterations(LoopHeadVisit pVisit, BooleanFormula pSuffix)
       throws CPATransferException, InterruptedException {
     SSAMap entry = pVisit.block().getSsa();
-    Set<String> modified =
+    ImmutableSet<String> modified =
         getModifiedVariables(pVisit.loopHead().getFirst().getLocationNode(), pVisit.block())
-            .map(Set::copyOf)
             .orElseGet(() -> getAllVariables(entry, pSuffix));
 
     // The occurrences of a modified variable x at or after its entry index refer to the state
@@ -228,12 +227,13 @@ class NestedLoopSummarizer {
     return types;
   }
 
-  private Set<String> getAllVariables(SSAMap pSsa, BooleanFormula pFormula) {
-    Set<String> variables = new HashSet<>(pSsa.allVariables());
+  private ImmutableSet<String> getAllVariables(SSAMap pSsa, BooleanFormula pFormula) {
+    ImmutableSet.Builder<String> variables = ImmutableSet.builder();
+    variables.addAll(pSsa.allVariables());
     for (String name : fmgr.extractVariableNames(pFormula)) {
       variables.add(FormulaManagerView.parseName(name).getFirst());
     }
-    return variables;
+    return variables.build();
   }
 
   /**

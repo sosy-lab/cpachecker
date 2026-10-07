@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR2_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.EMPTY_PREFIX;
@@ -351,10 +352,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private static ImmutableList<LoopHeadVisit> withTransitionInvariantsAtLastVisit(
       ImmutableList<LoopHeadVisit> pVisits,
       ImmutableSet<PartitionedRelationFormula> pTransitionInvariants) {
-    return ImmutableList.<LoopHeadVisit>builder()
-        .addAll(pVisits.subList(0, pVisits.size() - 1))
-        .add(pVisits.getLast().withTransitionInvariants(pTransitionInvariants))
-        .build();
+    return listAndElement(
+        pVisits.subList(0, pVisits.size() - 1),
+        pVisits.getLast().withTransitionInvariants(pTransitionInvariants));
   }
 
   /**

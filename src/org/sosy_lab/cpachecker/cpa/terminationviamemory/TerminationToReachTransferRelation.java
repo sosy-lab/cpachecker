@@ -118,12 +118,12 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
           ImmutableMap.builder();
       ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula> newSinceLastVisit =
           ImmutableMap.builder();
-      for (Pair<LocationState, CallstackState> visitedKey :
-          terminationState.getPathFormulaAtLastVisit().keySet()) {
-        if (!visitedKey.equals(pairKey)) {
-          newAtLastVisit.put(
-              visitedKey, terminationState.getPathFormulaAtLastVisit().get(visitedKey));
-          newSinceLastVisit.put(visitedKey, appendBlock(terminationState, visitedKey, block));
+      for (Entry<Pair<LocationState, CallstackState>, PathFormula> visitedKey :
+          terminationState.getPathFormulaAtLastVisit().entrySet()) {
+        if (!visitedKey.getKey().equals(pairKey)) {
+          newAtLastVisit.put(visitedKey);
+          newSinceLastVisit.put(
+              visitedKey.getKey(), appendBlock(terminationState, visitedKey.getKey(), block));
         }
       }
       newAtLastVisit.put(pairKey, newFullFormula);
