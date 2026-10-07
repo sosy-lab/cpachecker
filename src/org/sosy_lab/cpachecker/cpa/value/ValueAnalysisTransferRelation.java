@@ -415,11 +415,9 @@ public class ValueAnalysisTransferRelation
       }
 
       AParameterDeclaration param = parameters.get(i);
-      String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName =
-          MemoryLocation.forLocalVariable(calledFunctionName, paramName);
+      MemoryLocation formalParamName = MemoryLocation.forDeclaration(param);
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -788,14 +786,8 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    MemoryLocation memoryLocation;
-
     // assign initial value if necessary
-    if (decl.isGlobal()) {
-      memoryLocation = MemoryLocation.forIdentifier(varName);
-    } else {
-      memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
-    }
+    MemoryLocation memoryLocation = MemoryLocation.forDeclaration(decl);
 
     if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);
@@ -1066,13 +1058,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
-    String varName = pIdExpression.getName();
-
-    if (isGlobal(pIdExpression)) {
-      return MemoryLocation.parseExtendedQualifiedName(varName);
-    } else {
-      return MemoryLocation.forLocalVariable(functionName, varName);
-    }
+    return MemoryLocation.forDeclaration(pIdExpression.getDeclaration());
   }
 
   private boolean isRelevant(AExpression pOp1, ARightHandSide pOp2) {
