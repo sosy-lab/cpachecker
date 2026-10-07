@@ -88,7 +88,7 @@ class NestedLoopSummarizer {
    */
   BooleanFormula summarizeLastIteration(
       TerminationToReachState pState, Pair<LocationState, CallstackState> pLoopHead)
-      throws CPATransferException, InterruptedException {
+      throws InterruptedException {
     ImmutableList<LoopHeadVisit> visits = pState.getLoopHeadVisits();
     int last = visits.size() - 1;
     checkState(last >= 0 && visits.get(last).loopHead().equals(pLoopHead));
