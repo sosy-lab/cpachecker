@@ -38,6 +38,8 @@ public final class InductionPrecision implements Precision {
 
     public LoopPrecision {
       checkArgument(k >= 0, "k must not be negative, but is %s", k);
+      // with k = 0, the induction hypothesis is empty
+      checkArgument(!induction || k >= 1, "an induction needs k >= 1");
       checkArgument(describedAbstractions >= ALL_ABSTRACTIONS);
     }
 
