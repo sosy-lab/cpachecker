@@ -53,12 +53,14 @@ public class SerializeBlockStateOperator implements SerializeOperator {
           String.format("Expected state of type %s, got %s", BlockState.class, pState.getClass()));
     }
     String suffix = " W:" + b.getWitness().serialize();
-    suffix = suffix + (b.getHistory().isEmpty() ? "" : " H:" + Joiner.on(",").join(b.getHistory()));
+    suffix =
+        suffix
+            + (b.getHistory().path().isEmpty()
+                ? ""
+                : " H:" + Joiner.on(",").join(b.getHistory().path()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())
-        .put(
-            STATE_KEY,
-            b.hasNonTrivialSummaryForEachPredecessor() + " " + b.getBlockNode().getId() + suffix)
+        .put(STATE_KEY, b.getUniqueId() + " " + b.getBlockNode().getId() + suffix)
         .build();
   }
 }

@@ -923,7 +923,7 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
     return getFormulaApproximation(
         pFunctionScope,
@@ -939,7 +939,8 @@ public final class ValueAnalysisState
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
@@ -955,12 +956,15 @@ public final class ValueAnalysisState
                     .orElseThrow()
                     .anyMatch(v -> v.getName().equals(varName))
                 && !varName.contains("__CPAchecker_"),
-        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+        varName ->
+            useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(varName) : varName);
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
       throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");

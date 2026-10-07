@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import com.google.common.base.Joiner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -35,7 +35,7 @@ class ForceTerminationOnShutdown implements Runnable {
   private static final AtomicBoolean canceled = new AtomicBoolean();
 
   // Time that a shutdown may last before we kill the program.
-  private static final int SHUTDOWN_GRACE_PERIOD = 10; // seconds
+  private static final Duration SHUTDOWN_GRACE_PERIOD = Duration.ofSeconds(10);
 
   private final LogManager logger;
   private final Thread mainThread;
@@ -108,7 +108,7 @@ class ForceTerminationOnShutdown implements Runnable {
     // Interrupts signal that we should abort.
 
     try {
-      TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD);
+      Thread.sleep(SHUTDOWN_GRACE_PERIOD);
     } catch (InterruptedException e) {
       return; // Cancel termination
     }

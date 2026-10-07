@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_AND;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_XOR;
@@ -1289,7 +1290,7 @@ public class SMGCPAValueVisitor
     return switch (idOperator) {
       case SIZEOF ->
           ImmutableList.of(
-              ValueAndSMGState.of(evaluator.getBitSizeof(state, innerType, cfaEdge), state));
+              ValueAndSMGState.of(getSizeofInBytes(innerType, e.getExpressionType()), state));
 
       case ALIGNOF -> {
         BigInteger align = evaluator.getAlignOf(innerType);
@@ -1306,6 +1307,28 @@ public class SMGCPAValueVisitor
     };
   }
 
+  private Value getSizeofInBytes(CType pType, CType pResultType) throws CPATransferException {
+    Value sizeInBits = evaluator.getBitSizeof(state, pType, cfaEdge);
+    BigInteger bitsPerByte = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+
+    // We don't want UNKNOWN in SMG2 ever!
+    verify(!sizeInBits.isUnknown());
+
+    if (sizeInBits instanceof NumericValue numericSize) {
+      return new NumericValue(numericSize.bigIntegerValue().divide(bitsPerByte));
+    }
+
+    // Keep the extended bit-size type for the division, before converting to size_t.
+    SymbolicExpression symbolicSize =
+        ConstantSymbolicExpression.of(sizeInBits, evaluator.getCTypeForBitPreciseMemoryAddresses());
+    return BinarySymbolicExpression.of(
+        symbolicSize,
+        ConstantSymbolicExpression.of(new NumericValue(bitsPerByte), symbolicSize.getType()),
+        pResultType,
+        symbolicSize.getType(),
+        DIVIDE);
+  }
+
   @Override
   public List<ValueAndSMGState> visit(CUnaryExpression e) throws CPATransferException {
     // Unary expression types like & (address of operator), sizeOf(), - (unary minus), TILDE
@@ -1319,12 +1342,8 @@ public class SMGCPAValueVisitor
 
     switch (unaryOperator) {
       case SIZEOF -> {
-        Value sizeInBitsValue = evaluator.getBitSizeof(state, operandType, cfaEdge);
-        // If this fails hand through Value
-        checkState(sizeInBitsValue.isNumericValue());
-        BigInteger sizeInBits = sizeInBitsValue.asNumericValue().bigIntegerValue();
         return ImmutableList.of(
-            ValueAndSMGState.of(new NumericValue(sizeInBits.divide(BigInteger.valueOf(8))), state));
+            ValueAndSMGState.of(getSizeofInBytes(operandType, returnType), state));
       }
       case ALIGNOF -> {
         return ImmutableList.of(
@@ -2129,6 +2148,13 @@ public class SMGCPAValueVisitor
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
+
+        } else if (BuiltinFloatFunctions.matchesSqrt(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.sqrt()));
 
         } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
           return handleBuiltinFunction2(

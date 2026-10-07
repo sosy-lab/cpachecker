@@ -263,6 +263,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -339,13 +340,6 @@ analysis.algorithm.MPOR.comments = false
 # the number of statements? Disabling this option may result in the first
 # statement being unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
-
-# Whether the const CPAchecker_TMP auxiliary variables should be declared
-# globally (true) or inside the thread simulation functions (false). For some
-# backends like CBMC it should be set to true, otherwise the programs cannot
-# be parsed. For CPAchecker it is set to false by default, otherwise it can
-# produce incorrect results.
-analysis.algorithm.MPOR.declareConstAuxiliaryVariablesGlobally = false
 
 # Prefer the execution of threads that commute, i.e., they are not in
 # conflict with any other thread. Enabling this option together with
@@ -1371,6 +1365,10 @@ counterexample.checker.checkMemorySafetySubproperty = false
 # of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
 
+# Internal representation of the counterexample path used for the check.
+counterexample.checker.counterexampleFormat = AUTOMATON
+  enum:     [AUTOMATON, WITNESSV2]
+
 # counterexample check should fully replace existing counterexamples with own
 # ones, if available
 counterexample.checker.forceCEXChange = false
@@ -2066,9 +2064,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# ignore the callstack and do not track it this heavily over-approximates.
-cpa.callstack.ignoreTransfer = false
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -2400,7 +2395,6 @@ cpa.local.localvariables = {}
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)
-cpa.location.followFunctionCalls = no default value
 cpa.location.followFunctionCalls = true
 
 # What are we searching for: race or deadlock
@@ -3217,10 +3211,6 @@ cpa.predicate.refinement.stopAfter = -1
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
-# time limit for refinement (use milliseconds or specify a unit; 0 for
-# infinite)
-cpa.predicate.refinement.timelimit = 0ms
-
 # After a failed interpolation query, try to solve the formulas again with
 # different options instead of giving up immediately.
 cpa.predicate.refinement.tryAgainOnInterpolationError = true
@@ -3850,15 +3840,17 @@ cpa.smg2.handleUnknownDereferenceAsSafe = false
 # function is checked for validity and the result is a UNKNOWN value (which
 # may itself violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound
 # due to side effects, the unknown return value etc.!
-# ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity
-# and may cause memory based errors. Returned values are unknown, but in a
-# valid new memory section that can be freed normally. Functions allocating
-# external memory and returning their address can be defined with option
-# externalAllocationFunction and externalAllocationSize.
+# ASSUME_EXTERNALLY_ALLOCATED: Input into the function is checked for
+# validity and may cause memory based errors. Returned values are unknown,
+# but in a valid new memory section that can be freed normally. Functions
+# allocating external memory and returning their address can be defined with
+# option externalAllocationFunction and externalAllocationSize.
+# ASSUME_EXTERNALLY_ALLOCATED_WARN is equal, but prints warnings.
 # Functions defined in option "safeUnknownFunctions" are handled equally to
 # ASSUME_SAFE in all cases.
-cpa.smg2.handleUnknownFunctions = ASSUME_EXTERNAL_ALLOCATED
-  enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
+cpa.smg2.handleUnknownFunctions = ASSUME_EXTERNALLY_ALLOCATED
+  enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNALLY_ALLOCATED,
+             ASSUME_EXTERNALLY_ALLOCATED_WARN]
 
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
@@ -4097,13 +4089,27 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
-# Where to find the symbolic execution config without cegar.
-cpa.symbolicExecution.symbolicExecutionProperties = no default value
-
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
+
+# There might be programs with unsigned integer overflow, and due to the
+# overflow, they are non-terminating. This option enforces the transition
+# invariants to have constraints to limit the mathematical integers.
+cpa.terminationviamemory.addConstraintsToPreventOverflows = false
+
+# Some bitwise operations or modulo are UFs in integer encoding, and they
+# might lead to unsound results. If integer encoding is set, we also have to
+# use this option.
+cpa.terminationviamemory.checkUFsInIntegerEncoding = false
+
+# Disables checks for fix-point with transition invariants and performs plain
+# BMC.
+cpa.terminationviamemory.disableTransitionAbstractions = false
+
+# Enables use of transition predicates from the witness.
+cpa.terminationviamemory.useTransitionPredicatesFromWitness = false
 
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
@@ -4124,6 +4130,13 @@ cpa.threading.allowMultipleLHS = false
 # 'useClonedFunctions=true', we need at least N cloned functions. The option
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
 cpa.threading.maxNumberOfThreads = 5
+
+# stop state-space-exploration once main is left. Setting this option to true
+# is always possible for verification, since one can find an interleaving
+# where main is not yet exited. However for validation it should be set to
+# false, since the witness may require main to exit first and then before the
+# teardown of all threads to continue with some other thread.
+cpa.threading.stopStateSpaceExplorationOnMainExit = true
 
 # in case of witness validation we need to check all possible function calls
 # of cloned CFAs.
@@ -4680,6 +4693,13 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Which block analysis to use for the distributed summaries algorithm
+distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
+  enum:     [ALWAYS_REPLACE]
+
+# Whether to combine preconditions at same program location
+distributedSummaries.combinePresByHash = false
+
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true
 
@@ -4687,6 +4707,13 @@ distributedSummaries.combineVcsByHash = true
 # output for debugging and exports additional metadata.Creating this
 # information consumes resources and should not be used for benchmarks.
 distributedSummaries.debug = false
+
+# Whether the messages of a debug run carry every predicate formula a second
+# time in the notation of the solver. That notation is not the one the
+# message is built from, so it has to be rendered separately, which costs
+# more than the whole rest of a block analysis. Has no effect unless debug
+# mode is enabled.
+distributedSummaries.debug.readableFormulas = false
 
 # Abstraction nodes are added to each block after they are created. They are
 # needed to strengthen the preconditions of blocks. Missing blocks make the
@@ -4734,10 +4761,13 @@ distributedSummaries.logging.reportFiles = "block_analysis/messages"
 # Print per-block statistics in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
 
-# Whether to reset the precision for each run of the analysis or to keep the
-# transmitted one. The latter has disadvantages as unnecessary variables
-# might be tracked due to a too precise precision.
-distributedSummaries.resetPrecisionForEveryRun = false
+# Report UNKNOWN instead of FALSE if the analysis that replays the violation
+# path for the violation witness does not reach a property violation.
+distributedSummaries.requireConfirmedViolation = true
+
+# Whether to reset callstack state before running a block analysis; usually
+# used together with the inlining decomposition
+distributedSummaries.resetCallstackState = false
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4763,6 +4793,13 @@ distributedSummaries.singleWorker.outputMessages = "messages/"
 # Whether to spawn a worker for only one block id
 distributedSummaries.singleWorker.spawnWorkerForId = ""
 
+# Whether to decide equality of violation conditions by their representation
+# instead of asking the solver. A violation condition is built from the edges
+# of a path, so the same path yields the same formula. Deciding it this way
+# spares an implication query per compared pair, but tells equivalent
+# conditions that are written differently apart.
+distributedSummaries.syntacticVcEquality = false
+
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
 
@@ -4770,14 +4807,19 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
+# Level of the per-worker logfiles. The block analyses log their SMT formulas
+# at ALL, and rendering a formula as a string is expensive enough to dominate
+# the runtime of a block analysis, so set this to ALL only when those
+# formulas are what you are looking for.
+distributedSummaries.worker.logLevel = Level.FINE
+
 # The path to which the different versions of the correctness witnesses will
 # be exported. Each witness version replaces the string '%s' with its version
 # number.
 distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
 
-# Whether to run symbolic execution to compute the violation condition for
-# value analysis.
-dss.cpa.value.runSymExec = no default value
+# Whether to query the SMT solver before proceeding backwards.
+dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -5165,9 +5207,9 @@ overflow.trackMultiplications = true
 # Track overflows in binary expressions involving pointers.
 overflow.trackPointers = false
 
-# Only check live variables for overflow, as compiler can remove dead
+# Only check live variables for overflow and ignore overflows in dead
 # variables.
-overflow.useLiveness = true
+overflow.useLiveness = false
 
 # List of files with configurations to use. Files can be suffixed with
 # ::refinable to enable iterative refinement of the analysis precision (one
@@ -5195,6 +5237,13 @@ parser.collectACSLAnnotations = false
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
+
+# Whether to enable (experimental) support for the atomic type specifier
+# '_Atomic(type-name)' by rewriting it to the equivalent '_Atomic' qualifier
+# before parsing. Disadvantage: this rewriting is a purely textual
+# replacement that is applied unconditionally to the whole input, including
+# string literals and comments.
+parser.handleAtomicTypeSpecifiers = false
 
 # The command line for calling the preprocessor. May contain binary name and
 # arguments, but won't be expanded by a shell. The argument for the
@@ -5744,10 +5793,7 @@ termination.config = no default value
 termination.considerRecursion = false
 
 # export supporting invariants in the witness
-termination.exportSupportingInvariantsInWitness = true
-
-# export correctness witness in YAML format
-termination.exportYamlCorrectnessWitness = true
+termination.exportSupportingInvariantsInWitness = false
 
 # Consider variables with unsigned types in ranking function synthesis.This
 # can lead to unsound results as LassoRanker assumes infinite domain for
@@ -5828,23 +5874,6 @@ termination.violation.witness.graphml = "nontermination_witness.graphml"
 
 # Export termination counterexample to file in YAML format 
 termination.violation.witness.yaml = "Counterexample.%s.witness-2.1.yml"
-
-# The template from which the different versions of the correctness witnesses
-# will be exported. Each version replaces the string '%s' with its version
-# number.
-termination.yamlProofWitness = "witness-%s.yml"
-
-# compress the produced violation-witness automata using GZIP compression.
-terminationtoreach.compressWitness = false
-
-# do not produce witness for validation
-terminationtoreach.validation = false
-
-# Export termination counterexample to file as GraphML automaton 
-terminationtoreach.violation.witness = "witness.graphml"
-
-# Export termination counterexample to file as dot/graphviz automaton 
-terminationtoreach.violation.witness.dot = "witness.dot"
 
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
@@ -5973,11 +6002,6 @@ traceformula.makeFlowSensitive = false
 # selector for equal statements (on the same line), set this option to true.
 # Note that enabling this option  also decreases the quality of results.
 traceformula.reduceSelectors = false
-
-# Use only the trivial rules with these names, e.g. to measure a single rule.
-# Leave empty to use all rules that can decide a proposition of the
-# specification. The names of the rules are printed in the statistics.
-trivialrules.rules = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
@@ -6136,13 +6160,45 @@ witness.yamlexporter.analyseWitnessQuality = false
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
 
+# Export function contracts, i.e. the requires and ensures clauses describing
+# the behavior of a function, into the correctness witness which is exported
+# from the ARG. Function contracts are not part of every witness format
+# version, see witness.yamlexporter.witnessVersions.
+witness.yamlexporter.exportFunctionContracts = false
+
+# Export location invariants, i.e. invariants which hold whenever a specific
+# location in the program is reached, into the correctness witness which is
+# exported from the ARG. Currently these are only exported for the locations
+# at which a function is called.
+witness.yamlexporter.exportLocationInvariants = true
+
+# Export loop invariants, i.e. invariants which hold whenever the head of a
+# loop is reached, into the correctness witness which is exported from the
+# ARG.
+witness.yamlexporter.exportLoopInvariants = true
+
 # export non-termination witness in YAML format
-witness.yamlexporter.exportNonterminationWitness = no default value
+witness.yamlexporter.exportNonterminationWitness = true
+
+# export termination witness in YAML format
+witness.yamlexporter.exportTerminationWitness = true
 
 # The template from which the different versions of the non-termination
 # witnesses will be exported. Each version replaces the string '%s' with its
 # version number.
-witness.yamlexporter.nonterminationWitness = no default value
+witness.yamlexporter.nonterminationWitness = "witness-%s.yml"
+
+# Which waypoints to export for a counterexample that was found by analyzing
+# a sequentialization of a concurrent program. Exporting only the target
+# makes the witness easier to validate, because every other waypoint
+# constrains the interleaving that a validator has to reproduce.
+witness.yamlexporter.sequentializedWaypoints = ALL
+  enum:     [ALL, TARGET_ONLY]
+
+# The template from which the different versions of the termination witnesses
+# will be exported. Each version replaces the string '%s' with its version
+# number.
+witness.yamlexporter.terminationWitness = "witness-%s.yml"
 
 # The version for which to export the witness.
-witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
+witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]

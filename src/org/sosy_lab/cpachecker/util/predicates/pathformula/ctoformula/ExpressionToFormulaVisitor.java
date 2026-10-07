@@ -695,10 +695,10 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = conv.getReturnType(e, edge);
-          verify(
-              hasMatchingSingleParameterType(e.getDeclaration(), paramType),
-              "abs-like function %s with unexpected declaration",
-              functionName);
+          if (!hasMatchingSingleParameterType(e.getDeclaration(), paramType)) {
+            throw new UnrecognizedCodeException(
+                "function " + functionName + " with unexpected declaration", edge, e);
+          }
           FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isBitvectorType() || formulaType.isIntegerType()) {
             Formula param = processOperand(parameters.getFirst(), paramType, paramType);

@@ -783,6 +783,11 @@ public class CFACreator {
     logger.log(
         Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
+    // Now finally set the edges for the AstCfaRelation, as the CFA is now complete and immutable.
+    if (immutableCFA.getAstCfaRelation() != null) {
+      immutableCFA.getAstCfaRelation().setEdgesForAstElements(immutableCFA.edges());
+    }
+
     return immutableCFA;
   }
 
@@ -1237,7 +1242,8 @@ public class CFACreator {
                     v.getName(),
                     v.getOrigName(),
                     v.getQualifiedName(),
-                    initializer);
+                    initializer,
+                    v.hasThreadLocalStorage());
 
             previouslyInitializedVariables.add(name);
             iterator.set(Pair.of(v, p.getSecond())); // replace declaration

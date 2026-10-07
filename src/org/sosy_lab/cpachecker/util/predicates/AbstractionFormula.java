@@ -24,6 +24,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -118,7 +119,7 @@ public class AbstractionFormula implements Serializable {
     return pMgr.translateFrom(formula, fMgr);
   }
 
-  public ExpressionTree<Object> asExpressionTree(CFANode pLocation)
+  public ExpressionTree<Object> asExpressionTree(CFANode pLocation, MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
     return ExpressionTrees.fromFormula(
         asFormula(),
@@ -126,15 +127,17 @@ public class AbstractionFormula implements Serializable {
         name ->
             !name.contains(FUNCTION_DELIMITER)
                 || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER),
-        Function.identity());
+        Function.identity(),
+        pMachineModel);
   }
 
   public ExpressionTree<Object> asExpressionTree(
       Function<String, Boolean> pIncludeVariablesFilter,
-      Function<String, String> pVariableNameConverter)
+      Function<String, String> pVariableNameConverter,
+      MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
     return ExpressionTrees.fromFormula(
-        asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
+        asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter, pMachineModel);
   }
 
   public SvLibTerm asSvLibTerm(SvLibScope pScope) {

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  * CFieldReference returns a collection containing the varName, other visits return the inner
  * visit-results. The Visitor also collects all numbers used in the expression.
  */
-class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, NoException> {
+public class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, NoException> {
 
   private CFANode predecessor;
   private Set<BigInteger> values = new TreeSet<>();

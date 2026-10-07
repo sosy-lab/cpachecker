@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -55,7 +56,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
     return toExpressionTree();
   }
@@ -82,7 +83,8 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
@@ -93,7 +95,9 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {

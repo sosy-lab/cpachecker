@@ -47,22 +47,20 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
@@ -82,7 +80,8 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitn
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedARGToWitness;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -247,7 +246,8 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
-  private final ARGToYAMLWitnessExport argToWitnessWriter;
+  private final ARGToCorrectnessWitnessV2 argToWitnessWriter;
+  private final SequentializedARGToWitness sequentializedArgToWitnessWriter;
   private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
@@ -298,10 +298,22 @@ public class ARGStatistics implements Statistics {
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      argToWitnessWriter =
-          new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger, pStatesCollector);
+      // a sequentialization is analyzed instead of the input program, so an invariant of the ARG
+      // has no counterpart in the input program that the witness has to refer to
+      if (pCFA.getMetadata().getTransformation() instanceof MporSequentialization sequentialization
+          && sequentialization.mapping().isPresent()) {
+        argToWitnessWriter = null;
+        sequentializedArgToWitnessWriter =
+            new SequentializedARGToWitness(
+                config, sequentialization.originalCfa(), pSpecification, pLogger);
+      } else {
+        argToWitnessWriter =
+            new ARGToCorrectnessWitnessV2(config, pCFA, pSpecification, pLogger, pStatesCollector);
+        sequentializedArgToWitnessWriter = null;
+      }
     } else {
       argToWitnessWriter = null;
+      sequentializedArgToWitnessWriter = null;
     }
 
     Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
@@ -382,7 +394,9 @@ public class ARGStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {}
 
   public boolean isYamlWitnessExportEnabled() {
-    return (exportARG && exportYamlCorrectnessWitness && argToWitnessWriter != null)
+    return (exportARG
+            && exportYamlCorrectnessWitness
+            && (argToWitnessWriter != null || sequentializedArgToWitnessWriter != null))
         || counterexampleOptions.hasYamlWitnessExport();
   }
 
@@ -398,7 +412,7 @@ public class ARGStatistics implements Statistics {
     } else if (pResult == Result.TRUE
         && exportARG
         && exportYamlCorrectnessWitness
-        && argToWitnessWriter != null) {
+        && (argToWitnessWriter != null || sequentializedArgToWitnessWriter != null)) {
       try {
         exportYamlProofWitness((ARGState) pReached.getFirstState(), pReached);
       } catch (InterruptedException e) {
@@ -409,20 +423,16 @@ public class ARGStatistics implements Statistics {
 
   private void exportYamlProofWitness(ARGState rootState, UnmodifiableReachedSet pReached)
       throws InterruptedException {
-    if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+    if (exportYamlCorrectnessWitness
+        && (argToWitnessWriter != null || sequentializedArgToWitnessWriter != null)) {
       if (cfa.getMetadata().getInputLanguage() == Language.C) {
         try {
-          if (cfa.getMetadata().getTransformationMetadata() != null
-              && cfa.getMetadata().getTransformationMetadata().transformation()
-                  == ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED) {
+          if (sequentializedArgToWitnessWriter != null) {
             logger.log(
                 Level.WARNING,
                 "Cannot export correctness witness in YAML format for sequentialized "
                     + "C programs yet. Exporting trivial witness for it.");
-            argToWitnessWriter.export(
-                new ARGState(rootState.getWrappedState(), null),
-                new PartitionedReachedSet(cpa, TraversalMethod.BFS),
-                yamlWitnessOutputFileTemplate);
+            sequentializedArgToWitnessWriter.export(yamlWitnessOutputFileTemplate);
           } else {
             argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
           }
