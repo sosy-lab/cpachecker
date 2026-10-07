@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -29,6 +30,10 @@ public class DssWitnessMessage extends DssMessage {
 
   DssWitnessMessage(String pSenderId, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.WITNESS, pContent);
+  }
+
+  DssWitnessMessage(String pSenderId, ImmutableMap<String, String> pContent, Instant pTimestamp) {
+    super(pSenderId, DssMessageType.WITNESS, pContent, pTimestamp);
   }
 
   @Override

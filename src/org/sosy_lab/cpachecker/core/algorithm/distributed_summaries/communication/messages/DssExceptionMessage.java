@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -28,6 +29,11 @@ public class DssExceptionMessage extends DssMessage {
 
   DssExceptionMessage(String pSenderId, ImmutableMap<String, String> pExceptionMessage) {
     super(pSenderId, DssMessageType.EXCEPTION, pExceptionMessage);
+  }
+
+  DssExceptionMessage(
+      String pSenderId, ImmutableMap<String, String> pExceptionMessage, Instant pTimestamp) {
+    super(pSenderId, DssMessageType.EXCEPTION, pExceptionMessage, pTimestamp);
   }
 
   @Override
