@@ -35,6 +35,8 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -73,17 +75,41 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * The refiner of PredK. After a complete exploration, it refines one counterexample like native
- * predicate analysis, and then decides per loop head with the heuristic of the paper: if the
- * predicates mostly hold at single visits, the abstractions move further apart; if almost no
- * abstraction closes its loop, or if the interpolation learned nothing, an induction step takes
- * over. Predicates that occur in no abstraction are dropped.
+ * The refiner of PredK. It refines one counterexample like native predicate analysis, and then
+ * decides per loop head with the heuristic of the paper: if the predicates mostly hold at single
+ * visits, the abstractions move further apart; if almost no abstraction closes its loop, or if the
+ * interpolation learned nothing, an induction step takes over. Predicates that occur in no
+ * abstraction are dropped.
  *
  * <p>The refiner prefers targets whose paths contain no induction start. Targets in induction steps
  * pass the queries of k-induction first, so that spurious induction steps cannot hide a real
- * counterexample of the base case.
+ * counterexample of the base case. Options let the refiner check counterexamples without
+ * abstraction as BMC does, make spurious induction steps longer as k-induction does instead of
+ * interpolating them, and only refine where the predicates describe single visits.
  */
+@Options(prefix = "cpa.induction.refinement.predk")
 public final class PredKRefiner extends InductionRefiner {
+
+  @Option(
+      secure = true,
+      description =
+          "check the targets whose paths contain no abstraction at a loop head with one SAT query,"
+              + " as BMC does, and remove the unreachable ones without interpolation")
+  private boolean checkConcreteTargetsAsBmc = false;
+
+  @Option(
+      secure = true,
+      description =
+          "refine a spurious target of an induction step by interpolation. Otherwise, the"
+              + " induction step gets longer, as in k-induction.")
+  private boolean interpolateInductionSteps = true;
+
+  @Option(
+      secure = true,
+      description =
+          "raise k at a loop head whose predicates mostly describe single visits, which moves its"
+              + " abstractions apart. Otherwise, the refinement only adds the predicates.")
+  private boolean moveApartForSingleVisits = true;
 
   private final PredKStrategy strategy;
   private final ARGBasedRefiner predicateRefiner;
@@ -102,6 +128,7 @@ public final class PredKRefiner extends InductionRefiner {
   private PredKRefiner(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa, pLogger, pConfig);
+    pConfig.inject(this);
     abstractionManager = predicateCpa.getAbstractionManager();
     loopStructure = predicateCpa.getCfa().getLoopStructure().orElseThrow();
     strategy = new PredKStrategy(pConfig, pLogger, predicateCpa.getPredicateManager(), solver);
@@ -124,8 +151,22 @@ public final class PredKRefiner extends InductionRefiner {
     if (!pCutOffs.isEmpty()) {
       throw new CPAException("PredK needs a precision that describes all abstractions");
     }
+    List<ARGState> targets = pTargets;
+    if (checkConcreteTargetsAsBmc) {
+      // without an abstraction on the path, an interpolant could only rule out this path
+      List<ARGState> concreteTargets =
+          from(targets).filter(t -> firstLoopHeadAbstraction(t).isEmpty()).toList();
+      if (!concreteTargets.isEmpty()) {
+        Optional<ARGState> counterexample = findFeasibleTarget(concreteTargets);
+        if (counterexample.isPresent()) {
+          return counterexample;
+        }
+        removeConcreteTargets(pReached, concreteTargets);
+        targets = from(targets).filter(t -> !t.isDestroyed()).toList();
+      }
+    }
     Optional<ARGState> baseCaseTarget =
-        from(pTargets).firstMatch(t -> !hasInductionStart(t)).toJavaUtil();
+        from(targets).firstMatch(t -> !hasInductionStart(t)).toJavaUtil();
     if (baseCaseTarget.isPresent()) {
       return refinePath(pReached, baseCaseTarget.get());
     }
@@ -134,7 +175,7 @@ public final class PredKRefiner extends InductionRefiner {
     // The bounding assertion holds only after a concrete path, since an abstraction on the path
     // hides the paths that its coverage folds.
     Set<ARGState> inductionStarts = new LinkedHashSet<>();
-    for (ARGState target : pTargets) {
+    for (ARGState target : targets) {
       ARGState inductionStart =
           from(abstractionChain(target))
               .firstMatch(s -> inductionStateOf(s).isInductionStart())
@@ -146,13 +187,65 @@ public final class PredKRefiner extends InductionRefiner {
     if (!inductionStarts.isEmpty() && removeIfNoneReachable(pReached, inductionStarts)) {
       return Optional.empty();
     }
-    for (ARGState target : pTargets) {
+    for (ARGState target : targets) {
       if (!target.isDestroyed() && !solver.isUnsat(lastBlockFromRegion(target))) {
-        return refinePath(pReached, target);
+        if (interpolateInductionSteps) {
+          return refinePath(pReached, target);
+        }
+        // as k-induction: a counterexample if the path is feasible, otherwise a longer step
+        Optional<ARGState> counterexample = findFeasibleTarget(ImmutableList.of(target));
+        if (counterexample.isPresent()
+            && isFeasibleFromStart(
+                target,
+                target
+                    .getCounterexampleInformation()
+                    .map(CounterexampleInfo::getTargetPath)
+                    .orElseGet(() -> ARGUtils.getOnePathTo(target)))) {
+          return counterexample;
+        }
+        strategy.refineWithoutPredicates(pReached, target);
+        return Optional.empty();
+      }
+    }
+    removeUnreachable(pReached, targets);
+    return Optional.empty();
+  }
+
+  /**
+   * Whether the exception is a failure that MathSAT reports, e.g., in non-linear arithmetic, before
+   * the refinement changed anything.
+   */
+  private static boolean isSolverFailure(IllegalArgumentException pException) {
+    StackTraceElement[] trace = pException.getStackTrace();
+    return trace.length > 0 && trace[0].getClassName().startsWith("org.sosy_lab.java_smt.solvers.");
+  }
+
+  /**
+   * Remove the given unreachable targets. Their parents get the predicate false at the location of
+   * the target, as from the interpolants of predicate analysis, so that a parent that the
+   * exploration expands again does not reach the target again.
+   */
+  private void removeConcreteTargets(ARGReachedSet pReached, List<ARGState> pTargets)
+      throws InterruptedException {
+    SetMultimap<ARGState, CFANode> parents = LinkedHashMultimap.create();
+    for (ARGState target : pTargets) {
+      for (ARGState parent : target.getParents()) {
+        parents.put(parent, AbstractStates.extractLocation(target));
       }
     }
     removeUnreachable(pReached, pTargets);
-    return Optional.empty();
+    AbstractionPredicate falsePredicate = abstractionManager.makeFalsePredicate();
+    for (Map.Entry<ARGState, Collection<CFANode>> entry : parents.asMap().entrySet()) {
+      ARGState parent = entry.getKey();
+      if (!parent.isDestroyed()) {
+        pReached.updatePrecisionForState(
+            parent,
+            predicatePrecisionOf(pReached, parent)
+                .addLocalPredicates(
+                    from(entry.getValue()).transform(l -> Map.entry(l, falsePredicate))),
+            Predicates.instanceOf(PredicatePrecision.class));
+      }
+    }
   }
 
   /** Refine the path to the given target as predicate analysis does, followed by the heuristic. */
@@ -172,8 +265,19 @@ public final class PredKRefiner extends InductionRefiner {
       logger.logDebugException(e, "Predicate refinement failed");
       strategy.refineWithoutPredicates(pReached, pTarget);
       return Optional.empty();
+    } catch (IllegalArgumentException e) {
+      if (!isSolverFailure(e)) {
+        throw e;
+      }
+      logger.logDebugException(e, "Interpolation failed");
+      strategy.refineWithoutPredicates(pReached, pTarget);
+      return Optional.empty();
     }
     if (counterexample.isSpurious()) {
+      return Optional.empty();
+    }
+    if (!isFeasibleFromStart(pTarget, counterexample.getTargetPath())) {
+      strategy.refineWithoutPredicates(pReached, pTarget);
       return Optional.empty();
     }
     pTarget.addCounterexampleInformation(counterexample);
@@ -311,7 +415,9 @@ public final class PredKRefiner extends InductionRefiner {
           changed = precision.withK(precision.k() + 1).withInduction(precision.induction() || base);
         } else if (aboutOneVisit > Math.max(aboutTheLoop, precision.k() + 1)) {
           // the predicates describe single visits: move the abstractions apart
-          changed = precision.withK(precision.k() + 1);
+          if (moveApartForSingleVisits) {
+            changed = precision.withK(precision.k() + 1);
+          }
         } else if (abstractions > precision.k() + 3 && notClosing >= abstractions - 1 && base) {
           // no abstraction closes its loop: use the induction
           changed = precision.withK(precision.k() + 1).withInduction(true);

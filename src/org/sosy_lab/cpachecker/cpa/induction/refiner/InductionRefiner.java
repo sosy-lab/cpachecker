@@ -68,6 +68,8 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -379,6 +381,29 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     } catch (CPATransferException | IllegalArgumentException e) {
       logger.logDebugException(e, "Could not create the error path from the model");
       return null;
+    }
+  }
+
+  /**
+   * Whether the given path to the target is feasible when it is encoded from the start of the
+   * program. Only if an induction step on the path forgot the memory model, this can differ from
+   * its concrete path formula.
+   */
+  protected boolean isFeasibleFromStart(ARGState pTarget, ARGPath pPath)
+      throws CPAException, InterruptedException {
+    if (!from(abstractionChain(pTarget))
+        .anyMatch(s -> inductionStateOf(s).forgetsPointerTargets())) {
+      return true;
+    }
+    PathFormulaManager pathFormulaManager = predicateCpa.getPathFormulaManager();
+    PathFormula pathFormula = pathFormulaManager.makeEmptyPathFormula();
+    for (CFAEdge edge : pPath.getFullPath()) {
+      pathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
+    }
+    try {
+      return !solver.isUnsat(pathFormula.getFormula());
+    } catch (SolverException e) {
+      throw new CPAException("Solver failure while replaying a counterexample", e);
     }
   }
 
