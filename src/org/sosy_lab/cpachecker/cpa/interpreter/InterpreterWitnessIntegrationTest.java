@@ -170,7 +170,11 @@ public class InterpreterWitnessIntegrationTest {
 
   @Test
   public void exceedingTheLimitDropsTheWholeInvariant() throws Exception {
-    run(config("interpreter").setOption("cpa.interpreter.maxAssignmentsPerLocation", "2"), PROGRAM)
+    run(
+            config("interpreter")
+                .setOption("cpa.interpreter.maxAssignmentsPerLocation", "2")
+                .setOption("witness.yamlexporter.witnessVersions", "V2"),
+            PROGRAM)
         .assertIsSafe();
     String yaml = Files.readString(output("proof-2.0.yml"));
     assertThat(yaml).doesNotContain("loop_invariant");
