@@ -15,6 +15,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -37,13 +38,17 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -129,6 +134,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
+  private static final String THREAD_MUTEX_INIT = "pthread_mutex_init";
+  private static final String THREAD_MUTEXATTR_SETTYPE = "pthread_mutexattr_settype";
+  // value of PTHREAD_MUTEX_RECURSIVE in glibc
+  private static final BigInteger PTHREAD_MUTEX_RECURSIVE = BigInteger.ONE;
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
@@ -281,6 +290,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
               }
               case THREAD_MUTEX_UNLOCK -> {
                 return removeLock(activeThread, extractLockId(statement), results);
+              }
+              case THREAD_MUTEXATTR_SETTYPE -> {
+                return setMutexAttributeType(statement, results);
+              }
+              case THREAD_MUTEX_INIT -> {
+                return initMutex(threadingState, statement, results);
               }
               case THREAD_JOIN -> {
                 return joinThread(threadingState, statement, results);
@@ -631,6 +646,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final String activeThread,
       String lockId,
       final Collection<ThreadingState> results) {
+    if (threadingState.hasLock(activeThread, lockId) && threadingState.isRecursiveMutex(lockId)) {
+      return transform(results, ts -> ts.increaseRecursiveLockAndCopy(activeThread, lockId));
+    }
     if (threadingState.hasLock(lockId)) {
       // some thread (including activeThread) has the lock, using it twice is not possible
       return ImmutableSet.of();
@@ -680,6 +698,71 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     String lockId = cUnaryExpression.getOperand().toString();
     return lockId;
+  }
+
+  /** Tracks whether the mutex attribute has the type PTHREAD_MUTEX_RECURSIVE. */
+  private static Collection<ThreadingState> setMutexAttributeType(
+      final AStatement statement, final Collection<ThreadingState> results)
+      throws UnrecognizedCodeException {
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    boolean recursive = isRecursiveMutexType(params.get(1));
+    Optional<String> attribute = getMutexAttributeId(params.get(0));
+    if (attribute.isEmpty()) {
+      if (recursive) {
+        throw new UnrecognizedCodeException("unsupported mutex attribute", params.get(0));
+      }
+      return results;
+    }
+    return transform(
+        results, ts -> ts.setRecursiveMutexAttributeAndCopy(attribute.orElseThrow(), recursive));
+  }
+
+  /** Tracks whether the mutex is initialized with an attribute of type PTHREAD_MUTEX_RECURSIVE. */
+  private static Collection<ThreadingState> initMutex(
+      final ThreadingState threadingState,
+      final AStatement statement,
+      final Collection<ThreadingState> results)
+      throws UnrecognizedCodeException {
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    if (getMutexAttributeId(params.get(1))
+        .filter(threadingState::isRecursiveMutexAttribute)
+        .isPresent()) {
+      String lockId = extractLockId(statement);
+      return transform(results, ts -> ts.setRecursiveMutexAndCopy(lockId, true));
+    }
+    if (params.get(0) instanceof CUnaryExpression mutex) {
+      // same lock-id as in extractLockId
+      String lockId = mutex.getOperand().toString();
+      return transform(results, ts -> ts.setRecursiveMutexAndCopy(lockId, false));
+    }
+    return results;
+  }
+
+  private static Optional<String> getMutexAttributeId(AExpression pAttribute) {
+    if (pAttribute instanceof CUnaryExpression unary
+        && unary.getOperator() == UnaryOperator.AMPER
+        && unary.getOperand() instanceof CIdExpression attribute
+        && attribute.getDeclaration() != null) {
+      return Optional.of(attribute.getDeclaration().getQualifiedName());
+    }
+    return Optional.empty();
+  }
+
+  private static boolean isRecursiveMutexType(AExpression pType) {
+    AExpression type = pType;
+    while (type instanceof CCastExpression cast) {
+      type = cast.getOperand();
+    }
+    BigInteger value =
+        switch (type) {
+          case CIdExpression id when id.getDeclaration() instanceof CEnumerator enumerator ->
+              enumerator.getValue();
+          case CIntegerLiteralExpression literal -> literal.getValue();
+          default -> null;
+        };
+    return PTHREAD_MUTEX_RECURSIVE.equals(value);
   }
 
   private Collection<ThreadingState> removeLock(

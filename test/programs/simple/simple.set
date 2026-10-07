@@ -24,5 +24,6 @@ witness_output/*.yml
 type_tests/*.yml
 pointer_arithmetics/*.yml
 function_pointers/*.yml
+verifier-nondet-memory-sanity/*.yml
 mathFunctions/*.yml
 memset/*.yml

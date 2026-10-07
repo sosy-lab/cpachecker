@@ -536,8 +536,8 @@ public record MPORSubstitutionBuilder(
         pOriginal.getCStorageClass(),
         pOriginal.getType(),
         pName,
-        pOriginal.getOrigName(),
-        pOriginal.getQualifiedName(),
+        pName,
+        pName,
         pOriginal.getInitializer());
   }
 

@@ -26,8 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -40,15 +38,16 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
@@ -72,7 +71,8 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.CounterexampleToSvLibWitn
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
-import org.xml.sax.SAXException;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedCounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -125,7 +125,6 @@ public class CEXExporter {
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
-  private final Specification specification;
 
   public CEXExporter(
       Configuration config,
@@ -138,7 +137,6 @@ public class CEXExporter {
       ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
-    specification = pSpecification;
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
@@ -162,7 +160,11 @@ public class CEXExporter {
       testExporter = new TestCaseExporter(pCFA, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
       if (options.getYamlWitnessPathTemplate() != null) {
-        cexToWitness = new CounterexampleToWitness(config, pCFA, pSpecification, pLogger);
+        // Counterexamples to termination are exported as non-termination witnesses
+        cexToWitness =
+            pSpecification.getProperties().contains(CommonVerificationProperty.TERMINATION)
+                ? new NonterminationCounterexampleToWitness(config, pCFA, pSpecification, pLogger)
+                : createCexToWitness(config, pCFA, pSpecification, pLogger);
       } else {
         cexToWitness = null;
       }
@@ -173,6 +175,26 @@ public class CEXExporter {
       faultExporter = null;
       cexToWitness = null;
     }
+  }
+
+  /**
+   * Returns the exporter for the analyzed CFA. A CFA created by sequentializing a concurrent
+   * program needs one that maps the counterexample back to the input program first.
+   */
+  private static CounterexampleToWitness createCexToWitness(
+      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      throws InvalidConfigurationException {
+
+    if (pCfa.getMetadata().getTransformation() instanceof MporSequentialization sequentialization
+        && sequentialization.mapping().isPresent()) {
+      return new SequentializedCounterexampleToWitness(
+          pConfig,
+          sequentialization.originalCfa(),
+          sequentialization.mapping().orElseThrow(),
+          pSpecification,
+          pLogger);
+    }
+    return new CounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
   }
 
   /** See {@link #exportCounterexample(ARGState, CounterexampleInfo)}. */
@@ -348,33 +370,13 @@ public class CEXExporter {
       if (options.getWitnessFile() != null
           || options.getWitnessDotFile() != null
           || options.getYamlWitnessPathTemplate() != null) {
-        CfaTransformationMetadata transformationMetadata =
-            cfa.getMetadata().getTransformationMetadata();
-        if (transformationMetadata != null
-            && transformationMetadata
-                .transformation()
-                .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
+        ProgramTransformation transformation = cfa.getMetadata().getTransformation();
+        if (transformation != null) {
           logger.log(
-              Level.INFO,
-              "The program analyzed by sequentializing the original program and verifying the"
-                  + " sequentialized version. Currently there is no way to map the result for the"
-                  + " sequentialized program back to the original program, therefore no witness"
-                  + " will be exported.");
-          try {
-            String witnessString =
-                SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
-                    transformationMetadata.originalCfa(), specification);
-            writeErrorPathFile(options.getWitnessFile(), uniqueId, witnessString, compressWitness);
-          } catch (ParserConfigurationException
-              | IOException
-              | SAXException
-              | TransformerException e) {
-            logger.logUserException(
-                Level.WARNING, e, "Could not export default witness for sequentialized program");
-          }
-
+              Level.WARNING,
+              "Cannot export GraphML witness for sequentialized programs, skipping witness"
+                  + " export.");
         } else {
-
           try {
             final Witness witness =
                 witnessExporter.generateErrorWitness(
@@ -391,25 +393,24 @@ public class CEXExporter {
                 uniqueId,
                 (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
                 compressWitness);
-            if (cfa.getMetadata().getInputLanguage() == Language.C) {
-              if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
-                try {
-                  cexToWitness.export(
-                      counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-                } catch (IOException e) {
-                  logger.logUserException(
-                      Level.WARNING, e, "Could not generate YAML violation witness.");
-                }
-              }
-            } else {
-              logger.log(
-                  Level.WARNING,
-                  "Cannot export violation witness to YAML format for languages other than C.");
-            }
 
           } catch (InterruptedException e) {
             logger.logUserException(
                 Level.WARNING, e, "Could not export witness due to interruption");
+          }
+        }
+
+        // the YAML witness is exported the same way for a transformed and an untransformed
+        // program, the exporter of a transformed one maps the counterexample back first
+        if (cfa.getMetadata().getInputLanguage() != Language.C) {
+          logger.log(
+              Level.WARNING,
+              "Cannot export violation witness to YAML format for languages other than C.");
+        } else if (cexToWitness != null) {
+          try {
+            cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
           }
         }
       }
