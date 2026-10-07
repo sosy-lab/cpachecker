@@ -174,6 +174,15 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
           LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
         return new DoublingLoopIterationAdjuster(pPrecisionAdjustment);
       }
+    },
+
+    FIBONACCI {
+
+      @Override
+      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(
+          LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
+        return new FibonacciLoopIterationAdjuster(pPrecisionAdjustment);
+      }
     }
   }
 
@@ -228,6 +237,41 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     public boolean canAdjust(int pCurrentValue) {
       return precisionAdjustment.maxLoopIterationsUpperBound <= 0
           || pCurrentValue * 2 <= precisionAdjustment.maxLoopIterationsUpperBound;
+    }
+  }
+
+  /**
+   * Adjusts the bound along the Fibonacci sequence (1, 2, 3, 5, 8, 13, ...), i.e., it grows slower
+   * than {@link DoublingLoopIterationAdjuster} but faster than {@link
+   * IncrementalLoopIterationAdjuster}.
+   */
+  private static final class FibonacciLoopIterationAdjuster implements MaxLoopIterationAdjuster {
+
+    private final LoopBoundPrecisionAdjustment precisionAdjustment;
+
+    FibonacciLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
+      precisionAdjustment = pPrecisionAdjustment;
+    }
+
+    @Override
+    public int adjust(int pCurrentValue) {
+      // The smallest Fibonacci number greater than the current bound. Adjusters are stateless, so
+      // the sequence is recomputed instead of being carried along.
+      int previous = 1;
+      int current = 2;
+      while (current <= pCurrentValue && current > 0) {
+        int next = previous + current;
+        previous = current;
+        current = next;
+      }
+      // Guard against the overflow that the addition above would cause for absurdly large bounds.
+      return current > 0 ? current : Integer.MAX_VALUE;
+    }
+
+    @Override
+    public boolean canAdjust(int pCurrentValue) {
+      return precisionAdjustment.maxLoopIterationsUpperBound <= 0
+          || adjust(pCurrentValue) <= precisionAdjustment.maxLoopIterationsUpperBound;
     }
   }
 

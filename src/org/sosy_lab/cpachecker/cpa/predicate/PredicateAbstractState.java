@@ -16,12 +16,14 @@ import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -190,20 +192,19 @@ public abstract sealed class PredicateAbstractState
         throws InterruptedException,
             ReportingMethodNotImplementedException,
             TranslationToExpressionTreeFailedException {
+      FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+          ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
       return super.abstractionFormula.asExpressionTree(
           name ->
               (!name.contains(FUNCTION_DELIMITER)
                       || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
-                  && pAstCfaRelation
-                      .getVariablesAndParametersInScope(pLocation)
-                      .orElseThrow()
-                      .anyMatch(
-                          var ->
-                              // For local variables
-                              (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
-                                      .equals(name)
-                                  // For global variables
-                                  || var.getName().equals(name))
+                  && variablesInScope.anyMatch(
+                      var ->
+                          // For local variables
+                          (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
+                                  .equals(name)
+                              // For global variables
+                              || var.getName().equals(name))
                   && !name.contains("__CPAchecker_"),
           name -> useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name,
           pMachineModel);

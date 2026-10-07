@@ -162,8 +162,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
             ImmutableSet.builder();
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
-            collectInductiveTransitionInvariants(
-                terminationState, summarizedIterationFormula, location);
+            collectInductiveTransitionInvariants(terminationState, summarizedIterationFormula, location);
+        // The result if no fix-point is reached, with the inductive transition invariants
+        PrecisionAdjustmentResult noFixPointResult =
+            withTransitionInvariants(
+                result,
+                terminationState,
+                getTransitionInvariantsWithoutFixPoint(builderTransitionInvariants.build()));
 
         // If the BMC queries are UNSAT, we try to compute transition invariant
         // We strengthen the transition invariant with the prefix formula
@@ -181,7 +186,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   prefixPathFormula,
                   terminationState,
                   location,
-                  result);
+                  result,
+                  noFixPointResult);
           if (lassoResult.isPresent()) {
             return lassoResult;
           }
@@ -220,7 +226,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   latestSameStateFormula,
                   callstackState);
           if (newCandidateTransInv.isEmpty()) {
-            return Optional.of(result);
+            return Optional.of(noFixPointResult);
           }
           candidateTransInv = newCandidateTransInv.orElseThrow();
           isOverapproximating = true;
@@ -255,10 +261,47 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   /**
+   * Returns the transition invariants of the state if no fix-point is reached, i.e., if the
+   * candidate transition invariant is too coarse or does not make progress.
+   *
+   * @param pInductiveTransitionInvariants the transition predicates that are inductive transition
+   *     invariants for the current iteration of the loop
+   */
+  protected ImmutableSet<PartitionedRelationFormula> getTransitionInvariantsWithoutFixPoint(
+      ImmutableSet<PartitionedRelationFormula> pInductiveTransitionInvariants) {
+    return pInductiveTransitionInvariants;
+  }
+
+  /**
+   * Returns the result with a termination state that has the given transition invariants and the
+   * transition predicates of the given termination state.
+   */
+  private PrecisionAdjustmentResult withTransitionInvariants(
+      PrecisionAdjustmentResult pResult,
+      TerminationToReachState pTerminationState,
+      ImmutableSet<PartitionedRelationFormula> pTransitionInvariants) {
+    if (pTransitionInvariants.isEmpty()) {
+      return pResult;
+    }
+    return pResult.withAbstractState(
+        new TerminationToReachState(
+            pTerminationState.getStoredValues(),
+            pTerminationState.getNumberOfIterations(),
+            pTerminationState.getPathFormulasForIteration(),
+            pTerminationState.getPathFormulasForPrefix(),
+            pTerminationState.getPathFormulaFull(),
+            pTerminationState.getPathSequence(),
+            pTransitionInvariants,
+            pTerminationState.getTransitionPredicates()));
+  }
+
+  /**
    * Checks whether there is a lasso in the current unrolling of the loop. If a sound lasso is found
    * without overapproximation, the returned result contains a target state that reports the
    * non-terminating loop.
    *
+   * @param noFixPointResult the result if a lasso was found in the overapproximation or the solver
+   *     failed
    * @return the result of the precision adjustment if the analysis of the current state is
    *     finished, i.e., a lasso was found, a lasso was found in the overapproximation, or the
    *     solver failed. Otherwise, Optional.empty() is returned and the search for a transition
@@ -273,7 +316,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PathFormula prefixPathFormula,
       TerminationToReachState terminationState,
       CFANode location,
-      PrecisionAdjustmentResult result)
+      PrecisionAdjustmentResult result,
+      PrecisionAdjustmentResult noFixPointResult)
       throws InterruptedException {
     try {
       Optional<Integer> numberOfUnrollingsForLasso =
@@ -295,12 +339,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           return Optional.of(lassoResult.withAbstractState(cycleState));
         }
         if (isOverapproximating) {
-          return Optional.of(result);
+          return Optional.of(noFixPointResult);
         }
       }
     } catch (SolverException e) {
       logger.logDebugException(e);
-      return Optional.of(result);
+      return Optional.of(noFixPointResult);
     }
     return Optional.empty();
   }
