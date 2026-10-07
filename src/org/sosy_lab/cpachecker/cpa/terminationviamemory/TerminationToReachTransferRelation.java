@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState.LoopHeadVisit;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -63,6 +64,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
             terminationState.getPathFormulaSinceLastVisit(),
             terminationState.getPathFormulaFull(),
             Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
+            terminationState.getLoopHeadVisits(),
             ImmutableSet.of(),
             terminationState.getTransitionPredicates());
     return ImmutableList.of(newState);
@@ -166,6 +168,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newSinceLastVisit.buildOrThrow(),
               Optional.of(newFullFormula),
               terminationState.getPathSequence(),
+              Collections3.listAndElement(
+                  terminationState.getLoopHeadVisits(),
+                  new LoopHeadVisit(
+                      pairKey,
+                      terminationState.getPathSequence().size() - 1,
+                      block,
+                      ImmutableSet.of())),
               ImmutableSet.of(),
               terminationState.getTransitionPredicates());
       return ImmutableList.of(newState);

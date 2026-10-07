@@ -26,8 +26,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--terminationToSafety"/>
   </rundefinition>
 
-  <tasks name="C.termination.NestedLoops">
-    <includesfile>../programs/termination-nested/termination-nested.set</includesfile>
+  <tasks name="C.termination.simple">
+    <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/termination.prp</propertyfile>
   </tasks>
   <tasks name="C.termination.BitVectors">

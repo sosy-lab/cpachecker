@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState.LoopHeadVisit;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -66,6 +68,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final CFA cfa;
   private final LogManager logger;
   private final ImmutableSet<Loop> allLoops;
+  private final NestedLoopSummarizer nestedLoopSummarizer;
 
   @Option(
       secure = true,
@@ -97,6 +100,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
       InterpolationManager pItpMgr,
       Configuration pConfiguration,
       ImmutableSet<Loop> pAllLoops)
@@ -110,6 +114,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     logger = plogger;
     itpMgr = pItpMgr;
     allLoops = pAllLoops;
+    nestedLoopSummarizer = new NestedLoopSummarizer(pFmgr, pBfmgr, pPfmgr, pCFA);
   }
 
   @Override
@@ -138,9 +143,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         SSAMap largestIndices =
             terminationState.getPathFormulasForIteration().get(keyPair).getSsa();
 
+        // The concrete last iteration is used to search for a lasso and to compute the first
+        // interpolant, the iteration with overapproximated nested loops for transition invariants
         PartitionedRelationFormula iterationFormula =
             new PartitionedRelationFormula(
                 terminationState.getPathFormulasForIteration().get(keyPair).getFormula(), fmgr);
+        PartitionedRelationFormula summarizedIterationFormula =
+            new PartitionedRelationFormula(
+                nestedLoopSummarizer.summarizeLastIteration(terminationState, keyPair), fmgr);
         ImmutableList<BooleanFormula> sameStateFormulas =
             buildComparingFormulas(
                 terminationState.getStoredValues().get(keyPair),
@@ -151,7 +161,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
             ImmutableSet.builder();
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
-            collectInductiveTransitionInvariants(terminationState, iterationFormula, location);
+            collectInductiveTransitionInvariants(
+                terminationState, summarizedIterationFormula, location);
 
         // If the BMC queries are UNSAT, we try to compute transition invariant
         // We strengthen the transition invariant with the prefix formula
@@ -165,6 +176,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   isOverapproximating,
                   candidateTransInv,
                   iterationFormula,
+                  summarizedIterationFormula,
                   prefixPathFormula,
                   terminationState,
                   location,
@@ -188,7 +200,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               checkFixPoint(
                   isOverapproximating,
                   candidateTransInv,
-                  iterationFormula,
+                  summarizedIterationFormula,
                   location,
                   terminationState,
                   builderTransitionPredicates,
@@ -202,7 +214,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               computeNextCandidateTransitionInvariant(
                   isOverapproximating,
                   candidateTransInv,
-                  iterationFormula,
+                  isOverapproximating ? summarizedIterationFormula : iterationFormula,
                   prefixPathFormula,
                   latestSameStateFormula,
                   callstackState);
@@ -256,6 +268,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       boolean isOverapproximating,
       PartitionedRelationFormula candidateTransInv,
       PartitionedRelationFormula iterationFormula,
+      PartitionedRelationFormula summarizedIterationFormula,
       PathFormula prefixPathFormula,
       TerminationToReachState terminationState,
       CFANode location,
@@ -267,7 +280,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               sameStateFormulas,
               isOverapproximating,
               isOverapproximating ? Optional.of(candidateTransInv) : Optional.empty(),
-              iterationFormula,
+              isOverapproximating ? summarizedIterationFormula : iterationFormula,
               prefixPathFormula);
       if (numberOfUnrollingsForLasso.isPresent()) {
         if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
@@ -326,11 +339,22 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               terminationState.getPathFormulaSinceLastVisit(),
               terminationState.getPathFormulaFull(),
               terminationState.getPathSequence(),
+              withTransitionInvariantsAtLastVisit(
+                  terminationState.getLoopHeadVisits(), builderTransitionInvariants.build()),
               builderTransitionInvariants.build(),
               builderTransitionPredicates.build());
       return Optional.of(result.withAbstractState(newTerminationState));
     }
     return Optional.empty();
+  }
+
+  private static ImmutableList<LoopHeadVisit> withTransitionInvariantsAtLastVisit(
+      ImmutableList<LoopHeadVisit> pVisits,
+      ImmutableSet<PartitionedRelationFormula> pTransitionInvariants) {
+    return ImmutableList.<LoopHeadVisit>builder()
+        .addAll(pVisits.subList(0, pVisits.size() - 1))
+        .add(pVisits.getLast().withTransitionInvariants(pTransitionInvariants))
+        .build();
   }
 
   /**

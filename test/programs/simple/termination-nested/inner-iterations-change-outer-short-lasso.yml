@@ -8,11 +8,11 @@
 
 format_version: '2.0'
 
-input_files: 'inner-bound-by-outer.c'
+input_files: 'inner-iterations-change-outer-short-lasso.c'
 
 properties:
-  - property_file: ../../config/properties/termination.prp
-    expected_verdict: true
+  - property_file: ../../../config/properties/termination.prp
+    expected_verdict: false
 
 options:
   language: C

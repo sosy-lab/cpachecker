@@ -96,6 +96,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   private final Optional<PathFormula> pathFormulaFull;
   private final ImmutableList<CFANode> pathSequence;
+
+  /** The visits of loop heads on the path to this abstract state, in the order of the path. */
+  private final ImmutableList<LoopHeadVisit> loopHeadVisits;
+
   private final int numberOfTargetStateVisitsBeforeInfiniteLoop;
 
   public TerminationToReachState(
@@ -109,6 +113,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaSinceLastVisit,
       Optional<PathFormula> pPathFormulaFull,
       ImmutableList<CFANode> pPathSequence,
+      ImmutableList<LoopHeadVisit> pLoopHeadVisits,
       ImmutableSet<PartitionedRelationFormula> pTransitionInvariants,
       ImmutableSet<PartitionedRelationFormula> pAvailableTransitionPredicates) {
 
@@ -120,6 +125,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaSinceLastVisit = pPathFormulaSinceLastVisit;
     pathFormulaFull = pPathFormulaFull;
     pathSequence = pPathSequence;
+    loopHeadVisits = pLoopHeadVisits;
     isTarget = false;
     transitionInvariants = pTransitionInvariants;
     transitionPredicates = pAvailableTransitionPredicates;
@@ -135,6 +141,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaSinceLastVisit = ImmutableMap.of();
     pathFormulaFull = Optional.empty();
     pathSequence = ImmutableList.of();
+    loopHeadVisits = ImmutableList.of();
     isTarget = false;
     transitionInvariants = ImmutableSet.of();
     transitionPredicates = ImmutableSet.of();
@@ -184,6 +191,30 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   // TODO: use PersistentStack for pathSequence
   public ImmutableList<CFANode> getPathSequence() {
     return pathSequence;
+  }
+
+  public ImmutableList<LoopHeadVisit> getLoopHeadVisits() {
+    return loopHeadVisits;
+  }
+
+  /**
+   * A visit of a loop head on the path to an abstract state.
+   *
+   * @param loopHead the location and call stack of the loop head
+   * @param pathIndex the position of the loop head in the path sequence
+   * @param block the path formula from the previous visit of any loop head to this visit
+   * @param transitionInvariants the transition invariants of the abstract state of this visit
+   */
+  public record LoopHeadVisit(
+      Pair<LocationState, CallstackState> loopHead,
+      int pathIndex,
+      PathFormula block,
+      ImmutableSet<PartitionedRelationFormula> transitionInvariants) {
+
+    LoopHeadVisit withTransitionInvariants(
+        ImmutableSet<PartitionedRelationFormula> pTransitionInvariants) {
+      return new LoopHeadVisit(loopHead, pathIndex, block, pTransitionInvariants);
+    }
   }
 
   public void makeTarget() {

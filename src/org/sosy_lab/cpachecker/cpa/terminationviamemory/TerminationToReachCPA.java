@@ -78,7 +78,11 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       CFA pCFA,
       Specification pSpecification)
       throws InvalidConfigurationException {
-    super("sep", "sep", new TerminationToReachAbstractDomain(), null);
+    super(
+        "sep",
+        "sep",
+        new TerminationToReachAbstractDomain(pCFA.getLoopStructure().orElseThrow()),
+        null);
     pConfiguration.inject(this);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA, this);
     cfa = pCFA;
@@ -134,6 +138,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
                 cfa,
                 bfmgr,
                 fmgr,
+                pfmgr,
                 itpMgr,
                 configuration,
                 possiblyNonTerminatingLoops);
@@ -160,6 +165,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         ImmutableMap.of(),
         Optional.empty(),
+        ImmutableList.of(),
         ImmutableList.of(),
         ImmutableSet.of(),
         ImmutableSet.of());
