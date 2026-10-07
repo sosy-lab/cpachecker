@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -27,10 +28,18 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
@@ -105,13 +114,18 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
     AcslType acslType = getAcslType(f);
 
     if (fmgr.getFormulaType(f).isBooleanType()) {
-      // scope von Program übergeben getScope mit dem CFA
-      // TODO AcslPredicateDeclaration declaration = ...
-      throw new UnsupportedOperationException(
-          "TODO: construct AcslPredicateDeclaration for " + variableName);
+      AcslPredicateDeclaration declaration =
+          new AcslPredicateDeclaration(
+              DUMMY_LOC,
+              new AcslPredicateType(ImmutableList.of(), false),
+              variableName,
+              variableName,
+              ImmutableList.of(),
+              ImmutableList.of());
+
+      cache.put(f, new AcslIdPredicate(DUMMY_LOC, declaration));
     } else {
       AcslSimpleDeclaration declaration =
-          // TODO what do I use here? Is this fine?
           new AcslVariableDeclaration(DUMMY_LOC, false, acslType, variableName, variableName, name);
 
       cache.put(f, new AcslIdTerm(DUMMY_LOC, declaration));
@@ -330,9 +344,51 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
       case "_~_" ->
           throw new UnsupportedOperationException(
               "Bitwise complement is not currently an option in ACSL see Issue 1640");
-      default ->
-          throw new UnsupportedOperationException(
-              "TODO: translate UF " + declaration.getName() + " to an Acsl Function Call");
+      default -> {
+        ImmutableList<AcslType> parameterTypes =
+            args.stream().map(this::getAcslType).collect(ImmutableList.toImmutableList());
+
+        ImmutableList.Builder<AcslParameterDeclaration> parameterBuilder = ImmutableList.builder();
+        for (int i = 0; i < parameterTypes.size(); i++) {
+          parameterBuilder.add(
+              new AcslParameterDeclaration(DUMMY_LOC, parameterTypes.get(i), "param" + i));
+        }
+        ImmutableList<AcslParameterDeclaration> parameters = parameterBuilder.build();
+
+        // TODO, what if it is a predicate, not a term (for now lets hope this is not the case)
+        ImmutableList<AcslTerm> argumentTerms =
+            args.stream().map(this::getTerm).collect(ImmutableList.toImmutableList());
+
+        AcslType returnType = getAcslType(declaration.getType());
+
+        if (fmgr.getFormulaType(f).isBooleanType()) { // Predicate
+          AcslPredicateDeclaration predicateDeclaration =
+              new AcslPredicateDeclaration(
+                  DUMMY_LOC,
+                  new AcslPredicateType(parameterTypes, false),
+                  declaration.getName(),
+                  declaration.getName(),
+                  ImmutableList.of(),
+                  parameters);
+
+          yield new AcslPredicateApplicationPredicate(
+              DUMMY_LOC, predicateDeclaration, argumentTerms);
+        } else { // Function
+          AcslFunctionDeclaration functionDeclaration =
+              new AcslFunctionDeclaration(
+                  DUMMY_LOC,
+                  new AcslFunctionType(returnType, parameterTypes, false),
+                  declaration.getName(),
+                  declaration.getName(),
+                  ImmutableList.of(),
+                  parameters);
+
+          AcslIdTerm functionName = new AcslIdTerm(DUMMY_LOC, functionDeclaration);
+
+          yield new AcslFunctionCallTerm(
+              DUMMY_LOC, returnType, functionName, argumentTerms, functionDeclaration);
+        }
+      }
     };
   }
 
