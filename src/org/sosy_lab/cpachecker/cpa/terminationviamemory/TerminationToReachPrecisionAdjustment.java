@@ -162,7 +162,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
             ImmutableSet.builder();
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
-            collectInductiveTransitionInvariants(terminationState, summarizedIterationFormula, location);
+            collectInductiveTransitionInvariants(
+                terminationState, summarizedIterationFormula, location);
         // The result if no fix-point is reached, with the inductive transition invariants
         PrecisionAdjustmentResult noFixPointResult =
             withTransitionInvariants(
