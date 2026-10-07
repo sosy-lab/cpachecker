@@ -482,11 +482,8 @@ public class ARGStatistics implements Statistics {
           if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
               if (sequentializedArgToWitnessWriter != null) {
-                logger.log(
-                    Level.WARNING,
-                    "Cannot export correctness witness in YAML format for sequentialized "
-                        + "C programs yet. Exporting trivial witness for it.");
-                sequentializedArgToWitnessWriter.export(yamlWitnessOutputFileTemplate);
+                sequentializedArgToWitnessWriter.export(
+                    rootState, pReached, yamlWitnessOutputFileTemplate);
               } else {
                 argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
               }
