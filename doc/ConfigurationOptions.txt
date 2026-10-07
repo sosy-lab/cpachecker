@@ -703,11 +703,14 @@ analysis.programNames = []
 # LOCATIONMAPPED: a different set per location (faster, states with different
 # locations cannot be merged)
 # PARTITIONED: partitioning depending on CPAs (e.g. Location, Callstack etc.)
+# INDUCTIONPARTITIONED: partitioning by location, call chain and deepest loop
+# iteration; intended for the induction step case of k-induction
 # PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the
 # states' lattice (maybe faster for some special analyses which use merge_sep
 # and stop_sep
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED,
+             INDUCTIONPARTITIONED, USAGE]
 
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
@@ -2438,6 +2441,20 @@ cpa.loopbound.checkOnlyAtBounds = []
 # deactivate this feature.
 cpa.loopbound.cyclicStopModulus = -1
 
+# Which abstract domain to use for the loop-bound CPA.
+# FLAT (the default) considers two states comparable only if their whole
+# per-loop iteration vectors are equal.
+# DEEPEST_ITERATION considers them comparable as soon as their deepest loop
+# iteration is equal, which lets states that merely visited a different set
+# of loops be merged and cover each other. This is much coarser and is
+# intended for analyses that only inspect the deepest iteration, such as the
+# induction step case of k-induction. It is NOT sound for analyses that read
+# back the per-loop iteration counts of individual states, in particular
+# k-induction with candidate invariants for specific program locations (cf.
+# BMCHelper.filterBmcCheckedWithin).
+cpa.loopbound.domain = "FLAT"
+  allowed values: [FLAT, DEEPEST_ITERATION]
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -2445,7 +2462,7 @@ cpa.loopbound.loopIterationsBeforeAbstraction = 0
 # This option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
-  enum:     [STATIC, INCREMENT, DOUBLE]
+  enum:     [STATIC, INCREMENT, DOUBLE, FIBONACCI]
 
 # Bound for the number of complete loop unrollings
 # of the program (0 is used for no bound).
