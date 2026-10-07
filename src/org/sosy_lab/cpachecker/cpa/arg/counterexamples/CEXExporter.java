@@ -368,7 +368,7 @@ public class CEXExporter {
         if (transformation != null) {
           logger.log(
               Level.WARNING,
-              "Cannot export GraphML witness for sequentialized programs, skipping witness"
+              "Cannot export GraphML witness for transformed programs, skipping witness"
                   + " export.");
         } else {
           try {
