@@ -12,6 +12,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractARGToCorrectnessWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
 /**
@@ -29,6 +31,18 @@ public interface ProgramTransformation {
 
   /** Returns the CFA of the program that this transformation was applied to. */
   CFA originalCfa();
+
+  /**
+   * Returns an instance of {@link AbstractARGToCorrectnessWitness}, which may be a subclass for
+   * this specific {@link ProgramTransformation}.
+   */
+  AbstractARGToCorrectnessWitness createARGToCorrectnessWitness(
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      RelevantArgStatesCollector pArgStatesCollector)
+      throws InvalidConfigurationException;
 
   /**
    * Returns an instance of {@link CounterexampleToWitness}, which may be a subclass for this
