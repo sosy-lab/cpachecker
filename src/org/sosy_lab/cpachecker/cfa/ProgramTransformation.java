@@ -21,6 +21,12 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
  */
 public interface ProgramTransformation {
 
+  /**
+   * Whether this {@link ProgramTransformation} was successful. A transformation may not be
+   * successful, e.g., for unsupported code.
+   */
+  boolean isSuccessful();
+
   /** Returns the CFA of the program that this transformation was applied to. */
   CFA originalCfa();
 

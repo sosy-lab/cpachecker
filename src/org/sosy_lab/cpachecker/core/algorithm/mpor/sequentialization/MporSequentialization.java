@@ -30,13 +30,18 @@ public record MporSequentialization(CFA originalCfa, Optional<SequentializationM
     implements ProgramTransformation {
 
   @Override
+  public boolean isSuccessful() {
+    // The mapping is empty when the sequentialization fails.
+    return mapping.isPresent();
+  }
+
+  @Override
   public CounterexampleToWitness createCounterexampleToWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
 
-    // The mapping can be empty when the sequentialization fails.
-    // In this case we fall back to the default counterexample.
-    if (mapping.isPresent()) {
+    // If the transformation is unsuccessful, we fall back to the default counterexample.
+    if (isSuccessful()) {
       return new SequentializedCounterexampleToWitness(
           pConfig, pCfa, mapping.orElseThrow(), pSpecification, pLogger);
     } else {
