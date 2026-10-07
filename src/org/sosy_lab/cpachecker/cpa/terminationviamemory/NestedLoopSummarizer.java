@@ -139,7 +139,7 @@ class NestedLoopSummarizer {
    * to the state after these iterations.
    */
   private BooleanFormula summarizeFurtherIterations(LoopHeadVisit pVisit, BooleanFormula pSuffix)
-      throws CPATransferException, InterruptedException {
+      throws InterruptedException {
     SSAMap entry = pVisit.block().getSsa();
     ImmutableSet<String> modified =
         getModifiedVariables(pVisit.loopHead().getFirst().getLocationNode(), pVisit.block())
