@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -80,6 +81,9 @@ public class ThreadingState
   // String :: lock-id  -->  String :: thread-id
   private final PersistentMap<String, String> locks;
 
+  // String :: lock-id of a held recursive mutex  -->  Integer :: how often its holder acquired it
+  private final PersistentMap<String, Integer> recursiveLockCounts;
+
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
    * should only be set in {@link ThreadingTransferRelation#getAbstractSuccessorsForEdge} and must
@@ -115,6 +119,7 @@ public class ThreadingState
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
+    recursiveLockCounts = PathCopyingPersistentTreeMap.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -123,27 +128,33 @@ public class ThreadingState
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
+      PersistentMap<String, Integer> pRecursiveLockCounts,
       String pActiveThread,
       FunctionCallEdge entryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness) {
     threads = pThreads;
     locks = pLocks;
+    recursiveLockCounts = pRecursiveLockCounts;
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
-    return new ThreadingState(pThreads, locks, activeThread, entryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        pThreads, locks, recursiveLockCounts, activeThread, entryFunction, threadIdsForWitness);
   }
 
-  private ThreadingState withLocks(PersistentMap<String, String> pLocks) {
-    return new ThreadingState(threads, pLocks, activeThread, entryFunction, threadIdsForWitness);
+  private ThreadingState withLocks(
+      PersistentMap<String, String> pLocks, PersistentMap<String, Integer> pRecursiveLockCounts) {
+    return new ThreadingState(
+        threads, pLocks, pRecursiveLockCounts, activeThread, entryFunction, threadIdsForWitness);
   }
 
   private ThreadingState withThreadIdsForWitness(
       PersistentMap<String, Integer> pThreadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, entryFunction, pThreadIdsForWitness);
+    return new ThreadingState(
+        threads, locks, recursiveLockCounts, activeThread, entryFunction, pThreadIdsForWitness);
   }
 
   public ThreadingState addThreadAndCopy(
@@ -205,7 +216,22 @@ public class ThreadingState
         "blocking non-existant thread: %s with lock: %s",
         threadId,
         lockId);
-    return withLocks(locks.putAndCopy(lockId, threadId));
+    return withLocks(locks.putAndCopy(lockId, threadId), recursiveLockCounts);
+  }
+
+  /**
+   * Acquires the recursive mutex for the thread, which must not be held by another thread, and
+   * counts how often the thread acquired it.
+   */
+  public ThreadingState addRecursiveLockAndCopy(String threadId, String lockId) {
+    checkArgument(
+        !hasLock(lockId) || hasLock(threadId, lockId),
+        "thread %s cannot acquire lock %s of another thread",
+        threadId,
+        lockId);
+    int count = recursiveLockCounts.getOrDefault(lockId, 0);
+    ThreadingState state = addLockAndCopy(threadId, lockId);
+    return state.withLocks(state.locks, recursiveLockCounts.putAndCopy(lockId, count + 1));
   }
 
   public ThreadingState removeLockAndCopy(String threadId, String lockId) {
@@ -216,7 +242,11 @@ public class ThreadingState
         "unblocking non-existant thread: %s with lock: %s",
         threadId,
         lockId);
-    return withLocks(locks.removeAndCopy(lockId));
+    int count = recursiveLockCounts.getOrDefault(lockId, 0);
+    if (count > 1 && hasLock(threadId, lockId)) {
+      return withLocks(locks, recursiveLockCounts.putAndCopy(lockId, count - 1));
+    }
+    return withLocks(locks.removeAndCopy(lockId), recursiveLockCounts.removeAndCopy(lockId));
   }
 
   /** returns whether any of the threads has the lock */
@@ -248,6 +278,11 @@ public class ThreadingState
         + "}\n and locks={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
         + "}"
+        + (recursiveLockCounts.isEmpty()
+            ? ""
+            : ("\n and recursive lock counts={"
+                + Joiner.on(", ").withKeyValueSeparator("=").join(recursiveLockCounts)
+                + "}"))
         + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
         + " \n"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadIdsForWitness)
@@ -259,13 +294,14 @@ public class ThreadingState
     return other instanceof ThreadingState ts
         && threads.equals(ts.threads)
         && locks.equals(ts.locks)
+        && recursiveLockCounts.equals(ts.recursiveLockCounts)
         && Objects.equals(activeThread, ts.activeThread)
         && threadIdsForWitness.equals(ts.threadIdsForWitness);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, locks, activeThread, threadIdsForWitness);
+    return Objects.hash(threads, locks, recursiveLockCounts, activeThread, threadIdsForWitness);
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
@@ -383,7 +419,12 @@ public class ThreadingState
   /** check, if the edge required a lock, that is already used. This might cause a deadlock. */
   private boolean needsAlreadyUsedLock(CFAEdge edge) throws UnrecognizedCodeException {
     final String newLock = getLockId(edge);
-    return newLock != null && hasLock(newLock);
+    if (newLock == null || !hasLock(newLock)) {
+      return false;
+    }
+    // the holder of a recursive mutex can acquire it again
+    return !recursiveLockCounts.containsKey(newLock)
+        || !Iterables.contains(getThreadLocation(locks.get(newLock)).getOutgoingEdges(), edge);
   }
 
   /**
@@ -464,7 +505,8 @@ public class ThreadingState
 
   /** See {@link #activeThread}. */
   public ThreadingState withActiveThread(@Nullable String pActiveThread) {
-    return new ThreadingState(threads, locks, pActiveThread, entryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        threads, locks, recursiveLockCounts, pActiveThread, entryFunction, threadIdsForWitness);
   }
 
   String getActiveThread() {
@@ -473,7 +515,8 @@ public class ThreadingState
 
   /** See {@link #entryFunction}. */
   public ThreadingState withEntryFunction(@Nullable FunctionCallEdge pEntryFunction) {
-    return new ThreadingState(threads, locks, activeThread, pEntryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        threads, locks, recursiveLockCounts, activeThread, pEntryFunction, threadIdsForWitness);
   }
 
   /** See {@link #entryFunction}. */
