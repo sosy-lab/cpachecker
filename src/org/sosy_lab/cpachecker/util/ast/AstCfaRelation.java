@@ -180,6 +180,13 @@ public final class AstCfaRelation {
     return result;
   }
 
+  /** Returns the iteration statement whose body is the given element, if there is one. */
+  public Optional<IterationElement> getIterationStructureWithBody(ASTElement pBody) {
+    return iterationStructures.stream()
+        .filter(structure -> structure.getBody().equals(pBody))
+        .findFirst();
+  }
+
   /**
    * Returns the node that starts the iteration statement at the given line and column.
    *
