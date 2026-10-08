@@ -110,6 +110,17 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
     }
   }
 
+  /**
+   * Export the given counterexample to a non-termination witness file, where the number of
+   * unrollings before the cycle is taken from the target state, see {@link
+   * #exportNonTerminationWitness(CounterexampleInfo, PathTemplate, int, OptionalInt)}.
+   */
+  @Override
+  public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
+      throws IOException {
+    exportNonTerminationWitness(pCex, pOutputFileTemplate, uniqueId, OptionalInt.empty());
+  }
+
   /** This method should not be called from this class, but only from the extending one. */
   @Override
   protected void exportWitness(
