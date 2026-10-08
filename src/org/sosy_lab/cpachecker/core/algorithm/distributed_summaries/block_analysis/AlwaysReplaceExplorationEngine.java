@@ -204,7 +204,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     analysis.statistics().getDeduplicationTimer().start();
     try {
       return new AnalysisResult(
-          analysis.deduplicateStatesAndPrecisions(summaries.build()),
+          analysis.removeCoveredStatesAndPrecisions(summaries.build()),
           violations.build(),
           unreachable);
     } finally {

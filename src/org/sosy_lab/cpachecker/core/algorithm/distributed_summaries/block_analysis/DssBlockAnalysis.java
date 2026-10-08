@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -492,6 +493,66 @@ public final class DssBlockAnalysis {
       workerStats.getCoverageTimer().stop();
     }
     return deduplicated.build();
+  }
+
+  /**
+   * Removes all states that are covered by another state of the list, i.e., the returned list
+   * contains only the maximal states of {@code pStatesAndPrecisions} with respect to {@link
+   * CoverageOperator#isSubsumed}. Of equal states, the first one is kept.
+   *
+   * <p>A set of states stands for the union of their concretizations, which a covered state does
+   * not add to. Keeping it nevertheless is not only wasted work, because every state is explored on
+   * its own: on a cycle through the block graph, a strengthened copy of a state reproduces itself
+   * around the cycle and is never dropped, so the sets keep growing with every new combination of
+   * predicates that is tracked somewhere on the cycle.
+   *
+   * <p>Like {@link #deduplicateStatesAndPrecisions}, the precision of a discarded entry is lost.
+   *
+   * @param pStatesAndPrecisions The states and precisions to reduce.
+   * @return The maximal states, in the order of {@code pStatesAndPrecisions}.
+   */
+  ImmutableList<StateAndPrecision> removeCoveredStatesAndPrecisions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    CoverageOperator coverage = dcpa.getCoverageOperator();
+    // States at different program points never cover each other (see #deduplicate).
+    ListMultimap<Object, StateAndPrecision> maximalPerProgramPoint = ArrayListMultimap.create();
+    List<StateAndPrecision> maximal = new ArrayList<>();
+    try {
+      workerStats.getCoverageTimer().start();
+      for (StateAndPrecision element : pStatesAndPrecisions) {
+        List<StateAndPrecision> candidates =
+            maximalPerProgramPoint.get(dcpa.computeProgramPointId(element.state()));
+        boolean isCovered = false;
+        for (StateAndPrecision candidate : candidates) {
+          workerStats.getCoverageCounter().inc();
+          if (element.state() == candidate.state()
+              || coverage.isSubsumed(element.state(), candidate.state())) {
+            isCovered = true;
+            break;
+          }
+        }
+        if (isCovered) {
+          continue;
+        }
+        // the new state may in turn cover states that were maximal so far
+        List<StateAndPrecision> coveredByElement = new ArrayList<>();
+        for (StateAndPrecision candidate : candidates) {
+          workerStats.getCoverageCounter().inc();
+          if (coverage.isSubsumed(candidate.state(), element.state())) {
+            coveredByElement.add(candidate);
+          }
+        }
+        // ArrayListMultimap#get returns a view that writes through to the multimap.
+        candidates.removeAll(coveredByElement);
+        maximal.removeAll(coveredByElement);
+        candidates.add(element);
+        maximal.add(element);
+      }
+    } finally {
+      workerStats.getCoverageTimer().stop();
+    }
+    return ImmutableList.copyOf(maximal);
   }
 
   /** Whether every state in {@code pStates} is covered by some state in {@code pCandidates}. */
