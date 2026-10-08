@@ -19,9 +19,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -157,6 +159,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 terminationState.getStoredValues().get(keyPair),
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
+        // A lasso is only reported for states with the same variables, see buildLassoFormulas
+        ImmutableList<BooleanFormula> lassoFormulas =
+            buildLassoFormulas(
+                terminationState.getStoredValues().get(keyPair),
+                sameStateFormulas,
+                terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
 
         // Compute all the transition predicates that hold for the current state
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
@@ -173,7 +181,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Check for a lasso in the current unrolling
           Optional<PrecisionAdjustmentResult> lassoResult =
               checkForNonterminatingLasso(
-                  sameStateFormulas,
+                  isOverapproximating ? sameStateFormulas : lassoFormulas,
                   isOverapproximating,
                   candidateTransInv,
                   iterationFormula,
@@ -617,6 +625,44 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       logger.logDebugException(e);
       return false;
     }
+  }
+
+  /**
+   * Returns the given formulas comparing the stored states with the latest state, where the
+   * comparisons of states with different variables are replaced by false. For example, the memory
+   * of a variable may be represented by a variable at an earlier visit and by the heap at a later
+   * visit, so that their comparison would ignore the heap.
+   */
+  private ImmutableList<BooleanFormula> buildLassoFormulas(
+      Map<Integer, ImmutableSet<Formula>> storedValues,
+      ImmutableList<BooleanFormula> pComparingFormulas,
+      int pMaxIndex) {
+    Map<String, Boolean> latestVariables = getVariableNames(storedValues.get(pMaxIndex));
+    ImmutableList.Builder<BooleanFormula> lassoFormulas = ImmutableList.builder();
+    int i = 0;
+    for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
+      if (savedVariables.getKey().intValue() >= pMaxIndex) {
+        continue;
+      }
+      lassoFormulas.add(
+          getVariableNames(savedVariables.getValue()).equals(latestVariables)
+              ? pComparingFormulas.get(i)
+              : bfmgr.makeFalse());
+      i++;
+    }
+    return lassoFormulas.build();
+  }
+
+  /** Maps the names of the given variables to whether they have an SSA index. */
+  private Map<String, Boolean> getVariableNames(ImmutableSet<Formula> pVariables) {
+    Map<String, Boolean> names = new HashMap<>();
+    for (Formula variable : pVariables) {
+      for (String name : fmgr.extractVariableNames(variable)) {
+        Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(name);
+        names.put(parsed.getFirst(), parsed.getSecond().isPresent());
+      }
+    }
+    return names;
   }
 
   private ImmutableList<BooleanFormula> buildComparingFormulas(
