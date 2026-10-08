@@ -533,6 +533,8 @@ public final class DssBlockAnalysis {
           }
         }
         if (isCovered) {
+          // Dropping a covered state also drops its precision. This is sound (the covering state
+          // includes all its concrete states), but successors may have to rediscover predicates.
           continue;
         }
         // the new state may in turn cover states that were maximal so far
