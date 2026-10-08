@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ScalarAllocationReplacer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.TrivialLoopRemover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
@@ -321,6 +322,14 @@ public class CFACreator {
               + "This is not valid for properties like termination and valid-memcleanup, "
               + "but more efficient for standard reachability properties. Cf. #1713.")
   private boolean removeTrivialLoops = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.replaceScalarAllocations",
+      description =
+          "Replace memory for a single scalar that is allocated with alloca and accessed only by"
+              + " dereferencing one pointer variable with a scalar variable.")
+  private boolean replaceScalarAllocations = false;
 
   @Option(
       secure = true,
@@ -854,6 +863,10 @@ public class CFACreator {
     // remove all edges which don't have any effect on the program
     if (simplifyCfa) {
       CFASimplifier.simplifyCFA(cfa);
+    }
+
+    if (replaceScalarAllocations && language == Language.C) {
+      new ScalarAllocationReplacer(logger, machineModel).replaceScalarAllocations(cfa);
     }
 
     if (moveDeclarationsToFunctionStart) {

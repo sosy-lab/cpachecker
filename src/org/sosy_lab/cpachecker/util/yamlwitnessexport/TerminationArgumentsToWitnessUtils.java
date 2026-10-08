@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ScalarAllocationReplacer;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -137,7 +138,8 @@ public class TerminationArgumentsToWitnessUtils {
         wrapTheVariablesWithCastToLongLong(
             pSupportingInvariant.toString(), pSupportingInvariant.getVariables());
     return new InvariantEntry(
-        TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
+        ScalarAllocationReplacer.restorePointerDereferences(
+            TransitionInvariantUtils.removeFunctionFromVarsName(invariant)),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.C,
         locationRecord);
@@ -192,10 +194,11 @@ public class TerminationArgumentsToWitnessUtils {
       }
     }
     return new InvariantEntry(
-        TransitionInvariantUtils.removeFunctionFromVarsName(
-            FluentIterable.from(transitionInvariants.build())
-                .transform(disjunct -> "(" + disjunct + ")")
-                .join(Joiner.on(" || "))),
+        ScalarAllocationReplacer.restorePointerDereferences(
+            TransitionInvariantUtils.removeFunctionFromVarsName(
+                FluentIterable.from(transitionInvariants.build())
+                    .transform(disjunct -> "(" + disjunct + ")")
+                    .join(Joiner.on(" || ")))),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.EXT_C,
         locationRecord);
@@ -263,7 +266,8 @@ public class TerminationArgumentsToWitnessUtils {
                       wrappedFormula.getFormula(), bfmgr, fmgr, scope)
                   .replace(AT_PREFIX_NON_C, AT_PREFIX);
           transitionInvariantAsC =
-              TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
+              ScalarAllocationReplacer.restorePointerDereferences(
+                  TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC));
         } catch (CPAException e) {
           transitionInvariantAsC = "true";
         }

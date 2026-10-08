@@ -1208,6 +1208,10 @@ cfa.pixelGraphicFile = no default value
 # reachability properties. Cf. #1713.
 cfa.removeTrivialLoops = false
 
+# Replace memory for a single scalar that is allocated with alloca and
+# accessed only by dereferencing one pointer variable with a scalar variable.
+cfa.replaceScalarAllocations = false
+
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
 

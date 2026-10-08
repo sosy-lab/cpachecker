@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -28,12 +29,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ScalarAllocationReplacer;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
@@ -60,6 +63,10 @@ public class InvariantExchangeFormatTransformer {
   private static final Pattern AT_ANY_PREV_PATTERN =
       Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
   private static final int PREV_VARS_GROUP_INDEX = 1;
+
+  /** A dereference *p of a pointer variable p, possibly in parentheses. */
+  private static final Pattern DEREFERENCE_PATTERN =
+      Pattern.compile("\\(\\s*\\*\\s*([A-Za-z_]\\w*)\\s*\\)|\\*\\s*([A-Za-z_]\\w*)\\b");
 
   public InvariantExchangeFormatTransformer(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
@@ -112,13 +119,15 @@ public class InvariantExchangeFormatTransformer {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
-    String invariantString = pInvariantEntry.getValue();
+    String invariantString =
+        replaceDereferencesOfReplacedPointers(
+            pInvariantEntry.getValue(), pInvariantEntry.getLocation().getFunction());
     ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables = ImmutableMap.of();
     if (WitnessInvariantType.of(InvariantRecordType.fromKeyword(pInvariantEntry.getType()))
         .map(WitnessInvariantType::isTransitionInvariant)
         .orElse(false)) {
-      invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
-      previousValueVariables = registerThePrevVariables(pInvariantEntry);
+      previousValueVariables = registerThePrevVariables(pInvariantEntry, invariantString);
+      invariantString = replacePrevKeywordWithFreshVariables(invariantString);
     }
 
     Deque<String> callStack = new ArrayDeque<>();
@@ -140,14 +149,39 @@ public class InvariantExchangeFormatTransformer {
   }
 
   /**
+   * Replaces the dereferences *p of the pointers p whose memory the CFA represents by scalar
+   * variables, see {@link ScalarAllocationReplacer}, with these variables. The pointers do not
+   * occur in the CFA otherwise. Since a pointer cannot be multiplied, every *p is a dereference.
+   */
+  private String replaceDereferencesOfReplacedPointers(
+      String pInvariant, @Nullable String pFunction) {
+    if (pFunction == null || cfa.getLanguage() != Language.C) {
+      return pInvariant;
+    }
+    Scope scope = new CProgramScope(cfa, logger).withFunctionScope(pFunction);
+    Matcher matcher = DEREFERENCE_PATTERN.matcher(pInvariant);
+    StringBuilder result = new StringBuilder();
+    while (matcher.find()) {
+      String pointer = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+      String scalar = ScalarAllocationReplacer.SCALAR_PREFIX + pointer;
+      matcher.appendReplacement(
+          result,
+          Matcher.quoteReplacement(
+              scope.lookupVariable(scalar) != null ? scalar : matcher.group()));
+    }
+    matcher.appendTail(result);
+    return result.toString();
+  }
+
+  /**
    * In case the witness is termination witness, it may contain \at(x, AnyPrev) keyword which is not
    * parsed. We have to encode this keyword into the names of the variables.
    *
-   * @param pInvariantEntry transition invariant string
+   * @param pInvariant transition invariant string
    * @return Invariant string with \at(x, AnyPrev) encoded as __PREV suffix
    */
-  private String replacePrevKeywordWithFreshVariables(InvariantEntry pInvariantEntry) {
-    String invariantString = pInvariantEntry.getValue();
+  private String replacePrevKeywordWithFreshVariables(String pInvariant) {
+    String invariantString = pInvariant;
     Matcher matcher = AT_ANY_PREV_PATTERN.matcher(invariantString);
     StringBuilder result = new StringBuilder();
 
@@ -168,12 +202,13 @@ public class InvariantExchangeFormatTransformer {
    * is parsed.
    *
    * @param pInvariantEntry the invariant entry
+   * @param pInvariant the transition invariant of the entry
    * @return the mapping from the declarations of the x__PREV variables to the declarations of the
    *     corresponding variables x
    */
-  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
-      InvariantEntry pInvariantEntry) {
-    String invariantString = pInvariantEntry.getValue();
+  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
+      InvariantEntry pInvariantEntry, String pInvariant) {
+    String invariantString = pInvariant;
     Matcher matcher = AT_ANY_PREV_PATTERN.matcher(invariantString);
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
