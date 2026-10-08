@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -520,13 +519,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     }
     BooleanFormula interpolant;
 
-    interpolant =
-        itpMgr
-            .interpolate(
-                ImmutableList.of(
-                    bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
-            .orElseThrow()
-            .getFirst();
+    Optional<ImmutableList<BooleanFormula>> interpolants =
+        itpMgr.interpolate(
+            ImmutableList.of(
+                bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula));
+    if (interpolants.isEmpty()) {
+      // The states may be equal, but the lasso is not reported, see buildLassoFormulas
+      return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
+    }
+    interpolant = interpolants.orElseThrow().getFirst();
     if (containsOnlyVariablesOutOfScope(interpolant, callstackState)) {
       return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
     }
@@ -637,7 +638,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       Map<Integer, ImmutableSet<Formula>> storedValues,
       ImmutableList<BooleanFormula> pComparingFormulas,
       int pMaxIndex) {
-    Map<String, Boolean> latestVariables = getVariableNames(storedValues.get(pMaxIndex));
+    ImmutableSet<String> latestVariables = getVariableNames(storedValues.get(pMaxIndex));
     ImmutableList.Builder<BooleanFormula> lassoFormulas = ImmutableList.builder();
     int i = 0;
     for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
@@ -653,16 +654,22 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return lassoFormulas.build();
   }
 
-  /** Maps the names of the given variables to whether they have an SSA index. */
-  private Map<String, Boolean> getVariableNames(ImmutableSet<Formula> pVariables) {
-    Map<String, Boolean> names = new HashMap<>();
+  /**
+   * Returns the names of the given variables that have an SSA index. The variables without an index
+   * are the same in both compared states, e.g., the values of a call of a nondeterministic
+   * function.
+   */
+  private ImmutableSet<String> getVariableNames(ImmutableSet<Formula> pVariables) {
+    ImmutableSet.Builder<String> names = ImmutableSet.builder();
     for (Formula variable : pVariables) {
       for (String name : fmgr.extractVariableNames(variable)) {
         Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(name);
-        names.put(parsed.getFirst(), parsed.getSecond().isPresent());
+        if (parsed.getSecond().isPresent()) {
+          names.add(parsed.getFirst());
+        }
       }
     }
-    return names;
+    return names.build();
   }
 
   private ImmutableList<BooleanFormula> buildComparingFormulas(
