@@ -740,29 +740,34 @@ public final class DssBlockAnalysis {
    */
   ImmutableMap<String, String> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
-    ContentBuilder serializedContent = ContentBuilder.builder();
-    serializedContent.put(
-        DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
-        Integer.toString(pStatesAndPrecisions.size()));
-    int totalStateSize = 0;
-    for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
-      serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
-      StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
-      ImmutableMap<String, String> content =
-          ImmutableMap.<String, String>builder()
-              .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()))
-              .putAll(
-                  dcpa.getSerializePrecisionOperator()
-                      .serializePrecision(stateAndPrecision.precision()))
-              .buildOrThrow();
-      for (Entry<String, String> contents : content.entrySet()) {
-        serializedContent.put(contents.getKey(), contents.getValue());
-        totalStateSize += contents.getKey().length() + contents.getValue().length();
+    workerStats.getSerializationTimer().start();
+    try {
+      ContentBuilder serializedContent = ContentBuilder.builder();
+      serializedContent.put(
+          DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
+          Integer.toString(pStatesAndPrecisions.size()));
+      int totalStateSize = 0;
+      for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
+        serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
+        StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
+        ImmutableMap<String, String> content =
+            ImmutableMap.<String, String>builder()
+                .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()))
+                .putAll(
+                    dcpa.getSerializePrecisionOperator()
+                        .serializePrecision(stateAndPrecision.precision()))
+                .buildOrThrow();
+        for (Entry<String, String> contents : content.entrySet()) {
+          serializedContent.put(contents.getKey(), contents.getValue());
+          totalStateSize += contents.getKey().length() + contents.getValue().length();
+        }
+        serializedContent.popLevel();
       }
-      serializedContent.popLevel();
+      workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
+      return serializedContent.build();
+    } finally {
+      workerStats.getSerializationTimer().stop();
     }
-    workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
-    return serializedContent.build();
   }
 
   LogManager getLogger() {
@@ -796,20 +801,25 @@ public final class DssBlockAnalysis {
     if (optionalNumberOfStates.isEmpty()) {
       return ImmutableList.of();
     }
-    int numStates = optionalNumberOfStates.orElseThrow();
-    ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
-        ImmutableList.builderWithExpectedSize(numStates);
-    for (int i = 0; i < numStates; i++) {
-      DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
-      AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
-      if (pMessage.getType() == DssMessageType.POST_CONDITION) {
-        state = dcpa.reset(state);
+    workerStats.getDeserializationTimer().start();
+    try {
+      int numStates = optionalNumberOfStates.orElseThrow();
+      ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
+          ImmutableList.builderWithExpectedSize(numStates);
+      for (int i = 0; i < numStates; i++) {
+        DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
+        AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
+        if (pMessage.getType() == DssMessageType.POST_CONDITION) {
+          state = dcpa.reset(state);
+        }
+        Precision precision =
+            dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage);
+        statesAndPrecisions.add(new StateAndPrecision(state, precision));
       }
-      Precision precision =
-          dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage);
-      statesAndPrecisions.add(new StateAndPrecision(state, precision));
+      return statesAndPrecisions.build();
+    } finally {
+      workerStats.getDeserializationTimer().stop();
     }
-    return statesAndPrecisions.build();
   }
 
   private void disableCallstackIfAvailable(boolean ignoreCallstack) {

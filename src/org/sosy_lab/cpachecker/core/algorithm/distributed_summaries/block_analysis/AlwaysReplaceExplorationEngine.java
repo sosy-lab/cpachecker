@@ -201,10 +201,15 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       violations.addAll(round.violationConditions());
       unreachable &= round.blockEndUnreachable();
     }
-    return new AnalysisResult(
-        analysis.deduplicateStatesAndPrecisions(summaries.build()),
-        violations.build(),
-        unreachable);
+    analysis.statistics().getDeduplicationTimer().start();
+    try {
+      return new AnalysisResult(
+          analysis.deduplicateStatesAndPrecisions(summaries.build()),
+          violations.build(),
+          unreachable);
+    } finally {
+      analysis.statistics().getDeduplicationTimer().stop();
+    }
   }
 
   /**
