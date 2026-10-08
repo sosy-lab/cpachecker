@@ -183,10 +183,11 @@ public class CEXExporter {
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
 
-    if (pCfa.getMetadata().getTransformation() != null) {
-      return pCfa.getMetadata()
-          .getTransformation()
-          .createCounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
+    ProgramTransformation transformation = pCfa.getMetadata().getTransformation();
+    if (transformation != null) {
+      CFA originalCfa = transformation.originalCfa();
+      return transformation.createCounterexampleToWitness(
+          pConfig, originalCfa, pSpecification, pLogger);
     }
     return new CounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
   }
