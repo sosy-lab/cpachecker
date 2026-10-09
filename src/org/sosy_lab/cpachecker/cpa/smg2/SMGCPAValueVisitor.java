@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
@@ -1763,31 +1762,24 @@ public class SMGCPAValueVisitor
         && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
+  // TODO: this needs to be reworked urgently!
   /**
-   * Cast the argument to a floating point type. If it already is, will modify the precision to the
-   * correct one if necessary. If the input type is already correct, this will do nothing.
+   * Helper method to handle builtin C functions with 1 argument. Returns UNKNOWN for function calls
+   * with a parameter that are of integer type. If the parameter are of floating-point type, and
+   * concrete values are present, they are evaluated based on the application of the given
+   * BiFunction.
    */
-  private static FloatValue castToFloat(
-      MachineModel pMachineModel, CSimpleType pTargetType, NumericValue pValue) {
-    checkArgument(pTargetType.getType().isFloatingPointType());
-    Format precision = Format.fromCType(pMachineModel, pTargetType);
-    return pValue.floatingPointValue(precision);
-  }
-
-  /**
-   * Helper method to handle unary builtin function in {@link
-   * AbstractExpressionValueVisitor#visit(CFunctionCallExpression)}
-   */
-  private List<ValueAndSMGState> handleBuiltinFunction1(
+  private List<ValueAndSMGState> handleBuiltinFunctionsWithOneArgument(
       String pName,
       List<Value> pArguments,
       SMGState pState,
       Function<FloatValue, Value> pOperation) {
     final Value parameter = Iterables.getOnlyElement(pArguments);
+
     if (parameter instanceof NumericValue numParameter) {
       // Cast the argument to match the function type
       FloatValue value =
-          castToFloat(
+          extractFloatFromNumericValueOrThrow(
               machineModel,
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
               numParameter);
@@ -1802,12 +1794,15 @@ public class SMGCPAValueVisitor
     }
   }
 
+  // TODO: this needs to be reworked urgently!
   /**
-   * Helper method to handle binary builtin function in {@link
-   * AbstractExpressionValueVisitor#visit(CFunctionCallExpression)}
+   * Helper method to handle builtin C functions with 2 arguments. Returns UNKNOWN for function
+   * calls with parameters that include at least one integer type. If all parameters are of
+   * floating-point type, and concrete values are present, they are evaluated based on the
+   * application of the given BiFunction.
    */
-  private List<ValueAndSMGState> handleBuiltinFunction2(
-      String pName,
+  private List<ValueAndSMGState> handleBuiltinFunctionsWithTwoArguments(
+      String pCalledFunctionName,
       List<Value> pArguments,
       SMGState pState,
       BiFunction<FloatValue, FloatValue, Value> pOperation) {
@@ -1815,18 +1810,24 @@ public class SMGCPAValueVisitor
     Value parameter1 = pArguments.getFirst();
     Value parameter2 = pArguments.get(1);
 
-    if (parameter1.isExplicitlyKnown() && parameter2.isExplicitlyKnown()) {
+    if (parameter1 instanceof NumericValue pNumericValue1
+        && parameter2 instanceof NumericValue pNumericValue2) {
       // Cast both arguments to match the function type
-      CSimpleType targetType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName);
-      FloatValue value1 = castToFloat(machineModel, targetType, (NumericValue) parameter1);
-      FloatValue value2 = castToFloat(machineModel, targetType, (NumericValue) parameter2);
+      CSimpleType targetType =
+          BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pCalledFunctionName);
+      FloatValue value1 =
+          extractFloatFromNumericValueOrThrow(machineModel, targetType, pNumericValue1);
+      FloatValue value2 =
+          extractFloatFromNumericValueOrThrow(machineModel, targetType, pNumericValue2);
 
       return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value1, value2), pState));
     } else {
       return ImmutableList.of(
           ValueAndSMGState.ofUnknownValue(
               pState,
-              "Returned unknown value due to unhandled builtin function " + pName + " in ",
+              "Returned unknown value due to unhandled builtin function "
+                  + pCalledFunctionName
+                  + " in ",
               cfaEdge));
     }
   }
@@ -1897,7 +1898,7 @@ public class SMGCPAValueVisitor
                   cfaEdge));
 
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -1924,21 +1925,21 @@ public class SMGCPAValueVisitor
               ValueAndSMGState.of(new NumericValue(FloatValue.nan(precision)), currentState));
 
         } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -1946,35 +1947,35 @@ public class SMGCPAValueVisitor
                   new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0));
 
         } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1));
 
         } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)));
 
         } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)));
 
         } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)));
 
         } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -1997,7 +1998,7 @@ public class SMGCPAValueVisitor
               });
 
         } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2020,14 +2021,14 @@ public class SMGCPAValueVisitor
               });
 
         } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)));
 
         } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2041,7 +2042,7 @@ public class SMGCPAValueVisitor
           // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
           // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
           // return the first argument.
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2057,7 +2058,7 @@ public class SMGCPAValueVisitor
           // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
           // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
           // argument for `float` or `double` and the second for `long double`
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2070,21 +2071,21 @@ public class SMGCPAValueVisitor
                       }));
 
         } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2111,7 +2112,7 @@ public class SMGCPAValueVisitor
             Value value = parameterValues.getFirst();
             if (value.isExplicitlyKnown()) {
               FloatValue arg =
-                  castToFloat(
+                  extractFloatFromNumericValueOrThrow(
                       machineModel,
                       BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
                       (NumericValue) value);
@@ -2136,28 +2137,28 @@ public class SMGCPAValueVisitor
           }
 
         } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesSqrt(calledFunctionName)) {
-          return handleBuiltinFunction1(
+          return handleBuiltinFunctionsWithOneArgument(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg) -> new NumericValue(arg.sqrt()));
 
         } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2165,7 +2166,7 @@ public class SMGCPAValueVisitor
                   new NumericValue(arg1.greaterThan(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2173,14 +2174,14 @@ public class SMGCPAValueVisitor
                   new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2188,7 +2189,7 @@ public class SMGCPAValueVisitor
                   new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2196,7 +2197,7 @@ public class SMGCPAValueVisitor
                   new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
-          return handleBuiltinFunction2(
+          return handleBuiltinFunctionsWithTwoArguments(
               calledFunctionName,
               parameterValues,
               currentState,
@@ -2217,6 +2218,14 @@ public class SMGCPAValueVisitor
                 + pIastFunctionCallExpression.getFunctionNameExpression()
                 + " in expression in ",
             cfaEdge));
+  }
+
+  /** Convert a numeric operand to the floating-point precision of the calculation type. */
+  private static FloatValue extractFloatFromNumericValueOrThrow(
+      MachineModel pMachineModel, CSimpleType pTargetType, NumericValue pValue) {
+    checkArgument(pTargetType.getType().isFloatingPointType());
+    Format precision = Format.fromCType(pMachineModel, pTargetType);
+    return pValue.floatingPointValue(precision);
   }
 
   /* ++++++++++++++++++ Below this point value arithmetics and comparisons  ++++++++++++++++++ */
@@ -2766,8 +2775,10 @@ public class SMGCPAValueVisitor
               new NumericValue(
                   arithmeticOperation(
                       PLUS,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, leftNumeric),
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, rightNumeric)));
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -2869,8 +2880,10 @@ public class SMGCPAValueVisitor
               new NumericValue(
                   arithmeticOperation(
                       MINUS,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, leftNumeric),
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, rightNumeric)));
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -2971,8 +2984,10 @@ public class SMGCPAValueVisitor
               new NumericValue(
                   arithmeticOperation(
                       MULTIPLY,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, leftNumeric),
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, rightNumeric)));
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -3106,8 +3121,10 @@ public class SMGCPAValueVisitor
               new NumericValue(
                   arithmeticOperation(
                       DIVIDE,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, leftNumeric),
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, rightNumeric)));
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -3228,8 +3245,10 @@ public class SMGCPAValueVisitor
               new NumericValue(
                   arithmeticOperation(
                       REMAINDER,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, leftNumeric),
+                      extractFloatFromNumericValueOrThrow(
+                          machineModel, calculationType, rightNumeric)));
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -4088,8 +4107,9 @@ public class SMGCPAValueVisitor
             case FLOAT, DOUBLE, FLOAT128 ->
                 comparisonOperation(
                     EQUALS,
-                    castToFloat(machineModel, calculationType, leftNumeric),
-                    castToFloat(machineModel, calculationType, rightNumeric));
+                    extractFloatFromNumericValueOrThrow(machineModel, calculationType, leftNumeric),
+                    extractFloatFromNumericValueOrThrow(
+                        machineModel, calculationType, rightNumeric));
             default ->
                 throw new AssertionError(
                     "Unexpected and unhandled type "
@@ -4137,8 +4157,9 @@ public class SMGCPAValueVisitor
             case FLOAT, DOUBLE, FLOAT128 ->
                 comparisonOperation(
                     NOT_EQUALS,
-                    castToFloat(machineModel, calculationType, leftNumeric),
-                    castToFloat(machineModel, calculationType, rightNumeric));
+                    extractFloatFromNumericValueOrThrow(machineModel, calculationType, leftNumeric),
+                    extractFloatFromNumericValueOrThrow(
+                        machineModel, calculationType, rightNumeric));
             default ->
                 throw new AssertionError(
                     "Unexpected and unhandled type "
@@ -4185,8 +4206,9 @@ public class SMGCPAValueVisitor
             case FLOAT, DOUBLE, FLOAT128 ->
                 comparisonOperation(
                     LESS_THAN,
-                    castToFloat(machineModel, calculationType, leftNumeric),
-                    castToFloat(machineModel, calculationType, rightNumeric));
+                    extractFloatFromNumericValueOrThrow(machineModel, calculationType, leftNumeric),
+                    extractFloatFromNumericValueOrThrow(
+                        machineModel, calculationType, rightNumeric));
             default ->
                 throw new AssertionError(
                     "Unexpected and unhandled type "
@@ -4231,8 +4253,9 @@ public class SMGCPAValueVisitor
             case FLOAT, DOUBLE, FLOAT128 ->
                 comparisonOperation(
                     LESS_EQUAL,
-                    castToFloat(machineModel, calculationType, leftNumeric),
-                    castToFloat(machineModel, calculationType, rightNumeric));
+                    extractFloatFromNumericValueOrThrow(machineModel, calculationType, leftNumeric),
+                    extractFloatFromNumericValueOrThrow(
+                        machineModel, calculationType, rightNumeric));
             default ->
                 throw new AssertionError(
                     "Unexpected and unhandled type "
@@ -4278,8 +4301,9 @@ public class SMGCPAValueVisitor
             case FLOAT, DOUBLE, FLOAT128 ->
                 comparisonOperation(
                     GREATER_THAN,
-                    castToFloat(machineModel, calculationType, leftNumeric),
-                    castToFloat(machineModel, calculationType, rightNumeric));
+                    extractFloatFromNumericValueOrThrow(machineModel, calculationType, leftNumeric),
+                    extractFloatFromNumericValueOrThrow(
+                        machineModel, calculationType, rightNumeric));
             default ->
                 throw new AssertionError(
                     "Unexpected and unhandled type "
@@ -4325,8 +4349,9 @@ public class SMGCPAValueVisitor
             case FLOAT, DOUBLE, FLOAT128 ->
                 comparisonOperation(
                     GREATER_EQUAL,
-                    castToFloat(machineModel, calculationType, leftNumeric),
-                    castToFloat(machineModel, calculationType, rightNumeric));
+                    extractFloatFromNumericValueOrThrow(machineModel, calculationType, leftNumeric),
+                    extractFloatFromNumericValueOrThrow(
+                        machineModel, calculationType, rightNumeric));
             default ->
                 throw new AssertionError(
                     "Unexpected and unhandled type "
