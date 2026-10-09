@@ -105,6 +105,60 @@ public class InductionTransferRelationTest {
   }
 
   @Test
+  public void keepsTheCountersOfOtherLoopsInAnInductionStep() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromFunctionBody(
+            """
+            int x = 0;
+            while (x < 10) {
+              int y = 0;
+              while (y < 10) {
+                y++;
+              }
+              x++;
+            }
+            """);
+    LoopStructure loops = cfa.getLoopStructure().orElseThrow();
+    Loop outer =
+        from(loops.getAllLoops())
+            .firstMatch(l -> from(loops.getAllLoops()).anyMatch(o -> o != l && l.isOuterLoopOf(o)))
+            .get();
+    Loop inner = from(loops.getAllLoops()).firstMatch(l -> l != outer).get();
+    CFAEdge outerEntry = getOnlyElement(outer.getIncomingEdges());
+    CFAEdge outerBack = backEdge(outer);
+    CFAEdge innerEntry = getOnlyElement(inner.getIncomingEdges());
+    CFAEdge innerBack = backEdge(inner);
+    InductionTransferRelation transfer = new InductionTransferRelation(loops, true, false, false);
+    InductionPrecision precision =
+        InductionPrecision.uniform(
+            loops.getAllLoops(), new LoopPrecision(1, true, LoopPrecision.ALL_ABSTRACTIONS, false));
+
+    InductionState state = successor(initial, precision, outerEntry, transfer);
+    state = successor(state, precision, innerEntry, transfer);
+    InductionState start =
+        ImmutableList.copyOf(transfer.getAbstractSuccessorsForEdge(state, precision, innerBack))
+            .get(1);
+    assertThat(start.isInductionStart()).isTrue();
+    assertThat(start.getArrivals()).isEmpty();
+
+    state = successor(start, precision, outerBack, transfer);
+    state = successor(state, precision, innerEntry, transfer);
+    InductionState abstraction = successor(state, precision, innerBack, transfer);
+    assertThat(abstraction.isAbstraction()).isTrue();
+    assertThat(abstraction.isInductionStart()).isFalse();
+    // the outer loop still counts towards the arrival that checks the property
+    assertThat(abstraction.getArrivals()).containsExactly(outer, 1);
+  }
+
+  private static CFAEdge backEdge(Loop pLoop) {
+    CFANode head = getOnlyElement(pLoop.getLoopHeads());
+    return head.getEnteringEdges()
+        .filter(e -> pLoop.getLoopNodes().contains(e.getPredecessor()))
+        .first()
+        .get();
+  }
+
+  @Test
   public void splitsAtTheArrivalAfterK() {
     InductionPrecision precision = precision(1, true, LoopPrecision.ALL_ABSTRACTIONS);
     InductionState first = successor(initial, precision, entry);
