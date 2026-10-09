@@ -57,10 +57,10 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Makes the CEGAR loop behave like IMC. Every abstraction at a loop head uses one predicate φ, the
  * disjunction of the interpolants learned for the loop head, and the exploration closes a loop when
  * an abstraction is covered by the one before it, which is the fixpoint check of IMC. For a
- * spurious target, the refiner widens φ at the abstraction closest to the error whose interpolant
- * of the path in front against the concrete suffixes of the targets below it is not implied by φ.
- * If no abstraction can be widened, k increases by one and φ starts over, as the abort of
- * McMillan's algorithm does.
+ * spurious target, the refiner widens φ at the abstraction in front of the target with the
+ * interpolant of the path in front of it against the concrete suffixes of the targets below it. If
+ * the suffixes are reachable, k increases by one and φ starts over, as the abort of McMillan's
+ * algorithm does.
  */
 @Options(prefix = "cpa.induction.refinement.imc")
 public final class ImcRefiner extends InductionRefiner {
@@ -192,10 +192,10 @@ public final class ImcRefiner extends InductionRefiner {
   }
 
   /**
-   * Widen the abstraction closest to the error on the path to the given target whose interpolant is
-   * not implied by φ, or explore again with a larger k. As native IMC interpolates against all
-   * error paths of its unrolling, the interpolant is taken against the suffixes of all targets
-   * below the abstraction, or against the own suffix if one of the others is reachable.
+   * Widen φ at the last abstraction on the path to the given target with the interpolant of the
+   * path in front of it against the suffixes of all targets below it, as native IMC interpolates
+   * against all error paths of its unrolling. If the suffixes are reachable or the interpolant is
+   * implied by φ, explore again with a larger k, which is the abort of McMillan's algorithm.
    */
   private void refine(
       ARGReachedSet pReached,
@@ -208,30 +208,23 @@ public final class ImcRefiner extends InductionRefiner {
       return;
     }
     List<ARGState> chain = pChains.get(pTarget);
-    for (int i = chain.size() - 2; i > 0; i--) {
-      ARGState abstraction = chain.get(i);
-      if (inductionStateOf(abstraction).isAbstraction()) {
-        BooleanFormula ownSuffix = suffixOf(chain, i);
-        List<BooleanFormula> suffixes = new ArrayList<>();
-        suffixes.add(ownSuffix);
-        // all chains through the abstraction share the path to it, so it has the same position
-        for (ARGState target : pTargetsBelow.get(abstraction)) {
-          if (target != pTarget && !target.isDestroyed()) {
-            suffixes.add(suffixOf(pChains.get(target), i));
-          }
+    int last = chain.size() - 2;
+    ARGState abstraction = chain.get(last);
+    if (inductionStateOf(abstraction).isAbstraction()) {
+      List<BooleanFormula> suffixes = new ArrayList<>();
+      for (ARGState target : pTargetsBelow.get(abstraction)) {
+        if (!target.isDestroyed()) {
+          suffixes.add(suffixOf(pChains.get(target), last));
         }
-        long failures = failedInterpolations();
-        Optional<BooleanFormula> interpolant = interpolate(chain, i, bfmgr.or(suffixes));
-        if (interpolant.isEmpty() && suffixes.size() > 1 && failedInterpolations() == failures) {
-          interpolant = interpolate(chain, i, ownSuffix);
-        }
-        if (bmcFallback && failedInterpolations() > failures) {
-          refineAsNativeImc(pReached, pChains, pTargetsBelow);
-          return;
-        }
-        if (interpolant.isPresent() && widen(pReached, abstraction, interpolant.orElseThrow())) {
-          return;
-        }
+      }
+      long failures = failedInterpolations();
+      Optional<BooleanFormula> interpolant = interpolate(chain, last, bfmgr.or(suffixes));
+      if (bmcFallback && failedInterpolations() > failures) {
+        refineAsNativeImc(pReached, pChains, pTargetsBelow);
+        return;
+      }
+      if (interpolant.isPresent() && widen(pReached, abstraction, interpolant.orElseThrow())) {
+        return;
       }
     }
     restartWithLargerK(pReached, chain);
