@@ -77,6 +77,9 @@ public final class IsmcRefiner extends InductionRefiner {
       description = "the number of loop heads up to which the refiner does not fall back to BMC")
   private int bmcFallbackLoopLimit = 1;
 
+  /** The bound from which native ISMC interpolates. */
+  private static final int BOUND_OF_FIRST_INTERPOLATION = 2;
+
   private final PredicateAbstractionManager predicateManager;
   private boolean fallenBackToBmc = false;
 
@@ -151,7 +154,9 @@ public final class IsmcRefiner extends InductionRefiner {
       return Optional.empty();
     }
 
-    addToFrames(searchTargets);
+    if (bound >= BOUND_OF_FIRST_INTERPOLATION) {
+      addToFrames(searchTargets);
+    }
     if (bmcFallback && hasFailedInterpolation()) {
       logger.log(Level.INFO, "Falling back to BMC, because an interpolation failed");
       restartAsBmc(pReached, bound + 1);
@@ -263,7 +268,8 @@ public final class IsmcRefiner extends InductionRefiner {
 
   /**
    * Whether for every loop head some frame is implied by the disjunction of the frames in front of
-   * it, which is the fixpoint check of native ISMC.
+   * it after the first one, which is the fixpoint check of native ISMC. The first frame, the image
+   * of the path before the loop, takes no part in it.
    */
   private boolean framesClose() throws SolverException, InterruptedException {
     if (frames.isEmpty()) {
@@ -279,8 +285,8 @@ public final class IsmcRefiner extends InductionRefiner {
 
   private boolean closes(List<BooleanFormula> pVector)
       throws SolverException, InterruptedException {
-    for (int j = 1; j < pVector.size(); j++) {
-      if (solver.implies(pVector.get(j), bfmgr.or(pVector.subList(0, j)))) {
+    for (int j = 2; j < pVector.size(); j++) {
+      if (solver.implies(pVector.get(j), bfmgr.or(pVector.subList(1, j)))) {
         return true;
       }
     }
