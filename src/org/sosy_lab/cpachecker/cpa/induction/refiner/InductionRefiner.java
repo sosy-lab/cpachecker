@@ -97,7 +97,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   protected final Solver solver;
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
-  protected final InterpolationManager interpolationManager;
+  private final InterpolationManager interpolationManager;
+  private final InterpolationManager counterexampleManager;
   private final ARGCPA argCpa;
   private final PathChecker pathChecker;
 
@@ -127,7 +128,18 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     CFA cfa = predicateCpa.getCfa();
+    // as native IMC and ISMC create theirs
     interpolationManager =
+        new InterpolationManager(
+            predicateCpa.getPathFormulaManager(),
+            solver,
+            Optional.empty(),
+            Optional.empty(),
+            pConfig,
+            predicateCpa.getShutdownNotifier(),
+            logger,
+            /* pEnableCounterexampleAnalysis= */ false);
+    counterexampleManager =
         new InterpolationManager(
             predicateCpa.getPathFormulaManager(),
             solver,
@@ -414,7 +426,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     }
     ARGPath path = ARGUtils.getOnePathTo(pTarget);
     CounterexampleTraceInfo trace =
-        interpolationManager.buildCounterexampleTraceWithoutInterpolation(
+        counterexampleManager.buildCounterexampleTraceWithoutInterpolation(
             new BlockFormulas(blockFormulas(abstractionChain(pTarget))), path);
     if (trace.isSpurious()) {
       throw new CPAException("Feasible counterexample became infeasible when replayed");
