@@ -1093,6 +1093,16 @@ bmc.propagateInvGenInterrupts = false
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
 
+# Configuration file with options that apply to the induction step case only.
+# Its options are added on top of the configuration of the analysis.
+# The step case starts from an arbitrary state at each loop head, so it may
+# freely over-approximate: a coarser exploration can only make the induction
+# check harder to discharge, never wrong. The base case must not be coarsened
+# in the same way, because it under-approximates by its loop bound and relies
+# on exact coverage to not lose reachable states. Options that relax coverage
+# therefore belong here and not in the configuration of the analysis.
+bmc.stepCaseConfig = no default value
+
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
