@@ -275,11 +275,12 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
         from(abstractionChain(pState))
             .transform(InductionRefiner::inductionStateOf)
             .anyMatch(s -> s.isAbstraction() && s.isInInductionStep());
-    if (!restartsCallstack) {
-      return true;
-    }
+    return !restartsCallstack || returnsMatchCalls(ARGUtils.getOnePathTo(pState));
+  }
+
+  private static boolean returnsMatchCalls(ARGPath pPath) {
     Deque<CFANode> callSites = new ArrayDeque<>();
-    for (CFAEdge edge : ARGUtils.getOnePathTo(pState).getFullPath()) {
+    for (CFAEdge edge : pPath.getFullPath()) {
       if (edge instanceof FunctionCallEdge) {
         callSites.push(edge.getPredecessor());
       } else if (edge instanceof FunctionReturnEdge returnEdge) {
@@ -347,7 +348,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
         if (Boolean.TRUE.equals(evaluate(model, entry.getValue()))) {
           ARGState target = entry.getKey();
           @Nullable ARGPath path = pathFromModel(model, target);
-          if (path != null) {
+          // a path that forgot the memory model needs a replay, see replayedCounterexample
+          if (path != null && !forgetsMemory(target)) {
             // the error path of the model, as native BMC creates it without another query
             target.addCounterexampleInformation(
                 pathChecker.handleFeasibleCounterexample(
@@ -397,26 +399,53 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   }
 
   /**
-   * Whether the given path to the target is feasible when it is encoded from the start of the
-   * program. Only if an induction step on the path forgot the memory model, this can differ from
-   * its concrete path formula.
+   * Whether an induction step on the path to the given state forgot the memory model, so that its
+   * concrete path formula does not describe the memory of the program.
    */
-  protected boolean isFeasibleFromStart(ARGState pTarget, ARGPath pPath)
-      throws CPAException, InterruptedException {
-    if (!from(abstractionChain(pTarget))
-        .anyMatch(s -> inductionStateOf(s).forgetsPointerTargets())) {
-      return true;
+  protected static boolean forgetsMemory(ARGState pState) {
+    return from(abstractionChain(pState))
+        .anyMatch(s -> inductionStateOf(s).forgetsPointerTargets());
+  }
+
+  /**
+   * The target with a counterexample, if a path to it is feasible when it is encoded again from the
+   * start of the program: the path of a model of its concrete path formula, or else the path along
+   * the first parents. The counterexample is built from this path.
+   */
+  protected Optional<ARGState> replayedCounterexample(ARGState pTarget)
+      throws CPAException, InterruptedException, SolverException {
+    if (!isRealPath(pTarget)) {
+      return Optional.empty();
     }
+    List<ARGPath> paths = new ArrayList<>();
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      prover.push(concretePathFormula(pTarget));
+      if (prover.isUnsat()) {
+        return Optional.empty();
+      }
+      try (Model model = prover.getModel()) {
+        @Nullable ARGPath path = pathFromModel(model, pTarget);
+        if (path != null) {
+          paths.add(path);
+        }
+      }
+    }
+    paths.add(ARGUtils.getOnePathTo(pTarget));
     PathFormulaManager pathFormulaManager = predicateCpa.getPathFormulaManager();
-    PathFormula pathFormula = pathFormulaManager.makeEmptyPathFormula();
-    for (CFAEdge edge : pPath.getFullPath()) {
-      pathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
+    for (ARGPath path : from(paths).filter(InductionRefiner::returnsMatchCalls)) {
+      PathFormula pathFormula = pathFormulaManager.makeEmptyPathFormula();
+      for (CFAEdge edge : path.getFullPath()) {
+        pathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
+      }
+      if (!solver.isUnsat(pathFormula.getFormula())) {
+        pTarget.addCounterexampleInformation(
+            pathChecker.handleFeasibleCounterexample(
+                CounterexampleTraceInfo.feasible(ImmutableList.of(pathFormula.getFormula()), path),
+                path));
+        return Optional.of(pTarget);
+      }
     }
-    try {
-      return !solver.isUnsat(pathFormula.getFormula());
-    } catch (SolverException e) {
-      throw new CPAException("Solver failure while replaying a counterexample", e);
-    }
+    return Optional.empty();
   }
 
   private void reportCounterexample(ARGState pTarget) throws CPAException, InterruptedException {

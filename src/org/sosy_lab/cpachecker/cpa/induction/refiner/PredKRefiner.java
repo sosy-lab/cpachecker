@@ -194,17 +194,13 @@ public final class PredKRefiner extends InductionRefiner {
         }
         // as k-induction: a counterexample if the path is feasible, otherwise a longer step
         Optional<ARGState> counterexample = findFeasibleTarget(ImmutableList.of(target));
-        if (counterexample.isPresent()
-            && isFeasibleFromStart(
-                target,
-                target
-                    .getCounterexampleInformation()
-                    .map(CounterexampleInfo::getTargetPath)
-                    .orElseGet(() -> ARGUtils.getOnePathTo(target)))) {
-          return counterexample;
+        if (counterexample.isPresent() && forgetsMemory(target)) {
+          counterexample = replayedCounterexample(target);
         }
-        strategy.refineWithoutPredicates(pReached, target);
-        return Optional.empty();
+        if (counterexample.isEmpty()) {
+          strategy.refineWithoutPredicates(pReached, target);
+        }
+        return counterexample;
       }
     }
     removeUnreachable(pReached, targets);
@@ -250,7 +246,15 @@ public final class PredKRefiner extends InductionRefiner {
 
   /** Refine the path to the given target as predicate analysis does, followed by the heuristic. */
   private Optional<ARGState> refinePath(ARGReachedSet pReached, ARGState pTarget)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, SolverException {
+    if (forgetsMemory(pTarget) && !solver.isUnsat(concretePathFormula(pTarget))) {
+      // the path formula describes no memory of the program, so it cannot be interpolated either
+      Optional<ARGState> counterexample = replayedCounterexample(pTarget);
+      if (counterexample.isEmpty()) {
+        strategy.refineWithoutPredicates(pReached, pTarget);
+      }
+      return counterexample;
+    }
     if (!isRealPath(pTarget)) {
       // a path formula that returns to another caller than the one of the call
       strategy.refineWithoutPredicates(pReached, pTarget);
@@ -274,10 +278,6 @@ public final class PredKRefiner extends InductionRefiner {
       return Optional.empty();
     }
     if (counterexample.isSpurious()) {
-      return Optional.empty();
-    }
-    if (!isFeasibleFromStart(pTarget, counterexample.getTargetPath())) {
-      strategy.refineWithoutPredicates(pReached, pTarget);
       return Optional.empty();
     }
     pTarget.addCounterexampleInformation(counterexample);
