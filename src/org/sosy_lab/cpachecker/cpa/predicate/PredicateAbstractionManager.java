@@ -1303,9 +1303,9 @@ public final class PredicateAbstractionManager {
       throws InterruptedException {
     Region region = amgr.getRegionCreator().makeOr(a1.asRegion(), a2.asRegion());
     BooleanFormula formula = fmgr.makeOr(a1.asFormula(), a2.asFormula());
-    BooleanFormula instantiatedFormula =
-        fmgr.makeOr(a1.asInstantiatedFormula(), a2.asInstantiatedFormula());
     PathFormula newBlockFormula = pfmgr.makeOr(a1.getBlockFormula(), a2.getBlockFormula());
+    // the disjuncts may have different SSA indices, the merged state continues with the new ones
+    BooleanFormula instantiatedFormula = fmgr.instantiate(formula, newBlockFormula.getSsa());
 
     return new AbstractionFormula(
         fmgr, region, formula, instantiatedFormula, newBlockFormula, noAbstractionReuse);
