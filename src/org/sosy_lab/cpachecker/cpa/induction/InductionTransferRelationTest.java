@@ -119,7 +119,7 @@ public class InductionTransferRelationTest {
   }
 
   @Test
-  public void keepsTheCountersOfOtherLoopsInAnInductionStep() throws Exception {
+  public void keepsTheCountersOfOtherLoops() throws Exception {
     CFA cfa =
         TestCfaUtils.makeCfaFromFunctionBody(
             """
@@ -163,6 +163,20 @@ public class InductionTransferRelationTest {
     assertThat(abstraction.isInductionStart()).isFalse();
     // the outer loop still counts towards the arrival that checks the property
     assertThat(abstraction.getArrivals()).containsExactly(outer, 1);
+
+    // also outside an induction step, an abstraction of the inner loop keeps the outer count
+    InductionPrecision innerAbstracts =
+        precision.with(
+            inner, new LoopPrecision(0, false, LoopPrecision.ALL_ABSTRACTIONS, false, false));
+    InductionState baseCase =
+        successor(
+            successor(initial, innerAbstracts, outerEntry, transfer),
+            innerAbstracts,
+            innerEntry,
+            transfer);
+    assertThat(baseCase.isAbstraction()).isTrue();
+    assertThat(baseCase.isInInductionStep()).isFalse();
+    assertThat(baseCase.getArrivals()).containsExactly(outer, 1);
   }
 
   private static CFAEdge backEdge(Loop pLoop) {

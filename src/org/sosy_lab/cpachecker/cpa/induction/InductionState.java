@@ -224,10 +224,11 @@ public final class InductionState
   }
 
   /**
-   * An abstraction at the given loop head. It restarts the counters of all loops, except inside an
-   * induction step, where it restarts only those of the loops of the head: the other loops still
-   * count towards the arrival that checks the property, as the arrivals since the start of the step
-   * count in native k-induction.
+   * An abstraction at the given loop head. It restarts the counters of the loops of the head, and
+   * the start of an induction step restarts all counters. The other loops keep counting, so that an
+   * abstraction of an inner loop does not delay the abstraction of the outer loop, and an induction
+   * step reaches the arrival that checks the property for every loop, as the arrivals since the
+   * start of the step count in native k-induction.
    */
   InductionState abstraction(
       CFANode pLoopHead,
@@ -236,7 +237,7 @@ public final class InductionState
       boolean pStartsInductionStep,
       boolean pReportsTargets) {
     PersistentSortedMap<Loop, Integer> remainingArrivals = PathCopyingPersistentTreeMap.of();
-    if (inInductionStep && !pStartsInductionStep) {
+    if (!pStartsInductionStep) {
       remainingArrivals = arrivals;
       for (Loop loop : pLoops) {
         remainingArrivals = remainingArrivals.removeAndCopy(loop);
