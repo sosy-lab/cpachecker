@@ -18,7 +18,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision;
+import org.sosy_lab.cpachecker.cpa.induction.InductionPrecision.LoopPrecision;
 import org.sosy_lab.cpachecker.cpa.induction.InductionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -56,7 +59,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  * error whose interpolant against the concrete suffix is new gets the interpolant, and so do the
  * frames in front of it. If the exploration reaches no target, the refiner pushes the frontier: the
  * next visit of a cut-off loop head gets a copy of the last frame, and its abstraction keeps what
- * still holds one step later, which is the clause propagation of PDR. The loops close when an
+ * still holds one step later, which is the clause propagation of PDR. As in PDR, the frames only
+ * grow, and every exploration uses all of them up to the frontier. The loops close when an
  * abstraction is covered by one in front of it.
  */
 @Options(prefix = "cpa.induction.refinement.pdr")
@@ -72,6 +76,13 @@ public final class PdrRefiner extends InductionRefiner {
   private final PredicateAbstractionManager predicateManager;
   private final LoopStructure loopStructure;
   private boolean fallenBackToBmc = false;
+
+  /** The frames of all loop heads, which the refinements extend. */
+  private final SetMultimap<LocationInstance, AbstractionPredicate> frames =
+      LinkedHashMultimap.create();
+
+  /** The number of frames per loop that the pushes reached. */
+  private final Map<Loop, Integer> frontiers = new HashMap<>();
 
   private final StatCounter blockedCounterexamples = new StatCounter("Blocked counterexamples");
   private final StatCounter pushedFrontiers = new StatCounter("Pushed frontiers");
@@ -164,16 +175,10 @@ public final class PdrRefiner extends InductionRefiner {
       if (precision.getPredicates(loopHead, visit).contains(predicate)) {
         continue;
       }
-      SetMultimap<LocationInstance, AbstractionPredicate> frames =
-          LinkedHashMultimap.create(precision.getLocationInstancePredicates());
       for (int frame = 1; frame <= visit; frame++) {
         frames.put(new LocationInstance(loopHead, frame), predicate);
       }
-      reexplore(
-          pReached,
-          abstraction,
-          ImmutableList.of(withFrames(precision, frames)),
-          ImmutableList.of(Predicates.instanceOf(PredicatePrecision.class)));
+      reexploreWithFrames(pReached, abstraction);
       blockedCounterexamples.inc();
       return true;
     }
@@ -208,37 +213,42 @@ public final class PdrRefiner extends InductionRefiner {
    * frame of the visit in front of it, and explore the cut-off again.
    */
   private void pushFrontier(ARGReachedSet pReached, ARGState pCutOff) throws InterruptedException {
-    ARGState parent = pCutOff.getParents().getFirst();
     InductionState cutOffState = inductionStateOf(pCutOff);
     CFANode loopHead = cutOffState.getLoopHead();
     int visit = cutOffState.getAbstractionIndex(loopHead) + 1;
-
-    PredicatePrecision precision = predicatePrecisionOf(pReached, parent);
-    SetMultimap<LocationInstance, AbstractionPredicate> frames =
-        LinkedHashMultimap.create(precision.getLocationInstancePredicates());
     frames.putAll(
         new LocationInstance(loopHead, visit),
-        precision.getLocationInstancePredicates().get(new LocationInstance(loopHead, visit - 1)));
-
-    InductionPrecision inductionPrecision = inductionPrecisionOf(pReached, parent);
+        ImmutableList.copyOf(frames.get(new LocationInstance(loopHead, visit - 1))));
     for (Loop loop : loopStructure.getLoopsForLoopHead(loopHead)) {
-      inductionPrecision =
-          inductionPrecision.with(
-              loop,
-              inductionPrecision
-                  .get(loop)
-                  .withDescribedAbstractions(
-                      Math.max(visit, inductionPrecision.get(loop).describedAbstractions())));
+      frontiers.merge(loop, visit, Math::max);
     }
     frameCount.setNextValue(visit);
+    reexploreWithFrames(pReached, pCutOff);
+    pushedFrontiers.inc();
+  }
+
+  /** Explore the given state again with all frames up to the frontiers. */
+  private void reexploreWithFrames(ARGReachedSet pReached, ARGState pState)
+      throws InterruptedException {
+    ARGState parent = pState.getParents().getFirst();
+    InductionPrecision inductionPrecision = inductionPrecisionOf(pReached, parent);
+    for (Map.Entry<Loop, Integer> frontier : frontiers.entrySet()) {
+      LoopPrecision loopPrecision = inductionPrecision.get(frontier.getKey());
+      if (loopPrecision.describedAbstractions() != LoopPrecision.ALL_ABSTRACTIONS
+          && loopPrecision.describedAbstractions() < frontier.getValue()) {
+        inductionPrecision =
+            inductionPrecision.with(
+                frontier.getKey(), loopPrecision.withDescribedAbstractions(frontier.getValue()));
+      }
+    }
     reexplore(
         pReached,
-        pCutOff,
-        ImmutableList.of(inductionPrecision, withFrames(precision, frames)),
+        pState,
+        ImmutableList.of(
+            inductionPrecision, withFrames(predicatePrecisionOf(pReached, parent), frames)),
         ImmutableList.of(
             Predicates.instanceOf(InductionPrecision.class),
             Predicates.instanceOf(PredicatePrecision.class)));
-    pushedFrontiers.inc();
   }
 
   private static int visitOf(ARGState pAbstraction, CFANode pLoopHead) {
