@@ -142,6 +142,14 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
+    DssAnalysisOptions analysisOptions = new DssAnalysisOptions(configuration);
+    if (analysisOptions.isDebugModeEnabled() && analysisOptions.compressMessages()) {
+      // contrib/worker-visualization reads the message logs of debug mode, but cannot decode them.
+      logger.log(
+          Level.WARNING,
+          "Debug mode writes dictionary-encoded messages, which the worker visualization cannot"
+              + " display. Set distributedSummaries.compressMessages=false to inspect them.");
+    }
     initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;
     executor = getExecutor(pSpecification);
