@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 @RunWith(Parameterized.class)
 public class ExistentialProjectionTest extends SolverViewBasedTest0 {
@@ -273,5 +274,34 @@ public class ExistentialProjectionTest extends SolverViewBasedTest0 {
     assertEquivalent(
         nested.project(formula, ExistentialProjectionTest::isExistential),
         bmgrv.and(gt(y, number(0)), eq(z, number(0))));
+  }
+
+  private BitvectorFormula apply(String pFunction, BitvectorFormula pArgument) {
+    FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(WIDTH);
+    return mgrv.getFunctionFormulaManager()
+        .callUF(mgrv.getFunctionFormulaManager().declareUF(pFunction, type, type), pArgument);
+  }
+
+  @Test
+  public void constraintOnSharedFunctionIsKept() throws Exception {
+    // ∃ e1, e2. e1 = 0 ∧ e2 = f(e1) ∧ e2 = 5  ≡  f(0) = 5, which constrains the function f that the
+    // rest of the program shares, like the result of a call to an external function
+    BitvectorFormula e1 = existential("e1");
+    BitvectorFormula e2 = existential("e2");
+    BooleanFormula projected =
+        projection.project(
+            bmgrv.and(eq(e1, number(0)), eq(e2, apply("f", e1)), eq(e2, number(5))),
+            ExistentialProjectionTest::isExistential);
+    assertEquivalent(projected, eq(apply("f", number(0)), number(5)));
+  }
+
+  @Test
+  public void existentialFunctionConnectsConjuncts() throws Exception {
+    // ∃ e. e(0) = 1 ∧ e(y) = 2 implies y != 0, because both conjuncts apply the same function e
+    BooleanFormula projected =
+        projection.project(
+            bmgrv.and(eq(apply("e", number(0)), number(1)), eq(apply("e", y), number(2))),
+            ExistentialProjectionTest::isExistential);
+    assertThat(solver.isUnsat(bmgrv.and(projected, eq(y, number(0))))).isTrue();
   }
 }
