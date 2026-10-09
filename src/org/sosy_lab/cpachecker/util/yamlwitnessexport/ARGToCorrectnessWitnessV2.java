@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 @Options(prefix = "witness.yamlexporter")
-public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
+public class ARGToCorrectnessWitnessV2 extends AbstractARGToCorrectnessWitness {
 
   @Option(
       secure = true,
@@ -183,18 +183,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
     }
   }
 
-  /**
-   * Export the given ARG to a witness file in YAML format. All versions of witnesses will be
-   * exported. It also prints output information to the user explaining what guarantees are provided
-   * by the witness.
-   *
-   * @param pRootState The root state of the ARG.
-   * @param pOutputFileTemplate The template for the output file. The template will be used to
-   *     generate unique names for each witness version by replacing the string '%s' with the
-   *     version.
-   * @throws InterruptedException If the witness export was interrupted.
-   * @throws IOException If the witness could not be written to the file.
-   */
+  @Override
   public void export(
       ARGState pRootState, UnmodifiableReachedSet pReachedSet, PathTemplate pOutputFileTemplate)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {

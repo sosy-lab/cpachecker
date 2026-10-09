@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -72,7 +71,6 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedCounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -178,21 +176,18 @@ public class CEXExporter {
   }
 
   /**
-   * Returns the exporter for the analyzed CFA. A CFA created by sequentializing a concurrent
-   * program needs one that maps the counterexample back to the input program first.
+   * Returns the exporter for the analyzed CFA, or a specialized exporter for a transformed program
+   * if {@code pCfa} was transformed.
    */
   private static CounterexampleToWitness createCexToWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
 
-    if (pCfa.getMetadata().getTransformation() instanceof MporSequentialization sequentialization
-        && sequentialization.mapping().isPresent()) {
-      return new SequentializedCounterexampleToWitness(
-          pConfig,
-          sequentialization.originalCfa(),
-          sequentialization.mapping().orElseThrow(),
-          pSpecification,
-          pLogger);
+    ProgramTransformation transformation = pCfa.getMetadata().getTransformation();
+    if (transformation != null) {
+      CFA originalCfa = transformation.originalCfa();
+      return transformation.createCounterexampleToWitness(
+          pConfig, originalCfa, pSpecification, pLogger);
     }
     return new CounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
   }
@@ -395,7 +390,7 @@ public class CEXExporter {
         if (transformation != null) {
           logger.log(
               Level.WARNING,
-              "Cannot export GraphML witness for sequentialized programs, skipping witness"
+              "Cannot export GraphML witness for transformed programs, skipping witness"
                   + " export.");
         } else {
           try {
