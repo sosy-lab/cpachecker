@@ -30,9 +30,16 @@ public final class InductionPrecision implements Precision {
    *     precision describes, or {@link #ALL_ABSTRACTIONS}. The analysis cuts a path off at the
    *     first abstraction that is not described.
    * @param unrolling whether the abstractions of the loop never cover each other
+   * @param concreteFirstArrival whether the first arrival at the loop before any abstraction on the
+   *     path does not count, so that the initial states of the loop stay concrete, as in native IMC
+   *     and ISMC
    */
   public record LoopPrecision(
-      int k, boolean induction, int describedAbstractions, boolean unrolling) {
+      int k,
+      boolean induction,
+      int describedAbstractions,
+      boolean unrolling,
+      boolean concreteFirstArrival) {
 
     public static final int ALL_ABSTRACTIONS = -1;
 
@@ -41,6 +48,13 @@ public final class InductionPrecision implements Precision {
       // with k = 0, the induction hypothesis is empty
       checkArgument(!induction || k >= 1, "an induction needs k >= 1");
       checkArgument(describedAbstractions >= ALL_ABSTRACTIONS);
+      checkArgument(
+          !(induction && concreteFirstArrival), "an induction counts every arrival at the loop");
+    }
+
+    /** The arrivals after which the next one abstracts, given whether no abstraction preceded. */
+    public int bound(boolean pBeforeFirstAbstraction) {
+      return concreteFirstArrival && pBeforeFirstAbstraction ? k + 1 : k;
     }
 
     boolean describes(int pAbstractionIndex) {
@@ -48,19 +62,23 @@ public final class InductionPrecision implements Precision {
     }
 
     public LoopPrecision withK(int pK) {
-      return new LoopPrecision(pK, induction, describedAbstractions, unrolling);
+      return new LoopPrecision(
+          pK, induction, describedAbstractions, unrolling, concreteFirstArrival);
     }
 
     public LoopPrecision withInduction(boolean pInduction) {
-      return new LoopPrecision(k, pInduction, describedAbstractions, unrolling);
+      return new LoopPrecision(
+          k, pInduction, describedAbstractions, unrolling, concreteFirstArrival);
     }
 
     public LoopPrecision withDescribedAbstractions(int pDescribedAbstractions) {
-      return new LoopPrecision(k, induction, pDescribedAbstractions, unrolling);
+      return new LoopPrecision(
+          k, induction, pDescribedAbstractions, unrolling, concreteFirstArrival);
     }
 
     public LoopPrecision withUnrolling(boolean pUnrolling) {
-      return new LoopPrecision(k, induction, describedAbstractions, pUnrolling);
+      return new LoopPrecision(
+          k, induction, describedAbstractions, pUnrolling, concreteFirstArrival);
     }
   }
 

@@ -290,6 +290,16 @@ public final class InductionState
     return isAbstraction() || endsBlockWithoutAbstraction() ? this : blockStart;
   }
 
+  /** Whether the successors lie in the first block, before any abstraction on the path. */
+  boolean successorsInFirstBlock() {
+    return blockStartOfSuccessors() == null;
+  }
+
+  /** Whether the state is at a head of a loop. */
+  public boolean isAtLoopHead() {
+    return atLoopHead;
+  }
+
   /** Whether the predicate analysis ends a block here although the precision does not abstract. */
   boolean endsBlockWithoutAbstraction() {
     return endsBlock;

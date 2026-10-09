@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -57,9 +59,11 @@ import org.sosy_lab.java_smt.api.SolverException;
  * is one block, as in the unrolling of native ISMC. The interpolation sequences of the spurious
  * targets over these blocks are conjoined per loop head and visit into the reachability vector. If
  * the vector passes the fixpoint check of native ISMC, the frame phase abstracts every visit of a
- * loop head with all frames as predicates. Boolean abstraction is exact on the frames, so this
- * exploration closes the loops by coverage. Otherwise, the counterexample search continues with
- * bound n+1, which extends the unrolling at its cut-offs.
+ * loop head after the first with all frames as predicates. The first visit stays concrete, as the
+ * initial states of native ISMC. The union of the frames that the check uses is inductive and
+ * excludes the errors of the next iteration, and Boolean abstraction is exact on the frames, so
+ * this exploration closes the loops by coverage. Otherwise, the counterexample search continues
+ * with bound n+1, which extends the unrolling at its cut-offs.
  */
 @Options(prefix = "cpa.induction.refinement.ismc")
 public final class IsmcRefiner extends InductionRefiner {
@@ -255,12 +259,21 @@ public final class IsmcRefiner extends InductionRefiner {
     }
   }
 
-  /** The first abstractions at a loop head on the paths to the given states. */
+  /**
+   * The first arrivals at a loop head on the paths to the given states, which the search abstracts
+   * and the frame phase does not.
+   */
   private static Set<ARGState> rootsOf(Iterable<ARGState> pStates) {
     Set<ARGState> roots = new LinkedHashSet<>();
     for (ARGState state : pStates) {
       if (!state.isDestroyed()) {
-        roots.add(firstLoopHeadAbstraction(state).orElseThrow());
+        @Nullable ARGState first = null;
+        for (ARGState s = state; !s.getParents().isEmpty(); s = s.getParents().getFirst()) {
+          if (inductionStateOf(s).isAtLoopHead()) {
+            first = s;
+          }
+        }
+        roots.add(checkNotNull(first));
       }
     }
     return roots;
@@ -301,19 +314,27 @@ public final class IsmcRefiner extends InductionRefiner {
                     0,
                     /* induction= */ false,
                     LoopPrecision.ALL_ABSTRACTIONS,
-                    /* unrolling= */ false));
+                    /* unrolling= */ false,
+                    /* concreteFirstArrival= */ true));
   }
 
   private InductionPrecision searchPrecision(ARGReachedSet pReached, ARGState pRoot) {
     return inductionPrecisionOf(pReached, pRoot.getParents().getFirst())
-        .withAll(p -> new LoopPrecision(0, /* induction= */ false, bound, /* unrolling= */ true));
+        .withAll(
+            p ->
+                new LoopPrecision(
+                    0,
+                    /* induction= */ false,
+                    bound,
+                    /* unrolling= */ true,
+                    /* concreteFirstArrival= */ false));
   }
 
-  /** Every frame of a loop head as a predicate of all its visits. */
+  /** Every frame of a loop head that the fixpoint check uses as a predicate of all its visits. */
   private PredicatePrecision framePredicates() {
     SetMultimap<CFANode, AbstractionPredicate> predicates = LinkedHashMultimap.create();
     for (Map.Entry<CFANode, List<BooleanFormula>> entry : frames.entrySet()) {
-      for (BooleanFormula frame : entry.getValue()) {
+      for (BooleanFormula frame : Iterables.skip(entry.getValue(), 1)) {
         if (!bfmgr.isTrue(frame)) {
           predicates.put(entry.getKey(), predicateManager.getPredicateFor(frame));
         }

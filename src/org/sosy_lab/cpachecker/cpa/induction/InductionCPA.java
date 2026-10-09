@@ -208,7 +208,8 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return InductionPrecision.uniform(
         loopStructure.getAllLoops(),
-        new LoopPrecision(k, induction, describedAbstractions, unrolling));
+        new LoopPrecision(
+            k, induction, describedAbstractions, unrolling, /* concreteFirstArrival= */ false));
   }
 
   @Override

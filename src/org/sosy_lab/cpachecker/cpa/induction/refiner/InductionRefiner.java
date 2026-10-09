@@ -644,7 +644,8 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
                         Math.max(p.k(), pMinimalK),
                         /* induction= */ false,
                         /* describedAbstractions= */ 0,
-                        /* unrolling= */ false));
+                        /* unrolling= */ false,
+                        /* concreteFirstArrival= */ false));
     recordK(precision);
     pReached.removeAllExceptFirstStateWithPrecision(
         ImmutableList.of(precision, PredicatePrecision.empty()),

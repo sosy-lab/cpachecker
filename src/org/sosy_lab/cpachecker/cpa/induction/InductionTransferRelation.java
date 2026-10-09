@@ -78,12 +78,13 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of(state.concrete(state.getArrivals(), false, false, reportsTargets));
     }
 
+    boolean beforeFirstAbstraction = state.successorsInFirstBlock();
     PersistentSortedMap<Loop, Integer> arrivals = state.getArrivals();
     @Nullable Loop boundedLoop = null;
     for (Loop loop : loops) {
       int count = arrivals.getOrDefault(loop, 0) + 1;
       arrivals = arrivals.putAndCopy(loop, count);
-      if (boundedLoop == null && count > precision.get(loop).k()) {
+      if (boundedLoop == null && count > precision.get(loop).bound(beforeFirstAbstraction)) {
         boundedLoop = loop;
       }
     }
@@ -103,7 +104,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       cutOffs.inc();
       return ImmutableList.of(state.cutOff(arrivals, successor, loopPrecision, reportsTargets));
     }
-    if (arrivals.get(boundedLoop) > loopPrecision.k() + 1) {
+    if (arrivals.get(boundedLoop) > loopPrecision.bound(beforeFirstAbstraction) + 1) {
       // the continuation of the base case after an induction start ends here
       return ImmutableList.of();
     }

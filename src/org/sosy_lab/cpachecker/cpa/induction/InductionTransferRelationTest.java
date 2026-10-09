@@ -72,7 +72,7 @@ public class InductionTransferRelationTest {
   private InductionPrecision precision(int pK, boolean pInduction, int pDescribedAbstractions) {
     return InductionPrecision.uniform(
         loopStructure.getAllLoops(),
-        new LoopPrecision(pK, pInduction, pDescribedAbstractions, false));
+        new LoopPrecision(pK, pInduction, pDescribedAbstractions, false, false));
   }
 
   private Collection<InductionState> successors(
@@ -105,6 +105,20 @@ public class InductionTransferRelationTest {
   }
 
   @Test
+  public void keepsTheFirstArrivalConcrete() {
+    InductionPrecision precision =
+        InductionPrecision.uniform(
+            loopStructure.getAllLoops(),
+            new LoopPrecision(0, false, LoopPrecision.ALL_ABSTRACTIONS, false, true));
+    InductionState first = successor(initial, precision, entry);
+    assertThat(first.isAbstraction()).isFalse();
+    InductionState second = successor(successor(first, precision, body), precision, back);
+    assertThat(second.isAbstraction()).isTrue();
+    assertThat(successor(successor(second, precision, body), precision, back).isAbstraction())
+        .isTrue();
+  }
+
+  @Test
   public void keepsTheCountersOfOtherLoopsInAnInductionStep() throws Exception {
     CFA cfa =
         TestCfaUtils.makeCfaFromFunctionBody(
@@ -131,7 +145,8 @@ public class InductionTransferRelationTest {
     InductionTransferRelation transfer = new InductionTransferRelation(loops, true, false, false);
     InductionPrecision precision =
         InductionPrecision.uniform(
-            loops.getAllLoops(), new LoopPrecision(1, true, LoopPrecision.ALL_ABSTRACTIONS, false));
+            loops.getAllLoops(),
+            new LoopPrecision(1, true, LoopPrecision.ALL_ABSTRACTIONS, false, false));
 
     InductionState state = successor(initial, precision, outerEntry, transfer);
     state = successor(state, precision, innerEntry, transfer);
@@ -280,7 +295,7 @@ public class InductionTransferRelationTest {
     InductionPrecision precision(int pK, boolean pInduction, int pDescribedAbstractions) {
       return InductionPrecision.uniform(
           loopStructure.getAllLoops(),
-          new LoopPrecision(pK, pInduction, pDescribedAbstractions, false));
+          new LoopPrecision(pK, pInduction, pDescribedAbstractions, false, false));
     }
   }
 

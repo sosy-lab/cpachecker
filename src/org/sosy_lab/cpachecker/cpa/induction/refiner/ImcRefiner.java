@@ -256,10 +256,13 @@ public final class ImcRefiner extends InductionRefiner {
             .orElseThrow();
     List<ARGState> chain = pChains.get(deepest);
     int first = chain.indexOf(firstLoopHeadAbstraction(deepest).orElseThrow());
-    int k = inductionStateOf(chain.get(first)).getLoopPrecision().k();
+    int arrivalsBefore =
+        inductionStateOf(chain.get(first))
+            .getLoopPrecision()
+            .bound(/* pBeforeFirstAbstraction= */ true);
     // the abstraction at the second arrival at the loop head
-    int position = first + 1 - k;
-    if (k <= 1 && position < chain.size() - 1) {
+    int position = first + 1 - arrivalsBefore;
+    if (arrivalsBefore <= 1 && position < chain.size() - 1) {
       List<BooleanFormula> suffixes = new ArrayList<>();
       for (ARGState target : pTargetsBelow.get(chain.get(position))) {
         if (!target.isDestroyed()) {
@@ -278,7 +281,7 @@ public final class ImcRefiner extends InductionRefiner {
         }
         return;
       }
-    } else if (k == 0) {
+    } else if (arrivalsBefore == 0) {
       // The second arrival is covered by the first, but native IMC interpolates only after it.
       interpolatesAsNativeImc = true;
       restartWithLargerK(pReached, chain);
@@ -356,7 +359,10 @@ public final class ImcRefiner extends InductionRefiner {
     return true;
   }
 
-  /** Explore again from the root with an abstraction at every arrival at a loop head. */
+  /**
+   * Explore again from the root with an abstraction at every arrival at a loop head after the first
+   * one, so that the initial states stay concrete, as in native IMC.
+   */
   private void restartAsImc(ARGReachedSet pReached) throws InterruptedException {
     ARGState root = (ARGState) pReached.asReachedSet().getFirstState();
     InductionPrecision precision =
@@ -367,7 +373,8 @@ public final class ImcRefiner extends InductionRefiner {
                         /* k= */ 0,
                         /* induction= */ false,
                         LoopPrecision.ALL_ABSTRACTIONS,
-                        /* unrolling= */ false));
+                        /* unrolling= */ false,
+                        /* concreteFirstArrival= */ true));
     recordK(precision);
     pReached.removeAllExceptFirstStateWithPrecision(
         ImmutableList.of(precision, PredicatePrecision.empty()),
