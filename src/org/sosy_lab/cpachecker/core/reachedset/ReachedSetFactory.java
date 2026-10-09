@@ -48,6 +48,7 @@ public class ReachedSetFactory {
     LOCATIONMAPPED,
     PARTITIONED,
     PSEUDOPARTITIONED,
+    INDUCTIONPARTITIONED,
     USAGE
   }
 
@@ -168,6 +169,8 @@ public class ReachedSetFactory {
               + "LOCATIONMAPPED: a different set per location (faster, states with different"
               + " locations cannot be merged)\n"
               + "PARTITIONED: partitioning depending on CPAs (e.g. Location, Callstack etc.)\n"
+              + "INDUCTIONPARTITIONED: partitioning by location, call chain and deepest loop"
+              + " iteration; intended for the induction step case of k-induction\n"
               + "PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states'"
               + " lattice (maybe faster for some special analyses which use merge_sep and stop_sep")
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
@@ -268,6 +271,7 @@ public class ReachedSetFactory {
     ReachedSet reached =
         switch (reachedSet) {
           case PARTITIONED -> new PartitionedReachedSet(cpa, waitlistFactory);
+          case INDUCTIONPARTITIONED -> new InductionPartitionedReachedSet(cpa, waitlistFactory);
           case PSEUDOPARTITIONED -> new PseudoPartitionedReachedSet(cpa, waitlistFactory);
           case LOCATIONMAPPED -> new LocationMappedReachedSet(cpa, waitlistFactory);
           case USAGE -> new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
