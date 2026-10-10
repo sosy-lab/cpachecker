@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor.extractFloatFromNumericValueOrThrow;
 import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling.ASSUME_EXTERNALLY_ALLOCATED_WARN;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
@@ -23,7 +24,9 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardInputOrOu
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInputFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
@@ -33,6 +36,7 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -78,7 +82,12 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -155,15 +164,17 @@ public class SMGCPABuiltins {
    *
    * @param funCallExpr {@link CFunctionCallExpression} that has been checked for all other known
    *     functions (math functions etc.).
-   * @param functionName Name of the function.
    * @param state current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return the result of the function call and the state for it, which may be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
   public List<ValueAndSMGState> handleFunctionCallWithoutBody(
-      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
+      CFunctionCallExpression funCallExpr, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
+
+    // Extract function name first
+    final String functionName = getFunctionNameFrom(funCallExpr);
 
     if (isSafeFunction(functionName)) {
       return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
@@ -178,6 +189,16 @@ public class SMGCPABuiltins {
     }
 
     return handleBuiltinFunctionCall(funCallExpr, functionName, state, cfaEdge);
+  }
+
+  protected static String getFunctionNameFrom(CFunctionCallExpression funCallExpr) {
+    // We want to be able to resolve names at all times!
+    final CExpression funNameExpr = funCallExpr.getFunctionNameExpression();
+    if (funNameExpr instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getName();
+    } else {
+      return funNameExpr.toASTString();
+    }
   }
 
   /**
@@ -341,7 +362,10 @@ public class SMGCPABuiltins {
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> handleBuiltinFunctionCall(
-      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
+      CFunctionCallExpression funCallExpr,
+      String functionName,
+      final SMGState state,
+      CFAEdge cfaEdge)
       throws CPATransferException {
 
     if (isMemoryAllocatingFunction(functionName)) {
@@ -367,6 +391,387 @@ public class SMGCPABuiltins {
       // Only output functions as input are already handled above
       return checkAllParametersForValidityAndReturnUnknownValue(
           state, cfaEdge, funCallExpr, functionName);
+    }
+
+    if (BuiltinFunctions.isBuiltinFunction(functionName)) {
+      // TODO: this block needs to be sensibly refactored into dedicated methods!
+      CType functionType = BuiltinFunctions.getFunctionType(functionName);
+
+      // TODO: do we need this?!
+      if (isUnspecifiedType(functionType) && !functionName.equals("__builtin_alloca")) {
+        // unsupported formula
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                state,
+                "Returned unknown value due to unknown function "
+                    + functionName
+                    + " in expression in ",
+                cfaEdge));
+      }
+
+      List<CExpression> parameterExpressions = funCallExpr.getParameterExpressions();
+      ImmutableList.Builder<Value> parameterValuesBuilder = ImmutableList.builder();
+
+      // Evaluate all parameters
+      SMGState currentState = state;
+      for (CExpression currParamExp : parameterExpressions) {
+        // Here we expect only 1 result value
+        SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
+        List<ValueAndSMGState> newValuesAndStates =
+            vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
+        checkArgument(newValuesAndStates.size() == 1);
+        Value newValue = newValuesAndStates.getFirst().getValue();
+        // CPA access has side effects! Always take the newest state!
+        currentState = newValuesAndStates.getFirst().getState();
+
+        parameterValuesBuilder.add(newValue);
+      }
+      List<Value> parameterValues = parameterValuesBuilder.build();
+
+      if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+        /*
+         * Problem: this method needs an AbstractExpressionValueVisitor as input (this)
+         * but this class is not correctly abstracted such that we can inherit it here
+         * (because it essentially is the same except for 1 method that would need to be
+         * abstract)
+         *
+         * return BuiltinOverflowFunctions.evaluateFunctionCall(
+         *   funCallExpr, this, machineModel, logger);
+         */
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown result of unhandled builtin function " + functionName + " ",
+                cfaEdge));
+
+      } else if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.abs()),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
+          || BuiltinFloatFunctions.matchesInfinity(functionName)) {
+        checkArgument(parameterValues.isEmpty());
+        Format precision =
+            Format.fromCType(
+                machineModel, BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName));
+        return ImmutableList.of(
+            ValueAndSMGState.of(new NumericValue(FloatValue.infinity(precision)), currentState));
+
+      } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
+        // FIXME: Add support for NaN payloads
+        checkArgument(parameterValues.size() < 2);
+        Format precision =
+            Format.fromCType(
+                machineModel, BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName));
+        return ImmutableList.of(
+            ValueAndSMGState.of(new NumericValue(FloatValue.nan(precision)), currentState));
+
+      } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIsInfinitySign(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) ->
+                new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesLround(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> {
+              FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+              return switch (machineModel.getSizeofLongInt()) {
+                case Integer.BYTES -> new NumericValue(value.integerValue());
+                case Long.BYTES -> new NumericValue(value.longValue());
+                default -> {
+                  state.logUnknownValue(
+                      "Returned unknown value due to undefined conversion of float value "
+                          + value
+                          + " in builtin function "
+                          + functionName
+                          + " ",
+                      cfaEdge);
+                  yield UnknownValue.getInstance();
+                }
+              };
+            },
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesLlround(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> {
+              FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+              return switch (machineModel.getSizeofLongLongInt()) {
+                case Integer.BYTES -> new NumericValue(value.integerValue());
+                case Long.BYTES -> new NumericValue(value.longValue());
+                default -> {
+                  state.logUnknownValue(
+                      "Returned unknown value due to undefined conversion of float value "
+                          + value
+                          + " in builtin function "
+                          + functionName
+                          + " ",
+                      cfaEdge);
+                  yield UnknownValue.getInstance();
+                }
+              };
+            },
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) ->
+                new NumericValue(
+                    arg1.lessOrEqual(arg2)
+                        ? FloatValue.zero(arg1.getFormat())
+                        : arg1.subtract(arg2)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
+        // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
+        // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
+        // return the first argument.
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) ->
+                new NumericValue(
+                    switch (arg1.compareWithTotalOrder(arg2)) {
+                      case -1 -> arg2.isNan() ? arg1 : arg2;
+                      case +1 -> arg1.isNan() ? arg2 : arg1;
+                      default -> arg1;
+                    }),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
+        // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
+        // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
+        // argument for `float` or `double` and the second for `long double`
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) ->
+                new NumericValue(
+                    switch (arg1.compareWithTotalOrder(arg2)) {
+                      case -1 -> arg1.isNan() ? arg2 : arg1;
+                      case +1 -> arg2.isNan() ? arg1 : arg2;
+                      default -> arg1;
+                    }),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> {
+              int fpClass;
+              if (arg.isNan()) {
+                fpClass = 0;
+              } else if (arg.isInfinite()) {
+                fpClass = 1;
+              } else if (arg.isZero()) {
+                fpClass = 2;
+              } else if (arg.abs().lessThan(FloatValue.minNormal(arg.getFormat()))) {
+                // Subnormal numbers
+                fpClass = 3;
+              } else {
+                fpClass = 4;
+              }
+              return new NumericValue(fpClass);
+            },
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
+        // FIXME: Assign the integer part to the pointer from the second parameter
+        if (parameterValues.size() == 2) {
+          Value value = parameterValues.getFirst();
+          if (value.isExplicitlyKnown()) {
+            FloatValue arg =
+                extractFloatFromNumericValueOrThrow(
+                    machineModel,
+                    BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName),
+                    (NumericValue) value);
+
+            if (arg.isInfinite()) {
+              // Return zero if the number is infinite
+              return ImmutableList.of(
+                  ValueAndSMGState.of(
+                      new NumericValue(
+                          arg.isNegative()
+                              ? FloatValue.negativeZero(arg.getFormat())
+                              : FloatValue.zero(arg.getFormat())),
+                      currentState));
+            } else {
+              // Otherwise, get the fractional part
+              return ImmutableList.of(
+                  ValueAndSMGState.of(
+                      new NumericValue(arg.modulo(FloatValue.one(arg.getFormat()))), currentState));
+            }
+          }
+        }
+
+      } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesFmod(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
+        return handleBuiltinFunctionsWithOneArgument(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg) -> new NumericValue(arg.sqrt()),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.greaterThan(arg2) ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) ->
+                new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) ->
+                new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0),
+            cfaEdge);
+
+      } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
+        return handleBuiltinFunctionsWithTwoArguments(
+            functionName,
+            parameterValues,
+            currentState,
+            (FloatValue arg1, FloatValue arg2) ->
+                new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0),
+            cfaEdge);
+      }
     }
 
     return switch (functionName) {
@@ -3363,6 +3768,80 @@ public class SMGCPABuiltins {
     }
 
     return result.build();
+  }
+
+  private boolean isUnspecifiedType(CType pType) {
+    return pType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType() == CBasicType.UNSPECIFIED;
+  }
+
+  // TODO: this needs to be reworked urgently!
+  /**
+   * Helper method to handle builtin C functions with 1 argument. Returns UNKNOWN for function calls
+   * with a parameter that are of integer type. If the parameter are of floating-point type, and
+   * concrete values are present, they are evaluated based on the application of the given
+   * BiFunction.
+   */
+  private List<ValueAndSMGState> handleBuiltinFunctionsWithOneArgument(
+      String pName,
+      List<Value> pArguments,
+      SMGState pState,
+      Function<FloatValue, Value> pOperation,
+      CFAEdge cfaEdge) {
+    final Value parameter = Iterables.getOnlyElement(pArguments);
+
+    if (parameter instanceof NumericValue numParameter) {
+      // Cast the argument to match the function type
+      FloatValue value =
+          extractFloatFromNumericValueOrThrow(
+              machineModel,
+              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
+              numParameter);
+
+      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
+    } else {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              pState,
+              "Returned unknown value due to unhandled builtin function " + pName + " in ",
+              cfaEdge));
+    }
+  }
+
+  // TODO: this needs to be reworked urgently!
+  /**
+   * Helper method to handle builtin C functions with 2 arguments. Returns UNKNOWN for function
+   * calls with parameters that include at least one integer type. If all parameters are of
+   * floating-point type, and concrete values are present, they are evaluated based on the
+   * application of the given BiFunction.
+   */
+  private List<ValueAndSMGState> handleBuiltinFunctionsWithTwoArguments(
+      String pfunctionName,
+      List<Value> pArguments,
+      SMGState pState,
+      BiFunction<FloatValue, FloatValue, Value> pOperation,
+      CFAEdge cfaEdge) {
+    checkArgument(pArguments.size() == 2);
+    Value parameter1 = pArguments.getFirst();
+    Value parameter2 = pArguments.get(1);
+
+    if (parameter1 instanceof NumericValue pNumericValue1
+        && parameter2 instanceof NumericValue pNumericValue2) {
+      // Cast both arguments to match the function type
+      CSimpleType targetType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pfunctionName);
+      FloatValue value1 =
+          extractFloatFromNumericValueOrThrow(machineModel, targetType, pNumericValue1);
+      FloatValue value2 =
+          extractFloatFromNumericValueOrThrow(machineModel, targetType, pNumericValue2);
+
+      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value1, value2), pState));
+    } else {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              pState,
+              "Returned unknown value due to unhandled builtin function " + pfunctionName + " in ",
+              cfaEdge));
+    }
   }
 
   private static boolean isNumericZero(Value value) {
