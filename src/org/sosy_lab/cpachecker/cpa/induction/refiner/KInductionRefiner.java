@@ -34,7 +34,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  * that the SAT queries of native k-induction cannot prove increases k by one. As native
  * k-induction, the refiner first checks the base case up to the bound, where the precision cuts the
  * paths off, and the bounding assertions. Only then the exploration continues with the induction
- * steps, whose targets the step case checks.
+ * steps, whose targets the step case checks. Optionally, one exploration contains both cases, as in
+ * split-case k-induction.
  */
 @Options(prefix = "cpa.induction.refinement.kInduction")
 public final class KInductionRefiner extends InductionRefiner {
@@ -53,6 +54,14 @@ public final class KInductionRefiner extends InductionRefiner {
           "Optimization: share one prover between the step case queries of all bounds. Native"
               + " k-induction creates a new prover for the step case of every bound.")
   private boolean sharedStepProver = false;
+
+  @Option(
+      secure = true,
+      description =
+          "explore the base case and the induction steps in one pass, as split-case k-induction"
+              + " does. Otherwise, the refiner alternates between rounds for the base case and"
+              + " rounds for the step case, as native k-induction does.")
+  private boolean combineCases = false;
 
   private final StatCounter provedByBoundingAssertions =
       new StatCounter("Proofs by unreachable induction starts");
@@ -105,9 +114,11 @@ public final class KInductionRefiner extends InductionRefiner {
       inductionStarts.add(firstLoopHeadAbstraction(target).orElseThrow());
     }
     // Native k-induction checks the bounding assertions only before the step case. For all
-    // induction starts, the query would repeat the one of the cut-offs at the bound.
-    if (targetedBoundingAssertions
-        && inductionStarts.size() < countInductionStarts(pReached)
+    // induction starts, the query would repeat the one of the cut-offs at the bound, which the
+    // combined cases do not have.
+    if ((combineCases
+            || (targetedBoundingAssertions
+                && inductionStarts.size() < countInductionStarts(pReached)))
         && removeIfNoneReachable(pReached, inductionStarts)) {
       provedByBoundingAssertions.inc();
       return Optional.empty();
@@ -117,9 +128,13 @@ public final class KInductionRefiner extends InductionRefiner {
       return Optional.empty();
     }
 
+    int describedAbstractions = combineCases ? LoopPrecision.ALL_ABSTRACTIONS : 0;
     for (ARGState start : inductionStarts) {
-      // the base case up to the next bound
-      reexploreWith(pReached, start, p -> p.withK(p.k() + 1).withDescribedAbstractions(0));
+      // the base case up to the next bound, followed by the induction steps if combined
+      reexploreWith(
+          pReached,
+          start,
+          p -> p.withK(p.k() + 1).withDescribedAbstractions(describedAbstractions));
     }
     return Optional.empty();
   }
