@@ -43,6 +43,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private final Solver solver;
   private CToFormulaConverterWithPointerAliasing converter;
   private FormulaToAcslConverter formulaConverter;
+  private FormulaManagerView fmgr;
 
   private AcslCPA(
       CFA pCFA, LogManager pLogManager, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
@@ -51,7 +52,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     this.cfa = pCFA;
     this.logger = pLogManager;
     solver = Solver.create(pConfig, this.logger, pShutdownNotifier);
-    FormulaManagerView fmgr = solver.getFormulaManager();
+    this.fmgr = solver.getFormulaManager();
     initializeConverters(fmgr, this.logger, pConfig, pShutdownNotifier, pCFA.getMachineModel());
     logger.log(Level.INFO, "AcslCPA created.");
   }
@@ -89,7 +90,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new AcslTransferRelation(cfa, logger, formulaConverter);
+    return new AcslTransferRelation(cfa, logger, formulaConverter, fmgr);
   }
 
   @Override

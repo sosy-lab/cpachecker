@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @SuppressWarnings("unused")
 public class AcslTransferRelation extends SingleEdgeTransferRelation {
@@ -30,14 +31,19 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
   private final LogManager logger;
   private final LoopPatternFinder loopPatternFinder;
   private final FormulaToAcslConverter formulaConverter;
+  private final FormulaManagerView fmgr;
   private final Level logLevel = Level.FINER; // TODO change this to INFO while debugging
 
   public AcslTransferRelation(
-      CFA pCFA, LogManager pLogManager, FormulaToAcslConverter pFormulaConverter) {
+      CFA pCFA,
+      LogManager pLogManager,
+      FormulaToAcslConverter pFormulaConverter,
+      FormulaManagerView pFmgr) {
     this.cfa = pCFA;
     this.logger = pLogManager;
     this.loopPatternFinder = new LoopPatternFinder(logger, pFormulaConverter);
     this.formulaConverter = pFormulaConverter;
+    this.fmgr = pFmgr;
   }
 
   @Override
@@ -70,23 +76,6 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
                 arrayInit -> {
                   logger.log(logLevel, "Detected array initialization: " + arrayInit);
                 });
-
-        //        System.out.println(
-        //            "Edge:"
-        //                + cfaEdge
-        //                + " Predicate state: "
-        //                + predicateState.getPathFormula().getFormula());
-        logger.log(logLevel, predicateState.getPathFormula().getFormula());
-        try {
-          // TODO This does not work with select and store yet, and needs to be fixed
-          AcslPredicate pred =
-              formulaConverter.formulaToAcslExpression(
-                  predicateState.getPathFormula().getFormula());
-          // System.out.println("Converted to ACSL: " + pred);
-        } catch (Exception pE) {
-          logger.log(
-              Level.WARNING, "Error converting formula to Acsl expression: " + pE.getMessage());
-        }
       }
       if (otherState instanceof ValueAnalysisState valueState) {
         logger.log(logLevel, valueState.toString());
