@@ -393,6 +393,146 @@ public class SMGCPABuiltins {
           state, cfaEdge, funCallExpr, functionName);
     }
 
+    // TODO: add math.h isnormal(x) macro
+    //  int isnormal(x)
+    //  x may be float, double, or long double.
+    //  Returns nonzero if x is a normal floating-point number.
+    //  Undefined behavior: x is not a real floating-point expression.
+
+    // TODO: add math.h multiply-add functions:
+    //  double fma(double x, double y, double z);
+    //  float fmaf(float x, float y, float z);
+    //  long double fmal(long double x, long double y, long double z);
+    //  Computes x*y + z as one operation, rounding the final result only once.
+    //  Range error: overflow or underflow may occur.
+    //  Annex F: multiplying zero by infinity returns NaN and raises FE_INVALID,
+    //   except when z is NaN, in which case FE_INVALID is optional.
+    //  Annex F: an infinite product added to an infinity of opposite sign
+    //   returns NaN and raises FE_INVALID.
+
+    // TODO: add math.h nexttoward function family
+    //  double nexttoward(double x, long double y);
+    //  float nexttowardf(float x, long double y);
+    //  long double nexttowardl(long double x, long double y);
+    //  Returns the next representable floating-point value after x toward y.
+    //  Unlike nextafter(), y is always a long double.
+    //  Returns y converted to the result type if x == y.
+    //  Range error may occur when stepping beyond the largest finite value.
+    //  Annex F: very small results may also raise underflow exceptions.
+
+    // TODO: add math.h nextafter function family
+    //  double nextafter(double x, double y);
+    //  float nextafterf(float x, float y);
+    //  long double nextafterl(long double x, long double y);
+    //  Returns the next representable floating-point value after x toward y.
+    //  Returns y if x == y.
+    //  Range error may occur when stepping beyond the largest finite value.
+    //  Annex F: very small results may also raise underflow exceptions.
+
+    // TODO: add math.h remquo function family
+    //  double remquo(double x, double y, int *quo);
+    //  float remquof(float x, float y, int *quo);
+    //  long double remquol(long double x, long double y, int *quo);
+    //  Returns the same remainder as remainder().
+    //  Stores a signed integer in *quo containing at least the three
+    //  lowest binary digits of the rounded quotient magnitude.
+    //  Undefined behavior: quo is NULL or does not point to writable int storage.
+    //  Implementation-defined: when y == 0, either a domain error
+    //  occurs or zero is returned.
+    //  Unspecified: the value stored in *quo when y == 0.
+
+    // TODO: add math.h nearbyint function family
+    //  double nearbyint(double x);
+    //  float nearbyintf(float x);
+    //  long double nearbyintl(long double x);
+    //  Rounds x to an integer-valued floating-point number
+    //  using the current rounding mode.
+    //  Does not raise FE_INEXACT.
+
+    // TODO: add math.h rint function family
+    //  double rint(double x);
+    //  float rintf(float x);
+    //  long double rintl(long double x);
+    //  Rounds x to an integer-valued floating-point number
+    //  using the current rounding mode.
+    //  May raise FE_INEXACT.
+
+    // TODO: add math.h lrint function family
+    //  long int lrint(double x);
+    //  long int lrintf(float x);
+    //  long int lrintl(long double x);
+    //  Rounds x using the current rounding mode and returns long int.
+    //  Unspecified numeric result if the rounded value exceeds long int range.
+    //  Domain or range error may occur for an unrepresentable result.
+    //  Annex F: an unrepresentable result raises FE_INVALID.
+
+    // TODO: add math.h llrint function family
+    //  long long int llrint(double x);
+    //  long long int llrintf(float x);
+    //  long long int llrintl(long double x);
+    //  Rounds x using the current rounding mode and returns long long int.
+    //  Unspecified numeric result if the rounded value exceeds long long int range.
+    //  Domain or range error may occur for an unrepresentable result.
+    //  Annex F: an unrepresentable result raises FE_INVALID.
+
+    // TODO: add math.h erf error function family
+    // double erf(double x);
+    // float erff(float x);
+    // long double erfl(long double x);
+    // Returns the error function of x, defined by the integral above.
+
+    // TODO: add math.h erfc error function family
+    // double erfc(double x);
+    // float erfcf(float x);
+    // long double erfcl(long double x);
+    // Returns 1 - erf(x), calculated to preserve accuracy.
+    // Range error: sufficiently large positive x causes underflow.
+
+    // TODO: add math.h lgamma gamma function family
+    // double lgamma(double x);
+    // float lgammaf(float x);
+    // long double lgammal(long double x);
+    // Returns the natural logarithm of the absolute value
+    // of the gamma function of x.
+    // Pole error may occur when x is zero or a negative integer.
+    // Range error: sufficiently large x causes overflow.
+
+    // TODO: add math.h tgamma gamma function family
+    // double tgamma(double x);
+    // float tgammaf(float x);
+    // long double tgammal(long double x);
+    // Returns the gamma function of x.
+    // Domain or pole error may occur when x is zero or a negative integer.
+    // Range error: very large or very small |x| may cause
+    // overflow or underflow.
+
+    // TODO: add math.h cbrt root function family
+    // double cbrt(double x);
+    // float cbrtf(float x);
+    // long double cbrtl(long double x);
+    // Returns the real cube root of x.
+    // Negative finite inputs are permitted.
+
+    // TODO: add math.h hypot function family
+    // double hypot(double x, double y);
+    // float hypotf(float x, float y);
+    // long double hypotl(long double x, long double y);
+    // Returns sqrt(x*x + y*y), avoiding unnecessary
+    // intermediate overflow and underflow.
+    // Range error may occur if the result is too large to represent.
+
+    // TODO: add math.h pow power function family
+    // double pow(double x, double y);
+    // float powf(float x, float y);
+    // long double powl(long double x, long double y);
+    // Returns x raised to the power y.
+    // Domain error: negative finite x and finite noninteger y.
+    // Domain error may occur when x == 0 and y == 0.
+    // Domain or pole error may occur when x == 0 and y < 0.
+    // Range error: overflow or underflow may occur.
+
+    // TODO: many more math.h functions are missing!
+
     if (BuiltinFunctions.isBuiltinFunction(functionName)) {
       // TODO: this block needs to be sensibly refactored into dedicated methods!
       CType functionType = BuiltinFunctions.getFunctionType(functionName);
@@ -414,6 +554,7 @@ public class SMGCPABuiltins {
 
       // Evaluate all parameters
       SMGState currentState = state;
+      // TODO: This must be moved inside the function handling cases!
       for (CExpression currParamExp : parameterExpressions) {
         // Here we expect only 1 result value
         SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
@@ -429,6 +570,8 @@ public class SMGCPABuiltins {
       List<Value> parameterValues = parameterValuesBuilder.build();
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+        // TODO: currently being worked on in a another MR. So don't touch this.
+
         /*
          * Problem: this method needs an AbstractExpressionValueVisitor as input (this)
          * but this class is not correctly abstracted such that we can inherit it here
@@ -445,6 +588,11 @@ public class SMGCPABuiltins {
                 cfaEdge));
 
       } else if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
+        // double fabs(double x);
+        // float fabsf(float x);
+        // long double fabsl(long double x);
+        // Returns the absolute value of x.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -454,6 +602,17 @@ public class SMGCPABuiltins {
 
       } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
           || BuiltinFloatFunctions.matchesInfinity(functionName)) {
+        // TODO: check whether this matching wrongly matches other functions containing "inf"
+        // TODO: does this cover the entire function families or just those 2 below?
+
+        // double __builtin_inf(void);
+        // Returns positive infinity if supported by double.
+        // Otherwise, returns DBL_MAX and generates a compiler warning.
+
+        // double __builtin_huge_val(void);
+        // Returns positive infinity if supported by double.
+        // Otherwise, returns DBL_MAX.
+
         checkArgument(parameterValues.isEmpty());
         Format precision =
             Format.fromCType(
@@ -462,6 +621,15 @@ public class SMGCPABuiltins {
             ValueAndSMGState.of(new NumericValue(FloatValue.infinity(precision)), currentState));
 
       } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
+        // double nan(const char *tagp);
+        // float nanf(const char *tagp);
+        // long double nanl(const char *tagp);
+        // Returns NaN, optionally using the character string tagp
+        // to select the stored NaN representation.
+        // Returns zero if quiet NaNs are unsupported.
+        // Undefined behavior: tagp is NULL or an invalid pointer.
+        // The string-argument requirements were clarified by WG14 DR 477.
+
         // FIXME: Add support for NaN payloads
         checkArgument(parameterValues.size() < 2);
         Format precision =
@@ -471,6 +639,11 @@ public class SMGCPABuiltins {
             ValueAndSMGState.of(new NumericValue(FloatValue.nan(precision)), currentState));
 
       } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+        // int isnan(x)
+        // x may be float, double, or long double.
+        // Returns nonzero if x is NaN.
+        // Undefined behavior: x is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -479,6 +652,11 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
+        // int isinf(x)
+        // x may be float, double, or long double.
+        // Returns nonzero if x is positive or negative infinity.
+        // Undefined behavior: x is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -487,6 +665,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIsInfinitySign(functionName)) {
+        // int __builtin_isinf_sign(x)
+        // x may be float, double, or long double.
+        // Returns -1 for negative infinity, +1 for positive infinity,
+        // or 0 if x is not infinite.
+        // GCC extension; not an ISO C11 function or macro.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -496,6 +680,11 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
+        // int isfinite(x)
+        // x may be float, double, or long double.
+        // Returns nonzero if x is neither infinity nor NaN.
+        // Undefined behavior: x is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -504,6 +693,11 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+        // double floor(double x);
+        // float floorf(float x);
+        // long double floorl(long double x);
+        // Returns the largest integer-valued floating-point number <= x.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -512,6 +706,11 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
+        // double ceil(double x);
+        // float ceilf(float x);
+        // long double ceill(long double x);
+        // Returns the smallest integer-valued floating-point number >= x.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -520,6 +719,13 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
+        // double round(double x);
+        // float roundf(float x);
+        // long double roundl(long double x);
+        // Rounds x to the nearest integer-valued floating-point number.
+        // Exact halfway cases round away from zero.
+        // Ignores the current rounding mode.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -528,6 +734,15 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesLround(functionName)) {
+        // long int lround(double x);
+        // long int lroundf(float x);
+        // long int lroundl(long double x);
+        // Rounds x to the nearest integer, with halfway cases away from zero.
+        // Returns long int.
+        // Unspecified numeric result if outside long int range.
+        // Domain or range error may occur for an unrepresentable result.
+        // Annex F: an unrepresentable result raises FE_INVALID.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -552,6 +767,15 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesLlround(functionName)) {
+        // long long int llround(double x);
+        // long long int llroundf(float x);
+        // long long int llroundl(long double x);
+        // Rounds x to the nearest integer, with halfway cases away from zero.
+        // Returns long long int.
+        // Unspecified numeric result if outside long long int range.
+        // Domain or range error may occur for an unrepresentable result.
+        // Annex F: an unrepresentable result raises FE_INVALID.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -576,6 +800,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
+        // double trunc(double x);
+        // float truncf(float x);
+        // long double truncl(long double x);
+        // Removes the fractional part of x, rounding toward zero.
+        // Returns the result as a floating-point value.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -584,6 +814,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
+        // double fdim(double x, double y);
+        // float fdimf(float x, float y);
+        // long double fdiml(long double x, long double y);
+        // Returns x-y when x > y, otherwise positive zero.
+        // Range error may occur if the positive difference is too large.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -596,6 +832,13 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
+        // double fmax(double x, double y);
+        // float fmaxf(float x, float y);
+        // long double fmaxl(long double x, long double y);
+        // Returns the greater of x and y.
+        // If only one argument is NaN, returns the other argument.
+        // Annex F: returns NaN if both arguments are NaN.
+
         // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
         // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
         // return the first argument.
@@ -613,6 +856,13 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
+        // double fmin(double x, double y);
+        // float fminf(float x, float y);
+        // long double fminl(long double x, long double y);
+        // Returns the smaller of x and y.
+        // If only one argument is NaN, returns the other argument.
+        // Annex F: returns NaN if both arguments are NaN.
+
         // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
         // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
         // argument for `float` or `double` and the second for `long double`
@@ -630,6 +880,11 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
+        // int signbit(x)
+        // x may be float, double, or long double.
+        // Returns nonzero if x has a negative sign, including negative zero.
+        // Undefined behavior: x is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -638,6 +893,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
+        // double copysign(double x, double y);
+        // float copysignf(float x, float y);
+        // long double copysignl(long double x, long double y);
+        // Returns the magnitude of x with the sign of y.
+        // Supports infinities, NaNs, and signed zeros where available.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -646,6 +907,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
+        // int fpclassify(x)
+        // x may be float, double, or long double.
+        // Returns FP_NAN, FP_INFINITE, FP_ZERO, FP_SUBNORMAL, FP_NORMAL,
+        // or an implementation-defined classification.
+        // Undefined behavior: x is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -669,6 +936,14 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
+        // double modf(double value, double *iptr);
+        // float modff(float value, float *iptr);
+        // long double modfl(long double value, long double *iptr);
+        // Splits value into signed integral and fractional parts.
+        // Stores the integral part in *iptr and returns the fractional part.
+        // UB: iptr is NULL, invalid, or does not identify writable
+        // storage of the corresponding floating-point type.
+
         // FIXME: Assign the integer part to the pointer from the second parameter
         if (parameterValues.size() == 2) {
           Value value = parameterValues.getFirst();
@@ -698,6 +973,14 @@ public class SMGCPABuiltins {
         }
 
       } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
+        // double remainder(double x, double y);
+        // float remainderf(float x, float y);
+        // long double remainderl(long double x, long double y);
+        // Returns x - n*y, where n is the integer nearest to x/y.
+        // Exact halfway quotient cases select the even integer.
+        // Implementation-defined: when y == 0, either a domain error
+        // occurs or zero is returned.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -706,6 +989,16 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesFmod(functionName)) {
+        // double fmod(double x, double y);
+        // float fmodf(float x, float y);
+        // long double fmodl(long double x, long double y);
+        // Returns the remainder of x divided by y, using a quotient
+        // rounded toward zero.
+        // Implementation-defined: when y == 0, either a domain error
+        // occurs or zero is returned.
+        // Annex F: when x is infinite or y is zero, returns NaN and
+        // raises FE_INVALID, unless either argument is NaN.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -714,6 +1007,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
+        // double sqrt(double x);
+        // float sqrtf(float x);
+        // long double sqrtl(long double x);
+        // Returns the nonnegative square root of x.
+        // Domain error: x < 0; negative zero is permitted.
+
         return handleBuiltinFunctionsWithOneArgument(
             functionName,
             parameterValues,
@@ -722,6 +1021,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
+        // int isgreater(x, y)
+        // x and y may be float, double, or long double independently. Usual arithmetic conversions
+        // apply.
+        // Returns nonzero if x > y, otherwise zero.
+        // Undefined behavior: either argument is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -730,6 +1035,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
+        // int isgreaterequal(x, y)
+        // x and y may be float, double, or long double independently. Usual arithmetic conversions
+        // apply.
+        // Returns nonzero if x >= y, otherwise zero.
+        // Undefined behavior: either argument is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -739,6 +1050,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
+        // int isless(x, y)
+        // x and y may be float, double, or long double independently. Usual arithmetic conversions
+        // apply.
+        // Returns nonzero if x < y, otherwise zero.
+        // Undefined behavior: either argument is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -747,6 +1064,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
+        // int islessequal(x, y)
+        // x and y may be float, double, or long double independently. Usual arithmetic conversions
+        // apply.
+        // Returns nonzero if x <= y, otherwise zero.
+        // Undefined behavior: either argument is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -755,6 +1078,13 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
+        // int islessgreater(x, y)
+        // x and y may be float, double, or long double independently. Usual arithmetic conversions
+        // apply.
+        // Returns nonzero if x < y or x > y, otherwise zero.
+        // Returns zero if the arguments are equal or either is NaN.
+        // Undefined behavior: either argument is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
@@ -764,6 +1094,12 @@ public class SMGCPABuiltins {
             cfaEdge);
 
       } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
+        // int isunordered(x, y)
+        // x and y may be float, double, or long double independently. Usual arithmetic conversions
+        // apply.
+        // Returns nonzero if x or y is NaN, otherwise zero.
+        // Undefined behavior: either argument is not a real floating-point expression.
+
         return handleBuiltinFunctionsWithTwoArguments(
             functionName,
             parameterValues,
