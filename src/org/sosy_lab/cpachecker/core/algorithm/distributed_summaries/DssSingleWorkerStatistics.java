@@ -44,7 +44,8 @@ public class DssSingleWorkerStatistics implements Statistics {
     VIOLATION_CONDITION_COUNT("number of violation conditions computed", false),
     VIOLATION_CONDITION_TIME("time spent computing violation conditions", true),
     SERIALIZED_STATES_SIZE("serialized states size (chars)", false),
-    DEDUPLICATION_TIME("time spent deduplicating summaries", true);
+    DEDUPLICATION_TIME("time spent deduplicating summaries", true),
+    BUSY_CPU_TIME("worker busy CPU time", true);
 
     private final String label;
     private final boolean formatAsTime;
@@ -81,6 +82,9 @@ public class DssSingleWorkerStatistics implements Statistics {
       new DssThreadCpuTimer(StatisticsKey.VIOLATION_CONDITION_TIME.getLabel());
   private final DssThreadCpuTimer deduplicationTime =
       new DssThreadCpuTimer(StatisticsKey.DEDUPLICATION_TIME.getLabel());
+
+  private final DssThreadCpuTimer busyCpuTime =
+      new DssThreadCpuTimer(StatisticsKey.BUSY_CPU_TIME.getLabel());
 
   private @Nullable DssBlockAnalysisStatistics dcpaStatistics;
 
@@ -161,6 +165,14 @@ public class DssSingleWorkerStatistics implements Statistics {
     return deduplicationTime;
   }
 
+  public void startBusy() {
+    busyCpuTime.start();
+  }
+
+  public void stopBusy() {
+    busyCpuTime.stop();
+  }
+
   public @Nullable DssBlockAnalysisStatistics getDcpaStatistics() {
     return dcpaStatistics;
   }
@@ -189,6 +201,7 @@ public class DssSingleWorkerStatistics implements Statistics {
       case VIOLATION_CONDITION_TIME -> violationConditionTime.nanos();
       case SERIALIZED_STATES_SIZE -> serializedStatesSize.getValueSum();
       case DEDUPLICATION_TIME -> deduplicationTime.nanos();
+      case BUSY_CPU_TIME -> busyCpuTime.nanos();
     };
   }
 
@@ -245,7 +258,8 @@ public class DssSingleWorkerStatistics implements Statistics {
             formatNanos(violationConditionTime.nanos()))
         .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString())
         .put(
-            StatisticsKey.DEDUPLICATION_TIME.getLabel(), formatNanos(deduplicationTime.nanos()));
+            StatisticsKey.DEDUPLICATION_TIME.getLabel(), formatNanos(deduplicationTime.nanos()))
+        .put(StatisticsKey.BUSY_CPU_TIME.getLabel(), formatNanos(busyCpuTime.nanos()));
   }
 
   static String formatNanos(long nanos) {

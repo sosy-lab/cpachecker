@@ -154,7 +154,12 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, SolverException, InterruptedException {
-    return analysis.getDssBlockAnalysis().runInitialAnalysis();
+    workerStats.startBusy();
+    try {
+      return analysis.getDssBlockAnalysis().runInitialAnalysis();
+    } finally {
+      workerStats.stopBusy();
+    }
   }
 
   /**
@@ -173,6 +178,15 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
    */
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
+    workerStats.startBusy();
+    try {
+      return storeAndExplore(message);
+    } finally {
+      workerStats.stopBusy();
+    }
+  }
+
+  private Collection<DssMessage> storeAndExplore(DssMessage message) {
     Collection<DssMessage> messages = store(message);
     if (shutdown || !isAnalysisPending() || getConnection().hasPendingMessages()) {
       return messages;
@@ -255,15 +269,20 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   @CanIgnoreReturnValue
   public DssMessageProcessing storeMessage(DssMessage message)
       throws SolverException, InterruptedException, CPAException {
-    return switch (message.getType()) {
-      case RESULT, EXCEPTION, WITNESS -> DssMessageProcessing.stop();
-      case VIOLATION_CONDITION ->
-          analysis
-              .getDssBlockAnalysis()
-              .storeViolationCondition((DssViolationConditionMessage) message);
-      case POST_CONDITION ->
-          analysis.getDssBlockAnalysis().storePrecondition((DssPostConditionMessage) message);
-    };
+    workerStats.startBusy();
+    try {
+      return switch (message.getType()) {
+        case RESULT, EXCEPTION, WITNESS -> DssMessageProcessing.stop();
+        case VIOLATION_CONDITION ->
+            analysis
+                .getDssBlockAnalysis()
+                .storeViolationCondition((DssViolationConditionMessage) message);
+        case POST_CONDITION ->
+            analysis.getDssBlockAnalysis().storePrecondition((DssPostConditionMessage) message);
+      };
+    } finally {
+      workerStats.stopBusy();
+    }
   }
 
   @Override
@@ -310,7 +329,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   public void broadcastInitialMessages()
       throws CPAException, SolverException, InterruptedException {
-    broadcast(analysis.getDssBlockAnalysis().runInitialAnalysis());
+    broadcast(runInitialAnalysis());
   }
 
   @Override
