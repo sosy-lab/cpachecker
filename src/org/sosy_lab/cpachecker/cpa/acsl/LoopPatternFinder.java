@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -33,7 +34,7 @@ class LoopPatternFinder {
 
   private final LogManager logger;
   private final FormulaToAcslConverter formulaConverter;
-  private final Level logLevel = Level.INFO; // TODO change to INFO for debugging
+  private final Level logLevel = Level.FINER; // TODO change to INFO for debugging
 
   LoopPatternFinder(LogManager pLogger, FormulaToAcslConverter pFormulaConverter) {
     this.logger = pLogger;
@@ -41,6 +42,8 @@ class LoopPatternFinder {
   }
 
   public Optional<ArrayInitialization> detect(CFAEdge edge, PredicateAbstractState predState) {
+    System.out.println("Abstraction State:"+ predState.isAbstractionState() + ", Loop Start?" + edge.getSuccessor().isLoopStart());
+    // TODO why do I only get NonAbstraction states?
     if (edge.getSuccessor().isLoopStart()) {
       CFANode loopHead = edge.getSuccessor();
       for (CFAEdge e : loopHead.getAllLeavingEdges()) {
@@ -50,11 +53,10 @@ class LoopPatternFinder {
         }
       }
       BooleanFormula formula = predState.getPathFormula().getFormula();
+      SSAMap ssa = predState.getPathFormula().getSsa();
       logger.log(logLevel, "Path formula leading to loop head: " + formula);
       try {
-        AcslPredicate acsl = formulaConverter.formulaToAcslExpression(formula);
-        // TODO hier mit dem fmg kucken, ob da deklarationen drin sind... wenn nur in deklaration ->
-        // Skip
+        AcslPredicate acsl = formulaConverter.formulaToAcslExpression(formula, ssa);
         logger.log(logLevel, "Formula in ACSL: " + acsl);
       } catch (Exception pE) {
         logger.log(Level.WARNING, "Error converting formula to ACSL: " + pE.getMessage());
