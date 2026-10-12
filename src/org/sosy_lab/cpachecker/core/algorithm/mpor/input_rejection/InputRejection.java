@@ -8,8 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -17,15 +21,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -35,10 +38,15 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -50,12 +58,27 @@ public class InputRejection {
 
   enum InputRejectionMessage {
     FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
-    FUNCTION_POINTER_PARAMETER("MPOR does not support function pointers as parameters: ", false),
-    INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
-    NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
+    DUPLICATE_STRUCT_MEMBER_NAMES(
+        "MPOR does not support non unique nested struct member names in line ", true),
+    FIELD_MEMBER_NOT_FOUND(
+        "MPOR cannot determine the memory location of the following struct member because it is"
+            + " not part of the CType of the accessed variable: ",
+        false),
+    MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER(
+        "MPOR does not support multiple declarations in the owner expression of field references in"
+            + " line ",
+        true),
+    POINTER_ASSIGNMENT_TO_NON_POINTER(
+        "MPOR does not support the assignment to the following non-pointer: ", false),
+    POINTER_DEREFERENCE_OF_NON_POINTER(
+        "MPOR does not support the dereference of the following non-pointer: ", false),
+    POINTER_DEREFERENCE_TYPE_MISMATCH(
+        "MPOR does not support the following pointer dereference, its type is not compatible with"
+            + " the type of the memory location it points to: ",
+        false),
     POINTER_WRITE_BINARY_EXPRESSION(
         "MPOR does not support binary expressions as assignments to pointers in line ", true),
     POINTER_WRITE(
@@ -63,8 +86,12 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    PTHREAD_RETURN_VALUE(
+    PTHREAD_FUNCTION_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
+    PTHREAD_OBJECT_ARRAY(
+        "MPOR does not support the following array of pthread objects or array of structs with"
+            + " inner pthread objects in line ",
+        true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
     UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true);
 
@@ -86,24 +113,13 @@ public class InputRejection {
     }
   }
 
-  /**
-   * Handles input program rejections and throws a {@link UnsupportedCodeException} if the input
-   * program...
-   *
-   * <ul>
-   *   <li>is not in C
-   *   <li>has no call to {@code pthread_create} i.e. is not concurrent
-   *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
-   *   <li>stores the return value of any pthread method call
-   *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFunctionType}
-   *   <li>contains a {@code pthread_create} call in a loop
-   *   <li>contains a recursive function call (both direct and indirect)
-   * </ul>
-   */
+  /** Handles input program rejections and throws a {@link UnsupportedCodeException} accordingly. */
   public static void handleRejections(CFA pInputCfa) throws UnsupportedCodeException {
     checkLanguageC(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
+    checkFunctionPointerInInitializer(pInputCfa);
+    checkDuplicateStructMemberNames(pInputCfa);
     checkPthreadObjectArrays(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
     // these are recursive and can be expensive, so they are last
@@ -143,15 +159,20 @@ public class InputRejection {
     }
   }
 
-  private static void checkPthreadObjectArrays(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (edge instanceof CDeclarationEdge decEdge) {
-        if (decEdge.getDeclaration() instanceof CVariableDeclaration varDec) {
-          if (varDec.getType() instanceof CArrayType arrayType) {
-            if (arrayType.getType() instanceof CTypedefType typedefType) {
-              if (PthreadUtil.isAnyPthreadObjectType(typedefType)) {
-                rejectCfaEdge(edge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
-              }
+  private static void checkDuplicateStructMemberNames(CFA pInputCfa)
+      throws UnsupportedCodeException {
+
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          ImmutableList<CCompositeTypeMemberDeclaration> memberDeclarations =
+              SeqPointerAliasingUtil.getAllCompositeTypeMemberDeclarationsInType(
+                  variableDeclaration.getType(), stopNames);
+          Set<String> memberNames = new HashSet<>();
+          for (CCompositeTypeMemberDeclaration memberDeclaration : memberDeclarations) {
+            if (!memberNames.add(memberDeclaration.getName())) {
+              rejectCfaEdge(declarationEdge, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
             }
           }
         }
@@ -174,16 +195,81 @@ public class InputRejection {
     }
   }
 
-  private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
+  private static void checkFunctionPointerInInitializer(CFA pInputCfa)
       throws UnsupportedCodeException {
+
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
-          if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getInitializer()
+              instanceof CInitializerExpression initializerExpression) {
+            checkFunctionPointerInRightHandSide(initializerExpression.getExpression());
           }
         }
+      }
+    }
+  }
+
+  public static void checkFunctionPointerInRightHandSide(CRightHandSide pRightHandSide)
+      throws UnsupportedCodeException {
+
+    ImmutableSet<CType> allTypes =
+        SeqPointerAliasingUtil.getAllTypesInType(
+            pRightHandSide.getExpressionType(), ImmutableSet.of());
+
+    for (CType type : allTypes) {
+      if (type instanceof CPointerType pointerType) {
+        ImmutableSet<CType> innerPointerTypes =
+            SeqPointerAliasingUtil.getAllTypesInType(pointerType, ImmutableSet.of());
+        if (innerPointerTypes.stream().anyMatch(t -> t instanceof CFunctionType)) {
+          throw new UnsupportedCodeException(
+              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message
+                  + pRightHandSide.toASTString(),
+              null);
+        }
+      }
+    }
+  }
+
+  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
+      throws UnsupportedCodeException {
+
+    // calls to pthread functions with start_routine pointers are allowed
+    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
+        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
+      return;
+    }
+    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
+      checkFunctionPointerInRightHandSide(parameterExpression);
+    }
+  }
+
+  public static void checkMultipleDeclarationsInFieldReferenceOwner(CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
+
+    ImmutableSet<CSimpleDeclaration> fieldOwnerDeclarations =
+        SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pFieldReference, false);
+    if (fieldOwnerDeclarations.size() > 1) {
+      throw new UnsupportedCodeException(
+          String.format(
+              InputRejectionMessage.MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER.formatMessage(),
+              pFieldReference.getFileLocation().getStartingLineInOrigin(),
+              pFieldReference.toASTString()),
+          null);
+    }
+  }
+
+  private static void checkRecursiveFunctions(CFA pInputCfa) throws UnsupportedCodeException {
+    for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
+      Optional<FunctionExitNode> exit = entry.getExitNode();
+      // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
+      if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
+        throw new UnsupportedCodeException(
+            String.format(
+                InputRejectionMessage.RECURSIVE_FUNCTION.formatMessage(),
+                entry.getFunction().getFileLocation().getStartingLineInOrigin(),
+                entry.getFunctionName()),
+            null);
       }
     }
   }
@@ -206,19 +292,151 @@ public class InputRejection {
     }
   }
 
-  private static void checkRecursiveFunctions(CFA pInputCfa) throws UnsupportedCodeException {
-    for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
-      Optional<FunctionExitNode> exit = entry.getExitNode();
-      // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
-      if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        throw new UnsupportedCodeException(
-            String.format(
-                InputRejectionMessage.RECURSIVE_FUNCTION.formatMessage(),
-                entry.getFunction().getFileLocation().getStartingLineInOrigin(),
-                entry.getFunctionName()),
-            null);
+  private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
+      throws UnsupportedCodeException {
+
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
+          if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
+            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
+          }
+        }
       }
     }
+  }
+
+  private static void checkPthreadObjectArrays(CFA pInputCfa) throws UnsupportedCodeException {
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getType() instanceof CArrayType arrayType) {
+            for (CType nestedType :
+                SeqPointerAliasingUtil.getAllTypesInType(arrayType, stopNames)) {
+              for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
+                if (!pthreadObjectType.isArraySupported()) {
+                  if (nestedType.toString().strip().equals(pthreadObjectType.getName())) {
+                    rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Checks that {@code pFieldMember}, i.e. the member with name {@code pFieldName}, is part of
+   * {@code pType}.
+   */
+  public static void checkFieldMemberFound(
+      Optional<CCompositeTypeMemberDeclaration> pFieldMember, CType pType, String pFieldName)
+      throws UnsupportedCodeException {
+
+    if (pFieldMember.isEmpty()) {
+      throw new UnsupportedCodeException(
+          String.format(
+              "%s%s in %s",
+              InputRejectionMessage.FIELD_MEMBER_NOT_FOUND.message, pFieldName, pType),
+          null);
+    }
+  }
+
+  /** Checks that the left-hand side of a pointer assignment is actually a pointer. */
+  public static void checkPointerAssignmentLeftHandSide(SeqMemoryLocation pLeftHandSide)
+      throws UnsupportedCodeException {
+
+    if (pLeftHandSide.declaration() != null
+        && !isPointerOrArrayOfPointersType(pLeftHandSide.declaration().getType())
+        && (pLeftHandSide.fieldMember().isEmpty()
+            || !isPointerOrArrayOfPointersType(
+                pLeftHandSide.fieldMember().orElseThrow().getType()))) {
+      throw new UnsupportedCodeException(
+          InputRejectionMessage.POINTER_ASSIGNMENT_TO_NON_POINTER.message + describe(pLeftHandSide),
+          null);
+    }
+  }
+
+  /**
+   * Checks that {@code pPointerDereference} is actually a pointer and that the {@link CType} of
+   * {@code pTargetMemoryLocation}, i.e. of the memory location it points to, is compatible.
+   */
+  public static void checkPointerDereferenceTypes(
+      SeqMemoryLocation pPointerDereference, SeqMemoryLocation pTargetMemoryLocation)
+      throws UnsupportedCodeException {
+
+    if (pPointerDereference.declaration() != null
+        && !isPointerOrArrayType(pPointerDereference.declaration().getType())
+        && (pPointerDereference.fieldMember().isEmpty()
+            || !isPointerOrArrayType(pPointerDereference.fieldMember().orElseThrow().getType()))) {
+      throw new UnsupportedCodeException(
+          InputRejectionMessage.POINTER_DEREFERENCE_OF_NON_POINTER.message
+              + describe(pPointerDereference),
+          null);
+    }
+
+    // function call right-hand sides are not tracked, e.g. malloc always returns (void *)
+    if (pTargetMemoryLocation.functionCallExpression().isPresent()) {
+      return;
+    }
+    // start_routine target memory locations are always (void *)
+    if (pTargetMemoryLocation.callContext().isStartRoutineCallContext()) {
+      return;
+    }
+    CType dereferenceType = pPointerDereference.getUnwrappedType();
+    CType targetType = pTargetMemoryLocation.getUnwrappedType();
+    if (!areTypesCompatible(dereferenceType, targetType)) {
+      throw new UnsupportedCodeException(
+          String.format(
+              "%s%s (%s) -> %s (%s)",
+              InputRejectionMessage.POINTER_DEREFERENCE_TYPE_MISMATCH.message,
+              describe(pPointerDereference),
+              dereferenceType,
+              describe(pTargetMemoryLocation),
+              targetType),
+          null);
+    }
+  }
+
+  /**
+   * Returns whether a pointer to {@code pTypeA} may point to a memory location of {@code pTypeB}.
+   *
+   * <p>{@code void} is compatible with any type because {@code void *} is the generic object
+   * pointer that can be converted to and from any other object pointer type, e.g. in {@code int
+   * *array = (int *) malloc(size);}.
+   */
+  private static boolean areTypesCompatible(CType pTypeA, CType pTypeB) {
+    return pTypeA instanceof CVoidType
+        || pTypeB instanceof CVoidType
+        || pTypeA.equals(pTypeB)
+        || pTypeA.canBeAssignedFrom(pTypeB);
+  }
+
+  private static boolean isPointerOrArrayType(CType pType) {
+    CType canonicalType = pType.getCanonicalType();
+    return canonicalType instanceof CPointerType || canonicalType instanceof CArrayType;
+  }
+
+  private static boolean isPointerOrArrayOfPointersType(CType pType) {
+    CType canonicalType = pType.getCanonicalType();
+    // CArrayType.getType() corresponds to the CType of the arrays elements
+    return canonicalType instanceof CPointerType
+        || (canonicalType instanceof CArrayType arrayType
+            && arrayType.getType().getCanonicalType() instanceof CPointerType);
+  }
+
+  /** Returns the name of {@code pMemoryLocation} as used in the input program. */
+  private static String describe(SeqMemoryLocation pMemoryLocation) {
+    if (pMemoryLocation.declaration() == null) {
+      return pMemoryLocation.getName();
+    }
+    StringBuilder name = new StringBuilder(pMemoryLocation.declaration().getName());
+    pMemoryLocation.fieldMember().ifPresent(member -> name.append(".").append(member.getName()));
+    return name.toString();
   }
 
   /** Public, because checking is done in {@link MPORSubstitution}. */
@@ -240,130 +458,16 @@ public class InputRejection {
     }
   }
 
-  public static void checkFunctionPointerAssignment(CSimpleDeclaration pRightHandSide)
+  public static void checkBinaryExpressionInRightHandSide(CRightHandSide pRightHandSide)
       throws UnsupportedCodeException {
 
-    if (pRightHandSide instanceof CFunctionDeclaration) {
-      throw new UnsupportedCodeException(
-          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
-          null);
-    }
-  }
-
-  public static void checkFunctionPointerAssignment(CVariableDeclaration pVariableDeclaration)
-      throws UnsupportedCodeException {
-
-    if (pVariableDeclaration.getInitializer() != null) {
-      if (pVariableDeclaration.getInitializer()
-          instanceof CInitializerExpression initializerExpression) {
-        CExpression expression = initializerExpression.getExpression();
-        if (expression.accept(new FunctionDeclarationVisitor())) {
-          throw new UnsupportedCodeException(
-              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + expression.toASTString(),
-              null);
-        }
-      }
-    }
-  }
-
-  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
-      throws UnsupportedCodeException {
-
-    // calls to pthread functions with start_routine pointers are allowed
-    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
-        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
-      return;
-    }
-    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      if (parameterExpression.accept(new FunctionDeclarationVisitor())) {
-        throw new UnsupportedCodeException(
-            InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
-                + parameterExpression.toASTString(),
-            null);
-      }
-    }
-  }
-
-  private static final class FunctionDeclarationVisitor
-      extends DefaultCExpressionVisitor<Boolean, UnsupportedCodeException> {
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws UnsupportedCodeException {
-      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
-      return pFieldReference.getFieldOwner().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression pPointerExpression) throws UnsupportedCodeException {
-      return pPointerExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CComplexCastExpression pComplexCastExpression)
-        throws UnsupportedCodeException {
-      return pComplexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CBinaryExpression pBinaryExpression) throws UnsupportedCodeException {
-      return pBinaryExpression.getOperand1().accept(this)
-          || pBinaryExpression.getOperand2().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
-      return pCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
-      return pUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CIdExpression pIdExpression) {
-      return pIdExpression.getDeclaration() instanceof CFunctionDeclaration;
-    }
-
-    @Override
-    protected Boolean visitDefault(CExpression pExpression) {
-      return false; // ignore
-    }
-  }
-
-  public static void checkPointerWriteBinaryExpression(CVariableDeclaration pVariableDeclaration)
-      throws UnsupportedCodeException {
-
-    if (pVariableDeclaration.getType() instanceof CPointerType) {
-      if (pVariableDeclaration.getInitializer()
-          instanceof CInitializerExpression initializerExpression) {
-        if (initializerExpression.getExpression().accept(new CBinaryExpressionVisitor())) {
-          throw new UnsupportedCodeException(
-              String.format(
-                  InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                  initializerExpression.getExpression().getFileLocation().getStartingLineInOrigin(),
-                  initializerExpression.getExpression().toASTString()),
-              null);
-        }
-      }
-    }
-  }
-
-  public static void checkPointerWriteBinaryExpression(CExpressionAssignmentStatement pAssignment)
-      throws UnsupportedCodeException {
-
-    if (pAssignment.getLeftHandSide().getExpressionType() instanceof CPointerType) {
-      if (pAssignment.getRightHandSide().accept(new CBinaryExpressionVisitor())) {
+    if (pRightHandSide instanceof CExpression expression) {
+      if (expression.accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                pAssignment.getRightHandSide().getFileLocation().getStartingLineInOrigin(),
-                pAssignment.getRightHandSide().toASTString()),
+                pRightHandSide.getFileLocation().getStartingLineInOrigin(),
+                pRightHandSide.toASTString()),
             null);
       }
     }

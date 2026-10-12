@@ -71,12 +71,12 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return 31 * predecessor.hashCode() + successor.hashCode();
   }
 
   @Override
-  public boolean equals(Object pOther) {
+  public final boolean equals(Object pOther) {
     return pOther instanceof AbstractCFAEdge otherEdge
         && predecessor.equals(otherEdge.predecessor)
         && successor.equals(otherEdge.successor);

@@ -26,12 +26,12 @@ public class SMGPointsToEdge {
   /**
    * Constructs a new edge that points-to an object that may be a region or a DLS.
    *
-   * @param pPointsToObject - The object this edge points to (region or DLS).
+   * @param pPointsToObject - The object this edge points to (region or S/DLL).
    * @param pOffset - The offset wrt. to the base address of object. This may be negative (i.e. in a
    *     linux list).
-   * @param pTargetSpecifier - The target specifier SMGTargetSpecifier {first, last, all, region}.
-   *     The specifier is a region iff the object models a region. If the object is a DLS, this
-   *     specifies wheter it points to the first, last or all concrete regions of the object.
+   * @param pTargetSpecifier - The target specifier {@link SMGTargetSpecifier} {first, last, all,
+   *     region}. The specifier is a region iff the object models a region. If the object is a DLS,
+   *     this specifies whether it points to the first, last or all concrete regions of the object.
    */
   public SMGPointsToEdge(
       SMGObject pPointsToObject, BigInteger pOffset, SMGTargetSpecifier pTargetSpecifier) {
@@ -66,8 +66,28 @@ public class SMGPointsToEdge {
     return targetSpecifier;
   }
 
+  public boolean pointsToRegion() {
+    return targetSpecifier.isRegion();
+  }
+
+  public boolean pointsToFirst() {
+    return targetSpecifier.isFirst();
+  }
+
+  public boolean pointsToLast() {
+    return targetSpecifier.isLast();
+  }
+
+  public boolean pointsToAll() {
+    return targetSpecifier.isAll();
+  }
+
   @Override
   public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+
     return other instanceof SMGPointsToEdge otherEdge
         && otherEdge.offset.equals(offset)
         && otherEdge.pointsToObject.equals(pointsToObject)
@@ -90,19 +110,10 @@ public class SMGPointsToEdge {
   @Override
   public String toString() {
     return " -> ("
-        + specToString()
+        + targetSpecifier
         + ") ["
         + (offset instanceof NumericValue numOffset ? numOffset.bigIntegerValue() : offset)
         + "] "
         + pointsToObject;
-  }
-
-  private String specToString() {
-    return switch (targetSpecifier) {
-      case IS_REGION -> "reg";
-      case IS_LAST_POINTER -> "lst";
-      case IS_FIRST_POINTER -> "fst";
-      case IS_ALL_POINTER -> "all";
-    };
   }
 }

@@ -32,3 +32,5 @@ and executed for commits on main
 (with `integration-nightly-` being executed every few days).
 However, note that new files won't get picked up by BuildBot automatically,
 please contact the maintainers for new integration tests.
+Benchmark definitions for the BuildBot must have exactly one rundefinition tag
+without a name attribute.

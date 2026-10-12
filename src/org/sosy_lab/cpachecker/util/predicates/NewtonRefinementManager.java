@@ -138,7 +138,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pAllStatesTrace The error path
    * @param pFormulas The Block formulas computed in previous step
    * @return The Counterexample, containing pseudo-interpolants if successful
-   * @exception RefinementFailedException If the Newton refinement fails
+   * @throws RefinementFailedException If the Newton refinement fails
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ARGPath pAllStatesTrace, BlockFormulas pFormulas)

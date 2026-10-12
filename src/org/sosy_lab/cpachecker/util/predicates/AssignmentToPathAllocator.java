@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.SequencedMap;
 import java.util.Set;
@@ -65,7 +66,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DynamicMemoryHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -486,14 +488,14 @@ public class AssignmentToPathAllocator {
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
       String name = FormulaManagerView.parseName(constant.getName()).getFirst();
-      if (PointerTargetSet.isBaseName(name)) {
+      Optional<PointerBase> potentialBase = PointerBase.fromFormulaEncoding(name);
+      if (potentialBase.isPresent()) {
         assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
-        if (!PointerTargetSet.isMallocBase(name)) {
+        if (!DynamicMemoryHandler.isAllocBase(potentialBase.orElseThrow())) {
           Address address = Address.valueOf(constant.getValue());
 
           // TODO ugly, refactor?
-          String constantName = PointerTargetSet.getBase(name);
-          LeftHandSide leftHandSide = createLeftHandSide(constantName);
+          LeftHandSide leftHandSide = createLeftHandSide(potentialBase.orElseThrow().name());
           addressOfVariables.put(leftHandSide, address);
         }
       }

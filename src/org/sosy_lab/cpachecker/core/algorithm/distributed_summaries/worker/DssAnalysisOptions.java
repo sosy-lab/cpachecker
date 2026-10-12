@@ -9,12 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import java.nio.file.Path;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisType;
 
 @Options(prefix = "distributedSummaries")
 public class DssAnalysisOptions {
@@ -58,19 +61,75 @@ public class DssAnalysisOptions {
   private Path logDirectory = Path.of("block_analysis/logfiles");
 
   @Option(
+      name = "debug.readableFormulas",
       description =
-          "If this option is set to true, the analysis will try to cover all violation conditions"
-              + " in the block, even if no valid ARG path exists. In some cases,"
-              + " ARGUtils#getAllPaths does not compute all paths as promised. However, setting"
-              + " this option to true may lead to a significant increase in analysis time.",
+          "Whether the messages of a debug run carry every predicate formula a second time in the"
+              + " notation of the solver. That notation is not the one the message is built from,"
+              + " so it has to be rendered separately, which costs more than the whole rest of a"
+              + " block analysis. Has no effect unless debug mode is enabled.",
       secure = true)
-  private boolean forcefullyCollectAllViolationConditions = false;
+  private boolean readableFormulas = false;
 
-  private final Configuration parentConfig;
+  @Option(
+      name = "worker.logLevel",
+      description =
+          "Level of the per-worker logfiles. The block analyses log their SMT formulas at ALL, and"
+              + " rendering a formula as a string is expensive enough to dominate the runtime of a"
+              + " block analysis, so set this to ALL only when those formulas are what you are"
+              + " looking for.",
+      secure = true)
+  private Level logLevel = Level.FINE;
+
+  @Option(
+      description =
+          "Whether to reset callstack state before running a block analysis; usually used together "
+              + "with the inlining decomposition",
+      secure = true)
+  private boolean resetCallstackState = false;
+
+  @Option(
+      name = "syntacticVcEquality",
+      description =
+          "Whether to decide equality of violation conditions by their representation instead of"
+              + " asking the solver. A violation condition is built from the edges of a path, so"
+              + " the same path yields the same formula. Deciding it this way spares an implication"
+              + " query per compared pair, but tells equivalent conditions that are written"
+              + " differently apart.",
+      secure = true)
+  private boolean syntacticViolationConditionEquality = false;
+
+  @Option(
+      name = "combineVcsByHash",
+      description = "Whether to combine violation conditions at same program location",
+      secure = true)
+  private boolean combineViolationConditionsByHash = true;
+
+  @Option(
+      name = "combinePresByHash",
+      description = "Whether to combine preconditions at same program location",
+      secure = true)
+  private boolean combinePreconditionsByHash = false;
+
+  // TODO How to make sure the other Witness export does not overwrite this?
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The path to which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each witness version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-dss-%s.yml");
+
+  @Option(
+      description = "Which block analysis to use for the distributed summaries algorithm",
+      secure = true)
+  private DssBlockAnalysisType blockAnalysisType = DssBlockAnalysisType.ALWAYS_REPLACE;
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
-    parentConfig = pConfig;
   }
 
   public Path getBlockCFAFile() {
@@ -85,19 +144,44 @@ public class DssAnalysisOptions {
     return debug;
   }
 
-  public boolean forcefullyCollectAllViolationConditions() {
-    return forcefullyCollectAllViolationConditions;
-  }
-
   public Path getForwardConfiguration() {
     return forwardConfiguration;
   }
 
-  public Configuration getParentConfig() {
-    return parentConfig;
-  }
-
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public Level getLogLevel() {
+    return logLevel;
+  }
+
+  /** Whether serialized predicate states carry a solver-rendered copy of their formula. */
+  public boolean writeReadableFormulas() {
+    return debug && readableFormulas;
+  }
+
+  public boolean combineViolationConditionsByHash() {
+    return combineViolationConditionsByHash;
+  }
+
+  public boolean useSyntacticViolationConditionEquality() {
+    return syntacticViolationConditionEquality;
+  }
+
+  public boolean combinePreconditionsByHash() {
+    return combinePreconditionsByHash;
+  }
+
+  public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {
+    return yamlWitnessOutputFileTemplate;
+  }
+
+  public DssBlockAnalysisType getBlockAnalysisType() {
+    return blockAnalysisType;
+  }
+
+  public boolean callStackStateRequiresStateReset() {
+    return resetCallstackState;
   }
 }

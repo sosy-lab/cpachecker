@@ -13,39 +13,43 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.AbstractMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Optional;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
+
+  public static boolean isFunctionDefined(
+      CFunctionCallExpression pFunctionCallExpression,
+      NavigableMap<String, FunctionEntryNode> pAllFunctions) {
+
+    // do not use the CFunctionDeclaration since it may be null if the function is not declared
+    return pAllFunctions.entrySet().stream()
+        .anyMatch(
+            f ->
+                f.getKey()
+                    .equals(pFunctionCallExpression.getFunctionNameExpression().toASTString()));
+  }
 
   /**
    * Returns {@code true} if pOrigin can be reached through its successor {@link CFANode}. <br>
@@ -149,13 +153,20 @@ public final class MPORUtil {
         && pVariableDeclaration.getInitializer() != null;
   }
 
-  public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        return isConstCpaCheckerTmp(variableDeclaration);
-      }
-    }
-    return false;
+  // CVariableDeclaration
+
+  public static CVariableDeclaration withInitializer(
+      CVariableDeclaration pVariableDeclaration, @Nullable CInitializer pInitializer) {
+
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        pVariableDeclaration.getType(),
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        pInitializer);
   }
 
   // Pointers ======================================================================================
@@ -187,88 +198,36 @@ public final class MPORUtil {
     return false;
   }
 
-  /**
-   * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
-   * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
-   * pExpression} and {@link Optional#empty()} if it can't be found.
-   */
-  public static Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-      tryGetFieldMemberPointer(CExpression pExpression) throws UnsupportedCodeException {
-
-    // e.g. 'ptr = &field.member;'
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        return Optional.of(getFieldMemberPointer(fieldReference));
-      }
-
-      // e.g. 'ptr = field.member;' where member is a pointer
-    } else if (pExpression instanceof CFieldReference fieldReference) {
-      return Optional.of(getFieldMemberPointer(fieldReference));
-    }
-    return Optional.empty();
-  }
-
-  private static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
-      CFieldReference pFieldReference) throws UnsupportedCodeException {
-
-    CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
-    CType type = getTypeByIdExpression(idExpression);
-    return new AbstractMap.SimpleEntry<>(
-        idExpression.getDeclaration(),
-        recursivelyFindFieldMemberByFieldOwner(pFieldReference, type));
-  }
-
-  /**
-   * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
-   * {@code outer.intermediary.inner}.
-   */
-  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
-    if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
-      return idExpression;
-    }
-    if (pFieldReference.getFieldOwner()
-        instanceof CArraySubscriptExpression arraySubscriptExpression) {
-      if (arraySubscriptExpression.getArrayExpression() instanceof CIdExpression idExpression) {
-        return idExpression;
-      }
-    }
-    if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
-      return recursivelyFindFieldOwner(fieldReference);
-    }
-    throw new IllegalArgumentException("could not find CIdExpression field owner");
-  }
-
-  private static CType getTypeByIdExpression(CIdExpression pIdExpression) {
-    if (pIdExpression.getExpressionType() instanceof CPointerType pointerType) {
-      return pointerType.getType();
-    }
-    return pIdExpression.getExpressionType();
-  }
-
-  /**
-   * Extracts the {@link CCompositeTypeMemberDeclaration} of the field member accessed in {@code
-   * pFieldReference}, e.g. {@code member} in {@code owner->member}.
-   */
-  public static CCompositeTypeMemberDeclaration recursivelyFindFieldMemberByFieldOwner(
-      CFieldReference pFieldReference, CType pType) throws UnsupportedCodeException {
-
-    // use getType() on CPointerType/CArrayType since getCanonicalType() returns the
-    // CPointerType/CArrayType itself
-    if (pType.getCanonicalType() instanceof CPointerType pointerType) {
-      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
-    }
-    if (pType.getCanonicalType() instanceof CArrayType arrayType) {
-      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, arrayType.getType());
-    }
-    if (pType.getCanonicalType() instanceof CCompositeType compositeType) {
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-          return memberDeclaration;
+  public static boolean isVoidPointer(CExpression pExpression) {
+    if (pExpression instanceof CCastExpression castExpression) {
+      if (castExpression.getCastType().equals(CPointerType.POINTER_TO_VOID)) {
+        if (castExpression.getOperand()
+            instanceof CIntegerLiteralExpression integerLiteralExpression) {
+          if (integerLiteralExpression.equals(CIntegerLiteralExpression.ZERO)) {
+            return true;
+          }
         }
       }
     }
-    throw new UnsupportedCodeException(
-        "could not extract field member from the given CType: " + pType.toASTString(""), null);
+    return false;
+  }
+
+  /**
+   * Converts the given {@link CSimpleDeclaration} to a {@link CVariableDeclaration}.
+   *
+   * @throws IllegalArgumentException if {@link CSimpleDeclaration} is not a {@link
+   *     CVariableDeclaration} or {@link CParameterDeclaration} because only those can be converted.
+   */
+  public static CVariableDeclaration convertToVariableDeclaration(
+      CSimpleDeclaration pSimpleDeclaration) {
+
+    checkArgument(
+        pSimpleDeclaration instanceof CVariableDeclaration
+            || pSimpleDeclaration instanceof CParameterDeclaration,
+        "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
+    return pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration
+        ? variableDeclaration
+        : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
   }
 
   // Collections ===================================================================================
@@ -302,22 +261,5 @@ public final class MPORUtil {
           .collect(ImmutableList.toImmutableList());
     }
     return pElements;
-  }
-
-  // CFA ===========================================================================================
-
-  public static CFACreator buildTestCfaCreator(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    return new CFACreator(TestDataTools.configurationForTest().build(), pLogger, pShutdownNotifier);
-  }
-
-  public static CFACreator buildTestCfaCreatorWithPreprocessor(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    return new CFACreator(
-        TestDataTools.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
-        pLogger,
-        pShutdownNotifier);
   }
 }

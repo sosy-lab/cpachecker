@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.graph.AbstractGraph;
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Graph;
@@ -112,7 +113,7 @@ public class CheckingCfaNetwork implements CfaNetwork {
 
   @Override
   public Graph<CFANode> asGraph() {
-    return new Graph<>() {
+    return new AbstractGraph<>() {
 
       // graph-level accessors
 

@@ -44,6 +44,7 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
     return (CType) super.getReturnType();
   }
 
+  @Nullable
   public String getName() {
     return name;
   }

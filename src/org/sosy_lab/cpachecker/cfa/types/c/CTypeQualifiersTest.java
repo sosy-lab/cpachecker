@@ -25,4 +25,24 @@ public class CTypeQualifiersTest {
       assertThat(recreated).isEqualTo(qualifiers);
     }
   }
+
+  @Test
+  public void testAsUnqualifiedKeepsAtomic() {
+    // C11 § 6.2.5 (27) / C23 § 6.2.5 (32): _Atomic is not a cvr-qualifier, so the unqualified
+    // version of a type keeps _Atomic and drops only const and volatile.
+    CType atomicConstVolatileInt =
+        CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.ATOMIC_CONST_VOLATILE);
+
+    CType unqualified = atomicConstVolatileInt.asUnqualified();
+    assertThat(unqualified.isAtomic()).isTrue();
+    assertThat(unqualified.isConst()).isFalse();
+    assertThat(unqualified.isVolatile()).isFalse();
+    assertThat(unqualified).isEqualTo(CNumericTypes.INT.withAtomic());
+
+    assertThat(CNumericTypes.INT.withConst().withVolatile().asUnqualified())
+        .isEqualTo(CNumericTypes.INT);
+
+    // withoutQualifiers() removes _Atomic as well, so the fully plain type is reachable.
+    assertThat(atomicConstVolatileInt.withoutQualifiers()).isEqualTo(CNumericTypes.INT);
+  }
 }

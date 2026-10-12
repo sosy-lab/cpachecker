@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -111,8 +112,13 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     ExecutorService checkExecutor = null;
     logger.log(Level.INFO, "Create and start threads");
     try {
+
       if (numReadThreads == 0) {
-        executor = Executors.newFixedThreadPool(numThreads);
+        ThreadFactory threads =
+            Thread.ofPlatform()
+                .name("PartialReachedSetParallelIOCheckingInterleavedStrategy-", 0)
+                .factory();
+        executor = Executors.newFixedThreadPool(numThreads, threads);
         startReadingThreads(numThreads, executor, checkResult, partitionsRead);
         startCheckingThreads(
             numThreads,
@@ -126,9 +132,17 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
             initPrec,
             lock);
       } else {
-        readExecutor = Executors.newFixedThreadPool(numReadThreads);
+        ThreadFactory readThreads =
+            Thread.ofPlatform()
+                .name("PartialReachedSetParallelIOCheckingInterleavedStrategy.PartitionReader-", 0)
+                .factory();
+        ThreadFactory checkThreads =
+            Thread.ofPlatform()
+                .name("PartialReachedSetParallelIOCheckingInterleavedStrategy.PartitionChecker-", 0)
+                .factory();
+        readExecutor = Executors.newFixedThreadPool(numReadThreads, readThreads);
         startReadingThreads(numReadThreads, readExecutor, checkResult, partitionsRead);
-        checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
+        checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads, checkThreads);
         startCheckingThreads(
             numThreads - numReadThreads,
             checkExecutor,

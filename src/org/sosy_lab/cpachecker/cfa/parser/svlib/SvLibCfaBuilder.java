@@ -16,11 +16,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -87,6 +87,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStateme
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.Pair;
 
 class SvLibCfaBuilder {
@@ -169,11 +171,9 @@ class SvLibCfaBuilder {
   }
 
   private Pair<FunctionEntryNode, Set<CFANode>> parseProcedureDefinition(
-      SvLibProcedureDefinitionCommand pCommand) throws SvLibParserException {
+      SvLibProcedureDefinitionCommand pCommand) {
     SvLibProcedureDeclaration procedureDeclaration = pCommand.getProcedureDeclaration();
 
-    ImmutableMap.Builder<CFANode, String> gotoNodesToLabels = ImmutableMap.builder();
-    ImmutableMap.Builder<String, CFANode> labelsToNodes = ImmutableMap.builder();
     ImmutableSet.Builder<CFANode> allNodesCollector = ImmutableSet.builder();
 
     // Create the entry and exit nodes for the function
@@ -216,6 +216,11 @@ class SvLibCfaBuilder {
 
     nodesToActualProcedureDefinitionEnd.put(currentStartingNode, procedureDeclaration);
 
+    ImmutableMap.Builder<String, CFANode> labelToNodesBuilder = ImmutableMap.builder();
+    pCommand
+        .getBody()
+        .accept(new SvLibLabelCollectingVisitor(procedureDeclaration, labelToNodesBuilder));
+
     SvLibStatementToCfaVisitor statementVisitor =
         new SvLibStatementToCfaVisitor(
             currentStartingNode,
@@ -224,13 +229,12 @@ class SvLibCfaBuilder {
             functionExitNode,
             nodeToTagAnnotations,
             nodesToTagReferences,
-            gotoNodesToLabels,
-            labelsToNodes,
+            labelToNodesBuilder.buildOrThrow(),
             allNodesCollector,
             tagReferencesToAnnotations.build(),
             nodesToActualHavocStatementEnd);
 
-    Optional<CFANode> optionalEndNode = pCommand.getBody().accept(statementVisitor);
+    Optional<CFANode> optionalEndNode = pCommand.getBody().accept(statementVisitor).currentNode();
     if (optionalEndNode.isPresent()) {
       // In this case we need to add a blank edge to the function exit node
       // The contrary can happen if there is a return statement at the end of the function body.
@@ -240,30 +244,32 @@ class SvLibCfaBuilder {
           logger);
     }
 
-    // Now generate the connections for the goto labels
-    Map<String, CFANode> labelsToNodesBuilt = labelsToNodes.buildOrThrow();
-    Map<CFANode, String> gotoNodesToLabelBuilt = gotoNodesToLabels.buildOrThrow();
-    for (Map.Entry<CFANode, String> gotoNodeToLabel : gotoNodesToLabelBuilt.entrySet()) {
-      String label = gotoNodeToLabel.getValue();
-      CFANode gotoNode = gotoNodeToLabel.getKey();
+    // Now filter out all those nodes, which are not reachable from the input node, for example, due
+    // to dead code stemming from goto's or similar
+    NodeCollectingCFAVisitor nodeCollectingCFAVisitor = new NodeCollectingCFAVisitor();
+    CFATraversal.dfs().traverseOnce(functionEntryNode, nodeCollectingCFAVisitor);
 
-      CFANode labelNode = labelsToNodesBuilt.get(label);
-      if (labelNode == null) {
-        throw new SvLibParserException("Could not find '" + label + "' to jump with a goto");
+    // Remove all edges from unreachable nodes to actual nodes, which can happen if we have for
+    // example whenever two labels follow each other, i.e., `(label a) (label b)`, and there is a
+    // goto to label b, but not to label a. In this case label a and all edges leaving it are
+    // technically still part of the CFA, but they are not reachable from the function entry node,
+    // and therefore we want to remove them.
+    for (CFANode unreachableNode :
+        Sets.difference(allNodesCollector.build(), nodeCollectingCFAVisitor.getVisitedNodes())) {
+      for (CFAEdge leavingEdge : unreachableNode.getLeavingEdges().toSet()) {
+        if (nodeCollectingCFAVisitor.getVisitedNodes().contains(leavingEdge.getSuccessor())) {
+          logger.log(
+              Level.WARNING,
+              "Removing edge from unreachable node %s to reachable node %s",
+              leavingEdge.getPredecessor(),
+              leavingEdge.getSuccessor());
+          leavingEdge.getPredecessor().removeLeavingEdge(leavingEdge);
+          leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
+        }
       }
-
-      // Add a blank edge from the goto node to the label node
-      CFACreationUtils.addEdgeToCFA(
-          new BlankEdge(
-              "Goto to label " + label,
-              FileLocation.DUMMY,
-              gotoNode,
-              labelNode,
-              "Goto to label " + label),
-          logger);
     }
 
-    return Pair.of(functionEntryNode, allNodesCollector.build());
+    return Pair.of(functionEntryNode, nodeCollectingCFAVisitor.getVisitedNodes());
   }
 
   private static SvLibTagProperty instantiateTagProperty(

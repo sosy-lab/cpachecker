@@ -143,7 +143,14 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     bfmgr = fmgr.getBooleanFormulaManager();
     itpMgr =
         new InterpolationManager(
-            pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
+            pfmgr,
+            solver,
+            Optional.empty(),
+            Optional.empty(),
+            pConfig,
+            shutdownNotifier,
+            logger,
+            /* pEnableCounterexampleAnalysis= */ false);
 
     stats.numOfInterpolationCalls = 0;
     stats.numOfInterpolants = 0;

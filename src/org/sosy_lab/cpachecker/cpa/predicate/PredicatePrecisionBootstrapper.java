@@ -14,9 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -232,8 +230,8 @@ public final class PredicatePrecisionBootstrapper {
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(
       final Path pWitnessFile) throws IOException, InterruptedException {
     PredicatePrecision result = PredicatePrecision.empty();
-    try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
-      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
+    try {
+      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pWitnessFile);
 
       InvariantExchangeFormatTransformer transformer =
           new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);

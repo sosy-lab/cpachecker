@@ -8,15 +8,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from argparse import ArgumentParser, Namespace
-from pathlib import Path
-import shutil
-from typing import Dict, Sequence
 import os
-from logging import log
 import re
+import shutil
 import sys
+from argparse import ArgumentParser, Namespace
+from collections.abc import Sequence
 from enum import Enum
+from logging import log
+from pathlib import Path
 
 
 class EdgeType(Enum):
@@ -151,46 +151,47 @@ def collectChildren(filename):
     children = {}
     try:
         multilineBuffer = ""
-        for line in open(filename, "r"):
-            if (
-                not line.startswith(("#", "//"))
-                and line.rstrip() != line
-                and line.rstrip() != line[:-1]
-            ):
-                log(
-                    2,
-                    "trailing whitespace in config '%s' in line '%s'"
-                    % (filename, line.strip()),
-                )
-
-            if line.strip().endswith("\\"):
-                # multiline statement
-                multilineBuffer += line.strip()[:-1]  # remove ending
-                continue
-            else:
-                # single line or end of multiline statement
-                multilineBuffer += line
-                line = multilineBuffer
-                multilineBuffer = ""  # reset
-
-            (filenames, typ) = getFilenamesFromLine(line)
-
-            for child in filenames:
-                child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
-                if os.path.exists(child):
-                    children[child] = typ
-                else:
+        with open(filename) as f:
+            for line in f:
+                if (
+                    not line.startswith(("#", "//"))
+                    and line.rstrip() != line
+                    and line.rstrip() != line[:-1]
+                ):
                     log(
-                        1,
-                        "file '%s' referenced in '%s' does not exists"
-                        % (child, filename),
+                        2,
+                        f"trailing whitespace in config '{filename}' in line '{line.strip()}'",
                     )
+
+                if line.strip().endswith("\\"):
+                    # multiline statement
+                    multilineBuffer += line.strip()[:-1]  # remove ending
+                    continue
+                else:
+                    # single line or end of multiline statement
+                    multilineBuffer += line
+                    line = multilineBuffer
+                    multilineBuffer = ""  # reset
+
+                (filenames, typ) = getFilenamesFromLine(line)
+
+                for child in filenames:
+                    child = os.path.normpath(
+                        os.path.join(os.path.dirname(filename), child)
+                    )
+                    if os.path.exists(child):
+                        children[child] = typ
+                    else:
+                        log(
+                            1,
+                            f"file '{child}' referenced in '{filename}' does not exists",
+                        )
     except UnicodeDecodeError:
-        log(3, "Cannot read file '%s'" % filename)
+        log(3, f"Cannot read file '{filename}'")
     return children
 
 
-def updateChildren(filename, updates: Dict[str, str]):
+def updateChildren(filename, updates: dict[str, str]):
     try:
         multilineBuffer = ""
         with open(filename, "r+") as fd:
@@ -231,7 +232,7 @@ def updateChildren(filename, updates: Dict[str, str]):
             fd.flush()
 
     except UnicodeDecodeError:
-        log(3, "Cannot read file '%s'" % filename)
+        log(3, f"Cannot read file '{filename}'")
 
 
 def listFiles(paths):
@@ -243,9 +244,9 @@ def listFiles(paths):
                     yield os.path.normpath(os.path.join(root, item))
 
 
-def getNodes(configDirectories) -> Dict[str, Node]:
+def getNodes(configDirectories) -> dict[str, Node]:
     """collect all files and build a graph"""
-    nodes: Dict[str, Node] = {}
+    nodes: dict[str, Node] = {}
 
     # collect nodes and their children
     waitlist = list(listFiles(configDirectories))
@@ -281,7 +282,7 @@ def main(argv: Sequence[str]):
 
     children = []
     if args.root not in nodes:
-        log(40, "Root file '%s' not found." % args.root)
+        log(40, f"Root file '{args.root}' not found.")
     else:
         children.extend(getTransitiveChildren(args.root, nodes))
 
@@ -292,8 +293,8 @@ def main(argv: Sequence[str]):
             k: v for k, v in nodesFromRoot.items() if matchesFilter(args.filter, k)
         }
 
-    updates: Dict[str, str] = {}
-    for _name in nodesFromRoot.keys():
+    updates: dict[str, str] = {}
+    for _name in nodesFromRoot:
         path = Path(_name)
         relative = path.relative_to(dirpath)
         name = path.name

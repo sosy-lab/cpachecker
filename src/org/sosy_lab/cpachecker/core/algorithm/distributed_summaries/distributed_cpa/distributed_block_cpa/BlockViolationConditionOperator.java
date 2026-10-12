@@ -14,11 +14,13 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
@@ -35,24 +37,44 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
-    if (!trackHistory) {
-      return Optional.of(topMost);
-    }
-    List<String> previousHistory =
+    SegmentedPaths previousWitness =
         pPreviousCondition
             .map(
                 state ->
                     Objects.requireNonNull(
                             AbstractStates.extractStateByType(state, BlockState.class))
-                        .getHistory())
+                        .getWitness())
+            .orElse(SegmentedPaths.EMPTY);
+    SegmentedPaths currentWitness = previousWitness.addEdgesToFront(pARGPath.getFullPath());
+
+    if (!trackHistory) {
+      return Optional.of(
+          new BlockState(
+              topMost.getUniqueId(),
+              null,
+              topMost.getLocationNode(),
+              topMost.getBlockNode(),
+              topMost.getType(),
+              topMost.getViolationConditions(),
+              topMost.getHistory(),
+              currentWitness));
+    }
+    List<String> previousHistory =
+        pPreviousCondition
+            .map(
+                state ->
+                    AbstractStates.extractStateByType(state, BlockState.class).getHistory().path())
             .orElse(ImmutableList.of());
     BlockState withHistory =
         new BlockState(
+            topMost.getUniqueId(),
+            null,
             topMost.getLocationNode(),
             topMost.getBlockNode(),
             topMost.getType(),
-            topMost.getErrorCondition(),
-            listAndElement(previousHistory, topMost.getBlockNode().getId()));
+            topMost.getViolationConditions(),
+            BlockGraphPath.of(listAndElement(previousHistory, topMost.getBlockNode().getId())),
+            currentWitness);
     return Optional.of(withHistory);
   }
 }

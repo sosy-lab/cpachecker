@@ -8,11 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -33,13 +38,22 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  */
 public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
-  private static final String LLONG_MIN_LITERAL = "9223372036854775808";
-
-  private static final String INT_MIN_LITERAL = "2147483648";
+  /** The unsigned C types that we can use for casting a bitvector, cf. {@link #unsignedTypeOf}. */
+  private static final ImmutableList<CSimpleType> UNSIGNED_TYPES =
+      ImmutableList.of(
+          CNumericTypes.UNSIGNED_CHAR,
+          CNumericTypes.UNSIGNED_SHORT_INT,
+          CNumericTypes.UNSIGNED_INT,
+          CNumericTypes.UNSIGNED_LONG_INT,
+          CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
   private final StringBuilder builder = new StringBuilder();
 
   private final FormulaManagerView fmgr;
+
+  private final MachineModel machineModel;
+
+  private final int intWidthInBits;
 
   private boolean bvSigned = false;
 
@@ -55,6 +69,28 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.BV_NOT,
           FunctionDeclarationKind.BV_NEG);
 
+  /** Operations that read their operands as signed numbers. */
+  private static final ImmutableSet<FunctionDeclarationKind> SIGNED_OPS =
+      Sets.immutableEnumSet(
+          FunctionDeclarationKind.BV_SDIV,
+          FunctionDeclarationKind.BV_SREM,
+          FunctionDeclarationKind.BV_SGT,
+          FunctionDeclarationKind.BV_SGE,
+          FunctionDeclarationKind.BV_SLT,
+          FunctionDeclarationKind.BV_SLE,
+          FunctionDeclarationKind.BV_ASHR);
+
+  /** Operations that read their operands as unsigned numbers. All of them are binary. */
+  private static final ImmutableSet<FunctionDeclarationKind> UNSIGNED_OPS =
+      Sets.immutableEnumSet(
+          FunctionDeclarationKind.BV_UDIV,
+          FunctionDeclarationKind.BV_UREM,
+          FunctionDeclarationKind.BV_UGT,
+          FunctionDeclarationKind.BV_UGE,
+          FunctionDeclarationKind.BV_ULT,
+          FunctionDeclarationKind.BV_ULE,
+          FunctionDeclarationKind.BV_LSHR);
+
   private static final ImmutableSet<FunctionDeclarationKind> N_ARY_OPS =
       Sets.immutableEnumSet(
           FunctionDeclarationKind.AND,
@@ -67,9 +103,13 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.FP_MUL);
 
   public FormulaToCVisitor(
-      FormulaManagerView fmgr, Function<String, String> pVariableNameConverter) {
+      FormulaManagerView fmgr,
+      Function<String, String> pVariableNameConverter,
+      MachineModel pMachineModel) {
     this.fmgr = fmgr;
     variableNameConverter = pVariableNameConverter;
+    machineModel = pMachineModel;
+    intWidthInBits = pMachineModel.getSizeofInBits(CNumericTypes.INT);
   }
 
   @Override
@@ -86,57 +126,69 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
   @Override
   public Boolean visitConstant(Formula pF, Object pValue) {
     FormulaType<?> type = fmgr.getFormulaType(pF);
-    final String value = pValue.toString();
 
-    if (type.isBitvectorType()) {
+    if (type.isBitvectorType() && pValue instanceof BigInteger value) {
       final int size = ((FormulaType.BitvectorType) type).getSize();
-      switch (size) {
-        case 32 -> {
-          if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
-            return true;
-          }
-          builder.append(value);
-        }
-        case 64 -> {
-          if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
-            return true;
-          }
-          builder.append(value);
-        }
-        default -> builder.append(value);
-      }
-    } else if (pValue instanceof Boolean) {
-      builder.append(((boolean) pValue) ? "1" : "0");
+      appendLiteral(interpretBitvectorValue(value, size), size);
+    } else if (pValue instanceof Boolean value) {
+      builder.append(value ? "1" : "0");
     } else {
-      builder.append(value);
+      builder.append(pValue);
     }
 
     return true;
   }
 
   /**
-   * The literals used for INT_MIN or LONG_MIN exceed the positive values of their corresponding
-   * data types and therefore an overflow would occur, if just written as '-[LITERAL]', since in C a
-   * literal is assigned its corresponding type before the unary '-' is applied.
+   * Bitvector values are reported as the unsigned interpretation of their bit pattern, i.e., as a
+   * non-negative number. Writing such a number verbatim changes its meaning in C, because a literal
+   * that does not fit into the signed type of the operands is given a wider type, and the
+   * surrounding operation is then evaluated in that wider type. For example, the invariant {@code b
+   * >= 0xF0000001} of an {@code int} variable must be written as {@code b >= -268435455}, whereas
+   * {@code b >= 4026531841} is unsatisfiable.
    *
-   * @param pGuardString the representation of a number that would be expected to overflow
-   * @param pValue the value of the observed expression
-   * @return whether a guard was necessary or not
+   * <p>For bit-widths below the width of {@code int} the operands are promoted to {@code int}
+   * anyway, so there the bit pattern is only signed if the enclosing operation reads it as signed.
    */
-  private boolean appendOverflowGuardForNegativeIntegralLiterals(
-      String pGuardString, Object pValue) {
-    if (pValue instanceof BigInteger bigInteger) {
-      String valueString = pValue.toString();
-      if (valueString.equals("-" + pGuardString)) {
-        builder.append("( ( ").append(bigInteger.add(BigInteger.ONE)).append(" ) - 1 )");
-        return true;
-      }
-      if (bvSigned && valueString.equals(pGuardString)) {
-        builder.append("( ( -").append(bigInteger.subtract(BigInteger.ONE)).append(" ) - 1 )");
-        return true;
+  private BigInteger interpretBitvectorValue(BigInteger pValue, int pSize) {
+    boolean signBitSet = pValue.signum() >= 0 && pValue.testBit(pSize - 1);
+    // If the first bit is signed and we are working with a signed bitvector, we need to interpret
+    // the value as a negative value
+    if (signBitSet && (bvSigned || pSize >= intWidthInBits)) {
+      return pValue.subtract(BigInteger.ONE.shiftLeft(pSize));
+    }
+    return pValue;
+  }
+
+  /**
+   * The magnitude of the smallest value of a signed type exceeds the positive values of that type,
+   * so writing it as '-[LITERAL]' would widen the expression, since in C a literal is assigned its
+   * corresponding type before the unary '-' is applied. This is only relevant for types that are at
+   * least as wide as {@code int}, because narrower operands are promoted to {@code int} anyway.
+   */
+  private void appendLiteral(BigInteger pValue, int pSize) {
+    if (pValue.negate().equals(BigInteger.ONE.shiftLeft(pSize - 1)) && pSize >= intWidthInBits) {
+      builder.append("( ( ").append(pValue.add(BigInteger.ONE)).append(" ) - 1 )");
+    } else {
+      builder.append(pValue);
+    }
+  }
+
+  /**
+   * Returns the unsigned C type with the same bit-width as the given operand, or {@code null} if
+   * there is no such type.
+   */
+  private Optional<CSimpleType> unsignedTypeOf(Formula pOperand) {
+    FormulaType<?> type = fmgr.getFormulaType(pOperand);
+    if (type.isBitvectorType()) {
+      int size = ((FormulaType.BitvectorType) type).getSize();
+      for (CSimpleType unsignedType : UNSIGNED_TYPES) {
+        if (machineModel.getSizeofInBits(unsignedType) == size) {
+          return Optional.of(unsignedType);
+        }
       }
     }
-    return false;
+    return Optional.empty();
   }
 
   @Override
@@ -151,11 +203,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     //
     // Consider a formula like:
     // bv_slt ( bv_ule x b#101010... ) ( bv_slt y b#110010001... )
-    boolean signedCarryThrough = false;
-    if (bvSigned) {
-      signedCarryThrough = true;
-      bvSigned = false;
-    }
+    final boolean signedCarryThrough = bvSigned;
 
     switch (kind) {
       case BV_ADD, FP_ADD, ADD -> op = "+";
@@ -186,11 +234,21 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         return false;
       }
     }
-    bvSigned =
-        switch (kind) {
-          case BV_SDIV, BV_SREM, BV_SGT, BV_SGE, BV_SLT, BV_SLE -> true;
-          default -> false;
-        };
+    // all other operations do not interpret the sign bit themselves,
+    // so their operands keep the signedness of the surrounding context
+    bvSigned = SIGNED_OPS.contains(kind) || (signedCarryThrough && !UNSIGNED_OPS.contains(kind));
+
+    // The variables of the C program usually have a signed type, so operations that read their
+    // operands as unsigned numbers need an explicit cast.
+    String cast = "";
+    if (UNSIGNED_OPS.contains(kind)) {
+      Optional<CSimpleType> unsignedType = unsignedTypeOf(pArgs.getFirst());
+      if (unsignedType.isEmpty()) {
+        // there is no C type with the bit-width of the operands
+        return false;
+      }
+      cast = "( " + unsignedType.orElseThrow() + " ) ";
+    }
 
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
@@ -220,10 +278,11 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         }
       }
     } else if (pArgs.size() == 2) {
+      builder.append(cast);
       if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
-      builder.append(" ").append(op).append(" ");
+      builder.append(" ").append(op).append(" ").append(cast);
       if (!fmgr.visit(pArgs.get(1), this)) {
         return false;
       }

@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibProductType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -55,11 +55,9 @@ public class SvLibIdTermTuple implements SvLibLeftHandSide, SvLibExpression {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "("
-        + String.join(
-            ", ",
-            FluentIterable.from(idTerms).transform(t -> t.toASTString(pAAstNodeRepresentation)))
-        + ")";
+    return idTerms.stream()
+        .map(t -> t.toASTString(pAAstNodeRepresentation))
+        .collect(Collectors.joining(", ", "(", ")"));
   }
 
   @Override

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.ObjectArrays;
 import com.google.common.math.IntMath;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical.ISCOperator
 
 /** Instances of this class represent compound states of intervals. */
 @SuppressWarnings("AmbiguousMethodReference")
-public class CompoundMathematicalInterval implements CompoundIntegralInterval {
+public final class CompoundMathematicalInterval implements CompoundIntegralInterval {
 
   private static final CompoundMathematicalInterval ZERO =
       new CompoundMathematicalInterval(SimpleInterval.singleton(BigInteger.ZERO));
@@ -705,9 +706,8 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
       }
     }
     if (currentLowerBound != null) {
-      SimpleInterval[] resultIntervals = new SimpleInterval[result.intervals.length + 1];
-      System.arraycopy(result.intervals, 0, resultIntervals, 0, result.intervals.length);
-      resultIntervals[result.intervals.length] = createSimpleInterval(currentLowerBound, null);
+      SimpleInterval[] resultIntervals =
+          ObjectArrays.concat(result.intervals, createSimpleInterval(currentLowerBound, null));
       result = getInternal(resultIntervals);
     }
     return result;
@@ -792,9 +792,8 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (!hasLowerBound()) {
       return this;
     }
-    SimpleInterval[] resultIntervals = new SimpleInterval[intervals.length];
-    resultIntervals[0] = intervals[0].extendToNegativeInfinity();
-    System.arraycopy(intervals, 1, resultIntervals, 1, intervals.length - 1);
+    SimpleInterval[] resultIntervals = intervals.clone();
+    resultIntervals[0] = resultIntervals[0].extendToNegativeInfinity();
     return getInternal(resultIntervals);
   }
 
@@ -810,10 +809,9 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (!hasUpperBound()) {
       return this;
     }
-    SimpleInterval[] resultIntervals = new SimpleInterval[intervals.length];
+    SimpleInterval[] resultIntervals = intervals.clone();
     int index = intervals.length - 1;
-    System.arraycopy(intervals, 0, resultIntervals, 0, index);
-    resultIntervals[index] = intervals[index].extendToPositiveInfinity();
+    resultIntervals[index] = resultIntervals[index].extendToPositiveInfinity();
     return getInternal(resultIntervals);
   }
 

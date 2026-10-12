@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
@@ -38,7 +39,7 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionScope, final CFANode pLocation)
+      final FunctionEntryNode pFunctionScope, final CFANode pLocation, MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
 
     ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newFactory();
@@ -61,7 +62,8 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
@@ -72,7 +74,9 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {

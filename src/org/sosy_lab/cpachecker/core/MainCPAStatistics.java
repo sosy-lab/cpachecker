@@ -15,12 +15,12 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -448,8 +448,7 @@ public final class MainCPAStatistics implements Statistics {
 
         } else if (size == mostFrequentLocationCount) {
           // use node with the smallest number to have deterministic output
-          mostFrequentLocation =
-              Ordering.natural().min(mostFrequentLocation, location.getElement());
+          mostFrequentLocation = Comparators.min(mostFrequentLocation, location.getElement());
         }
       }
     }

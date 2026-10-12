@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -25,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGJoinValuesTest {
   private SMG smg1;
@@ -46,7 +46,7 @@ public class SMGJoinValuesTest {
         new SMGState(
             LogManager.createTestLogManager(),
             MachineModel.LINUX32,
-            new SMGOptions(Configuration.defaultConfiguration()));
+            new SMGOptions(TestUtils.configurationForTest().build()));
     smg1 = new SMG(MachineModel.LINUX64);
     smg2 = new SMG(MachineModel.LINUX64);
     smgDest = new SMG(MachineModel.LINUX64);

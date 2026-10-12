@@ -174,6 +174,10 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return functionName != null;
   }
 
+  /**
+   * Checks whether the {@link MemoryLocation} is on the function stack with the given function
+   * name. Includes the check of {@link #isOnFunctionStack()}.
+   */
   public boolean isOnFunctionStack(String pFunctionName) {
     return functionName != null && pFunctionName.equals(functionName);
   }

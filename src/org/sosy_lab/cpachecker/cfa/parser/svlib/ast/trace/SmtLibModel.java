@@ -50,13 +50,10 @@ public final class SmtLibModel extends SvLibTraceComponent {
 
   @Override
   public String toASTString() {
-    return Joiner.on(" ")
-        .join(
-            FluentIterable.concat(
-                    smtLibDefineFunCommands,
-                    smtLibDefineFunRecCommands,
-                    smtLibDefineFunsRecCommands)
-                .transform(SvLibParsingAstNode::toASTString));
+    return FluentIterable.concat(
+            smtLibDefineFunCommands, smtLibDefineFunRecCommands, smtLibDefineFunsRecCommands)
+        .transform(SvLibParsingAstNode::toASTString)
+        .join(Joiner.on(" "));
   }
 
   public List<SmtLibDefineFunRecCommand> getSmtLibDefineFunRecCommands() {

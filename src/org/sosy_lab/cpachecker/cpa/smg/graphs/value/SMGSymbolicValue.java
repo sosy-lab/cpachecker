@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
 import java.math.BigInteger;
 
-public interface SMGSymbolicValue extends SMGValue {
+public sealed interface SMGSymbolicValue extends SMGValue
+    permits SMGAddressValue, SMGKnownSymbolicValue {
 
   /**
    * Get a random unique identifier for this symbolic value. Do never use the identifier for any

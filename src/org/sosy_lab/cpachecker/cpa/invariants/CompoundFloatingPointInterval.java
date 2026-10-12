@@ -12,7 +12,7 @@ import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 
-public class CompoundFloatingPointInterval implements CompoundInterval, FloatingPointType {
+public final class CompoundFloatingPointInterval implements CompoundInterval, FloatingPointType {
 
   private final FloatingPointTypeInfo typeInfo;
 

@@ -844,7 +844,7 @@ class AssignmentFormulaHandler {
       final BooleanFormula negAntecedent =
           bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
       final Predicate<PointerTarget> exact =
-          PointerTargetPattern.forRange(target.getBase(), target.getOffset(), size);
+          PointerTargetPattern.forRange(target.base(), target.offset(), size);
 
       List<BooleanFormula> consequent = new ArrayList<>();
       makeRetentionConstraints(

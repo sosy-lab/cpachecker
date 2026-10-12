@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement.createNoArgsFunctionCall;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_BEGIN_DECLARATION;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_END_DECLARATION;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -28,8 +31,8 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -334,7 +337,7 @@ class ASTConverter {
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
       Sideassignments pSideAssignmentStack,
-      Set<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
     options = pOptions;
     scope = pScope;
     logger = pLogger;
@@ -669,6 +672,15 @@ class ASTConverter {
     return false;
   }
 
+  /** Check whether the given expression is a local variable. */
+  private boolean isLocalVariable(CExpression exp) {
+    if (exp instanceof CIdExpression cIdExpression
+        && cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+      return !cVariableDeclaration.isGlobal();
+    }
+    return false;
+  }
+
   /**
    * Evaluate a constant expression into an integer literal. This method is for cases where the
    * frontend really needs to know the resulting int value, so we simplify the expression and force
@@ -707,16 +719,28 @@ class ASTConverter {
     CExpression arrayExpr = convertExpressionWithoutSideEffects(e.getArrayExpression());
     CExpression subscriptExpr = convertExpressionWithoutSideEffects(toExpression(e.getArgument()));
 
+    if (!CTypes.isIntegerType(subscriptExpr.getExpressionType())) {
+      if (CTypes.isIntegerType(arrayExpr.getExpressionType())) {
+        // i[a] is the same as a[i] in C, we normalize it.
+        CExpression tmp = arrayExpr;
+        arrayExpr = subscriptExpr;
+        subscriptExpr = tmp;
+      } else if (!(subscriptExpr.getExpressionType() instanceof CProblemType)) {
+        parseContext.parseError(
+            "Array subscript with non-integer type " + subscriptExpr.getExpressionType(), e);
+      }
+    }
+
     // Eclipse CDT has a bug in determining the result type if the array type is a typedef.
     CType resultType = arrayExpr.getExpressionType();
-    while (resultType instanceof CTypedefType) {
-      resultType = ((CTypedefType) resultType).getRealType();
+    while (resultType instanceof CTypedefType typedefType) {
+      resultType = typedefType.getRealType();
     }
-    if (resultType instanceof CArrayType) {
-      resultType = ((CArrayType) resultType).getType();
-    } else if (resultType instanceof CPointerType) {
-      resultType = ((CPointerType) resultType).getType();
-    } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
+    if (resultType instanceof CArrayType arrayType) {
+      resultType = arrayType.getType();
+    } else if (resultType instanceof CPointerType pointerType) {
+      resultType = pointerType.getType();
+    } else if (resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
       resultType = typeConverter.convert(e.getExpressionType());
@@ -913,13 +937,29 @@ class ASTConverter {
         };
 
       } else {
-        // a += b etc.
+        // a += b, a *= b etc.
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
-        // first create expression "a + b"
-        CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
+        // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
+        // section so that concurrent analyses treat the read-modify-write as indivisible.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+        if (lhs.getExpressionType().isAtomic() && !isLocalVariable(lhs)) {
+          // If a has an atomic type, a += b is transformed to
+          // atomic_begin(); a = a + b; atomic_end();
+          CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
+          CExpressionAssignmentStatement result =
+              new CExpressionAssignmentStatement(fileLoc, lhs, exp);
 
-        // and now the assignment
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
+
+          return lhs;
+        }
+
+        CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
         return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
       }
 
@@ -991,7 +1031,15 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    if (options.simplifyPointerExpressions()
+    // Cast-to-union extension (GCC): initialize the union member whose type is an exact match of
+    // the operand's type.
+    // https://gcc.gnu.org/onlinedocs/gcc/Cast-to-Union.html
+    // We found out, that 'match' means exact type match in this case through our own experiments.
+    // Lower this to a designated initializer stored in a temporary variable.
+    CAstNode loweredUnionCast = tryLowerGccCastToUnion(loc, castType, operand);
+    if (loweredUnionCast != null) {
+      return loweredUnionCast;
+    } else if (options.simplifyPointerExpressions()
         && e.getOperand() instanceof IASTFieldReference iASTFieldReference
         && iASTFieldReference.isPointerDereference()) {
       return createTemporaryVariableWithInitializer(
@@ -999,6 +1047,70 @@ class ASTConverter {
     } else {
       return new CCastExpression(loc, castType, operand);
     }
+  }
+
+  /**
+   * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
+   *
+   * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
+   * member type. If no member matches (or the union is empty), this method throws a {@link
+   * CFAGenerationRuntimeException}.
+   */
+  private @Nullable CAstNode tryLowerGccCastToUnion(
+      FileLocation loc, CType castType, CExpression castOperand) {
+
+    if (!(castType.getCanonicalType() instanceof CCompositeType compositeType)
+        || compositeType.getKind() != ComplexTypeKind.UNION) {
+      return null;
+    }
+
+    if (compositeType.getMembers().isEmpty()) {
+      throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
+    }
+
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
+    CCompositeTypeMemberDeclaration matchingMember =
+        findUnionMemberWithExactType(compositeType, operandType);
+
+    if (matchingMember == null) {
+      throw new CFAGenerationRuntimeException(
+          "Invalid cast to union type: operand type "
+              + operandType.toASTString("")
+              + " does not exactly match any union member's type at "
+              + loc);
+    }
+
+    CInitializer init = buildDesignatedUnionMemberInitializer(loc, matchingMember, castOperand);
+    return createTemporaryVariable(loc, castType, init);
+  }
+
+  /**
+   * Returns the first union member whose canonical type exactly matches the given operand type.
+   * Deterministic: first matching member wins.
+   */
+  private @Nullable CCompositeTypeMemberDeclaration findUnionMemberWithExactType(
+      CCompositeType unionType, CType operandType) {
+
+    for (CCompositeTypeMemberDeclaration member : unionType.getMembers()) {
+      if (member.getType().getCanonicalType().equals(operandType)) {
+        return member;
+      }
+    }
+    return null;
+  }
+
+  /** Build initializer list equivalent to: (U){ .member = operand } */
+  private CInitializer buildDesignatedUnionMemberInitializer(
+      FileLocation loc, CCompositeTypeMemberDeclaration member, CExpression operand) {
+
+    String memberName = member.getName();
+    CFieldDesignator designator = new CFieldDesignator(loc, memberName);
+    CInitializer designated =
+        new CDesignatedInitializer(
+            loc, ImmutableList.of(designator), new CInitializerExpression(loc, operand));
+
+    return new CInitializerList(loc, ImmutableList.of(designated));
   }
 
   private static class ContainsProblemTypeVisitor
@@ -1401,8 +1513,8 @@ class ASTConverter {
 
   private boolean areCompatibleTypes(CType a, CType b) {
     // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
-    a = a.getCanonicalType().withoutQualifiers();
-    b = b.getCanonicalType().withoutQualifiers();
+    a = a.getCanonicalType().asUnqualified();
+    b = b.getCanonicalType().asUnqualified();
     if (a.equals(b)) {
       return true;
     }
@@ -1575,8 +1687,32 @@ class ASTConverter {
         CBinaryExpression preExp =
             buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
         CLeftHandSide lhsPre = (CLeftHandSide) operand;
+        CExpressionAssignmentStatement result =
+            new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
 
-        return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        if (operandType.isAtomic() && !isLocalVariable(operand)) {
+          // if x is an atomic type, ++x is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); return tmp;
+          //
+          // e.g., y = ++x; is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); y = tmp;
+          //
+          // That is, the new value of x is saved to a temporary variable still in the atomic block
+          // so that the value of the expression is correct even for concurrent analyses.
+          // Without the temporary variable, another thread modifying x could interleave with the
+          // incrementing thread after the atomic block end, but before the value of x is read.
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPre);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+          return tmp;
+        }
+
+        return result;
       }
       case IASTUnaryExpression.op_postFixIncr, IASTUnaryExpression.op_postFixDecr -> {
         // instead of x++ create "x = x + 1"
@@ -1598,8 +1734,34 @@ class ASTConverter {
           return result;
         }
 
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+
+        // if x is an atomic type, x++ is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); return tmp;
+        //
+        // e.g., y = x++; is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); y = tmp;
+        //
+        // That is, the old value of x is saved to a temporary variable within the atomic block
+        // so that the value of the expression is correct even for concurrent analyses.
+        // Without the temporary variable, another thread modifying x could interleave with the
+        // incrementing thread after saving the old value of x, but before the atomic block start.
+        boolean isAtomic = operandType.isAtomic() && !isLocalVariable(operand);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+        }
+
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
         sideAssignmentStack.addPreSideAssignment(result);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+        }
 
         return tmp;
       }
@@ -1836,6 +1998,10 @@ class ASTConverter {
     Pair<CStorageClass, ? extends CType> specifier = convert(d.getDeclSpecifier());
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
+    // __thread / _Thread_local arrives as a preprocessor-inserted attribute on the decl specifier,
+    // because CDT has no thread-local storage class of its own (see EclipseCdtWrapper)
+    boolean hasThreadLocalStorage =
+        typeConverter.hasCPAcheckerAttributeForThreadLocal(d.getDeclSpecifier());
 
     IASTDeclarator[] declarators = d.getDeclarators();
     List<CDeclaration> result = new ArrayList<>();
@@ -1899,7 +2065,8 @@ class ASTConverter {
                   fileLoc.getEndingLineInOrigin(),
                   fileLoc.isOffsetRelatedToOrigin());
         }
-        result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
+        result.add(
+            createDeclaration(declaratorLocation, cStorageClass, type, c, hasThreadLocalStorage));
       }
     }
 
@@ -1907,7 +2074,11 @@ class ASTConverter {
   }
 
   private CDeclaration createDeclaration(
-      FileLocation fileLoc, CStorageClass cStorageClass, CType type, IASTDeclarator d) {
+      FileLocation fileLoc,
+      CStorageClass cStorageClass,
+      CType type,
+      IASTDeclarator d,
+      boolean hasThreadLocalStorage) {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
@@ -2008,7 +2179,15 @@ class ASTConverter {
       final String scopedName = isGlobal ? name : scope.createScopedNameOf(name);
       CVariableDeclaration declaration =
           new CVariableDeclaration(
-              fileLoc, isGlobal, cStorageClass, type, name, origName, scopedName, null);
+              fileLoc,
+              isGlobal,
+              cStorageClass,
+              type,
+              name,
+              origName,
+              scopedName,
+              null,
+              hasThreadLocalStorage);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.
@@ -2215,7 +2394,7 @@ class ASTConverter {
           // clear added modifiers
           tmpArrMod.clear();
 
-          type = typeConverter.convert(iASTPointerOperator, type);
+          type = typeConverter.convert(iASTPointerOperator, type, modifiers, d);
 
         } else {
           throw new AssertionError();
@@ -3072,7 +3251,7 @@ class ASTConverter {
       if (pDeclarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
-      return canonicalType.withoutQualifiers().equals(CNumericTypes.CHAR);
+      return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
     }
     return false;
   }
@@ -3400,23 +3579,20 @@ class ASTConverter {
     private Pair<List<Integer>, CType> resolveIndicesOfDesignator(
         ICASTDesignator designator, CType parentType) {
       CType currentType = parentType.getCanonicalType();
-      switch (designator) {
+      return switch (designator) {
         case ICASTFieldDesignator fieldDesignator -> {
           String targetFieldName = fieldDesignator.getName().toString();
-          return resolveIndicesOfFieldDesignator(targetFieldName, currentType);
+          yield resolveIndicesOfFieldDesignator(targetFieldName, currentType);
         }
 
-        case ICASTArrayDesignator arrayDesignator -> {
-          return resolveIndicesOfArraySubscript(
-              arrayDesignator.getSubscriptExpression(), currentType);
-        }
+        case ICASTArrayDesignator arrayDesignator ->
+            resolveIndicesOfArraySubscript(arrayDesignator.getSubscriptExpression(), currentType);
 
-        case IGCCASTArrayRangeDesignator rangeDesignator -> {
-          return resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
-        }
+        case IGCCASTArrayRangeDesignator rangeDesignator ->
+            resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
         case null, default ->
             throw new AssertionError("Unexpected designator in sequence: " + designator);
-      }
+      };
     }
 
     private Pair<List<Integer>, CType> resolveIndicesOfFieldDesignator(

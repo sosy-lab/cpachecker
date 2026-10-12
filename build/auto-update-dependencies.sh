@@ -44,7 +44,7 @@ DEPENDENCIES=(
 # we want to get into a state where we have all changes from main the auto-update branch.
 # But this is only relevant if we are going to push in the end.
 # If a developer executes the script locally, we just run on the current branch.
-if [[ -z PUSH ]] && git fetch origin "$BRANCH" "${CI_COMMIT_BRANCH:-main}" 2>/dev/null; then
+if [[ -v PUSH && -n $PUSH ]] && git fetch origin "$BRANCH" "${CI_COMMIT_BRANCH:-main}" 2>/dev/null; then
   git checkout "$BRANCH"
   git merge --no-edit "origin/${CI_COMMIT_BRANCH:-main}"
 fi
@@ -81,7 +81,7 @@ fi
 current_commit="$(git rev-parse HEAD)"
 
 if [[ "$current_commit" != "$previous_commit" ]]; then
-  if [[ -z PUSH ]]; then
+  if [[ -v PUSH && -n $PUSH ]]; then
     # Create or update MR
     git push "$PUSH" "HEAD:refs/heads/$BRANCH" \
         -o merge_request.create \

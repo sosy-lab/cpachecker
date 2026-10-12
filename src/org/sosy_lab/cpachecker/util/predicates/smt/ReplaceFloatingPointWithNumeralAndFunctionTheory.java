@@ -317,8 +317,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public FloatingPointRoundingModeFormula makeRoundingMode(
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    // TODO:
-    return null; // Ignore for now
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
   @Override

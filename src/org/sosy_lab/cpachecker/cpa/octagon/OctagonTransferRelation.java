@@ -1147,7 +1147,7 @@ public class OctagonTransferRelation
         }
       }
 
-      switch (e.getOperator()) {
+      return switch (e.getOperator()) {
         case EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN, NOT_EQUALS -> {
           Set<Pair<IOctagonCoefficients, OctagonState>> returnCoefficients = new HashSet<>();
           MemoryLocation tempVarLeft =
@@ -1222,7 +1222,7 @@ public class OctagonTransferRelation
                   handleLogicalOperators(tempVarLeft, binOp, rightVisitorState, rightCoeffs));
             }
           }
-          return returnCoefficients;
+          yield returnCoefficients;
         }
         case DIVIDE, MULTIPLY, MINUS, PLUS -> {
           Set<Pair<IOctagonCoefficients, OctagonState>> returnCoefficients = new HashSet<>();
@@ -1311,10 +1311,10 @@ public class OctagonTransferRelation
             }
           }
 
-          return returnCoefficients;
+          yield returnCoefficients;
         }
         default -> throw new AssertionError("Unhandled case statement");
-      }
+      };
     }
 
     private Set<Pair<IOctagonCoefficients, OctagonState>> handleLogicalOperators(

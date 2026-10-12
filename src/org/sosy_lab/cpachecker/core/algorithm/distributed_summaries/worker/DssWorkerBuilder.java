@@ -12,25 +12,28 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map.Entry;
-import java.util.concurrent.BlockingQueue;
 import java.util.function.Supplier;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.CommunicationId;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssCommunicationEntity;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssSchedulerConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -41,17 +44,23 @@ public class DssWorkerBuilder {
 
   private final DssMessageFactory messageFactory;
   private final ImmutableMap.Builder<CommunicationId, WorkerGenerator> workerGenerators;
-  private final Supplier<BlockingQueue<DssMessage>> queueFactory;
+  private final Supplier<DssDefaultQueue> queueFactory;
+  private final DssAllWorkerStatistics workerStatistics;
+  private final ShutdownManager shutdownManager;
 
   public DssWorkerBuilder(
       CFA pCFA,
       Specification pSpecification,
-      Supplier<BlockingQueue<DssMessage>> pQueueFactory,
-      DssMessageFactory pMessageFactory) {
+      Supplier<DssDefaultQueue> pQueueFactory,
+      DssMessageFactory pMessageFactory,
+      DssAllWorkerStatistics pWorkerStatistics,
+      ShutdownManager pShutdownManager) {
     cfa = pCFA;
     specification = pSpecification;
     queueFactory = pQueueFactory;
     messageFactory = pMessageFactory;
+    workerStatistics = pWorkerStatistics;
+    shutdownManager = pShutdownManager;
     workerGenerators = ImmutableMap.builder();
   }
 
@@ -60,12 +69,12 @@ public class DssWorkerBuilder {
 
     // create a queue for each worker
     ImmutableMap<CommunicationId, WorkerGenerator> futureWorkers = workerGenerators.buildOrThrow();
-    ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
+    ImmutableMap.Builder<CommunicationId, DssDefaultQueue> queues =
         ImmutableMap.builderWithExpectedSize(futureWorkers.size());
     for (CommunicationId id : futureWorkers.keySet()) {
       queues.put(id, queueFactory.get());
     }
-    ImmutableMap<CommunicationId, BlockingQueue<DssMessage>> allQueues = queues.buildOrThrow();
+    ImmutableMap<CommunicationId, DssDefaultQueue> allQueues = queues.buildOrThrow();
 
     // create a broadcaster for all queues
     DssMessageBroadcaster broadcaster = new DssMessageBroadcaster(allQueues);
@@ -97,7 +106,8 @@ public class DssWorkerBuilder {
                 cfa,
                 specification,
                 messageFactory,
-                ShutdownManager.create(),
+                ShutdownManager.createWithParent(shutdownManager.getNotifier()),
+                workerStatistics,
                 logger));
     return this;
   }
@@ -113,31 +123,43 @@ public class DssWorkerBuilder {
         new CommunicationId(workerId, DssCommunicationEntity.OBSERVER),
         connection ->
             new DssVisualizationWorker(
-                workerId, pBlockGraph, connection, pOptions, messageFactory, logger));
+                workerId, pBlockGraph, connection, pOptions, messageFactory, cfa, logger));
     return this;
   }
 
   @CanIgnoreReturnValue
   public DssWorkerBuilder addObserverWorker(
-      String pId, int pNumberOfBlocks, DssAnalysisOptions pOptions) {
+      String pId,
+      BlockGraph pBlockGraph,
+      DssAnalysisOptions pOptions,
+      DssWitnessArgStateCollector pStateCollector) {
     final LogManager logger = getLogger(pOptions, pId);
     workerGenerators.put(
         new CommunicationId(pId, DssCommunicationEntity.OBSERVER),
         connection ->
-            new DssObserverWorker(pId, connection, pNumberOfBlocks, messageFactory, logger));
+            new DssObserverWorker(
+                pId, connection, pBlockGraph, messageFactory, logger, pStateCollector));
     return this;
   }
 
+  /**
+   * The logger of one worker.
+   *
+   * <p>A worker writes its own log file, so the level of that file handler decides what the block
+   * analysis inside the worker logs. The predicate analysis logs its path formulas and abstraction
+   * formulas at {@link Level#ALL}, and rendering an SMT formula as a string costs more than the
+   * solver calls around it, so the default level of a {@link FileHandler} would make a block
+   * analysis spend most of its time producing output that nobody reads. The level therefore comes
+   * from {@link DssAnalysisOptions#getLogLevel()} instead.
+   */
   private LogManager getLogger(DssAnalysisOptions pOptions, String workerId) {
     try {
       Path logDirectory = pOptions.getLogDirectory();
       if (logDirectory != null) {
-        boolean logDirectoryExists = logDirectory.toFile().mkdirs();
-        if (!logDirectoryExists) {
-          throw new IOException("Could not create log directory: " + logDirectory);
-        }
-        return BasicLogManager.createWithHandler(
-            new FileHandler(logDirectory + "/" + workerId + ".log"));
+        Files.createDirectories(logDirectory);
+        FileHandler handler = new FileHandler(logDirectory + "/" + workerId + ".log");
+        handler.setLevel(pOptions.getLogLevel());
+        return BasicLogManager.createWithHandler(handler);
       }
     } catch (IOException e) {
       // fall-through to return null-log manager

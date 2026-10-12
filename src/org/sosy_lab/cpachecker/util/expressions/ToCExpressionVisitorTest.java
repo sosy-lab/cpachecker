@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -122,7 +122,7 @@ public class ToCExpressionVisitorTest {
     CExpression resultAnd = andExpression.accept(expressionTreeVisitor);
     CExpression resultOr = orExpression.accept(expressionTreeVisitor);
 
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
     Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
 
     BooleanFormula bfAnd = convertCExpressionToBooleanFormula(resultAnd, config, smtSolver);
@@ -144,7 +144,7 @@ public class ToCExpressionVisitorTest {
     CExpression resultAnd = andExpression.accept(expressionTreeVisitor);
     CExpression resultOr = orExpression.accept(expressionTreeVisitor);
 
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
     Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
 
     BooleanFormula bfAnd = convertCExpressionToBooleanFormula(resultAnd, config, smtSolver);

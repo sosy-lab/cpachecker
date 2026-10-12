@@ -48,6 +48,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -77,7 +78,10 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
+import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractARGToCorrectnessWitness;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -242,7 +246,7 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
-  private final ARGToYAMLWitnessExport argToWitnessWriter;
+  private final AbstractARGToCorrectnessWitness argToWitnessWriter;
   private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
@@ -281,7 +285,17 @@ public class ARGStatistics implements Statistics {
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
+      RelevantArgStatesCollector argStatesCollector = new RootExplorationArgStateCollector();
+      ProgramTransformation transformation = pCFA.getMetadata().getTransformation();
+      if (transformation != null && transformation.isSuccessful()) {
+        argToWitnessWriter =
+            transformation.createARGToCorrectnessWitness(
+                config, pCFA, pSpecification, pLogger, argStatesCollector);
+      } else {
+        argToWitnessWriter =
+            new ARGToCorrectnessWitnessV2(
+                config, pCFA, pSpecification, pLogger, argStatesCollector);
+      }
     } else {
       argToWitnessWriter = null;
     }

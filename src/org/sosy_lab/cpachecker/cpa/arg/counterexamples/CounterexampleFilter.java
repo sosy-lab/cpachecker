@@ -56,20 +56,16 @@ public interface CounterexampleFilter {
       ConfigurableProgramAnalysis cpa,
       List<CounterexampleFilter.Factory> cexFilterClasses)
       throws InvalidConfigurationException {
-    switch (cexFilterClasses.size()) {
-      case 0 -> {
-        return new NullCounterexampleFilter();
-      }
-      case 1 -> {
-        return cexFilterClasses.getFirst().create(config, logger, cpa);
-      }
+    return switch (cexFilterClasses.size()) {
+      case 0 -> new NullCounterexampleFilter();
+      case 1 -> cexFilterClasses.getFirst().create(config, logger, cpa);
       default -> {
         List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
         for (CounterexampleFilter.Factory factory : cexFilterClasses) {
           filters.add(factory.create(config, logger, cpa));
         }
-        return new ConjunctiveCounterexampleFilter(filters);
+        yield new ConjunctiveCounterexampleFilter(filters);
       }
-    }
+    };
   }
 }

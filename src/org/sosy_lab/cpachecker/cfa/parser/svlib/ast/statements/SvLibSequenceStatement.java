@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -54,9 +54,9 @@ public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return "(sequence "
-        + Joiner.on(" ").join(statements.stream().map(SvLibParsingAstNode::toASTString).toList())
-        + ")";
+    return statements.stream()
+        .map(SvLibParsingAstNode::toASTString)
+        .collect(Collectors.joining(" ", "(sequence ", ")"));
   }
 
   @Override

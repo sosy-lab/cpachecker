@@ -13,14 +13,15 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 
 public class SeqInitializers {
 
   public static final CInitializer INT_0 =
-      new CInitializerExpression(FileLocation.DUMMY, SeqIntegerLiteralExpressions.INT_0);
+      new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO);
 
   public static final CInitializer INT_1 =
-      new CInitializerExpression(FileLocation.DUMMY, SeqIntegerLiteralExpressions.INT_1);
+      new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ONE);
 
   public static final CInitializerList EMPTY_LIST =
       new CInitializerList(FileLocation.DUMMY, ImmutableList.of());

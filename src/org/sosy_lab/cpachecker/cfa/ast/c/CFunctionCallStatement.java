@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -51,5 +52,18 @@ public sealed class CFunctionCallStatement extends AFunctionCallStatement
     }
 
     return obj instanceof CFunctionCallStatement && super.equals(obj);
+  }
+
+  /** Creates a {@link CFunctionCallStatement} invoking the given function declaration. */
+  public static CFunctionCallStatement createNoArgsFunctionCall(
+      FileLocation loc, CFunctionDeclaration declaration) {
+    return new CFunctionCallStatement(
+        loc,
+        new CFunctionCallExpression(
+            loc,
+            declaration.getType().getReturnType(),
+            new CIdExpression(loc, declaration),
+            ImmutableList.of(),
+            declaration));
   }
 }

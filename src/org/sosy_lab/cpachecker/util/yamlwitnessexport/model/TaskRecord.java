@@ -80,6 +80,7 @@ public class TaskRecord {
 
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
       throws IOException {
+
     List<Path> inputFiles = pCFA.getFileNames();
     ImmutableMap.Builder<String, String> inputFileHashes = ImmutableMap.builder();
     for (Path inputFile : inputFiles) {

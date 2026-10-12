@@ -1,0 +1,20 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+#include <stdlib.h>
+
+// ILP32/LP64: unsafe (valid-free); freeing an interior allocation pointer.
+int main(void) {
+  int *allocation = __builtin_alloca(2 * sizeof(*allocation));
+
+  allocation[0] = 1;
+  allocation[1] = 2;
+  allocation++;
+  free(allocation); // Invalid free: interior allocation pointer.
+  return 0;
+}

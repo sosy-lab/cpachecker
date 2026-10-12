@@ -103,7 +103,7 @@ public interface CPAFactory {
    * IllegalStateException}.
    *
    * @return a new ConfigurableProgramAnalysis instance
-   * @exception CPAException If the CPA cannot be instantiated.
+   * @throws CPAException If the CPA cannot be instantiated.
    */
   ConfigurableProgramAnalysis createInstance()
       throws InvalidConfigurationException, CPAException, InterruptedException;

@@ -13,27 +13,39 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 
 public class SerializeCallstackStateOperator implements SerializeOperator {
+  private final Map<CFANode, Integer> nodeToId;
+
+  public SerializeCallstackStateOperator(Map<CFANode, Integer> pNodeToId) {
+    nodeToId = pNodeToId;
+  }
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
+    boolean canBeTopState = DistributedCallstackCPA.canBeTopState(pCallstackState);
+
     List<String> states = new ArrayList<>();
     CallstackState callstackState = (CallstackState) pCallstackState;
     while (callstackState != null) {
       states.add(
-          callstackState.getCallNode().getNodeNumber() + "." + callstackState.getCurrentFunction());
+          nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
       callstackState = callstackState.getPreviousState();
     }
     Collections.reverse(states);
     String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+
     return ContentBuilder.builder()
         .pushLevel(CallstackState.class.getName())
-        .put(STATE_KEY, result)
+        .put(SerializeOperator.STATE_KEY, result)
+        // the receiving block has to know whether the sending block knew its callstack
+        .put(DistributedCallstackCPA.CAN_BE_TOP_STATE_KEY, Boolean.toString(canBeTopState))
         .build();
   }
 }

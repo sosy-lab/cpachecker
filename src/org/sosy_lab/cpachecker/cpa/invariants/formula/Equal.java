@@ -15,7 +15,7 @@ import com.google.common.base.Preconditions;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
+public final class Equal<ConstantType> implements BooleanFormula<ConstantType> {
 
   /** The first operand. */
   private final NumeralFormula<ConstantType> operand1;

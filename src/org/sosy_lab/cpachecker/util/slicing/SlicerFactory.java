@@ -76,11 +76,11 @@ public class SlicerFactory implements StatisticsProvider {
       pConfig.inject(this);
     }
 
-    public ExtractorType getExtractorType() {
+    private ExtractorType getExtractorType() {
       return extractorType;
     }
 
-    public SlicingType getSlicingType() {
+    private SlicingType getSlicingType() {
       return slicingType;
     }
   }

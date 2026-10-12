@@ -296,7 +296,7 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
 
   public OctagonIntervalCoefficients withConstantValue(OctagonInterval bounds) {
     OctagonIntervalCoefficients ret = new OctagonIntervalCoefficients(size, oct);
-    ret.coefficients = Arrays.copyOf(coefficients, coefficients.length);
+    ret.coefficients = coefficients.clone();
     ret.coefficients[coefficients.length - 1] = bounds;
     return ret;
   }

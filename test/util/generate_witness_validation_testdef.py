@@ -8,8 +8,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import sys
 import os
+import sys
+
 from lxml import etree
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
@@ -98,7 +99,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
         rundef.append(_option("--validate", witness_path))
 
     else:
-        sys.exit("unknown tool {0}".format(tool))
+        sys.exit(f"unknown tool {tool}")
 
     requiredfiles = etree.Element("requiredfiles")
     requiredfiles.text = (
@@ -107,6 +108,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
         + witness_file
     )
     rundef.append(requiredfiles)
+    etree.indent(rundef, level=1)
 
     # Remove the resultfiles tag
     _remove(benchmark.find("resultfiles"))
@@ -118,15 +120,15 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
 
 def _check(path):
     if not os.path.isfile(path):
-        sys.exit("The input-file path {0} does not exist.".format(path))
+        sys.exit(f"The input-file path {path} does not exist.")
     try:
         testdef = etree.parse(path)
         benchmark = testdef.getroot()
         if benchmark is None:
-            sys.exit("The input file {0} contains no root element.".format(path))
+            sys.exit(f"The input file {path} contains no root element.")
         rundef = benchmark.find("rundefinition")
         if rundef is None:
-            sys.exit("The input file {0} contains no rundefinition.".format(path))
+            sys.exit(f"The input file {path} contains no rundefinition.")
         resultfiles = benchmark.find("resultfiles")
         if resultfiles is None:
             sys.exit(
@@ -136,10 +138,10 @@ def _check(path):
                 ).format(path)
             )
     except etree.ParseError:
-        sys.exit("The input file {0} is not a well-formed XML file.".format(path))
+        sys.exit(f"The input file {path} is not a well-formed XML file.")
     validation_path = _get_validation_path(path)
     if os.path.isfile(validation_path):
-        sys.exit("The output-file path {0} already exists.".format(validation_path))
+        sys.exit(f"The output-file path {validation_path} already exists.")
 
 
 if __name__ == "__main__":

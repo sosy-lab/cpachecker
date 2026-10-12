@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
@@ -33,10 +34,11 @@ public class DssVisualizationWorker extends DssWorker {
 
   DssVisualizationWorker(
       String id,
-      BlockGraph pNode,
+      BlockGraph pBlockGraph,
       DssConnection pConnection,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
+      CFA cfa,
       LogManager pLogger) {
     super(id, pMessageFactory, pLogger);
     identifier = Instant.now().hashCode();
@@ -44,7 +46,7 @@ public class DssVisualizationWorker extends DssWorker {
     reportFiles = pOptions.getReportFiles();
     try {
       if (pOptions.getBlockCFAFile() != null) {
-        pNode.export(pOptions.getBlockCFAFile());
+        JSON.writeJSONString(pBlockGraph.getExportData(cfa), pOptions.getBlockCFAFile());
       }
     } catch (IOException e) {
       pLogger.logException(
@@ -68,11 +70,13 @@ public class DssVisualizationWorker extends DssWorker {
   public Collection<DssMessage> processMessage(DssMessage pMessage)
       throws InterruptedException, IOException {
     log(pMessage);
-    boolean stop = false;
+    boolean stop =
+        pMessage.getType() == DssMessageType.RESULT
+            || pMessage.getType() == DssMessageType.EXCEPTION;
     while (connection.hasPendingMessages()) {
       DssMessage m = connection.read();
       log(m);
-      stop |= m.getType() == DssMessageType.EXCEPTION || m.getType() == DssMessageType.RESULT;
+      stop |= m.getType() == DssMessageType.RESULT || m.getType() == DssMessageType.EXCEPTION;
     }
     if (stop) {
       shutdown = true;

@@ -11,12 +11,18 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
-class CtoFormulaTypeUtils {
+public class CtoFormulaTypeUtils {
 
   public static boolean areEqualWithMatchingPointerArray(CType t1, CType t2) {
     if (t1 == null || t2 == null) {
@@ -60,5 +66,16 @@ class CtoFormulaTypeUtils {
       return new CPointerExpression(fExp.getFileLocation(), dereferencedType, fieldOwner);
     }
     return fieldOwner;
+  }
+
+  public static BooleanFormula makeRangeConstraint(
+      FormulaManagerView pFmgr, Formula pVariable, CSimpleType pType, MachineModel pMachineModel) {
+    final FormulaType<Formula> numberType = pFmgr.getFormulaType(pVariable);
+    final boolean signed = pMachineModel.isSigned(pType);
+    final Formula lowerBound =
+        pFmgr.makeNumber(numberType, pMachineModel.getMinimalIntegerValue(pType));
+    final Formula upperBound =
+        pFmgr.makeNumber(numberType, pMachineModel.getMaximalIntegerValue(pType));
+    return pFmgr.makeRangeConstraint(pVariable, lowerBound, upperBound, signed);
   }
 }

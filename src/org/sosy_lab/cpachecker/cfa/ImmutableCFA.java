@@ -76,7 +76,7 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
   }
 
   @Override
-  public Set<CFAEdge> edges() {
+  public ImmutableSet<CFAEdge> edges() {
     return allEdges;
   }
 

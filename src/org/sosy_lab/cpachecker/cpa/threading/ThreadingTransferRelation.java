@@ -10,17 +10,16 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.collect.Collections2.transform;
 
-import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -39,13 +38,17 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -60,6 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -68,7 +72,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 @Options(prefix = "cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
@@ -115,11 +118,26 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       secure = true)
   private boolean useAllPossibleClones = false;
 
+  @Option(
+      description =
+          "stop state-space-exploration once main is left. "
+              + "Setting this option to true is always possible for verification, "
+              + "since one can find an interleaving where main is not yet exited. "
+              + "However for validation it should be set to false, since the witness may "
+              + "require main to exit first and then before the teardown of all "
+              + "threads to continue with some other thread.",
+      secure = true)
+  private boolean stopStateSpaceExplorationOnMainExit = true;
+
   public static final String THREAD_START = "pthread_create";
   public static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
+  private static final String THREAD_MUTEX_INIT = "pthread_mutex_init";
+  private static final String THREAD_MUTEXATTR_SETTYPE = "pthread_mutexattr_settype";
+  // value of PTHREAD_MUTEX_RECURSIVE in glibc
+  private static final BigInteger PTHREAD_MUTEX_RECURSIVE = BigInteger.ONE;
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
@@ -195,8 +213,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
-    if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
+    if (isTerminatingEdge(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
+      return ImmutableSet.of();
+    }
+
+    if (stopStateSpaceExplorationOnMainExit && isEndOfMainFunction(cfaEdge)) {
       return ImmutableSet.of();
     }
 
@@ -268,6 +290,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
               }
               case THREAD_MUTEX_UNLOCK -> {
                 return removeLock(activeThread, extractLockId(statement), results);
+              }
+              case THREAD_MUTEXATTR_SETTYPE -> {
+                return setMutexAttributeType(statement, results);
+              }
+              case THREAD_MUTEX_INIT -> {
+                return initMutex(threadingState, statement, results);
               }
               case THREAD_JOIN -> {
                 return joinThread(threadingState, statement, results);
@@ -618,6 +646,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final String activeThread,
       String lockId,
       final Collection<ThreadingState> results) {
+    if (threadingState.hasLock(activeThread, lockId) && threadingState.isRecursiveMutex(lockId)) {
+      return transform(results, ts -> ts.increaseRecursiveLockAndCopy(activeThread, lockId));
+    }
     if (threadingState.hasLock(lockId)) {
       // some thread (including activeThread) has the lock, using it twice is not possible
       return ImmutableSet.of();
@@ -667,6 +698,71 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     String lockId = cUnaryExpression.getOperand().toString();
     return lockId;
+  }
+
+  /** Tracks whether the mutex attribute has the type PTHREAD_MUTEX_RECURSIVE. */
+  private static Collection<ThreadingState> setMutexAttributeType(
+      final AStatement statement, final Collection<ThreadingState> results)
+      throws UnrecognizedCodeException {
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    boolean recursive = isRecursiveMutexType(params.get(1));
+    Optional<String> attribute = getMutexAttributeId(params.get(0));
+    if (attribute.isEmpty()) {
+      if (recursive) {
+        throw new UnrecognizedCodeException("unsupported mutex attribute", params.get(0));
+      }
+      return results;
+    }
+    return transform(
+        results, ts -> ts.setRecursiveMutexAttributeAndCopy(attribute.orElseThrow(), recursive));
+  }
+
+  /** Tracks whether the mutex is initialized with an attribute of type PTHREAD_MUTEX_RECURSIVE. */
+  private static Collection<ThreadingState> initMutex(
+      final ThreadingState threadingState,
+      final AStatement statement,
+      final Collection<ThreadingState> results)
+      throws UnrecognizedCodeException {
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    if (getMutexAttributeId(params.get(1))
+        .filter(threadingState::isRecursiveMutexAttribute)
+        .isPresent()) {
+      String lockId = extractLockId(statement);
+      return transform(results, ts -> ts.setRecursiveMutexAndCopy(lockId, true));
+    }
+    if (params.get(0) instanceof CUnaryExpression mutex) {
+      // same lock-id as in extractLockId
+      String lockId = mutex.getOperand().toString();
+      return transform(results, ts -> ts.setRecursiveMutexAndCopy(lockId, false));
+    }
+    return results;
+  }
+
+  private static Optional<String> getMutexAttributeId(AExpression pAttribute) {
+    if (pAttribute instanceof CUnaryExpression unary
+        && unary.getOperator() == UnaryOperator.AMPER
+        && unary.getOperand() instanceof CIdExpression attribute
+        && attribute.getDeclaration() != null) {
+      return Optional.of(attribute.getDeclaration().getQualifiedName());
+    }
+    return Optional.empty();
+  }
+
+  private static boolean isRecursiveMutexType(AExpression pType) {
+    AExpression type = pType;
+    while (type instanceof CCastExpression cast) {
+      type = cast.getOperand();
+    }
+    BigInteger value =
+        switch (type) {
+          case CIdExpression id when id.getDeclaration() instanceof CEnumerator enumerator ->
+              enumerator.getValue();
+          case CIntegerLiteralExpression literal -> literal.getValue();
+          default -> null;
+        };
+    return PTHREAD_MUTEX_RECURSIVE.equals(value);
   }
 
   private Collection<ThreadingState> removeLock(
@@ -725,30 +821,26 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private static boolean isImporantForThreading(CFAEdge cfaEdge) {
-    switch (cfaEdge.getEdgeType()) {
+    return switch (cfaEdge.getEdgeType()) {
       case StatementEdge -> {
         AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
         if (statement instanceof AFunctionCall aFunctionCall) {
           AExpression functionNameExp =
               aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
           if (functionNameExp instanceof AIdExpression aIdExpression) {
-            return THREAD_FUNCTIONS.contains(aIdExpression.getName());
+            yield THREAD_FUNCTIONS.contains(aIdExpression.getName());
           }
         }
-        return false;
+        yield false;
       }
-      case FunctionCallEdge -> {
-        // @Deprecated, for old benchmark tasks
-        return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      }
-      case FunctionReturnEdge -> {
-        // @Deprecated, for old benchmark tasks
-        return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      }
-      default -> {
-        return false;
-      }
-    }
+      case FunctionCallEdge ->
+          // @Deprecated, for old benchmark tasks
+          cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
+      case FunctionReturnEdge ->
+          // @Deprecated, for old benchmark tasks
+          cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
+      default -> false;
+    };
   }
 
   @Override
@@ -771,36 +863,19 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return Optionals.asSet(results.map(ts -> ts.withActiveThread(null).withEntryFunction(null)));
   }
 
-  private @Nullable ThreadingState handleWitnessAutomaton(
-      ThreadingState ts, AutomatonState automatonState) {
-    Map<String, AutomatonVariable> vars = automatonState.getVars();
-    AutomatonVariable witnessThreadId = vars.get(Ascii.toUpperCase(KeyDef.THREADID.toString()));
-    String threadId = ts.getActiveThread();
-    if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
-      // values not available or default value zero -> ignore and return state unchanged
-      return ts;
-    }
-
-    Integer witnessId = ts.getThreadIdForWitness(threadId);
-    if (witnessId == null) {
-      if (ts.hasWitnessIdForThread(witnessThreadId.getValue())) {
-        // state contains a mapping, but not for current thread -> wrong branch?
-        // TODO returning NULL here would be nice, but leads to unaccepted witnesses :-(
-        return ts;
-      } else {
-        // we know nothing, but can store the new mapping in the state
-        return ts.setThreadIdForWitness(threadId, witnessThreadId.getValue());
-      }
-    }
-    if (witnessId.equals(witnessThreadId.getValue())) {
-      // current branch
-      return ts;
-    } else {
-      // threadId does not match -> should be no successor
-      // but keep continuining to avoid cutting off too much in some situations
-      // (cf. 7f01668b139817f88f08791695d9245e7f8ca841)
-      return ts;
-    }
+  /**
+   * Keeps track of the identifiers by which a witness refers to threads. The presence of the
+   * thread-id variable in the automaton is what tells us that the witness refers to threads at all;
+   * without such a witness no identifiers are tracked, so that the state space of a plain
+   * verification run is unaffected. See {@link ThreadingState#updateThreadIdsForWitness(int)} for
+   * how the identifiers are derived.
+   */
+  private ThreadingState handleWitnessAutomaton(ThreadingState ts, AutomatonState automatonState) {
+    AutomatonVariable automatonThreadId =
+        automatonState.getVars().get(AutomatonGraphmlParser.THREAD_ID_VAR_NAME);
+    return automatonThreadId == null
+        ? ts
+        : ts.updateThreadIdsForWitness(automatonThreadId.getValue());
   }
 
   /** if the current edge creates a new function, return its name, else nothing. */

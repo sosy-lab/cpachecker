@@ -27,7 +27,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class ACSLParserTest {
@@ -43,7 +43,7 @@ public class ACSLParserTest {
     programName = pProgramName;
     expectedAnnotations = pExpectedAnnotations;
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
             .build();
     cfaCreator =

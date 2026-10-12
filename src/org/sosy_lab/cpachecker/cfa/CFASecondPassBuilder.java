@@ -65,13 +65,14 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them into one CFA by
  * inserting the necessary function call and return edges.
  */
 @Options
-public class CFASecondPassBuilder {
+final class CFASecondPassBuilder {
 
   @Option(
       secure = true,
@@ -85,11 +86,11 @@ public class CFASecondPassBuilder {
       description = "Which functions should be interpreted as encoding assumptions")
   private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
 
-  protected final MutableCFA cfa;
-  protected final Language language;
-  protected final LogManager logger;
+  private final MutableCFA cfa;
+  private final Language language;
+  private final LogManager logger;
 
-  public CFASecondPassBuilder(
+  CFASecondPassBuilder(
       final MutableCFA pCfa,
       final Language pLanguage,
       final LogManager pLogger,
@@ -105,7 +106,7 @@ public class CFASecondPassBuilder {
    * Inserts call edges and return edges (@see {@link #insertCallEdges(AStatementEdge)} in all
    * functions.
    */
-  public void insertCallEdgesRecursively() throws ParserException {
+  void insertCallEdgesRecursively() throws ParserException {
 
     // 1.Step: get all function calls
     final FunctionCallCollector visitor = new FunctionCallCollector();
@@ -186,6 +187,22 @@ public class CFASecondPassBuilder {
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
+
+    if (cfa.getMainFunction().equals(fDefNode)
+        && !CFAUtils.getGlobalVariableDeclarations(cfa).isEmpty()) {
+      // cf. #1663
+      switch (language) {
+        case JAVA ->
+            throw new JParserException(
+                "Calls to the entry function are currently not supported if global variables exist",
+                edge);
+        case C ->
+            throw new CParserException(
+                "Calls to the entry function are currently not supported if global variables exist",
+                edge);
+        default -> throw new AssertionError("Unhandled language " + language);
+      }
+    }
 
     // get the parameter expression
     // check if the number of function parameters are right
