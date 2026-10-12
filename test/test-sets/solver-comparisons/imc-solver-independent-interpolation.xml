@@ -71,7 +71,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
   </rundefinition>
 
-  <rundefinition name="Z3-projection">
+  <rundefinition name="z3-projection">
     <option name="--option">solver.solver=Z3</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
   </rundefinition>
@@ -84,13 +84,6 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <rundefinition name="princess-uniform_forward">
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=princess</option>
-    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
-  </rundefinition>
-
-  <rundefinition name="bitwuzla-uniform_forward">
-    <!-- Integer as BV is not impacting soundness -->
-    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
-    <option name="--option">solver.solver=bitwuzla</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
   </rundefinition>
 
@@ -113,14 +106,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
   </rundefinition>
 
-  <rundefinition name="bitwuzla-uniform_backward">
-    <!-- Integer as BV is not impacting soundness -->
-    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
-    <option name="--option">solver.solver=bitwuzla</option>
-    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
-  </rundefinition>
-
-  <rundefinition name="Z3-uniform_backward">
+  <rundefinition name="z3-uniform_backward">
     <option name="--option">solver.solver=Z3</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
   </rundefinition>

@@ -70,10 +70,13 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
   </rundefinition>
 
-  <rundefinition name="Predicate_Analysis_ABEl-Z3-projection">
+  <rundefinition name="Predicate_Analysis_ABEl-z3-projection">
     <option name="--option">solver.solver=Z3</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
   </rundefinition>
+
+
+  <!-- Forward Uniform Interpolation -->
 
   <rundefinition name="Predicate_Analysis_ABEl-cvc5-uniform_forward">
     <option name="--option">solver.solver=cvc5</option>
@@ -86,14 +89,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
   </rundefinition>
 
-  <rundefinition name="Predicate_Analysis_ABEl-bitwuzla-uniform_forward">
-    <!-- Integer as BV is not impacting soundness -->
-    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
-    <option name="--option">solver.solver=bitwuzla</option>
-    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
-  </rundefinition>
-
-  <rundefinition name="Predicate_Analysis_ABEl-Z3-uniform_forward">
+  <rundefinition name="Predicate_Analysis_ABEl-z3-uniform_forward">
     <option name="--option">solver.solver=Z3</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
   </rundefinition>
@@ -109,13 +105,6 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <rundefinition name="Predicate_Analysis_ABEl-princess-uniform_backward">
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">solver.solver=princess</option>
-    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
-  </rundefinition>
-
-  <rundefinition name="Predicate_Analysis_ABEl-bitwuzla-uniform_backward">
-    <!-- Integer as BV is not impacting soundness -->
-    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
-    <option name="--option">solver.solver=bitwuzla</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
   </rundefinition>
 
