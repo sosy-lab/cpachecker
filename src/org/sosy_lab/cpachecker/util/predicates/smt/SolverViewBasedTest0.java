@@ -31,8 +31,13 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
   protected IntegerFormulaManagerView imgrv;
 
   @Override
-  protected ConfigurationBuilder createTestConfigBuilder() {
-    ConfigurationBuilder newConfig = super.createTestConfigBuilder();
+  protected ConfigurationBuilder createTestConfigBuilder()  {
+    ConfigurationBuilder newConfig;
+    try {
+       newConfig = super.createTestConfigBuilder();
+    } catch (InvalidConfigurationException ice) {
+      throw new RuntimeException(ice);
+    }
 
     // Automatically choose theories that are supported by the solver.
     // With unsupported theories, test would just fail.
