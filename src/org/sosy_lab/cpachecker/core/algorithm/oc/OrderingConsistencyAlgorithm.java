@@ -16,9 +16,11 @@ import java.io.PrintStream;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -907,9 +909,42 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
                   (MemoryEvent e) -> clock.get(e.id()),
                   Comparator.nullsFirst(Comparator.naturalOrder()))
               .thenComparingInt(MemoryEvent::id));
-      return enabled;
+      return withContiguousAtomicBlocks(enabled);
     }
-    return topologicalOrder(enabled, pEncoder, pModel);
+    return withContiguousAtomicBlocks(topologicalOrder(enabled, pEncoder, pModel));
+  }
+
+  /**
+   * Moves the events of other threads that are ordered inside an atomic block behind the end of
+   * that block. The pseudo-mutex only orders atomic blocks among each other, but a witness of the
+   * order must not interleave anything with them.
+   */
+  private static List<MemoryEvent> withContiguousAtomicBlocks(List<MemoryEvent> pOrdered) {
+    List<MemoryEvent> result = new ArrayList<>();
+    List<MemoryEvent> deferred = new ArrayList<>();
+    Deque<MemoryEvent> pending = new ArrayDeque<>(pOrdered);
+    Integer holder = null;
+    int depth = 0;
+    while (!pending.isEmpty()) {
+      MemoryEvent event = pending.poll();
+      if (holder != null && event.instanceId() != holder) {
+        deferred.add(event);
+        continue;
+      }
+      result.add(event);
+      if (MemoryEvent.ATOMIC_BLOCK_MUTEX.equals(event.mutexId())) {
+        if (event.kind() == EventKind.LOCK) {
+          holder = event.instanceId();
+          depth++;
+        } else if (event.kind() == EventKind.UNLOCK && holder != null && --depth == 0) {
+          holder = null;
+          deferred.reversed().forEach(pending::addFirst);
+          deferred.clear();
+        }
+      }
+    }
+    result.addAll(deferred);
+    return result;
   }
 
   /**
