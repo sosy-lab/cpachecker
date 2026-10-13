@@ -11,11 +11,38 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor.extractFloatFromNumericValueOrThrow;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinCeilFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinCopysignFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFabsFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFdimFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFloorFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFmaxFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFminFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFmodFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFpclassifyFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinInfinityFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsfiniteFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsgreaterFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsgreaterequalFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsinfFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsinfSignFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIslessFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIslessequalFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIslessgreaterFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsnanFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsunorderedFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinLlroundFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinLroundFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinModfFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinNanFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinRemainderFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinRoundFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinSignbitFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinSqrtFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinTruncFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handlePopcount;
 import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling.ASSUME_EXTERNALLY_ALLOCATED_WARN;
-import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryDeallocatingFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryReallocatingFunction;
@@ -24,9 +51,7 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardInputOrOu
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInputFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,7 +61,6 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -70,12 +94,8 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -85,9 +105,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -550,26 +567,18 @@ public class SMGCPABuiltins {
       }
 
       List<CExpression> parameterExpressions = funCallExpr.getParameterExpressions();
-      ImmutableList.Builder<Value> parameterValuesBuilder = ImmutableList.builder();
-
-      // Evaluate all parameters
-      SMGState currentState = state;
-      // TODO: This must be moved inside the function handling cases!
-      for (CExpression currParamExp : parameterExpressions) {
-        // Here we expect only 1 result value
-        SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
-        List<ValueAndSMGState> newValuesAndStates =
-            vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
-        checkArgument(newValuesAndStates.size() == 1);
-        Value newValue = newValuesAndStates.getFirst().getValue();
-        // CPA access has side effects! Always take the newest state!
-        currentState = newValuesAndStates.getFirst().getState();
-
-        parameterValuesBuilder.add(newValue);
-      }
-      List<Value> parameterValues = parameterValuesBuilder.build();
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+        // Evaluate all parameters to detect memsafety problems
+        SMGState currentState = state;
+        for (CExpression currParamExp : parameterExpressions) {
+          SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
+          List<ValueAndSMGState> newValuesAndStates =
+              vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
+          checkArgument(newValuesAndStates.size() == 1);
+          // CPA access has side effects! Always take the newest state!
+          currentState = newValuesAndStates.getFirst().getState();
+        }
         // TODO: currently being worked on in a another MR. So don't touch this.
 
         /*
@@ -588,531 +597,132 @@ public class SMGCPABuiltins {
                 cfaEdge));
 
       } else if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
-        // double fabs(double x);
-        // float fabsf(float x);
-        // long double fabsl(long double x);
-        // Returns the absolute value of x.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.abs()),
-            cfaEdge);
+        return handleBuiltinFabsFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
           || BuiltinFloatFunctions.matchesInfinity(functionName)) {
+
         // TODO: check whether this matching wrongly matches other functions containing "inf"
+
         // TODO: does this cover the entire function families or just those 2 below?
-
-        // double __builtin_inf(void);
-        // Returns positive infinity if supported by double.
-        // Otherwise, returns DBL_MAX and generates a compiler warning.
-
-        // double __builtin_huge_val(void);
-        // Returns positive infinity if supported by double.
-        // Otherwise, returns DBL_MAX.
-
-        checkArgument(parameterValues.isEmpty());
-        Format precision =
-            Format.fromCType(
-                machineModel, BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName));
-        return ImmutableList.of(
-            ValueAndSMGState.of(new NumericValue(FloatValue.infinity(precision)), currentState));
+        return handleBuiltinInfinityFunctionFamily(
+            functionName, parameterExpressions, state, machineModel);
 
       } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
-        // double nan(const char *tagp);
-        // float nanf(const char *tagp);
-        // long double nanl(const char *tagp);
-        // Returns NaN, optionally using the character string tagp
-        // to select the stored NaN representation.
-        // Returns zero if quiet NaNs are unsupported.
-        // Undefined behavior: tagp is NULL or an invalid pointer.
-        // The string-argument requirements were clarified by WG14 DR 477.
-
-        // FIXME: Add support for NaN payloads
-        checkArgument(parameterValues.size() < 2);
-        Format precision =
-            Format.fromCType(
-                machineModel, BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName));
-        return ImmutableList.of(
-            ValueAndSMGState.of(new NumericValue(FloatValue.nan(precision)), currentState));
+        return handleBuiltinNanFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
-        // int isnan(x)
-        // x may be float, double, or long double.
-        // Returns nonzero if x is NaN.
-        // Undefined behavior: x is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIsnanFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
-        // int isinf(x)
-        // x may be float, double, or long double.
-        // Returns nonzero if x is positive or negative infinity.
-        // Undefined behavior: x is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIsinfFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIsInfinitySign(functionName)) {
-        // int __builtin_isinf_sign(x)
-        // x may be float, double, or long double.
-        // Returns -1 for negative infinity, +1 for positive infinity,
-        // or 0 if x is not infinite.
-        // GCC extension; not an ISO C11 function or macro.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) ->
-                new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0),
-            cfaEdge);
+        return handleBuiltinIsinfSignFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
-        // int isfinite(x)
-        // x may be float, double, or long double.
-        // Returns nonzero if x is neither infinity nor NaN.
-        // Undefined behavior: x is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1),
-            cfaEdge);
+        return handleBuiltinIsfiniteFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
-        // double floor(double x);
-        // float floorf(float x);
-        // long double floorl(long double x);
-        // Returns the largest integer-valued floating-point number <= x.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)),
-            cfaEdge);
+        return handleBuiltinFloorFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
-        // double ceil(double x);
-        // float ceilf(float x);
-        // long double ceill(long double x);
-        // Returns the smallest integer-valued floating-point number >= x.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)),
-            cfaEdge);
+        return handleBuiltinCeilFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
-        // double round(double x);
-        // float roundf(float x);
-        // long double roundl(long double x);
-        // Rounds x to the nearest integer-valued floating-point number.
-        // Exact halfway cases round away from zero.
-        // Ignores the current rounding mode.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)),
-            cfaEdge);
+        return handleBuiltinRoundFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesLround(functionName)) {
-        // long int lround(double x);
-        // long int lroundf(float x);
-        // long int lroundl(long double x);
-        // Rounds x to the nearest integer, with halfway cases away from zero.
-        // Returns long int.
-        // Unspecified numeric result if outside long int range.
-        // Domain or range error may occur for an unrepresentable result.
-        // Annex F: an unrepresentable result raises FE_INVALID.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> {
-              FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-              return switch (machineModel.getSizeofLongInt()) {
-                case Integer.BYTES -> new NumericValue(value.integerValue());
-                case Long.BYTES -> new NumericValue(value.longValue());
-                default -> {
-                  state.logUnknownValue(
-                      "Returned unknown value due to undefined conversion of float value "
-                          + value
-                          + " in builtin function "
-                          + functionName
-                          + " ",
-                      cfaEdge);
-                  yield UnknownValue.getInstance();
-                }
-              };
-            },
-            cfaEdge);
+        return handleBuiltinLroundFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesLlround(functionName)) {
-        // long long int llround(double x);
-        // long long int llroundf(float x);
-        // long long int llroundl(long double x);
-        // Rounds x to the nearest integer, with halfway cases away from zero.
-        // Returns long long int.
-        // Unspecified numeric result if outside long long int range.
-        // Domain or range error may occur for an unrepresentable result.
-        // Annex F: an unrepresentable result raises FE_INVALID.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> {
-              FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-              return switch (machineModel.getSizeofLongLongInt()) {
-                case Integer.BYTES -> new NumericValue(value.integerValue());
-                case Long.BYTES -> new NumericValue(value.longValue());
-                default -> {
-                  state.logUnknownValue(
-                      "Returned unknown value due to undefined conversion of float value "
-                          + value
-                          + " in builtin function "
-                          + functionName
-                          + " ",
-                      cfaEdge);
-                  yield UnknownValue.getInstance();
-                }
-              };
-            },
-            cfaEdge);
+        return handleBuiltinLlroundFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
-        // double trunc(double x);
-        // float truncf(float x);
-        // long double truncl(long double x);
-        // Removes the fractional part of x, rounding toward zero.
-        // Returns the result as a floating-point value.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)),
-            cfaEdge);
+        return handleBuiltinTruncFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
-        // double fdim(double x, double y);
-        // float fdimf(float x, float y);
-        // long double fdiml(long double x, long double y);
-        // Returns x-y when x > y, otherwise positive zero.
-        // Range error may occur if the positive difference is too large.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) ->
-                new NumericValue(
-                    arg1.lessOrEqual(arg2)
-                        ? FloatValue.zero(arg1.getFormat())
-                        : arg1.subtract(arg2)),
-            cfaEdge);
+        return handleBuiltinFdimFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
-        // double fmax(double x, double y);
-        // float fmaxf(float x, float y);
-        // long double fmaxl(long double x, long double y);
-        // Returns the greater of x and y.
-        // If only one argument is NaN, returns the other argument.
-        // Annex F: returns NaN if both arguments are NaN.
-
-        // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
-        // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
-        // return the first argument.
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) ->
-                new NumericValue(
-                    switch (arg1.compareWithTotalOrder(arg2)) {
-                      case -1 -> arg2.isNan() ? arg1 : arg2;
-                      case +1 -> arg1.isNan() ? arg2 : arg1;
-                      default -> arg1;
-                    }),
-            cfaEdge);
+        return handleBuiltinFmaxFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
-        // double fmin(double x, double y);
-        // float fminf(float x, float y);
-        // long double fminl(long double x, long double y);
-        // Returns the smaller of x and y.
-        // If only one argument is NaN, returns the other argument.
-        // Annex F: returns NaN if both arguments are NaN.
-
-        // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
-        // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
-        // argument for `float` or `double` and the second for `long double`
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) ->
-                new NumericValue(
-                    switch (arg1.compareWithTotalOrder(arg2)) {
-                      case -1 -> arg1.isNan() ? arg2 : arg1;
-                      case +1 -> arg2.isNan() ? arg1 : arg2;
-                      default -> arg1;
-                    }),
-            cfaEdge);
+        return handleBuiltinFminFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
-        // int signbit(x)
-        // x may be float, double, or long double.
-        // Returns nonzero if x has a negative sign, including negative zero.
-        // Undefined behavior: x is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinSignbitFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
-        // double copysign(double x, double y);
-        // float copysignf(float x, float y);
-        // long double copysignl(long double x, long double y);
-        // Returns the magnitude of x with the sign of y.
-        // Supports infinities, NaNs, and signed zeros where available.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)),
-            cfaEdge);
+        return handleBuiltinCopysignFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
-        // int fpclassify(x)
-        // x may be float, double, or long double.
-        // Returns FP_NAN, FP_INFINITE, FP_ZERO, FP_SUBNORMAL, FP_NORMAL,
-        // or an implementation-defined classification.
-        // Undefined behavior: x is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> {
-              int fpClass;
-              if (arg.isNan()) {
-                fpClass = 0;
-              } else if (arg.isInfinite()) {
-                fpClass = 1;
-              } else if (arg.isZero()) {
-                fpClass = 2;
-              } else if (arg.abs().lessThan(FloatValue.minNormal(arg.getFormat()))) {
-                // Subnormal numbers
-                fpClass = 3;
-              } else {
-                fpClass = 4;
-              }
-              return new NumericValue(fpClass);
-            },
-            cfaEdge);
+        return handleBuiltinFpclassifyFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
-        // double modf(double value, double *iptr);
-        // float modff(float value, float *iptr);
-        // long double modfl(long double value, long double *iptr);
-        // Splits value into signed integral and fractional parts.
-        // Stores the integral part in *iptr and returns the fractional part.
-        // UB: iptr is NULL, invalid, or does not identify writable
-        // storage of the corresponding floating-point type.
-
-        // FIXME: Assign the integer part to the pointer from the second parameter
-        if (parameterValues.size() == 2) {
-          Value value = parameterValues.getFirst();
-          if (value.isExplicitlyKnown()) {
-            FloatValue arg =
-                extractFloatFromNumericValueOrThrow(
-                    machineModel,
-                    BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName),
-                    (NumericValue) value);
-
-            if (arg.isInfinite()) {
-              // Return zero if the number is infinite
-              return ImmutableList.of(
-                  ValueAndSMGState.of(
-                      new NumericValue(
-                          arg.isNegative()
-                              ? FloatValue.negativeZero(arg.getFormat())
-                              : FloatValue.zero(arg.getFormat())),
-                      currentState));
-            } else {
-              // Otherwise, get the fractional part
-              return ImmutableList.of(
-                  ValueAndSMGState.of(
-                      new NumericValue(arg.modulo(FloatValue.one(arg.getFormat()))), currentState));
-            }
-          }
-        }
+        return handleBuiltinModfFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
-        // double remainder(double x, double y);
-        // float remainderf(float x, float y);
-        // long double remainderl(long double x, long double y);
-        // Returns x - n*y, where n is the integer nearest to x/y.
-        // Exact halfway quotient cases select the even integer.
-        // Implementation-defined: when y == 0, either a domain error
-        // occurs or zero is returned.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)),
-            cfaEdge);
+        return handleBuiltinRemainderFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesFmod(functionName)) {
-        // double fmod(double x, double y);
-        // float fmodf(float x, float y);
-        // long double fmodl(long double x, long double y);
-        // Returns the remainder of x divided by y, using a quotient
-        // rounded toward zero.
-        // Implementation-defined: when y == 0, either a domain error
-        // occurs or zero is returned.
-        // Annex F: when x is infinite or y is zero, returns NaN and
-        // raises FE_INVALID, unless either argument is NaN.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)),
-            cfaEdge);
+        return handleBuiltinFmodFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
-        // double sqrt(double x);
-        // float sqrtf(float x);
-        // long double sqrtl(long double x);
-        // Returns the nonnegative square root of x.
-        // Domain error: x < 0; negative zero is permitted.
-
-        return handleBuiltinFunctionsWithOneArgument(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg) -> new NumericValue(arg.sqrt()),
-            cfaEdge);
+        return handleBuiltinSqrtFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
-        // int isgreater(x, y)
-        // x and y may be float, double, or long double independently. Usual arithmetic conversions
-        // apply.
-        // Returns nonzero if x > y, otherwise zero.
-        // Undefined behavior: either argument is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.greaterThan(arg2) ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIsgreaterFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
-        // int isgreaterequal(x, y)
-        // x and y may be float, double, or long double independently. Usual arithmetic conversions
-        // apply.
-        // Returns nonzero if x >= y, otherwise zero.
-        // Undefined behavior: either argument is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) ->
-                new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIsgreaterequalFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
-        // int isless(x, y)
-        // x and y may be float, double, or long double independently. Usual arithmetic conversions
-        // apply.
-        // Returns nonzero if x < y, otherwise zero.
-        // Undefined behavior: either argument is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIslessFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
-        // int islessequal(x, y)
-        // x and y may be float, double, or long double independently. Usual arithmetic conversions
-        // apply.
-        // Returns nonzero if x <= y, otherwise zero.
-        // Undefined behavior: either argument is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIslessequalFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
-        // int islessgreater(x, y)
-        // x and y may be float, double, or long double independently. Usual arithmetic conversions
-        // apply.
-        // Returns nonzero if x < y or x > y, otherwise zero.
-        // Returns zero if the arguments are equal or either is NaN.
-        // Undefined behavior: either argument is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) ->
-                new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIslessgreaterFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
 
       } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
-        // int isunordered(x, y)
-        // x and y may be float, double, or long double independently. Usual arithmetic conversions
-        // apply.
-        // Returns nonzero if x or y is NaN, otherwise zero.
-        // Undefined behavior: either argument is not a real floating-point expression.
-
-        return handleBuiltinFunctionsWithTwoArguments(
-            functionName,
-            parameterValues,
-            currentState,
-            (FloatValue arg1, FloatValue arg2) ->
-                new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0),
-            cfaEdge);
+        return handleBuiltinIsunorderedFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
       }
     }
 
     return switch (functionName) {
       case "__builtin_popcount", "__builtin_popcountl", "__builtin_popcountll" ->
-          handlePopcount(functionName, state, funCallExpr, cfaEdge);
+          handlePopcount(
+              functionName, state, funCallExpr, cfaEdge, evaluator, machineModel, logger, options);
 
       case "alloca", "__builtin_alloca" -> evaluateAlloca(funCallExpr, state, cfaEdge);
 
@@ -4014,170 +3624,9 @@ public class SMGCPABuiltins {
 
   // TODO: strlen
 
-  /**
-   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
-   * sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int number
-   * given. Test C programs available at test/programs/simple/builtin_popcount*.c
-   */
-  private List<ValueAndSMGState> handlePopcount(
-      String pFunctionName, SMGState pState, CFunctionCallExpression functionCall, CFAEdge edge)
-      throws CPATransferException {
-
-    if (functionCall.getParameterExpressions().size() != 1) {
-      throw new UnrecognizedCodeException(
-          "Function "
-              + pFunctionName
-              + " received "
-              + functionCall.getParameterExpressions().size()
-              + " parameters"
-              + " instead of the expected "
-              + 1,
-          functionCall);
-    }
-
-    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
-    CSimpleType paramType = getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
-    assert functionCall.getExpressionType() instanceof CSimpleType simpleType
-        && simpleType.getCanonicalType().getType().isIntegerType()
-        && simpleType.getCanonicalType().hasSignedSpecifier();
-    assert paramType.hasUnsignedSpecifier();
-
-    // Cast to unsigned target type
-    for (ValueAndSMGState evaluatedParamAndState :
-        getFunctionParameterValue(0, functionCall, paramType, pState, edge)) {
-      Value castParamValue = evaluatedParamAndState.getValue();
-      SMGState currentState = evaluatedParamAndState.getState();
-
-      if (castParamValue instanceof NumericValue numCastParamValue) {
-        BigInteger numericParam = numCastParamValue.bigIntegerValue();
-
-        // Check that the cast function parameter is really unsigned, as defined by the function and
-        // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
-        // results
-        verify(
-            numericParam.signum() >= 0,
-            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
-                + " parameters only",
-            pFunctionName);
-
-        result.add(ValueAndSMGState.of(new NumericValue(numericParam.bitCount()), currentState));
-
-      } else if (options.trackPredicates() && !castParamValue.isUnknown()) {
-
-        checkArgument(castParamValue instanceof SymbolicExpression);
-
-        SymbolicExpression symbolicParam = (SymbolicExpression) castParamValue;
-        int parameterBitSize = machineModel.getSizeofInBits(paramType);
-
-        SymbolicExpression one =
-            ConstantSymbolicExpression.of(new NumericValue(1), CNumericTypes.INT);
-        SymbolicExpression constraint =
-            BinaryAndExpression.of(symbolicParam, one, CNumericTypes.INT, paramType);
-
-        // Add up the bits one by one
-        // (castParamValue >> 0) & 1 + (castParamValue >> 1) & 1 + ...
-        for (int i = 1; i < parameterBitSize; i++) {
-          SymbolicExpression countOfBitAtIndex =
-              BinaryAndExpression.of(
-                  ShiftRightExpression.ofUnsigned(
-                      symbolicParam,
-                      ConstantSymbolicExpression.of(new NumericValue(i), CNumericTypes.INT),
-                      paramType,
-                      paramType),
-                  one,
-                  CNumericTypes.INT,
-                  paramType);
-          constraint =
-              AdditionExpression.of(
-                  constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
-        }
-
-        result.add(ValueAndSMGState.of(constraint, currentState));
-      } else {
-
-        // TODO: we could associate a symbolic output with the input used to assure ==
-        currentState.logUnknownValue(
-            "Assumed unknown return value for function call to builtin popcountX() function in ",
-            edge);
-        result.add(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
-      }
-    }
-
-    return result.build();
-  }
-
   private boolean isUnspecifiedType(CType pType) {
     return pType instanceof CSimpleType cSimpleType
         && cSimpleType.getType() == CBasicType.UNSPECIFIED;
-  }
-
-  // TODO: this needs to be reworked urgently!
-  /**
-   * Helper method to handle builtin C functions with 1 argument. Returns UNKNOWN for function calls
-   * with a parameter that are of integer type. If the parameter are of floating-point type, and
-   * concrete values are present, they are evaluated based on the application of the given
-   * BiFunction.
-   */
-  private List<ValueAndSMGState> handleBuiltinFunctionsWithOneArgument(
-      String pName,
-      List<Value> pArguments,
-      SMGState pState,
-      Function<FloatValue, Value> pOperation,
-      CFAEdge cfaEdge) {
-    final Value parameter = Iterables.getOnlyElement(pArguments);
-
-    if (parameter instanceof NumericValue numParameter) {
-      // Cast the argument to match the function type
-      FloatValue value =
-          extractFloatFromNumericValueOrThrow(
-              machineModel,
-              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
-              numParameter);
-
-      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
-    } else {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              pState,
-              "Returned unknown value due to unhandled builtin function " + pName + " in ",
-              cfaEdge));
-    }
-  }
-
-  // TODO: this needs to be reworked urgently!
-  /**
-   * Helper method to handle builtin C functions with 2 arguments. Returns UNKNOWN for function
-   * calls with parameters that include at least one integer type. If all parameters are of
-   * floating-point type, and concrete values are present, they are evaluated based on the
-   * application of the given BiFunction.
-   */
-  private List<ValueAndSMGState> handleBuiltinFunctionsWithTwoArguments(
-      String pfunctionName,
-      List<Value> pArguments,
-      SMGState pState,
-      BiFunction<FloatValue, FloatValue, Value> pOperation,
-      CFAEdge cfaEdge) {
-    checkArgument(pArguments.size() == 2);
-    Value parameter1 = pArguments.getFirst();
-    Value parameter2 = pArguments.get(1);
-
-    if (parameter1 instanceof NumericValue pNumericValue1
-        && parameter2 instanceof NumericValue pNumericValue2) {
-      // Cast both arguments to match the function type
-      CSimpleType targetType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pfunctionName);
-      FloatValue value1 =
-          extractFloatFromNumericValueOrThrow(machineModel, targetType, pNumericValue1);
-      FloatValue value2 =
-          extractFloatFromNumericValueOrThrow(machineModel, targetType, pNumericValue2);
-
-      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value1, value2), pState));
-    } else {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              pState,
-              "Returned unknown value due to unhandled builtin function " + pfunctionName + " in ",
-              cfaEdge));
-    }
   }
 
   private static boolean isNumericZero(Value value) {
