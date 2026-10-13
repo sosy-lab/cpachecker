@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ProgramTransformation;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
@@ -81,10 +80,6 @@ public class TaskRecord {
 
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
       throws IOException {
-    ProgramTransformation transformation = pCFA.getMetadata().getTransformation();
-    if (transformation != null) {
-      pCFA = transformation.originalCfa();
-    }
 
     List<Path> inputFiles = pCFA.getFileNames();
     ImmutableMap.Builder<String, String> inputFileHashes = ImmutableMap.builder();

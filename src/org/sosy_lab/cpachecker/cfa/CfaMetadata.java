@@ -135,7 +135,8 @@ public final class CfaMetadata {
             machineModel,
             cfaLanguage,
             inputLanguage,
-            fileNames,
+            // use original files, because transforming does not change what the input files are
+            pTransformation.originalCfa().getFileNames(),
             mainFunctionEntry,
             connectedness,
             astCFARelation,

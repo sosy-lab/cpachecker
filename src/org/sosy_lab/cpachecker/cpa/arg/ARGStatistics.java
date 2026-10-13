@@ -48,11 +48,11 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -78,9 +78,10 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedARGToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractARGToCorrectnessWitness;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -245,8 +246,7 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
-  private final ARGToCorrectnessWitnessV2 argToWitnessWriter;
-  private final SequentializedARGToWitness sequentializedArgToWitnessWriter;
+  private final AbstractARGToCorrectnessWitness argToWitnessWriter;
   private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
@@ -285,23 +285,19 @@ public class ARGStatistics implements Statistics {
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      // a sequentialization is analyzed instead of the input program, so an invariant of the ARG
-      // has no counterpart in the input program that the witness has to refer to
-      if (pCFA.getMetadata().getTransformation() instanceof MporSequentialization sequentialization
-          && sequentialization.mapping().isPresent()) {
-        argToWitnessWriter = null;
-        sequentializedArgToWitnessWriter =
-            new SequentializedARGToWitness(
-                config, sequentialization.originalCfa(), pSpecification, pLogger);
+      RelevantArgStatesCollector argStatesCollector = new RootExplorationArgStateCollector();
+      ProgramTransformation transformation = pCFA.getMetadata().getTransformation();
+      if (transformation != null && transformation.isSuccessful()) {
+        argToWitnessWriter =
+            transformation.createARGToCorrectnessWitness(
+                config, pCFA, pSpecification, pLogger, argStatesCollector);
       } else {
         argToWitnessWriter =
             new ARGToCorrectnessWitnessV2(
-                config, pCFA, pSpecification, pLogger, new RootExplorationArgStateCollector());
-        sequentializedArgToWitnessWriter = null;
+                config, pCFA, pSpecification, pLogger, argStatesCollector);
       }
     } else {
       argToWitnessWriter = null;
-      sequentializedArgToWitnessWriter = null;
     }
 
     Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
@@ -477,19 +473,10 @@ public class ARGStatistics implements Statistics {
     if (pResult == Result.TRUE
         || (exportYamlWitnessesForUnknownVerdict && pResult == Result.UNKNOWN)) {
       try {
-        if (exportYamlCorrectnessWitness
-            && (argToWitnessWriter != null || sequentializedArgToWitnessWriter != null)) {
+        if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
           if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
-              if (sequentializedArgToWitnessWriter != null) {
-                logger.log(
-                    Level.WARNING,
-                    "Cannot export correctness witness in YAML format for sequentialized "
-                        + "C programs yet. Exporting trivial witness for it.");
-                sequentializedArgToWitnessWriter.export(yamlWitnessOutputFileTemplate);
-              } else {
-                argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
-              }
+              argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
             } catch (IOException | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,
