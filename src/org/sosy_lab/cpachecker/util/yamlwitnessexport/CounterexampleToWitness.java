@@ -1022,16 +1022,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * into the edges they stand for. For such edges the states enclosing the whole hole are used.
    */
   protected static ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
-    // an analysis that does not track threads has no thread name for any step
-    boolean tracksThreads = extractStateByType(pPath.getFirstState(), ThreadingState.class) != null;
     ImmutableList.Builder<WitnessPathStep> steps = ImmutableList.builder();
 
     for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
       CFAEdge edge = it.getOutgoingEdge();
-      if (!tracksThreads) {
-        steps.add(new WitnessPathStep(edge, Optional.empty(), Optional.empty()));
-        continue;
-      }
       ARGState previousState =
           it.isPositionWithState() ? it.getAbstractState() : it.getPreviousAbstractState();
       ARGState nextState = it.getNextAbstractState();
