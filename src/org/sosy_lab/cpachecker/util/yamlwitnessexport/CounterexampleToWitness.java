@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -468,7 +467,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       // as function enter waypoints in order to match the thread being created
     } else if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)
         && pEdge instanceof CStatementEdge pStatementEdge
-        && pStatementEdge.getStatement() instanceof CFunctionCallStatement pFunctionCallStatement
+        // the call may also assign its result, e.g., `err = pthread_create(...)`
+        && pStatementEdge.getStatement() instanceof CFunctionCall pFunctionCallStatement
         && isCallTo(pFunctionCallStatement.getFunctionCallExpression(), "pthread_create")) {
 
       FileLocation functionCallLocation = pFunctionCallStatement.getFileLocation();
@@ -536,9 +536,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /** Returns the call that creates a thread, e.g. to {@code pthread_create}, of {@code pEdge}. */
-  private static Optional<CFunctionCallStatement> threadCreationCall(CFAEdge pEdge) {
+  private static Optional<CFunctionCall> threadCreationCall(CFAEdge pEdge) {
     if (pEdge instanceof CStatementEdge statementEdge
-        && statementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement
+        && statementEdge.getStatement() instanceof CFunctionCall functionCallStatement
         && isCallTo(
             functionCallStatement.getFunctionCallExpression(),
             ThreadingTransferRelation.THREAD_START)) {
