@@ -37,9 +37,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 final class InductionTransferRelation extends SingleEdgeTransferRelation {
 
   private final LoopStructure loopStructure;
-  private final boolean continueBaseCase;
   private final boolean exploresNothing;
-  private final boolean bmcBlockPerIteration;
 
   final StatCounter abstractions = new StatCounter("Abstractions at loop heads");
   final StatCounter inductionStarts = new StatCounter("Induction starts");
@@ -48,15 +46,9 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
   final StatCounter cutOffs = new StatCounter("Cut-offs");
   final StatCounter suppressedTargets = new StatCounter("Targets not reported in induction step");
 
-  InductionTransferRelation(
-      LoopStructure pLoopStructure,
-      boolean pContinueBaseCase,
-      boolean pExploresNothing,
-      boolean pBmcBlockPerIteration) {
+  InductionTransferRelation(LoopStructure pLoopStructure, boolean pExploresNothing) {
     loopStructure = pLoopStructure;
-    continueBaseCase = pContinueBaseCase;
     exploresNothing = pExploresNothing;
-    bmcBlockPerIteration = pBmcBlockPerIteration;
   }
 
   @Override
@@ -75,7 +67,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
             ? ImmutableSet.of()
             : loopStructure.getLoopsForLoopHead(successor);
     if (loops.isEmpty()) {
-      return ImmutableList.of(state.concrete(state.getArrivals(), false, false, reportsTargets));
+      return ImmutableList.of(state.concrete(state.getArrivals(), false, reportsTargets));
     }
 
     boolean beforeFirstAbstraction = state.successorsInFirstBlock();
@@ -89,11 +81,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     if (boundedLoop == null) {
-      // in BMC, where no loop of the head abstracts, as native IMC and ISMC end a block here
-      boolean endsBlock =
-          bmcBlockPerIteration
-              && loops.stream().allMatch(l -> precision.get(l).describedAbstractions() == 0);
-      InductionState concrete = state.concrete(arrivals, true, endsBlock, reportsTargets);
+      InductionState concrete = state.concrete(arrivals, true, reportsTargets);
       @Nullable InductionState start =
           earlyInductionStep(state, precision, loops, successor, reportsTargets);
       return start == null ? ImmutableList.of(concrete) : ImmutableList.of(concrete, start);
@@ -117,9 +105,8 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
     inductionStarts.inc();
     InductionState inductionStart =
         state.abstraction(successor, loops, loopPrecision, precision, true, reportsTargets);
-    return continueBaseCase
-        ? ImmutableList.of(state.continuation(arrivals, reportsTargets, precision), inductionStart)
-        : ImmutableList.of(inductionStart);
+    return ImmutableList.of(
+        state.continuation(arrivals, reportsTargets, precision), inductionStart);
   }
 
   /**

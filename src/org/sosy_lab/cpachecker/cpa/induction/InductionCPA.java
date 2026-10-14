@@ -77,13 +77,6 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
   @Option(
       secure = true,
       description =
-          "let the base case continue one iteration after an induction start, as in the paper of"
-              + " the PredK framework. Native k-induction does not continue the base case.")
-  private boolean continueBaseCase = true;
-
-  @Option(
-      secure = true,
-      description =
           "explore nothing if no target location of the specification is reachable, as native"
               + " BMC, k-induction, IMC and ISMC do")
   private boolean skipWithoutTargetLocations = false;
@@ -111,23 +104,6 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
               + " memory model")
   private boolean resetMemoryInInductionStep = false;
 
-  @Option(
-      secure = true,
-      description =
-          "split the formulas of BMC, where the precision describes no abstraction, into one block"
-              + " of the predicate analysis per loop iteration, as native IMC and ISMC do with an"
-              + " abstraction to true at every loop head")
-  private boolean bmcBlockPerIteration = false;
-
-  @Option(
-      secure = true,
-      description =
-          "with analysis.traversal.useReverseLoopIterationCount, explore level by level over all"
-              + " arrivals at loop heads since the start of the program, as native IMC and ISMC do"
-              + " with LoopBoundCPA, so that all paths into an arrival merge before the exploration"
-              + " goes on")
-  private boolean levelByLevel = false;
-
   private final LoopStructure loopStructure;
   private final Resets resets;
   private final InductionTransferRelation transferRelation;
@@ -151,9 +127,7 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
             && new TargetLocationProviderImpl(pShutdownNotifier, pLogger, pCfa)
                 .tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpecification)
                 .isEmpty();
-    transferRelation =
-        new InductionTransferRelation(
-            loopStructure, continueBaseCase, exploresNothing, bmcBlockPerIteration);
+    transferRelation = new InductionTransferRelation(loopStructure, exploresNothing);
     resets =
         new Resets(
             toClassNames(abstractedCPAs),
@@ -201,7 +175,7 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return InductionState.initial(resets, levelByLevel);
+    return InductionState.initial(resets);
   }
 
   @Override

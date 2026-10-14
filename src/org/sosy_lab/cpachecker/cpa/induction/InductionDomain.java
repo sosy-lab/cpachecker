@@ -36,9 +36,7 @@ final class InductionDomain implements AbstractDomain {
     InductionState state1 = (InductionState) pState1;
     InductionState state2 = (InductionState) pState2;
     if (!state1.isAbstraction() || !state2.isAbstraction()) {
-      // The ends of the blocks without abstraction merge within a block, as in native IMC and ISMC.
-      return state1.equals(state2)
-          && (!state1.endsBlockWithoutAbstraction() || state1.wasMergedInto(state2));
+      return state1.equals(state2);
     }
     if (state1.isInInductionStep() != state2.isInInductionStep()) {
       return false;

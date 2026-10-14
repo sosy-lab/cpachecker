@@ -64,9 +64,8 @@ public class InductionTransferRelationTest {
             .filter(e -> loop.getLoopNodes().contains(e.getSuccessor()))
             .first()
             .get();
-    transferRelation = new InductionTransferRelation(loopStructure, true, false, false);
-    initial =
-        InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of(), false), false);
+    transferRelation = new InductionTransferRelation(loopStructure, false);
+    initial = InductionState.initial(new Resets(ImmutableSet.of(), ImmutableSet.of(), false));
   }
 
   private InductionPrecision precision(int pK, boolean pInduction, int pDescribedAbstractions) {
@@ -142,7 +141,7 @@ public class InductionTransferRelationTest {
     CFAEdge outerBack = backEdge(outer);
     CFAEdge innerEntry = getOnlyElement(inner.getIncomingEdges());
     CFAEdge innerBack = backEdge(inner);
-    InductionTransferRelation transfer = new InductionTransferRelation(loops, true, false, false);
+    InductionTransferRelation transfer = new InductionTransferRelation(loops, false);
     InductionPrecision precision =
         InductionPrecision.uniform(
             loops.getAllLoops(),
@@ -199,7 +198,7 @@ public class InductionTransferRelationTest {
             .firstMatch(l -> from(loops.getAllLoops()).anyMatch(o -> o != l && l.isOuterLoopOf(o)))
             .get();
     Loop inner = from(loops.getAllLoops()).firstMatch(l -> l != outer).get();
-    InductionTransferRelation transfer = new InductionTransferRelation(loops, true, false, false);
+    InductionTransferRelation transfer = new InductionTransferRelation(loops, false);
     InductionPrecision precision =
         InductionPrecision.uniform(
             loops.getAllLoops(),
@@ -244,20 +243,6 @@ public class InductionTransferRelationTest {
 
     // the base case continues one iteration, up to the next arrival
     assertThat(successors(successor(continuation, precision, body), precision, back)).isEmpty();
-  }
-
-  @Test
-  public void splitsWithoutContinuationAsNativeKInduction() {
-    InductionPrecision precision = precision(1, true, LoopPrecision.ALL_ABSTRACTIONS);
-    InductionState beforeSecondArrival =
-        successor(successor(initial, precision, entry), precision, body);
-    InductionState inductionStart =
-        successor(
-            beforeSecondArrival,
-            precision,
-            back,
-            new InductionTransferRelation(loopStructure, false, false, false));
-    assertThat(inductionStart.isInductionStart()).isTrue();
   }
 
   @Test
@@ -341,7 +326,7 @@ public class InductionTransferRelationTest {
     }
 
     Collection<InductionState> successors(InductionState pState, InductionPrecision pPrecision) {
-      return new InductionTransferRelation(loopStructure, false, false, false)
+      return new InductionTransferRelation(loopStructure, false)
           .getAbstractSuccessorsForEdge(pState, pPrecision, edge);
     }
 
