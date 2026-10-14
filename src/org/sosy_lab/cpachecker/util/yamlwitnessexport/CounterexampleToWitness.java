@@ -1020,20 +1020,30 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * analysis may handle a whole basic block in one step (cf. option
    * cpa.composite.aggregateBasicBlocks). {@link ARGPath#fullPathIterator()} resolves such holes
    * into the edges they stand for. For such edges the states enclosing the whole hole are used.
+   *
+   * <p>The executing thread is recognized by its location in the state after the edge, so only the
+   * last edge of a hole matches it directly (e.g., with cpa.concurrent.aggregateBasicBlocks). A
+   * hole is a block of one thread, so the other edges of the hole get the thread of its last edge.
    */
   protected static ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
+    ImmutableList<EdgeWithStates> edges = getEdgesWithStates(pPath);
     ImmutableList.Builder<WitnessPathStep> steps = ImmutableList.builder();
 
-    for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
-      CFAEdge edge = it.getOutgoingEdge();
-      ARGState previousState =
-          it.isPositionWithState() ? it.getAbstractState() : it.getPreviousAbstractState();
-      ARGState nextState = it.getNextAbstractState();
+    for (int i = 0; i < edges.size(); i++) {
+      EdgeWithStates step = edges.get(i);
+      Optional<String> currentThread = getCurrentThreadNameIfExists(step.state(), step.edge());
+      if (currentThread.isEmpty()) {
+        int lastOfHole = i;
+        while (lastOfHole + 1 < edges.size() && edges.get(lastOfHole + 1).state() == step.state()) {
+          lastOfHole++;
+        }
+        currentThread = getCurrentThreadNameIfExists(step.state(), edges.get(lastOfHole).edge());
+      }
       steps.add(
           new WitnessPathStep(
-              edge,
-              getCurrentThreadNameIfExists(nextState, edge),
-              getNewThreadNameIfExists(nextState, previousState)));
+              step.edge(),
+              currentThread,
+              getNewThreadNameIfExists(step.state(), step.previousState())));
     }
 
     return steps.build();
