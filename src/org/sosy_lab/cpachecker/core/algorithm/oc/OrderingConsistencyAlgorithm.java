@@ -716,27 +716,37 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         return;
       }
       CFAEdge previousEdge = null;
+      Map<Integer, Integer> chainToEdgeIndex = new HashMap<>();
       for (MemoryEvent event : orderedViolationEvents(model, pEncoder)) {
         if (event.edge() != null) {
           CFAEdge edge = displayEdge(event, model);
-          // collapse consecutive events that map to the same edge: one statement can produce
-          // several
-          // events (e.g. a[k]=5 is a read of k and a write of a[k]) and a shared branch-condition
-          // read
-          // can be tagged on several reads of the same assume edge
-          if (!edge.equals(previousEdge)) {
+          // collapse events of one execution of an edge, which other threads' events may separate:
+          // one statement can produce several events (e.g. a[k]=5 is a read of k and a write of
+          // a[k]), and a shared branch-condition read can be tagged on several reads of the same
+          // assume edge
+          int chain = ocCpa.getRegistry().chainTerminalEventId(event.id());
+          Integer index = chainToEdgeIndex.get(chain);
+          if (index == null
+              && edge.equals(previousEdge)
+              && event.instanceId() == edgeInstances.getLast()
+              && !EnumSet.of(EventKind.READ, EventKind.WRITE, EventKind.CREATE)
+                  .contains(event.kind())) {
+            index = edges.size() - 1;
+          }
+          if (index == null || event.id() == terminalEvent.id()) {
             edges.add(edge);
             edgeInstances.add(event.instanceId());
             edgeCreatedInstances.add(createdInstanceOf(event));
             edgeAssumptions.add(new ArrayList<>());
             previousEdge = edge;
-          } else if (edgeCreatedInstances.getLast() == MemoryEvent.NO_INSTANCE) {
+            index = edges.size() - 1;
+          } else if (edgeCreatedInstances.get(index) == MemoryEvent.NO_INSTANCE) {
             // one statement can produce several events; whichever of them is the create is the
             // one that names the new thread
-            edgeCreatedInstances.set(edgeCreatedInstances.size() - 1, createdInstanceOf(event));
+            edgeCreatedInstances.set(index, createdInstanceOf(event));
           }
-          assumptionFor(event, edge, model)
-              .ifPresent(assumption -> edgeAssumptions.getLast().add(assumption));
+          chainToEdgeIndex.put(chain, index);
+          assumptionFor(event, edge, model).ifPresent(edgeAssumptions.get(index)::add);
         }
         if (event.id() == terminalEvent.id()) {
           break; // the execution stops at the violating event
