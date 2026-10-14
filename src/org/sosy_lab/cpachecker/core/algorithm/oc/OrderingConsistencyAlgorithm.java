@@ -717,7 +717,24 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       }
       CFAEdge previousEdge = null;
       Map<Integer, Integer> chainToEdgeIndex = new HashMap<>();
+      // after the earlier of two racing accesses only the thread of the later one runs, so that the
+      // earlier access is the last step of its thread on the path
+      MemoryEvent earlierAccess = null;
+      if (targetProperty == TargetProperty.DATA_RACE) {
+        OcEncoder.RacePair race = findRace(model, pEncoder);
+        earlierAccess = race.access1().id() == terminalEvent.id() ? race.access2() : race.access1();
+      }
+      boolean earlierAccessPassed = false;
       for (MemoryEvent event : orderedViolationEvents(model, pEncoder)) {
+        if (earlierAccessPassed
+            && event.instanceId() != terminalEvent.instanceId()
+            && ocCpa.getRegistry().chainTerminalEventId(event.id())
+                != ocCpa.getRegistry().chainTerminalEventId(earlierAccess.id())) {
+          continue;
+        }
+        if (earlierAccess != null && event.id() == earlierAccess.id()) {
+          earlierAccessPassed = true;
+        }
         if (event.edge() != null) {
           CFAEdge edge = displayEdge(event, model);
           // collapse events of one execution of an edge, which other threads' events may separate:
