@@ -51,13 +51,6 @@ public final class KInductionRefiner extends InductionRefiner {
   @Option(
       secure = true,
       description =
-          "Optimization: share one prover between the step case queries of all bounds. Native"
-              + " k-induction creates a new prover for the step case of every bound.")
-  private boolean sharedStepProver = false;
-
-  @Option(
-      secure = true,
-      description =
           "explore the base case and the induction steps in one pass, as split-case k-induction"
               + " does. Otherwise, the refiner alternates between rounds for the base case and"
               + " rounds for the step case, as native k-induction does.")
@@ -123,7 +116,7 @@ public final class KInductionRefiner extends InductionRefiner {
       provedByBoundingAssertions.inc();
       return Optional.empty();
     }
-    if (removeIfNoneReachableFromRegion(pReached, stepTargets, sharedStepProver)) {
+    if (removeIfNoneReachableFromRegion(pReached, stepTargets)) {
       provedByStepCase.inc();
       return Optional.empty();
     }

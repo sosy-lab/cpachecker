@@ -105,9 +105,6 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   /** One prover for all batch queries, as native BMC uses one for all its queries. */
   private @Nullable ProverEnvironment prover = null;
 
-  /** One prover for all step case queries, if they share it. */
-  private @Nullable ProverEnvironment stepProver = null;
-
   private int refinementNumber = 0;
 
   private final StatTimer refinementTime = new StatTimer("Time for refinements");
@@ -490,31 +487,18 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   /**
    * Remove the given abstraction states with their subtrees if none of them is reachable from the
    * region of the abstraction before it, checked with one SAT query, as the step case of native
-   * k-induction. As there, the query gets a prover of its own that generates models, unless all
-   * such queries share one.
+   * k-induction. As there, the query gets a prover of its own that generates models.
    *
    * @return whether the states were removed
    */
   protected boolean removeIfNoneReachableFromRegion(
-      ARGReachedSet pReached, Collection<ARGState> pStates, boolean pSharedProver)
+      ARGReachedSet pReached, Collection<ARGState> pStates)
       throws SolverException, InterruptedException {
     BooleanFormula reachability =
         bfmgr.or(from(pStates).transform(this::lastBlockFromRegion).toList());
     satCheckTime.start();
-    try {
-      boolean unsat;
-      if (pSharedProver) {
-        if (stepProver == null) {
-          stepProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-        }
-        unsat = isUnsat(stepProver, reachability);
-      } else {
-        try (ProverEnvironment ownProver =
-            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-          unsat = isUnsat(ownProver, reachability);
-        }
-      }
-      if (!unsat) {
+    try (ProverEnvironment ownProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      if (!isUnsat(ownProver, reachability)) {
         return false;
       }
     } finally {
