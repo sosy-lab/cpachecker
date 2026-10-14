@@ -1116,8 +1116,13 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pathFormulaManager.makeAnd(
             pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
             rewrittenFirst);
+    int firstReadId = registry.nextEventId();
     ImmutableList<Integer> sharedLastEventIds =
         chainAccessEvents(pState, renamer, firstFormula, pFirst);
+    registry.registerAssumeBranch(
+        firstReadId,
+        registry.nextEventId(),
+        new OcExplorationRegistry.AssumeBranch(firstFormula.getFormula(), pFirst, pSecond));
     PathFormula secondFormula =
         pathFormulaManager.makeAnd(
             pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
