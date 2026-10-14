@@ -104,18 +104,19 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
       cutOffs.inc();
       return ImmutableList.of(state.cutOff(arrivals, successor, loopPrecision, reportsTargets));
     }
-    if (arrivals.get(boundedLoop) > loopPrecision.bound(beforeFirstAbstraction) + 1) {
+    if (state.continuesBaseCase()
+        && arrivals.get(boundedLoop) > loopPrecision.bound(beforeFirstAbstraction) + 1) {
       // the continuation of the base case after an induction start ends here
       return ImmutableList.of();
     }
     abstractions.inc();
     if (state.isInInductionStep() || !loopPrecision.induction()) {
       return ImmutableList.of(
-          state.abstraction(successor, loops, loopPrecision, false, reportsTargets));
+          state.abstraction(successor, loops, loopPrecision, precision, false, reportsTargets));
     }
     inductionStarts.inc();
     InductionState inductionStart =
-        state.abstraction(successor, loops, loopPrecision, true, reportsTargets);
+        state.abstraction(successor, loops, loopPrecision, precision, true, reportsTargets);
     return continueBaseCase
         ? ImmutableList.of(state.continuation(arrivals, reportsTargets, precision), inductionStart)
         : ImmutableList.of(inductionStart);
@@ -145,7 +146,7 @@ final class InductionTransferRelation extends SingleEdgeTransferRelation {
           inductionStarts.inc();
         }
         return pState.abstraction(
-            pLoopHead, pLoops, loopPrecision, startsInductionStep, pReportsTargets);
+            pLoopHead, pLoops, loopPrecision, pPrecision, startsInductionStep, pReportsTargets);
       }
     }
     return null;

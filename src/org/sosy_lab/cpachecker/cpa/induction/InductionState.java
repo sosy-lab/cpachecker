@@ -234,6 +234,7 @@ public final class InductionState
       CFANode pLoopHead,
       Set<Loop> pLoops,
       LoopPrecision pLoopPrecision,
+      InductionPrecision pPrecision,
       boolean pStartsInductionStep,
       boolean pReportsTargets) {
     PersistentSortedMap<Loop, Integer> remainingArrivals = PathCopyingPersistentTreeMap.of();
@@ -241,6 +242,18 @@ public final class InductionState
       remainingArrivals = arrivals;
       for (Loop loop : pLoops) {
         remainingArrivals = remainingArrivals.removeAndCopy(loop);
+      }
+      if (successorsInFirstBlock()) {
+        // from now on, the concrete first arrival at a loop does not count
+        for (Map.Entry<Loop, Integer> entry : arrivals.entrySet()) {
+          if (remainingArrivals.containsKey(entry.getKey())
+              && pPrecision.get(entry.getKey()).concreteFirstArrival()) {
+            remainingArrivals =
+                entry.getValue() > 1
+                    ? remainingArrivals.putAndCopy(entry.getKey(), entry.getValue() - 1)
+                    : remainingArrivals.removeAndCopy(entry.getKey());
+          }
+        }
       }
     }
     // Only finite stacks need the index, and counting it otherwise prevents merges and coverage.
@@ -289,6 +302,11 @@ public final class InductionState
 
   private @Nullable InductionState blockStartOfSuccessors() {
     return isAbstraction() || endsBlockWithoutAbstraction() ? this : blockStart;
+  }
+
+  /** Whether the state continues the base case after an induction start. */
+  boolean continuesBaseCase() {
+    return continuedPrecision != null;
   }
 
   /** Whether the successors lie in the first block, before any abstraction on the path. */
@@ -370,8 +388,9 @@ public final class InductionState
     if (!inInductionStep) {
       return true;
     }
+    // At least k, since a refinement can lower the k of a loop below the counter of a path.
     for (Map.Entry<Loop, Integer> entry : arrivals.entrySet()) {
-      if (entry.getValue() == pPrecision.get(entry.getKey()).k()) {
+      if (entry.getValue() >= pPrecision.get(entry.getKey()).k()) {
         return true;
       }
     }

@@ -179,6 +179,45 @@ public class InductionTransferRelationTest {
     assertThat(baseCase.getArrivals()).containsExactly(outer, 1);
   }
 
+  @Test
+  public void stopsCountingTheConcreteFirstArrivalAfterTheFirstBlock() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromFunctionBody(
+            """
+            int x = 0;
+            while (x < 10) {
+              int y = 0;
+              while (y < 10) {
+                y++;
+              }
+              x++;
+            }
+            """);
+    LoopStructure loops = cfa.getLoopStructure().orElseThrow();
+    Loop outer =
+        from(loops.getAllLoops())
+            .firstMatch(l -> from(loops.getAllLoops()).anyMatch(o -> o != l && l.isOuterLoopOf(o)))
+            .get();
+    Loop inner = from(loops.getAllLoops()).firstMatch(l -> l != outer).get();
+    InductionTransferRelation transfer = new InductionTransferRelation(loops, true, false, false);
+    InductionPrecision precision =
+        InductionPrecision.uniform(
+            loops.getAllLoops(),
+            new LoopPrecision(0, false, LoopPrecision.ALL_ABSTRACTIONS, false, true));
+
+    InductionState state =
+        successor(initial, precision, getOnlyElement(outer.getIncomingEdges()), transfer);
+    state = successor(state, precision, getOnlyElement(inner.getIncomingEdges()), transfer);
+    assertThat(state.isAbstraction()).isFalse();
+    // the first abstraction ends the first block
+    InductionState abstraction = successor(state, precision, backEdge(inner), transfer);
+    assertThat(abstraction.isAbstraction()).isTrue();
+    assertThat(abstraction.getArrivals()).isEmpty();
+    // the next arrival at the outer loop abstracts instead of ending the path
+    assertThat(successor(abstraction, precision, backEdge(outer), transfer).isAbstraction())
+        .isTrue();
+  }
+
   private static CFAEdge backEdge(Loop pLoop) {
     CFANode head = getOnlyElement(pLoop.getLoopHeads());
     return head.getEnteringEdges()
