@@ -14,6 +14,9 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Iterator;
@@ -25,7 +28,10 @@ public final class CCompositeType implements CComplexType {
 
   @Serial private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;
-  private @Nullable List<CCompositeTypeMemberDeclaration> members = null;
+
+  /** Serialized by {@link #writeObject}, see there. */
+  private transient @Nullable List<CCompositeTypeMemberDeclaration> members = null;
+
   private final String name;
   private final String origName;
   private final CTypeQualifiers qualifiers;
@@ -69,6 +75,29 @@ public final class CCompositeType implements CComplexType {
             this);
       }
     }
+  }
+
+  /**
+   * Writes the members as an array of their own. Copies of this type with other qualifiers share
+   * the list of members, which may refer back to such a copy, e.g., in {@code struct s { const
+   * struct s *next; }}. The serialized form of an {@link ImmutableList} only becomes a list once it
+   * is read completely, so a copy reached while reading the shared list would get the serialized
+   * form instead of a list. Arrays are read in place.
+   */
+  @Serial
+  private void writeObject(ObjectOutputStream pOut) throws IOException {
+    pOut.defaultWriteObject();
+    pOut.writeObject(
+        members == null ? null : members.toArray(new CCompositeTypeMemberDeclaration[0]));
+  }
+
+  @Serial
+  private void readObject(ObjectInputStream pIn) throws IOException, ClassNotFoundException {
+    pIn.defaultReadObject();
+    CCompositeTypeMemberDeclaration[] memberArray =
+        (CCompositeTypeMemberDeclaration[]) pIn.readObject();
+    // The array is complete here: types that refer to this one only keep a reference to it.
+    members = memberArray == null ? null : ImmutableList.copyOf(memberArray);
   }
 
   @Override
