@@ -51,6 +51,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
 
   <!-- Add Yices2 w native interpolation and SMTInterpol w bitvector support once JavaSMT 6.0.0+ is available. -->
   
+
   <!-- Projection-based Interpolation -->
 
   <rundefinition name="cvc5-projection">
@@ -75,6 +76,9 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
     <option name="--option">solver.solver=Z3</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
   </rundefinition>
+
+
+  <!-- Forward Uniform Interpolation -->
 
   <rundefinition name="cvc5-uniform_forward">
     <option name="--option">solver.solver=cvc5</option>
