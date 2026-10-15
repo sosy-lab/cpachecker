@@ -16,20 +16,69 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
 
-  <!-- terminationToSafety encodes to integer per default, hence we do not include Bitwuzla -->
+  <!-- terminationToSafety encodes bitvectors to integers and floats to rationals per default, hence we do not include Bitwuzla for integer encodings. -->
   <option name="--terminationToSafety"/>
 
-  <rundefinition name="mathsat5">
+  <rundefinition name="mathsat5-integer">
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <rundefinition name="cvc5">
+  <!-- In theory nonLinearArithmetic should be irrelevant here. I want to test this with this rundef. -->
+  <rundefinition name="mathsat5-bv-approx_non_linear">
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">solver.nonLinearArithmetic=APPROXIMATE_ALWAYS</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <!-- In theory nonLinearArithmetic should be irrelevant here. I want to test this with this rundef. -->
+  <rundefinition name="mathsat5-bv-precise_non_linear">
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">solver.nonLinearArithmetic=USE</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="bitwuzla-bv">
+    <option name="--option">solver.solver=bitwuzla</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-integer">
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
-  <rundefinition name="z3_with_interpolation">
+  <rundefinition name="z3_with_interpolation-integer">
     <!-- This is a distinct (old) Z3 version compared to solver.solver=Z3 that supports interpolation -->
     <option name="--option">solver.solver=Z3_WITH_INTERPOLATION</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-bv">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="z3_with_interpolation-bv">
+    <!-- This is a distinct (old) Z3 version compared to solver.solver=Z3 that supports interpolation -->
+    <option name="--option">solver.solver=Z3_WITH_INTERPOLATION</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-integer">
+    <option name="--option">solver.solver=smtinterpol</option>
   </rundefinition>
 
   <!-- Add Yices2 w native interpolation once JavaSMT 6.0.0+ is available. -->
@@ -37,39 +86,117 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- Projection-based Interpolation -->
 
-  <rundefinition name="cvc5-projection">
+  <rundefinition name="cvc5-integer-projection">
     <option name="--option">solver.solver=cvc5</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
   </rundefinition>
 
-  <rundefinition name="z3-projection">
+  <rundefinition name="z3-integer-projection">
     <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-bv-projection">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="z3-bv-projection">
+    <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-integer-projection">
+    <option name="--option">solver.solver=smtinterpol</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
+  </rundefinition>
+
+  <rundefinition name="bitwuzla-bv-projection">
+    <option name="--option">solver.solver=bitwuzla</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
   </rundefinition>
 
 
   <!-- Forward Uniform Interpolation -->
 
-  <rundefinition name="cvc5-uniform_forward">
+  <rundefinition name="cvc5-integer-uniform_forward">
     <option name="--option">solver.solver=cvc5</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
   </rundefinition>
 
-  <rundefinition name="z3-uniform_forward">
+  <rundefinition name="z3-integer-uniform_forward">
     <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-bv-uniform_forward">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="z3-bv-uniform_forward">
+    <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-integer-uniform_forward">
+    <option name="--option">solver.solver=smtinterpol</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
   </rundefinition>
 
 
   <!-- Backward Uniform Interpolation -->
 
-  <rundefinition name="cvc5-uniform_backward">
+  <rundefinition name="cvc5-integer-uniform_backward">
     <option name="--option">solver.solver=cvc5</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
   </rundefinition>
 
-  <rundefinition name="z3-uniform_backward">
+  <rundefinition name="z3-integer-uniform_backward">
     <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5-bv-uniform_backward">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="z3-bv-uniform_backward">
+    <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
+    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
+  </rundefinition>
+
+  <rundefinition name="smtinterpol-integer-uniform_backward">
+    <option name="--option">solver.solver=smtinterpol</option>
     <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
   </rundefinition>
 
