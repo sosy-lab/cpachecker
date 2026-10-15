@@ -4258,9 +4258,6 @@ cpa.value.assignEqualityAssumptions = true
 cpa.value.exportLoopInvariants = IF_TRUE
   enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE, IF_UNKNOWN]
 
-# CPA is running in extractor mode of test case generation
-cpa.value.extractorMode = false
-
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
@@ -5846,8 +5843,14 @@ testcase.compress = false
 # Do not output values for variables that are not initialized when declared
 testcase.excludeInitialization = false
 
-# configuration file for test case extraction with CPAchecker
-testcase.extractor.config = no default value
+# once a test case is generated for a test goal (internally) continue
+# execution of test case from test goal to detect collaterally covered test
+# goals
+testcase.execution = false
+
+# Limit for cpu time used for the continued execution of a test case (use
+# seconds or specify a unit; -1 for infinite)
+testcase.execution.limit.cpu = -1ns
 
 # export test harness to file as code
 testcase.file = no default value
@@ -5920,9 +5923,6 @@ testcase.targets.optimization.trackAll = false
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
   enum:     [ASSUME, TEST_COMP_ASSUME, ERROR_CALL, FUN_CALL, STATEMENT]
-
-# run extraction analysis everytime a test goal is found.
-testcase.useExtractor = false
 
 # export test values to file (line separated)
 testcase.values = no default value
