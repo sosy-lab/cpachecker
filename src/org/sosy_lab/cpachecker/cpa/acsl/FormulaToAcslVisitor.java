@@ -109,8 +109,15 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
   @Override
   public Formula visitFreeVariable(Formula f, String name) {
-    List<String> parts = Splitter.on(FUNCTION_NAME_SEPARATOR).splitToList(name);
-    final String variableName = (parts.size() == 2) ? parts.get(1) : name;
+    String variableNameFull;
+    if (name.startsWith("*")) {
+      variableNameFull = name;
+    } else {
+      variableNameFull =
+          name.substring(0, name.indexOf('@') == -1 ? name.length() : name.indexOf('@'));
+    }
+    List<String> parts = Splitter.on(FUNCTION_NAME_SEPARATOR).splitToList(variableNameFull);
+    final String variableName = (parts.size() == 2) ? parts.get(1) : variableNameFull;
     AcslType acslType = getAcslType(f);
 
     if (fmgr.getFormulaType(f).isBooleanType()) {
@@ -126,7 +133,8 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
       cache.put(f, new AcslIdPredicate(DUMMY_LOC, declaration));
     } else {
       AcslSimpleDeclaration declaration =
-          new AcslVariableDeclaration(DUMMY_LOC, false, acslType, variableName, variableName, name);
+          new AcslVariableDeclaration(
+              DUMMY_LOC, false, acslType, variableName, variableName, variableNameFull);
 
       cache.put(f, new AcslIdTerm(DUMMY_LOC, declaration));
     }
@@ -254,11 +262,10 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
           case SELECT ->
               new AcslArraySubscriptTerm(
                   DUMMY_LOC, getAcslType(f), getTerm(newArgs.get(0)), getTerm(newArgs.get(1)));
-          // TODO maybe simplify the adress calculation in here a bit
           case STORE ->
               new AcslBinaryTermPredicate(
                   DUMMY_LOC,
-                  getTerm(newArgs.get(1)),
+                  simplifyArrayAddressCalculations(getTerm(newArgs.get(1))),
                   getTerm(newArgs.get(2)),
                   AcslBinaryTermExpressionOperator.EQUALS);
 
@@ -270,6 +277,26 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
     cache.put(f, result);
     return f;
+  }
+
+  private AcslTerm simplifyArrayAddressCalculations(AcslTerm pTerm) {
+    if (pTerm instanceof AcslBinaryTerm bt && bt.getOperator() == AcslBinaryTermOperator.PLUS) {
+      if (bt.getOperand1() instanceof AcslIdTerm arrayId
+          && bt.getOperand2() instanceof AcslBinaryTerm indexbt
+          && indexbt.getOperator() == AcslBinaryTermOperator.MULTIPLY) {
+        if (indexbt.getOperand1() instanceof AcslIntegerLiteralTerm intLit
+            && intLit
+                .getValue()
+                .equals(BigInteger.valueOf(4))) { // TODO 4 should probably not be hardcoded
+          return new AcslArraySubscriptTerm(
+              DUMMY_LOC,
+              new AcslPointerType(arrayId.getExpressionType()),
+              arrayId,
+              indexbt.getOperand2());
+        }
+      }
+    }
+    return pTerm; // now simplification possible
   }
 
   /**
