@@ -23,20 +23,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
-  <!-- In theory nonLinearArithmetic should be irrelevant here. I want to test this with this rundef. -->
-  <rundefinition name="mathsat5-bv-approx_non_linear">
-    <option name="--option">solver.solver=mathsat5</option>
-    <option name="--option">solver.nonLinearArithmetic=APPROXIMATE_ALWAYS</option>
-    <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
-    <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
-    <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
-    <option name="--option">cpa.terminationviamemory.checkUFsInIntegerEncoding=false</option>
-  </rundefinition>
 
-  <!-- In theory nonLinearArithmetic should be irrelevant here. I want to test this with this rundef. -->
-  <rundefinition name="mathsat5-bv-precise_non_linear">
+  <rundefinition name="mathsat5-bv">
     <option name="--option">solver.solver=mathsat5</option>
-    <option name="--option">solver.nonLinearArithmetic=USE</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
     <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
     <option name="--option">cpa.terminationviamemory.addConstraintsToPreventOverflows=false</option>
@@ -44,6 +33,8 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="bitwuzla-bv">
+    <!-- Integer as BV is not impacting soundness -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
     <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
@@ -120,6 +111,8 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="bitwuzla-bv-projection">
+    <!-- Integer as BV is not impacting soundness -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
     <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
