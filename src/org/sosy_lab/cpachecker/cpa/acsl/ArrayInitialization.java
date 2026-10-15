@@ -8,14 +8,24 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public record ArrayInitialization(
     CFANode loopHead,
-    CExpression array,
-    CExpression index,
+    AcslTerm array,
+    AcslIdTerm index,
     CExpression lowerbound,
     CExpression upperbound,
-    CRightHandSide value) {}
+    AcslTerm value) {
+
+  public AcslPredicate toInvariant() {
+    // TODO
+    return null;
+  }
+}
+
+// represents the invariant \forall i in [lowerbound, upperbound): array[i] == value

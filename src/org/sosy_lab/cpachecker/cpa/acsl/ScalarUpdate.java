@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 
-public record ScalarUpdate(CIdExpression var, CRightHandSide value) {}
+public record ScalarUpdate(AcslIdTerm var, AcslTerm value) {}

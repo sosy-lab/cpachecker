@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 
-public record ArrayStore(CExpression array, CExpression index, CRightHandSide value) {}
+public record ArrayStore(AcslTerm array, AcslIdTerm index, AcslTerm value) {}
