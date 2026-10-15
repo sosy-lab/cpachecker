@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+
+  <!-- terminationToSafety encodes to integer per default, hence we do not include Bitwuzla -->
+  <option name="--terminationToSafety"/>
+
+  <rundefinition name="mathsat5">
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="cvc5">
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="z3_with_interpolation">
+    <!-- This is a distinct (old) Z3 version compared to solver.solver=Z3 that supports interpolation -->
+    <option name="--option">solver.solver=Z3_WITH_INTERPOLATION</option>
+  </rundefinition>
+
+  <!-- Add Yices2 w native interpolation once JavaSMT 6.0.0+ is available. -->
+
+
+  <!-- Projection-based Interpolation -->
+
+  <rundefinition name="cvc5-projection">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
+  </rundefinition>
+
+  <rundefinition name="z3-projection">
+    <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_MODEL_BASED</option>
+  </rundefinition>
+
+
+  <!-- Forward Uniform Interpolation -->
+
+  <rundefinition name="cvc5-uniform_forward">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
+  </rundefinition>
+
+  <rundefinition name="z3-uniform_forward">
+    <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_FORWARD</option>
+  </rundefinition>
+
+
+  <!-- Backward Uniform Interpolation -->
+
+  <rundefinition name="cvc5-uniform_backward">
+    <option name="--option">solver.solver=cvc5</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
+  </rundefinition>
+
+  <rundefinition name="z3-uniform_backward">
+    <option name="--option">solver.solver=Z3</option>
+    <option name="--option">solver.interpolationMode=INDEPENDENT_UNIFORM_BACKWARD</option>
+  </rundefinition>
+
+
+  <!-- SV-COMP 2027 termination tasks -->
+    <tasks name="C.termination.BitVectors">
+      <includesfile>../sv-benchmarks/c/BitVectors-Termination.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="C.termination.MainControlFlow">
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="C.termination.MainHeap">
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="C.termination.Other">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/BitVectors.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ECA.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Floats.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ProductLines.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Sequentialized.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="C.termination.SoftwareSystems-uthash">
+      <includesfile>../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
+    </tasks>
+
+</benchmark>
