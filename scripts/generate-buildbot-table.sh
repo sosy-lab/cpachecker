@@ -52,20 +52,32 @@ if [[ -z "$NAME" ]]; then
   exit 1
 fi
 
-echo Generating table for builder $NAME.
+echo "Generating table for builder $NAME"
 
 declare -a URLS
+declare -a REVISIONS
 for BUILD in "${BUILDS[@]}"; do
     # extract URL of results from BuildBot metadata
     URL="$(curl --silent --show-error "$BASE_URL/cpachecker/api/v2/builders/$BUILDER/builds/$BUILD/steps?field=urls" | jq '.steps[-1].urls[] | select(.name=="TABLE (current results only)") | .url' -r)"
     URLS+=("$BASE_URL${URL%.html}.xml.bz2")
+
+    # get CPAchecker revision
+    REVISIONS+=("$(curl --silent --show-error "$BASE_URL/cpachecker/api/v2/builders/$BUILDER/builds/$BUILD/properties" | jq '.properties[0].got_revision[0].CPAchecker // ""' -r)")
+
     NAME="$NAME.$BUILD"
 done
+
+if [[ ${#REVISIONS[@]} = 1 ]]; then
+  echo "for commit https://gitlab.com/sosy-lab/software/cpachecker/-/commit/${REVISIONS[0]}"
+elif [[ ${#REVISIONS[@]} = 2 ]]; then
+  echo "for commits https://gitlab.com/sosy-lab/software/cpachecker/-/compare/${REVISIONS[0]}..${REVISIONS[1]}"
+fi
 
 if [[ ! -v OPTIONS ]]; then
   # no options passed, use default
   OPTIONS=("--format=html" "--dump" "--show" "--name" "$NAME")
 fi
 
+echo
 echo table-generator "${OPTIONS[@]}" "${URLS[@]}"
 exec table-generator "${OPTIONS[@]}" "${URLS[@]}"
