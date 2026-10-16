@@ -11,21 +11,21 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public record ArrayInitialization(
     CFANode loopHead,
     AcslTerm array,
     AcslIdTerm index,
-    CExpression lowerbound,
-    CExpression upperbound,
+    AcslTerm lowerbound,
+    AcslTerm upperbound,
+    Boolean upperboundInclusive,
     AcslTerm value) {
 
   public AcslPredicate toInvariant() {
-    // TODO
+    // TODO: express \forall integer i; lowerbound <= i < upperbound ==> array[i] == value in ACSL
+    // or \forall integer i; lowerbound <= i <= upperbound ==> array[i] == value in ACSL depending
+    // on the boolean
     return null;
   }
 }
-
-// represents the invariant \forall i in [lowerbound, upperbound): array[i] == value
