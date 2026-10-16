@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -67,20 +68,36 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       Precision precision)
       throws CPATransferException, InterruptedException {
 
+    AbstractState updatedState = state;
     for (AbstractState otherState : otherStates) {
+
       if (otherState instanceof PredicateAbstractState predicateState) {
-        loopPatternFinder
-            .detect(cfaEdge, predicateState)
-            .ifPresent(
-                arrayInit -> {
-                  logger.log(logLevel, "Detected array initialization: " + arrayInit);
-                });
+
+        if (state instanceof AcslState acslState
+            && cfaEdge != null
+            && acslState.getArrayInitializationForNode(cfaEdge.getSuccessor()) != null) {
+          logger.log(
+              logLevel,
+              "Skipping detection of array initialization, as one already exists for the node.");
+        } else {
+          Optional<ArrayInitialization> detected =
+              loopPatternFinder.detect(cfaEdge, predicateState);
+
+          if (detected.isPresent()) {
+            ArrayInitialization init = detected.get();
+            logger.log(logLevel, "SUCCESS: Detected array initialization: " + init);
+
+            if (updatedState instanceof AcslState acslState) {
+              updatedState = acslState.withAddedArrayInitialization(cfaEdge.getSuccessor(), init);
+            }
+          }
+        }
       }
       if (otherState instanceof ValueAnalysisState valueState) {
         logger.log(logLevel, valueState.toString());
       }
     }
 
-    return super.strengthen(state, otherStates, cfaEdge, precision);
+    return super.strengthen(updatedState, otherStates, cfaEdge, precision);
   }
 }
