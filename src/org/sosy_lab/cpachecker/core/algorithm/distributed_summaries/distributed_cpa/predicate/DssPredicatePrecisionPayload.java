@@ -16,7 +16,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentPrecisionPayload;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 
 public record DssPredicatePrecisionPayload(
@@ -24,7 +24,7 @@ public record DssPredicatePrecisionPayload(
     ImmutableMap<Integer, ImmutableSet<String>> localPredicates,
     ImmutableMap<String, ImmutableSet<String>> functionPredicates,
     ImmutableSet<String> globalPredicates)
-    implements DssStatePayload {
+    implements DssComponentPrecisionPayload {
   private static final Joiner PREDICATE_JOINER = Joiner.on(" , ");
   private static final Splitter PREDICATE_SPLITTER = Splitter.on(" , ").omitEmptyStrings();
 
@@ -33,6 +33,7 @@ public record DssPredicatePrecisionPayload(
     return DssComponentKey.PREDICATE_PRECISION;
   }
 
+  @Override
   public ImmutableMap<String, String> asContentMap() {
     ContentBuilder contentBuilder =
         ContentBuilder.builder()

@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import java.util.Objects;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -37,7 +39,13 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
       throws InterruptedException {
 
     DssBlockStatePayload payload =
-        DssBlockStatePayload.fromContentMap(pMessage.getStates().get(pStateIndex));
+        (DssBlockStatePayload)
+            Objects.requireNonNull(
+                    pMessage
+                        .getStates()
+                        .get(pStateIndex)
+                        .get(DssComponentKey.serializedNameFor(BlockState.class)))
+                .state();
 
     ParseResult parsed = ParseResult.fromPayload(payload);
     Preconditions.checkNotNull(parsed.serializedBlockState);

@@ -17,9 +17,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -100,7 +102,14 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
   @Override
   public Precision deserializePrecision(DssMessageWithStates pMessage, int pStateIndex) {
     DssPredicatePrecisionPayload payload =
-        DssPredicatePrecisionPayload.fromContentMap(pMessage.getStates().get(pStateIndex));
+        (DssPredicatePrecisionPayload)
+            Objects.requireNonNull(
+                    pMessage
+                        .getStates()
+                        .get(pStateIndex)
+                        .get(DssComponentKey.serializedNameFor(PredicateAbstractState.class)))
+                .precision()
+                .get();
     return new PredicatePrecision(
         parseLocationInstances(payload.locationInstances()),
         parseLocalPredicates(payload.localPredicates()),

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Function;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -33,21 +34,27 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex) {
-    DssCallstackStatePayload statePayload =
-        DssCallstackStatePayload.fromContentMap(pMessage.getStates().get(pStateIndex));
-    if (statePayload.states().isEmpty()) {
+    DssCallstackStatePayload payload =
+        (DssCallstackStatePayload)
+            Objects.requireNonNull(
+                    pMessage
+                        .getStates()
+                        .get(pStateIndex)
+                        .get(DssComponentKey.serializedNameFor(CallstackState.class)))
+                .state();
+    if (payload.states().isEmpty()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
       return parentCPA.createState(
-          null, location.getFunctionName(), location, statePayload.allowAllTransfers());
+          null, location.getFunctionName(), location, payload.allowAllTransfers());
     }
     CallstackState current = null;
-    for (DssCallstackEntryPayload entryPayload : statePayload.states()) {
+    for (DssCallstackEntryPayload entryPayload : payload.states()) {
       current =
           parentCPA.createState(
               current,
               entryPayload.function(),
               Objects.requireNonNull(converter.apply(entryPayload.nodeId())),
-              statePayload.allowAllTransfers());
+              payload.allowAllTransfers());
     }
     return current;
   }

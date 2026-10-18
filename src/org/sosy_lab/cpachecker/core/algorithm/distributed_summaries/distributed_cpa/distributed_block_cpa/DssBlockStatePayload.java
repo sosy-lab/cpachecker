@@ -27,11 +27,18 @@ public record DssBlockStatePayload(String blockId, String witness, ImmutableList
     return DssComponentKey.BLOCK_STATE;
   }
 
+  @Override
   public ImmutableMap<String, String> asContentMap() {
     String suffix = " W:" + witness();
     suffix = suffix + (history().isEmpty() ? "" : " H:" + Joiner.on(",").join(history()));
     return ImmutableMap.of(
         getComponentKey().getSerializedName() + "." + DssMessageKeys.STATE, blockId() + suffix);
+  }
+
+  public String getWitnessString() {
+    String suffix = " W:" + witness();
+    suffix = suffix + (history().isEmpty() ? "" : " H:" + Joiner.on(",").join(history()));
+    return blockId + suffix;
   }
 
   public static DssBlockStatePayload fromContentMap(Map<String, String> pContent) {

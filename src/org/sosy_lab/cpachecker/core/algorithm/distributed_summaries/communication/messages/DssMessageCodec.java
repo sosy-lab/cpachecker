@@ -34,7 +34,7 @@ public final class DssMessageCodec {
         pPayload.status() == null
             ? Optional.empty()
             : Optional.of(pPayload.status().toAlgorithmStatus());
-    ImmutableList<ImmutableMap<String, String>> states = pPayload.states();
+    ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states = pPayload.states();
     ImmutableMap<String, String> content = pPayload.content();
     String senderId = header.senderId();
     Optional<Instant> timestampOpt = header.timestampAsInstant();

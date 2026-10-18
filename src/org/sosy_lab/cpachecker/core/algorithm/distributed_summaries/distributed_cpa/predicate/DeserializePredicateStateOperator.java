@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -80,7 +82,13 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     try {
       DssPredicateStatePayload payload =
-          DssPredicateStatePayload.fromContentMap(pMessage.getStates().get(pStateIndex));
+          (DssPredicateStatePayload)
+              Objects.requireNonNull(
+                      pMessage
+                          .getStates()
+                          .get(pStateIndex)
+                          .get(DssComponentKey.serializedNameFor(PredicateAbstractState.class)))
+                  .state();
 
       SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
       for (Entry<String, DssSSAVariablePayload> entry : payload.ssaMap().entrySet()) {

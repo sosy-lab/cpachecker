@@ -41,10 +41,15 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssNoPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -281,7 +286,8 @@ public final class DssBlockAnalysis {
     return preconditions.analyzeFor(pSenderId);
   }
 
-  public ImmutableList<ImmutableMap<String, String>> serializedPreconditions() {
+  public ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>>
+      serializedPreconditions() {
     return serialize(preconditions.getKnownPreconditions());
   }
 
@@ -618,21 +624,32 @@ public final class DssBlockAnalysis {
    * @return List of Maps of strings representing the serialized states and precisions. Every state
    *     will be serialized with the given serialize operators.
    */
-  ImmutableList<ImmutableMap<String, String>> serialize(
+  ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
-    ImmutableList.Builder<ImmutableMap<String, String>> serializedStates = ImmutableList.builder();
+    ImmutableList.Builder<ImmutableMap<String, DssStateAndPrecisionPayload>> serializedStates =
+        ImmutableList.builder();
     int totalStateSize = 0;
     for (StateAndPrecision stateAndPrecision : pStatesAndPrecisions) {
-      ImmutableMap<String, String> content =
-          ImmutableMap.<String, String>builder()
-              .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()))
-              .putAll(
-                  dcpa.getSerializePrecisionOperator()
-                      .serializePrecision(stateAndPrecision.precision()))
+      DssStatePayload statePayload =
+          dcpa.getSerializeOperator().serialize(stateAndPrecision.state());
+      DssPrecisionPayload precisionPayload =
+          dcpa.getSerializePrecisionOperator().serializePrecision(stateAndPrecision.precision());
+      DssStateAndPrecisionPayload stateAndPrecisionPayload =
+          new DssStateAndPrecisionPayload(
+              statePayload,
+              precisionPayload instanceof DssNoPrecisionPayload
+                  ? Optional.empty()
+                  : Optional.of(precisionPayload));
+      ImmutableMap<String, DssStateAndPrecisionPayload> content =
+          ImmutableMap.<String, DssStateAndPrecisionPayload>builder()
+              .put(
+                  DssComponentKey.serializedNameFor(stateAndPrecision.state().getClass()),
+                  stateAndPrecisionPayload)
               .buildOrThrow();
       serializedStates.add(content);
-      for (Entry<String, String> contents : content.entrySet()) {
-        totalStateSize += contents.getKey().length() + contents.getValue().length();
+      for (Entry<String, DssStateAndPrecisionPayload> contents : content.entrySet()) {
+        // TODO decide how to measure size of payloads -> at broadcast
+        totalStateSize += contents.getKey().length();
       }
     }
     workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);

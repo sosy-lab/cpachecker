@@ -37,6 +37,7 @@ public record DssPredicateStatePayload(
     return DssComponentKey.PREDICATE_STATE;
   }
 
+  @Override
   public ImmutableMap<String, String> asContentMap() {
     ImmutableMap<String, String> serializedSSAMap =
         ssaMap.entrySet().stream()

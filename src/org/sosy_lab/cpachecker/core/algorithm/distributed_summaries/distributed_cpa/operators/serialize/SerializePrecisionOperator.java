@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize;
 
-import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public interface SerializePrecisionOperator {
 
-  ImmutableMap<String, String> serializePrecision(Precision pPrecision);
+  DssPrecisionPayload serializePrecision(Precision pPrecision);
 }

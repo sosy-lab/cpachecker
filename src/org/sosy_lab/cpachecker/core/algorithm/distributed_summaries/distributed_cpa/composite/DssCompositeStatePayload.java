@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 
-public record DssCompositeStatePayload(ImmutableList<DssStatePayload> components)
+public record DssCompositeStatePayload(ImmutableMap<String, DssStatePayload> components)
     implements DssStatePayload {
   @Override
   public DssComponentKey getComponentKey() {

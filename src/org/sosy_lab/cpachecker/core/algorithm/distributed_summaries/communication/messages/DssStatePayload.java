@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import com.google.common.collect.ImmutableMap;
 
 public interface DssStatePayload {
   DssComponentKey getComponentKey();
+
+  ImmutableMap<String, String> asContentMap();
 }

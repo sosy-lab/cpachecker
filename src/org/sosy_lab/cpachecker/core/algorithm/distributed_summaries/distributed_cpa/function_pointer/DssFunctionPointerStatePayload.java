@@ -26,6 +26,7 @@ public record DssFunctionPointerStatePayload(ImmutableList<DssFunctionPointerEnt
     return DssComponentKey.FUNCTION_POINTER_STATE;
   }
 
+  @Override
   public ImmutableMap<String, String> asContentMap() {
     return ImmutableMap.of(
         getComponentKey().getSerializedName() + "." + DssMessageKeys.STATE,

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssHeaderPayload;
@@ -50,7 +51,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatusPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
@@ -845,8 +849,8 @@ public final class DssDebugUtils {
 
   private static void addStatesDiff(
       List<List<String>> pRows,
-      ImmutableList<ImmutableMap<String, String>> pLeft,
-      ImmutableList<ImmutableMap<String, String>> pRight) {
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pLeft,
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pRight) {
     int maxStates = Math.max(pLeft.size(), pRight.size());
     for (int i = 0; i < maxStates; i++) {
       if (i >= pLeft.size()) {
@@ -854,9 +858,58 @@ public final class DssDebugUtils {
       } else if (i >= pRight.size()) {
         addDiffRow(pRows, DssMessageKeys.STATES + "[" + i + "]", "<present>", null);
       } else {
-        addMapDiff(pRows, DssMessageKeys.STATES + "[" + i + "]", pLeft.get(i), pRight.get(i));
+        addStateDiff(pRows, DssMessageKeys.STATES + "[" + i + "]", pLeft.get(i), pRight.get(i));
       }
     }
+  }
+
+  private static void addStateDiff(
+      List<List<String>> pRows,
+      String pPrefix,
+      ImmutableMap<String, DssStateAndPrecisionPayload> pLeft,
+      ImmutableMap<String, DssStateAndPrecisionPayload> pRight) {
+    ImmutableMap<String, DssStatePayload> leftStates =
+        pLeft.entrySet().stream()
+            .collect(
+                ImmutableMap.toImmutableMap(Map.Entry::getKey, entry -> entry.getValue().state()));
+    ImmutableMap<String, DssStatePayload> rightStates =
+        pRight.entrySet().stream()
+            .collect(
+                ImmutableMap.toImmutableMap(Map.Entry::getKey, entry -> entry.getValue().state()));
+
+    ImmutableSet<String> stateKeys =
+        ImmutableSet.<String>builder()
+            .addAll(leftStates.keySet())
+            .addAll(rightStates.keySet())
+            .build();
+
+    for (String stateKey : stateKeys) {
+      DssStatePayload leftState = leftStates.get(stateKey);
+      DssStatePayload rightState = rightStates.get(stateKey);
+      // TODO add sensible diff statements
+
+    }
+
+    ImmutableMap<String, DssPrecisionPayload> leftPrecisions =
+        pLeft.entrySet().stream()
+            .flatMap(
+                entry ->
+                    entry.getValue().precision().stream()
+                        .map(
+                            precision ->
+                                Map.entry(
+                                    entry.getKey(), (DssComponentPrecisionPayload) precision)))
+            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+    ImmutableMap<String, DssPrecisionPayload> rightPrecisions =
+        pRight.entrySet().stream()
+            .flatMap(
+                entry ->
+                    entry.getValue().precision().stream()
+                        .map(
+                            precision ->
+                                Map.entry(
+                                    entry.getKey(), (DssComponentPrecisionPayload) precision)))
+            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private static void addContentDiff(

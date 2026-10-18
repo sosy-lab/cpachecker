@@ -14,8 +14,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DssBlockStatePayload;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 public final class DssViolationConditionMessage implements DssConditionMessage {
@@ -23,12 +24,12 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
   private final String senderId;
   private final Instant timestamp;
   private final AlgorithmStatus status;
-  private final ImmutableList<ImmutableMap<String, String>> states;
+  private final ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states;
 
   public DssViolationConditionMessage(
       String pSenderId,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, String>> pStates) {
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
     this(pSenderId, Instant.now(), pStatus, pStates);
   }
 
@@ -36,7 +37,7 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
       String pSenderId,
       Instant pTimestamp,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, String>> pStates) {
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
     senderId = Preconditions.checkNotNull(pSenderId);
     timestamp = Preconditions.checkNotNull(pTimestamp);
     status = Preconditions.checkNotNull(pStatus);
@@ -62,7 +63,7 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
   }
 
   @Override
-  public ImmutableList<ImmutableMap<String, String>> getStates() {
+  public ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> getStates() {
     return states;
   }
 
@@ -82,9 +83,11 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
 
   public final String extractBlockStateWitnessString() {
     checkState(getNumberOfContainedStates() >= 1, "No state to extract witness from");
-
-    return ContentReader.read(states.getFirst())
-        .pushLevel(DssComponentKey.serializedNameFor(BlockState.class))
-        .get(SerializeOperator.STATE_KEY);
+    DssBlockStatePayload blockStatePayload =
+        (DssBlockStatePayload)
+            Objects.requireNonNull(
+                    states.getFirst().get(DssComponentKey.serializedNameFor(BlockState.class)))
+                .state();
+    return blockStatePayload.getWitnessString();
   }
 }

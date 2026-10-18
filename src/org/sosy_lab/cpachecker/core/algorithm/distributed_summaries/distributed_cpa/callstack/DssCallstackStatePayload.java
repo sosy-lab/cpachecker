@@ -28,6 +28,7 @@ public record DssCallstackStatePayload(
     return DssComponentKey.CALLSTACK_STATE;
   }
 
+  @Override
   public ImmutableMap<String, String> asContentMap() {
     return ContentBuilder.builder()
         .pushLevel(DssComponentKey.serializedNameFor(CallstackState.class))

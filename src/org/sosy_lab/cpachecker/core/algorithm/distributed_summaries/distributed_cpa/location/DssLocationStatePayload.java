@@ -20,6 +20,7 @@ public record DssLocationStatePayload(int nodeId) implements DssStatePayload {
     return DssComponentKey.LOCATION_STATE;
   }
 
+  @Override
   public ImmutableMap<String, String> asContentMap() {
     return ImmutableMap.of(
         getComponentKey().getSerializedName() + "." + DssMessageKeys.STATE,

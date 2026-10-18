@@ -19,13 +19,13 @@ public final class DssPostConditionMessage implements DssConditionMessage {
   private final String senderId;
   private final Instant timestamp;
   private final AlgorithmStatus status;
-  private final ImmutableList<ImmutableMap<String, String>> states;
+  private final ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states;
   private final boolean unreachableBlockEnd;
 
   public DssPostConditionMessage(
       String pSenderId,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, String>> pStates) {
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
     this(pSenderId, Instant.now(), pStatus, pStates, false);
   }
 
@@ -38,7 +38,7 @@ public final class DssPostConditionMessage implements DssConditionMessage {
       String pSenderId,
       Instant pTimestamp,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, String>> pStates,
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates,
       boolean pUnreachableBlockEnd) {
     senderId = Preconditions.checkNotNull(pSenderId);
     timestamp = Preconditions.checkNotNull(pTimestamp);
@@ -67,7 +67,7 @@ public final class DssPostConditionMessage implements DssConditionMessage {
   }
 
   @Override
-  public ImmutableList<ImmutableMap<String, String>> getStates() {
+  public ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> getStates() {
     return states;
   }
 

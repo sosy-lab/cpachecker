@@ -50,11 +50,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
   }
 
   @Override
-  public ImmutableMap<String, String> serializePrecision(Precision pPrecision) {
-    return serializePrecisionPayload(pPrecision).asContentMap();
-  }
-
-  private DssPredicatePrecisionPayload serializePrecisionPayload(Precision pPrecision) {
+  public DssPredicatePrecisionPayload serializePrecision(Precision pPrecision) {
     if (!(pPrecision instanceof PredicatePrecision predicatePrecision)) {
       throw new AssertionError(
           "Cannot serialize a precision that is not of type "

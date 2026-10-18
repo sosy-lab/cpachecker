@@ -33,7 +33,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public record DssMessagePayload(
     @JsonProperty(DssMessageKeys.HEADER) DssHeaderPayload header,
     @JsonProperty(DssMessageKeys.STATUS) @Nullable DssStatusPayload status,
-    @JsonProperty(DssMessageKeys.STATES) ImmutableList<ImmutableMap<String, String>> states,
+    @JsonProperty(DssMessageKeys.STATES)
+        ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states,
     @JsonProperty(DssMessageKeys.CONTENT) ImmutableMap<String, String> content) {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -41,7 +42,7 @@ public record DssMessagePayload(
   public DssMessagePayload(
       DssHeaderPayload header,
       @Nullable DssStatusPayload status,
-      ImmutableList<ImmutableMap<String, String>> states,
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states,
       ImmutableMap<String, String> content) {
     this.header = requireHeader(header);
     this.status = status;
@@ -53,7 +54,8 @@ public record DssMessagePayload(
   DssMessagePayload(
       @JsonProperty(DssMessageKeys.HEADER) DssHeaderPayload pHeader,
       @JsonProperty(DssMessageKeys.STATUS) @Nullable DssStatusPayload pStatus,
-      @JsonProperty(DssMessageKeys.STATES) @Nullable List<? extends Map<String, String>> pStates,
+      @JsonProperty(DssMessageKeys.STATES)
+          @Nullable List<? extends Map<String, DssStateAndPrecisionPayload>> pStates,
       @JsonProperty(DssMessageKeys.CONTENT) Map<String, String> pContent) {
     this(
         requireHeader(pHeader),
@@ -86,8 +88,8 @@ public record DssMessagePayload(
     return Preconditions.checkNotNull(pContent, "Message JSON does not contain content");
   }
 
-  private static ImmutableList<ImmutableMap<String, String>> copyStates(
-      @Nullable List<? extends Map<String, String>> pStates) {
+  private static ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> copyStates(
+      @Nullable List<? extends Map<String, DssStateAndPrecisionPayload>> pStates) {
     if (pStates == null) {
       return ImmutableList.of();
     }

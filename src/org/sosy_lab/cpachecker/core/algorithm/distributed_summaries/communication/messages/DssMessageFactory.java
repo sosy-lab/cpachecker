@@ -32,7 +32,7 @@ public class DssMessageFactory {
   public DssPostConditionMessage createDssPostConditionMessage(
       String pSenderId,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, String>> pStates) {
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
     return new DssPostConditionMessage(pSenderId, pStatus, pStates);
   }
 
@@ -54,13 +54,14 @@ public class DssMessageFactory {
   public DssViolationConditionMessage createViolationConditionMessage(
       String pSenderId,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, String>> pStates) {
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
     return new DssViolationConditionMessage(pSenderId, pStatus, pStates);
   }
 
   public DssCorrectnessWitnessMessage createDssCorrectnessWitnessMessage(
       String pSenderId,
-      ImmutableList<ImmutableMap<String, String>> pSerializedRelevantPreconditions) {
+      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>>
+          pSerializedRelevantPreconditions) {
     return new DssCorrectnessWitnessMessage(pSenderId, pSerializedRelevantPreconditions);
   }
 
