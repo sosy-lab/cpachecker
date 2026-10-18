@@ -8,8 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.google.common.collect.ImmutableMap;
 
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessageKeys.TYPE)
 public interface DssStatePayload {
   DssComponentKey getComponentKey();
 

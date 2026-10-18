@@ -37,7 +37,8 @@ public record DssMessagePayload(
         ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states,
     @JsonProperty(DssMessageKeys.CONTENT) ImmutableMap<String, String> content) {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER =
+      new ObjectMapper().registerModule(new DssPayloadModule());
 
   public DssMessagePayload(
       DssHeaderPayload header,

@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -26,8 +27,9 @@ public enum DssComponentKey {
   FUNCTION_POINTER_STATE(FunctionPointerState.class, "functionPointerState"),
   LOCATION_STATE(LocationState.class, "locationState"),
   PREDICATE_STATE(PredicateAbstractState.class, "predicateState"),
+  COMPOSITE_STATE(CompositeState.class, "compositeState"),
   PREDICATE_PRECISION(PredicatePrecision.class, "predicatePrecision"),
-  COMPOSITE_STATE(CompositeState.class, "compositeState");
+  COMPOSITE_PRECISION(CompositePrecision.class, "compositePrecision");
 
   private static final ImmutableMap<Class<?>, DssComponentKey> BY_CLASS =
       Arrays.stream(values())

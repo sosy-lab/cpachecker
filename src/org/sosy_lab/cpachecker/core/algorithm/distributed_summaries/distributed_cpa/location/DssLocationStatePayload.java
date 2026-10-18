@@ -8,14 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 
-public record DssLocationStatePayload(int nodeId) implements DssStatePayload {
+public record DssLocationStatePayload(@JsonProperty(NODE_ID) int nodeId)
+    implements DssStatePayload {
+  @JsonIgnore public static final String NODE_ID = "nodeId";
+
   @Override
+  @JsonIgnore
   public DssComponentKey getComponentKey() {
     return DssComponentKey.LOCATION_STATE;
   }

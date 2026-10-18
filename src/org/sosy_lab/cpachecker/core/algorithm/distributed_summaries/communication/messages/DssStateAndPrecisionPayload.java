@@ -8,5 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-public record DssStateAndPrecisionPayload(DssStatePayload state, DssPrecisionPayload precision) {}
+@JsonPropertyOrder({DssStateAndPrecisionPayload.STATE, DssStateAndPrecisionPayload.PRECISION})
+public record DssStateAndPrecisionPayload(
+    @JsonProperty(DssStateAndPrecisionPayload.STATE) DssStatePayload state,
+    @JsonProperty(DssStateAndPrecisionPayload.PRECISION) DssPrecisionPayload precision) {
+  public static final String STATE = "state";
+  public static final String PRECISION = "precision";
+}

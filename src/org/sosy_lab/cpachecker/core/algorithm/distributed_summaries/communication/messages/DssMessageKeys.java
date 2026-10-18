@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-
 public final class DssMessageKeys {
 
   public static final String HEADER = "header";
@@ -32,6 +31,8 @@ public final class DssMessageKeys {
   public static final String EXCEPTION = "exception";
   public static final String WITNESS_TYPE = "witnessType";
   public static final String VIOLATION_PATH = "violationPath";
+
+  public static final String TYPE = "type";
 
   private DssMessageKeys() {}
 }
