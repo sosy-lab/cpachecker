@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -24,8 +25,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 public class DssMessagePayloadTest {
   private DssMessageFactory defaultFactory() throws InvalidConfigurationException {
@@ -100,12 +101,7 @@ public class DssMessagePayloadTest {
 
   @Test
   public void fromPayloadCreatesPostConditionMessageWithStatus() {
-    DssMessagePayload payload =
-        new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
-            new DssStatusPayload(true, false, true),
-            ImmutableList.of(ImmutableMap.of("dummy", "state")),
-            ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
+    DssMessagePayload payload = getPayload();
     DssMessage message = DssMessageCodec.fromPayload(payload);
 
     assertThat(message).isInstanceOf(DssPostConditionMessage.class);
@@ -117,14 +113,23 @@ public class DssMessagePayloadTest {
         .isEqualTo(AlgorithmStatus.SOUND_AND_IMPRECISE);
   }
 
+  private static @NonNull DssMessagePayload getPayload() {
+    DssStatePayload statePayload = new DssLocationStatePayload(1);
+    DssPrecisionPayload precisionPayload = DssNoPrecisionPayload.INSTANCE;
+    DssStateAndPrecisionPayload stateAndPrecisionPayload =
+        new DssStateAndPrecisionPayload(statePayload, precisionPayload);
+    return new DssMessagePayload(
+        new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
+        new DssStatusPayload(true, false, true),
+        ImmutableList.of(
+            ImmutableMap.of(
+                DssComponentKey.LOCATION_STATE.getSerializedName(), stateAndPrecisionPayload)),
+        ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
+  }
+
   @Test
   public void writeJsonCreatesJsonFile() throws IOException {
-    DssMessagePayload payload =
-        new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessage.DssMessageType.RESULT, "123", 0),
-            null,
-            ImmutableList.<ImmutableMap<String, String>>of(),
-            ImmutableMap.of(DssMessageKeys.RESULT, "true"));
+    DssMessagePayload payload = getPayload();
     Path file = tempFolder.getRoot().toPath().resolve("missing/message.json");
 
     payload.writeJson(file);
@@ -182,10 +187,9 @@ public class DssMessagePayloadTest {
                 AlgorithmStatus.SOUND_AND_IMPRECISE,
                 ImmutableList.of(
                     ImmutableMap.of(
-                        DssComponentKey.serializedNameFor(LocationState.class)
-                            + "."
-                            + DssMessageKeys.STATE,
-                        "42")));
+                        DssComponentKey.LOCATION_STATE.getSerializedName(),
+                        new DssStateAndPrecisionPayload(
+                            new DssLocationStatePayload(42), DssNoPrecisionPayload.INSTANCE))));
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssViolationConditionMessage.class);
@@ -203,10 +207,9 @@ public class DssMessagePayloadTest {
                 "B1",
                 ImmutableList.of(
                     ImmutableMap.of(
-                        DssComponentKey.serializedNameFor(LocationState.class)
-                            + "."
-                            + DssMessageKeys.STATE,
-                        "42")));
+                        DssComponentKey.LOCATION_STATE.getSerializedName(),
+                        new DssStateAndPrecisionPayload(
+                            new DssLocationStatePayload(42), DssNoPrecisionPayload.INSTANCE))));
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssCorrectnessWitnessMessage.class);
@@ -220,7 +223,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
             null,
-            ImmutableList.<ImmutableMap<String, String>>of(),
+            ImmutableList.<ImmutableMap<String, DssStateAndPrecisionPayload>>of(),
             ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));
@@ -232,7 +235,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessage.DssMessageType.RESULT, "123", 0),
             new DssStatusPayload(true, true, true),
-            ImmutableList.<ImmutableMap<String, String>>of(),
+            ImmutableList.<ImmutableMap<String, DssStateAndPrecisionPayload>>of(),
             ImmutableMap.of(DssMessageKeys.RESULT, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));

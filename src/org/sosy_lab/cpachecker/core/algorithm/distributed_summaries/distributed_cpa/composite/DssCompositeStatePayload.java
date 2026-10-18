@@ -18,4 +18,9 @@ public record DssCompositeStatePayload(ImmutableMap<String, DssStatePayload> com
   public DssComponentKey getComponentKey() {
     return DssComponentKey.COMPOSITE_STATE;
   }
+
+  @Override
+  public ImmutableMap<String, String> asContentMap() {
+    return null;
+  }
 }

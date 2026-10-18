@@ -8,7 +8,5 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-import java.util.Optional;
 
-public record DssStateAndPrecisionPayload(
-    DssStatePayload state, Optional<DssPrecisionPayload> precision) {}
+public record DssStateAndPrecisionPayload(DssStatePayload state, DssPrecisionPayload precision) {}

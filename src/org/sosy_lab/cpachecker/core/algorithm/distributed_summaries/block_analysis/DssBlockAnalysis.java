@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssNoPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
@@ -635,11 +634,7 @@ public final class DssBlockAnalysis {
       DssPrecisionPayload precisionPayload =
           dcpa.getSerializePrecisionOperator().serializePrecision(stateAndPrecision.precision());
       DssStateAndPrecisionPayload stateAndPrecisionPayload =
-          new DssStateAndPrecisionPayload(
-              statePayload,
-              precisionPayload instanceof DssNoPrecisionPayload
-                  ? Optional.empty()
-                  : Optional.of(precisionPayload));
+          new DssStateAndPrecisionPayload(statePayload, precisionPayload);
       ImmutableMap<String, DssStateAndPrecisionPayload> content =
           ImmutableMap.<String, DssStateAndPrecisionPayload>builder()
               .put(

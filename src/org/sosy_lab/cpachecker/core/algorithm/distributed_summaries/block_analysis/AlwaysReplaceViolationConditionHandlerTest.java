@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssNoPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -59,7 +60,7 @@ public class AlwaysReplaceViolationConditionHandlerTest {
                 ImmutableMap.of(
                     DssComponentKey.LOCATION_STATE.getSerializedName(),
                     new DssStateAndPrecisionPayload(
-                        new DssLocationStatePayload(1), Optional.empty()))));
+                        new DssLocationStatePayload(1), DssNoPrecisionPayload.INSTANCE))));
     DssViolationConditionMessage messageBX =
         messageFactory.createViolationConditionMessage(
             senderB,
@@ -68,7 +69,7 @@ public class AlwaysReplaceViolationConditionHandlerTest {
                 ImmutableMap.of(
                     DssComponentKey.LOCATION_STATE.getSerializedName(),
                     new DssStateAndPrecisionPayload(
-                        new DssLocationStatePayload(2), Optional.empty()))));
+                        new DssLocationStatePayload(2), DssNoPrecisionPayload.INSTANCE))));
     DssViolationConditionMessage messageAY =
         messageFactory.createViolationConditionMessage(
             senderA,
@@ -77,7 +78,7 @@ public class AlwaysReplaceViolationConditionHandlerTest {
                 ImmutableMap.of(
                     DssComponentKey.LOCATION_STATE.getSerializedName(),
                     new DssStateAndPrecisionPayload(
-                        new DssLocationStatePayload(3), Optional.empty()))));
+                        new DssLocationStatePayload(3), DssNoPrecisionPayload.INSTANCE))));
 
     DssBlockAnalysis analysis = mock(DssBlockAnalysis.class);
     DistributedConfigurableProgramAnalysis dcpa =

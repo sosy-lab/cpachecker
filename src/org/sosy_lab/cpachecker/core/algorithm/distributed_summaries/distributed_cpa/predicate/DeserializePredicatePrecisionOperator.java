@@ -108,8 +108,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
                         .getStates()
                         .get(pStateIndex)
                         .get(DssComponentKey.serializedNameFor(PredicateAbstractState.class)))
-                .precision()
-                .get();
+                .precision();
     return new PredicatePrecision(
         parseLocationInstances(payload.locationInstances()),
         parseLocalPredicates(payload.localPredicates()),
