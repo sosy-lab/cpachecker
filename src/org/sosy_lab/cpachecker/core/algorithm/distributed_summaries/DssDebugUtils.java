@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.RecordComponent;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,13 +27,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -42,8 +41,6 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssHeaderPayload;
@@ -51,10 +48,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssNoPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatusPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
@@ -64,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DssBlockStatePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -689,49 +686,147 @@ public final class DssDebugUtils {
     return body.toString();
   }
 
-  private static String renderStateContent(ImmutableMap<String, String> pStateContent) {
-    Map<String, Map<String, String>> components = new LinkedHashMap<>();
-
-    for (Entry<String, String> entry : pStateContent.entrySet()) {
-      ComponentKey key = ComponentKey.parse(entry.getKey());
-
-      if (key == null) {
-        components
-            .computeIfAbsent("?", unused -> new LinkedHashMap<>())
-            .put(entry.getKey(), entry.getValue());
-        continue;
-      }
-
-      components
-          .computeIfAbsent(key.component(), unused -> new LinkedHashMap<>())
-          .put(key.field(), entry.getValue());
-    }
-
+  private static String renderStateContent(
+      ImmutableMap<String, DssStateAndPrecisionPayload> pStateContent) {
     List<List<String>> rows = new ArrayList<>();
-    for (Entry<String, Map<String, String>> component : components.entrySet()) {
-      boolean hasReadable = component.getValue().containsKey("readable");
+    for (Entry<String, DssStateAndPrecisionPayload> component : pStateContent.entrySet()) {
+      addPayloadRows(rows, "state", component.getKey(), component.getValue().state());
+      addPayloadRows(rows, "precision", component.getKey(), component.getValue().precision());
+    }
+    return table(ImmutableList.of("kind", "cpa", "field", "value"), rows);
+  }
 
-      for (Entry<String, String> field : component.getValue().entrySet()) {
-        rows.add(
-            ImmutableList.of(
-                component.getKey(),
-                field.getKey(),
-                renderContentValue(field.getKey(), field.getValue(), hasReadable)));
+  private static void addPayloadRows(
+      List<List<String>> pRows, String pKind, String pComponent, Object pPayload) {
+    if (pPayload instanceof DssNoPrecisionPayload) {
+      return;
+    }
+
+    boolean hasReadable = hasNonNullRecordComponent(pPayload, "readableFormula");
+    addStructuredRows(pRows, pKind, pComponent, "", pPayload, hasReadable);
+
+    if (pPayload instanceof DssBlockStatePayload blockStatePayload) {
+      pRows.add(
+          ImmutableList.of(
+              pKind,
+              pComponent,
+              "-> decoded",
+              decodeBlockState(blockStatePayload.getWitnessString())));
+    }
+  }
+
+  private static void addStructuredRows(
+      List<List<String>> pRows,
+      String pKind,
+      String pComponent,
+      String pPath,
+      @Nullable Object pValue,
+      boolean pHasReadable) {
+    if (pValue == null) {
+      pRows.add(ImmutableList.of(pKind, pComponent, pPath, "<absent>"));
+      return;
+    }
+    if (pValue instanceof DssNoPrecisionPayload) {
+      return;
+    }
+    if (pValue instanceof Record record) {
+      RecordComponent[] components = record.getClass().getRecordComponents();
+      if (components == null) {
+        addScalarRow(pRows, pKind, pComponent, pPath, pValue, pHasReadable);
+        return;
       }
-      String blockStateValue = component.getValue().get("state");
-      if (DssComponentKey.serializedNameFor(BlockState.class).equals(component.getKey())
-          && blockStateValue != null) {
-        rows.add(ImmutableList.of("", "-> decoded", decodeBlockState(blockStateValue)));
+      for (RecordComponent component : components) {
+        String path = joinPath(pPath, component.getName());
+        try {
+          addStructuredRows(
+              pRows,
+              pKind,
+              pComponent,
+              path,
+              component.getAccessor().invoke(record),
+              pHasReadable);
+        } catch (ReflectiveOperationException e) {
+          pRows.add(ImmutableList.of(pKind, pComponent, path, "<unavailable: " + e + ">"));
+        }
+      }
+      return;
+    }
+    if (pValue instanceof Map<?, ?> map) {
+      for (Entry<?, ?> entry : map.entrySet()) {
+        addStructuredRows(
+            pRows,
+            pKind,
+            pComponent,
+            joinPath(pPath, "[" + entry.getKey() + "]"),
+            entry.getValue(),
+            pHasReadable);
+      }
+      return;
+    }
+    if (pValue instanceof Iterable<?> iterable) {
+      int index = 0;
+      for (Object value : iterable) {
+        addStructuredRows(
+            pRows,
+            pKind,
+            pComponent,
+            joinPath(pPath, "[" + index++ + "]"),
+            value,
+            pHasReadable);
+      }
+      return;
+    }
+    addScalarRow(pRows, pKind, pComponent, pPath, pValue, pHasReadable);
+  }
+
+  private static void addScalarRow(
+      List<List<String>> pRows,
+      String pKind,
+      String pComponent,
+      String pPath,
+      Object pValue,
+      boolean pHasReadable) {
+    String field = lastPathPart(pPath);
+    String value = String.valueOf(pValue);
+    pRows.add(
+        ImmutableList.of(
+            pKind, pComponent, pPath, renderContentValue(field, value, pHasReadable)));
+  }
+
+  private static boolean hasNonNullRecordComponent(Object pValue, String pName) {
+    if (!(pValue instanceof Record record)) {
+      return false;
+    }
+    RecordComponent[] components = record.getClass().getRecordComponents();
+    if (components == null) {
+      return false;
+    }
+    for (RecordComponent component : components) {
+      if (component.getName().equals(pName)) {
+        try {
+          return component.getAccessor().invoke(record) != null;
+        } catch (ReflectiveOperationException e) {
+          return false;
+        }
       }
     }
-    return table(ImmutableList.of("cpa", "field", "value"), rows);
+    return false;
+  }
+
+  private static String joinPath(String pPrefix, String pPart) {
+    return pPrefix.isEmpty() ? pPart : pPrefix + "." + pPart;
+  }
+
+  private static String lastPathPart(String pPath) {
+    int dot = pPath.lastIndexOf('.');
+    return dot < 0 ? pPath : pPath.substring(dot + 1);
   }
 
   private static String renderContentValue(String pField, String pValue, boolean pHasReadable) {
     if (OPAQUE_FIELDS.contains(pField)) {
       return "<opaque blob, " + pValue.length() + " chars, elided>";
     }
-    if (pHasReadable && "state".equals(pField)) {
+    if (pHasReadable && ("state".equals(pField) || "formula".equals(pField))) {
       return "<smt2, " + pValue.length() + " chars; see 'readable'>";
     }
     if (pValue.isEmpty()) {
@@ -868,48 +963,110 @@ public final class DssDebugUtils {
       String pPrefix,
       ImmutableMap<String, DssStateAndPrecisionPayload> pLeft,
       ImmutableMap<String, DssStateAndPrecisionPayload> pRight) {
-    ImmutableMap<String, DssStatePayload> leftStates =
-        pLeft.entrySet().stream()
-            .collect(
-                ImmutableMap.toImmutableMap(Map.Entry::getKey, entry -> entry.getValue().state()));
-    ImmutableMap<String, DssStatePayload> rightStates =
-        pRight.entrySet().stream()
-            .collect(
-                ImmutableMap.toImmutableMap(Map.Entry::getKey, entry -> entry.getValue().state()));
-
-    ImmutableSet<String> stateKeys =
+    ImmutableSet<String> componentKeys =
         ImmutableSet.<String>builder()
-            .addAll(leftStates.keySet())
-            .addAll(rightStates.keySet())
+            .addAll(pLeft.keySet())
+            .addAll(pRight.keySet())
             .build();
 
-    for (String stateKey : stateKeys) {
-      DssStatePayload leftState = leftStates.get(stateKey);
-      DssStatePayload rightState = rightStates.get(stateKey);
-      // TODO add sensible diff statements
+    for (String componentKey : componentKeys) {
+      DssStateAndPrecisionPayload leftPayload = pLeft.get(componentKey);
+      DssStateAndPrecisionPayload rightPayload = pRight.get(componentKey);
 
+      if (leftPayload == null || rightPayload == null) {
+        addDiffRow(
+            pRows,
+            pPrefix + "." + componentKey,
+            leftPayload == null ? null : "<present>",
+            rightPayload == null ? null : "<present>");
+        continue;
+      }
+
+      addPayloadDiff(
+          pRows,
+          pPrefix + "." + componentKey + ".state",
+          leftPayload.state(),
+          rightPayload.state());
+      addPrecisionDiff(
+          pRows,
+          pPrefix + "." + componentKey + ".precision",
+          leftPayload.precision(),
+          rightPayload.precision());
+    }
+  }
+
+  private static void addPayloadDiff(
+      List<List<String>> pRows, String pPrefix, Object pLeft, Object pRight) {
+    addStructuredDiff(pRows, pPrefix, pLeft, pRight);
+  }
+
+  private static void addPrecisionDiff(
+      List<List<String>> pRows, String pPrefix, Object pLeft, Object pRight) {
+    addStructuredDiff(pRows, pPrefix, pLeft, pRight);
+  }
+
+  private static void addStructuredDiff(
+      List<List<String>> pRows, String pPath, @Nullable Object pLeft, @Nullable Object pRight) {
+    if (Objects.equals(pLeft, pRight)) {
+      return;
     }
 
-    ImmutableMap<String, DssPrecisionPayload> leftPrecisions =
-        pLeft.entrySet().stream()
-            .flatMap(
-                entry ->
-                    entry.getValue().precision().stream()
-                        .map(
-                            precision ->
-                                Map.entry(
-                                    entry.getKey(), (DssComponentPrecisionPayload) precision)))
-            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-    ImmutableMap<String, DssPrecisionPayload> rightPrecisions =
-        pRight.entrySet().stream()
-            .flatMap(
-                entry ->
-                    entry.getValue().precision().stream()
-                        .map(
-                            precision ->
-                                Map.entry(
-                                    entry.getKey(), (DssComponentPrecisionPayload) precision)))
-            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+    if (pLeft == null || pRight == null) {
+      addDiffRow(pRows, pPath, pLeft, pRight);
+      return;
+    }
+    if (pLeft instanceof DssNoPrecisionPayload || pRight instanceof DssNoPrecisionPayload) {
+      addDiffRow(pRows, pPath, pLeft, pRight);
+      return;
+    }
+    if (pLeft instanceof Record leftRecord && pRight instanceof Record rightRecord) {
+      if (!pLeft.getClass().equals(pRight.getClass())) {
+        addDiffRow(pRows, pPath, pLeft, pRight);
+        return;
+      }
+      RecordComponent[] components = leftRecord.getClass().getRecordComponents();
+      if (components == null) {
+        addDiffRow(pRows, pPath, pLeft, pRight);
+        return;
+      }
+      for (RecordComponent component : components) {
+        try {
+          addStructuredDiff(
+              pRows,
+              joinPath(pPath, component.getName()),
+              component.getAccessor().invoke(leftRecord),
+              component.getAccessor().invoke(rightRecord));
+        } catch (ReflectiveOperationException e) {
+          addDiffRow(pRows, joinPath(pPath, component.getName()), "<unavailable>", e);
+        }
+      }
+      return;
+    }
+    if (pLeft instanceof Map<?, ?> leftMap && pRight instanceof Map<?, ?> rightMap) {
+      Set<Object> keys = new LinkedHashSet<>(leftMap.keySet());
+      keys.addAll(rightMap.keySet());
+      for (Object key : keys) {
+        addStructuredDiff(
+            pRows,
+            joinPath(pPath, "[" + key + "]"),
+            leftMap.get(key),
+            rightMap.get(key));
+      }
+      return;
+    }
+    if (pLeft instanceof List<?> leftList && pRight instanceof List<?> rightList) {
+      int maxSize = Math.max(leftList.size(), rightList.size());
+      for (int i = 0; i < maxSize; i++) {
+        addStructuredDiff(
+            pRows,
+            joinPath(pPath, "[" + i + "]"),
+            i < leftList.size() ? leftList.get(i) : null,
+            i < rightList.size() ? rightList.get(i) : null);
+      }
+      return;
+    }
+
+    addDiffRow(pRows, pPath, pLeft, pRight);
   }
 
   private static void addContentDiff(
@@ -945,6 +1102,9 @@ public final class DssDebugUtils {
     if (pValue == null) {
       return "<absent>";
     }
+    if (pValue instanceof DssNoPrecisionPayload) {
+      return "<none>";
+    }
     String value = String.valueOf(pValue);
     String fieldName = pField.substring(pField.lastIndexOf('.') + 1);
     if (OPAQUE_FIELDS.contains(fieldName)) {
@@ -955,23 +1115,6 @@ public final class DssDebugUtils {
     }
     // Narrower than shortValue: a diff has two value columns side by side.
     return abbreviate(singleLine(value), DEFAULT_MAX_VALUE_LENGTH / 2);
-  }
-
-  /** A parsed message-content key of the shape {@code <component>.<field>}. */
-  private record ComponentKey(String component, String field) {
-
-    static @Nullable ComponentKey parse(String pKey) {
-      int dot = pKey.indexOf('.');
-      if (dot < 0) {
-        return null;
-      }
-      String serializedName = pKey.substring(0, dot);
-      Optional<DssComponentKey> componentKey = DssComponentKey.tryForSerializedName(serializedName);
-      return componentKey.isPresent()
-          ? new ComponentKey(
-              componentKey.orElseThrow().getSerializedName(), pKey.substring(dot + 1))
-          : null;
-    }
   }
 
   // ===================================================================================
