@@ -45,6 +45,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -1248,21 +1249,20 @@ public class InvariantsState
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
+    FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+        ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
         pFormula ->
             pFormula instanceof Variable
                 && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
-                    || !pAstCfaRelation
-                        .getVariablesAndParametersInScope(pLocation)
-                        .orElseThrow()
-                        .anyMatch(
-                            variableDeclaration ->
-                                variableDeclaration
-                                    .getQualifiedName()
-                                    .equals(
-                                        ((Variable<?>) pFormula)
-                                            .getMemoryLocation()
-                                            .getQualifiedName())));
+                    || !variablesInScope.anyMatch(
+                        variableDeclaration ->
+                            variableDeclaration
+                                .getQualifiedName()
+                                .equals(
+                                    ((Variable<?>) pFormula)
+                                        .getMemoryLocation()
+                                        .getQualifiedName())));
 
     return getFormulaApproximation(
         pFunctionScope,
