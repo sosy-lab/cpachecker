@@ -21,6 +21,7 @@ builtin_overflow_functions/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
 witness_output/*.yml
+witness_validation/*.yml
 type_tests/*.yml
 pointer_arithmetics/*.yml
 function_pointers/*.yml

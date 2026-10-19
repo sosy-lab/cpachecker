@@ -27,7 +27,18 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
 
   private String CONCURRENCY_TEST_DIR_PATH = "test/programs/witness-v2-validation/concurrency";
 
+  private String PROGRAMS_PATH = "test/programs/simple/witness_validation";
+
   private String SPECIFICATION_PATH = "config/properties/";
+
+  /** The overflow happens in the condition of an if statement, before its branch is taken. */
+  @Test(timeout = 9000)
+  public void validate_overflow_in_condition_roundtrip() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "overflow-in-condition.c");
+    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath);
+  }
 
   @Test(timeout = 3000)
   public void validate_unreach_call_concurrency() throws Exception {
