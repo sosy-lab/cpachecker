@@ -8,6 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-public enum DssNoPrecisionPayload implements DssPrecisionPayload {
-  INSTANCE
+public record DssNoPrecisionPayload() implements DssPrecisionPayload {
+  public static final DssNoPrecisionPayload INSTANCE = new DssNoPrecisionPayload();
 }
