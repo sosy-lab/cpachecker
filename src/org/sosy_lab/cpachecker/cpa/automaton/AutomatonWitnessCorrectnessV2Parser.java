@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
@@ -236,7 +235,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
         cfa.getAstCfaRelation()
             .getIterationStructureFollowingColumnAtTheSameLine(
                 pInvariant.column(), pInvariant.line())
-            .flatMap(IterationElement::getLoopHead)
+            .flatMap(loop -> cfa.getLoopStructure().flatMap(loop::getLoopHead))
             .map(loopHead -> new CheckEndsAtNodes(ImmutableSet.of(loopHead)));
     if (check.isEmpty()) {
       logUnmatchedInvariant(pInvariant, "there is no loop at this location");

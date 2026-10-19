@@ -131,6 +131,60 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
         Result.FALSE);
   }
 
+  /** The side effect of the loop condition lies between the loop head and the condition. */
+  @Test(timeout = 3000)
+  public void validate_valid_loop_invariant_of_condition_with_side_effect() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("loop-with-side-effect.c"),
+        "loop-with-side-effect-valid-loop-invariant.yml",
+        Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_invalid_loop_invariant_of_condition_with_side_effect() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("loop-with-side-effect.c"),
+        "loop-with-side-effect-invalid-loop-invariant.yml",
+        Result.FALSE);
+  }
+
+  /**
+   * A loop invariant holds before the evaluation of the controlling expression, which is after the
+   * body for a do-while loop.
+   */
+  @Test(timeout = 3000)
+  public void validate_valid_loop_invariant_of_do_while_loop() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("do-while-loop.c"),
+        "do-while-loop-valid-loop-invariant.yml",
+        Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_invalid_loop_invariant_of_do_while_loop() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("do-while-loop.c"),
+        "do-while-loop-invalid-loop-invariant.yml",
+        Result.FALSE);
+  }
+
+  /** The exported loop invariants must be checked at the loop heads they were exported for. */
+  @Test(timeout = 9000)
+  public void validate_loop_with_side_effect_roundtrip() throws Exception {
+    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+        PROGRAMS_PATH.resolve("loop-with-side-effect.c"),
+        Result.TRUE,
+        Path.of(SPECIFICATION_PATH, "no-overflow.prp"));
+  }
+
+  @Test(timeout = 9000)
+  public void validate_do_while_loop_roundtrip() throws Exception {
+    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+        PROGRAMS_PATH.resolve("do-while-loop.c"),
+        Result.TRUE,
+        Path.of(SPECIFICATION_PATH, "no-overflow.prp"));
+  }
+
   /** Transition invariants used to be rejected in version 2.2, they were only allowed in 2.1. */
   @Test(timeout = 3000)
   public void validate_witness_v2d2_transition_invariant() throws Exception {

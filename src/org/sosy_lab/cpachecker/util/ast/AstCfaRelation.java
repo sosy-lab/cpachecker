@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 
 /** Contains information relating the CFA to the AST of the program. */
 public final class AstCfaRelation {
@@ -195,14 +196,25 @@ public final class AstCfaRelation {
    * @return the node that starts the iteration statement at the given line and column if it could
    *     be uniquely determined
    */
-  public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
+  public Optional<CFANode> getNodeForIterationStatementLocation(
+      int line, int column, LoopStructure pLoopStructure) {
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().location().getStartingLineInOrigin() == line
           && structure.getCompleteElement().location().getStartColumnInLine() == column) {
-        return structure.getLoopHead();
+        return structure.getLoopHead(pLoopStructure);
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns the nodes at which loop invariants hold, i.e., the nodes given by {@link
+   * IterationElement#getLoopHead} for all iteration statements.
+   */
+  public ImmutableSet<CFANode> getLoopInvariantNodes(LoopStructure pLoopStructure) {
+    return FluentIterable.from(iterationStructures)
+        .transformAndConcat(loop -> loop.getLoopHead(pLoopStructure).stream().toList())
+        .toSet();
   }
 
   /**
