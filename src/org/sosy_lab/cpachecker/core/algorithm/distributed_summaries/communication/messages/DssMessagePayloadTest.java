@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DssCallstackEntryPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DssCallstackStatePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DssCompositePrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DssCompositeStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DssBlockStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DssFunctionPointerEntryPayload;
@@ -200,19 +201,29 @@ public class DssMessagePayloadTest {
   @Test
   public void compositeStateRoundTripPreservesLocationAndCallstackPayloads()
       throws InvalidConfigurationException, IOException {
-    DssCallstackStatePayload callstackPayload =
-        new DssCallstackStatePayload(
-            true,
-            ImmutableList.of(
-                new DssCallstackEntryPayload(12, "main"),
-                new DssCallstackEntryPayload(27, "helper")));
+    DssPredicateStatePayload predicateStatePayload =
+        new DssPredicateStatePayload(
+            "x == 0", ImmutableMap.of("x", new DssSSAVariablePayload(3, "int")), "pts-1", "x == 0");
+    DssPredicatePrecisionPayload predicatePrecisionPayload =
+        new DssPredicatePrecisionPayload(
+            ImmutableMap.of(new DssLocationInstancePayload(42, 1), ImmutableSet.of("x == 0")),
+            ImmutableMap.of(42, ImmutableSet.of("x == 1")),
+            ImmutableMap.of("main", ImmutableSet.of("x == 2")),
+            ImmutableSet.of("x == 3"));
     DssCompositeStatePayload originalCompositePayload =
         new DssCompositeStatePayload(
             ImmutableMap.of(
                 DssComponentKey.LOCATION_STATE.getSerializedName(),
                 new DssLocationStatePayload(42),
-                DssComponentKey.CALLSTACK_STATE.getSerializedName(),
-                callstackPayload));
+                DssComponentKey.PREDICATE_STATE.getSerializedName(),
+                predicateStatePayload));
+    DssCompositePrecisionPayload originalCompositePrecisionPayload =
+        new DssCompositePrecisionPayload(
+            ImmutableMap.of(
+                DssComponentKey.LOCATION_STATE.getSerializedName(),
+                DssNoPrecisionPayload.INSTANCE,
+                DssComponentKey.PREDICATE_PRECISION.getSerializedName(),
+                predicatePrecisionPayload));
     DssPostConditionMessage original =
         defaultFactory()
             .createDssPostConditionMessage(
@@ -222,7 +233,7 @@ public class DssMessagePayloadTest {
                     ImmutableMap.of(
                         DssComponentKey.COMPOSITE_STATE.getSerializedName(),
                         new DssStateAndPrecisionPayload(
-                            originalCompositePayload, DssNoPrecisionPayload.INSTANCE))));
+                            originalCompositePayload, originalCompositePrecisionPayload))));
 
     DssMessage parsed = roundTrip(original);
 
@@ -231,7 +242,7 @@ public class DssMessagePayloadTest {
     DssStateAndPrecisionPayload parsedStateAndPrecision =
         parsedPost.getStates().getFirst().get(DssComponentKey.COMPOSITE_STATE.getSerializedName());
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCompositePayload);
-    assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
+    assertThat(parsedStateAndPrecision.precision()).isEqualTo(originalCompositePrecisionPayload);
   }
 
   @Test

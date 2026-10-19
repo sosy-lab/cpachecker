@@ -8,8 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
 
-public record DssCompositePrecisionPayload(ImmutableMap<String, DssPrecisionPayload> components)
-    implements DssPrecisionPayload {}
+public record DssCompositePrecisionPayload(
+    @JsonProperty(COMPONENTS) ImmutableMap<String, DssPrecisionPayload> components)
+    implements DssPrecisionPayload {
+  public static final String COMPONENTS = "components";
+
+  @JsonCreator
+  DssCompositePrecisionPayload(
+      @JsonProperty(COMPONENTS) Map<String, DssPrecisionPayload> pComponents) {
+    this(ImmutableMap.copyOf(pComponents));
+  }
+}
