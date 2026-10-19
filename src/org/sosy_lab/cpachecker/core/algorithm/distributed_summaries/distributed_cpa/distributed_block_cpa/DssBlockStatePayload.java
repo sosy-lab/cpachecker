@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -20,8 +24,29 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
-public record DssBlockStatePayload(String blockId, String witness, ImmutableList<String> history)
+@JsonPropertyOrder({
+  DssBlockStatePayload.BLOCK_ID,
+  DssBlockStatePayload.WITNESS,
+  DssBlockStatePayload.HISTORY
+})
+public record DssBlockStatePayload(
+    @JsonProperty(BLOCK_ID) String blockId,
+    @JsonProperty(WITNESS) String witness,
+    @JsonProperty(HISTORY) ImmutableList<String> history)
     implements DssStatePayload {
+  public static final String BLOCK_ID = "blockId";
+  public static final String WITNESS = "witness";
+  public static final String HISTORY = "history";
+
+  @JsonCreator
+  DssBlockStatePayload(
+      @JsonProperty(BLOCK_ID) String pBlockId,
+      @JsonProperty(WITNESS) String pWitness,
+      @JsonProperty(HISTORY) List<String> pHistory) {
+    this(pBlockId, pWitness, ImmutableList.copyOf(pHistory));
+  }
+
+  @JsonIgnore
   @Override
   public DssComponentKey getComponentKey() {
     return DssComponentKey.BLOCK_STATE;
@@ -35,6 +60,7 @@ public record DssBlockStatePayload(String blockId, String witness, ImmutableList
         getComponentKey().getSerializedName() + "." + DssMessageKeys.STATE, blockId() + suffix);
   }
 
+  @JsonIgnore
   public String getWitnessString() {
     String suffix = " W:" + witness();
     suffix = suffix + (history().isEmpty() ? "" : " H:" + Joiner.on(",").join(history()));

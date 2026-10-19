@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 
 public record DssLocationStatePayload(@JsonProperty(NODE_ID) int nodeId)
     implements DssStatePayload {
-  @JsonIgnore public static final String NODE_ID = "nodeId";
+  public static final String NODE_ID = "nodeId";
 
   @Override
   @JsonIgnore

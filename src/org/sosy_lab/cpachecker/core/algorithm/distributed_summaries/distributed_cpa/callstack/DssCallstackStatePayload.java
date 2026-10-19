@@ -30,8 +30,8 @@ public record DssCallstackStatePayload(
     @JsonProperty(ALLOW_TRANSFERS) boolean allowAllTransfers,
     @JsonProperty(STATES) ImmutableList<DssCallstackEntryPayload> states)
     implements DssStatePayload {
-  @JsonIgnore public static final String ALLOW_TRANSFERS = "allowAllTransfers";
-  @JsonIgnore public static final String STATES = "states";
+  public static final String ALLOW_TRANSFERS = "allowAllTransfers";
+  public static final String STATES = "states";
 
   @JsonCreator
   public DssCallstackStatePayload(

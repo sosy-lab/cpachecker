@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DssCallstackEntryPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DssCallstackStatePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DssCompositeStatePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DssBlockStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 
@@ -188,6 +190,76 @@ public class DssMessagePayloadTest {
             .getFirst()
             .get(DssComponentKey.CALLSTACK_STATE.getSerializedName());
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCallstackPayload);
+    assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
+  }
+
+  @Test
+  public void compositeStateRoundTripPreservesLocationAndCallstackPayloads()
+      throws InvalidConfigurationException, IOException {
+    DssCallstackStatePayload callstackPayload =
+        new DssCallstackStatePayload(
+            true,
+            ImmutableList.of(
+                new DssCallstackEntryPayload(12, "main"),
+                new DssCallstackEntryPayload(27, "helper")));
+    DssCompositeStatePayload originalCompositePayload =
+        new DssCompositeStatePayload(
+            ImmutableMap.of(
+                DssComponentKey.LOCATION_STATE.getSerializedName(),
+                new DssLocationStatePayload(42),
+                DssComponentKey.CALLSTACK_STATE.getSerializedName(),
+                callstackPayload));
+    DssPostConditionMessage original =
+        defaultFactory()
+            .createDssPostConditionMessage(
+                "B1",
+                AlgorithmStatus.SOUND_AND_PRECISE,
+                ImmutableList.of(
+                    ImmutableMap.of(
+                        DssComponentKey.COMPOSITE_STATE.getSerializedName(),
+                        new DssStateAndPrecisionPayload(
+                            originalCompositePayload, DssNoPrecisionPayload.INSTANCE))));
+
+    DssMessage parsed = roundTrip(original);
+
+    assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
+    DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
+    DssStateAndPrecisionPayload parsedStateAndPrecision =
+        parsedPost
+            .getStates()
+            .getFirst()
+            .get(DssComponentKey.COMPOSITE_STATE.getSerializedName());
+    assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCompositePayload);
+    assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
+  }
+
+  @Test
+  public void blockStateRoundTripPreservesPayload()
+      throws InvalidConfigurationException, IOException {
+    DssBlockStatePayload originalBlockPayload =
+        new DssBlockStatePayload(
+            "block-1", "witness", ImmutableList.of("entry", "loop", "exit"));
+    DssPostConditionMessage original =
+        defaultFactory()
+            .createDssPostConditionMessage(
+                "B1",
+                AlgorithmStatus.SOUND_AND_PRECISE,
+                ImmutableList.of(
+                    ImmutableMap.of(
+                        DssComponentKey.BLOCK_STATE.getSerializedName(),
+                        new DssStateAndPrecisionPayload(
+                            originalBlockPayload, DssNoPrecisionPayload.INSTANCE))));
+
+    DssMessage parsed = roundTrip(original);
+
+    assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
+    DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
+    DssStateAndPrecisionPayload parsedStateAndPrecision =
+        parsedPost
+            .getStates()
+            .getFirst()
+            .get(DssComponentKey.BLOCK_STATE.getSerializedName());
+    assertThat(parsedStateAndPrecision.state()).isEqualTo(originalBlockPayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
 
