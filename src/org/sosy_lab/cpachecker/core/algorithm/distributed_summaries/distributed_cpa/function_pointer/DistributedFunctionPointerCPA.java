@@ -53,7 +53,7 @@ public class DistributedFunctionPointerCPA
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
-            pParentCPA.getTransferRelation(), pParentCPA);
+            pParentCPA.getTransferRelation(), pParentCPA, serialize);
     coverageOperator = new FunctionPointerStateCoverageOperator();
     FunctionPointerStateCombinePreconditionsOperator combination =
         new FunctionPointerStateCombinePreconditionsOperator();

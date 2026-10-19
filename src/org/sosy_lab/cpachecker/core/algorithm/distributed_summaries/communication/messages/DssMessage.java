@@ -118,17 +118,13 @@ public abstract class DssMessage {
   }
 
   private ContentReader getArbitraryContent(String pKey) {
-    return getArbitraryContent(pKey, content);
-  }
-
-  private ContentReader getArbitraryContent(String pKey, Map<String, String> pContent) {
     checkArgument(
         type == DssMessageType.POST_CONDITION
             || type == DssMessageType.VIOLATION_CONDITION
             || type == DssMessageType.WITNESS,
         "Cannot get content for type: %s",
         type);
-    Map<String, String> stateContent = ContentReader.read(pContent).pushLevel(pKey).getContent();
+    Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
     checkState(!stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
     checkState(
         stateContent.values().stream().noneMatch(Objects::isNull),
@@ -161,11 +157,6 @@ public abstract class DssMessage {
         return DssMessage.this.isValid(pContent);
       }
     };
-  }
-
-  /** The uncompressed immutable payload, for inspecting messages independently of wire encoding. */
-  public final ImmutableMap<String, String> getContent() {
-    return content;
   }
 
   public final ContentReader getAbstractStateContent(Class<? extends AbstractState> pType) {

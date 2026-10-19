@@ -118,8 +118,16 @@ public class DssAnalysisOptions {
 
   @Option(
       secure = true,
-      description = "Whether to cache computed, combined, and normalized violation conditions.")
+      description = "Whether to cache violation conditions normalized for comparison.")
   private boolean cacheViolationConditions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether a block without successors stops exploring after its first run. Such a block"
+              + " never receives a violation condition, and its first run, from the unconstrained"
+              + " start state, already finds every violation it can report.")
+  private boolean retireTerminalBlocks = false;
 
   @Option(
       secure = true,
@@ -196,6 +204,10 @@ public class DssAnalysisOptions {
 
   public boolean cacheViolationConditions() {
     return cacheViolationConditions;
+  }
+
+  public boolean retireTerminalBlocks() {
+    return retireTerminalBlocks;
   }
 
   public boolean compressMessages() {

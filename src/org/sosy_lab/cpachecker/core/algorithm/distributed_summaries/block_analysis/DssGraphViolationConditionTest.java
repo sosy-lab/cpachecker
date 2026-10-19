@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,21 +23,30 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph.Incoming;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.CompositeGraphViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph.PathPosition;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.PathRestrictionCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -48,24 +59,6 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DssGraphViolationConditionTest {
-  private static List<ARGPath> enumerate(DssARGPathGraph graph) {
-    List<ARGPath> result = new ArrayList<>();
-    enumerate(graph, new ArrayList<>(ImmutableList.of(graph.getLastState())), result);
-    return result;
-  }
-
-  private static void enumerate(DssARGPathGraph graph, List<ARGState> path, List<ARGPath> result) {
-    if (path.getLast() == graph.getFirstState()) {
-      result.add(new ARGPath(path.reversed()));
-      return;
-    }
-    for (Incoming parent : graph.incoming(path.getLast())) {
-      List<ARGState> next = new ArrayList<>(path);
-      next.add(parent.parent());
-      enumerate(graph, next, result);
-    }
-  }
-
   private void compare(String body) throws Exception {
     CFA cfa =
         TestCfaUtils.makeCfaFromString(
@@ -106,7 +99,12 @@ public class DssGraphViolationConditionTest {
           analysis.runInitialBlockAnalysis(root, analysis.makeStartPrecision());
       assertThat(result.getTargetStates()).isNotEmpty();
       ViolationConditionOperator operator = analysis.getDcpa().getViolationConditionOperator();
-      assertThat(operator.supportsGraph()).isTrue();
+      assertThat(
+              CompositeGraphViolationConditionOperator.of(
+                  ImmutableList.copyOf(
+                      CPAs.retrieveCPA(analysis.getDcpa(), DistributedCompositeCPA.class)
+                          .getWrappedCPAs())))
+          .isPresent();
       PredicateCPA predicateCPA =
           (PredicateCPA)
               CPAs.retrieveCPA(analysis.getDcpa(), DistributedPredicateCPA.class).getCPA();
@@ -128,14 +126,15 @@ public class DssGraphViolationConditionTest {
                 .orElseThrow();
         DssARGPathGraph graph = DssARGPathGraph.of(entry, target);
         List<BooleanFormula> expected = new ArrayList<>();
-        for (ARGPath path : enumerate(graph)) {
+        for (ARGPath path : graph.paths()) {
           paths++;
-          Optional<AbstractState> condition =
-              operator.computeViolationCondition(path, Optional.empty());
-          condition.ifPresent(state -> expected.add(normalize(state, predicateCPA)));
+          for (AbstractState condition :
+              operator.computeViolationConditions(path, Optional.empty())) {
+            expected.add(normalize(condition, predicateCPA));
+          }
         }
         List<BooleanFormula> actual =
-            operator.computeConditions(graph, Optional.empty()).stream()
+            operator.computeViolationConditions(graph, Optional.empty()).stream()
                 .map(state -> normalize(state, predicateCPA))
                 .toList();
         BooleanFormula oldUnion = bfmgr.or(expected);
@@ -172,5 +171,100 @@ public class DssGraphViolationConditionTest {
     compare(
         "int x; if (flag > 0) x = 1; else x = 2; if (flag < 5) x = x + 3; else x = x + 4; if (x =="
             + " 5) { ERROR: return 1; }");
+  }
+
+  private static CFA diamondCfa() throws Exception {
+    return TestCfaUtils.makeCfaFromString(
+        "int main(int flag) { int x; if (flag) x = 1; else x = 2;"
+            + " if (x) x++; else x--; return 0; }");
+  }
+
+  private static void collectCfaPaths(
+      CFANode node, ImmutableList<CFAEdge> prefix, List<ImmutableList<CFAEdge>> paths) {
+    if (node.getNumLeavingEdges() == 0) {
+      paths.add(prefix);
+    } else {
+      for (CFAEdge edge : node.getLeavingEdges()) {
+        collectCfaPaths(edge.getSuccessor(), listAndElement(prefix, edge), paths);
+      }
+    }
+  }
+
+  private static boolean accepts(DecisionGraph witness, CFA cfa, List<CFAEdge> path)
+      throws Exception {
+    PathRestrictionCPA cpa = (PathRestrictionCPA) PathRestrictionCPA.factory().createInstance();
+    cpa.init(witness);
+    List<AbstractState> states =
+        ImmutableList.of(
+            cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
+    for (CFAEdge edge : path) {
+      List<AbstractState> successors = new ArrayList<>();
+      for (AbstractState state : states) {
+        successors.addAll(
+            cpa.getTransferRelation()
+                .getAbstractSuccessorsForEdge(state, SingletonPrecision.getInstance(), edge));
+      }
+      states = successors;
+    }
+    return !states.isEmpty();
+  }
+
+  @Test
+  public void graphWitnessReplayPreservesCorrelatedAlternatives() throws Exception {
+    CFA cfa = diamondCfa();
+    List<ImmutableList<CFAEdge>> paths = new ArrayList<>();
+    collectCfaPaths(cfa.getMainFunction(), ImmutableList.of(), paths);
+    assertThat(paths).hasSize(4);
+    // Keep only two correlated choices; the two mixed paths must stay excluded.
+    List<ImmutableList<CFAEdge>> selected = ImmutableList.of(paths.getFirst(), paths.getLast());
+    DecisionGraph graph =
+        DecisionGraph.union(selected.stream().map(DecisionGraph.UNRESTRICTED::prepend).toList());
+    DecisionGraph roundTrip = DecisionGraph.deserialize(graph.serialize());
+    assertThat(roundTrip).isEqualTo(graph);
+    for (ImmutableList<CFAEdge> path : paths) {
+      assertThat(accepts(roundTrip, cfa, path)).isEqualTo(selected.contains(path));
+    }
+    CFAEdge first =
+        selected.getFirst().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    CFAEdge second =
+        selected.getLast().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    ImmutableMap<CFAEdge, CFAEdge> replacements = ImmutableMap.of(first, second, second, first);
+    DecisionGraph mapped = roundTrip.transformEdges(replacements);
+    DecisionGraph expected =
+        DecisionGraph.union(
+            selected.stream()
+                .map(
+                    path ->
+                        DecisionGraph.UNRESTRICTED.prepend(
+                            path.stream().map(e -> replacements.getOrDefault(e, e)).toList()))
+                .toList());
+    for (ImmutableList<CFAEdge> path : paths) {
+      assertThat(accepts(mapped, cfa, path)).isEqualTo(accepts(expected, cfa, path));
+    }
+  }
+
+  @Test
+  public void graphWitnessKeepsExponentialChoicesCompact() throws Exception {
+    CFA cfa = diamondCfa();
+    List<ImmutableList<CFAEdge>> paths = new ArrayList<>();
+    collectCfaPaths(cfa.getMainFunction(), ImmutableList.of(), paths);
+    CFAEdge first =
+        paths.getFirst().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    CFAEdge second =
+        paths.getLast().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
+    DecisionGraph graph = DecisionGraph.UNRESTRICTED;
+    for (int i = 0; i < 30; i++) {
+      graph =
+          DecisionGraph.union(
+              ImmutableList.of(
+                  graph.prepend(ImmutableList.of(first)), graph.prepend(ImmutableList.of(second))));
+    }
+    assertThat(graph.maxDecisions()).isEqualTo(30);
+    assertThat(graph.serialize().length()).isLessThan(10_000);
+    PathPosition position = DecisionGraph.deserialize(graph.serialize()).start();
+    for (int i = 0; i < 30; i++) {
+      position = position.advance(i % 2 == 0 ? first : second);
+      assertThat(position.isEmpty()).isFalse();
+    }
   }
 }

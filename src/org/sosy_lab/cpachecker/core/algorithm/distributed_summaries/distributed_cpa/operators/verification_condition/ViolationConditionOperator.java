@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -17,29 +18,24 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * Interface for operators that compute the verification condition for a given path regarding
- * previous conditions.
+ * Interface for operators that compute the violation conditions for a given path regarding previous
+ * conditions.
  */
 public interface ViolationConditionOperator {
 
   /**
-   * Compute the verification condition for the given path.
+   * Compute the violation conditions at the start of the given path.
    *
-   * @param pARGPath The path to compute the verification condition for.
+   * <p>The path may be a {@link DssARGPathGraph}, which stands for all paths it contains. The
+   * result then covers every one of them. Only the composite operator and operators wrapping it
+   * accept graphs; operators of component CPAs expect a single path.
+   *
+   * @param pARGPath The path or path graph to compute the violation conditions for.
    * @param pPreviousCondition The previous condition to consider.
-   * @return The computed verification condition. Empty if forward analysis of block does not match
+   * @return The computed violation conditions. Empty if forward analysis of block does not match
    *     the given previous condition.
    */
-  Optional<AbstractState> computeViolationCondition(
+  List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException;
-
-  default boolean supportsGraph() {
-    return false;
-  }
-
-  default List<AbstractState> computeConditions(ARGPath path, Optional<ARGState> previous)
-      throws InterruptedException, CPATransferException, SolverException {
-    return computeViolationCondition(path, previous).stream().toList();
-  }
 }

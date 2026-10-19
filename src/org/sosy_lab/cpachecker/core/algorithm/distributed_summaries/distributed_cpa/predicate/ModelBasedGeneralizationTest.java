@@ -14,12 +14,23 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
@@ -80,15 +91,36 @@ public class ModelBasedGeneralizationTest extends SolverViewBasedTest0 {
     return bv.lessThan(pLeft, pRight, true);
   }
 
-  private BooleanFormula generalize(BooleanFormula pCondition, BooleanFormula pPrecondition)
-      throws Exception {
+  private BooleanFormula generalize(BooleanFormula pCondition) throws Exception {
     return generalization
-        .generalize(
-            pCondition,
-            pPrecondition,
-            ModelBasedGeneralizationTest::isExistential,
-            ImmutableSet.of())
+        .generalize(pCondition, ModelBasedGeneralizationTest::isExistential, ImmutableSet.of())
         .orElseThrow();
+  }
+
+  private BooleanFormula generalizeWithPrecondition(
+      BooleanFormula pCondition, BooleanFormula pPrecondition) throws Exception {
+    PathFormulaManager pathFormulaManager =
+        new PathFormulaManagerImpl(
+            mgrv,
+            config,
+            logger,
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.empty(),
+            AnalysisDirection.FORWARD,
+            Language.C);
+    SSAMap ssa =
+        SSAMap.emptySSAMap()
+            .builder()
+            .setIndex("y", CNumericTypes.INT, 1)
+            .setIndex("z", CNumericTypes.INT, 1)
+            .build();
+    PathFormula condition =
+        pathFormulaManager
+            .makeEmptyPathFormulaWithContext(ssa, PointerTargetSet.emptyPointerTargetSet())
+            .withFormula(mgrv.instantiate(pCondition, ssa));
+    return mgrv.uninstantiate(
+        generalization.generalize(condition, pPrecondition).orElseThrow().getFormula());
   }
 
   private void assertImplies(BooleanFormula pStronger, BooleanFormula pWeaker) throws Exception {
@@ -101,7 +133,7 @@ public class ModelBasedGeneralizationTest extends SolverViewBasedTest0 {
   public void localVariablesAreRemoved() throws Exception {
     // ∃ e1. e1 = y ∧ z > e1  becomes  z > y
     BitvectorFormula e1 = bv.makeVariable(WIDTH, "e1");
-    BooleanFormula generalized = generalize(bmgrv.and(eq(e1, y), gt(z, e1)), bmgrv.makeTrue());
+    BooleanFormula generalized = generalize(bmgrv.and(eq(e1, y), gt(z, e1)));
     assertThat(mgrv.extractVariableNames(generalized)).containsExactly("y", "z");
     assertImplies(generalized, gt(z, y));
     assertImplies(gt(z, y), generalized);
@@ -112,24 +144,36 @@ public class ModelBasedGeneralizationTest extends SolverViewBasedTest0 {
     BooleanFormula first = bmgrv.and(gt(y, number(10)), eq(z, number(1)));
     BooleanFormula second = bmgrv.and(lt(y, number(0)), eq(z, number(2)));
     BooleanFormula condition = bmgrv.or(first, second);
-    BooleanFormula generalized = generalize(condition, bmgrv.makeTrue());
+    BooleanFormula generalized = generalize(condition);
     assertImplies(generalized, condition);
     assertImplies(condition, generalized);
   }
 
   @Test
-  public void disjunctOutsideOfPreconditionIsDropped() throws Exception {
-    // under y > 5, only the first disjunct matters
+  public void disjunctOutsideOfPreconditionIsPreserved() throws Exception {
+    // Both disjuncts must survive even though only the first intersects the precondition.
     BooleanFormula first = bmgrv.and(gt(y, number(10)), eq(z, number(1)));
     BooleanFormula second = bmgrv.and(lt(y, number(0)), eq(z, number(2)));
-    BooleanFormula generalized = generalize(bmgrv.or(first, second), gt(y, number(5)));
-    assertImplies(generalized, first);
-    assertImplies(first, generalized);
+    BooleanFormula condition = bmgrv.or(first, second);
+    BooleanFormula generalized = generalizeWithPrecondition(condition, gt(y, number(5)));
+    assertImplies(generalized, condition);
+    assertImplies(condition, generalized);
   }
 
   @Test
-  public void conditionOutsideOfPreconditionBecomesFalse() throws Exception {
-    assertThat(generalize(lt(y, number(0)), gt(y, number(5)))).isEqualTo(bmgrv.makeFalse());
+  public void conditionOutsideOfPreconditionIsPreserved() throws Exception {
+    BooleanFormula condition = lt(y, number(0));
+    BooleanFormula generalized = generalizeWithPrecondition(condition, gt(y, number(5)));
+    assertImplies(generalized, condition);
+    assertImplies(condition, generalized);
+  }
+
+  @Test
+  public void falsePreconditionDoesNotSuppressCondition() throws Exception {
+    BooleanFormula condition = eq(y, number(1));
+    BooleanFormula generalized = generalizeWithPrecondition(condition, bmgrv.makeFalse());
+    assertImplies(generalized, condition);
+    assertImplies(condition, generalized);
   }
 
   @Test
@@ -141,10 +185,7 @@ public class ModelBasedGeneralizationTest extends SolverViewBasedTest0 {
     }
     assertThat(
             generalization.generalize(
-                bmgrv.or(points),
-                bmgrv.makeTrue(),
-                ModelBasedGeneralizationTest::isExistential,
-                ImmutableSet.of()))
+                bmgrv.or(points), ModelBasedGeneralizationTest::isExistential, ImmutableSet.of()))
         .isEmpty();
   }
 
@@ -152,17 +193,15 @@ public class ModelBasedGeneralizationTest extends SolverViewBasedTest0 {
   public void cubesAreRewrittenOverVocabulary() throws Exception {
     // y = 1 ∨ y = 2 ∨ y = 3 are three cubes, but y > 0 ∧ y < 4 covers them all at once
     BooleanFormula condition = bmgrv.or(eq(y, number(1)), eq(y, number(2)), eq(y, number(3)));
-    BooleanFormula inRange = bmgrv.and(gt(y, number(0)), lt(y, number(4)));
     BooleanFormula generalized =
         generalization
             .generalize(
                 condition,
-                inRange,
                 ModelBasedGeneralizationTest::isExistential,
                 ImmutableSet.of(gt(y, number(0)), lt(y, number(4))))
             .orElseThrow();
     assertImplies(generalized, condition);
-    assertImplies(bmgrv.and(inRange, condition), generalized);
+    assertImplies(condition, generalized);
     assertThat(bmgrv.toDisjunctionArgs(generalized, true)).hasSize(1);
   }
 
@@ -174,7 +213,6 @@ public class ModelBasedGeneralizationTest extends SolverViewBasedTest0 {
         generalization
             .generalize(
                 condition,
-                gt(y, number(0)),
                 ModelBasedGeneralizationTest::isExistential,
                 ImmutableSet.of(gt(y, number(0))))
             .orElseThrow();
@@ -183,11 +221,11 @@ public class ModelBasedGeneralizationTest extends SolverViewBasedTest0 {
   }
 
   @Test
-  public void negatedConjunctionUsesOneFalseOperand() throws Exception {
-    // ¬(y > 0 ∧ z > 0) under y > 0 is covered by ¬(z > 0) alone
+  public void negatedConjunctionPreservesBothAlternatives() throws Exception {
+    // Both ways of falsifying the conjunction must survive a restrictive precondition.
     BooleanFormula condition = bmgrv.not(bmgrv.and(gt(y, number(0)), gt(z, number(0))));
-    BooleanFormula generalized = generalize(condition, gt(y, number(0)));
-    assertThat(mgrv.extractVariableNames(generalized)).containsExactly("z");
+    BooleanFormula generalized = generalizeWithPrecondition(condition, gt(y, number(0)));
     assertImplies(generalized, condition);
+    assertImplies(condition, generalized);
   }
 }

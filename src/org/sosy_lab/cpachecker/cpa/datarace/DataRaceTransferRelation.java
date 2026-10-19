@@ -179,7 +179,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableSet.of(
         new DataRaceState(
             determineSuccessorAccessedMemoryLocations(
-                memoryAccessBuilder.build(), newMemoryAccesses, cfaEdge),
+                memoryAccessBuilder.build(), newMemoryAccesses, cfaEdge, activeThreadLocks),
             newThreadInfo,
             threadSynchronizations,
             heldLocks,
@@ -188,21 +188,29 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static Set<MemoryAccess> determineSuccessorAccessedMemoryLocations(
-      Set<MemoryAccess> previousAccesses, Set<MemoryAccess> newAccesses, CFAEdge cfaEdge)
+      Set<MemoryAccess> previousAccesses,
+      Set<MemoryAccess> newAccesses,
+      CFAEdge cfaEdge,
+      Set<String> activeThreadLocks)
       throws CPATransferException {
+    if (activeThreadLocks.contains(ThreadingTransferRelation.LOCAL_ACCESS_LOCK)) {
+      // The ThreadingCPA does not interleave other threads after edges with only local accesses,
+      // so the previous accesses must stay visible to the next edge of another thread.
+      return previousAccesses;
+    }
     // Some edges, are not actually statements which should reset the
     // tracked accesses (e.g., function call edges, and blank edges).
     // In this, cases we need to keep the old accesses as well.
     return switch (cfaEdge.getEdgeType()) {
-      case BlankEdge, FunctionReturnEdge, DeclarationEdge -> previousAccesses;
+      case BlankEdge, FunctionReturnEdge -> previousAccesses;
       case ReturnStatementEdge -> {
         // Do nothing, newMemoryAccesses is already correct
         yield previousAccesses;
       }
-      case AssumeEdge, FunctionCallEdge, CallToReturnEdge -> {
-        // A function call, and assume edges, are not a statement and therefore do not invalidate
-        // previously tracked accesses, but they may add new accesses as well, due to
-        // function arguments being passed, or the variables being read in the assume condition.
+      case AssumeEdge, DeclarationEdge, FunctionCallEdge, CallToReturnEdge -> {
+        // Function calls, declarations, and assume edges are not statements and therefore do not
+        // invalidate previously tracked accesses, but they may add new accesses as well, due to
+        // function arguments, initializers, or the variables being read in the assume condition.
         yield FluentIterable.concat(previousAccesses, newAccesses).toSet();
       }
       case StatementEdge -> {

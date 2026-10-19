@@ -110,6 +110,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Option(description = "Decomposition type to use for the block analysis.", secure = true)
   private ExecutorType executorType = ExecutorType.DSS;
 
+  @Option(
+      description =
+          "Report UNKNOWN instead of FALSE if the analysis that replays the violation path for the"
+              + " violation witness does not reach a property violation.",
+      secure = true)
+  private boolean requireConfirmedViolation = true;
+
   private enum ExecutorType {
     DSS,
     SINGLE_WORKER,
@@ -130,10 +137,19 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       throws InvalidConfigurationException {
     configuration = pConfig;
     configuration.inject(this);
+
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
+    DssAnalysisOptions analysisOptions = new DssAnalysisOptions(configuration);
+    if (analysisOptions.isDebugModeEnabled() && analysisOptions.compressMessages()) {
+      // contrib/worker-visualization reads the message logs of debug mode, but cannot decode them.
+      logger.log(
+          Level.WARNING,
+          "Debug mode writes dictionary-encoded messages, which the worker visualization cannot"
+              + " display. Set distributedSummaries.compressMessages=false to inspect them.");
+    }
     initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;
     executor = getExecutor(pSpecification);
@@ -194,8 +210,18 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       StatusAndResult statusAndResult, ReachedSet reachedSet, Modification pModification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    witnessExporter.export(statusAndResult.result(), reachedSet, pModification);
+    boolean violationReplayed =
+        witnessExporter.export(statusAndResult.result(), reachedSet, pModification);
 
+    if (!violationReplayed && requireConfirmedViolation) {
+      // The reached set still contains a dummy target state, so an imprecise status makes
+      // CPAchecker report UNKNOWN instead of FALSE.
+      logger.log(
+          Level.WARNING,
+          "Reporting UNKNOWN because the violation found by the block analysis could not be"
+              + " confirmed by the violation witness check.");
+      return statusAndResult.status().withPrecise(false);
+    }
     return statusAndResult.status();
   }
 
@@ -249,7 +275,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
     } finally {
-      logger.log(Level.INFO, "Block analysis terminated.");
+      logger.log(Level.INFO, "Block analysis finished.");
     }
   }
 

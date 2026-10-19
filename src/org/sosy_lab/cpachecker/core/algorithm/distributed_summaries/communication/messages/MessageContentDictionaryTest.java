@@ -66,7 +66,11 @@ public class MessageContentDictionaryTest {
       ImmutableMap<String, ImmutableMap<String, String>> json = factory.export(message);
       assertThat(json.get(DssMessage.DSS_MESSAGE_CONTENT_ID).containsKey("dssContentEncoding"))
           .isEqualTo(enabled);
-      assertThat(DssMessage.fromJson(json).getContent()).isEqualTo(message.getContent());
+      assertThat(
+              DssMessage.fromJson(json)
+                  .asJsonWithIdentifier(0, false)
+                  .get(DssMessage.DSS_MESSAGE_CONTENT_ID))
+          .isEqualTo(message.asJsonWithIdentifier(0, false).get(DssMessage.DSS_MESSAGE_CONTENT_ID));
     }
   }
 

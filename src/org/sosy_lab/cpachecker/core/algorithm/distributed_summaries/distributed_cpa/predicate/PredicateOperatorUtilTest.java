@@ -103,6 +103,28 @@ public class PredicateOperatorUtilTest extends SolverViewBasedTest0 {
   }
 
   @Test
+  public void instantiatedFreshValuesCanBeInstantiatedAgain() throws Exception {
+    IntegerFormulaManagerView ints = mgrv.getIntegerFormulaManager();
+    BooleanFormula formula =
+        ints.equal(ints.makeVariable("__VERIFIER_nondet_int@13"), ints.makeVariable("x@2"));
+    SSAMap ssa = SSAMap.emptySSAMap().builder().setIndex("x", CNumericTypes.INT, 2).build();
+    PathFormula path =
+        pathFormulaManager
+            .makeEmptyPathFormulaWithContext(ssa, PointerTargetSet.emptyPointerTargetSet())
+            .withFormula(formula);
+    BooleanFormula condition =
+        PredicateOperatorUtil.uninstantiate(
+                path, mgrv, PredicateOperatorUtil.UniqueIndexProvider.withUUID())
+            .booleanFormula();
+    // A private name that kept the index would still look instantiated, and a block that uses the
+    // condition could not instantiate it.
+    for (String name : mgrv.extractVariableNames(condition)) {
+      assertThat(name).doesNotContain("@");
+    }
+    assertThat(mgrv.instantiate(condition, ssa)).isNotNull();
+  }
+
+  @Test
   public void fieldNamesDoNotCollapseDifferentSsaValues() throws Exception {
     IntegerFormulaManagerView ints = mgrv.getIntegerFormulaManager();
     BooleanFormula formula =

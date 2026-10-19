@@ -27,7 +27,7 @@ public class CombinePredicatePrecisionOperatorTest extends SolverViewBasedTest0 
 
   @Before
   public void setUp() throws Exception {
-    operator = new CombinePredicatePrecisionOperator(mgrv);
+    operator = new CombinePredicatePrecisionOperator();
     abstractionManager =
         new AbstractionManager(new SymbolicRegionManager(solver), config, logger, solver);
   }
@@ -46,23 +46,21 @@ public class CombinePredicatePrecisionOperatorTest extends SolverViewBasedTest0 
   }
 
   @Test
-  public void combineDropsVariablesNotAllPrecisionsTrack() throws Exception {
+  public void combineKeepsEverything() throws Exception {
+    // dropping x = 1 would require refining it again
     AbstractionPredicate iIsZero = predicate("i", 0);
     AbstractionPredicate xIsOne = predicate("x", 1);
     assertThat(
             globalPredicatesOf(
                 operator.combine(ImmutableList.of(precision(iIsZero), precision(iIsZero, xIsOne)))))
-        .containsExactly(iIsZero);
+        .containsExactly(iIsZero, xIsOne);
   }
 
   @Test
-  public void unionKeepsEverything() throws Exception {
-    // accumulating a precision with combine would lose x = 1 and require refining it again
+  public void combineWithCoveredPrecisionIsUnchanged() throws Exception {
     AbstractionPredicate iIsZero = predicate("i", 0);
     AbstractionPredicate xIsOne = predicate("x", 1);
-    assertThat(
-            globalPredicatesOf(
-                operator.union(ImmutableList.of(precision(iIsZero), precision(iIsZero, xIsOne)))))
-        .containsExactly(iIsZero, xIsOne);
+    PredicatePrecision stronger = precision(iIsZero, xIsOne);
+    assertThat(operator.combine(ImmutableList.of(stronger, precision(xIsOne)))).isEqualTo(stronger);
   }
 }

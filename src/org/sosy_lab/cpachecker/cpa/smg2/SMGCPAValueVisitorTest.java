@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -58,6 +60,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -79,6 +84,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
+import org.sosy_lab.java_smt.api.SolverException;
 
 // TODO: run with more machine models
 /* Test all SMGCPAValueVisitor visits. Some will be tested indirectly, for example value creation. */
@@ -2587,6 +2593,50 @@ public class SMGCPAValueVisitorTest {
         Value valueForSMGValue =
             currentState.getMemoryModel().getValueFromSMGValue(smgValueForPointer).orElseThrow();
         assertThat(valueForSMGValue).isEqualTo(resultValue);
+      }
+    }
+  }
+
+  @Test
+  public void testSizeofTypeInBytes() throws CPATransferException {
+    for (CType type : STRUCT_UNION_TEST_TYPES) {
+      CTypeIdExpression expression =
+          new CTypeIdExpression(
+              FileLocation.DUMMY, UNSIGNED_LONG_TYPE, TypeIdOperator.SIZEOF, type);
+      List<ValueAndSMGState> result = expression.accept(visitor);
+      assertThat(result).hasSize(1);
+      assertThat(result.getFirst().getValue().asNumericValue().bigIntegerValue())
+          .isEqualTo(MACHINE_MODEL.getSizeof(type));
+    }
+  }
+
+  @Test
+  public void testSizeofTypeInConstraint()
+      throws CPATransferException, SolverException, InterruptedException {
+    ConstraintFactory factory =
+        ConstraintFactory.getInstance(
+            currentState, MACHINE_MODEL, logger, options, evaluator, dummyCFAEdge);
+    CTypeIdExpression size =
+        new CTypeIdExpression(
+            FileLocation.DUMMY, UNSIGNED_LONG_TYPE, TypeIdOperator.SIZEOF, INT_TYPE);
+    // The unsigned guard must accept 3, reject 4 (not 32), and reject negative ints.
+    for (int value : new int[] {-1, 3, 4, 31, 32}) {
+      CBinaryExpression guard =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              INT_TYPE,
+              UNSIGNED_LONG_TYPE,
+              new CIntegerLiteralExpression(
+                  FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(value)),
+              size,
+              CBinaryExpression.BinaryOperator.LESS_THAN);
+      ImmutableList<ConstraintAndSMGState> constraints =
+          ImmutableList.copyOf(factory.createPositiveConstraint(guard));
+      assertThat(constraints).hasSize(1);
+      for (ConstraintAndSMGState constraint : constraints) {
+        assertThat(
+                evaluator.getSolver().checkUnsatWithFreshSolver(constraint.getConstraint(), "main"))
+            .isEqualTo(value == 3 ? Satisfiability.SAT : Satisfiability.UNSAT);
       }
     }
   }

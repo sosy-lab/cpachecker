@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "dss.cpa.predicate")
 public class DistributedPredicateCPA
@@ -72,9 +73,8 @@ public class DistributedPredicateCPA
       secure = true,
       description =
           "Whether to rewrite every violation condition as a disjunction of cubes generalized from"
-              + " models, restricted to the entry states the block can currently be entered with."
-              + " Each cube really reaches the violation, and the cubes together cover the"
-              + " condition for all states of the current precondition.")
+              + " models. The cubes together describe exactly all entry states of the condition;"
+              + " incomplete enumeration falls back to the original condition.")
   private boolean generalizeViolationConditions = true;
 
   @Option(
@@ -94,6 +94,16 @@ public class DistributedPredicateCPA
               + " violation conditions of this block. Has no effect unless"
               + " generalizeViolationConditions is enabled.")
   private boolean generalizeOverPreconditionPredicates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "The largest share of CFA edges accessing modelled memory, from 0 to 1, for which"
+              + " violation conditions are generalized and projected into nested disjunctions."
+              + " Conditions of programs that use memory more are only projected: with the"
+              + " pointer-aliasing encoding, generalization and nested projection cost much more"
+              + " than they save there.")
+  private double maxMemoryShareForExpensiveSimplification = 1.0;
 
   private final PredicateCPA predicateCPA;
 
@@ -119,9 +129,17 @@ public class DistributedPredicateCPA
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       BiMap<Integer, CFANode> pIdToNodeMap,
-      ImmutableMap<String, Type> pTypeMap)
+      ImmutableMap<String, Type> pTypeMap,
+      double pMemoryShare)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
+    if (maxMemoryShareForExpensiveSimplification < 0
+        || maxMemoryShareForExpensiveSimplification > 1) {
+      throw new InvalidConfigurationException(
+          "dss.cpa.predicate.maxMemoryShareForExpensiveSimplification has to be between 0 and 1");
+    }
+    // decided once for the whole program, see maxMemoryShareForExpensiveSimplification
+    boolean expensiveSimplification = pMemoryShare <= maxMemoryShareForExpensiveSimplification;
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.writeReadableFormulas();
     serialize =
@@ -149,33 +167,34 @@ public class DistributedPredicateCPA
     stateCoverageOperator =
         new PredicateStateCoverageOperator(
             predicateCPA.getSolver(), pOptions.cacheViolationConditions());
+    Solver solver = predicateCPA.getSolver();
     ExistentialProjection projection =
-        projectViolationConditions ? new ExistentialProjection(predicateCPA.getSolver()) : null;
+        projectViolationConditions ? new ExistentialProjection(solver) : null;
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
+            predicateCPA,
             new PathFormulaManagerImpl(
-                pPredicateCPA.getSolver().getFormulaManager(),
+                solver.getFormulaManager(),
                 pConfiguration,
                 pLogManager,
                 pShutdownNotifier,
                 pCFA,
                 AnalysisDirection.BACKWARD),
-            predicateCPA,
             pNode.getPredecessorIds().isEmpty(),
-            projection,
-            projectNestedDisjunctions,
-            generalizeViolationConditions
+            generalizeViolationConditions && expensiveSimplification
                 ? new ModelBasedGeneralization(
-                    predicateCPA.getSolver(),
-                    projection != null
-                        ? projection
-                        : new ExistentialProjection(predicateCPA.getSolver()),
+                    solver,
+                    new ExistentialProjection(solver),
                     maxCubesPerViolationCondition,
                     generalizeOverPreconditionPredicates)
+                : null,
+            projection,
+            projectViolationConditions
+                ? new ExistentialProjection(
+                    solver, projectNestedDisjunctions && expensiveSimplification)
                 : null);
     combinePreconditionsOperator = new CombinePredicateStatePreconditionsOperator(predicateCPA);
-    combinePrecisionOperator =
-        new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
+    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
     combineViolationConditionsOperator =
         new PredicateStateCombineViolationConditionOperator(
             predicateCPA.getPathFormulaManager(), projection);

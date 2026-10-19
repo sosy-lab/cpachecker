@@ -354,7 +354,7 @@ public class SequentializationParseTest {
     CFA cfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
     SequentializationUtils utils =
         SequentializationUtils.of(cfa, pConfiguration, pLogger, pShutdownNotifier);
-    return Sequentialization.tryBuildProgramString(pOptions, cfa, utils);
+    return Sequentialization.tryBuildProgram(pOptions, cfa, utils).program();
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {

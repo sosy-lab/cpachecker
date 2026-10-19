@@ -8,9 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -29,44 +34,53 @@ public class CompositeViolationConditionOperator implements ViolationConditionOp
 
   private final List<ConfigurableProgramAnalysis> analyses;
 
+  /** Merges the paths of a graph, or {@code null} if a component cannot merge conditions. */
+  private final @Nullable CompositeGraphViolationConditionOperator graphOperator;
+
   public CompositeViolationConditionOperator(List<ConfigurableProgramAnalysis> pAnalyses) {
     analyses = pAnalyses;
+    graphOperator = CompositeGraphViolationConditionOperator.of(pAnalyses).orElse(null);
   }
 
   @Override
-  public Optional<AbstractState> computeViolationCondition(
+  public List<AbstractState> computeViolationConditions(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
-    ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
+    if (!(pARGPath instanceof DssARGPathGraph graph)) {
+      return computeForPath(pARGPath, pPreviousCondition);
+    }
+    if (graphOperator != null) {
+      return graphOperator.compute(graph, pPreviousCondition);
+    }
+    ImmutableList.Builder<AbstractState> conditions = ImmutableList.builder();
+    for (ARGPath path : graph.paths()) {
+      conditions.addAll(computeForPath(path, pPreviousCondition));
+    }
+    return conditions.build();
+  }
+
+  /** Combines the conditions of all components for a single path. */
+  private List<AbstractState> computeForPath(
+      ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
+      throws InterruptedException, CPATransferException, SolverException {
+    List<List<AbstractState>> components = new ArrayList<>();
     for (ConfigurableProgramAnalysis cpa : analyses) {
       if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa) {
-        Optional<AbstractState> abstractState =
+        List<AbstractState> conditions =
             dcpa.getViolationConditionOperator()
-                .computeViolationCondition(pARGPath, pPreviousCondition);
-        if (abstractState.isEmpty()) {
-          return Optional.empty();
+                .computeViolationConditions(pARGPath, pPreviousCondition);
+        if (conditions.isEmpty()) {
+          return ImmutableList.of();
         }
-        states.add(abstractState.orElseThrow());
+        components.add(conditions);
       } else {
         CFANode location = AbstractStates.extractLocation(pARGPath.getFirstState());
         location = location == null ? CFANode.newDummyCFANode() : location;
-        states.add(cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
+        components.add(
+            ImmutableList.of(
+                cpa.getInitialState(location, StateSpacePartition.getDefaultPartition())));
       }
     }
-    return Optional.of(new CompositeState(states.build()));
-  }
-
-  @Override
-  public boolean supportsGraph() {
-    return CompositeGraphViolationConditionOperator.supports(analyses);
-  }
-
-  @Override
-  public List<AbstractState> computeConditions(ARGPath path, Optional<ARGState> previous)
-      throws InterruptedException, CPATransferException, SolverException {
-    if (path instanceof DssARGPathGraph graph) {
-      return CompositeGraphViolationConditionOperator.create(analyses).compute(graph, previous);
-    }
-    return ViolationConditionOperator.super.computeConditions(path, previous);
+    return transformedImmutableListCopy(Lists.cartesianProduct(components), CompositeState::new);
   }
 }

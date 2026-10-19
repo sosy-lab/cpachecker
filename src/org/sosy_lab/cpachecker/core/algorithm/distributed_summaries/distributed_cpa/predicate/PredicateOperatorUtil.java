@@ -165,11 +165,21 @@ public class PredicateOperatorUtil {
 
       List<String> nameAndIndex =
           Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(name);
-      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || isFreshPerUse(name)) {
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty()) {
         substitutions.put(
             formula,
             pFormulaManagerView.makeVariable(
                 pFormulaManagerView.getFormulaType(formula), pUniqueIndexProvider.extend(name)));
+        continue;
+      }
+      if (isFreshPerUse(name)) {
+        // The private name must not keep the index, otherwise it still looks instantiated and the
+        // block that uses the condition fails to instantiate it.
+        substitutions.put(
+            formula,
+            pFormulaManagerView.makeVariable(
+                pFormulaManagerView.getFormulaType(formula),
+                pUniqueIndexProvider.extend(nameAndIndex.getFirst() + "!" + nameAndIndex.get(1))));
         continue;
       }
       name = nameAndIndex.getFirst();

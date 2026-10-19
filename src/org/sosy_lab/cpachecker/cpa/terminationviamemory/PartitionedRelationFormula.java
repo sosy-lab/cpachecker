@@ -26,10 +26,10 @@ import org.sosy_lab.java_smt.api.Formula;
  * variables. Variables representing the previous state s and variables representing the current
  * state s'.
  *
- * <p>Instances are immutable: {@link #withPrevVarsSuffixed} and {@link #withCurrVarsSuffixed}
- * return new instances rather than mutating the receiver.
+ * <p>Instances are immutable: {@link #withPrevVarsWrapped} and {@link #withCurrVarsWrapped} return
+ * new instances rather than mutating the receiver.
  */
-class PartitionedRelationFormula {
+public class PartitionedRelationFormula {
   private final FormulaManagerView fmgr;
   private final ImmutableSet<Formula> prevVariables;
   private final ImmutableSet<Formula> currVariables;
@@ -147,26 +147,32 @@ class PartitionedRelationFormula {
     return FormulaManagerView.parseName(pFormula).getSecond();
   }
 
+  /**
+   * Constructs a substitution map which replaces the original variables with variables wrapped
+   * around with the prefix and the suffix. I.e. variable t wrapped in __ and _TMP will be
+   * substituted with t -> __t_TMP
+   */
   private ImmutableMap<Formula, Formula> getSubstitutionMap(
-      ImmutableSet<Formula> variables, String suffix) {
+      ImmutableSet<Formula> variables, String prefix, String suffix) {
     return ImmutableMap.copyOf(
         Maps.asMap(
             variables,
             variable ->
                 fmgr.makeVariable(
                     fmgr.getFormulaType(variable),
-                    TransitionInvariantUtils.removeKeyWordAfterTransInv(
+                    prefix
+                        + TransitionInvariantUtils.removeKeyWordAfterTransInv(
                             fmgr.uninstantiate(variable).toString())
                         + suffix)));
   }
 
   /**
    * Returns a new {@link PartitionedRelationFormula} with the previous-state variables substituted
-   * to carry the given suffix. Does not mutate {@code this}.
+   * to wrap by given prefix and suffix. Does not mutate {@code this}.
    */
-  public PartitionedRelationFormula withPrevVarsSuffixed(String suffix) {
+  public PartitionedRelationFormula withPrevVarsWrapped(String prefix, String suffix) {
     BooleanFormula substituted =
-        fmgr.substitute(formula, getSubstitutionMap(prevVariables, suffix));
+        fmgr.substitute(formula, getSubstitutionMap(prevVariables, prefix, suffix));
     Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(substituted);
     boolean containsTransInv = usesTransInvKeyWord(varNamesToFormulas);
 
@@ -181,11 +187,11 @@ class PartitionedRelationFormula {
 
   /**
    * Returns a new {@link PartitionedRelationFormula} with the current-state variables substituted
-   * to carry the given suffix. Does not mutate {@code this}.
+   * to wrap by given prefix and suffix. Does not mutate {@code this}.
    */
-  public PartitionedRelationFormula withCurrVarsSuffixed(String suffix) {
+  public PartitionedRelationFormula withCurrVarsWrapped(String prefix, String suffix) {
     BooleanFormula substituted =
-        fmgr.substitute(formula, getSubstitutionMap(currVariables, suffix));
+        fmgr.substitute(formula, getSubstitutionMap(currVariables, prefix, suffix));
     Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(substituted);
     boolean containsTransInv = usesTransInvKeyWord(varNamesToFormulas);
 

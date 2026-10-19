@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>A worker sends its messages while it is busy, so each of them is counted before the worker can
  * become idle. The counter thus only drops to zero once no worker is busy and no message is
- * waiting. This establishes quiescence only: the executor must also check that no worker is
- * withholding a summary because of unresolved violations before reporting a proof.
+ * waiting. Workers must finish pending explorations and publish their results before becoming idle;
+ * otherwise the counter could signal completion while work is still owed.
  *
  * <p>The count lives in a single atomic, so there is no moment in which a message is on its way
  * from one worker to another without being counted. A {@link java.util.concurrent.Phaser} would

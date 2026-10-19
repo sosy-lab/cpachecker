@@ -32,6 +32,8 @@ import requests
 from benchexec.util import get_files
 from requests import HTTPError
 
+from . import vcloudutil
+
 try:
     import sseclient  # @UnresolvedImport
 
@@ -64,6 +66,7 @@ MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
 SOFTTIMELIMIT = "softtimelimit"
 CORELIMIT = "cpuCores"
+
 
 RESULT_FILE_LOG = "output.log"
 RESULT_FILE_STDERR = "stderr"
@@ -1296,11 +1299,14 @@ def _handle_result(
     run_identifier,
 ):
     files = set(resultZipFile.namelist())
+    logging.debug("All files in ZIP for run %s: %s", run_identifier, sorted(files))
 
     # extract run info
+    run_info_values = {}
     if RESULT_FILE_RUN_INFO in files:
         with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            return_value = handle_run_info(_parse_cloud_file(runInformation))
+            run_info_values = _parse_cloud_file(runInformation)
+            return_value = handle_run_info(dict(run_info_values))
     else:
         return_value = None
         logging.warning("Missing result for run %s.", run_identifier)
@@ -1329,10 +1335,31 @@ def _handle_result(
     if result_files_patterns:
         result_files = set()
         for pattern in result_files_patterns:
-            result_files.update(fnmatch.filter(files, pattern))
+            matched_files = fnmatch.filter(files, pattern)
+            result_files.update(matched_files)
         result_files = result_files - SPECIAL_RESULT_FILES
+
+        # Debug logging for result files
+        logging.debug(
+            "Result files for run %s: %s", run_identifier, sorted(result_files)
+        )
+        logging.debug(
+            "Number of result files: %d",
+            len({f for f in result_files if not f.endswith("/")}),
+        )
+
         if result_files:
+            # Ensure output directory exists
+            if not os.path.isdir(output_path):
+                os.makedirs(output_path, exist_ok=True)
             resultZipFile.extractall(output_path, result_files)
+
+        vcloudutil.check_result_files(
+            run_info_values,
+            {f for f in result_files if not f.endswith("/")},
+            run_identifier,
+            include_file=lambda name: name not in SPECIAL_RESULT_FILES,
+        )
 
     return return_value
 

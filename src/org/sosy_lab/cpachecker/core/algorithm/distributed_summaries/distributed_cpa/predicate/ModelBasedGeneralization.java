@@ -38,40 +38,20 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
 
 /**
- * Rewrites a violation condition as a disjunction of small cubes, each generalized from a model,
- * that together cover the condition wherever the block can actually be entered.
+ * Rewrites a violation condition as an equivalent disjunction of projected model implicants.
  *
- * <p>A violation condition {@code φ} of a block is read as {@code ∃ L. φ}, where {@code L} are its
- * local variables, and is only ever used by predecessors, which conjoin it with a postcondition of
- * theirs. Those postconditions are what this block received as its precondition {@code P}. The
- * generalization enumerates models of {@code φ ∧ P}. For each model {@code m} it picks the literals
- * of {@code φ} that {@code m} satisfies and that suffice to make {@code φ} true, i.e., an implicant
- * {@code Λ} with {@code m ⊨ Λ} and {@code Λ ⇒ φ}, and projects the local variables out of it with
- * the {@link ExistentialProjection}. {@code Λ} is a plain conjunction, so the one-point rule
- * usually removes every local variable, and the resulting cube only talks about the block entry.
- * The cube is then excluded from the query, and the enumeration stops once the query becomes
- * unsatisfiable.
+ * <p>A condition {@code φ} denotes {@code ∃ L. φ}, where {@code L} are block-local variables. For
+ * each model of {@code φ}, the generalization selects an implicant {@code Λ} and projects its local
+ * variables out with {@link ExistentialProjection}. Each resulting cube implies {@code ∃ L. φ}.
+ * Enumeration excludes covered models until none remain, so the disjunction also covers every state
+ * of the original condition. If the cube limit prevents complete enumeration, the caller retains
+ * the original condition.
  *
- * <p>Every cube implies {@code ∃ L. φ}, so every state in the result really reaches the violation
- * and a violation found through it is genuine. At the end, {@code φ ∧ P} implies the disjunction of
- * the cubes, so a predecessor whose postcondition is part of {@code P} gets exactly the same
- * answers from the result as from {@code φ}. The result is weaker than that only outside of {@code
- * P}: it has to be computed anew whenever {@code P} changes, which the block does anyway because a
- * new precondition makes it explore again.
- *
- * <p>Counters and similar integer variables can make every cube a single point. The number of cubes
- * is therefore bounded, and the caller keeps the exact condition if the bound is exceeded.
- *
- * <p>Optionally, the cubes are then rewritten in the vocabulary of the precondition, i.e., over the
- * predicates the predecessors abstract their block ends with. When a predecessor refutes a
- * condition of this block, its refinement adds the interpolants that separate its reachable states
- * from the condition to its precision at the block end, so its next postcondition is expressed in
- * exactly the predicates that decide whether conditions of this block die. For every model of the
- * cubes and the precondition, the rewriting takes the cube of the vocabulary predicates the model
- * satisfies if it implies the cubes, and the cube the model came from otherwise. Either way, every
- * cube still implies {@code ∃ L. φ}, and the result covers the same states of {@code P}. A cube
- * over the predecessor's predicates can cover several cubes at once and does not depend on which
- * path produced it, so conditions become smaller and stay equal across rounds more often.
+ * <p>The received precondition supplies an optional vocabulary for rewriting the cubes, but never
+ * restricts the states to enumerate. Predecessors may later send different preconditions, so
+ * restricting the condition to currently known entry states would lose violations. Vocabulary
+ * rewriting likewise covers all states of the cubes and only accepts predicate cubes that imply
+ * their disjunction; otherwise it keeps the original cubes.
  */
 final class ModelBasedGeneralization {
 
@@ -100,7 +80,7 @@ final class ModelBasedGeneralization {
   }
 
   /**
-   * Generalizes a violation condition relative to the precondition it was found under.
+   * Generalizes a violation condition, using the precondition only as a predicate vocabulary.
    *
    * @param pCondition the exact violation condition, whose interface consists of the variables at
    *     their latest SSA index
@@ -136,26 +116,24 @@ final class ModelBasedGeneralization {
     }
     return generalize(
             pCondition.getFormula(),
-            precondition,
             name -> PredicateOperatorUtil.isLocalVariable(name, ssa, fmgr),
             vocabulary)
         .map(pCondition::withFormula);
   }
 
   /**
-   * Generalizes {@code pCondition} relative to {@code pPrecondition}, see the class documentation.
+   * Generalizes {@code pCondition} without restricting its entry states, see the class
+   * documentation.
    *
    * @param pCondition the formula to generalize
-   * @param pPrecondition a formula over the non-existential variables of {@code pCondition}
    * @param pIsExistential decides by name which variables of {@code pCondition} are existentially
    *     quantified
    * @param pVocabulary the predicates to rewrite the cubes in, if possible; empty to keep the cubes
-   * @return a disjunction of cubes that implies {@code ∃ E. pCondition} and is implied by it under
-   *     {@code pPrecondition}, or empty if that needs more than the allowed number of cubes
+   * @return a disjunction of cubes equivalent to {@code ∃ E. pCondition}, or empty if that needs
+   *     more than the allowed number of cubes
    */
   Optional<BooleanFormula> generalize(
       BooleanFormula pCondition,
-      BooleanFormula pPrecondition,
       Predicate<String> pIsExistential,
       ImmutableSet<BooleanFormula> pVocabulary)
       throws InterruptedException, SolverException {
@@ -163,7 +141,7 @@ final class ModelBasedGeneralization {
     Set<BooleanFormula> excluded = new HashSet<>();
     boolean quantifierFree = true;
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      prover.push(bfmgr.and(pCondition, pPrecondition));
+      prover.push(pCondition);
       for (int round = 0; !prover.isUnsat(); round++) {
         if (round == maxCubes) {
           return Optional.empty();
@@ -190,7 +168,7 @@ final class ModelBasedGeneralization {
     }
     if (quantifierFree && !pVocabulary.isEmpty() && !cubes.isEmpty()) {
       // implication checks against the cubes need them to be free of existential variables
-      return Optional.of(rewriteInVocabulary(cubes, pPrecondition, pVocabulary));
+      return Optional.of(rewriteInVocabulary(cubes, pVocabulary));
     }
     return Optional.of(disjunction(cubes));
   }
@@ -199,19 +177,16 @@ final class ModelBasedGeneralization {
    * Rewrites quantifier-free cubes as cubes over the given predicates where possible, see the class
    * documentation.
    *
-   * @return a disjunction of cubes, each implying the disjunction of {@code pCubes}, that covers
-   *     all states of {@code pCubes} in {@code pPrecondition}; {@code pCubes} as they are if that
+   * @return a disjunction equivalent to {@code pCubes}; {@code pCubes} as they are if rewriting
    *     needs more than the allowed number of cubes
    */
   private BooleanFormula rewriteInVocabulary(
-      Set<BooleanFormula> pCubes,
-      BooleanFormula pPrecondition,
-      ImmutableSet<BooleanFormula> pVocabulary)
+      Set<BooleanFormula> pCubes, ImmutableSet<BooleanFormula> pVocabulary)
       throws InterruptedException, SolverException {
     BooleanFormula original = disjunction(pCubes);
     Set<BooleanFormula> rewritten = new LinkedHashSet<>();
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      prover.push(bfmgr.and(original, pPrecondition));
+      prover.push(original);
       for (int round = 0; !prover.isUnsat(); round++) {
         if (round == maxCubes) {
           return original;

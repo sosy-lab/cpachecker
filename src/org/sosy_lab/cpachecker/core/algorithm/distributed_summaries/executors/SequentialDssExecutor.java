@@ -127,10 +127,6 @@ public class SequentialDssExecutor implements DssExecutor {
       throw new CPAException("Solver exception", e);
     }
 
-    Result result =
-        actors.getAnalysisWorkers().stream().anyMatch(DssAnalysisWorker::hasUnresolvedViolations)
-            ? Result.UNKNOWN
-            : Result.TRUE;
-    return new StatusAndResult(statusObserver.finish(), result);
+    return new StatusAndResult(statusObserver.finish(), Result.TRUE);
   }
 }
