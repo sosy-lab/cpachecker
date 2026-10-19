@@ -8,11 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
@@ -20,9 +25,22 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 
+@JsonPropertyOrder({DssCallstackStatePayload.ALLOW_TRANSFERS, DssCallstackStatePayload.STATES})
 public record DssCallstackStatePayload(
-    boolean allowAllTransfers, ImmutableList<DssCallstackEntryPayload> states)
+    @JsonProperty(ALLOW_TRANSFERS) boolean allowAllTransfers,
+    @JsonProperty(STATES) ImmutableList<DssCallstackEntryPayload> states)
     implements DssStatePayload {
+  @JsonIgnore public static final String ALLOW_TRANSFERS = "allowAllTransfers";
+  @JsonIgnore public static final String STATES = "states";
+
+  @JsonCreator
+  public DssCallstackStatePayload(
+      @JsonProperty(ALLOW_TRANSFERS) boolean pAllowAllTransfers,
+      @JsonProperty(STATES) List<DssCallstackEntryPayload> pStates) {
+    this(pAllowAllTransfers, ImmutableList.copyOf(pStates));
+  }
+
+  @JsonIgnore
   @Override
   public DssComponentKey getComponentKey() {
     return DssComponentKey.CALLSTACK_STATE;
@@ -57,7 +75,7 @@ public record DssCallstackStatePayload(
         serializedStates.isBlank()
             ? ImmutableList.of()
             : Splitter.on(DistributedCallstackCPA.DELIMITER).splitToList(serializedStates).stream()
-                .map(DssCallstackEntryPayload::fromString)
+                .map(DssCallstackEntryPayload::deserialize)
                 .collect(ImmutableList.toImmutableList());
     return new DssCallstackStatePayload(allowAllTransfers, states);
   }

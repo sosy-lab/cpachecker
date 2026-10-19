@@ -8,17 +8,21 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonCreator.Mode;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import java.util.List;
 
 public record DssCallstackEntryPayload(int nodeId, String function) {
-  @Override
-  public String toString() {
+  @JsonValue
+  public String serialize() {
     return nodeId + "." + function;
   }
 
-  public static DssCallstackEntryPayload fromString(String serialized) {
+  @JsonCreator(mode = Mode.DELEGATING)
+  public static DssCallstackEntryPayload deserialize(String serialized) {
     List<String> parts = Splitter.on(".").limit(2).splitToList(serialized);
     Preconditions.checkArgument(parts.size() == 2);
 

@@ -25,6 +25,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DssCallstackEntryPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DssCallstackStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 
@@ -153,6 +155,40 @@ public class DssMessagePayloadTest {
     assertThat(parsedPost.getStates()).isEqualTo(original.getStates());
     assertThat(parsed.getSenderId()).isEqualTo(original.getSenderId());
     assertThat(parsedPost.indicatesUnreachableBlockEnd()).isTrue();
+  }
+
+  @Test
+  public void callstackStateRoundTripPreservesPayload()
+      throws InvalidConfigurationException, IOException {
+    DssCallstackStatePayload originalCallstackPayload =
+        new DssCallstackStatePayload(
+            true,
+            ImmutableList.of(
+                new DssCallstackEntryPayload(12, "main"),
+                new DssCallstackEntryPayload(27, "helper")));
+    DssPostConditionMessage original =
+        defaultFactory()
+            .createDssPostConditionMessage(
+                "B1",
+                AlgorithmStatus.SOUND_AND_PRECISE,
+                ImmutableList.of(
+                    ImmutableMap.of(
+                        DssComponentKey.CALLSTACK_STATE.getSerializedName(),
+                        new DssStateAndPrecisionPayload(
+                            originalCallstackPayload, DssNoPrecisionPayload.INSTANCE))));
+
+    DssMessage parsed = roundTrip(original);
+
+    assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
+    DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
+    assertThat(parsedPost.getType()).isEqualTo(DssMessage.DssMessageType.POST_CONDITION);
+    DssStateAndPrecisionPayload parsedStateAndPrecision =
+        parsedPost
+            .getStates()
+            .getFirst()
+            .get(DssComponentKey.CALLSTACK_STATE.getSerializedName());
+    assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCallstackPayload);
+    assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
 
   @Test
