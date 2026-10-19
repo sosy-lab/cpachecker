@@ -514,7 +514,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractARGToCorrectnessWitness {
 
   /**
    * The location in the input program an invariant of the given type at the given node belongs to.
-   * A loop invariant belongs to its loop, a location invariant to the statement containing the
+   * A loop invariant belongs to its loop, a location invariant to the statement that starts at the
    * node, which is also the statement the validator resolves such an invariant to.
    */
   private Optional<FileLocation> locationOfInvariant(CFANode pNode, InvariantRecordType pType) {
@@ -523,7 +523,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractARGToCorrectnessWitness {
           getASTStructure()
               .getTightestIterationStructureForNode(pNode)
               .map(iteration -> iteration.getCompleteElement().location());
-      case LOCATION_INVARIANT -> getASTStructure().getStatementFileLocationForNode(pNode);
+      case LOCATION_INVARIANT -> getASTStructure().getStatementStartingAtNode(pNode);
       default -> throw new AssertionError("Cannot export invariants of type " + pType);
     };
   }

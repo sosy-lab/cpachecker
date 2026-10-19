@@ -489,6 +489,23 @@ public final class AstCfaRelation {
     }
   }
 
+  /**
+   * Returns the location of the statement given by {@link #getStatementFileLocationForNode} if the
+   * execution of this statement starts at the given node, e.g., not for a node inside a conditional
+   * expression of the statement.
+   */
+  public Optional<FileLocation> getStatementStartingAtNode(CFANode pNode) {
+    return getStatementFileLocationForNode(pNode)
+        .filter(
+            location -> {
+              ASTElement statement =
+                  startingLocationToTightestStatement.get(
+                      new StartingLocation(
+                          location.getStartColumnInLine(), location.getStartingLineInOrigin()));
+              return statement != null && statement.startNodes().contains(pNode);
+            });
+  }
+
   public Optional<ImmutableSet<AVariableDeclaration>> getGlobalVariables() {
     if (globalVariables == null) {
       return Optional.empty();
