@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.2"
+    uuid: "7f2c6a3b-8e14-5d0a-b2c9-1e4d7a9f3b52"
+    creation_time: "2026-10-19T10:00:00+02:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/function-calls.c"
+      input_file_hashes:
+        "../../simple/witness_validation/function-calls.c": "92b4d9e0e1f38809edbfbea2bbcc8fb3b799d7b4e0e1f14599efa2dacb807379"
+      specification: "G ! overflow"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "location_invariant"
+        location:
+          file_name: "../../simple/witness_validation/function-calls.c"
+          line: 10
+          column: 3
+          function: "check"
+        value: "b == 1"
+        format: "c_expression"
