@@ -48,7 +48,7 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
           location, StateSpacePartition.getDefaultPartition());
     }
     FunctionPointerState.Builder builder = FunctionPointerState.createEmptyState().createBuilder();
-    for (DssFunctionPointerEntry entry : payload.entries()) {
+    for (DssFunctionPointerEntryPayload entry : payload.entries()) {
       switch (entry.kind()) {
         case INVALID ->
             builder.setTarget(

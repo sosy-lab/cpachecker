@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DssFunctionPointerEntry.TargetKind;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DssFunctionPointerEntryPayload.TargetKind;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
@@ -21,21 +21,22 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
   public DssFunctionPointerStatePayload serialize(AbstractState pState) {
     FunctionPointerState state = (FunctionPointerState) pState;
     FunctionPointerState.Builder builder = state.createBuilder();
-    ImmutableList.Builder<DssFunctionPointerEntry> entries =
+    ImmutableList.Builder<DssFunctionPointerEntryPayload> entries =
         ImmutableList.builderWithExpectedSize(builder.getValues().size());
 
     for (String value : builder.getValues()) {
       if (FunctionPointerState.InvalidTarget.getInstance().equals(builder.getTarget(value))) {
-        entries.add(new DssFunctionPointerEntry(value, TargetKind.INVALID, null));
+        entries.add(new DssFunctionPointerEntryPayload(value, TargetKind.INVALID, null));
       } else if (FunctionPointerState.NullTarget.getInstance().equals(builder.getTarget(value))) {
-        entries.add(new DssFunctionPointerEntry(value, TargetKind.NULL, null));
+        entries.add(new DssFunctionPointerEntryPayload(value, TargetKind.NULL, null));
       } else if (FunctionPointerState.UnknownTarget.getInstance()
           .equals(builder.getTarget(value))) {
-        entries.add(new DssFunctionPointerEntry(value, TargetKind.UNKNOWN, null));
+        entries.add(new DssFunctionPointerEntryPayload(value, TargetKind.UNKNOWN, null));
       } else {
         NamedFunctionTarget namedTarget = (NamedFunctionTarget) builder.getTarget(value);
         entries.add(
-            new DssFunctionPointerEntry(value, TargetKind.NAMED, namedTarget.getFunctionName()));
+            new DssFunctionPointerEntryPayload(
+                value, TargetKind.NAMED, namedTarget.getFunctionName()));
       }
     }
 
