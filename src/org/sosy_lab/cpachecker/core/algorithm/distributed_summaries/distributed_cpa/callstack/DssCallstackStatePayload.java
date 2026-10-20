@@ -17,17 +17,17 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 
-@JsonPropertyOrder({DssCallstackStatePayload.ALLOW_TRANSFERS, DssCallstackStatePayload.STATES})
+@JsonPropertyOrder({DssCallstackStatePayload.CAN_BE_TOP_STATE, DssCallstackStatePayload.STATES})
 public record DssCallstackStatePayload(
-    @JsonProperty(ALLOW_TRANSFERS) boolean allowAllTransfers,
+    @JsonProperty(CAN_BE_TOP_STATE) boolean canBeTopState,
     @JsonProperty(STATES) ImmutableList<DssCallstackEntryPayload> states)
     implements DssStatePayload {
-  public static final String ALLOW_TRANSFERS = "allowAllTransfers";
+  public static final String CAN_BE_TOP_STATE = "canBeTopState";
   public static final String STATES = "states";
 
   @JsonCreator
   public DssCallstackStatePayload(
-      @JsonProperty(ALLOW_TRANSFERS) boolean pAllowAllTransfers,
+      @JsonProperty(CAN_BE_TOP_STATE) boolean pAllowAllTransfers,
       @JsonProperty(STATES) List<DssCallstackEntryPayload> pStates) {
     this(pAllowAllTransfers, ImmutableList.copyOf(pStates));
   }
@@ -37,5 +37,4 @@ public record DssCallstackStatePayload(
   public DssComponentKey getComponentKey() {
     return DssComponentKey.CALLSTACK_STATE;
   }
-
 }
