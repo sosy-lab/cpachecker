@@ -108,6 +108,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
         + witness_file
     )
     rundef.append(requiredfiles)
+    etree.indent(rundef, level=1)
 
     # Remove the resultfiles tag
     _remove(benchmark.find("resultfiles"))

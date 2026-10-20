@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -30,10 +31,14 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options(prefix = "cpa.block.transfer")
 public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
+  private final UniqueIdGenerator idGenerator;
+
   @Option(description = "whether to travel over the ghost edge", secure = true)
   private boolean standardVcs = true;
 
-  public BlockTransferRelation(Configuration pConfiguration) throws InvalidConfigurationException {
+  public BlockTransferRelation(Configuration pConfiguration, UniqueIdGenerator pIdGenerator)
+      throws InvalidConfigurationException {
+    idGenerator = pIdGenerator;
     pConfiguration.inject(this);
   }
 
@@ -83,6 +88,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
         for (AbstractState vc : blockState.getViolationConditions()) {
           successors.add(
               new BlockState(
+                  freshId(blockState),
                   blockState,
                   cfaEdge.getSuccessor(),
                   blockState.getBlockNode(),
@@ -95,6 +101,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
       }
       return ImmutableList.of(
           new BlockState(
+              freshId(blockState),
               blockState,
               cfaEdge.getSuccessor(),
               blockState.getBlockNode(),
@@ -104,6 +111,11 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               blockState.getWitness()));
     }
     return ImmutableList.of();
+  }
+
+  /** A block-wide unique id for a state that succeeds the given one. */
+  private String freshId(BlockState pPredecessor) {
+    return pPredecessor.getBlockNode().getId() + "#" + idGenerator.getFreshId();
   }
 
   private static BlockStateType getBlockStateTypeOfLocation(BlockNode pBlockNode, CFANode pNode) {

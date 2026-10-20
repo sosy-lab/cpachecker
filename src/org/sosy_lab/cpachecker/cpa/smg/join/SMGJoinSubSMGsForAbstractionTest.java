@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterables;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -33,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.TestHelpers;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGJoinSubSMGsForAbstractionTest {
 
@@ -46,7 +46,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     SMGState smgState =
         new SMGState(
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
+            new SMGOptions(TestUtils.configurationForTest().build()),
             smg,
             0,
             PersistentBiMap.of());

@@ -39,6 +39,17 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessageType, blockNode);
       return parentCPA.createState(
           null, location.getFunctionName(), location, callstackStatePayload.allowAllTransfers());
+  public AbstractState deserialize(DssMessage pMessage) {
+    ContentReader content = pMessage.getAbstractStateContent(CallstackState.class);
+    String stateJson = content.get(STATE_KEY);
+    assert stateJson != null;
+    // states of a block analysis that did not know its callstack must stay unrestricted
+    boolean canBeTopState =
+        Boolean.parseBoolean(
+            content.getOrDefault(DistributedCallstackCPA.CAN_BE_TOP_STATE_KEY, "false"));
+    if (stateJson.isBlank()) {
+      CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
+      return parentCPA.createState(null, location.getFunctionName(), location, canBeTopState);
     }
     CallstackState current = null;
     for (DssCallstackEntryPayload entryPayload : callstackStatePayload.states()) {
@@ -48,6 +59,9 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
               entryPayload.function(),
               Objects.requireNonNull(converter.apply(entryPayload.nodeId())),
               callstackStatePayload.allowAllTransfers());
+              properties.get(1),
+              Objects.requireNonNull(converter.apply(Integer.parseInt(properties.getFirst()))),
+              canBeTopState);
     }
     return current;
   }

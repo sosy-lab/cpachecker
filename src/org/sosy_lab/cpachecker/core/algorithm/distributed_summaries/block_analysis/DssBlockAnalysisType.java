@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 /**
- * The pair of handlers a {@link DssBlockAnalysis} is assembled from, selected by the configuration
+ * The collaborators a {@link DssBlockAnalysis} is assembled from, selected by the configuration
  * option {@code distributedSummaries.blockAnalysisType}.
  */
 public enum DssBlockAnalysisType {
@@ -17,19 +17,27 @@ public enum DssBlockAnalysisType {
   /** Keeps only the latest message of every neighboring block and location hash. */
   ALWAYS_REPLACE {
     @Override
-    DssPreconditionHandler createPreconditionHandler(DssBlockAnalysis pAnalysis)
+    DssBlockAnalysisComponents createComponents(DssBlockAnalysis pAnalysis)
         throws InterruptedException {
-      return new AlwaysReplacePreconditionHandler(pAnalysis);
-    }
-
-    @Override
-    DssViolationConditionHandler createViolationConditionHandler(DssBlockAnalysis pAnalysis) {
-      return new AlwaysReplaceViolationConditionHandler(pAnalysis);
+      AlwaysReplaceViolationConditionHandler violationConditions =
+          new AlwaysReplaceViolationConditionHandler(pAnalysis);
+      AlwaysReplacePreconditionHandler preconditions =
+          new AlwaysReplacePreconditionHandler(pAnalysis);
+      return new DssBlockAnalysisComponents(
+          preconditions,
+          violationConditions,
+          new AlwaysReplaceExplorationEngine(pAnalysis, preconditions, violationConditions));
     }
   };
 
-  abstract DssPreconditionHandler createPreconditionHandler(DssBlockAnalysis pAnalysis)
+  /**
+   * Creates the precondition handler, the violation-condition handler and the exploration engine of
+   * one block analysis.
+   *
+   * <p>All three are created together because an engine is built for the concrete handlers it
+   * reads: how a handler groups what it stores is exactly what the engine has to know in order to
+   * explore it.
+   */
+  abstract DssBlockAnalysisComponents createComponents(DssBlockAnalysis pAnalysis)
       throws InterruptedException;
-
-  abstract DssViolationConditionHandler createViolationConditionHandler(DssBlockAnalysis pAnalysis);
 }

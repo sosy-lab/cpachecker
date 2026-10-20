@@ -39,10 +39,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * state of the stack on a function return), and the identity-based equality of {@link
  * CallstackState} relies on that. Since the wrapped states are created by {@link
  * CallstackTransferRelation} itself, two DSS states are equal exactly if the two states of an
- * ordinary callstack analysis would be. Neither the recorded edges nor {@link
- * #allowsAllTransfers()} take part in the comparison: including the edges would prevent coverage of
- * two states at the same program location, so the analysis of a block with a loop would not
- * terminate.
+ * ordinary callstack analysis would be. Neither the recorded edges nor {@link #canBeTopState()}
+ * take part in the comparison: including the edges would prevent coverage of two states at the same
+ * program location, so the analysis of a block with a loop would not terminate.
  */
 public class DssCallstackState extends CallstackState {
 
@@ -60,15 +59,15 @@ public class DssCallstackState extends CallstackState {
    */
   private final PersistentList<CFAEdge> reversedTraversedEdges;
 
-  private final boolean allowAllTransfers;
+  private final boolean canBeTopState;
 
-  public DssCallstackState(CallstackState pWrappedState, boolean pAllowAllTransfers) {
-    this(pWrappedState, pAllowAllTransfers, PersistentLinkedList.of());
+  public DssCallstackState(CallstackState pWrappedState, boolean pCanBeTopState) {
+    this(pWrappedState, pCanBeTopState, PersistentLinkedList.of());
   }
 
   private DssCallstackState(
       CallstackState pWrappedState,
-      boolean pAllowAllTransfers,
+      boolean pCanBeTopState,
       PersistentList<CFAEdge> pReversedTraversedEdges) {
     super(
         pWrappedState.getPreviousState(),
@@ -79,7 +78,7 @@ public class DssCallstackState extends CallstackState {
         "DSS callstack states must not be nested: %s",
         pWrappedState);
     wrappedState = pWrappedState;
-    allowAllTransfers = pAllowAllTransfers;
+    canBeTopState = pCanBeTopState;
     reversedTraversedEdges = pReversedTraversedEdges;
   }
 
@@ -94,13 +93,18 @@ public class DssCallstackState extends CallstackState {
   }
 
   /**
-   * Whether the transfer relation may apply every CFA edge to this state.
+   * Whether the transfer relation may apply every CFA edge to this state when the stack only
+   * contains its initial state
    *
-   * @return {@code true} if the callstack must never prune a transfer, {@code false} if this state
-   *     behaves exactly like a {@link CallstackState}.
+   * @return {@code true} if the callstack should prune a transfer when the stack is one state only,
+   *     {@code false} if this state behaves exactly like a {@link CallstackState}.
    */
-  public boolean allowsAllTransfers() {
-    return allowAllTransfers;
+  public boolean canBeTopState() {
+    return canBeTopState;
+  }
+
+  public boolean isTopState() {
+    return canBeTopState() && wrappedState.previousState == null;
   }
 
   /**
@@ -129,8 +133,7 @@ public class DssCallstackState extends CallstackState {
    */
   public DssCallstackState withWrappedStateAndTraversedEdge(
       CallstackState pWrappedState, CFAEdge pEdge) {
-    return new DssCallstackState(
-        pWrappedState, allowAllTransfers, reversedTraversedEdges.with(pEdge));
+    return new DssCallstackState(pWrappedState, canBeTopState, reversedTraversedEdges.with(pEdge));
   }
 
   @Override

@@ -14,7 +14,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
-import static org.sosy_lab.cpachecker.core.CPAcheckerIntegrationTest.setUpConfiguration;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.ProgramSubject.assertUsing;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.GRAPHML_VIOLATION;
 
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
  * Base class to execute common configurations of the SMG2-CPA with test programs for multiple
@@ -131,24 +131,13 @@ public abstract class SMGCPAIntegrationTest0 {
   private static Configuration buildConfigForC(
       String cpaConfiguration, String specification, MachineModel machineModel)
       throws IOException, InvalidConfigurationException {
-    return getConfig(
-        CPA_CONFIG_COMMON_PREFIX + cpaConfiguration,
-        Language.C,
-        SPECIFICATION_COMMON_PREFIX + specification,
-        machineModel);
-  }
 
-  /** Uses the default {@link Configuration} and does not allow generated files to be accessed. */
-  protected static Configuration getConfig(
-      String configurationFile,
-      Language inputLanguage,
-      String specificationFile,
-      MachineModel machineModel)
-      throws InvalidConfigurationException, IOException {
-
-    Configuration configForFiles = Configuration.defaultConfiguration();
-    return setUpConfiguration(
-        configurationFile, inputLanguage, specificationFile, configForFiles, machineModel);
+    return TestUtils.configurationForTest()
+        .loadFromFile(CPA_CONFIG_COMMON_PREFIX + cpaConfiguration)
+        .setOption("analysis.machineModel", machineModel.toString())
+        .setOption("language", Language.C.name())
+        .setOption("specification", SPECIFICATION_COMMON_PREFIX + specification)
+        .build();
   }
 
   /**

@@ -74,7 +74,7 @@ public class DistributedPredicateCPA
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     predicateCPA = pPredicateCPA;
-    final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
+    final boolean writeReadableFormulas = pOptions.writeReadableFormulas();
     serialize =
         new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas, pTypeMap);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, pTypeMap);

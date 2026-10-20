@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -47,16 +48,19 @@ public class BlockState
     INITIAL,
     MID,
     FINAL,
-    ABSTRACTION,
-    WITNESS
+    ABSTRACTION
   }
 
+  /** Separator between the ids of the states that a combined state was created from. */
+  private static final String ID_SEPARATOR = "+";
+
+  private final String id;
   private final BlockState predecessor;
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
   private BlockGraphPath history;
-  private List<? extends AbstractState> violationConditions;
+  private ImmutableList<? extends AbstractState> violationConditions;
   private final SegmentedPaths witness;
 
   private final Optional<SegmentedPaths> witnessCheckPathState;
@@ -64,22 +68,21 @@ public class BlockState
   private final transient Set<AbstractState> hinderedByCallstack;
 
   public BlockState(
+      String pId,
       BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      List<? extends AbstractState> pViolationConditions,
+      ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness,
       SegmentedPaths pWitnessCheckPathState) {
-    Preconditions.checkArgument(
-        pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
-        "Added path state while not being in Witnes state");
+    id = pId;
     predecessor = pPredecessor;
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    violationConditions = ImmutableList.copyOf(pViolationConditions);
+    violationConditions = pViolationConditions;
     history = pHistory;
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
@@ -87,14 +90,44 @@ public class BlockState
   }
 
   public BlockState(
+      String pId,
       BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      List<? extends AbstractState> pViolationConditions,
+      ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness) {
-    this(pPredecessor, pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
+    this(
+        pId,
+        pPredecessor,
+        pNode,
+        pTargetNode,
+        pType,
+        pViolationConditions,
+        pHistory,
+        pWitness,
+        null);
+  }
+
+  public String getUniqueId() {
+    return id;
+  }
+
+  /**
+   * Joins the ids of states that are combined into a single state, so that the parts remain
+   * recoverable with {@link #splitUniqueId(String)}.
+   */
+  public static String combineUniqueIds(Iterable<String> pIds) {
+    return Joiner.on(ID_SEPARATOR).join(pIds);
+  }
+
+  /**
+   * Splits an id created by {@link #combineUniqueIds(Iterable)} into the ids of the states it
+   * combines. An id that does not combine several states is returned as the only element.
+   */
+  public static ImmutableList<String> splitUniqueId(String pId) {
+    return ImmutableList.copyOf(Splitter.on(ID_SEPARATOR).split(pId));
   }
 
   public Set<AbstractState> getHinderedByCallstack() {
@@ -149,12 +182,7 @@ public class BlockState
 
   @Override
   public String toString() {
-    return "BlockState{ type="
-        + type
-        + (type == BlockStateType.WITNESS
-            ? (", pathState=" + witnessCheckPathState.orElseThrow())
-            : (", node=" + node))
-        + '}';
+    return "BlockState{ type=" + type + ", node=" + node + '}';
   }
 
   @Override
@@ -166,7 +194,7 @@ public class BlockState
         : ImmutableSet.of();
   }
 
-  public List<? extends @NonNull AbstractState> getViolationConditions() {
+  public ImmutableList<? extends @NonNull AbstractState> getViolationConditions() {
     return violationConditions;
   }
 
@@ -198,15 +226,37 @@ public class BlockState
     throw new UnsupportedOperationException();
   }
 
-  // error condition intentionally left out as it is mutable
-  // the equals method is deliberately not implemented like this
-  public boolean isEqualTo(BlockState that) {
+  /**
+   * Whether this state is covered by the given state, i.e., whether a block that has been analyzed
+   * from {@code that} no longer has to be analyzed from this state.
+   *
+   * <p>This comparison deliberately ignores everything that only records where a state came from:
+   * {@link #id}, {@link #predecessor}, {@link #hinderedByCallstack} and, most importantly, {@link
+   * #history}. Two preconditions that reach the same block entry with the same callstack and the
+   * same abstraction have to subsume each other even if they arrived along different paths through
+   * the block graph, otherwise a block collects one precondition per block-graph path.
+   *
+   * <p>It also ignores {@link #violationConditions}, unlike {@link #equals}: coverage compares a
+   * precondition that has just been deserialized from a message, which never carries a violation
+   * condition, against a stored precondition that {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis
+   * #runBlockAnalysis} has since set the block's current violation conditions on. Comparing the two
+   * would therefore always fail, and a block would collect one precondition per arriving message
+   * instead of covering the repetitions.
+   */
+  public boolean isCovered(BlockState that) {
     return this == that
         || (Objects.equals(node, that.node)
             && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
             && type == that.type
             && blockNode == that.getBlockNode());
   }
+
+  // equals() and hashCode() are deliberately not implemented: BlockState carries bookkeeping that
+  // the algorithm reads back from individual states of the reached set (the predecessor
+  // back-pointer, the block-graph history, and the states that a callstack hindered), and none of
+  // it would take part in a value-based comparison. Coverage is expressed by isCovered(BlockState)
+  // instead, and the lattice of BlockCPA compares states by identity.
 
   @Override
   public boolean isTarget() {

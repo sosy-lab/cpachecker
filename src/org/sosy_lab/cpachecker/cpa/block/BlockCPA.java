@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -17,20 +18,48 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 public class BlockCPA extends AbstractCPA {
 
+  /**
+   * The lattice of this CPA: a state is only ever below itself.
+   *
+   * <p>{@link BlockState} carries bookkeeping that the distributed-summary-synthesis algorithm
+   * reads back from individual states of the reached set -- the {@link BlockState#getPredecessor()
+   * back-pointer}, the block-graph {@link BlockState#getHistory() history}, and, indirectly through
+   * {@link org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState}, the edges a path traversed. A
+   * value-based lattice would ignore all of that and let the stop operator drop states that the
+   * algorithm still needs, which loses paths through the block.
+   */
+  private static final class BlockStateIdentityDomain implements AbstractDomain {
+
+    @Override
+    public AbstractState join(AbstractState pState1, AbstractState pState2) {
+      throw new UnsupportedOperationException("BlockCPA does not support merging states");
+    }
+
+    @Override
+    public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) {
+      return pState1 == pState2;
+    }
+  }
+
   private @LazyInit BlockNode blockNode;
+  private final UniqueIdGenerator idGenerator;
+  private final TransferRelation transferRelation;
 
   public BlockCPA(Configuration pConfiguration) throws InvalidConfigurationException {
-    super("sep", "sep", new FlatLatticeDomain(), new BlockTransferRelation(pConfiguration));
+    super("sep", "sep", new BlockStateIdentityDomain(), null);
+    idGenerator = new UniqueIdGenerator();
+    transferRelation = new BlockTransferRelation(pConfiguration, idGenerator);
   }
 
   public void init(BlockNode pBlockNode) {
@@ -43,6 +72,7 @@ public class BlockCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new BlockState(
+        blockNode == null ? "null" : blockNode.getId() + "#" + idGenerator.getFreshId(),
         null,
         node,
         blockNode,
@@ -50,6 +80,15 @@ public class BlockCPA extends AbstractCPA {
         ImmutableList.of(),
         BlockGraphPath.of(),
         SegmentedPaths.EMPTY);
+  }
+
+  public UniqueIdGenerator getIdGenerator() {
+    return idGenerator;
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
   }
 
   @Override
