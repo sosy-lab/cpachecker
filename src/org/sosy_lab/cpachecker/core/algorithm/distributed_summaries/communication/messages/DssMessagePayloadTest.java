@@ -135,8 +135,7 @@ public class DssMessagePayloadTest {
     assertThat(payload.states()).isEmpty();
 
     DssMessageJsonUtils.write(payload, file);
-    assertThat(Files.readString(file))
-        .contains(String.format("\"%s\":[]", DssMessageKeys.STATES));
+    assertThat(Files.readString(file)).contains(String.format("\"%s\":[]", DssMessageKeys.STATES));
 
     DssMessagePayload parsedPayload = DssMessageJsonUtils.read(file);
     assertThat(parsedPayload).isEqualTo(payload);
