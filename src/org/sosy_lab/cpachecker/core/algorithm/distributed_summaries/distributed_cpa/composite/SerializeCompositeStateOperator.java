@@ -45,7 +45,7 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
           components.put(statePayload.getComponentKey().getSerializedName(), statePayload);
         }
       }
-      return new DssCompositeStatePayload(components.build());
+      return new DssCompositeStatePayload(components.buildOrThrow());
     } finally {
       stats.getSerializationTime().stop();
     }

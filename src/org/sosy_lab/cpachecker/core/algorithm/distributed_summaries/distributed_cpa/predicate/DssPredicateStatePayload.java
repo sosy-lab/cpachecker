@@ -49,5 +49,4 @@ public record DssPredicateStatePayload(
   public DssComponentKey getComponentKey() {
     return DssComponentKey.PREDICATE_STATE;
   }
-
 }

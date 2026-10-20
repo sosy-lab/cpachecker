@@ -65,5 +65,4 @@ public record DssPredicatePrecisionPayload(
   public DssComponentKey getComponentKey() {
     return DssComponentKey.PREDICATE_PRECISION;
   }
-
 }

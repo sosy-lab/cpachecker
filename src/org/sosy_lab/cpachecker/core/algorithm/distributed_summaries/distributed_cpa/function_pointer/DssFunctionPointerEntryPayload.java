@@ -39,20 +39,12 @@ public record DssFunctionPointerEntryPayload(
   public static DssFunctionPointerEntryPayload deserialize(String pSerialized) {
     List<String> parts = Splitter.on(":").limit(3).splitToList(pSerialized);
     assert parts.size() >= 2;
-    switch (parts.getFirst()) {
-      case "I" -> {
-        return new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.INVALID, null);
-      }
-      case "0" -> {
-        return new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.NULL, null);
-      }
-      case "U" -> {
-        return new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.UNKNOWN, null);
-      }
-      case "N" -> {
-        return new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.NAMED, parts.get(2));
-      }
+    return switch (parts.getFirst()) {
+      case "I" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.INVALID, null);
+      case "0" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.NULL, null);
+      case "U" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.UNKNOWN, null);
+      case "N" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.NAMED, parts.get(2));
       default -> throw new AssertionError("Unknown FunctionPointerState");
-    }
+    };
   }
 }
