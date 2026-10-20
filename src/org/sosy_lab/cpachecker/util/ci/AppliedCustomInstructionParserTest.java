@@ -49,7 +49,7 @@ public class AppliedCustomInstructionParserTest {
   @Before
   public void init() throws ParserException, InterruptedException {
     cfa =
-        TestCfaUtils.makeCFA(
+        TestCfaUtils.makeCfaFromString(
             """
             extern int test3(int);
             int test(int p) {
@@ -198,7 +198,7 @@ public class AppliedCustomInstructionParserTest {
   @Test
   public void testParse() throws Exception {
     cfa =
-        TestCfaUtils.makeCFA(
+        TestCfaUtils.makeCfaFromString(
             """
             void main() {
               int x;

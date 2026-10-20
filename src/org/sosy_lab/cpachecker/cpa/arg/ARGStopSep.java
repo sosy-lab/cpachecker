@@ -26,6 +26,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   private final boolean coverTargetStates;
   private final StopOperator wrappedStop;
   private final LogManager logger;
+  private final boolean preservePaths;
 
   public ARGStopSep(
       StopOperator pWrappedStop,
@@ -33,10 +34,27 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       boolean pInCPAEnabledAnalysis,
       boolean pKeepCoveredStatesInReached,
       boolean pCoverTargetStates) {
+    this(
+        pWrappedStop,
+        pLogger,
+        pInCPAEnabledAnalysis,
+        pKeepCoveredStatesInReached,
+        pCoverTargetStates,
+        false);
+  }
+
+  ARGStopSep(
+      StopOperator pWrappedStop,
+      LogManager pLogger,
+      boolean pInCPAEnabledAnalysis,
+      boolean pKeepCoveredStatesInReached,
+      boolean pCoverTargetStates,
+      boolean pPreservePaths) {
     wrappedStop = pWrappedStop;
     logger = pLogger;
     keepCoveredStatesInReached = pKeepCoveredStatesInReached;
     inCPAEnabledAnalysis = pInCPAEnabledAnalysis;
+    preservePaths = pPreservePaths;
     coverTargetStates = pCoverTargetStates;
   }
 
@@ -108,6 +126,15 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     for (AbstractState reachedState : pReached) {
       ARGState argReachedState = (ARGState) reachedState;
       if (stop(argElement, argReachedState, pPrecision)) {
+        if (preservePaths) {
+          // Commit only after the whole wrapped stop operator accepted coverage. Retain the
+          // incoming prefix even if the path formulas were equal and no merge was performed.
+          for (ARGState incomingParent : argElement.getParents()) {
+            argReachedState.copyIncomingPathsFrom(argElement, incomingParent);
+          }
+          argElement.removeFromARG();
+          return true;
+        }
         if (parent != null && argReachedState.getParents().contains(parent)) {
           // if the covering state has the same parent as the covered state
           // and if the covered state has no other parents,
@@ -127,6 +154,10 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       throws CPAException, InterruptedException {
 
     if (!pReachedState.mayCover()) {
+      return false;
+    }
+
+    if (preservePaths && !ARGPathPreservation.canSharePaths(pElement, pReachedState)) {
       return false;
     }
     if (Objects.equals(pElement, pReachedState)) {
@@ -156,6 +187,10 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   public boolean isForcedCoveringPossible(
       AbstractState pElement, AbstractState pReachedState, Precision pPrecision)
       throws CPAException, InterruptedException {
+
+    if (preservePaths) {
+      return false;
+    }
     if (!(wrappedStop instanceof ForcedCoveringStopOperator forcedCoveringStopOperator)) {
       return false;
     }

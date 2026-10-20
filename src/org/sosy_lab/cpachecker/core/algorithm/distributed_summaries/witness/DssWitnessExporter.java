@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
 
 public class DssWitnessExporter {
 
@@ -112,8 +112,8 @@ public class DssWitnessExporter {
       ReachedSet reachedSet,
       Modification pModification)
       throws InvalidConfigurationException, InterruptedException {
-    ARGToYAMLWitnessExport exporter =
-        new ARGToYAMLWitnessExport(
+    ARGToCorrectnessWitnessV2 exporter =
+        new ARGToCorrectnessWitnessV2(
             configuration,
             pModification.metadata().originalCfa(),
             specification,

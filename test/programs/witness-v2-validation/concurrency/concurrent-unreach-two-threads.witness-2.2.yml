@@ -1,0 +1,81 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Regression test for thread identifiers of threads that the witness does not mention.
+# The program creates two threads, but only the creation of `writer` has a function-enter
+# waypoint, so `writer` is thread 1 and the thread running `idle` has no identifier in
+# this witness at all. Numbering the threads by creation order instead would make thread
+# 1 refer to `idle` and the assumption waypoint below could never be passed.
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: "2.2"
+    uuid: "c3d4e5f6-a7b8-4901-9cde-f01234567890"
+    creation_time: "2026-08-21T12:00:00Z"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./concurrent-unreach-two-threads.c"
+      input_file_hashes:
+        "./concurrent-unreach-two-threads.c": "8bb9a6bf9a829dac005ec0ba64b402e49215126215a24a641b27d2cbd0ab4d5a"
+      specification: "G ! call(reach_error())"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            # registers writer as thread 1 (1st function_enter'd pthread_create). The
+            # creation of `idle` on line 34 is deliberately not mentioned.
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-unreach-two-threads.c"
+              line: 35
+              column: 17
+              function: "main"
+    - segment:
+        - waypoint:
+            # thread 1 has performed its write: at its `return NULL;` x is 1
+            type: assumption
+            action: follow
+            thread_id: 1
+            constraint:
+              value: "x == 1"
+              format: c_expression
+            location:
+              file_name: "./concurrent-unreach-two-threads.c"
+              line: 29
+              column: 3
+              function: "writer"
+    - segment:
+        - waypoint:
+            # main observes x == 1, so the branch `if (x == 1)` is taken
+            type: assumption
+            action: follow
+            thread_id: 0
+            constraint:
+              value: "x == 1"
+              format: c_expression
+            location:
+              file_name: "./concurrent-unreach-two-threads.c"
+              line: 36
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-unreach-two-threads.c"
+              line: 36
+              column: 15
+              function: "main"

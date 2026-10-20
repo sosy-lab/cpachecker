@@ -11,12 +11,18 @@ package org.sosy_lab.cpachecker.core.specification;
 import com.google.common.testing.AbstractPackageSanityTests;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class PackageSanityTest extends AbstractPackageSanityTests {
 
   {
-    setDefault(Configuration.class, Configuration.defaultConfiguration());
+    try {
+      setDefault(Configuration.class, TestUtils.configurationForTest().build());
+    } catch (InvalidConfigurationException e) {
+      throw new AssertionError(e);
+    }
     setDefault(LogManager.class, LogManager.createTestLogManager());
     setDefault(ShutdownNotifier.class, ShutdownNotifier.createDummy());
   }

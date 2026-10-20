@@ -25,7 +25,7 @@ SPDX-License-Identifier: Apache-2.0
 
 	<tasks name="Simple">
 	  <includesfile>../programs/simple/blockAnalysis.set</includesfile>
-	  <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+	  <propertyfile>../config/properties/unreach-call.prp</propertyfile>
 	</tasks>
   </rundefinition>
 

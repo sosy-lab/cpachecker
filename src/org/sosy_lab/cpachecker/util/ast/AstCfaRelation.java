@@ -21,6 +21,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -87,6 +90,23 @@ public final class AstCfaRelation {
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
     globalVariables = pGlobalVariables;
     expressionLocations = pExpressionLocations;
+  }
+
+  /**
+   * Set the edges of the CFA that belong to the AST elements. This is done after finalizing the
+   * CFA, since we first need to finish building the CFA before we know about all the edges due to
+   * edges being added to the CFA like for example with function cloning for concurrency.
+   */
+  public void setEdgesForAstElements(ImmutableSet<CFAEdge> pEdges) {
+    for (IfElement structure : ifElements) {
+      structure.setEdges(pEdges);
+    }
+    for (IterationElement structure : iterationStructures) {
+      structure.setEdges(pEdges);
+    }
+    for (StatementElement structure : statementElements) {
+      structure.setEdges(pEdges);
+    }
   }
 
   /**
@@ -342,6 +362,34 @@ public final class AstCfaRelation {
       }
       return Optional.empty();
     }
+  }
+
+  /**
+   * Returns the column of the opening parenthesis of a function call, which is the location by
+   * which witnesses identify function calls.
+   *
+   * <p>This is only possible for calls whose function name is given by an identifier, i.e. not for
+   * calls through function pointers. It also assumes that no whitespace separates the function name
+   * from the parenthesis, since we do not track the parenthesis itself. See <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1687">work item 1687</a>.
+   *
+   * @param pCall the call whose parenthesis we are looking for
+   * @return the column of the parenthesis, or nothing if it cannot be computed
+   */
+  public OptionalInt getColumnOfFunctionCallParenthesis(AFunctionCallExpression pCall) {
+    if (!(pCall.getFunctionNameExpression() instanceof AIdExpression functionName)) {
+      return OptionalInt.empty();
+    }
+
+    FileLocation location = functionName.getFileLocation();
+    if (!location.isRealLocation()) {
+      return OptionalInt.empty();
+    }
+
+    // The name in the source is the original one, since renamings happen only inside CPAchecker
+    return OptionalInt.of(
+        location.getStartColumnInLine()
+            + functionName.toASTString(AAstNodeRepresentation.ORIGINAL_NAMES).length());
   }
 
   /**

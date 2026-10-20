@@ -88,7 +88,7 @@ public class ARGPath extends AbstractAppender {
    *     are more than one CFAEdge between two ARGStates. This list must contain all of them in the
    *     correct order.
    */
-  public ARGPath(List<ARGState> pStates, List<CFAEdge> pPath, List<CFAEdge> pFullPath) {
+  public ARGPath(List<ARGState> pStates, List<@Nullable CFAEdge> pPath, List<CFAEdge> pFullPath) {
     states = ImmutableList.copyOf(pStates);
     edges = pPath;
     fullPath = ImmutableList.copyOf(pFullPath);

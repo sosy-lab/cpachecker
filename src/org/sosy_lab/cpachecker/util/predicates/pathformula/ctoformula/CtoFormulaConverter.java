@@ -771,15 +771,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
-      final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
-      final Formula lowerBound =
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
-      final Formula upperBound =
-          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
 
       constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
-      constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
+      constraints.addConstraint(
+          CtoFormulaTypeUtils.makeRangeConstraint(fmgr, variable, sType, machineModel));
     }
   }
 

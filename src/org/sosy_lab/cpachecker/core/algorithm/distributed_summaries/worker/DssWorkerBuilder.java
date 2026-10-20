@@ -18,6 +18,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Supplier;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
@@ -142,13 +143,24 @@ public class DssWorkerBuilder {
     return this;
   }
 
+  /**
+   * The logger of one worker.
+   *
+   * <p>A worker writes its own log file, so the level of that file handler decides what the block
+   * analysis inside the worker logs. The predicate analysis logs its path formulas and abstraction
+   * formulas at {@link Level#ALL}, and rendering an SMT formula as a string costs more than the
+   * solver calls around it, so the default level of a {@link FileHandler} would make a block
+   * analysis spend most of its time producing output that nobody reads. The level therefore comes
+   * from {@link DssAnalysisOptions#getLogLevel()} instead.
+   */
   private LogManager getLogger(DssAnalysisOptions pOptions, String workerId) {
     try {
       Path logDirectory = pOptions.getLogDirectory();
       if (logDirectory != null) {
         Files.createDirectories(logDirectory);
-        return BasicLogManager.createWithHandler(
-            new FileHandler(logDirectory + "/" + workerId + ".log"));
+        FileHandler handler = new FileHandler(logDirectory + "/" + workerId + ".log");
+        handler.setLevel(pOptions.getLogLevel());
+        return BasicLogManager.createWithHandler(handler);
       }
     } catch (IOException e) {
       // fall-through to return null-log manager

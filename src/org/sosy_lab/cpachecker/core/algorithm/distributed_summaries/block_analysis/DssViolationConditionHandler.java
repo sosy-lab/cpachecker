@@ -20,6 +20,10 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Remembers the violation conditions a block receives from its successors and decides when a
  * received condition adds nothing new.
  *
+ * <p>A handler only keeps track of what arrived. Exploring the block under what it holds is the job
+ * of a {@link DssExplorationEngine}, which asks for the conditions through {@link
+ * #statesOf(Optional)}.
+ *
  * @see AlwaysReplaceViolationConditionHandler
  */
 interface DssViolationConditionHandler {

@@ -198,7 +198,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                 Level.FINE,
                 "Write down report of non-checked states which is provided to next partial ARG"
                     + " check. Report is given by assumption automaton.");
-            automatonWriter.writeAutomaton(roots[i], incompleteStates);
+            automatonWriter.writeAutomaton(roots[i], incompleteStates, cfa.getMachineModel());
             shutdown.shutdownIfNecessary();
           }
           logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
@@ -313,7 +313,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                 Level.FINE,
                 "Write down report of non-checked states which is provided to next partial ARG"
                     + " check. Report is given by assumption automaton.");
-            automatonWriter.writeAutomaton(roots[i], incompleteStates);
+            automatonWriter.writeAutomaton(roots[i], incompleteStates, cfa.getMachineModel());
             shutdown.shutdownIfNecessary();
           }
           logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");

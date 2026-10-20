@@ -114,7 +114,7 @@ public class SeqPointerAliasingUtil {
                       rightHandSideVisitResult.declaration(),
                       rightHandSideVisitResult.fieldMember());
               return Optional.of(
-                  new SeqPointerAssignment(
+                  SeqPointerAssignment.of(
                       pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
@@ -128,7 +128,7 @@ public class SeqPointerAliasingUtil {
                       Optional.empty(),
                       Optional.of(functionCallExpression));
               return Optional.of(
-                  new SeqPointerAssignment(
+                  SeqPointerAssignment.of(
                       pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
@@ -142,16 +142,17 @@ public class SeqPointerAliasingUtil {
       CSimpleDeclaration declaration, Optional<CCompositeTypeMemberDeclaration> fieldMember) {}
 
   private static final class CPointerAssignmentVisitor
-      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, NoException> {
+      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, UnsupportedCodeException> {
 
     @Override
-    public CPointerAssignmentVisitResult visit(
-        CArraySubscriptExpression pArraySubscriptExpression) {
+    public CPointerAssignmentVisitResult visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
       return pArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference) {
+    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference)
+        throws UnsupportedCodeException {
       CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
       CCompositeTypeMemberDeclaration fieldMember =
           SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
@@ -161,22 +162,26 @@ public class SeqPointerAliasingUtil {
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression) {
+    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression)
+        throws UnsupportedCodeException {
       return pPointerExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression) {
+    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
       return pComplexCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression) {
+    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression)
+        throws UnsupportedCodeException {
       return pCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression) {
+    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression)
+        throws UnsupportedCodeException {
       return pUnaryExpression.getOperand().accept(this);
     }
 
@@ -352,17 +357,14 @@ public class SeqPointerAliasingUtil {
   // CCompositeTypeMemberDeclaration
 
   public static CCompositeTypeMemberDeclaration getCompositeTypeMemberDeclarationByFieldName(
-      CType pType, String pFieldName) {
+      CType pType, String pFieldName) throws UnsupportedCodeException {
 
-    for (CCompositeTypeMemberDeclaration declaration :
-        getAllCompositeTypeMemberDeclarationsInType(pType, ImmutableSet.of())) {
-      if (declaration.getName().equals(pFieldName)) {
-        return declaration;
-      }
-    }
-    throw new IllegalArgumentException(
-        String.format(
-            "No CCompositeTypeMemberDeclaration with name %s found in pType.", pFieldName));
+    Optional<CCompositeTypeMemberDeclaration> fieldMember =
+        getAllCompositeTypeMemberDeclarationsInType(pType, ImmutableSet.of()).stream()
+            .filter(declaration -> declaration.getName().equals(pFieldName))
+            .findFirst();
+    InputRejection.checkFieldMemberFound(fieldMember, pType, pFieldName);
+    return fieldMember.orElseThrow();
   }
 
   public static ImmutableList<CCompositeTypeMemberDeclaration>

@@ -143,7 +143,8 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
               ImmutableSet.copyOf(pReachedSet.getWaitlist()),
               0,
               true,
-              true);
+              true,
+              cfa.getMachineModel());
         }
       } catch (IOException e1) {
         throw new CPAException(

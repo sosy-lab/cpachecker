@@ -91,7 +91,8 @@ public class SeqPointerAliasingMap {
       SeqMemoryLocation pMemoryLocation,
       MPORThread pThread,
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
-      SeqMemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType)
+      throws UnsupportedCodeException {
 
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));

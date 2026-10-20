@@ -151,6 +151,11 @@ public final class CompositeCPA
         aggregateBasicBlocks);
   }
 
+  /** Whether merging requires every component to cover both incoming states. */
+  public boolean usesMergeAgree() {
+    return merge.equals("AGREE");
+  }
+
   @Override
   public MergeOperator getMergeOperator() {
     return mergeSupplier.get();

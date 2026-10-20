@@ -14,6 +14,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -34,19 +35,34 @@ public final class DssCallstackCPA extends CallstackCPA {
   }
 
   @Override
+  public AbstractDomain getAbstractDomain() {
+    return new DssCallstackDomain();
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOther) {
+    return new DssCallstackDomain().isLessOrEqual(pState, pOther);
+  }
+
+  @Override
+  public boolean isCoveredByRecursiveState(AbstractState pState, AbstractState pOther) {
+    return isCoveredBy(pState, pOther);
+  }
+
+  @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return createState(null, pNode.getFunctionName(), pNode, false);
   }
 
-  /** Creates a DSS callstack state, optionally allowing every transfer. */
+  /** Creates a DSS callstack state, optionally one that may stand for an unknown callstack. */
   public DssCallstackState createState(
       @Nullable CallstackState pPreviousState,
       String pFunction,
       CFANode pCallerNode,
-      boolean pAllowAllTransfers) {
+      boolean pCanBeTopState) {
     CallstackState wrappedState =
         new CallstackState(DssCallstackState.unwrap(pPreviousState), pFunction, pCallerNode);
-    return new DssCallstackState(wrappedState, pAllowAllTransfers);
+    return new DssCallstackState(wrappedState, pCanBeTopState);
   }
 
   @Override

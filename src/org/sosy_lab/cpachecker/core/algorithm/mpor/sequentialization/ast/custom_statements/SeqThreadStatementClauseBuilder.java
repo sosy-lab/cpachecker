@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -183,6 +185,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
         new SeqThreadStatementBuilder(
+            options,
             pThread,
             allThreads,
             substituteEdges,
@@ -282,7 +285,9 @@ public record SeqThreadStatementClauseBuilder(
             .in(
                 SeqThreadStatementType.GHOST_ONLY,
                 SeqThreadStatementType.FUNCTION_EXIT,
-                SeqThreadStatementType.THREAD_EXIT));
+                SeqThreadStatementType.THREAD_EXIT),
+        "Cannot append pointer resets to a statement of type %s",
+        statement.data().getType());
 
     // it is important that the pointer reset is added after the existing statements. the existing
     // statements may contain an assignment from a function return which could be overwritten:
@@ -312,15 +317,35 @@ public record SeqThreadStatementClauseBuilder(
     return updatedClauses;
   }
 
+  /**
+   * Returns whether the pointers that go out of scope at {@code pCfaNode} have to be reset, i.e.
+   * whether a function returns or a thread exits at {@code pCfaNode}.
+   *
+   * <p>Terminations of the whole program, e.g. a call to {@code abort()}, do not require resets
+   * because no statement of the input program is executed afterwards.
+   */
+  private static boolean requiresPointerResets(CFANode pCfaNode) {
+    for (CFAEdge leavingEdge : pCfaNode.getLeavingEdges()) {
+      if (leavingEdge.getSuccessor() instanceof FunctionExitNode) {
+        return true;
+      }
+      // pthread_exit is declared __noreturn__, so its successor is a CFATerminationNode, but only
+      // the thread and not the whole program exits
+      if (leavingEdge.getSuccessor() instanceof CFATerminationNode
+          && PthreadUtil.isCallToPthreadFunction(leavingEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private ImmutableList<CCompoundStatementElement> getResetAssignmentsForOutOfScopePointers(
       MPORThread pThread, CFANodeForThread pThreadNode) {
 
     ImmutableList.Builder<CCompoundStatementElement> rAssignments = ImmutableList.builder();
 
     CFANode cfaNode = pThreadNode.getCfaNode();
-    if (cfaNode.getLeavingEdges().stream()
-        .anyMatch(e -> SeqThreadStatementUtil.isFunctionExitOrTerminationNode(e.getSuccessor()))) {
-
+    if (requiresPointerResets(cfaNode)) {
       MPORSubstitution substitution = substitutions.get(pThreadNode.threadId);
       checkState(substitution.getThread().equals(pThread));
 

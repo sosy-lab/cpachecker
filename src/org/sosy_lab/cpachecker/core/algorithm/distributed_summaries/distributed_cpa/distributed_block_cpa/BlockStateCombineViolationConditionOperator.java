@@ -13,6 +13,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
+import java.util.Comparator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,11 +37,18 @@ public class BlockStateCombineViolationConditionOperator
                 .filter(BlockState.class)
                 .transform(BlockState::getWitness)
                 .toList());
+    String id =
+        BlockState.combineUniqueIds(
+            FluentIterable.from(states)
+                .filter(BlockState.class)
+                .transform(BlockState::getUniqueId)
+                .toSortedList(Comparator.comparing(String::toString)));
 
     AbstractState reference = Iterables.getFirst(states, null);
     Preconditions.checkNotNull(reference);
     BlockState blockState = (BlockState) reference;
     return new BlockState(
+        id,
         null,
         Iterables.getOnlyElement(locations),
         blockState.getBlockNode(),

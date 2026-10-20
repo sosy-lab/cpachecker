@@ -13,7 +13,6 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -30,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class InputRejectionTest {
@@ -84,13 +84,9 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectLanguageNotC() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/HelloJava.java");
-    // create cfa for test program pFileName
-    LogManager logger = LogManager.createTestLogManager();
-    CFACreator cfaCreator = MPORUtil.buildTestCfaCreator(logger, ShutdownNotifier.createDummy());
-    String program = Files.readString(inputFilePath);
+    String inputFile = "test/programs/mpor/input_rejections/HelloJava.java";
     CParserException exception =
-        assertThrows(CParserException.class, () -> cfaCreator.parseSourceAndCreateCFA(program));
+        assertThrows(CParserException.class, () -> TestCfaUtils.makeCfaFromFile(inputFile));
     assertThat(exception).isNotNull();
   }
 

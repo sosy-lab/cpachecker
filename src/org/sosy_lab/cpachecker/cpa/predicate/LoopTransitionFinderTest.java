@@ -25,7 +25,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -44,7 +43,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class LoopTransitionFinderTest {
-  private CFACreator creator;
   private LogManager logger;
   private PathFormulaManager pfmgr;
   private FormulaManagerView fmgr;
@@ -85,14 +83,12 @@ public class LoopTransitionFinderTest {
             Optional.empty(),
             AnalysisDirection.FORWARD,
             Language.C);
-    creator = new CFACreator(config, logger, notifier);
   }
 
   @Test
   public void testGetEdgesInLoop() throws Exception {
     CFA cfa =
-        TestCfaUtils.toSingleFunctionCFA(
-            creator,
+        TestCfaUtils.makeCfaFromFunctionBody(
             """
             int x = 0;
             int y = 0;
@@ -117,8 +113,7 @@ public class LoopTransitionFinderTest {
   @Test
   public void testWithConditional() throws Exception {
     CFA cfa =
-        TestCfaUtils.toSingleFunctionCFA(
-            creator,
+        TestCfaUtils.makeCfaFromFunctionBody(
             """
             int x = 0;
             int y = 0;
@@ -147,8 +142,7 @@ public class LoopTransitionFinderTest {
   @Test
   public void testInterproceduralSummary() throws Exception {
     CFA cfa =
-        TestCfaUtils.toMultiFunctionCFA(
-            creator,
+        TestCfaUtils.makeCfaFromString(
             """
             void log() {}
             int main() {
@@ -186,7 +180,7 @@ public class LoopTransitionFinderTest {
 
   private PathFormula fromLine(String line) throws Exception {
     return TestCfaUtils.toPathFormula(
-        TestCfaUtils.toSingleFunctionCFA(creator, line), SSAMap.emptySSAMap(), pfmgr, true);
+        TestCfaUtils.makeCfaFromFunctionBody(line), SSAMap.emptySSAMap(), pfmgr, true);
   }
 
   private void assertEquivalent(BooleanFormula output, BooleanFormula expected)

@@ -6,6 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// An atomic struct type may need stricter alignment than its non-atomic version, just like an
+// atomic scalar type: if the size of the struct is one of 1, 2, 4, 8, or 16 bytes and the
+// alignment of the non-atomic struct is smaller than that size, the atomic struct is aligned to
+// its size. Cf. https://gcc.gnu.org/wiki/Atomic/GCCMM/UnalignedPolicy and
+// https://docs.oracle.com/cd/E60778_01/html/E60745/gqfbq.html.
+struct pair {
+  int a;
+  int b;
+};
+
 int main() {
   if (sizeof(_Bool) != 1) goto ERROR;
   if (sizeof(short) != 2) goto ERROR;
@@ -46,6 +56,11 @@ int main() {
   if (_Alignof(_Atomic double) != 8) goto ERROR;
   if (_Alignof(_Atomic long double) != 4) goto ERROR;
   if (_Alignof(_Atomic int*) != 4) goto ERROR;
+
+  if (sizeof(struct pair) != 8) goto ERROR;
+  if (_Alignof(struct pair) != 4) goto ERROR;
+  if (sizeof(_Atomic struct pair) != 8) goto ERROR;
+  if (_Alignof(_Atomic struct pair) != 8) goto ERROR;
 
   return 0;
 ERROR:

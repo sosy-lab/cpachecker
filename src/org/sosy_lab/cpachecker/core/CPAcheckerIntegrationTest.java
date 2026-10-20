@@ -25,14 +25,13 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
  * Integration tests for CPAchecker. Most integration tests are written as BenchExec tests for the
@@ -78,6 +77,8 @@ public class CPAcheckerIntegrationTest {
   private static final String SAFE_PROGRAM_JAVA = "Switch_true_assert";
   private static final String UNSAFE_PROGRAM_JAVA = "Switch2_false_assert";
 
+  private static final String WITNESS_SvLib = "witness.svlib";
+
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   // discard printed statistics; we only care about generation
@@ -88,7 +89,7 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForSafeCProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C).build();
 
     // Code duplication in the later tests is on purpose; we don't want to hide the method calls
     // that are included in the test through indirection, as long as the tests stay as simple
@@ -103,7 +104,8 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForSafeSvLibProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib)
+            .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -111,14 +113,11 @@ public class CPAcheckerIntegrationTest {
     result.assertIsSafe();
   }
 
-  private Configuration svLibConfigWithWitnessOutput(Path witnessOutputPath)
+  private Configuration svLibConfigWithWitnessOutput()
       throws InvalidConfigurationException, IOException {
-    return Configuration.builder()
-        .copyFrom(
-            getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib))
-        .setOption("output.path", witnessOutputPath.getParent().toString())
-        .setOption("counterexample.export.svlib", witnessOutputPath.getFileName().toString())
-        .setOption("cpa.arg.svLibCorrectnessWitness", witnessOutputPath.getFileName().toString())
+    return getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib)
+        .setOption("counterexample.export.svlib", WITNESS_SvLib)
+        .setOption("cpa.arg.svLibCorrectnessWitness", WITNESS_SvLib)
         .build();
   }
 
@@ -153,8 +152,8 @@ public class CPAcheckerIntegrationTest {
 
   @Test
   public void testWitnessExportForSafeSvLibProgram() throws Exception {
-    Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
-    Configuration config = svLibConfigWithWitnessOutput(witnessOutputPath);
+    Path witnessOutputPath = tempFolder.getRoot().toPath().resolve("output").resolve(WITNESS_SvLib);
+    Configuration config = svLibConfigWithWitnessOutput();
     IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_LOOP_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -176,7 +175,8 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForUnsafeSvLibProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib)
+            .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -188,7 +188,8 @@ public class CPAcheckerIntegrationTest {
   public void testRunDeprecatedSpecificationForUnsafeSvLibProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(
-            CONFIGURATION_FILE_SvLib, Language.SVLIB, DEPRECATED_PROPERTY_SvLib);
+                CONFIGURATION_FILE_SvLib, Language.SVLIB, DEPRECATED_PROPERTY_SvLib)
+            .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -199,7 +200,7 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunPropertyFileForUnsafeSvLibProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, PROPERTY_SvLib);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, PROPERTY_SvLib).build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -209,8 +210,8 @@ public class CPAcheckerIntegrationTest {
 
   @Test
   public void testWitnessExportForUnsafeSvLibProgram() throws Exception {
-    Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
-    Configuration config = svLibConfigWithWitnessOutput(witnessOutputPath);
+    Path witnessOutputPath = tempFolder.getRoot().toPath().resolve("output").resolve(WITNESS_SvLib);
+    Configuration config = svLibConfigWithWitnessOutput();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_LOOP_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -229,7 +230,7 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForUnsafeCProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C).build();
 
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_C);
     result.cpaCheckerResult().printStatistics(statisticsStream);
@@ -241,7 +242,8 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForSafeJavaProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA)
+            .build();
 
     IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_JAVA);
     result.cpaCheckerResult().printStatistics(statisticsStream);
@@ -253,7 +255,8 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForUnsafeJavaProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA)
+            .build();
 
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_JAVA);
     result.cpaCheckerResult().printStatistics(statisticsStream);
@@ -267,7 +270,8 @@ public class CPAcheckerIntegrationTest {
   @Ignore("cf. issue #1356")
   public void testRunForSafeLlvmProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM)
+            .build();
 
     IntegrationTestResult result;
     try {
@@ -286,7 +290,8 @@ public class CPAcheckerIntegrationTest {
   @Ignore("cf. issue #1356")
   public void testRunForUnsafeLlvmProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
+        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM)
+            .build();
 
     IntegrationTestResult result;
     try {
@@ -301,36 +306,15 @@ public class CPAcheckerIntegrationTest {
     result.assertIsUnsafe();
   }
 
-  protected Configuration getConfigWithOutputFiles(
+  private ConfigurationBuilder getConfigWithOutputFiles(
       String configurationFile, Language inputLanguage, String specificationFile)
       throws InvalidConfigurationException, IOException {
 
-    // Do not use TestDataTools.configurationForTest() because we want output files
-    Configuration configForFiles =
-        Configuration.builder()
-            .setOption("output.path", tempFolder.getRoot().getAbsolutePath())
-            .build();
-    return setUpConfiguration(
-        configurationFile, inputLanguage, specificationFile, configForFiles, MachineModel.LINUX32);
-  }
-
-  public static Configuration setUpConfiguration(
-      String configurationFile,
-      Language inputLanguage,
-      String specificationFile,
-      Configuration pConfigForFiles,
-      MachineModel machineModel)
-      throws InvalidConfigurationException, IOException {
-    FileTypeConverter fileTypeConverter = FileTypeConverter.create(pConfigForFiles);
-    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder
+    return TestUtils.configurationForTestWithOutput(tempFolder)
         .loadFromFile(configurationFile)
-        .setOption("analysis.machineModel", machineModel.toString())
+        .setOption("analysis.machineModel", MachineModel.LINUX32.toString())
         .setOption("language", inputLanguage.name())
         .setOption("specification", specificationFile)
-        .setOption("java.classpath", JAVA_CLASSPATH)
-        .addConverter(FileOption.class, fileTypeConverter);
-    return configBuilder.build();
+        .setOption("java.classpath", JAVA_CLASSPATH);
   }
 }

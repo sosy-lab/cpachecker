@@ -56,7 +56,7 @@ public class CustomInstructionTest {
   @SuppressForbidden("reflection only in test")
   public void init() throws Exception {
     cfa =
-        TestCfaUtils.makeCFA(
+        TestCfaUtils.makeCfaFromString(
             """
             void main(int a) {
               int a;
@@ -221,7 +221,7 @@ public class CustomInstructionTest {
   @Test
   public void testInspectAppliedCustomInstruction() throws Exception {
     cfa =
-        TestCfaUtils.makeCFA(
+        TestCfaUtils.makeCfaFromString(
             """
             extern int f2(int);
             int f(int x) {

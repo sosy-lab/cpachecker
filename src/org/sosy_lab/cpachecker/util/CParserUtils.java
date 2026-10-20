@@ -35,6 +35,9 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -689,6 +692,31 @@ public class CParserUtils {
       return resultBuilder.toString();
     }
     return pAssumeCode;
+  }
+
+  /**
+   * Create a parser for the expressions of a witness, for use with the parsing functions of this
+   * class.
+   *
+   * @param pConfig the configuration of the analysis
+   * @param pMachineModel the machine model of the analyzed program
+   * @param pShutdownNotifier the shutdown notifier of the analysis
+   * @return a parser for the expressions of a witness
+   */
+  public static CParser createWitnessExpressionParser(
+      Configuration pConfig, MachineModel pMachineModel, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+    return CParser.Factory.getParser(
+        /*
+         * FIXME: Use normal logger as soon as CParser supports parsing
+         * expression trees natively, such that we can remove the workaround
+         * with the undefined __CPAchecker_ACSL_return dummy function that
+         * causes warnings to be logged.
+         */
+        LogManager.createNullLogManager(),
+        CParser.Factory.getOptions(pConfig),
+        pMachineModel,
+        pShutdownNotifier);
   }
 
   /**
