@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -73,14 +72,13 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
 
   @Override
   public DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
-    return new DssMessagePayload(
-        DssHeaderPayload.forMessage(senderId, getType(), timestamp, pIdentifier),
+    return new DssViolationConditionPayload(
+        DssHeaderPayload.forMessage(senderId, timestamp, pIdentifier),
         DssStatusPayload.fromAlgorithmStatus(status),
-        states,
-        ImmutableMap.of());
+        states);
   }
 
-  public final String extractBlockStateWitnessString() {
+  public String extractBlockStateWitnessString() {
     checkState(getNumberOfContainedStates() >= 1, "No state to extract witness from");
     DssBlockStatePayload blockStatePayload =
         states.stream()

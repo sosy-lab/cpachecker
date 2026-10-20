@@ -11,14 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
-import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -47,49 +45,11 @@ public class DssMessagePayloadTest {
 
   private DssMessage roundTrip(DssMessage pMessage) throws IOException {
     Path file = tempFolder.newFile("message.json").toPath();
-    pMessage.asJsonPayload().writeJson(file);
+    DssMessageJsonUtils.write(pMessage.asJsonPayload(), file);
     return DssMessageCodec.fromJson(file);
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-
-  @Test
-  public void fromJsonReadsCurrentJsonShape() throws Exception {
-    Path file = tempFolder.newFile("message.json").toPath();
-    String jsonContent =
-        String.format(
-            """
-            {
-              "%s": {
-                "%s": "%s",
-                "%s": "%s",
-                "%s": "%s",
-                "%s": "%s"
-              },
-              "%s": {
-                "%s": "%s"
-              }
-            }
-            """,
-            DssMessageKeys.HEADER,
-            DssMessageKeys.SENDER_ID,
-            "B1",
-            DssMessageKeys.MESSAGE_TYPE,
-            DssMessage.DssMessageType.RESULT.name(),
-            DssMessageKeys.TIMESTAMP,
-            "123",
-            DssMessageKeys.IDENTIFIER,
-            "0",
-            DssMessageKeys.CONTENT,
-            DssMessageKeys.RESULT,
-            "true");
-    Files.writeString(file, jsonContent);
-
-    DssMessagePayload payload = DssMessagePayload.fromJson(file);
-
-    assertThat(payload.header().messageType()).isEqualTo(DssMessage.DssMessageType.RESULT);
-    assertThat(payload.content()).containsEntry(DssMessageKeys.RESULT, "true");
-  }
 
   @Test
   public void fromJsonRejectsMissingHeader() throws Exception {
@@ -98,16 +58,14 @@ public class DssMessagePayloadTest {
         String.format(
             """
             {
-              "%s": {
-                "%s": "%s"
-              }
+              "%s": "result",
+              "%s": "%s"
             }
             """,
-            DssMessageKeys.CONTENT, DssMessageKeys.RESULT, "true");
+            DssMessageKeys.TYPE, DssMessageKeys.RESULT, Result.TRUE.name());
     Files.writeString(file, jsonContent);
 
-    ValueInstantiationException exception =
-        assertThrows(ValueInstantiationException.class, () -> DssMessagePayload.fromJson(file));
+    IOException exception = assertThrows(IOException.class, () -> DssMessageJsonUtils.read(file));
     assertThat(exception).hasMessageThat().contains(DssMessageKeys.HEADER);
   }
 
@@ -125,24 +83,24 @@ public class DssMessagePayloadTest {
         .isEqualTo(AlgorithmStatus.SOUND_AND_IMPRECISE);
   }
 
-  private static @NonNull DssMessagePayload getPayload() {
+  private static DssMessagePayload getPayload() {
     DssStatePayload statePayload = new DssLocationStatePayload(1);
     DssPrecisionPayload precisionPayload = DssNoPrecisionPayload.INSTANCE;
     DssStateAndPrecisionPayload stateAndPrecisionPayload =
         new DssStateAndPrecisionPayload(statePayload, precisionPayload);
-    return new DssMessagePayload(
-        new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
+    return new DssPostConditionPayload(
+        new DssHeaderPayload("B1", "123", 0),
         new DssStatusPayload(true, false, true),
         ImmutableList.of(stateAndPrecisionPayload),
-        ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
+        true);
   }
 
   @Test
   public void writeJsonCreatesJsonFile() throws IOException {
     DssMessagePayload payload = getPayload();
-    Path file = tempFolder.getRoot().toPath().resolve("missing/message.json");
+    Path file = tempFolder.getRoot().toPath().resolve("message.json");
 
-    payload.writeJson(file);
+    DssMessageJsonUtils.write(payload, file);
 
     assertThat(Files.isRegularFile(file)).isTrue();
     assertThat(Files.readString(file)).contains(DssMessageKeys.HEADER);
@@ -163,6 +121,29 @@ public class DssMessagePayloadTest {
     assertThat(parsedPost.getStates()).isEqualTo(original.getStates());
     assertThat(parsed.getSenderId()).isEqualTo(original.getSenderId());
     assertThat(parsedPost.indicatesUnreachableBlockEnd()).isTrue();
+  }
+
+  @Test
+  public void unreachableBlockEndPayloadAllowsEmptyStates()
+      throws InvalidConfigurationException, IOException {
+    DssPostConditionMessage original =
+        defaultFactory()
+            .createDssUnreachableBlockEndMessage("B1", AlgorithmStatus.SOUND_AND_PRECISE);
+    DssPostConditionPayload payload = (DssPostConditionPayload) original.asJsonPayload();
+    Path file = tempFolder.newFile("unreachable-message.json").toPath();
+
+    assertThat(payload.states()).isEmpty();
+
+    DssMessageJsonUtils.write(payload, file);
+    assertThat(Files.readString(file))
+        .contains(String.format("\"%s\":[]", DssMessageKeys.STATES));
+
+    DssMessagePayload parsedPayload = DssMessageJsonUtils.read(file);
+    assertThat(parsedPayload).isEqualTo(payload);
+    DssPostConditionMessage parsed =
+        (DssPostConditionMessage) DssMessageCodec.fromPayload(parsedPayload);
+    assertThat(parsed.getStates()).isEmpty();
+    assertThat(parsed.indicatesUnreachableBlockEnd()).isTrue();
   }
 
   @Test
@@ -379,29 +360,5 @@ public class DssMessagePayloadTest {
     assertThat(parsed).isInstanceOf(DssCorrectnessWitnessMessage.class);
     DssCorrectnessWitnessMessage parsedWitness = (DssCorrectnessWitnessMessage) parsed;
     assertThat(parsedWitness.getStates()).isEqualTo(original.getStates());
-  }
-
-  @Test
-  public void fromPayloadRejectsPostConditionWithoutStatus() {
-    DssMessagePayload payload =
-        new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
-            null,
-            ImmutableList.<DssStateAndPrecisionPayload>of(),
-            ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
-
-    assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));
-  }
-
-  @Test
-  public void fromPayloadRejectsResultWithStatus() {
-    DssMessagePayload payload =
-        new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessage.DssMessageType.RESULT, "123", 0),
-            new DssStatusPayload(true, true, true),
-            ImmutableList.<DssStateAndPrecisionPayload>of(),
-            ImmutableMap.of(DssMessageKeys.RESULT, "true"));
-
-    assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));
   }
 }

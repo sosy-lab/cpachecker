@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
@@ -82,15 +81,10 @@ public final class DssPostConditionMessage implements DssConditionMessage {
 
   @Override
   public DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
-    ImmutableMap<String, String> content =
-        unreachableBlockEnd
-            ? ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, Boolean.toString(true))
-            : ImmutableMap.of();
-
-    return new DssMessagePayload(
-        DssHeaderPayload.forMessage(senderId, getType(), timestamp, pIdentifier),
+    return new DssPostConditionPayload(
+        DssHeaderPayload.forMessage(senderId, timestamp, pIdentifier),
         DssStatusPayload.fromAlgorithmStatus(status),
         states,
-        content);
+        unreachableBlockEnd);
   }
 }

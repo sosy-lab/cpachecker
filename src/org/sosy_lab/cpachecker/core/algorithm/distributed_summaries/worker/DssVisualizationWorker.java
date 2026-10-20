@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageJsonUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 
 public class DssVisualizationWorker extends DssWorker {
@@ -59,9 +60,9 @@ public class DssVisualizationWorker extends DssWorker {
 
   private void log(DssMessage pMessage) throws IOException {
     if (reportFiles != null) {
-      pMessage
-          .asJsonPayloadWithIdentifier(identifier)
-          .writeJson(reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
+      DssMessageJsonUtils.write(
+          pMessage.asJsonPayloadWithIdentifier(identifier),
+          reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
     }
   }
 

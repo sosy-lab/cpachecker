@@ -20,11 +20,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicatePrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicateStatePayload;
 
-public final class DssPayloadModule extends SimpleModule {
+public final class DssStatePayloadModule extends SimpleModule {
   public static final String NO_PRECISION = "noPrecision";
   @Serial private static final long serialVersionUID = -4429488243946317868L;
 
-  public DssPayloadModule() {
+  public DssStatePayloadModule() {
     super("DssPayloadModule");
 
     registerSubtypes(

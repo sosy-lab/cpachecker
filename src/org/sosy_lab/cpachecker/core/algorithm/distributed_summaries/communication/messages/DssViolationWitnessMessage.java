@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
@@ -50,14 +48,7 @@ public final class DssViolationWitnessMessage implements DssWitnessMessage {
 
   @Override
   public DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
-    return new DssMessagePayload(
-        DssHeaderPayload.forMessage(senderId, getType(), timestamp, pIdentifier),
-        null,
-        ImmutableList.of(),
-        ImmutableMap.of(
-            DssMessageKeys.WITNESS_TYPE,
-            getWitnessType().name(),
-            DssMessageKeys.VIOLATION_PATH,
-            violationPath.serialize()));
+    return new DssViolationWitnessPayload(
+        DssHeaderPayload.forMessage(senderId, timestamp, pIdentifier), violationPath.serialize());
   }
 }
