@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 
 public final class DssCorrectnessWitnessMessage implements DssWitnessMessage, DssMessageWithStates {
@@ -52,10 +51,7 @@ public final class DssCorrectnessWitnessMessage implements DssWitnessMessage, Ds
 
   @Override
   public DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
-    return new DssMessagePayload(
-        DssHeaderPayload.forMessage(senderId, getType(), timestamp, pIdentifier),
-        null,
-        states,
-        ImmutableMap.of(DssMessageKeys.WITNESS_TYPE, getWitnessType().name()));
+    return new DssCorrectnessWitnessPayload(
+        DssHeaderPayload.forMessage(senderId, timestamp, pIdentifier), states);
   }
 }

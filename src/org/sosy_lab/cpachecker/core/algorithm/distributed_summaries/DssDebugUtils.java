@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssNoPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatusPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
@@ -871,9 +870,8 @@ public final class DssDebugUtils {
 
     List<List<String>> rows = new ArrayList<>();
     addHeaderDiff(rows, left.header(), right.header());
-    addStatusDiff(rows, left.status(), right.status());
-    addStatesDiff(rows, left.states(), right.states());
-    addContentDiff(rows, left.content(), right.content());
+    addDiffRow(rows, "type", pLeft.getType(), pRight.getType());
+    addMessagePayloadDiff(rows, left, right);
 
     String body =
         rows.isEmpty()
@@ -891,11 +889,6 @@ public final class DssDebugUtils {
         pRight.senderId());
     addDiffRow(
         pRows,
-        DssMessageKeys.HEADER + "." + DssMessageKeys.MESSAGE_TYPE,
-        pLeft.messageType(),
-        pRight.messageType());
-    addDiffRow(
-        pRows,
         DssMessageKeys.HEADER + "." + DssMessageKeys.TIMESTAMP,
         pLeft.timestamp(),
         pRight.timestamp());
@@ -906,66 +899,42 @@ public final class DssDebugUtils {
         pRight.identifier());
   }
 
-  private static void addStatusDiff(
-      List<List<String>> pRows,
-      @Nullable DssStatusPayload pLeft,
-      @Nullable DssStatusPayload pRight) {
-    if (pLeft == null || pRight == null) {
-      addDiffRow(pRows, DssMessageKeys.STATUS, pLeft, pRight);
+  private static void addMessagePayloadDiff(
+      List<List<String>> pRows, DssMessagePayload pLeft, DssMessagePayload pRight) {
+    if (!pLeft.getClass().equals(pRight.getClass())) {
+      addDiffRow(
+          pRows,
+          "payload",
+          pLeft.getClass().getSimpleName(),
+          pRight.getClass().getSimpleName());
       return;
     }
 
-    addDiffRow(
-        pRows, DssMessageKeys.STATUS + "." + DssMessageKeys.SOUND, pLeft.sound(), pRight.sound());
-    addDiffRow(
-        pRows,
-        DssMessageKeys.STATUS + "." + DssMessageKeys.PRECISE,
-        pLeft.precise(),
-        pRight.precise());
-    addDiffRow(
-        pRows,
-        DssMessageKeys.STATUS + "." + DssMessageKeys.PROPERTY,
-        pLeft.propertyChecked(),
-        pRight.propertyChecked());
-  }
+    if (!(pLeft instanceof Record leftRecord) || !(pRight instanceof Record rightRecord)) {
+      addDiffRow(pRows, "payload", pLeft, pRight);
+      return;
+    }
 
-  private static void addStatesDiff(
-      List<List<String>> pRows,
-      ImmutableList<DssStateAndPrecisionPayload> pLeft,
-      ImmutableList<DssStateAndPrecisionPayload> pRight) {
-    int maxStates = Math.max(pLeft.size(), pRight.size());
-    for (int i = 0; i < maxStates; i++) {
-      if (i >= pLeft.size()) {
-        addDiffRow(pRows, DssMessageKeys.STATES + "[" + i + "]", null, "<present>");
-      } else if (i >= pRight.size()) {
-        addDiffRow(pRows, DssMessageKeys.STATES + "[" + i + "]", "<present>", null);
-      } else {
-        addStateDiff(pRows, DssMessageKeys.STATES + "[" + i + "]", pLeft.get(i), pRight.get(i));
+    RecordComponent[] components = leftRecord.getClass().getRecordComponents();
+    if (components == null) {
+      addDiffRow(pRows, "payload", pLeft, pRight);
+      return;
+    }
+
+    for (RecordComponent component : components) {
+      if (component.getName().equals("header")) {
+        continue;
+      }
+      try {
+        addStructuredDiff(
+            pRows,
+            "payload." + component.getName(),
+            component.getAccessor().invoke(leftRecord),
+            component.getAccessor().invoke(rightRecord));
+      } catch (ReflectiveOperationException e) {
+        addDiffRow(pRows, "payload." + component.getName(), "<unavailable>", e);
       }
     }
-  }
-
-  private static void addStateDiff(
-      List<List<String>> pRows,
-      String pPrefix,
-      DssStateAndPrecisionPayload pLeft,
-      DssStateAndPrecisionPayload pRight) {
-    String leftComponentKey = pLeft.state().getComponentKey().getSerializedName();
-    String rightComponentKey = pRight.state().getComponentKey().getSerializedName();
-
-    addDiffRow(pRows, pPrefix + ".component", leftComponentKey, rightComponentKey);
-    addPayloadDiff(pRows, pPrefix + ".state", pLeft.state(), pRight.state());
-    addPrecisionDiff(pRows, pPrefix + ".precision", pLeft.precision(), pRight.precision());
-  }
-
-  private static void addPayloadDiff(
-      List<List<String>> pRows, String pPrefix, Object pLeft, Object pRight) {
-    addStructuredDiff(pRows, pPrefix, pLeft, pRight);
-  }
-
-  private static void addPrecisionDiff(
-      List<List<String>> pRows, String pPrefix, Object pLeft, Object pRight) {
-    addStructuredDiff(pRows, pPrefix, pLeft, pRight);
   }
 
   private static void addStructuredDiff(
@@ -1027,26 +996,6 @@ public final class DssDebugUtils {
     }
 
     addDiffRow(pRows, pPath, pLeft, pRight);
-  }
-
-  private static void addContentDiff(
-      List<List<String>> pRows,
-      ImmutableMap<String, String> pLeft,
-      ImmutableMap<String, String> pRight) {
-    addMapDiff(pRows, DssMessageKeys.CONTENT, pLeft, pRight);
-  }
-
-  private static void addMapDiff(
-      List<List<String>> pRows,
-      String pPrefix,
-      ImmutableMap<String, String> pLeft,
-      ImmutableMap<String, String> pRight) {
-    Set<String> keys = new LinkedHashSet<>(pLeft.keySet());
-    keys.addAll(pRight.keySet());
-
-    for (String key : keys) {
-      addDiffRow(pRows, pPrefix + "." + key, pLeft.get(key), pRight.get(key));
-    }
   }
 
   private static void addDiffRow(

@@ -15,20 +15,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.time.Instant;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-  DssMessageKeys.SENDER_ID,
-  DssMessageKeys.MESSAGE_TYPE,
-  DssMessageKeys.TIMESTAMP,
-  DssMessageKeys.IDENTIFIER
-})
+@JsonPropertyOrder({DssMessageKeys.SENDER_ID, DssMessageKeys.TIMESTAMP, DssMessageKeys.IDENTIFIER})
 public record DssHeaderPayload(
-    @JsonProperty(DssMessageKeys.SENDER_ID) String senderId,
-    @JsonProperty(DssMessageKeys.MESSAGE_TYPE) DssMessageType messageType,
+    @JsonProperty(value = DssMessageKeys.SENDER_ID, required = true) String senderId,
     @JsonProperty(DssMessageKeys.TIMESTAMP) @Nullable String timestamp,
-    @JsonProperty(DssMessageKeys.IDENTIFIER) int identifier) {
+    @JsonProperty(value = DssMessageKeys.IDENTIFIER, required = true) int identifier) {
 
   private static final long nanoConversionFactor = 1_000_000_000L;
 
@@ -36,14 +29,12 @@ public record DssHeaderPayload(
   public DssHeaderPayload {}
 
   public DssHeaderPayload withoutTimestamp() {
-    return new DssHeaderPayload(senderId, messageType, null, identifier);
+    return new DssHeaderPayload(senderId, null, identifier);
   }
 
-  public static DssHeaderPayload forMessage(
-      String pSenderId, DssMessageType pMessageType, Instant pTimestamp, int pIdentifier) {
+  public static DssHeaderPayload forMessage(String pSenderId, Instant pTimestamp, int pIdentifier) {
     return new DssHeaderPayload(
         pSenderId,
-        pMessageType,
         Long.toString(pTimestamp.getEpochSecond() * nanoConversionFactor + pTimestamp.getNano()),
         pIdentifier);
   }

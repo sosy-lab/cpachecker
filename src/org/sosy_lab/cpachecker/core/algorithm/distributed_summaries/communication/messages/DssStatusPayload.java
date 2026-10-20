@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
   DssMessageKeys.PROPERTY,
 })
 public record DssStatusPayload(
-    @JsonProperty(DssMessageKeys.SOUND) boolean sound,
-    @JsonProperty(DssMessageKeys.PRECISE) boolean precise,
-    @JsonProperty(DssMessageKeys.PROPERTY) boolean propertyChecked) {
+    @JsonProperty(value = DssMessageKeys.SOUND, required = true) boolean sound,
+    @JsonProperty(value = DssMessageKeys.PRECISE, required = true) boolean precise,
+    @JsonProperty(value = DssMessageKeys.PROPERTY, required = true) boolean propertyChecked) {
 
   @JsonCreator
   public DssStatusPayload {}

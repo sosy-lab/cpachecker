@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
@@ -50,10 +48,7 @@ public final class DssResultMessage implements DssMessage {
 
   @Override
   public DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
-    return new DssMessagePayload(
-        DssHeaderPayload.forMessage(senderId, getType(), timestamp, pIdentifier),
-        null,
-        ImmutableList.of(),
-        ImmutableMap.of(DssMessageKeys.RESULT, result.name()));
+    return new DssResultPayload(
+        DssHeaderPayload.forMessage(senderId, timestamp, pIdentifier), result);
   }
 }
