@@ -42,6 +42,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     ParseResult parsed = ParseResult.fromPayload(payload);
     Preconditions.checkNotNull(parsed.serializedBlockState);
     return new BlockState(
+        parsed.id,
         null,
         DeserializeOperator.startLocationFromMessageType(pMessageType, blockNode),
         blockNode,
@@ -56,9 +57,10 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   }
 
   public record ParseResult(
-      String serializedBlockState, SegmentedPaths witness, BlockGraphPath history) {
+      String id, String serializedBlockState, SegmentedPaths witness, BlockGraphPath history) {
     public static ParseResult fromPayload(DssBlockStatePayload pPayload) {
       return new ParseResult(
+          pPayload.uid(),
           pPayload.blockId(),
           SegmentedPaths.deserialize(pPayload.witness()),
           BlockGraphPath.of(pPayload.history()));
