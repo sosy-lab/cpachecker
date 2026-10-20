@@ -133,8 +133,7 @@ public class DssMessagePayloadTest {
     return new DssMessagePayload(
         new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
         new DssStatusPayload(true, false, true),
-        ImmutableList.of(
-            stateAndPrecisionPayload),
+        ImmutableList.of(stateAndPrecisionPayload),
         ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
   }
 
@@ -189,8 +188,7 @@ public class DssMessagePayloadTest {
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
     assertThat(parsedPost.getType()).isEqualTo(DssMessage.DssMessageType.POST_CONDITION);
-    DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst();
+    DssStateAndPrecisionPayload parsedStateAndPrecision = parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCallstackPayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
@@ -234,8 +232,7 @@ public class DssMessagePayloadTest {
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
-    DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst();
+    DssStateAndPrecisionPayload parsedStateAndPrecision = parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCompositePayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(originalCompositePrecisionPayload);
   }
@@ -244,7 +241,8 @@ public class DssMessagePayloadTest {
   public void blockStateRoundTripPreservesPayload()
       throws InvalidConfigurationException, IOException {
     DssBlockStatePayload originalBlockPayload =
-        new DssBlockStatePayload("block-1", "witness", ImmutableList.of("entry", "loop", "exit"));
+        new DssBlockStatePayload(
+            "unique-id", "block-1", "witness", ImmutableList.of("entry", "loop", "exit"));
     DssPostConditionMessage original =
         defaultFactory()
             .createDssPostConditionMessage(
@@ -258,8 +256,7 @@ public class DssMessagePayloadTest {
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
-    DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst();
+    DssStateAndPrecisionPayload parsedStateAndPrecision = parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalBlockPayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
@@ -291,8 +288,7 @@ public class DssMessagePayloadTest {
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
-    DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst();
+    DssStateAndPrecisionPayload parsedStateAndPrecision = parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalFunctionPointerPayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
@@ -322,8 +318,7 @@ public class DssMessagePayloadTest {
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
-    DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst();
+    DssStateAndPrecisionPayload parsedStateAndPrecision = parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalPredicateStatePayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(originalPredicatePrecisionPayload);
   }
