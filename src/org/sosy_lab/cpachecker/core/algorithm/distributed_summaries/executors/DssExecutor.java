@@ -71,8 +71,9 @@ public interface DssExecutor {
     }
 
     public void updateStatus(DssMessage pMessage) {
-      if (pMessage instanceof DssMessageWithStatus pMessageWithStatus)
+      if (pMessage instanceof DssMessageWithStatus pMessageWithStatus) {
         statusMap.put(pMessageWithStatus.getSenderId(), pMessageWithStatus.getAlgorithmStatus());
+      }
     }
 
     public AlgorithmStatus finish() {
