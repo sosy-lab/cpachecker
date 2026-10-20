@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class CompositeSerializationTest {
 
@@ -54,8 +55,8 @@ public class CompositeSerializationTest {
   @Test
   public void initialCompositeStateRoundTrip() throws Exception {
     Configuration configuration =
-        Configuration.builder()
-            .copyFrom(TestUtil.generateConfig(CONFIGURATION_FILE, tempFolder.getRoot().toPath()))
+        TestUtils.configurationForTestWithOutput(tempFolder)
+            .loadFromFile(CONFIGURATION_FILE)
             .setOption("language", "C")
             .setOption("cfa.export", "false")
             .setOption("cfa.exportPerFunction", "false")
@@ -68,15 +69,15 @@ public class CompositeSerializationTest {
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFA cfa =
-        TestCfaUtils.makeCFA(
-            configuration,
+        TestCfaUtils.makeCfaFromString(
             ""
                 + "void target(void) {}\n"
                 + "int main(void) {\n"
                 + "  void (*functionPointer)(void) = target;\n"
                 + "  functionPointer();\n"
                 + "  return 0;\n"
-                + "}\n");
+                + "}\n",
+            Map.entry("language", "C"));
 
     ConfigurableProgramAnalysis cpa =
         new CPABuilder(
