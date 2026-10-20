@@ -46,8 +46,4 @@ public record DssCompositeStatePayload(
         .findFirst();
   }
 
-  @Override
-  public ImmutableMap<String, String> asContentMap() {
-    return null;
-  }
 }

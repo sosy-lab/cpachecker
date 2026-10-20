@@ -16,13 +16,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
-import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 @JsonPropertyOrder({
   DssBlockStatePayload.BLOCK_ID,
@@ -52,32 +48,11 @@ public record DssBlockStatePayload(
     return DssComponentKey.BLOCK_STATE;
   }
 
-  @Override
-  public ImmutableMap<String, String> asContentMap() {
-    String suffix = " W:" + witness();
-    suffix = suffix + (history().isEmpty() ? "" : " H:" + Joiner.on(",").join(history()));
-    return ImmutableMap.of(
-        getComponentKey().getSerializedName() + "." + DssMessageKeys.STATE, blockId() + suffix);
-  }
-
   @JsonIgnore
   public String getWitnessString() {
     String suffix = " W:" + witness();
     suffix = suffix + (history().isEmpty() ? "" : " H:" + Joiner.on(",").join(history()));
     return blockId + suffix;
-  }
-
-  public static DssBlockStatePayload fromContentMap(Map<String, String> pContent) {
-    String contentString =
-        pContent.getOrDefault(
-            DssComponentKey.forClass(BlockState.class).getSerializedName()
-                + "."
-                + DssMessageKeys.STATE,
-            "missingKey");
-    if (contentString.equals("missingKey"))
-      throw new IllegalArgumentException("Block state key is missing");
-
-    return fromContentString(contentString);
   }
 
   public static DssBlockStatePayload fromContentString(String pContent) {
