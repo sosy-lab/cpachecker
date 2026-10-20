@@ -50,16 +50,9 @@ public class SerializeBlockStateOperator implements SerializeOperator {
           String.format("Expected state of type %s, got %s", BlockState.class, pState.getClass()));
     }
     return new DssBlockStatePayload(
-        b.getBlockNode().getId(), b.getWitness().serialize(), b.getHistory().path());
-    String suffix = " W:" + b.getWitness().serialize();
-    suffix =
-        suffix
-            + (b.getHistory().path().isEmpty()
-                ? ""
-                : " H:" + Joiner.on(",").join(b.getHistory().path()));
-    return ContentBuilder.builder()
-        .pushLevel(BlockState.class.getName())
-        .put(STATE_KEY, b.getUniqueId() + " " + b.getBlockNode().getId() + suffix)
-        .build();
+        b.getUniqueId(),
+        b.getBlockNode().getId(),
+        b.getWitness().serialize(),
+        b.getHistory().path());
   }
 }

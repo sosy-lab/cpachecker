@@ -21,25 +21,29 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 
 @JsonPropertyOrder({
+  DssBlockStatePayload.UID,
   DssBlockStatePayload.BLOCK_ID,
   DssBlockStatePayload.WITNESS,
   DssBlockStatePayload.HISTORY
 })
 public record DssBlockStatePayload(
+    @JsonProperty(UID) String uid,
     @JsonProperty(BLOCK_ID) String blockId,
     @JsonProperty(WITNESS) String witness,
     @JsonProperty(HISTORY) ImmutableList<String> history)
     implements DssStatePayload {
+  public static final String UID = "uid";
   public static final String BLOCK_ID = "blockId";
   public static final String WITNESS = "witness";
   public static final String HISTORY = "history";
 
   @JsonCreator
   DssBlockStatePayload(
+      @JsonProperty(UID) String pUid,
       @JsonProperty(BLOCK_ID) String pBlockId,
       @JsonProperty(WITNESS) String pWitness,
       @JsonProperty(HISTORY) List<String> pHistory) {
-    this(pBlockId, pWitness, ImmutableList.copyOf(pHistory));
+    this(pUid, pBlockId, pWitness, ImmutableList.copyOf(pHistory));
   }
 
   @JsonIgnore
@@ -56,6 +60,8 @@ public record DssBlockStatePayload(
   }
 
   public static DssBlockStatePayload fromContentString(String pContent) {
+    List<String> idAndRest = Splitter.on(" ").limit(2).splitToList(pContent);
+    String id = idAndRest.getFirst();
     List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(pContent);
     Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
     String blockId = idAndWitnessAndMaybeHistory.getFirst();
@@ -66,6 +72,6 @@ public record DssBlockStatePayload(
         witnessAndMaybeHistory.size() == 2
             ? ImmutableList.copyOf(Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast()))
             : ImmutableList.of();
-    return new DssBlockStatePayload(blockId, witness, history);
+    return new DssBlockStatePayload(id, blockId, witness, history);
   }
 }
