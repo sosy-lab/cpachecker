@@ -737,12 +737,7 @@ public final class DssDebugUtils {
         String path = joinPath(pPath, component.getName());
         try {
           addStructuredRows(
-              pRows,
-              pKind,
-              pComponent,
-              path,
-              component.getAccessor().invoke(record),
-              pHasReadable);
+              pRows, pKind, pComponent, path, component.getAccessor().invoke(record), pHasReadable);
         } catch (ReflectiveOperationException e) {
           pRows.add(ImmutableList.of(pKind, pComponent, path, "<unavailable: " + e + ">"));
         }
@@ -765,12 +760,7 @@ public final class DssDebugUtils {
       int index = 0;
       for (Object value : iterable) {
         addStructuredRows(
-            pRows,
-            pKind,
-            pComponent,
-            joinPath(pPath, "[" + index++ + "]"),
-            value,
-            pHasReadable);
+            pRows, pKind, pComponent, joinPath(pPath, "[" + index++ + "]"), value, pHasReadable);
       }
       return;
     }
@@ -787,8 +777,7 @@ public final class DssDebugUtils {
     String field = lastPathPart(pPath);
     String value = String.valueOf(pValue);
     pRows.add(
-        ImmutableList.of(
-            pKind, pComponent, pPath, renderContentValue(field, value, pHasReadable)));
+        ImmutableList.of(pKind, pComponent, pPath, renderContentValue(field, value, pHasReadable)));
   }
 
   private static boolean hasNonNullRecordComponent(Object pValue, String pName) {
@@ -1021,10 +1010,7 @@ public final class DssDebugUtils {
       keys.addAll(rightMap.keySet());
       for (Object key : keys) {
         addStructuredDiff(
-            pRows,
-            joinPath(pPath, "[" + key + "]"),
-            leftMap.get(key),
-            rightMap.get(key));
+            pRows, joinPath(pPath, "[" + key + "]"), leftMap.get(key), rightMap.get(key));
       }
       return;
     }

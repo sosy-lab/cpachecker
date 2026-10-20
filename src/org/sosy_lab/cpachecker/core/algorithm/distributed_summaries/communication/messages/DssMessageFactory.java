@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
@@ -23,10 +21,6 @@ public class DssMessageFactory {
 
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
-  }
-
-  private ImmutableMap<String, String> witnessType(WitnessType pWitnessType) {
-    return ImmutableMap.of(DssMessageKeys.WITNESS_TYPE, pWitnessType.name());
   }
 
   public DssPostConditionMessage createDssPostConditionMessage(

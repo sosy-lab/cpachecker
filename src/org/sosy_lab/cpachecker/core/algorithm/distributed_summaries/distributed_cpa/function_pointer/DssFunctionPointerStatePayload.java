@@ -32,5 +32,4 @@ public record DssFunctionPointerStatePayload(
   public DssComponentKey getComponentKey() {
     return DssComponentKey.FUNCTION_POINTER_STATE;
   }
-
 }

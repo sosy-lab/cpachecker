@@ -22,5 +22,4 @@ public record DssLocationStatePayload(@JsonProperty(NODE_ID) int nodeId)
   public DssComponentKey getComponentKey() {
     return DssComponentKey.LOCATION_STATE;
   }
-
 }

@@ -100,9 +100,9 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
             predicatePrecision.getGlobalPredicates(), this::serializeAbstractionPredicate);
 
     return new DssPredicatePrecisionPayload(
-        locationInstancePredicates.build(),
-        localPredicates.build(),
-        functionPredicates.build(),
+        locationInstancePredicates.buildOrThrow(),
+        localPredicates.buildOrThrow(),
+        functionPredicates.buildOrThrow(),
         globalPredicates);
   }
 }

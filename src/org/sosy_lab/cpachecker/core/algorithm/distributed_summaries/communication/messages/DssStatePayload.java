@@ -20,5 +20,4 @@ public interface DssStatePayload {
   default Optional<DssStatePayload> findComponent(DssComponentKey key) {
     return getComponentKey() == key ? Optional.of(this) : Optional.empty();
   }
-
 }

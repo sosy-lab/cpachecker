@@ -45,5 +45,4 @@ public record DssCompositeStatePayload(
         .flatMap(Optional::stream)
         .findFirst();
   }
-
 }
