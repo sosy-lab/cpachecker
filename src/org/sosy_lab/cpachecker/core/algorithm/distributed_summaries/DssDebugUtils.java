@@ -12,7 +12,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -903,10 +902,7 @@ public final class DssDebugUtils {
       List<List<String>> pRows, DssMessagePayload pLeft, DssMessagePayload pRight) {
     if (!pLeft.getClass().equals(pRight.getClass())) {
       addDiffRow(
-          pRows,
-          "payload",
-          pLeft.getClass().getSimpleName(),
-          pRight.getClass().getSimpleName());
+          pRows, "payload", pLeft.getClass().getSimpleName(), pRight.getClass().getSimpleName());
       return;
     }
 

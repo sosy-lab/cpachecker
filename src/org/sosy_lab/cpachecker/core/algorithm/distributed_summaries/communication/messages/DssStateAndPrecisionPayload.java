@@ -13,8 +13,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonPropertyOrder({DssStateAndPrecisionPayload.STATE, DssStateAndPrecisionPayload.PRECISION})
 public record DssStateAndPrecisionPayload(
-    @JsonProperty(value = DssStateAndPrecisionPayload.STATE, required = true)
-        DssStatePayload state,
+    @JsonProperty(value = DssStateAndPrecisionPayload.STATE, required = true) DssStatePayload state,
     @JsonProperty(value = DssStateAndPrecisionPayload.PRECISION, required = true)
         DssPrecisionPayload precision) {
   public static final String STATE = "state";
