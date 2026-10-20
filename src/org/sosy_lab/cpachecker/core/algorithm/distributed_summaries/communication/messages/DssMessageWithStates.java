@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public sealed interface DssMessageWithStates extends DssMessage
     permits DssConditionMessage, DssCorrectnessWitnessMessage {
-  ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> getStates();
+  ImmutableList<DssStateAndPrecisionPayload> getStates();
 
   default int getNumberOfContainedStates() {
     return getStates().size();

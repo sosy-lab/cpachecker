@@ -8,14 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class NoPrecisionDeserializeOperator implements DeserializePrecisionOperator {
 
   @Override
-  public Precision deserializePrecision(DssMessageWithStates pMessage, int pStateIndex) {
+  public Precision deserializePrecision(
+      DssPrecisionPayload pPrecisionPayload, DssMessageType pMessageType) {
     return SingletonPrecision.getInstance();
   }
 }

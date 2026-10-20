@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 
@@ -30,6 +31,19 @@ public record DssCompositeStatePayload(
   @JsonIgnore
   public DssComponentKey getComponentKey() {
     return DssComponentKey.COMPOSITE_STATE;
+  }
+
+  @Override
+  public Optional<DssStatePayload> findComponent(DssComponentKey key) {
+    DssStatePayload direct = components().get(key.getSerializedName());
+    if (direct != null) {
+      return Optional.of(direct);
+    }
+
+    return components().values().stream()
+        .map(component -> component.findComponent(key))
+        .flatMap(Optional::stream)
+        .findFirst();
   }
 
   @Override

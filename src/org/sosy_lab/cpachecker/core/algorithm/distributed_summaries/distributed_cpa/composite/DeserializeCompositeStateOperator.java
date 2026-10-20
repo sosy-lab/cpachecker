@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
@@ -36,19 +38,22 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public CompositeState deserialize(DssMessageWithStates pMessage, int pStateIndex)
+  public CompositeState deserialize(DssStatePayload pStatePayload, DssMessageType pMessageType)
       throws InterruptedException {
     try {
       stats.getDeserializationCount().inc();
       stats.getDeserializationTime().start();
+      DssCompositeStatePayload parentPayload = (DssCompositeStatePayload) pStatePayload;
       ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
       for (ConfigurableProgramAnalysis analysis : analyses) {
         if (analysis instanceof DistributedConfigurableProgramAnalysis dcpa) {
-          states.add(dcpa.getDeserializeOperator().deserialize(pMessage, pStateIndex));
+          String key = DssComponentKey.serializedNameFor(dcpa.getAbstractStateClass());
+          DssStatePayload childPayload = parentPayload.components().get(key);
+          states.add(dcpa.getDeserializeOperator().deserialize(childPayload, pMessageType));
         } else {
           states.add(
               analysis.getInitialState(
-                  DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
+                  DeserializeOperator.startLocationFromMessageType(pMessageType, blockNode),
                   StateSpacePartition.getDefaultPartition()));
         }
       }

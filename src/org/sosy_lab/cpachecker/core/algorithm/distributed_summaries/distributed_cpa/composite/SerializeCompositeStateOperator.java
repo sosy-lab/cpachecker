@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
@@ -42,9 +41,8 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
       CompositeState compositeState = ((CompositeState) pState);
       for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
         if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
-          components.put(
-              DssComponentKey.serializedNameFor(cpaAndState.state().getClass()),
-              dcpa.getSerializeOperator().serialize(cpaAndState.state()));
+          DssStatePayload statePayload = dcpa.getSerializeOperator().serialize(cpaAndState.state());
+          components.put(statePayload.getComponentKey().getSerializedName(), statePayload);
         }
       }
       return new DssCompositeStatePayload(components.build());

@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
 
 public record DssCompositePrecisionPayload(
@@ -23,5 +25,11 @@ public record DssCompositePrecisionPayload(
   DssCompositePrecisionPayload(
       @JsonProperty(COMPONENTS) Map<String, DssPrecisionPayload> pComponents) {
     this(ImmutableMap.copyOf(pComponents));
+  }
+
+  @JsonIgnore
+  @Override
+  public DssComponentKey getComponentKey() {
+    return DssComponentKey.COMPOSITE_PRECISION;
   }
 }

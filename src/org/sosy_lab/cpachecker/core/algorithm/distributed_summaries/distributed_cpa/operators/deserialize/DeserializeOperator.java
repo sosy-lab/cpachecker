@@ -10,32 +10,29 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface DeserializeOperator {
 
-  String STATE_KEY = SerializeOperator.STATE_KEY;
-
-  static CFANode startLocationFromMessageType(DssMessageWithStates pMessage, BlockNode blockNode) {
-    if (Objects.requireNonNull(pMessage) instanceof DssViolationConditionMessage) {
-      return blockNode.getFinalLocation();
+  static CFANode startLocationFromMessageType(DssMessageType pMessageType, BlockNode pBlockNode) {
+    if (Objects.requireNonNull(pMessageType).equals(DssMessageType.VIOLATION_CONDITION)) {
+      return pBlockNode.getFinalLocation();
     }
-    return blockNode.getInitialLocation();
+    return pBlockNode.getInitialLocation();
   }
 
   /**
    * Deserialize a message to an abstract state
    *
-   * @param pMessage The message that contains the serialized state that is converted to an abstract
-   *     state {@link AbstractState}
-   * @param pStateIndex The index of the state to deserialize
-   * @return An abstract state described by {@code pMessage, pStateContent}
+   * @param pStatePayload The serialized state payload that is converted to an abstract state {@link
+   *     AbstractState}
+   * @param pMessageType the message type used to determine the start location
+   * @return An abstract state described by {@code pStatePayload}
    * @throws InterruptedException thrown if program is interrupted from the outside.
    */
-  AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex)
+  AbstractState deserialize(DssStatePayload pStatePayload, DssMessageType pMessageType)
       throws InterruptedException;
 }

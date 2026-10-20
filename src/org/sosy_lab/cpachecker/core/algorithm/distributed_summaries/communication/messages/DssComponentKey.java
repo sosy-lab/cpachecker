@@ -29,7 +29,8 @@ public enum DssComponentKey {
   PREDICATE_STATE(PredicateAbstractState.class, "predicateState"),
   COMPOSITE_STATE(CompositeState.class, "compositeState"),
   PREDICATE_PRECISION(PredicatePrecision.class, "predicatePrecision"),
-  COMPOSITE_PRECISION(CompositePrecision.class, "compositePrecision");
+  COMPOSITE_PRECISION(CompositePrecision.class, "compositePrecision"),
+  NO_PRECISION(DssNoPrecisionPayload.class, "noPrecision");
 
   private static final ImmutableMap<Class<?>, DssComponentKey> BY_CLASS =
       Arrays.stream(values())

@@ -33,8 +33,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public record DssMessagePayload(
     @JsonProperty(DssMessageKeys.HEADER) DssHeaderPayload header,
     @JsonProperty(DssMessageKeys.STATUS) @Nullable DssStatusPayload status,
-    @JsonProperty(DssMessageKeys.STATES)
-        ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states,
+    @JsonProperty(DssMessageKeys.STATES) ImmutableList<DssStateAndPrecisionPayload> states,
     @JsonProperty(DssMessageKeys.CONTENT) ImmutableMap<String, String> content) {
 
   private static final ObjectMapper OBJECT_MAPPER =
@@ -43,7 +42,7 @@ public record DssMessagePayload(
   public DssMessagePayload(
       DssHeaderPayload header,
       @Nullable DssStatusPayload status,
-      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states,
+      ImmutableList<DssStateAndPrecisionPayload> states,
       ImmutableMap<String, String> content) {
     this.header = requireHeader(header);
     this.status = status;
@@ -55,8 +54,7 @@ public record DssMessagePayload(
   DssMessagePayload(
       @JsonProperty(DssMessageKeys.HEADER) DssHeaderPayload pHeader,
       @JsonProperty(DssMessageKeys.STATUS) @Nullable DssStatusPayload pStatus,
-      @JsonProperty(DssMessageKeys.STATES)
-          @Nullable List<? extends Map<String, DssStateAndPrecisionPayload>> pStates,
+      @JsonProperty(DssMessageKeys.STATES) @Nullable List<DssStateAndPrecisionPayload> pStates,
       @JsonProperty(DssMessageKeys.CONTENT) Map<String, String> pContent) {
     this(
         requireHeader(pHeader),
@@ -89,11 +87,11 @@ public record DssMessagePayload(
     return Preconditions.checkNotNull(pContent, "Message JSON does not contain content");
   }
 
-  private static ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> copyStates(
-      @Nullable List<? extends Map<String, DssStateAndPrecisionPayload>> pStates) {
+  private static ImmutableList<DssStateAndPrecisionPayload> copyStates(
+      @Nullable List<DssStateAndPrecisionPayload> pStates) {
     if (pStates == null) {
       return ImmutableList.of();
     }
-    return pStates.stream().map(ImmutableMap::copyOf).collect(ImmutableList.toImmutableList());
+    return ImmutableList.copyOf(pStates);
   }
 }

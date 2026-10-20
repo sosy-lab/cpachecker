@@ -16,7 +16,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
@@ -285,8 +283,7 @@ public final class DssBlockAnalysis {
     return preconditions.analyzeFor(pSenderId);
   }
 
-  public ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>>
-      serializedPreconditions() {
+  public ImmutableList<DssStateAndPrecisionPayload> serializedPreconditions() {
     return serialize(preconditions.getKnownPreconditions());
   }
 
@@ -623,11 +620,9 @@ public final class DssBlockAnalysis {
    * @return List of Maps of strings representing the serialized states and precisions. Every state
    *     will be serialized with the given serialize operators.
    */
-  ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> serialize(
+  ImmutableList<DssStateAndPrecisionPayload> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
-    ImmutableList.Builder<ImmutableMap<String, DssStateAndPrecisionPayload>> serializedStates =
-        ImmutableList.builder();
-    int totalStateSize = 0;
+    ImmutableList.Builder<DssStateAndPrecisionPayload> serializedStates = ImmutableList.builder();
     for (StateAndPrecision stateAndPrecision : pStatesAndPrecisions) {
       DssStatePayload statePayload =
           dcpa.getSerializeOperator().serialize(stateAndPrecision.state());
@@ -635,19 +630,9 @@ public final class DssBlockAnalysis {
           dcpa.getSerializePrecisionOperator().serializePrecision(stateAndPrecision.precision());
       DssStateAndPrecisionPayload stateAndPrecisionPayload =
           new DssStateAndPrecisionPayload(statePayload, precisionPayload);
-      ImmutableMap<String, DssStateAndPrecisionPayload> content =
-          ImmutableMap.<String, DssStateAndPrecisionPayload>builder()
-              .put(
-                  DssComponentKey.serializedNameFor(stateAndPrecision.state().getClass()),
-                  stateAndPrecisionPayload)
-              .buildOrThrow();
-      serializedStates.add(content);
-      for (Entry<String, DssStateAndPrecisionPayload> contents : content.entrySet()) {
-        // TODO decide how to measure size of payloads -> at broadcast
-        totalStateSize += contents.getKey().length();
-      }
+      serializedStates.add(stateAndPrecisionPayload);
+      // TODO decide how to measure size of payloads -> at broadcast
     }
-    workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
     return serializedStates.build();
   }
 
@@ -692,13 +677,15 @@ public final class DssBlockAnalysis {
     int numStates = messageWithStates.getNumberOfContainedStates();
     ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
         ImmutableList.builderWithExpectedSize(numStates);
-    for (int i = 0; i < numStates; i++) {
-      AbstractState state = dcpa.getDeserializeOperator().deserialize(messageWithStates, i);
+    for (DssStateAndPrecisionPayload payload : messageWithStates.getStates()) {
+      AbstractState state =
+          dcpa.getDeserializeOperator().deserialize(payload.state(), messageWithStates.getType());
       if (messageWithStates.getType() == DssMessage.DssMessageType.POST_CONDITION) {
         state = dcpa.reset(state);
       }
       Precision precision =
-          dcpa.getDeserializePrecisionOperator().deserializePrecision(messageWithStates, i);
+          dcpa.getDeserializePrecisionOperator()
+              .deserializePrecision(payload.precision(), messageWithStates.getType());
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();

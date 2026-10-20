@@ -134,8 +134,7 @@ public class DssMessagePayloadTest {
         new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
         new DssStatusPayload(true, false, true),
         ImmutableList.of(
-            ImmutableMap.of(
-                DssComponentKey.LOCATION_STATE.getSerializedName(), stateAndPrecisionPayload)),
+            stateAndPrecisionPayload),
         ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
   }
 
@@ -182,10 +181,8 @@ public class DssMessagePayloadTest {
                 "B1",
                 AlgorithmStatus.SOUND_AND_PRECISE,
                 ImmutableList.of(
-                    ImmutableMap.of(
-                        DssComponentKey.CALLSTACK_STATE.getSerializedName(),
-                        new DssStateAndPrecisionPayload(
-                            originalCallstackPayload, DssNoPrecisionPayload.INSTANCE))));
+                    new DssStateAndPrecisionPayload(
+                        originalCallstackPayload, DssNoPrecisionPayload.INSTANCE)));
 
     DssMessage parsed = roundTrip(original);
 
@@ -193,7 +190,7 @@ public class DssMessagePayloadTest {
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
     assertThat(parsedPost.getType()).isEqualTo(DssMessage.DssMessageType.POST_CONDITION);
     DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst().get(DssComponentKey.CALLSTACK_STATE.getSerializedName());
+        parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCallstackPayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
@@ -230,17 +227,15 @@ public class DssMessagePayloadTest {
                 "B1",
                 AlgorithmStatus.SOUND_AND_PRECISE,
                 ImmutableList.of(
-                    ImmutableMap.of(
-                        DssComponentKey.COMPOSITE_STATE.getSerializedName(),
-                        new DssStateAndPrecisionPayload(
-                            originalCompositePayload, originalCompositePrecisionPayload))));
+                    new DssStateAndPrecisionPayload(
+                        originalCompositePayload, originalCompositePrecisionPayload)));
 
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
     DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst().get(DssComponentKey.COMPOSITE_STATE.getSerializedName());
+        parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalCompositePayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(originalCompositePrecisionPayload);
   }
@@ -256,17 +251,15 @@ public class DssMessagePayloadTest {
                 "B1",
                 AlgorithmStatus.SOUND_AND_PRECISE,
                 ImmutableList.of(
-                    ImmutableMap.of(
-                        DssComponentKey.BLOCK_STATE.getSerializedName(),
-                        new DssStateAndPrecisionPayload(
-                            originalBlockPayload, DssNoPrecisionPayload.INSTANCE))));
+                    new DssStateAndPrecisionPayload(
+                        originalBlockPayload, DssNoPrecisionPayload.INSTANCE)));
 
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
     DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst().get(DssComponentKey.BLOCK_STATE.getSerializedName());
+        parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalBlockPayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
@@ -291,20 +284,15 @@ public class DssMessagePayloadTest {
                 "B1",
                 AlgorithmStatus.SOUND_AND_PRECISE,
                 ImmutableList.of(
-                    ImmutableMap.of(
-                        DssComponentKey.FUNCTION_POINTER_STATE.getSerializedName(),
-                        new DssStateAndPrecisionPayload(
-                            originalFunctionPointerPayload, DssNoPrecisionPayload.INSTANCE))));
+                    new DssStateAndPrecisionPayload(
+                        originalFunctionPointerPayload, DssNoPrecisionPayload.INSTANCE)));
 
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
     DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost
-            .getStates()
-            .getFirst()
-            .get(DssComponentKey.FUNCTION_POINTER_STATE.getSerializedName());
+        parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalFunctionPointerPayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(DssNoPrecisionPayload.INSTANCE);
   }
@@ -327,17 +315,15 @@ public class DssMessagePayloadTest {
                 "B1",
                 AlgorithmStatus.SOUND_AND_PRECISE,
                 ImmutableList.of(
-                    ImmutableMap.of(
-                        DssComponentKey.PREDICATE_STATE.getSerializedName(),
-                        new DssStateAndPrecisionPayload(
-                            originalPredicateStatePayload, originalPredicatePrecisionPayload))));
+                    new DssStateAndPrecisionPayload(
+                        originalPredicateStatePayload, originalPredicatePrecisionPayload)));
 
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssPostConditionMessage.class);
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
     DssStateAndPrecisionPayload parsedStateAndPrecision =
-        parsedPost.getStates().getFirst().get(DssComponentKey.PREDICATE_STATE.getSerializedName());
+        parsedPost.getStates().getFirst();
     assertThat(parsedStateAndPrecision.state()).isEqualTo(originalPredicateStatePayload);
     assertThat(parsedStateAndPrecision.precision()).isEqualTo(originalPredicatePrecisionPayload);
   }
@@ -373,10 +359,8 @@ public class DssMessagePayloadTest {
                 "B1",
                 AlgorithmStatus.SOUND_AND_IMPRECISE,
                 ImmutableList.of(
-                    ImmutableMap.of(
-                        DssComponentKey.LOCATION_STATE.getSerializedName(),
-                        new DssStateAndPrecisionPayload(
-                            new DssLocationStatePayload(42), DssNoPrecisionPayload.INSTANCE))));
+                    new DssStateAndPrecisionPayload(
+                        new DssLocationStatePayload(42), DssNoPrecisionPayload.INSTANCE)));
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssViolationConditionMessage.class);
@@ -393,10 +377,8 @@ public class DssMessagePayloadTest {
             .createDssCorrectnessWitnessMessage(
                 "B1",
                 ImmutableList.of(
-                    ImmutableMap.of(
-                        DssComponentKey.LOCATION_STATE.getSerializedName(),
-                        new DssStateAndPrecisionPayload(
-                            new DssLocationStatePayload(42), DssNoPrecisionPayload.INSTANCE))));
+                    new DssStateAndPrecisionPayload(
+                        new DssLocationStatePayload(42), DssNoPrecisionPayload.INSTANCE)));
     DssMessage parsed = roundTrip(original);
 
     assertThat(parsed).isInstanceOf(DssCorrectnessWitnessMessage.class);
@@ -410,7 +392,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
             null,
-            ImmutableList.<ImmutableMap<String, DssStateAndPrecisionPayload>>of(),
+            ImmutableList.<DssStateAndPrecisionPayload>of(),
             ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));
@@ -422,7 +404,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessage.DssMessageType.RESULT, "123", 0),
             new DssStatusPayload(true, true, true),
-            ImmutableList.<ImmutableMap<String, DssStateAndPrecisionPayload>>of(),
+            ImmutableList.<DssStateAndPrecisionPayload>of(),
             ImmutableMap.of(DssMessageKeys.RESULT, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));

@@ -49,8 +49,7 @@ public class SerializeCompositePrecisionOperator implements SerializePrecisionOp
               dcpa.getSerializePrecisionOperator().serializePrecision(cpaAndPrecision.precision());
           if (!(precisionPayload instanceof DssNoPrecisionPayload))
             content.put(
-                DssComponentKey.serializedNameFor(cpaAndPrecision.precision().getClass()),
-                precisionPayload);
+                DssComponentKey.serializedNameFor(dcpa.getAbstractStateClass()), precisionPayload);
         }
       }
       return new DssCompositePrecisionPayload(content.buildOrThrow());

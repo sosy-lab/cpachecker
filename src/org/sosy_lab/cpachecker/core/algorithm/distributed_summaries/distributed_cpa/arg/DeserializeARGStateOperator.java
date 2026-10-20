@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,8 +24,8 @@ public class DeserializeARGStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex)
+  public AbstractState deserialize(DssStatePayload pState, DssMessageType pMessageType)
       throws InterruptedException {
-    return new ARGState(wrapped.getDeserializeOperator().deserialize(pMessage, pStateIndex), null);
+    return new ARGState(wrapped.getDeserializeOperator().deserialize(pState, pMessageType), null);
   }
 }

@@ -13,4 +13,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessageKeys.TYPE)
-public interface DssPrecisionPayload {}
+public interface DssPrecisionPayload {
+  DssComponentKey getComponentKey();
+}

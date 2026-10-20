@@ -8,6 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public record DssNoPrecisionPayload() implements DssPrecisionPayload {
   public static final DssNoPrecisionPayload INSTANCE = new DssNoPrecisionPayload();
+
+  @JsonIgnore
+  @Override
+  public DssComponentKey getComponentKey() {
+    return DssComponentKey.NO_PRECISION;
+  }
 }

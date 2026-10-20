@@ -14,22 +14,21 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
-import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DssBlockStatePayload;
-import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 public final class DssViolationConditionMessage implements DssConditionMessage {
 
   private final String senderId;
   private final Instant timestamp;
   private final AlgorithmStatus status;
-  private final ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states;
+  private final ImmutableList<DssStateAndPrecisionPayload> states;
 
   public DssViolationConditionMessage(
       String pSenderId,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
+      ImmutableList<DssStateAndPrecisionPayload> pStates) {
     this(pSenderId, Instant.now(), pStatus, pStates);
   }
 
@@ -37,7 +36,7 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
       String pSenderId,
       Instant pTimestamp,
       AlgorithmStatus pStatus,
-      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
+      ImmutableList<DssStateAndPrecisionPayload> pStates) {
     senderId = Preconditions.checkNotNull(pSenderId);
     timestamp = Preconditions.checkNotNull(pTimestamp);
     status = Preconditions.checkNotNull(pStatus);
@@ -63,7 +62,7 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
   }
 
   @Override
-  public ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> getStates() {
+  public ImmutableList<DssStateAndPrecisionPayload> getStates() {
     return states;
   }
 
@@ -84,10 +83,13 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
   public final String extractBlockStateWitnessString() {
     checkState(getNumberOfContainedStates() >= 1, "No state to extract witness from");
     DssBlockStatePayload blockStatePayload =
-        (DssBlockStatePayload)
-            Objects.requireNonNull(
-                    states.getFirst().get(DssComponentKey.serializedNameFor(BlockState.class)))
-                .state();
+        states.stream()
+            .map(DssStateAndPrecisionPayload::state)
+            .map(state -> state.findComponent(DssComponentKey.BLOCK_STATE))
+            .flatMap(Optional::stream)
+            .map(DssBlockStatePayload.class::cast)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Missing block state"));
     return blockStatePayload.getWitnessString();
   }
 }

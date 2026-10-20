@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,18 +31,11 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
   }
 
   @Override
-  public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex) {
-    DssFunctionPointerStatePayload payload =
-        (DssFunctionPointerStatePayload)
-            Objects.requireNonNull(
-                    pMessage
-                        .getStates()
-                        .get(pStateIndex)
-                        .get(DssComponentKey.serializedNameFor(FunctionPointerState.class)))
-                .state();
+  public AbstractState deserialize(DssStatePayload pStatePayload, DssMessageType pMessageType) {
+    DssFunctionPointerStatePayload payload = (DssFunctionPointerStatePayload) pStatePayload;
 
     if (payload.entries().isEmpty()) {
-      CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
+      CFANode location = DeserializeOperator.startLocationFromMessageType(pMessageType, blockNode);
       return functionPointerCPA.getInitialState(
           location, StateSpacePartition.getDefaultPartition());
     }

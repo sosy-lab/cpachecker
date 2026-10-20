@@ -16,17 +16,15 @@ import java.time.Instant;
 public final class DssCorrectnessWitnessMessage implements DssWitnessMessage, DssMessageWithStates {
   private final String senderId;
   private final Instant timestamp;
-  private final ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> states;
+  private final ImmutableList<DssStateAndPrecisionPayload> states;
 
   public DssCorrectnessWitnessMessage(
-      String pSenderId, ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
+      String pSenderId, ImmutableList<DssStateAndPrecisionPayload> pStates) {
     this(pSenderId, Instant.now(), pStates);
   }
 
   DssCorrectnessWitnessMessage(
-      String pSenderId,
-      Instant pTimestamp,
-      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pStates) {
+      String pSenderId, Instant pTimestamp, ImmutableList<DssStateAndPrecisionPayload> pStates) {
     senderId = Preconditions.checkNotNull(pSenderId);
     timestamp = Preconditions.checkNotNull(pTimestamp);
     states = ImmutableList.copyOf(Preconditions.checkNotNull(pStates));
@@ -43,7 +41,7 @@ public final class DssCorrectnessWitnessMessage implements DssWitnessMessage, Ds
   }
 
   @Override
-  public ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> getStates() {
+  public ImmutableList<DssStateAndPrecisionPayload> getStates() {
     return states;
   }
 

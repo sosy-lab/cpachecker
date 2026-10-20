@@ -686,13 +686,11 @@ public final class DssDebugUtils {
     return body.toString();
   }
 
-  private static String renderStateContent(
-      ImmutableMap<String, DssStateAndPrecisionPayload> pStateContent) {
+  private static String renderStateContent(DssStateAndPrecisionPayload pStateContent) {
     List<List<String>> rows = new ArrayList<>();
-    for (Entry<String, DssStateAndPrecisionPayload> component : pStateContent.entrySet()) {
-      addPayloadRows(rows, "state", component.getKey(), component.getValue().state());
-      addPayloadRows(rows, "precision", component.getKey(), component.getValue().precision());
-    }
+    String componentKey = pStateContent.state().getComponentKey().getSerializedName();
+    addPayloadRows(rows, "state", componentKey, pStateContent.state());
+    addPayloadRows(rows, "precision", componentKey, pStateContent.precision());
     return table(ImmutableList.of("kind", "cpa", "field", "value"), rows);
   }
 
@@ -944,8 +942,8 @@ public final class DssDebugUtils {
 
   private static void addStatesDiff(
       List<List<String>> pRows,
-      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pLeft,
-      ImmutableList<ImmutableMap<String, DssStateAndPrecisionPayload>> pRight) {
+      ImmutableList<DssStateAndPrecisionPayload> pLeft,
+      ImmutableList<DssStateAndPrecisionPayload> pRight) {
     int maxStates = Math.max(pLeft.size(), pRight.size());
     for (int i = 0; i < maxStates; i++) {
       if (i >= pLeft.size()) {
@@ -961,38 +959,14 @@ public final class DssDebugUtils {
   private static void addStateDiff(
       List<List<String>> pRows,
       String pPrefix,
-      ImmutableMap<String, DssStateAndPrecisionPayload> pLeft,
-      ImmutableMap<String, DssStateAndPrecisionPayload> pRight) {
-    ImmutableSet<String> componentKeys =
-        ImmutableSet.<String>builder()
-            .addAll(pLeft.keySet())
-            .addAll(pRight.keySet())
-            .build();
+      DssStateAndPrecisionPayload pLeft,
+      DssStateAndPrecisionPayload pRight) {
+    String leftComponentKey = pLeft.state().getComponentKey().getSerializedName();
+    String rightComponentKey = pRight.state().getComponentKey().getSerializedName();
 
-    for (String componentKey : componentKeys) {
-      DssStateAndPrecisionPayload leftPayload = pLeft.get(componentKey);
-      DssStateAndPrecisionPayload rightPayload = pRight.get(componentKey);
-
-      if (leftPayload == null || rightPayload == null) {
-        addDiffRow(
-            pRows,
-            pPrefix + "." + componentKey,
-            leftPayload == null ? null : "<present>",
-            rightPayload == null ? null : "<present>");
-        continue;
-      }
-
-      addPayloadDiff(
-          pRows,
-          pPrefix + "." + componentKey + ".state",
-          leftPayload.state(),
-          rightPayload.state());
-      addPrecisionDiff(
-          pRows,
-          pPrefix + "." + componentKey + ".precision",
-          leftPayload.precision(),
-          rightPayload.precision());
-    }
+    addDiffRow(pRows, pPrefix + ".component", leftComponentKey, rightComponentKey);
+    addPayloadDiff(pRows, pPrefix + ".state", pLeft.state(), pRight.state());
+    addPrecisionDiff(pRows, pPrefix + ".precision", pLeft.precision(), pRight.precision());
   }
 
   private static void addPayloadDiff(

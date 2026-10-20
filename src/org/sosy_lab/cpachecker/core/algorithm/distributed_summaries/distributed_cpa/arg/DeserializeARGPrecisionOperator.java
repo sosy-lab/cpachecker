@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -22,7 +23,10 @@ public class DeserializeARGPrecisionOperator implements DeserializePrecisionOper
   }
 
   @Override
-  public Precision deserializePrecision(DssMessageWithStates pMessage, int pStateIndex) {
-    return wrapped.getDeserializePrecisionOperator().deserializePrecision(pMessage, pStateIndex);
+  public Precision deserializePrecision(
+      DssPrecisionPayload pPrecisionPayload, DssMessageType pMessageType) {
+    return wrapped
+        .getDeserializePrecisionOperator()
+        .deserializePrecision(pPrecisionPayload, pMessageType);
   }
 }

@@ -14,7 +14,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -24,7 +23,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssNoPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
@@ -57,28 +55,22 @@ public class AlwaysReplaceViolationConditionHandlerTest {
             senderA,
             AlgorithmStatus.SOUND_AND_PRECISE,
             ImmutableList.of(
-                ImmutableMap.of(
-                    DssComponentKey.LOCATION_STATE.getSerializedName(),
-                    new DssStateAndPrecisionPayload(
-                        new DssLocationStatePayload(1), DssNoPrecisionPayload.INSTANCE))));
+                new DssStateAndPrecisionPayload(
+                    new DssLocationStatePayload(1), DssNoPrecisionPayload.INSTANCE)));
     DssViolationConditionMessage messageBX =
         messageFactory.createViolationConditionMessage(
             senderB,
             AlgorithmStatus.SOUND_AND_PRECISE,
             ImmutableList.of(
-                ImmutableMap.of(
-                    DssComponentKey.LOCATION_STATE.getSerializedName(),
-                    new DssStateAndPrecisionPayload(
-                        new DssLocationStatePayload(2), DssNoPrecisionPayload.INSTANCE))));
+                new DssStateAndPrecisionPayload(
+                    new DssLocationStatePayload(2), DssNoPrecisionPayload.INSTANCE)));
     DssViolationConditionMessage messageAY =
         messageFactory.createViolationConditionMessage(
             senderA,
             AlgorithmStatus.SOUND_AND_PRECISE,
             ImmutableList.of(
-                ImmutableMap.of(
-                    DssComponentKey.LOCATION_STATE.getSerializedName(),
-                    new DssStateAndPrecisionPayload(
-                        new DssLocationStatePayload(3), DssNoPrecisionPayload.INSTANCE))));
+                new DssStateAndPrecisionPayload(
+                    new DssLocationStatePayload(3), DssNoPrecisionPayload.INSTANCE)));
 
     DssBlockAnalysis analysis = mock(DssBlockAnalysis.class);
     DistributedConfigurableProgramAnalysis dcpa =

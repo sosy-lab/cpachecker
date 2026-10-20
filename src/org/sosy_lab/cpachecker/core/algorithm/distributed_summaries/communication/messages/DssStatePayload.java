@@ -12,10 +12,15 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessageKeys.TYPE)
 public interface DssStatePayload {
   DssComponentKey getComponentKey();
+
+  default Optional<DssStatePayload> findComponent(DssComponentKey key) {
+    return getComponentKey() == key ? Optional.of(this) : Optional.empty();
+  }
 
   ImmutableMap<String, String> asContentMap();
 }
