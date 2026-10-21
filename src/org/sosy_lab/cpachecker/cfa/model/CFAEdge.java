@@ -14,6 +14,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public interface CFAEdge {
 
+  /** Returns the original CFA edge if this edge was cloned, and this edge otherwise. */
+  default CFAEdge getOriginal() {
+    return this;
+  }
+
   CFAEdgeType getEdgeType();
 
   CFANode getPredecessor();

@@ -297,7 +297,9 @@ public class BlockOperator {
 
   protected boolean isLoopHead(CFANode succLoc) {
     checkState(loopHeads != null, "Missing loop information");
-    return loopHeads.contains(succLoc);
+    CFANode originalNode = succLoc.getOriginal();
+    return loopHeads.contains(succLoc)
+        || (originalNode != succLoc && loopHeads.contains(originalNode));
   }
 
   protected boolean isFunctionCall(CFANode succLoc) {

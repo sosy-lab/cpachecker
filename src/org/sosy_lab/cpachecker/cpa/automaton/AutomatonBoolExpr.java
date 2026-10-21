@@ -464,7 +464,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       }
 
       Optional<FileLocation> optionalFullExpressionLocation =
-          CFAUtils.getClosestFullExpression(cCfaEdge, astCfaRelation);
+          CFAUtils.getClosestFullExpression((CCfaEdge) cCfaEdge.getOriginal(), astCfaRelation);
       if (optionalFullExpressionLocation.isEmpty()) {
         return CONST_FALSE;
       }

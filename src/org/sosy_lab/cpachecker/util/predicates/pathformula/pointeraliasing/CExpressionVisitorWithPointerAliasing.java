@@ -523,7 +523,12 @@ class CExpressionVisitorWithPointerAliasing
                   conv.voidPointerFormulaType, typeHandler.getExactSizeof(base.type()));
           pts.addNextBaseAddressConstraints(
               base.asPointerBase(), base.type(), size, false, constraints);
-          pts.addBase(base.asPointerBase(), base.type());
+          if (conv.options.useConstraintOptimization()
+              && edge.getPredecessor().getCloneThreadId().isPresent()) {
+            pts.prepareBase(base.asPointerBase(), base.type());
+          } else {
+            pts.addBase(base.asPointerBase(), base.type());
+          }
         }
         return visit(e);
       }

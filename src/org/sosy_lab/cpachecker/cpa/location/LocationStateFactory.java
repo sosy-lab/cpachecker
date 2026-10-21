@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -26,6 +28,8 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState
 public class LocationStateFactory {
 
   private final LocationState[] states;
+  // Thread-cloned nodes are created after the initial CFA has been indexed above.
+  private final ConcurrentMap<CFANode, LocationState> threadCloneStates = new ConcurrentHashMap<>();
 
   private final AnalysisDirection locationType;
 
@@ -59,6 +63,10 @@ public class LocationStateFactory {
   }
 
   public LocationState getState(CFANode node) {
+    if (checkNotNull(node).getCloneThreadId().isPresent()) {
+      return threadCloneStates.computeIfAbsent(node, this::createLocationState);
+    }
+
     int nodeNumber = checkNotNull(node).getNodeNumber();
 
     if (nodeNumber >= 0 && nodeNumber < states.length) {

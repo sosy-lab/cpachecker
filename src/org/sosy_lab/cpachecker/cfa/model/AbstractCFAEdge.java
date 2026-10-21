@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CfaClonerData;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -21,6 +23,9 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   private final CFANode successor;
   private final String rawStatement;
   private final FileLocation fileLocation;
+
+  private volatile CfaClonerData clonerData;
+  private volatile CFAEdge originalEdge;
 
   protected AbstractCFAEdge(
       String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
@@ -33,6 +38,26 @@ public abstract class AbstractCFAEdge implements CFAEdge {
     successor = pSuccessor;
     rawStatement = pRawStatement;
     fileLocation = checkNotNull(pFileLocation);
+  }
+
+  @Override
+  public CFAEdge getOriginal() {
+    CfaClonerData data = clonerData;
+    if (data == null) {
+      return this;
+    }
+    CFAEdge result = originalEdge;
+    if (result == null) {
+      result = data.getOriginal(this);
+      originalEdge = result;
+    }
+    return result;
+  }
+
+  /** Associates this edge with the data of the CFA cloner that created it. */
+  public final void setClonerData(CfaClonerData pClonerData) {
+    checkState(clonerData == null, "CFA cloner data already set for edge %s", this);
+    clonerData = checkNotNull(pClonerData);
   }
 
   @Override

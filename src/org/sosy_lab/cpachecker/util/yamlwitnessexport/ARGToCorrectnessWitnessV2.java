@@ -529,12 +529,13 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
    * node, which is also the statement the validator resolves such an invariant to.
    */
   private Optional<FileLocation> locationOfInvariant(CFANode pNode, InvariantRecordType pType) {
+    CFANode astNode = pNode.getOriginal();
     return switch (pType) {
       case LOOP_INVARIANT ->
           getASTStructure()
-              .getTightestIterationStructureForNode(pNode)
+              .getTightestIterationStructureForNode(astNode)
               .map(iteration -> iteration.getCompleteElement().location());
-      case LOCATION_INVARIANT -> getASTStructure().getStatementFileLocationForNode(pNode);
+      case LOCATION_INVARIANT -> getASTStructure().getStatementFileLocationForNode(astNode);
       default -> throw new AssertionError("Cannot export invariants of type " + pType);
     };
   }

@@ -125,7 +125,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
    * matches the thread IDs used in the witnesses.
    */
   public static OptionalInt getThreadIdForClonedNode(CFANode pNode) {
-    return ConcurrentEdgeCloner.getThreadIdForNode(pNode);
+    return pNode.getCloneThreadId();
   }
 
   boolean canMerge(ConcurrentState other) {

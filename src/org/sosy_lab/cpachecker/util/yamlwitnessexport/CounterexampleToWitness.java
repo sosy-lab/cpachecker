@@ -371,6 +371,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         return ImmutableList.of(assumption);
       }
     } else if (pEdge instanceof AssumeEdge assumeEdge) {
+      AssumeEdge astAssumeEdge = (AssumeEdge) assumeEdge.getOriginal();
       // Without the AST structure we cannot guarantee that we are exporting at the beginning of
       // an iteration or if statement
       // To export the branching waypoint, we first find the IfElement or IterationElement
@@ -379,13 +380,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       // should be traversed and exporting this information will quickly make the witness
       // difficult to read
       Optional<IfElement> optionalIfElement =
-          pAstCFARelation.getIfStructureForConditionEdge(assumeEdge);
+          pAstCFARelation.getIfStructureForConditionEdge(astAssumeEdge);
       Optional<IterationElement> optionalIterationElement =
-          pAstCFARelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
+          pAstCFARelation.getTightestIterationStructureForNode(astAssumeEdge.getPredecessor());
 
       Set<CFANode> nodesBetweenConditionAndFirstBranch;
       Set<CFANode> nodesBetweenConditionAndSecondBranch;
-      CFANode successor = assumeEdge.getSuccessor();
+      CFANode successor = astAssumeEdge.getSuccessor();
       FileLocation astElementLocation;
       if (optionalIfElement.isPresent()) {
         IfElement ifElement = optionalIfElement.orElseThrow();
@@ -419,7 +420,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           return ImmutableList.of();
         }
 
-        if (!iterationElement.getControllingExpression().orElseThrow().edges().contains(pEdge)) {
+        if (!iterationElement
+            .getControllingExpression()
+            .orElseThrow()
+            .edges()
+            .contains(astAssumeEdge)) {
           // In this case we have an assume edge inside the loop which has nothing to do with its
           // controlling expression. This case should be ignored.
           return ImmutableList.of();
@@ -453,7 +458,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           handleBranchingWaypoint(
               nodesBetweenConditionAndFirstBranch.contains(successor),
               astElementLocation,
-              assumeEdge);
+              astAssumeEdge);
 
       if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)) {
         return ImmutableList.of(
@@ -626,7 +631,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // is well-defined, since every edge used here contains an operation whose execution causes
         // an overflow in a C program
         FileLocation fullExpressionLocation =
-            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
+            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge.getOriginal(), pAstCfaRelation)
+                .orElseThrow();
 
         return new WaypointRecord(
             WaypointType.TARGET,

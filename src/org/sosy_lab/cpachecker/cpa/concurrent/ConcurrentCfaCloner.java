@@ -8,24 +8,34 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
+import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Queue;
+import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaClonerData;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -37,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /**
  * Clones the entire CFA (nodes and edges) for a specific thread ID, renaming all variable
@@ -59,44 +71,24 @@ final class ConcurrentCfaCloner {
   private static final Map<CFA, Map<Integer, ConcurrentCfaCloner>> perCfaCache =
       new MapMaker().weakKeys().makeMap();
 
-  /**
-   * Reverse node map across all thread cloners: cloned node -> original node. Used for dependency
-   * analysis which needs to traverse the original CFA. Keyed by the cloned node, which is unique to
-   * one cloner, so entries of different analyses cannot collide; weak keys let them die with the
-   * cloner that owns them.
-   */
-  private static final Map<CFANode, CFANode> globalReverseNodeMap =
-      new MapMaker().weakKeys().makeMap();
-
-  /**
-   * Cloned node -> thread ID it was cloned for. Used by the witness export and validation to
-   * recover which thread a cloned edge belongs to.
-   */
-  private static final Map<CFANode, Integer> globalNodeThreadIdMap =
-      new MapMaker().weakKeys().makeMap();
-
-  /**
-   * Reverse edge map across all thread cloners: cloned edge -> original edge. Used for dependency
-   * analysis which needs to extract variables from original edges.
-   */
-  private static final Map<CFAEdge, CFAEdge> globalReverseEdgeMap =
-      new MapMaker().weakKeys().makeMap();
-
   /** Map from original node to cloned node. */
   private final IdentityHashMap<CFANode, CFANode> nodeMap = new IdentityHashMap<>();
 
   /** Map from original edge to cloned edge. */
   private final IdentityHashMap<CFAEdge, CFAEdge> edgeMap = new IdentityHashMap<>();
 
-  /** Reverse map: cloned edge -> original edge, for detecting already-cloned edges. */
-  private final IdentityHashMap<CFAEdge, CFAEdge> reverseEdgeMap = new IdentityHashMap<>();
+  private final CfaClonerData clonerData = new CfaClonerData();
 
   private final int threadId;
   private final ConcurrentAstCloner astCloner;
 
   private ConcurrentCfaCloner(int pThreadId) {
+    this(pThreadId, true);
+  }
+
+  private ConcurrentCfaCloner(int pThreadId, boolean pUseThreadSpecificNames) {
     threadId = pThreadId;
-    astCloner = new ConcurrentAstCloner(pThreadId);
+    astCloner = new ConcurrentAstCloner(pThreadId, pUseThreadSpecificNames);
   }
 
   /**
@@ -113,6 +105,47 @@ final class ConcurrentCfaCloner {
               cloner.cloneEntireCfa(pCfa);
               return cloner;
             });
+  }
+
+  /** Creates a standalone structural clone of a CFA for project-wide compatibility tests. */
+  static ImmutableCFA cloneForTesting(CFA pCfa) {
+    ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(0, false);
+    cloner.cloneEntireCfa(pCfa);
+
+    TreeMap<String, FunctionEntryNode> functions = new TreeMap<>();
+    TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
+    cloner
+        .nodeMap
+        .values()
+        .forEach(
+            node -> {
+              nodes.put(node.getFunctionName(), node);
+              if (node instanceof FunctionEntryNode entry) {
+                functions.put(entry.getFunctionName(), entry);
+              }
+            });
+
+    var mainFunction = functions.get(pCfa.getMainFunction().getFunctionName());
+    var metadata = pCfa.getMetadata().withMainFunctionEntry(mainFunction);
+    MutableCFA clonedCfa = new MutableCFA(functions, nodes, metadata);
+    if (pCfa.getLoopStructure().isPresent()) {
+      ImmutableListMultimap.Builder<String, Loop> clonedLoops = ImmutableListMultimap.builder();
+      for (String functionName : pCfa.getAllFunctionNames()) {
+        for (Loop loop : pCfa.getLoopStructure().orElseThrow().getLoopsForFunction(functionName)) {
+          clonedLoops.put(
+              functionName,
+              Loop.fromLoopHeadsAndNodes(
+                  loop.getLoopHeads().stream()
+                      .map(cloner.nodeMap::get)
+                      .collect(ImmutableSet.toImmutableSet()),
+                  loop.getLoopNodes().stream()
+                      .map(cloner.nodeMap::get)
+                      .collect(ImmutableSet.toImmutableSet())));
+        }
+      }
+      clonedCfa.setLoopStructure(LoopStructure.of(clonedLoops.build()));
+    }
+    return clonedCfa.immutableCopy();
   }
 
   /**
@@ -135,41 +168,9 @@ final class ConcurrentCfaCloner {
     return cloned != null ? cloned : pOriginalEdge;
   }
 
-  /** Returns whether the given edge is a cloned edge produced by this cloner. */
-  boolean isClonedEdge(CFAEdge pEdge) {
-    return reverseEdgeMap.containsKey(pEdge);
-  }
-
   /** Returns the thread ID this cloner is for. */
   int getThreadId() {
     return threadId;
-  }
-
-  /**
-   * Returns the original CFA node corresponding to the given (potentially cloned) node. If the node
-   * is not a cloned node, it is returned as-is.
-   */
-  static CFANode getOriginalNode(CFANode pNode) {
-    CFANode original = globalReverseNodeMap.get(pNode);
-    return original != null ? original : pNode;
-  }
-
-  /**
-   * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
-   * POR node.
-   */
-  static OptionalInt getThreadIdForNode(CFANode pNode) {
-    Integer pid = globalNodeThreadIdMap.get(pNode);
-    return pid != null ? OptionalInt.of(pid) : OptionalInt.empty();
-  }
-
-  /**
-   * Returns the original CFA edge corresponding to the given (potentially cloned) edge. If the edge
-   * is not a cloned edge, it is returned as-is.
-   */
-  static CFAEdge getOriginalEdge(CFAEdge pEdge) {
-    CFAEdge original = globalReverseEdgeMap.get(pEdge);
-    return original != null ? original : pEdge;
   }
 
   // ---- CFA cloning ----
@@ -215,9 +216,14 @@ final class ConcurrentCfaCloner {
   /** Clones the given original node and registers it in all node maps. */
   private CFANode registerClonedNode(CFANode pOriginalNode) {
     CFANode cloned = cloneNode(pOriginalNode);
+    cloned.setReversePostorderId(pOriginalNode.getReversePostorderId());
+    if (!pOriginalNode.getOutOfScopeVariables().isEmpty()) {
+      cloned.addOutOfScopeVariables(
+          pOriginalNode.getOutOfScopeVariables().stream().map(astCloner::cloneAst).toList());
+    }
     nodeMap.put(pOriginalNode, cloned);
-    globalReverseNodeMap.put(cloned, pOriginalNode);
-    globalNodeThreadIdMap.put(cloned, threadId);
+    clonerData.registerNode(cloned, pOriginalNode, threadId);
+    cloned.setClonerData(clonerData);
     return cloned;
   }
 
@@ -271,8 +277,9 @@ final class ConcurrentCfaCloner {
 
     CFAEdge clonedEdge = cloneEdge(originalEdge, clonedPred, clonedSucc);
     edgeMap.put(originalEdge, clonedEdge);
-    reverseEdgeMap.put(clonedEdge, originalEdge);
-    globalReverseEdgeMap.put(clonedEdge, originalEdge);
+    clonerData.registerEdge(clonedEdge, originalEdge);
+    checkState(clonedEdge instanceof AbstractCFAEdge);
+    ((AbstractCFAEdge) clonedEdge).setClonerData(clonerData);
 
     // Register the cloned edge with its cloned nodes
     if (clonedEdge instanceof FunctionSummaryEdge summaryEdge) {
