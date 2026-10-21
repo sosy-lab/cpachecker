@@ -15,14 +15,15 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.TRANS_INV_KEYWORD;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -92,8 +93,10 @@ class NestedLoopSummarizer {
     }
     checkState(previous >= 0, "The loop head %s was not visited before", pLoopHead);
 
-    // Build the formula from the end, such that the later part can be shifted to the state after
-    // the further iterations of a nested loop
+    // Build the formula from the end, such that the entry state of a nested loop in the later part
+    // can be replaced by the exit state after its further iterations
+    SSAMap end = visits.get(last).block().getSsa();
+    Set<String> endsInSummary = new HashSet<>();
     BooleanFormula suffix = visits.get(last).block().getFormula();
     for (int i = last - 1; i > previous; i--) {
       LoopHeadVisit visit = visits.get(i);
@@ -103,7 +106,7 @@ class NestedLoopSummarizer {
       // summary also allows zero further iterations, i.e., leaving the nested loop directly.
       if (!visit.transitionInvariants().isEmpty()
           && leavesLoopAfter(visits, i, last, pState.getPathSequence())) {
-        suffix = summarizeFurtherIterations(visit, suffix);
+        suffix = summarizeFurtherIterations(visit, suffix, end, endsInSummary);
       }
       suffix = bfmgr.and(visit.block().getFormula(), suffix);
     }
@@ -132,79 +135,175 @@ class NestedLoopSummarizer {
 
   /**
    * Conjoins the given formula after the visit of a nested loop head with the overapproximation of
-   * further iterations of the nested loop. The modified variables in the given formula are shifted
-   * to the state after these iterations.
+   * further iterations of the nested loop. In the given formula, the entry state of the modified
+   * variables is replaced by their exit state after these iterations.
+   *
+   * @param pEnd the SSA map at the end of the iteration
+   * @param pEndsInSummary the variables whose end state in the iteration is the exit state of a
+   *     later summary, extended by this summary
    */
-  private BooleanFormula summarizeFurtherIterations(LoopHeadVisit pVisit, BooleanFormula pSuffix) {
+  private BooleanFormula summarizeFurtherIterations(
+      LoopHeadVisit pVisit, BooleanFormula pSuffix, SSAMap pEnd, Set<String> pEndsInSummary) {
     SSAMap entry = pVisit.block().getSsa();
     ImmutableSet<String> modifiedProgramVariables =
-        getModifiedVariables(pVisit.loopHead().getFirst().getLocationNode());
-    Predicate<String> modified = variable -> isModified(variable, modifiedProgramVariables);
-
-    // The occurrences of a modified variable x at or after its entry index refer to the state
-    // after the further iterations, which gets the index entry(x) + 1
-    BooleanFormula shifted =
-        fmgr.renameFreeVariablesAndUFs(
-            pSuffix,
-            name -> {
-              Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(name);
-              String variable = parsed.getFirst();
-              OptionalInt index = parsed.getSecond();
-              if (index.isPresent()
-                  && modified.test(variable)
-                  && index.orElseThrow() >= getIndex(entry, variable)) {
-                return variable + FormulaManagerView.INDEX_SEPARATOR + (index.orElseThrow() + 1);
-              }
-              return name;
-            });
-
-    // No further iterations: s_exit = s_entry
-    Map<String, FormulaType<?>> types = getTypes(bfmgr.and(pVisit.block().getFormula(), shifted));
-    List<BooleanFormula> identity = new ArrayList<>();
-    for (Map.Entry<String, FormulaType<?>> variable : types.entrySet()) {
-      if (modified.test(variable.getKey())) {
-        int index = getIndex(entry, variable.getKey());
-        identity.add(
-            fmgr.assignment(
-                fmgr.makeVariable(variable.getValue(), variable.getKey(), index + 1),
-                fmgr.makeVariable(variable.getValue(), variable.getKey(), index)));
-      }
-    }
-
-    // Further iterations: T(s_entry, s_exit)
+        getModifiedProgramVariables(pVisit.loopHead().getFirst().getLocationNode());
     BooleanFormula transitionInvariant =
         bfmgr.and(
             pVisit.transitionInvariants().stream()
                 .map(PartitionedRelationFormula::getFormula)
                 .collect(ImmutableList.toImmutableList()));
-    String freshSuffix = SUMMARY_SUFFIX + summaryCounter++;
-    BooleanFormula instantiated =
+    String summary = SUMMARY_SUFFIX + summaryCounter++;
+
+    ImmutableMap<String, Formula> exits =
+        makeExitVariables(
+            getModifiedVariables(
+                bfmgr.and(pVisit.block().getFormula(), pSuffix),
+                transitionInvariant,
+                modifiedProgramVariables),
+            entry,
+            pEnd,
+            pEndsInSummary,
+            summary);
+    BooleanFormula noFurtherIterations = makeIdentity(exits, entry);
+    BooleanFormula furtherIterations =
+        instantiateTransitionInvariant(transitionInvariant, exits, entry, summary);
+    BooleanFormula suffix =
+        replaceEntryByExit(pSuffix, exits, entry, modifiedProgramVariables, summary);
+    return bfmgr.and(bfmgr.or(noFurtherIterations, furtherIterations), suffix);
+  }
+
+  /**
+   * Returns the types of the variables that the further iterations may modify and that occur in the
+   * given formula or in the current state of the transition invariant.
+   */
+  private Map<String, FormulaType<?>> getModifiedVariables(
+      BooleanFormula pFormula,
+      BooleanFormula pTransitionInvariant,
+      Set<String> pModifiedProgramVariables) {
+    Map<String, FormulaType<?>> types = getTypes(pFormula);
+    for (Map.Entry<String, Formula> variable :
+        fmgr.extractVariables(pTransitionInvariant).entrySet()) {
+      if (variable.getKey().contains(CURR_KEYWORD)) {
+        types.putIfAbsent(
+            variable.getKey().replace(CURR_KEYWORD, ""), fmgr.getFormulaType(variable.getValue()));
+      }
+    }
+    types.keySet().removeIf(variable -> !isModified(variable, pModifiedProgramVariables));
+    return types;
+  }
+
+  /**
+   * Returns the exit variables of the given modified variables. The end state of a variable in the
+   * iteration is its occurrence with the largest SSA index. So if the exit state is the end state,
+   * i.e., the variable is not assigned later in the iteration, its exit variable gets an SSA index
+   * above the others. Otherwise, it gets a fresh name without SSA index.
+   */
+  private ImmutableMap<String, Formula> makeExitVariables(
+      Map<String, FormulaType<?>> pModifiedVariables,
+      SSAMap pEntry,
+      SSAMap pEnd,
+      Set<String> pEndsInSummary,
+      String pSummary) {
+    ImmutableMap.Builder<String, Formula> exits = ImmutableMap.builder();
+    pModifiedVariables.forEach(
+        (variable, type) -> {
+          int endIndex = getIndex(pEnd, variable);
+          exits.put(
+              variable,
+              getIndex(pEntry, variable) == endIndex && pEndsInSummary.add(variable)
+                  ? fmgr.makeVariable(type, variable, endIndex + 1)
+                  : fmgr.makeVariable(type, getExitName(variable, pSummary)));
+        });
+    return exits.buildOrThrow();
+  }
+
+  /** Returns s_exit = s_entry. */
+  private BooleanFormula makeIdentity(Map<String, Formula> pExits, SSAMap pEntry) {
+    List<BooleanFormula> identity = new ArrayList<>();
+    pExits.forEach(
+        (variable, exit) ->
+            identity.add(
+                fmgr.assignment(
+                    exit, makeEntryVariable(variable, fmgr.getFormulaType(exit), pEntry))));
+    return bfmgr.and(identity);
+  }
+
+  /**
+   * Returns T(s_entry, s_exit), where the other variables of T are existentially quantified for
+   * each use of the summary.
+   */
+  private BooleanFormula instantiateTransitionInvariant(
+      BooleanFormula pTransitionInvariant,
+      Map<String, Formula> pExits,
+      SSAMap pEntry,
+      String pSummary) {
+    BooleanFormula renamed =
         fmgr.renameFreeVariablesAndUFs(
-            transitionInvariant,
-            name -> {
-              if (name.contains(PREV_KEYWORD)) {
-                String variable = name.replace(PREV_KEYWORD, "");
-                return variable + FormulaManagerView.INDEX_SEPARATOR + getIndex(entry, variable);
-              }
-              if (name.contains(CURR_KEYWORD)) {
-                String variable = name.replace(CURR_KEYWORD, "");
-                int index = getIndex(entry, variable) + (modified.test(variable) ? 1 : 0);
-                return variable + FormulaManagerView.INDEX_SEPARATOR + index;
-              }
-              // Other variables are existentially quantified for each use of the summary
-              Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(name);
-              String fresh = parsed.getFirst() + freshSuffix;
-              return parsed.getSecond().isPresent()
-                  ? fresh + FormulaManagerView.INDEX_SEPARATOR + parsed.getSecond().orElseThrow()
-                  : fresh;
-            });
+            pTransitionInvariant,
+            name -> name.contains(TRANS_INV_KEYWORD) ? name : getFreshName(name, pSummary));
+    Map<Formula, Formula> states = new HashMap<>();
+    for (Map.Entry<String, Formula> variable : fmgr.extractVariables(renamed).entrySet()) {
+      FormulaType<?> type = fmgr.getFormulaType(variable.getValue());
+      if (variable.getKey().contains(PREV_KEYWORD)) {
+        String name = variable.getKey().replace(PREV_KEYWORD, "");
+        states.put(variable.getValue(), makeEntryVariable(name, type, pEntry));
+      } else if (variable.getKey().contains(CURR_KEYWORD)) {
+        String name = variable.getKey().replace(CURR_KEYWORD, "");
+        states.put(
+            variable.getValue(),
+            pExits.containsKey(name) ? pExits.get(name) : makeEntryVariable(name, type, pEntry));
+      }
+    }
+    BooleanFormula instantiated = fmgr.substitute(renamed, states);
     if (fmgr.extractVariableNames(instantiated).stream()
         .anyMatch(name -> name.contains(TRANS_INV_KEYWORD))) {
       // Unexpected variables of the transition invariant, so only the frame is kept
-      instantiated = bfmgr.makeTrue();
+      return bfmgr.makeTrue();
     }
+    return instantiated;
+  }
 
-    return bfmgr.and(bfmgr.or(bfmgr.and(identity), instantiated), shifted);
+  /**
+   * Replaces the entry state of the modified variables in the given formula by their exit state.
+   */
+  private BooleanFormula replaceEntryByExit(
+      BooleanFormula pFormula,
+      Map<String, Formula> pExits,
+      SSAMap pEntry,
+      Set<String> pModifiedProgramVariables,
+      String pSummary) {
+    Map<Formula, Formula> entryToExit = new HashMap<>();
+    pExits.forEach(
+        (variable, exit) ->
+            entryToExit.put(makeEntryVariable(variable, fmgr.getFormulaType(exit), pEntry), exit));
+    // The substitution covers only variables, so UFs, e.g., of a heap without SMT arrays, are
+    // renamed
+    return fmgr.renameFreeVariablesAndUFs(
+        fmgr.substitute(pFormula, entryToExit),
+        name -> {
+          Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(name);
+          return parsed.getSecond().isPresent()
+                  && isModified(parsed.getFirst(), pModifiedProgramVariables)
+                  && parsed.getSecond().orElseThrow() == getIndex(pEntry, parsed.getFirst())
+              ? getExitName(parsed.getFirst(), pSummary)
+              : name;
+        });
+  }
+
+  private Formula makeEntryVariable(String pVariable, FormulaType<?> pType, SSAMap pEntry) {
+    return fmgr.makeVariable(pType, pVariable, getIndex(pEntry, pVariable));
+  }
+
+  private static String getExitName(String pVariable, String pSummary) {
+    return pVariable + pSummary + "_exit";
+  }
+
+  /** Returns a name without SSA index that is unique for the given name and summary. */
+  private static String getFreshName(String pName, String pSummary) {
+    Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(pName);
+    return parsed.getSecond().isPresent()
+        ? parsed.getFirst() + pSummary + "_" + parsed.getSecond().orElseThrow()
+        : parsed.getFirst() + pSummary;
   }
 
   /** Variables that do not occur in the SSA map have the initial index 1. */
@@ -228,7 +327,7 @@ class NestedLoopSummarizer {
    * Returns the qualified names of the variables that the loop with the given head may assign,
    * including in the functions that it calls.
    */
-  private ImmutableSet<String> getModifiedVariables(CFANode pLoopHead) {
+  private ImmutableSet<String> getModifiedProgramVariables(CFANode pLoopHead) {
     return from(cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(pLoopHead))
         .transformAndConcat(Loop::getModifiedVariables)
         .transform(CVariableDeclaration::getQualifiedName)
