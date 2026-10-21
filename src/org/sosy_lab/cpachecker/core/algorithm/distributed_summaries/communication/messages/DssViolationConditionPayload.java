@@ -14,19 +14,19 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-@JsonPropertyOrder({DssMessageKeys.HEADER, DssMessageKeys.STATUS, DssMessageKeys.STATES})
+@JsonPropertyOrder({DssHeaderPayload.HEADER, DssStatusPayload.STATUS, DssStatePayload.STATES})
 public record DssViolationConditionPayload(
-    @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload header,
-    @JsonProperty(value = DssMessageKeys.STATUS, required = true) DssStatusPayload status,
-    @JsonProperty(value = DssMessageKeys.STATES, required = true)
+    @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload header,
+    @JsonProperty(value = DssStatusPayload.STATUS, required = true) DssStatusPayload status,
+    @JsonProperty(value = DssStatePayload.STATES, required = true)
         ImmutableList<DssStateAndPrecisionPayload> states)
     implements DssMessagePayload {
 
   @JsonCreator
   public DssViolationConditionPayload(
-      @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload pHeader,
-      @JsonProperty(value = DssMessageKeys.STATUS, required = true) DssStatusPayload pStatus,
-      @JsonProperty(value = DssMessageKeys.STATES, required = true)
+      @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload pHeader,
+      @JsonProperty(value = DssStatusPayload.STATUS, required = true) DssStatusPayload pStatus,
+      @JsonProperty(value = DssStatePayload.STATES, required = true)
           List<DssStateAndPrecisionPayload> pStates) {
     this(pHeader, pStatus, ImmutableList.copyOf(pStates));
   }

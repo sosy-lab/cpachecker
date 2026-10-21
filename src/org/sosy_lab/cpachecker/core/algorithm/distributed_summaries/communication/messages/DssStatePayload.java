@@ -13,8 +13,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import java.util.Optional;
 
-@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessageKeys.TYPE)
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessagePayload.TYPE)
 public interface DssStatePayload {
+  String STATES = "states";
+  String STATE = "state";
+
   DssComponentKey getComponentKey();
 
   default Optional<DssStatePayload> findComponent(DssComponentKey key) {

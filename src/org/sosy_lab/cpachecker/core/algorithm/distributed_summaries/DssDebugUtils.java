@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssHeaderPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssNoPrecisionPayload;
@@ -883,17 +882,17 @@ public final class DssDebugUtils {
       List<List<String>> pRows, DssHeaderPayload pLeft, DssHeaderPayload pRight) {
     addDiffRow(
         pRows,
-        DssMessageKeys.HEADER + "." + DssMessageKeys.SENDER_ID,
+        DssHeaderPayload.HEADER + "." + DssHeaderPayload.SENDER_ID,
         pLeft.senderId(),
         pRight.senderId());
     addDiffRow(
         pRows,
-        DssMessageKeys.HEADER + "." + DssMessageKeys.TIMESTAMP,
+        DssHeaderPayload.HEADER + "." + DssHeaderPayload.TIMESTAMP,
         pLeft.timestamp(),
         pRight.timestamp());
     addDiffRow(
         pRows,
-        DssMessageKeys.HEADER + "." + DssMessageKeys.IDENTIFIER,
+        DssHeaderPayload.HEADER + "." + DssHeaderPayload.IDENTIFIER,
         pLeft.identifier(),
         pRight.identifier());
   }

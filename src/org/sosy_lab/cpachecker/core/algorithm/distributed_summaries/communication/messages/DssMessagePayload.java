@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 
-@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessageKeys.TYPE)
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessagePayload.TYPE)
 public sealed interface DssMessagePayload
     permits DssPostConditionPayload,
         DssViolationConditionPayload,
@@ -20,6 +20,8 @@ public sealed interface DssMessagePayload
         DssExceptionPayload,
         DssViolationWitnessPayload,
         DssCorrectnessWitnessPayload {
+  String TYPE = "type";
+
   DssHeaderPayload header();
 
   DssMessagePayload withNewHeader(DssHeaderPayload pNewHeader);

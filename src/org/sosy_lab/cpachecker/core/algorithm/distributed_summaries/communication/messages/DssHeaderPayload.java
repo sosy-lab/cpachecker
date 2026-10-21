@@ -17,11 +17,20 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({DssMessageKeys.SENDER_ID, DssMessageKeys.TIMESTAMP, DssMessageKeys.IDENTIFIER})
+@JsonPropertyOrder({
+  DssHeaderPayload.SENDER_ID,
+  DssHeaderPayload.TIMESTAMP,
+  DssHeaderPayload.IDENTIFIER
+})
 public record DssHeaderPayload(
-    @JsonProperty(value = DssMessageKeys.SENDER_ID, required = true) String senderId,
-    @JsonProperty(DssMessageKeys.TIMESTAMP) @Nullable String timestamp,
-    @JsonProperty(value = DssMessageKeys.IDENTIFIER, required = true) int identifier) {
+    @JsonProperty(value = SENDER_ID, required = true) String senderId,
+    @JsonProperty(TIMESTAMP) @Nullable String timestamp,
+    @JsonProperty(value = IDENTIFIER, required = true) int identifier) {
+
+  public static final String HEADER = "header";
+  public static final String SENDER_ID = "senderId";
+  public static final String TIMESTAMP = "timestamp";
+  public static final String IDENTIFIER = "identifier";
 
   private static final long nanoConversionFactor = 1_000_000_000L;
 

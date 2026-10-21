@@ -12,7 +12,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
  * Message sent by analysis workers carrying witness information: either the ARG states of all
  * preconditions after a TRUE result ({@link WitnessType#CORRECTNESS}), or the violation path after
  * a FALSE result ({@link WitnessType#VIOLATION}), differentiated by the field {@link
- * DssMessageKeys#WITNESS_TYPE}
+ * DssViolationWitnessPayload#WITNESS_TYPE}
  */
 public sealed interface DssWitnessMessage extends DssMessage
     permits DssCorrectnessWitnessMessage, DssViolationWitnessMessage {

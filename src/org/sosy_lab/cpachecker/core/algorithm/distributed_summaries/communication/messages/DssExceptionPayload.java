@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-@JsonPropertyOrder({DssMessageKeys.HEADER, DssMessageKeys.EXCEPTION})
+@JsonPropertyOrder({DssHeaderPayload.HEADER, DssExceptionPayload.EXCEPTION})
 public record DssExceptionPayload(
-    @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload header,
-    @JsonProperty(value = DssMessageKeys.EXCEPTION, required = true) String exceptionMessage)
+    @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload header,
+    @JsonProperty(value = EXCEPTION, required = true) String exceptionMessage)
     implements DssMessagePayload {
+  public static final String EXCEPTION = "exception";
+
   @Override
   public DssMessagePayload withNewHeader(DssHeaderPayload pNewHeader) {
     return new DssExceptionPayload(pNewHeader, exceptionMessage);

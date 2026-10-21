@@ -11,11 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-@JsonPropertyOrder({DssMessageKeys.HEADER, DssMessageKeys.VIOLATION_PATH})
+@JsonPropertyOrder({DssHeaderPayload.HEADER, DssViolationWitnessPayload.VIOLATION_PATH})
 public record DssViolationWitnessPayload(
-    @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload header,
-    @JsonProperty(value = DssMessageKeys.VIOLATION_PATH, required = true) String violationPath)
+    @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload header,
+    @JsonProperty(value = VIOLATION_PATH, required = true) String violationPath)
     implements DssMessagePayload {
+  public static final String WITNESS_TYPE = "witnessType";
+  public static final String VIOLATION_PATH = "violationPath";
+
   @Override
   public DssMessagePayload withNewHeader(DssHeaderPayload pNewHeader) {
     return new DssViolationWitnessPayload(pNewHeader, violationPath);
