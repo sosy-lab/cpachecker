@@ -111,7 +111,11 @@ class NestedLoopSummarizer {
     return suffix;
   }
 
-  /** Checks whether the path leaves the loop of the given visit before visiting its head again. */
+  /**
+   * Checks whether the path does not return to the head of the given visit inside its loop before
+   * the iteration ends. Either the path leaves that loop, or the head is another head of the
+   * iterated loop and the path reaches the iterated head first.
+   */
   private boolean leavesLoopAfter(
       ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, ImmutableList<CFANode> pPath) {
     LoopHeadVisit visit = pVisits.get(pVisit);
