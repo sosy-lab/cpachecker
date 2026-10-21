@@ -70,12 +70,12 @@ public class LoopBoundCPA extends AbstractCPA
               + " iteration vectors are equal.\n"
               + "DEEPEST_ITERATION considers them comparable as soon as their deepest loop"
               + " iteration is equal, which lets states that merely visited a different set of"
-              + " loops be merged and cover each other. This is much coarser and is intended for"
-              + " analyses that only inspect the deepest iteration, such as the induction step"
-              + " case of k-induction. It is NOT sound for analyses that read back the per-loop"
-              + " iteration counts of individual states, in particular k-induction with candidate"
-              + " invariants for specific program locations (cf."
-              + " BMCHelper.filterBmcCheckedWithin).")
+              + " loops be merged and cover each other. A merged state keeps the per-loop counts"
+              + " of only one of the merged states, so the iteration numbers of the paths of the"
+              + " other one become wrong after further loop iterations, and paths are numbered"
+              + " into the wrong iteration or cut off too early. This is NOT sound for BMC and"
+              + " k-induction; it is only used for the relaxed induction step case"
+              + " (bmc.stepCaseConfig), whose proofs are confirmed by the regular step case.")
   private String domainType = "FLAT";
 
   public static CPAFactory factory() {

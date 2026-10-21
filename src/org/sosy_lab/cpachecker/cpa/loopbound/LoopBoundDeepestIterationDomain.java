@@ -20,9 +20,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  * become comparable, which is what allows merge^JOIN to collapse them.
  *
  * <p>This is deliberately coarser than {@link
- * org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain}: the per-loop counts of a state that was
- * merged from several states are no longer meaningful. Only use this domain for analyses that
- * inspect {@link LoopBoundState#getDeepestIteration()} and never the individual per-loop counts.
+ * org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain}: a state that was merged from several
+ * states keeps the per-loop counts of only one of them. Even {@link
+ * LoopBoundState#getDeepestIteration()} is then only exact at the merge point, and becomes wrong
+ * for the paths of the other states after further loop iterations. Analyses that rely on exact
+ * iteration numbers, such as BMC and k-induction, may therefore miss paths with this domain. It is
+ * only used for the relaxed induction step case, whose proofs are confirmed by the regular step
+ * case (see bmc.stepCaseConfig).
  */
 enum LoopBoundDeepestIterationDomain implements AbstractDomain {
   INSTANCE;

@@ -1093,14 +1093,14 @@ bmc.propagateInvGenInterrupts = false
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
 
-# Configuration file with options that apply to the induction step case only.
-# Its options are added on top of the configuration of the analysis.
-# The step case starts from an arbitrary state at each loop head, so it may
-# freely over-approximate: a coarser exploration can only make the induction
-# check harder to discharge, never wrong. The base case must not be coarsened
-# in the same way, because it under-approximates by its loop bound and relies
-# on exact coverage to not lose reachable states. Options that relax coverage
-# therefore belong here and not in the configuration of the analysis.
+# Configuration file with options for an additional, relaxed induction step
+# case. Its options are added on top of the configuration of the analysis.
+# The relaxed step case checks the safety property first, so that a bound k
+# for which the property is not k-inductive is ruled out quickly. Its options
+# may make it drop paths, for example cpa.loopbound.domain=DEEPEST_ITERATION,
+# so a proof by it is only accepted after the step case built from the
+# configuration of the analysis succeeds for the same k as well. Candidate
+# invariants other than the safety property are only checked by the latter.
 bmc.stepCaseConfig = no default value
 
 # Use generalized counterexamples to induction as candidate invariants.
@@ -2412,12 +2412,13 @@ cpa.loopbound.cyclicStopModulus = -1
 # per-loop iteration vectors are equal.
 # DEEPEST_ITERATION considers them comparable as soon as their deepest loop
 # iteration is equal, which lets states that merely visited a different set
-# of loops be merged and cover each other. This is much coarser and is
-# intended for analyses that only inspect the deepest iteration, such as the
-# induction step case of k-induction. It is NOT sound for analyses that read
-# back the per-loop iteration counts of individual states, in particular
-# k-induction with candidate invariants for specific program locations (cf.
-# BMCHelper.filterBmcCheckedWithin).
+# of loops be merged and cover each other. A merged state keeps the per-loop
+# counts of only one of the merged states, so the iteration numbers of the
+# paths of the other one become wrong after further loop iterations, and
+# paths are numbered into the wrong iteration or cut off too early. This is
+# NOT sound for BMC and k-induction; it is only used for the relaxed
+# induction step case (bmc.stepCaseConfig), whose proofs are confirmed by the
+# regular step case.
 cpa.loopbound.domain = "FLAT"
   allowed values: [FLAT, DEEPEST_ITERATION]
 

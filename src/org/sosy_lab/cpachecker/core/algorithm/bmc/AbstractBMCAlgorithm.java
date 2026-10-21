@@ -224,14 +224,14 @@ abstract class AbstractBMCAlgorithm
   @Option(
       secure = true,
       description =
-          "Configuration file with options that apply to the induction step case only. Its options"
-              + " are added on top of the configuration of the analysis.\n"
-              + "The step case starts from an arbitrary state at each loop head, so it may freely"
-              + " over-approximate: a coarser exploration can only make the induction check harder"
-              + " to discharge, never wrong. The base case must not be coarsened in the same way,"
-              + " because it under-approximates by its loop bound and relies on exact coverage to"
-              + " not lose reachable states. Options that relax coverage therefore belong here and"
-              + " not in the configuration of the analysis.",
+          "Configuration file with options for an additional, relaxed induction step case. Its"
+              + " options are added on top of the configuration of the analysis.\n"
+              + "The relaxed step case checks the safety property first, so that a bound k for"
+              + " which the property is not k-inductive is ruled out quickly. Its options may make"
+              + " it drop paths, for example cpa.loopbound.domain=DEEPEST_ITERATION, so a proof by"
+              + " it is only accepted after the step case built from the configuration of the"
+              + " analysis succeeds for the same k as well. Candidate invariants other than the"
+              + " safety property are only checked by the latter.",
       name = "bmc.stepCaseConfig")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path stepCaseConfig = null;
@@ -262,6 +262,11 @@ abstract class AbstractBMCAlgorithm
 
   private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;
   private final @Nullable Algorithm stepCaseAlgorithm;
+
+  // The relaxed step case, only present if bmc.stepCaseConfig is set
+  private final @Nullable ConfigurableProgramAnalysis relaxedStepCaseCPA;
+  private final @Nullable Algorithm relaxedStepCaseAlgorithm;
+  private final @Nullable ReachedSetFactory relaxedStepCaseReachedSetFactory;
 
   protected final InvariantGenerator invariantGenerator;
   private final InvariantGeneratorHeadStart invariantGeneratorHeadStart;
@@ -317,6 +322,7 @@ abstract class AbstractBMCAlgorithm
     algorithm = pAlgorithm;
     cpa = pCPA;
     logger = pLogger;
+    reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
     config = pConfig;
     specification = checkNotNull(pSpecification);
@@ -342,39 +348,51 @@ abstract class AbstractBMCAlgorithm
 
     if (induction) {
       LogManager stepCaseLogger = logger.withComponentName("InductionStepCase");
-      Configuration stepCaseConfiguration = pConfig;
-      if (stepCaseConfig != null) {
-        try {
-          stepCaseConfiguration =
-              Configuration.builder().copyFrom(pConfig).loadFromFile(stepCaseConfig).build();
-        } catch (IOException e) {
-          throw new InvalidConfigurationException(
-              String.format("Cannot load configuration from file %s", stepCaseConfig), e);
-        }
-      }
-      // The reached set of the step case is created by this factory (in KInductionProver), so it
-      // has to be built from the configuration of the step case for options such as
-      // analysis.reachedSet to take effect there.
-      reachedSetFactory =
-          stepCaseConfiguration == pConfig
-              ? pReachedSetFactory
-              : new ReachedSetFactory(stepCaseConfiguration, stepCaseLogger);
       CPABuilder builder =
           new CPABuilder(
-              stepCaseConfiguration,
-              stepCaseLogger,
-              pShutdownManager.getNotifier(),
-              reachedSetFactory);
+              pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
       stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
       stepCaseAlgorithm =
-          CPAAlgorithm.create(
-              stepCaseCPA, stepCaseLogger, stepCaseConfiguration, pShutdownManager.getNotifier());
+          CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {
-      reachedSetFactory = pReachedSetFactory;
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
       invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
+    }
+
+    if (induction && stepCaseConfig != null) {
+      LogManager relaxedStepCaseLogger = logger.withComponentName("RelaxedInductionStepCase");
+      Configuration relaxedStepCaseConfig;
+      try {
+        relaxedStepCaseConfig =
+            Configuration.builder().copyFrom(pConfig).loadFromFile(stepCaseConfig).build();
+      } catch (IOException e) {
+        throw new InvalidConfigurationException(
+            String.format("Cannot load configuration from file %s", stepCaseConfig), e);
+      }
+      // The reached set of the step case is created by this factory (in KInductionProver), so it
+      // has to be built from the configuration of the step case for options such as
+      // analysis.reachedSet to take effect there.
+      relaxedStepCaseReachedSetFactory =
+          new ReachedSetFactory(relaxedStepCaseConfig, relaxedStepCaseLogger);
+      CPABuilder builder =
+          new CPABuilder(
+              relaxedStepCaseConfig,
+              relaxedStepCaseLogger,
+              pShutdownManager.getNotifier(),
+              relaxedStepCaseReachedSetFactory);
+      relaxedStepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
+      relaxedStepCaseAlgorithm =
+          CPAAlgorithm.create(
+              relaxedStepCaseCPA,
+              relaxedStepCaseLogger,
+              relaxedStepCaseConfig,
+              pShutdownManager.getNotifier());
+    } else {
+      relaxedStepCaseReachedSetFactory = null;
+      relaxedStepCaseCPA = null;
+      relaxedStepCaseAlgorithm = null;
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
@@ -589,10 +607,16 @@ abstract class AbstractBMCAlgorithm
               }
             }
             try (@SuppressWarnings("resource")
-                KInductionProver kInductionProver = createInductionProver()) {
+                    KInductionProver kInductionProver = createInductionProver();
+                @SuppressWarnings("resource")
+                    KInductionProver relaxedInductionProver = createRelaxedInductionProver()) {
               sound =
                   checkStepCase(
-                      reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
+                      reachedSet,
+                      candidateGenerator,
+                      kInductionProver,
+                      relaxedInductionProver,
+                      ctiBlockingClauses);
             }
           }
           if (invariantGenerator.isProgramSafe()
@@ -615,6 +639,7 @@ abstract class AbstractBMCAlgorithm
       final ReachedSet reachedSet,
       final CandidateGenerator candidateGenerator,
       KInductionProver kInductionProver,
+      @Nullable KInductionProver pRelaxedInductionProver,
       Set<Obligation> pCtiBlockingClauses)
       throws InterruptedException, CPAException, SolverException {
 
@@ -658,12 +683,13 @@ abstract class AbstractBMCAlgorithm
       }
 
       InductionResult<CandidateInvariant> inductionResult =
-          kInductionProver.check(
+          checkInduction(
+              kInductionProver,
+              pRelaxedInductionProver,
               Iterables.concat(confirmedCandidates, Collections.singleton(candidate)),
               k,
               candidate,
               checkedKeys,
-              InvariantStrengthenings.noStrengthening(),
               lifting);
       if (inductionResult.isSuccessful()) {
         Iterables.addAll(
@@ -716,6 +742,56 @@ abstract class AbstractBMCAlgorithm
       }
     }
     return sound;
+  }
+
+  /**
+   * Checks whether the candidate invariant is k-inductive.
+   *
+   * <p>If there is a relaxed step case (see {@link #stepCaseConfig}), the safety property is
+   * checked with it first. The relaxed step case may drop paths, so only its failure is final: a
+   * proof by it is only accepted if the step case built from the configuration of the analysis
+   * succeeds as well. All other candidate invariants are checked by the latter only.
+   */
+  private InductionResult<CandidateInvariant> checkInduction(
+      KInductionProver pInductionProver,
+      @Nullable KInductionProver pRelaxedInductionProver,
+      Iterable<CandidateInvariant> pPredecessorAssumptions,
+      int pK,
+      CandidateInvariant pCandidate,
+      Set<Object> pCheckedKeys,
+      Lifting pLifting)
+      throws InterruptedException, CPAException, SolverException {
+    boolean confirm = false;
+    if (pRelaxedInductionProver != null
+        && pCandidate == TargetLocationCandidateInvariant.INSTANCE) {
+      InductionResult<CandidateInvariant> relaxedResult =
+          pRelaxedInductionProver.check(
+              pPredecessorAssumptions,
+              pK,
+              pCandidate,
+              pCheckedKeys,
+              InvariantStrengthenings.noStrengthening(),
+              pLifting);
+      if (!relaxedResult.isSuccessful()) {
+        return relaxedResult;
+      }
+      confirm = true;
+      stats.relaxedStepCaseProofs++;
+      logger.log(Level.INFO, "Confirming the proof of the relaxed induction step case");
+    }
+    InductionResult<CandidateInvariant> result =
+        pInductionProver.check(
+            pPredecessorAssumptions,
+            pK,
+            pCandidate,
+            pCheckedKeys,
+            InvariantStrengthenings.noStrengthening(),
+            pLifting);
+    if (confirm && !result.isSuccessful()) {
+      stats.unconfirmedRelaxedStepCaseProofs++;
+      logger.log(Level.INFO, "The proof of the relaxed induction step case does not hold");
+    }
+    return result;
   }
 
   /**
@@ -1147,6 +1223,23 @@ abstract class AbstractBMCAlgorithm
         invariantGenerator,
         stats,
         reachedSetFactory,
+        shutdownNotifier,
+        getLoopHeads(),
+        usePropertyDirection);
+  }
+
+  private @Nullable KInductionProver createRelaxedInductionProver() {
+    if (relaxedStepCaseCPA == null) {
+      return null;
+    }
+    return new KInductionProver(
+        cfa,
+        logger,
+        relaxedStepCaseAlgorithm,
+        relaxedStepCaseCPA,
+        invariantGenerator,
+        stats,
+        relaxedStepCaseReachedSetFactory,
         shutdownNotifier,
         getLoopHeads(),
         usePropertyDirection);
