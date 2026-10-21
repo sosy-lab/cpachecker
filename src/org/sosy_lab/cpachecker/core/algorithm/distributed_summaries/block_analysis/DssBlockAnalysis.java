@@ -484,6 +484,7 @@ public final class DssBlockAnalysis {
     ListMultimap<Object, StateAndPrecision> uncoveredStatesPerProgramPoint =
         ArrayListMultimap.create();
     List<StateAndPrecision> uncovered = new ArrayList<>();
+    workerStats.getRemoveCoveredTimer().start();
     try {
       workerStats.getCoverageTimer().start();
       for (StateAndPrecision element : pStatesAndPrecisions) {
@@ -500,6 +501,7 @@ public final class DssBlockAnalysis {
       }
     } finally {
       workerStats.getCoverageTimer().stop();
+      workerStats.getRemoveCoveredTimer().stop();
     }
     return ImmutableList.copyOf(uncovered);
   }

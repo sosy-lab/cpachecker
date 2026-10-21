@@ -44,7 +44,7 @@ public class DssSingleWorkerStatistics implements Statistics {
     VIOLATION_CONDITION_COUNT("number of violation conditions computed", false),
     VIOLATION_CONDITION_TIME("time spent computing violation conditions", true),
     SERIALIZED_STATES_SIZE("serialized states size (chars)", false),
-    DEDUPLICATION_TIME("time spent deduplicating summaries", true),
+    REMOVE_COVERED_TIME("time spent removing covered summaries", true),
     BUSY_CPU_TIME("worker busy CPU time", true);
 
     private final String label;
@@ -80,8 +80,8 @@ public class DssSingleWorkerStatistics implements Statistics {
       new DssThreadCpuTimer(StatisticsKey.COVERAGE_TIME.getLabel());
   private final DssThreadCpuTimer violationConditionTime =
       new DssThreadCpuTimer(StatisticsKey.VIOLATION_CONDITION_TIME.getLabel());
-  private final DssThreadCpuTimer deduplicationTime =
-      new DssThreadCpuTimer(StatisticsKey.DEDUPLICATION_TIME.getLabel());
+  private final DssThreadCpuTimer removeCoveredTime =
+      new DssThreadCpuTimer(StatisticsKey.REMOVE_COVERED_TIME.getLabel());
 
   private final DssThreadCpuTimer busyCpuTime =
       new DssThreadCpuTimer(StatisticsKey.BUSY_CPU_TIME.getLabel());
@@ -161,8 +161,8 @@ public class DssSingleWorkerStatistics implements Statistics {
     return serializedStatesSize;
   }
 
-  public DssThreadCpuTimer getDeduplicationTimer() {
-    return deduplicationTime;
+  public DssThreadCpuTimer getRemoveCoveredTimer() {
+    return removeCoveredTime;
   }
 
   public void startBusy() {
@@ -200,7 +200,7 @@ public class DssSingleWorkerStatistics implements Statistics {
       case VIOLATION_CONDITION_COUNT -> violationConditionCount.getUpdateCount();
       case VIOLATION_CONDITION_TIME -> violationConditionTime.nanos();
       case SERIALIZED_STATES_SIZE -> serializedStatesSize.getValueSum();
-      case DEDUPLICATION_TIME -> deduplicationTime.nanos();
+      case REMOVE_COVERED_TIME -> removeCoveredTime.nanos();
       case BUSY_CPU_TIME -> busyCpuTime.nanos();
     };
   }
@@ -255,7 +255,7 @@ public class DssSingleWorkerStatistics implements Statistics {
             StatisticsKey.VIOLATION_CONDITION_TIME.getLabel(),
             formatNanos(violationConditionTime.nanos()))
         .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString())
-        .put(StatisticsKey.DEDUPLICATION_TIME.getLabel(), formatNanos(deduplicationTime.nanos()))
+        .put(StatisticsKey.REMOVE_COVERED_TIME.getLabel(), formatNanos(removeCoveredTime.nanos()))
         .put(StatisticsKey.BUSY_CPU_TIME.getLabel(), formatNanos(busyCpuTime.nanos()));
   }
 
