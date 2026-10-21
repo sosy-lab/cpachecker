@@ -30,7 +30,7 @@ public class ThreadingSortedWaitlist extends AbstractSortedWaitlist<Integer> {
         AbstractStates.extractStateByType(pState, AbstractStateWithThreads.class);
 
     // negate size so that the highest key corresponds to the smallest map
-    return (state == null) ? 0 : state.getNumberOfActiveThreads();
+    return (state == null) ? 0 : -state.getNumberOfActiveThreads();
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
