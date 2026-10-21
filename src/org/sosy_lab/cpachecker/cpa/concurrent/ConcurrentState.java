@@ -119,20 +119,6 @@ public class ConcurrentState extends AbstractSingleWrapperState
   }
 
   /**
-   * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
-   * POR node. Since the CFA is cloned per thread, a cloned node uniquely identifies the thread it
-   * belongs to. The PID is assigned in creation order with the main thread having PID 0, which
-   * matches the thread IDs used in the witnesses.
-   */
-  public static OptionalInt getThreadIdForClonedNode(CFANode pNode) {
-    return ConcurrentEdgeCloner.getThreadIdForNode(pNode);
-  }
-
-  boolean canMerge(ConcurrentState other) {
-    return threads.equals(other.threads) && livePids.equals(other.livePids);
-  }
-
-  /**
    * Adds a new thread instance. {@code pAddToLivePids} is false only for the main thread (created
    * synthetically at analysis start, not via a real {@code pthread_create}): nothing can join it,
    * so it was never made a join candidate under the old handle-name scheme either. {@code

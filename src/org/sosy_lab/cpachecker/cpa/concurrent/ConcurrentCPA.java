@@ -16,6 +16,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -85,6 +87,16 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
   @Option(
       secure = true,
+      name = "merge",
+      values = {"SEP", "JOIN"},
+      toUppercase = true,
+      description =
+          "Merge operator: SEP never merges states; JOIN delegates to the wrapped merge operator"
+              + " when thread states are compatible.")
+  private String mergeType = "JOIN";
+
+  @Option(
+      secure = true,
       description =
           "Seed for the pseudo-random shuffling of the enabled threads in the "
               + "source-set heuristic. A single random-number generator is shared by reference "
@@ -109,6 +121,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
   private final ConcurrentTransferRelation transferRelation;
   private final ConfigurableProgramAnalysis threadSpecificCPA;
+  private final Precision threadSpecificUnitPrecision;
   private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
 
@@ -122,6 +135,10 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
     logger = pLogger;
 
     threadSpecificCPA = new ThreadSpecificCPA(pConfig, pCfa, pLogger);
+    threadSpecificUnitPrecision =
+        threadSpecificCPA.getInitialPrecision(
+            CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
+
     PartialOrderReductionStrategy strategy =
         switch (partialOrderReductionAlgorithm) {
           case "NOPOR" -> ConcurrentState::new;
@@ -265,12 +282,17 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public MergeOperator getMergeOperator() {
-    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+    if (mergeType.equals("SEP")) {
+      return MergeSepOperator.getInstance();
+    }
+    final MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+    final StopOperator threadSpecificStopOperator = threadSpecificCPA.getStopOperator();
+
     return (state1, state2, precision) -> {
       if (state1 instanceof ConcurrentState pConcurrentState1
           && state2 instanceof ConcurrentState pConcurrentState2
           && precision instanceof ConcurrentPrecision pConcurrentPrecision) {
-        if (pConcurrentState1.canMerge(pConcurrentState2)) {
+        if (canMerge(pConcurrentState1, pConcurrentState2, threadSpecificStopOperator)) {
           AbstractState wrapped1 = pConcurrentState1.getWrappedState();
           AbstractState wrapped2 = pConcurrentState2.getWrappedState();
           Precision wrappedPrecision = pConcurrentPrecision.getWrappedPrecision();
@@ -285,6 +307,37 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
       }
       return state2;
     };
+  }
+
+  private boolean canMerge(ConcurrentState c1, ConcurrentState c2, StopOperator stopOperator)
+      throws CPAException, InterruptedException {
+    if (!c1.livePids.equals(c2.livePids)) {
+      return false;
+    }
+    if (c1.threads.size() != c2.threads.size()) {
+      return false;
+    }
+    for (Entry<Integer, ThreadState> entry : c1.threads.entrySet()) {
+      ThreadState thisThreadState = entry.getValue();
+      ThreadState otherThreadState = c2.threads.get(entry.getKey());
+      if (otherThreadState == null) {
+        return false;
+      }
+      if (!thisThreadState.getLocationNode().equals(otherThreadState.getLocationNode())) {
+        return false;
+      }
+
+      AbstractState wrapped1 = thisThreadState.getWrappedState();
+      AbstractState wrapped2 = otherThreadState.getWrappedState();
+      // The merged state keeps c1's threads, so require equivalence in both directions.
+      if (wrapped1 != wrapped2
+          && (!stopOperator.stop(wrapped1, ImmutableList.of(wrapped2), threadSpecificUnitPrecision)
+              || !stopOperator.stop(
+                  wrapped2, ImmutableList.of(wrapped1), threadSpecificUnitPrecision))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
