@@ -24,6 +24,7 @@ import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaClonerData;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -108,7 +109,8 @@ final class ConcurrentCfaCloner {
   }
 
   /** Creates a standalone structural clone of a CFA for project-wide compatibility tests. */
-  static ImmutableCFA cloneForTesting(CFA pCfa) {
+  static ImmutableCFA cloneForTesting(ImmutableCFA pCfa) {
+    checkState(pCfa.getLanguage() == Language.C, "only C supported");
     ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(0, false);
     cloner.cloneEntireCfa(pCfa);
 
@@ -127,6 +129,11 @@ final class ConcurrentCfaCloner {
 
     var mainFunction = functions.get(pCfa.getMainFunction().getFunctionName());
     var metadata = pCfa.getMetadata().withMainFunctionEntry(mainFunction);
+    if (pCfa.getLiveVariables().isPresent()) {
+      metadata =
+          metadata.withLiveVariables(
+              pCfa.getLiveVariables().orElseThrow().copyWithNodeMapping(cloner.nodeMap));
+    }
     MutableCFA clonedCfa = new MutableCFA(functions, nodes, metadata);
     if (pCfa.getLoopStructure().isPresent()) {
       ImmutableListMultimap.Builder<String, Loop> clonedLoops = ImmutableListMultimap.builder();
@@ -185,6 +192,14 @@ final class ConcurrentCfaCloner {
   }
 
   private void cloneAllNodes(CFA pCfa) {
+    // Function entries need their exit node in their constructor. Clone exits first so the
+    // corresponding clone can be passed while cloning each entry node.
+    for (CFANode node : pCfa.nodes()) {
+      if (node instanceof FunctionExitNode && !nodeMap.containsKey(node)) {
+        registerClonedNode(node);
+      }
+    }
+
     // Use BFS from all function entry nodes to discover every reachable node
     Queue<CFANode> worklist = new ArrayDeque<>();
     for (CFANode node : pCfa.nodes()) {
@@ -303,11 +318,15 @@ final class ConcurrentCfaCloner {
       Optional<CVariableDeclaration> clonedReturnVar =
           entryNode.getReturnVariable().map(retVar -> astCloner.cloneAstLeftSide(retVar));
 
-      // We need to create exit node first if it exists, but we'll wire it later via the map
-      // For now, pass null for exit node - we'll set it afterward
+      FunctionExitNode clonedExitNode =
+          entryNode
+              .getExitNode()
+              .map(nodeMap::get)
+              .map(FunctionExitNode.class::cast)
+              .orElse(null);
       CFunctionEntryNode clonedEntry =
           new CFunctionEntryNode(
-              entryNode.getFileLocation(), clonedFuncDecl, null, clonedReturnVar);
+              entryNode.getFileLocation(), clonedFuncDecl, clonedExitNode, clonedReturnVar);
 
       if (entryNode.isLoopStart()) {
         clonedEntry.setLoopStart();

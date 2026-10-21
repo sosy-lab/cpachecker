@@ -475,13 +475,13 @@ public class CFAUtils {
             optionalIterationElement.orElseThrow().getIterationExpression();
         FileLocation location;
         if (optionalControlExpression.isPresent()
-            && optionalControlExpression.orElseThrow().edges().contains(pEdge)) {
+            && optionalControlExpression.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalControlExpression.orElseThrow().location();
         } else if (optionalInitClause.isPresent()
-            && optionalInitClause.orElseThrow().edges().contains(pEdge)) {
+            && optionalInitClause.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalInitClause.orElseThrow().location();
         } else if (optionalIterationExpression.isPresent()
-            && optionalIterationExpression.orElseThrow().edges().contains(pEdge)) {
+            && optionalIterationExpression.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalIterationExpression.orElseThrow().location();
         } else {
           return Optional.empty();

@@ -256,7 +256,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (elementToEnter.edges().contains(edge)) {
+      if (elementToEnter.edges().contains(edge.getOriginal())) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -305,7 +305,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (edge.getSuccessor().getLeavingEdges().anyMatch(e -> incomingFrontierEdges.contains(e))) {
+      if (edge.getSuccessor()
+          .getLeavingEdges()
+          .anyMatch(e -> incomingFrontierEdges.contains(e.getOriginal()))) {
         return CONST_TRUE;
       }
 
@@ -583,8 +585,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     public CheckPassesThroughNodes(
         Set<CFANode> pEdgePredecessorMatch, Set<CFANode> pEdgeSuccessorMatch) {
-      edgePredecessorMatch = pEdgePredecessorMatch;
-      edgeSuccessorMatch = pEdgeSuccessorMatch;
+      edgePredecessorMatch =
+          pEdgePredecessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
+      edgeSuccessorMatch =
+          pEdgeSuccessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
     }
 
     @Override
@@ -595,8 +603,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
       // happens when there is no else branch in an if statement.
-      if (edgeSuccessorMatch.contains(edge.getSuccessor())
-          && edgePredecessorMatch.contains(edge.getPredecessor())) {
+      if (edgeSuccessorMatch.contains(edge.getSuccessor().getOriginal())
+          && edgePredecessorMatch.contains(edge.getPredecessor().getOriginal())) {
         return CONST_TRUE;
       }
 
@@ -619,7 +627,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final Set<CFANode> edgeSuccessorMatch;
 
     public CheckEndsAtNodes(Set<CFANode> pEdgeSuccessorMatch) {
-      edgeSuccessorMatch = pEdgeSuccessorMatch;
+      edgeSuccessorMatch =
+          pEdgeSuccessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
     }
 
     @Override
@@ -630,7 +641,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
       // happens when there is no else branch in an if statement.
-      if (edgeSuccessorMatch.contains(edge.getSuccessor())) {
+      if (edgeSuccessorMatch.contains(edge.getSuccessor().getOriginal())) {
         return CONST_TRUE;
       }
 

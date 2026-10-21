@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Opt-in project-wide test run with every parsed CFA replaced by a structural clone. */
 public class ClonedCfaProjectTest {
@@ -21,7 +22,7 @@ public class ClonedCfaProjectTest {
   @Test
   public void runProjectTestsWithClonedCfas()
       throws IOException, InterruptedException, URISyntaxException {
-    //TestUtils.skipUnlessExtendedTestsEnabled();
+    TestUtils.skipUnlessExtendedTestsEnabled();
 
     Path agentJar =
         Path.of(
@@ -35,6 +36,7 @@ public class ClonedCfaProjectTest {
         new ProcessBuilder(
                 javaExecutable,
                 "-javaagent:" + agentJar,
+                "-ea",
                 "-DenableExtendedTests=true",
                 "-Djava.awt.headless=true",
                 "--enable-native-access=ALL-UNNAMED",
