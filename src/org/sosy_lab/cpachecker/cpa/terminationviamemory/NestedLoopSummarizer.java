@@ -70,7 +70,7 @@ class NestedLoopSummarizer {
 
   private int summaryCounter = 0;
 
-  NestedLoopSummarizer(
+  public NestedLoopSummarizer(
       FormulaManagerView pFormulaManager, BooleanFormulaManagerView pBfmgr, CFA pCfa) {
     fmgr = pFormulaManager;
     bfmgr = pBfmgr;
@@ -82,7 +82,7 @@ class NestedLoopSummarizer {
    * Returns the formula of the last iteration of the loop head of the given state, i.e., since the
    * previous visit of the same loop head, with the nested loops overapproximated.
    */
-  BooleanFormula summarizeLastIteration(
+  public BooleanFormula summarizeLastIteration(
       TerminationToReachState pState, Pair<LocationState, CallstackState> pLoopHead) {
     ImmutableList<LoopHeadVisit> visits = pState.getLoopHeadVisits();
     int last = visits.size() - 1;
@@ -98,6 +98,10 @@ class NestedLoopSummarizer {
     BooleanFormula suffix = visits.get(last).block().getFormula();
     for (int i = last - 1; i > previous; i--) {
       LoopHeadVisit visit = visits.get(i);
+      // Summarize further iterations of a nested loop only at the last visit of its head before
+      // the path leaves the nested loop, since the path contains the earlier iterations exactly.
+      // Transition invariants exist only from the second visit of the head on the path. The
+      // summary also allows zero further iterations, i.e., leaving the nested loop directly.
       if (!visit.transitionInvariants().isEmpty()
           && leavesLoopAfter(visits, i, last, pState.getPathSequence())) {
         suffix = summarizeFurtherIterations(visit, suffix);
