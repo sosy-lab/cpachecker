@@ -33,6 +33,7 @@ public record ArrayInitialization(
     AcslTerm value)
     implements AcslInvariantProvider {
 
+  @SuppressWarnings("unused")
   @Override
   public AcslPredicate toInvariant() {
     // I think I need the program scope to get the C objects for the array or at lest the index
@@ -63,6 +64,6 @@ public record ArrayInitialization(
         new AcslBinaryPredicate(
             loc, boundsPred, arrayPred, AcslBinaryPredicateOperator.IMPLICATION);
 
-    return new AcslForallPredicate(loc, ImmutableList.of(null), body);
+    return new AcslForallPredicate(loc, ImmutableList.of(), body); // TODO fill list with params
   }
 }

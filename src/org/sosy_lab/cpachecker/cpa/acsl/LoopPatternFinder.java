@@ -48,7 +48,8 @@ class LoopPatternFinder {
     this.formulaConverter = pFormulaConverter;
   }
 
-  public Optional<ArrayInitialization> detect(CFAEdge edge, Optional<LoopStructure> loopStruct, PredicateAbstractState predState) {
+  public Optional<ArrayInitialization> detect(
+      CFAEdge edge, Optional<LoopStructure> loopStruct, PredicateAbstractState predState) {
     // System.out.println("Abstraction State:"+ predState.isAbstractionState() + ", Loop Start?" +
     // edge.getSuccessor().isLoopStart());
     // TODO why do I only get NonAbstraction states?

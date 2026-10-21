@@ -292,9 +292,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
           && bt.getOperand2() instanceof AcslBinaryTerm indexbt
           && indexbt.getOperator() == AcslBinaryTermOperator.MULTIPLY) {
         if (indexbt.getOperand1() instanceof AcslIntegerLiteralTerm intLit
-            && intLit
-                .getValue()
-                .equals(BigInteger.valueOf(machineModel.getSizeofPtr()))) {
+            && intLit.getValue().equals(BigInteger.valueOf(machineModel.getSizeofPtr()))) {
           return new AcslArraySubscriptTerm(
               DUMMY_LOC,
               new AcslPointerType(arrayId.getExpressionType()),
