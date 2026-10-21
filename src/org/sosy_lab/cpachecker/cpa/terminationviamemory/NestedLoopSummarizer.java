@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -119,21 +118,16 @@ class NestedLoopSummarizer {
   private boolean leavesLoopAfter(
       ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, ImmutableList<CFANode> pPath) {
     LoopHeadVisit visit = pVisits.get(pVisit);
-    Set<CFANode> loopNodes = getLoopNodes(visit.loopHead().getFirst().getLocationNode());
+    Set<CFANode> loopNodes =
+        cfa.getLoopStructure()
+            .orElseThrow()
+            .getLoopNodesForLoopHead(visit.loopHead().getFirst().getLocationNode());
     for (int i = pVisit + 1; i <= pLast; i++) {
       if (pVisits.get(i).loopHead().equals(visit.loopHead())) {
         return !loopNodes.containsAll(pPath.subList(visit.pathIndex(), pVisits.get(i).pathIndex()));
       }
     }
     return true;
-  }
-
-  private Set<CFANode> getLoopNodes(CFANode pLoopHead) {
-    Set<CFANode> nodes = new HashSet<>();
-    for (Loop loop : cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(pLoopHead)) {
-      nodes.addAll(loop.getLoopNodes());
-    }
-    return nodes;
   }
 
   /**

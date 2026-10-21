@@ -9,15 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.collect.ImmutableList;
-import java.util.HashSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class TerminationToReachAbstractDomain implements AbstractDomain {
 
@@ -76,14 +73,8 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
         && !lastIterationOfTheBranch.isEmpty()
         && lastIterationOfTheBranch.indexOf(newPath.getLast())
             == lastIterationOfTheBranch.size() - 1
-        && getLoopNodes(newPath.getLast()).containsAll(lastIterationOfTheBranch);
-  }
-
-  private Set<CFANode> getLoopNodes(CFANode pLoopHead) {
-    Set<CFANode> nodes = new HashSet<>();
-    for (Loop loop : loopStructure.getLoopsForLoopHead(pLoopHead)) {
-      nodes.addAll(loop.getLoopNodes());
-    }
-    return nodes;
+        && loopStructure
+            .getLoopNodesForLoopHead(newPath.getLast())
+            .containsAll(lastIterationOfTheBranch);
   }
 }

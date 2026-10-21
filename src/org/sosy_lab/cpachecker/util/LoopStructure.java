@@ -434,6 +434,11 @@ public final class LoopStructure {
     return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
   }
 
+  /** Get the loop nodes of all {@link Loop}s with the given loop head. */
+  public ImmutableSet<CFANode> getLoopNodesForLoopHead(final CFANode loopHead) {
+    return from(getLoopsForLoopHead(loopHead)).transformAndConcat(Loop::getLoopNodes).toSet();
+  }
+
   /**
    * Return all variables appearing in loop exit conditions. The variable names are scoped in the
    * same way as {@link VariableClassification} does.
