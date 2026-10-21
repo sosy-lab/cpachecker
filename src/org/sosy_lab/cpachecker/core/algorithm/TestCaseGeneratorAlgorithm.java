@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -39,16 +40,25 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -67,7 +77,11 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
@@ -75,7 +89,6 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -202,7 +215,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       specProp = null;
     }
     forwardCovDetector =
-        new ForwardCollateralCoverageDetector(pLogger, pShutdownNotifier, pCfa, pConfig);
+        new ForwardCollateralCoverageDetector(
+            pLogger,
+            pShutdownNotifier,
+            pCfa,
+            pConfig,
+            CPAs.retrieveCPA(cpa, FunctionPointerCPA.class) != null);
   }
 
   @Override
@@ -291,8 +309,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
                   if (detectFwdCollateralCoverage && !testTargets.isEmpty()) {
-                    // TODO may want to handle exceptions
-                    forwardCovDetector.detectForwardCollateralCov(cexInfo);
+                    forwardCovDetector.detectForwardCollateralCoverage(cexInfo);
                   }
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);
@@ -392,7 +409,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   @Options(prefix = "testcase")
   static final class ForwardCollateralCoverageDetector {
-    // TODO adapt, add documentation, logging, etc.
 
     @Option(
         secure = true,
@@ -409,16 +425,19 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     private final ConfigurableProgramAnalysis executionCPA;
     private final ReachedSet reached;
     private final Set<CFAEdge> testTargets;
+    private final boolean useFunPointCPA;
 
     public ForwardCollateralCoverageDetector(
         final LogManager pLogger,
         final ShutdownNotifier pShutdown,
         final CFA pCfa,
-        final Configuration pGeneratorConfig)
+        final Configuration pGeneratorConfig,
+        final boolean pWithFunctionPointerCPA)
         throws InvalidConfigurationException, CPAException, InterruptedException {
       logger = pLogger;
       shutdownNotifier = pShutdown;
       cfa = pCfa;
+      useFunPointCPA = pWithFunctionPointerCPA;
       Configuration executionConfig = generateExecutionConfig(pGeneratorConfig);
       CoreComponentsFactory localFactory =
           new CoreComponentsFactory(
@@ -438,21 +457,37 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     private Configuration generateExecutionConfig(final Configuration pGeneratorConfig)
         throws InvalidConfigurationException {
       ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(pGeneratorConfig);
+
       configBuilder.clearOption("CompositeCPA.cpas");
       configBuilder.clearOption("testcase.stopAtTarget");
-      // TODO check right order of wrapper states
-      // String compositeCPAs = pGeneratorConfig.
-      // TODO set CPAs
-      /*configBuilder.setOption(
-      "CompositeCPA.cpas", "cpa.location.LocationCPA,cpa.callstack.CallstackCPA, cpa.value.ValueCPA, cpa.testtargets.TestTargetCPA");*/
-      // need to copy test target options
+      configBuilder.clearOption("cpa.location.followFunctionCalls");
+      configBuilder.clearOption("cpa.callstack.skipFunctionPointerRecursion");
+      configBuilder.clearOption("cpa.callstack.skipRecursion");
+      configBuilder.clearOption("cpa.callstack.skipVoidRecursion");
+      configBuilder.clearOption("cpa.functionpointer.ignoreInvalidFunctionPointerCalls");
+      configBuilder.clearOption("cpa.functionpointer.ignoreUnknownFunctionPointerCalls");
+      configBuilder.clearOption("cpa.value.ignoreCallsToUnknownFunctions");
+      configBuilder.clearOption("cpa.value.ignoreFunctionValueExceptRandom");
+      configBuilder.clearOption("cpa.value.initAssumptionVars");
+      configBuilder.clearOption("cpa.value.initialPrecisionFile");
+      configBuilder.clearOption("cpa.value.initialPredicatePrecisionFile");
+      configBuilder.clearOption("cpa.value.witnessFileForInitialPrecision");
+      configBuilder.clearOption("cpa.value.randomlySampleFunctionReturnValues");
+      configBuilder.clearOption("cpa.value.unknownValueHandling");
+
+      String compositeCPAs = "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, ";
+      if (useFunPointCPA) {
+        compositeCPAs += "cpa.functionpointer.FunctionPointerCPA, ";
+      }
+      compositeCPAs += " cpa.value.ValueAnalysisCPA, cpa.testtargets.TestTargetCPA";
+      configBuilder.setOption("CompositeCPA.cpas", compositeCPAs);
       configBuilder.setOption("testcase.stopAtTarget", "false");
+
       return configBuilder.build();
     }
 
-    // Extractor runs an additional analysis that checks if a generated test covers additional goals
-    private void detectForwardCollateralCov(final CounterexampleInfo pCexInfo) {
-      logger.log(Level.INFO, "Running Extractor Algorithm to compute extended path.");
+    public void detectForwardCollateralCoverage(final CounterexampleInfo pCexInfo) {
+      logger.log(Level.FINE, "Start test case execution for collateral coverage detection");
 
       try {
         ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
@@ -461,8 +496,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         reached.clear();
         Preconditions.checkState(reached.isEmpty());
         Preconditions.checkState(!reached.hasWaitingState());
-
-        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
 
         ARGState lastState = generateExecutionStartState(pCexInfo);
         ARGState predState;
@@ -477,10 +510,11 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           do {
             lShutdownManager.getNotifier().shutdownIfNecessary();
 
-            // get successors
+            // get successor(s)
             successors =
                 executionCPA.getTransferRelation().getAbstractSuccessors(lastState, precision);
 
+            // stop if analysis cannot determine successor precisely
             if (successors.size() == 1) {
 
               predState = lastState;
@@ -489,11 +523,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
               Preconditions.checkNotNull(predToSuccEdge);
 
               if (isInput(predToSuccEdge)) {
+                // input would need to be part of test case, thus, stop
                 break;
               }
 
               lShutdownManager.getNotifier().shutdownIfNecessary();
-              // perform precision adjustment TODO leave out?
+              // perform precision adjustment
               Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
                   executionCPA
                       .getPrecisionAdjustment()
@@ -511,111 +546,130 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
               // remove target state if necessary
               if (lastState.isTarget()) {
                 // TODO do we want to have counterexample check?
-                logger.log(Level.FINE, ""); // TODO adapt
+                logger.log(Level.FINE, "Detected additionally covered goal " + predToSuccEdge);
                 testTargets.remove(predToSuccEdge);
               }
             }
           } while (successors.size() == 1);
-        } catch (CPAException e) {
-          // precaution always set precision to false, thus last target state not handled in case of
-          // exception
-          logger.logUserException(Level.WARNING, e, "Analysis not completed.");
-
-        } catch (InterruptedException e1) {
-          // may be thrown only be counterexample check, if not will be thrown again in finally
-          // block due to respective shutdown notifier call
-          status = status.withPrecise(false);
+        } catch (CPAException | InterruptedException e) {
+          logger.logUserException(Level.WARNING, e, "Coverage detection aborted with exception.");
         } finally {
-          // todo shutdown here enough?
-          lShutdownManager.requestShutdown("Analysis terminated");
+          lShutdownManager.requestShutdown("Coverage detection ended.");
         }
 
-        // mark additionally covered test targets as covered
-
-        logger.log(Level.INFO, "Finished Extraction Analysis.");
-      } catch (IllegalArgumentException e2) {
-        // TODO Auto-generated catch block
-        e2.printStackTrace();
+        logger.log(Level.FINE, "Stop test case execution");
+      } catch (InvalidConfigurationException e) {
+        logger.logfUserException(Level.WARNING, e, "Coverage detection not feasible");
       }
     }
 
     private ARGState generateExecutionStartState(final CounterexampleInfo pCexInfo)
-        throws IllegalArgumentException {
-      // create start state for analysis
-      // TODO adapt
-      List<AbstractState> elements =
-          ((CompositeState) pCexInfo.getTargetState().getWrappedState())
-              .getWrappedStates().stream()
-                  .map(absState -> processElements(pCexInfo, absState))
-                  .collect(ImmutableList.toImmutableList());
-      ARGState startARGNode = new ARGState(new CompositeState(elements), null);
-
-      return startARGNode;
-    }
-
-    // ValueAnalysisState is explicitly copied before initialization to circumvent side effects
-    private AbstractState processElements(CounterexampleInfo cexInfo, AbstractState abstractState) {
-      if (abstractState instanceof ValueAnalysisState vaState) {
-        return initializeVAState(cexInfo, ValueAnalysisState.copyOf(vaState));
-      } else {
-        return abstractState;
+        throws InvalidConfigurationException {
+      CompositeState compState =
+          AbstractStates.extractStateByType(pCexInfo.getTargetState(), CompositeState.class);
+      if (compState == null) {
+        throw new InvalidConfigurationException(
+            "Execution of test case only possible if test-case generator uses a composite CPA");
       }
+
+      AbstractState[] states;
+      if (useFunPointCPA) {
+        states = new AbstractState[5];
+        states[2] = AbstractStates.extractStateByType(compState, FunctionPointerState.class);
+      } else {
+        states = new AbstractState[4];
+      }
+      states[0] = AbstractStates.extractStateByType(compState, LocationState.class);
+      states[1] = AbstractStates.extractStateByType(compState, CallstackState.class);
+      states[states.length - 2] = generateValueAnalysisState(pCexInfo);
+      states[states.length - 1] = TestTargetState.noTargetState();
+
+      for (AbstractState state : states) {
+        if (state == null) {
+          throw new InvalidConfigurationException(
+              "Execution of test case only possible if test-case generator uses location and"
+                  + " callstack CPA.");
+        }
+      }
+
+      ARGState startARGNode = new ARGState(new CompositeState(ImmutableList.copyOf(states)), null);
+      return startARGNode;
     }
 
     // extracts individual expressions from the counterexample and adds them to the
     // ValueAnalysisState
-    // of the starting state in descending order relative to the line number of the c program
-    private ValueAnalysisState initializeVAState(
-        CounterexampleInfo cexInfo, ValueAnalysisState valueAnalysisState) {
-      // todo leave main here as it is working just fine
+    private ValueAnalysisState generateValueAnalysisState(CounterexampleInfo cexInfo) {
+      ValueAnalysisState vaState = new ValueAnalysisState(cfa.getMachineModel());
       ExpressionValueVisitor visitor =
           new ExpressionValueVisitor(
-              valueAnalysisState,
-              "main",
+              new ValueAnalysisState(cfa.getMachineModel()),
+              null, // TODO if null does not work, try empty String
               cfa.getMachineModel(),
               new LogManagerWithoutDuplicates(logger));
-      CFAPathWithAssumptions reachStateAssignments = cexInfo.getCFAPathWithAssignments();
-      for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
-        CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
-        ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
-        mapToExpStmt(stateExpStmts, valueAnalysisState, visitor);
-      }
-      return valueAnalysisState;
-    }
 
-    private void mapToExpStmt(
-        ImmutableList<AExpressionStatement> expStmt,
-        ValueAnalysisState valueAnalysisState,
-        ExpressionValueVisitor visitor) {
-      if (expStmt.isEmpty()) {
-        return;
-      }
-      for (int i = 0; i < expStmt.size(); i++) {
-        writeExpressionToState(
-            (CBinaryExpression) expStmt.get(i).getExpression(), valueAnalysisState, visitor);
-      }
-    }
+      Set<MemoryLocation> assignedVars = new HashSet<>();
+      // traverse backwards through counterexample path
+      for (CFAEdgeWithAssumptions edgeWithAssignment :
+          cexInfo.getCFAPathWithAssignments().reversed()) {
+        for (AExpressionStatement stmt : edgeWithAssignment.getExpStmts()) {
+          CBinaryExpression binExpr = (CBinaryExpression) stmt.getExpression();
+          try {
+            MemoryLocation memLoc = visitor.evaluateMemoryLocation(binExpr.getOperand1());
+            // if variable is already assigned then no new assignment is added
+            if (memLoc == null || !assignedVars.add(memLoc)) {
+              continue;
+            }
 
-    // reads the value assigned to a variable, and adds that value to the ValueAnalysisstate,
-    // but only if there is no distinct value already tracked for that variable
-    private void writeExpressionToState(
-        CBinaryExpression cBinaryExpression,
-        ValueAnalysisState valueAnalysisState,
-        ExpressionValueVisitor visitor) {
-      try {
-        MemoryLocation memLoc = visitor.evaluateMemoryLocation(cBinaryExpression.getOperand1());
-        // if variable is already assigned then no new assignment is added to the VAstate
-        if (memLoc == null || valueAnalysisState.contains(memLoc)) {
-          return;
+            if (binExpr.getOperand2() instanceof CLiteralExpression litExpr) {
+              if (litExpr instanceof CFloatLiteralExpression floatConst) {
+                vaState.assignConstant(
+                    memLoc,
+                    new NumericValue(floatConst.getValue()),
+                    binExpr.getOperand2().getExpressionType()); // TODO type correct?
+              } else if (litExpr instanceof CIntegerLiteralExpression intConst) {
+                vaState.assignConstant(
+                    memLoc,
+                    new NumericValue(intConst.getValue()),
+                    binExpr.getOperand2().getExpressionType()); // TODO type correct?
+              }
+            }
+          } catch (UnrecognizedCodeException e) {
+            logger.log(Level.FINE, "No memory location found for CExpression.");
+          }
         }
-        CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
-        Value variableValue = new NumericValue(op2.getValue());
-        if (!variableValue.isUnknown()) {
-          valueAnalysisState.assignConstant(memLoc, variableValue, op2.getExpressionType());
+
+        /* check which variables have been assigned,
+        we must not assign values earlier on the path*/
+        if (edgeWithAssignment.getCFAEdge() instanceof CStatementEdge stmtEdge) {
+          if (stmtEdge.getStatement() instanceof CAssignment assign) {
+            try {
+              MemoryLocation memLoc = visitor.evaluateMemoryLocation(assign.getLeftHandSide());
+              if (memLoc != null) {
+                assignedVars.add(memLoc);
+              }
+            } catch (UnrecognizedCodeException e) {
+              // do nothing
+            }
+          }
+        } else if (edgeWithAssignment.getCFAEdge() instanceof CDeclarationEdge declEdge) {
+          if (declEdge.getDeclaration() instanceof CVariableDeclaration varDecl) {
+            assignedVars.add(MemoryLocation.forDeclaration(varDecl));
+          }
+        } else if (edgeWithAssignment.getCFAEdge() instanceof CFunctionCallEdge callEdge) {
+
+          for (CParameterDeclaration paramDecl : callEdge.getSuccessor().getFunctionParameters()) {
+            assignedVars.add(MemoryLocation.forDeclaration(paramDecl));
+          }
+        } else if (edgeWithAssignment.getCFAEdge() instanceof CReturnStatementEdge retStmtEdge) {
+          Optional<? extends AVariableDeclaration> retVar =
+              retStmtEdge.getSuccessor().getEntryNode().getReturnVariable();
+          if (retVar.isPresent()) {
+            assignedVars.add(MemoryLocation.forDeclaration(retVar.get()));
+          }
         }
-      } catch (UnrecognizedCodeException e) {
-        logger.log(Level.FINE, "No Memorylocation found for CExpression.");
       }
+
+      return vaState;
     }
 
     private boolean isInput(final CFAEdge pCFAEdge) {
