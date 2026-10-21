@@ -138,7 +138,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
                 cfa,
                 bfmgr,
                 fmgr,
-                pfmgr,
                 itpMgr,
                 configuration,
                 possiblyNonTerminatingLoops);
