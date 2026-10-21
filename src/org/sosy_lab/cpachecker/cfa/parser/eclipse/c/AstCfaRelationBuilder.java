@@ -8,17 +8,23 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -39,15 +45,82 @@ class AstCfaRelationBuilder {
     for (IASTTranslationUnit ast : pAsts) {
       ast.accept(classifier);
     }
+    ImmutableMap<CFANode, Set<AVariableDeclaration>> localVariablesInInputProgram =
+        getLocalVariablesInInputProgram(pCfaNodeToAstLocalVariablesInScope);
     return new AstCfaRelation(
         getIfStructures(classifier),
         getIterationStructures(classifier),
         classifier.getStatementOffsetsToLocations(),
         getStatementStructures(classifier),
+        localVariablesInInputProgram,
+        getParametersInInputProgram(
+            pCfaNodeToAstParametersVariablesInScope, localVariablesInInputProgram),
         pCfaNodeToAstLocalVariablesInScope,
         pCfaNodeToAstParametersVariablesInScope,
         pGlobalVariables,
         classifier.getExpressionLocations());
+  }
+
+  /**
+   * Removes from the local variables that the CFA builder recorded for each node the ones that go
+   * out of scope at the node, e.g., the variable of a for loop at the node after the loop, and the
+   * ones hidden by a declaration with the same name in an inner block.
+   */
+  private static ImmutableMap<CFANode, Set<AVariableDeclaration>> getLocalVariablesInInputProgram(
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pLocalVariables) {
+    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> result =
+        ImmutableMap.builderWithExpectedSize(pLocalVariables.size());
+    for (Entry<CFANode, Set<AVariableDeclaration>> entry : pLocalVariables.entrySet()) {
+      Set<CSimpleDeclaration> outOfScope = entry.getKey().getOutOfScopeVariables();
+      Map<String, AVariableDeclaration> innermostDeclarations = new LinkedHashMap<>();
+      for (AVariableDeclaration variable : entry.getValue()) {
+        if (!outOfScope.contains(variable)) {
+          // A hidden declaration comes before the one that hides it
+          innermostDeclarations.merge(
+              variable.getOrigName(),
+              variable,
+              BinaryOperator.maxBy(
+                  Comparator.comparingInt(
+                      declaration -> declaration.getFileLocation().getNodeOffset())));
+        }
+      }
+      result.put(
+          entry.getKey(),
+          innermostDeclarations.size() == entry.getValue().size()
+              ? entry.getValue()
+              : ImmutableSet.copyOf(innermostDeclarations.values()));
+    }
+    return result.buildOrThrow();
+  }
+
+  /**
+   * Removes from the parameters that the CFA builder recorded for each node the ones that go out of
+   * scope at the node and the ones hidden by a local variable with the same name.
+   */
+  private static ImmutableMap<CFANode, Set<AParameterDeclaration>> getParametersInInputProgram(
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pParameters,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pLocalVariablesInInputProgram) {
+    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> result =
+        ImmutableMap.builderWithExpectedSize(pParameters.size());
+    for (Entry<CFANode, Set<AParameterDeclaration>> entry : pParameters.entrySet()) {
+      Set<CSimpleDeclaration> outOfScope = entry.getKey().getOutOfScopeVariables();
+      ImmutableSet<String> localNames =
+          FluentIterable.from(
+                  pLocalVariablesInInputProgram.getOrDefault(entry.getKey(), ImmutableSet.of()))
+              .transform(AVariableDeclaration::getOrigName)
+              .toSet();
+      ImmutableSet<AParameterDeclaration> parameters =
+          FluentIterable.from(entry.getValue())
+              .filter(
+                  parameter ->
+                      !outOfScope.contains(parameter)
+                          && !localNames.contains(parameter.getOrigName()))
+              .toSet();
+      result.put(
+          entry.getKey(),
+          parameters.size() == entry.getValue().size() ? entry.getValue() : parameters);
+    }
+    return result.buildOrThrow();
   }
 
   private static ImmutableSet<IfElement> getIfStructures(AstLocationClassifier classifier) {

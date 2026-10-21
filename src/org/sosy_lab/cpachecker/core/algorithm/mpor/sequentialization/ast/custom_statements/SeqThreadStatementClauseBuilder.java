@@ -350,7 +350,7 @@ public record SeqThreadStatementClauseBuilder(
       ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           localVariableSubstituteTable = substitution.getLocalVariableSubstituteTable();
       ImmutableSet<AVariableDeclaration> localVariablesInScope =
-          astCfaRelation.getAstLocalVariablesInScopeByCfaNode(cfaNode);
+          astCfaRelation.getBuilderLocalVariablesInScopeByCfaNode(cfaNode);
       for (AVariableDeclaration localVariableInScope : localVariablesInScope) {
         if (localVariableInScope.getType() instanceof CPointerType) {
           LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
@@ -371,7 +371,7 @@ public record SeqThreadStatementClauseBuilder(
       //    ptr = malloc(sizeof(int));
       // }
       ImmutableSet<AParameterDeclaration> parametersInScope =
-          astCfaRelation.getAstParametersInScopeByCfaNode(cfaNode);
+          astCfaRelation.getBuilderParametersInScopeByCfaNode(cfaNode);
       for (AParameterDeclaration parameterInScope : parametersInScope) {
         if (parameterInScope.getType() instanceof CPointerType
             && pThreadNode.callContext.cfaEdgeForThread().isPresent()) {
