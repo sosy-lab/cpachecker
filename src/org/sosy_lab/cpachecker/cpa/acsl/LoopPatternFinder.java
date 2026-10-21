@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -47,7 +48,7 @@ class LoopPatternFinder {
     this.formulaConverter = pFormulaConverter;
   }
 
-  public Optional<ArrayInitialization> detect(CFAEdge edge, PredicateAbstractState predState) {
+  public Optional<ArrayInitialization> detect(CFAEdge edge, Optional<LoopStructure> loopStruct, PredicateAbstractState predState) {
     // System.out.println("Abstraction State:"+ predState.isAbstractionState() + ", Loop Start?" +
     // edge.getSuccessor().isLoopStart());
     // TODO why do I only get NonAbstraction states?
@@ -57,6 +58,7 @@ class LoopPatternFinder {
     }
 
     // Now we know our successor is a loop start node
+    // TODO use loop structure to determine loop condition if present
     CFANode loopHead = edge.getSuccessor();
     Optional<CExpression> loopCondition = Optional.empty();
     for (CFAEdge e : loopHead.getAllLeavingEdges()) {

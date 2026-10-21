@@ -69,6 +69,12 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       Precision precision)
       throws CPATransferException, InterruptedException {
 
+    if (cfa.getAllLoopHeads().isEmpty() || cfa.getAllLoopHeads().get().size() > 1) {
+      logger.log(
+          Level.INFO, "Generating ACSL Loop invariants with number of loop heads != 1 impossible");
+      return super.strengthen(state, otherStates, cfaEdge, precision);
+    }
+
     AbstractState updatedState = state;
     for (AbstractState otherState : otherStates) {
 
@@ -84,7 +90,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
               "Skipping detection of array initialization, as one already exists for the node.");
         } else {
           Optional<ArrayInitialization> detected =
-              loopPatternFinder.detect(cfaEdge, predicateState);
+              loopPatternFinder.detect(cfaEdge, cfa.getLoopStructure(), predicateState);
 
           if (detected.isPresent()) {
             ArrayInitialization init = detected.get();
