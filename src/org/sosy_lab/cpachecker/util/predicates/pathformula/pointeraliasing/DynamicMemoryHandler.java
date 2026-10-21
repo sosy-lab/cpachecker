@@ -833,7 +833,7 @@ public final class DynamicMemoryHandler {
   void handleDeferredAllocationInFunctionExit(final String function, OptionalInt pThreadId) {
     String variableFunction =
         pThreadId.isPresent()
-            ? ThreadFunctions.perThreadName(pThreadId.getAsInt(), function)
+            ? ThreadFunctions.perThreadName(pThreadId.orElseThrow(), function)
             : function;
     for (String v :
         CFAUtils.filterVariablesOfFunction(

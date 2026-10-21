@@ -96,7 +96,7 @@ public abstract class AbstractTranslationTest {
     final List<String> compileCommandList =
         ImmutableList.of(
             COMPILER, PARAM_NO_LINKING, "-std=c11", "-o", "/dev/null", program.toString());
-    final String[] compileCommand = compileCommandList.toArray(new String[0]);
+    final String[] compileCommand = compileCommandList.toArray(String[]::new);
 
     final CompilerExecutor exec = new CompilerExecutor(logger, compileCommand);
     final int returnCode = exec.join();

@@ -107,7 +107,7 @@ public class Ltl2BuechiConverter {
             pLogger,
             LtlParseException.class,
             nativeLibraryPath.toFile(),
-            commands.toArray(new String[0]));
+            commands.toArray(String[]::new));
     int exitvalue = executor.join();
 
     if (exitvalue != 0 || !executor.getErrorOutput().isEmpty()) {

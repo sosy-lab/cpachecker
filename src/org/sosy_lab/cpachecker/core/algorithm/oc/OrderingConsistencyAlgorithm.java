@@ -727,6 +727,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       boolean earlierAccessPassed = false;
       for (MemoryEvent event : orderedViolationEvents(model, pEncoder)) {
         if (earlierAccessPassed
+            && earlierAccess != null
             && event.instanceId() != terminalEvent.instanceId()
             && ocCpa.getRegistry().chainTerminalEventId(event.id())
                 != ocCpa.getRegistry().chainTerminalEventId(earlierAccess.id())) {

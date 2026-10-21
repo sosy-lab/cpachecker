@@ -133,7 +133,7 @@ public class MemoryStatistics implements Runnable {
       }
     }
 
-    pools = poolList.toArray(new MemoryPoolMXBean[0]);
+    pools = poolList.toArray(MemoryPoolMXBean[]::new);
     sumHeapUsedPerPool = new long[pools.length];
     maxHeapUsedPerPool = new long[pools.length];
   }

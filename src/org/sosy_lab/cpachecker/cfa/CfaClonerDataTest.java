@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertSame;
 
 import java.util.OptionalInt;
 import org.junit.Test;
@@ -25,8 +24,8 @@ public class CfaClonerDataTest {
     CFANode node = CFANode.newDummyCFANode();
     CFAEdge edge = new BlankEdge("", FileLocation.DUMMY, node, node, "");
 
-    assertSame(node, node.getOriginal());
-    assertSame(edge, edge.getOriginal());
+    assertThat(node.getOriginal()).isSameInstanceAs(node);
+    assertThat(edge.getOriginal()).isSameInstanceAs(edge);
     assertThat(node.getCloneThreadId()).isEqualTo(OptionalInt.empty());
   }
 
@@ -49,10 +48,10 @@ public class CfaClonerDataTest {
     clonerData.registerEdge(clonedEdge, originalEdge);
     ((org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge) clonedEdge).setClonerData(clonerData);
 
-    assertSame(originalPredecessor, clonedPredecessor.getOriginal());
-    assertSame(originalPredecessor, clonedPredecessor.getOriginal());
-    assertSame(originalEdge, clonedEdge.getOriginal());
-    assertSame(originalEdge, clonedEdge.getOriginal());
+    assertThat(clonedPredecessor.getOriginal()).isSameInstanceAs(originalPredecessor);
+    assertThat(clonedPredecessor.getOriginal()).isSameInstanceAs(originalPredecessor);
+    assertThat(clonedEdge.getOriginal()).isSameInstanceAs(originalEdge);
+    assertThat(clonedEdge.getOriginal()).isSameInstanceAs(originalEdge);
     assertThat(clonedPredecessor.getCloneThreadId()).isEqualTo(OptionalInt.of(3));
   }
 }

@@ -170,7 +170,7 @@ public class FloatValueTest {
         }
       }
     }
-    return builder.build().toArray(new FloatTestOptions[0]);
+    return builder.build().toArray(FloatTestOptions[]::new);
   }
 
   @Parameter(0)
