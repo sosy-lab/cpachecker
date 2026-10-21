@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
@@ -72,13 +73,15 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
   private static final String FUNCTION_NAME_SEPARATOR = "::";
   private final FormulaManagerView fmgr;
+  private final MachineModel machineModel;
   final FileLocation DUMMY_LOC = FileLocation.DUMMY;
 
   private final Map<Formula, AcslAstNode> cache = new HashMap<>();
 
-  FormulaToAcslVisitor(FormulaManagerView pFmgr) {
+  FormulaToAcslVisitor(FormulaManagerView pFmgr, MachineModel pModel) {
     super(pFmgr);
     this.fmgr = pFmgr;
+    this.machineModel = pModel;
   }
 
   private AcslTerm getTerm(Formula f) {
@@ -114,7 +117,11 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
       variableNameFull = name;
     } else {
       variableNameFull =
-          name.substring(0, name.indexOf('@') == -1 ? name.length() : name.indexOf('@'));
+          name.substring(
+              0,
+              name.indexOf('@') == -1
+                  ? name.length()
+                  : name.indexOf('@')); // TODO das vielleicht nicht...
     }
     List<String> parts = Splitter.on(FUNCTION_NAME_SEPARATOR).splitToList(variableNameFull);
     final String variableName = (parts.size() == 2) ? parts.get(1) : variableNameFull;
@@ -287,7 +294,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
         if (indexbt.getOperand1() instanceof AcslIntegerLiteralTerm intLit
             && intLit
                 .getValue()
-                .equals(BigInteger.valueOf(4))) { // TODO 4 should probably not be hardcoded
+                .equals(BigInteger.valueOf(machineModel.getSizeofPtr()))) {
           return new AcslArraySubscriptTerm(
               DUMMY_LOC,
               new AcslPointerType(arrayId.getExpressionType()),

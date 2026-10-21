@@ -81,7 +81,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
             typeHandler,
             AnalysisDirection.FORWARD);
 
-    formulaConverter = new FormulaToAcslConverter(pFormulaManager);
+    formulaConverter = new FormulaToAcslConverter(pFormulaManager, cfa.getMachineModel());
   }
 
   public static CPAFactory factory() {
