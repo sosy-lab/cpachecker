@@ -53,7 +53,6 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
       return new SingleBlockDecomposition().decompose(cfa);
     }
     Collection<BlockNode> nodes = decomposer.decompose(cfa).getNodes();
-
     while (nodes.size() > targetNumber) {
       int sizeBefore = nodes.size();
       nodes = sorted(horizontalMerger.mergeHorizontally(nodes));

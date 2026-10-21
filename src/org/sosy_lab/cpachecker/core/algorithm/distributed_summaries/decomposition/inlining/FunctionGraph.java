@@ -14,10 +14,10 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SequencedSet;
@@ -88,9 +88,11 @@ public class FunctionGraph {
     // Insertion order, because this map determines the order of the returned edge map
     Map<BlockFunction, ImmutableSet<CallEdge>> edges = new LinkedHashMap<>();
 
+    Map<CFAEdge, BlockNode> edgeToBlock = buildEdgeToBlockIndex(graph);
+
     BlockFunction first = null;
 
-    List<BlockNode> waitlist = new ArrayList<>();
+    Deque<BlockNode> waitlist = new ArrayDeque<>();
     SequencedSet<BlockNode> seen = new LinkedHashSet<>();
     waitlist.add(graph.getRoot());
     while (!waitlist.isEmpty()) {
@@ -100,7 +102,7 @@ public class FunctionGraph {
       }
       seen.add(current);
 
-      FunctionInfo fs = exploreFunction(graph, current);
+      FunctionInfo fs = exploreFunction(graph, current, edgeToBlock);
       functions.add(fs.function);
       if (first == null) {
         first = fs.function;
@@ -116,6 +118,19 @@ public class FunctionGraph {
     ImmutableSet<BlockFunction> fs = functions.build();
 
     return new FunctionGraph(fs, first, convertCallEdgesToCalls(edges, fs));
+  }
+
+  /**
+   * Builds a lookup from every {@link CFAEdge} in the graph to the {@link BlockNode} containing it.
+   */
+  private static Map<CFAEdge, BlockNode> buildEdgeToBlockIndex(BlockGraph graph) {
+    Map<CFAEdge, BlockNode> index = new LinkedHashMap<>();
+    for (BlockNode node : graph.getNodes()) {
+      for (CFAEdge edge : node.getEdges()) {
+        index.put(edge, node);
+      }
+    }
+    return index;
   }
 
   private static ImmutableMap<BlockFunction, ImmutableSet<Call>> convertCallEdgesToCalls(
@@ -146,14 +161,15 @@ public class FunctionGraph {
    * @return the information for the {@link BlockFunction} record as well all calls to different
    *     function
    */
-  private static FunctionInfo exploreFunction(BlockGraph graph, BlockNode pEntryNode) {
+  private static FunctionInfo exploreFunction(
+      BlockGraph graph, BlockNode pEntryNode, Map<CFAEdge, BlockNode> edgeToBlock) {
 
     assert pEntryNode.getInitialLocation() instanceof FunctionEntryNode;
 
     ImmutableSet.Builder<BlockNode> exitNodes = ImmutableSet.builder();
     ImmutableSet.Builder<CallEdge> calls = ImmutableSet.builder();
 
-    List<BlockNode> waitlist = new ArrayList<>();
+    Deque<BlockNode> waitlist = new ArrayDeque<>();
     SequencedSet<BlockNode> seen = new LinkedHashSet<>();
     waitlist.add(pEntryNode);
     while (!waitlist.isEmpty()) {
@@ -190,18 +206,12 @@ public class FunctionGraph {
                 .toSet(); // the corresponding return edge
 
         // visit all the blocks that contain such an edge
-        Iterables.addAll(
-            waitlist,
-            FluentIterable.from(graph.getNodes())
-                .filter(
-                    n -> {
-                      for (CFAEdge e : returnEdges) {
-                        if (n.getEdges().contains(e)) {
-                          return true;
-                        }
-                      }
-                      return false;
-                    }));
+        for (CFAEdge e : returnEdges) {
+          BlockNode block = edgeToBlock.get(e);
+          if (block != null) {
+            waitlist.add(block);
+          }
+        }
 
       } else {
         Iterables.addAll(waitlist, graph.getSuccessorsOf(current));

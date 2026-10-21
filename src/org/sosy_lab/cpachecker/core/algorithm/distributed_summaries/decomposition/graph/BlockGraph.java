@@ -42,12 +42,18 @@ public class BlockGraph {
 
   private final ImmutableSet<@NonNull BlockNode> nodes;
   private final BlockNode root;
+  private final Map<String, BlockNode> nodesById;
 
   public BlockGraph(ImmutableSet<@NonNull BlockNode> pNodes) {
     nodes = pNodes;
     root =
         Iterables.getOnlyElement(
             FluentIterable.from(pNodes).filter(n -> n.getPredecessorIds().isEmpty()));
+    Map<String, BlockNode> byId = new HashMap<>();
+    for (BlockNode node : pNodes) {
+      byId.put(node.getId(), node);
+    }
+    nodesById = byId;
   }
 
   public BlockNode getRoot() {
@@ -59,7 +65,9 @@ public class BlockGraph {
   }
 
   public FluentIterable<@NonNull BlockNode> getSuccessorsOf(BlockNode node) {
-    return FluentIterable.from(nodes).filter(n -> node.getSuccessorIds().contains(n.getId()));
+    return FluentIterable.from(node.getSuccessorIds())
+        .transform(nodesById::get)
+        .filter(n -> n != null);
   }
 
   public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
