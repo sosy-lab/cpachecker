@@ -76,7 +76,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
 
         if (state instanceof AcslState acslState
             && cfaEdge != null
-            && acslState
+            && !acslState
                 .getInvariantsForNode(cfaEdge.getSuccessor(), ArrayInitialization.class)
                 .isEmpty()) {
           logger.log(
