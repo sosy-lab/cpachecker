@@ -14,17 +14,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-@JsonPropertyOrder({DssMessageKeys.HEADER, DssMessageKeys.STATES})
+@JsonPropertyOrder({DssHeaderPayload.HEADER, DssStatePayload.STATES})
 public record DssCorrectnessWitnessPayload(
-    @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload header,
-    @JsonProperty(value = DssMessageKeys.STATES, required = true)
+    @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload header,
+    @JsonProperty(value = DssStatePayload.STATES, required = true)
         ImmutableList<DssStateAndPrecisionPayload> states)
     implements DssMessagePayload {
 
   @JsonCreator
   public DssCorrectnessWitnessPayload(
-      @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload pHeader,
-      @JsonProperty(value = DssMessageKeys.STATES, required = true)
+      @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload pHeader,
+      @JsonProperty(value = DssStatePayload.STATES, required = true)
           List<DssStateAndPrecisionPayload> pStates) {
     this(pHeader, ImmutableList.copyOf(pStates));
   }

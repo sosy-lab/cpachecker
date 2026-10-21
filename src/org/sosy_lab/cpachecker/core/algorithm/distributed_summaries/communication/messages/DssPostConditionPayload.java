@@ -15,28 +15,28 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 @JsonPropertyOrder({
-  DssMessageKeys.HEADER,
-  DssMessageKeys.STATUS,
-  DssMessageKeys.STATES,
-  DssMessageKeys.UNREACHABLE_BLOCK_END
+  DssHeaderPayload.HEADER,
+  DssStatusPayload.STATUS,
+  DssStatePayload.STATES,
+  DssPostConditionPayload.UNREACHABLE_BLOCK_END
 })
 public record DssPostConditionPayload(
-    @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload header,
-    @JsonProperty(value = DssMessageKeys.STATUS, required = true) DssStatusPayload status,
-    @JsonProperty(value = DssMessageKeys.STATES, required = true)
+    @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload header,
+    @JsonProperty(value = DssStatusPayload.STATUS, required = true) DssStatusPayload status,
+    @JsonProperty(value = DssStatePayload.STATES, required = true)
         ImmutableList<DssStateAndPrecisionPayload> states,
-    @JsonProperty(value = DssMessageKeys.UNREACHABLE_BLOCK_END, required = true)
-        boolean unreachableBlockEnd)
+    @JsonProperty(value = UNREACHABLE_BLOCK_END, required = true) boolean unreachableBlockEnd)
     implements DssMessagePayload {
+
+  public static final String UNREACHABLE_BLOCK_END = "unreachableBlockEnd";
 
   @JsonCreator
   public DssPostConditionPayload(
-      @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload pHeader,
-      @JsonProperty(value = DssMessageKeys.STATUS, required = true) DssStatusPayload pStatus,
-      @JsonProperty(value = DssMessageKeys.STATES, required = true)
+      @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload pHeader,
+      @JsonProperty(value = DssStatusPayload.STATUS, required = true) DssStatusPayload pStatus,
+      @JsonProperty(value = DssStatePayload.STATES, required = true)
           List<DssStateAndPrecisionPayload> pStates,
-      @JsonProperty(value = DssMessageKeys.UNREACHABLE_BLOCK_END, required = true)
-          boolean pUnreachableBlockEnd) {
+      @JsonProperty(value = UNREACHABLE_BLOCK_END, required = true) boolean pUnreachableBlockEnd) {
     this(pHeader, pStatus, ImmutableList.copyOf(pStates), pUnreachableBlockEnd);
   }
 

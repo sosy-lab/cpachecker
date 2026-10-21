@@ -62,11 +62,11 @@ public class DssMessagePayloadTest {
               "%s": "%s"
             }
             """,
-            DssMessageKeys.TYPE, DssMessageKeys.RESULT, Result.TRUE.name());
+            DssMessagePayload.TYPE, DssResultPayload.RESULT, Result.TRUE.name());
     Files.writeString(file, jsonContent);
 
     IOException exception = assertThrows(IOException.class, () -> DssMessageJsonUtils.read(file));
-    assertThat(exception).hasMessageThat().contains(DssMessageKeys.HEADER);
+    assertThat(exception).hasMessageThat().contains(DssHeaderPayload.HEADER);
   }
 
   @Test
@@ -103,7 +103,7 @@ public class DssMessagePayloadTest {
     DssMessageJsonUtils.write(payload, file);
 
     assertThat(Files.isRegularFile(file)).isTrue();
-    assertThat(Files.readString(file)).contains(DssMessageKeys.HEADER);
+    assertThat(Files.readString(file)).contains(DssHeaderPayload.HEADER);
   }
 
   @Test
@@ -135,7 +135,7 @@ public class DssMessagePayloadTest {
     assertThat(payload.states()).isEmpty();
 
     DssMessageJsonUtils.write(payload, file);
-    assertThat(Files.readString(file)).contains(String.format("\"%s\":[]", DssMessageKeys.STATES));
+    assertThat(Files.readString(file)).contains(String.format("\"%s\":[]", DssStatePayload.STATES));
 
     DssMessagePayload parsedPayload = DssMessageJsonUtils.read(file);
     assertThat(parsedPayload).isEqualTo(payload);

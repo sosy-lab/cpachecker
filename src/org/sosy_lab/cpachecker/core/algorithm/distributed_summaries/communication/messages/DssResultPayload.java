@@ -12,11 +12,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
-@JsonPropertyOrder({DssMessageKeys.HEADER, DssMessageKeys.RESULT})
+@JsonPropertyOrder({DssHeaderPayload.HEADER, DssResultPayload.RESULT})
 public record DssResultPayload(
-    @JsonProperty(value = DssMessageKeys.HEADER, required = true) DssHeaderPayload header,
-    @JsonProperty(value = DssMessageKeys.RESULT, required = true) Result result)
+    @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload header,
+    @JsonProperty(value = RESULT, required = true) Result result)
     implements DssMessagePayload {
+
+  public static final String RESULT = "result";
 
   @Override
   public DssMessagePayload withNewHeader(DssHeaderPayload pNewHeader) {

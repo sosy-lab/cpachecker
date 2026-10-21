@@ -14,14 +14,19 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
 @JsonPropertyOrder({
-  DssMessageKeys.SOUND,
-  DssMessageKeys.PRECISE,
-  DssMessageKeys.PROPERTY,
+  DssStatusPayload.SOUND,
+  DssStatusPayload.PRECISE,
+  DssStatusPayload.PROPERTY,
 })
 public record DssStatusPayload(
-    @JsonProperty(value = DssMessageKeys.SOUND, required = true) boolean sound,
-    @JsonProperty(value = DssMessageKeys.PRECISE, required = true) boolean precise,
-    @JsonProperty(value = DssMessageKeys.PROPERTY, required = true) boolean propertyChecked) {
+    @JsonProperty(value = SOUND, required = true) boolean sound,
+    @JsonProperty(value = PRECISE, required = true) boolean precise,
+    @JsonProperty(value = PROPERTY, required = true) boolean propertyChecked) {
+
+  public static final String STATUS = "status";
+  public static final String PRECISE = "precise";
+  public static final String PROPERTY = "property";
+  public static final String SOUND = "sound";
 
   @JsonCreator
   public DssStatusPayload {}
