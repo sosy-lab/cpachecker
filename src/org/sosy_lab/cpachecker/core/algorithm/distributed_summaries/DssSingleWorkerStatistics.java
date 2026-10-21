@@ -229,11 +229,9 @@ public class DssSingleWorkerStatistics implements Statistics {
     }
 
     writer
+        .put(StatisticsKey.SERIALIZATION_TIME.getLabel(), formatNanos(serializationTime.nanos()))
         .put(
-            StatisticsKey.SERIALIZATION_TIME.getLabel(), formatNanos(serializationTime.nanos()))
-        .put(
-            StatisticsKey.DESERIALIZATION_TIME.getLabel(),
-            formatNanos(deserializationTime.nanos()))
+            StatisticsKey.DESERIALIZATION_TIME.getLabel(), formatNanos(deserializationTime.nanos()))
         .put(StatisticsKey.BLOCK_ANALYSIS_COUNT.getLabel(), blockAnalysisCount.getUpdateCount())
         .put(StatisticsKey.BLOCK_ANALYSIS_TIME.getLabel(), formatNanos(blockAnalysisTime.nanos()))
         .put(
@@ -257,8 +255,7 @@ public class DssSingleWorkerStatistics implements Statistics {
             StatisticsKey.VIOLATION_CONDITION_TIME.getLabel(),
             formatNanos(violationConditionTime.nanos()))
         .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString())
-        .put(
-            StatisticsKey.DEDUPLICATION_TIME.getLabel(), formatNanos(deduplicationTime.nanos()))
+        .put(StatisticsKey.DEDUPLICATION_TIME.getLabel(), formatNanos(deduplicationTime.nanos()))
         .put(StatisticsKey.BUSY_CPU_TIME.getLabel(), formatNanos(busyCpuTime.nanos()));
   }
 
