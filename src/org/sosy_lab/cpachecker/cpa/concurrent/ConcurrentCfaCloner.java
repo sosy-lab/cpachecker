@@ -319,11 +319,7 @@ final class ConcurrentCfaCloner {
           entryNode.getReturnVariable().map(retVar -> astCloner.cloneAstLeftSide(retVar));
 
       FunctionExitNode clonedExitNode =
-          entryNode
-              .getExitNode()
-              .map(nodeMap::get)
-              .map(FunctionExitNode.class::cast)
-              .orElse(null);
+          entryNode.getExitNode().map(nodeMap::get).map(FunctionExitNode.class::cast).orElse(null);
       CFunctionEntryNode clonedEntry =
           new CFunctionEntryNode(
               entryNode.getFileLocation(), clonedFuncDecl, clonedExitNode, clonedReturnVar);

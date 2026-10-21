@@ -166,8 +166,7 @@ public final class AstCfaRelation {
       if (structure.getCompleteElement().edges().stream()
           .anyMatch(
               pEdge ->
-                  pEdge.getPredecessor() == originalNode
-                      || pEdge.getSuccessor() == originalNode)) {
+                  pEdge.getPredecessor() == originalNode || pEdge.getSuccessor() == originalNode)) {
         if (result.isPresent()) {
           if (result
               .orElseThrow()

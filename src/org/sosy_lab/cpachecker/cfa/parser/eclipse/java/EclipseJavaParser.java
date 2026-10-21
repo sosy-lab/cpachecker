@@ -293,7 +293,7 @@ class EclipseJavaParser implements Parser {
       parsedFiles.add(file);
     }
     String[] encodings =
-        Collections.nCopies(javaSourcePaths.size(), encoding.name()).toArray(String[]::new);
+        Collections.nCopies(javaSourcePaths.size(), encoding.name()).toArray(new String[0]);
     parser.setEnvironment(asStrings(javaClassPaths), asStrings(javaSourcePaths), encodings, false);
     parser.setResolveBindings(true);
     parser.setStatementsRecovery(true);

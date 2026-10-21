@@ -29,7 +29,7 @@ public final class PropertyCheckerBuilder {
       param = new String[0];
     } else {
       List<String> result = Splitter.on(',').splitToList(pCheckerParamList);
-      param = result.subList(0, result.size() - 1).toArray(String[]::new);
+      param = result.subList(0, result.size() - 1).toArray(new String[0]);
     }
 
     // construct property checker instance

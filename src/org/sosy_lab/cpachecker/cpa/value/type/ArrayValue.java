@@ -104,7 +104,7 @@ public final class ArrayValue implements Value {
       checkValidValue(currentValue);
     }
 
-    values = pValues.toArray(Value[]::new);
+    values = pValues.toArray(new Value[0]);
   }
 
   private Value getInitialValue(JType pType) {

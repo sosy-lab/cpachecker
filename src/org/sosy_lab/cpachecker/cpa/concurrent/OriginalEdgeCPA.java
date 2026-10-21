@@ -56,8 +56,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
     public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
         AbstractState pState, Precision pPrecision, CFAEdge pEdge)
         throws CPATransferException, InterruptedException {
-      return delegate.getAbstractSuccessorsForEdge(
-          pState, pPrecision, pEdge.getOriginal());
+      return delegate.getAbstractSuccessorsForEdge(pState, pPrecision, pEdge.getOriginal());
     }
 
     @Override
@@ -83,10 +82,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
         }
       }
       return delegate.strengthen(
-          pState,
-          others,
-          pEdge == null ? null : pEdge.getOriginal(),
-          pPrecision);
+          pState, others, pEdge == null ? null : pEdge.getOriginal(), pPrecision);
     }
   }
 

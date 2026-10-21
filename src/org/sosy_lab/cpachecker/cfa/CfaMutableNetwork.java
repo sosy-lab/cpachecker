@@ -71,6 +71,8 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
   }
 
   /**
+   *
+   *
    * <pre>{@code
    * Before:
    * --- a ---> [pNode] --- b ---->
@@ -100,6 +102,8 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
   }
 
   /**
+   *
+   *
    * <pre>{@code
    * Before:
    * --- a ---> [pNode] --- b ---->

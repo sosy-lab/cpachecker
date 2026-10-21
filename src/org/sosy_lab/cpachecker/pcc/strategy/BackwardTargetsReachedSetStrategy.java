@@ -115,7 +115,7 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy
       }
     }
 
-    return statesToStore.toArray(AbstractState[]::new);
+    return statesToStore.toArray(new AbstractState[0]);
   }
 
   private ARGState replaceByCoveringState(final ARGState pState) {

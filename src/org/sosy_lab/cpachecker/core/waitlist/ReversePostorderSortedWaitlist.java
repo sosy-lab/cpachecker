@@ -34,9 +34,10 @@ public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integ
     }
 
     // For states with several locations, use the largest ID as the best reverse-postorder key.
-    var maxId = Streams.stream(AbstractStates.extractLocations(pState))
-        .mapToInt(CFANode::getReversePostorderId)
-        .max();
+    var maxId =
+        Streams.stream(AbstractStates.extractLocations(pState))
+            .mapToInt(CFANode::getReversePostorderId)
+            .max();
     assert maxId.isPresent() : "State has no CFA locations";
     return maxId.orElseThrow(() -> new IllegalArgumentException("State has no CFA locations"));
   }

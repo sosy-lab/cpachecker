@@ -21,6 +21,6 @@ public class CompleteCertificateConstructionAlgorithm
   public AbstractState[] computePartialReachedSet(
       UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    return pReached.asCollection().toArray(AbstractState[]::new);
+    return pReached.asCollection().toArray(new AbstractState[0]);
   }
 }
