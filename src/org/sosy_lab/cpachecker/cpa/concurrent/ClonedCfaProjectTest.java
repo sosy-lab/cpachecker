@@ -42,7 +42,7 @@ public class ClonedCfaProjectTest {
                 "--enable-native-access=ALL-UNNAMED",
                 "-cp",
                 System.getProperty("java.class.path"),
-                ClonedCfaProjectTestRunner.class.getName())
+                ClonedCfaProjectRunner$Test.class.getName())
             .inheritIO()
             .start();
     int exitCode = process.waitFor();

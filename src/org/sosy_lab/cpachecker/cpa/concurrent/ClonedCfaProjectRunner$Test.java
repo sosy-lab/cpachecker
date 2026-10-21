@@ -34,7 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 
 /** Main entry point for the isolated, instrumented project-wide JUnit run. */
-public final class ClonedCfaProjectTestRunner {
+public final class ClonedCfaProjectRunner$Test {
 
   private static final long TEST_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(3);
 
@@ -55,7 +55,7 @@ public final class ClonedCfaProjectTestRunner {
           // cloning and cannot be assessed by this suite.
           "testNum_Float(org.sosy_lab.cpachecker.util.octagon.OctagonManagerTest)");
 
-  private ClonedCfaProjectTestRunner() {}
+  private ClonedCfaProjectRunner$Test() {}
 
   public static void main(String[] args) throws IOException, URISyntaxException {
     ClonedCfaCreationHook.install();
@@ -99,7 +99,7 @@ public final class ClonedCfaProjectTestRunner {
           }
         });
     Request projectTests =
-        Request.classes(testClasses.toArray(new Class<?>[testClasses.size()]))
+        Request.classes(testClasses.toArray(new Class<?>[0]))
             .filterWith(
                 new Filter() {
                   @Override
@@ -140,12 +140,12 @@ public final class ClonedCfaProjectTestRunner {
               name -> {
                 try {
                   return Class.forName(
-                      name, false, ClonedCfaProjectTestRunner.class.getClassLoader());
+                      name, false, ClonedCfaProjectRunner$Test.class.getClassLoader());
                 } catch (ClassNotFoundException e) {
                   throw new IllegalStateException("Could not load test class " + name, e);
                 }
               })
-          .filter(ClonedCfaProjectTestRunner::isJUnitTest)
+          .filter(ClonedCfaProjectRunner$Test::isJUnitTest)
           .toList();
     }
   }
