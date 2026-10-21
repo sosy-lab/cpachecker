@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -98,6 +97,6 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     // TODO return to this when I have thought more about how my abstract states should look
-    return new AcslState(logger, solver, converter, ImmutableSet.of(), ImmutableMap.of());
+    return new AcslState(logger, solver, converter, ImmutableSetMultimap.of());
   }
 }

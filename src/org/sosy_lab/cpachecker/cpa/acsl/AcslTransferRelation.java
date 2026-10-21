@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @SuppressWarnings("unused")
@@ -75,7 +76,9 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
 
         if (state instanceof AcslState acslState
             && cfaEdge != null
-            && acslState.getArrayInitializationForNode(cfaEdge.getSuccessor()) != null) {
+            && acslState
+                .getInvariantsForNode(cfaEdge.getSuccessor(), ArrayInitialization.class)
+                .isEmpty()) {
           logger.log(
               logLevel,
               "Skipping detection of array initialization, as one already exists for the node.");
@@ -88,7 +91,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
             logger.log(logLevel, "SUCCESS: Detected array initialization: " + init);
 
             if (updatedState instanceof AcslState acslState) {
-              updatedState = acslState.withAddedArrayInitialization(cfaEdge.getSuccessor(), init);
+              updatedState = acslState.withAddedInvariant(cfaEdge.getSuccessor(), init);
             }
           }
         }
