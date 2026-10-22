@@ -219,13 +219,13 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       specProp = null;
     }
     if (detectFwdCollateralCoverage) {
-    forwardCovDetector =
-        new ForwardCollateralCoverageDetector(
-            pLogger,
-            pShutdownNotifier,
-            pCfa,
-            pConfig,
-            CPAs.retrieveCPA(cpa, FunctionPointerCPA.class) != null);
+      forwardCovDetector =
+          new ForwardCollateralCoverageDetector(
+              pLogger,
+              pShutdownNotifier,
+              pCfa,
+              pConfig,
+              CPAs.retrieveCPA(cpa, FunctionPointerCPA.class) != null);
     } else {
       forwardCovDetector = null;
     }
