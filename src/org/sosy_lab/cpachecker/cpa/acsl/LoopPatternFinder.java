@@ -42,6 +42,7 @@ class LoopPatternFinder {
   private final LogManager logger;
   private final FormulaToAcslConverter formulaConverter;
   private final Level logLevel = Level.FINER; // TODO change to INFO for debugging
+  private PredicateAbstractState predStateAtLoopEntry;
 
   LoopPatternFinder(LogManager pLogger, FormulaToAcslConverter pFormulaConverter) {
     this.logger = pLogger;
@@ -53,6 +54,12 @@ class LoopPatternFinder {
     // System.out.println("Abstraction State:"+ predState.isAbstractionState() + ", Loop Start?" +
     // edge.getSuccessor().isLoopStart());
     // TODO why do I only get NonAbstraction states?
+
+    LoopStructure.Loop loop = loopStruct.get().getAllLoops().asList().getFirst();
+
+    if (loop != null && loop.getIncomingEdges().contains(edge)) {
+      predStateAtLoopEntry = predState;
+    }
 
     if (!edge.getSuccessor().isLoopStart()) {
       return Optional.empty();
@@ -160,23 +167,31 @@ class LoopPatternFinder {
           return Optional.empty();
         }
       }
-      AcslTerm lowerBound = AcslIntegerLiteralTerm.ZERO; // TODO do not hard code this!
 
-      return Optional.of(
-          new ArrayInitialization(
-              loopHead,
-              store.get().array(),
-              store.get().index(),
-              lowerBound,
-              upperBound,
-              upperBoundInclusive,
-              store.get().value()));
+      Optional<AcslTerm> extractedLower = extractLowerBoundFromLoopEntryPred(index);
+      if (extractedLower.isEmpty()) {
+        logger.log(
+            Level.WARNING,
+            "Found Array Initialization, but could not extract lower bound from loop entry predicate.");
+        return Optional.empty();
+      } else {
+
+        return Optional.of(
+            new ArrayInitialization(
+                loopHead,
+                store.get().array(),
+                index,
+                extractedLower.get(),
+                upperBound,
+                upperBoundInclusive,
+                store.get().value()));
+      }
     }
   }
 
   private boolean indexMatchesEveryWhere(
       ArrayStore pArrayStore, ScalarUpdate pScalarUpdate, AcslPredicate pAcslPredicate) {
-    if (!pArrayStore.index().equals(pScalarUpdate.var())) {
+    if (!isSameVariable(pArrayStore.index(), pScalarUpdate.var())) {
       return false;
     }
     return true;
@@ -198,7 +213,7 @@ class LoopPatternFinder {
 
     if (predicate instanceof AcslBinaryTermPredicate binary
         && binary.getOperator() == AcslBinaryTermExpressionOperator.LESS_THAN
-        && binary.getOperand1().equals(index)) {
+        && isSameVariable(binary.getOperand1(), index)) {
       return Optional.of(binary.getOperand2());
     }
 
@@ -210,7 +225,7 @@ class LoopPatternFinder {
 
     if (predicate instanceof AcslBinaryTermPredicate binary
         && binary.getOperator() == AcslBinaryTermExpressionOperator.LESS_EQUAL
-        && binary.getOperand1().equals(index)) {
+        && isSameVariable(binary.getOperand1(), index)) {
       return Optional.of(binary.getOperand2());
     }
 
@@ -224,8 +239,15 @@ class LoopPatternFinder {
     if (p instanceof AcslBinaryTermPredicate acslP
         && loopCondition instanceof CBinaryExpression cBinaryEx) {
 
-      if (!(acslP.getOperand1().toString().equals(cBinaryEx.getOperand1().toString())
-          && acslP.getOperand2().toString().equals(cBinaryEx.getOperand2().toString()))) {
+      String o1 =
+          acslP
+              .getOperand1()
+              .toString()
+              .split("@")[0]; // TODO find a cleaner way to get rid of SSA indices
+      String o2 = acslP.getOperand2().toString().split("@")[0];
+
+      if (!(o1.equals(cBinaryEx.getOperand1().toString())
+          && o2.equals(cBinaryEx.getOperand2().toString()))) {
         return false; // Operands do not match
       }
 
@@ -250,13 +272,54 @@ class LoopPatternFinder {
   private Optional<ScalarUpdate> extractIncrement(AcslTerm lhs, AcslTerm rhs) {
     if (lhs instanceof AcslIdTerm idt) {
       if (rhs instanceof AcslBinaryTerm bt && bt.getOperator() == AcslBinaryTermOperator.PLUS) {
-        if ((bt.getOperand1().equals(AcslIntegerLiteralTerm.ONE) && bt.getOperand2().equals(idt))
+        if ((bt.getOperand1().equals(AcslIntegerLiteralTerm.ONE)
+                && isSameVariable(bt.getOperand2(), idt))
             || (bt.getOperand2().equals(AcslIntegerLiteralTerm.ONE)
-                && bt.getOperand1().equals(idt))) {
+                && isSameVariable(bt.getOperand1(), idt))) {
           return Optional.of(new ScalarUpdate(idt, rhs));
         }
       }
     }
+    return Optional.empty();
+  }
+
+  private Boolean isSameVariable(AcslTerm t1, AcslTerm t2) {
+    if (t1 instanceof AcslIdTerm idt1 && t2 instanceof AcslIdTerm idt2) {
+      String nameBeforeSSA1 = idt1.getName().split("@")[0];
+      String nameBeforeSSA2 = idt2.getName().split("@")[0];
+      return idt1.getExpressionType().equals(idt2.getExpressionType())
+          && nameBeforeSSA1.equals(nameBeforeSSA2);
+    }
+    return false;
+  }
+
+  private Optional<AcslTerm> extractLowerBoundFromLoopEntryPred(AcslIdTerm index) {
+    if (predStateAtLoopEntry == null) {
+      return Optional.empty();
+    }
+
+    BooleanFormula formula = predStateAtLoopEntry.getPathFormula().getFormula();
+    SSAMap ssa = predStateAtLoopEntry.getPathFormula().getSsa();
+
+    AcslPredicate acsl;
+    try {
+      acsl = formulaConverter.formulaToAcslExpression(formula, ssa);
+      logger.log(logLevel, "Formula in ACSL: " + acsl);
+    } catch (Exception e) {
+      logger.log(Level.WARNING, "Error converting formula to ACSL: " + e.getMessage());
+      return Optional.empty();
+    }
+
+    ImmutableList<AcslPredicate> conjunction = formulaConverter.flattenAnds(acsl);
+
+    for (AcslPredicate p : conjunction) {
+      if (p instanceof AcslBinaryTermPredicate pred
+          && pred.getOperator() == AcslBinaryTermExpressionOperator.EQUALS
+          && isSameVariable(pred.getOperand1(), index)) {
+        return Optional.of(pred.getOperand2());
+      }
+    }
+
     return Optional.empty();
   }
 }
