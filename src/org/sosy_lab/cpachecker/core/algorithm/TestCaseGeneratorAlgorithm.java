@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedF
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import java.io.PrintStream;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -56,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -71,6 +74,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -214,6 +218,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       }
       specProp = null;
     }
+    if (detectFwdCollateralCoverage) {
     forwardCovDetector =
         new ForwardCollateralCoverageDetector(
             pLogger,
@@ -221,6 +226,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
             pCfa,
             pConfig,
             CPAs.retrieveCPA(cpa, FunctionPointerCPA.class) != null);
+    } else {
+      forwardCovDetector = null;
+    }
   }
 
   @Override
@@ -396,6 +404,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(TestTargetProvider.getTestTargetStatisitics(printTestTargetInfoInStats));
+    if (forwardCovDetector != null) {
+      pStatsCollection.add(forwardCovDetector);
+    }
   }
 
   @Override
@@ -408,7 +419,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   @Options(prefix = "testcase")
-  static final class ForwardCollateralCoverageDetector {
+  static final class ForwardCollateralCoverageDetector implements Statistics {
 
     @Option(
         secure = true,
@@ -426,6 +437,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     private final ReachedSet reached;
     private final Set<CFAEdge> testTargets;
     private final boolean useFunPointCPA;
+    private int numRemovedTargets = 0;
 
     public ForwardCollateralCoverageDetector(
         final LogManager pLogger,
@@ -548,6 +560,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                 // TODO do we want to have counterexample check?
                 logger.log(Level.FINE, "Detected additionally covered goal " + predToSuccEdge);
                 testTargets.remove(predToSuccEdge);
+                numRemovedTargets++;
               }
             }
           } while (successors.size() == 1);
@@ -689,6 +702,17 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         }
       }
       return false;
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      // TODO Auto-generated method stub
+      pOut.println("Number of test targets identified: " + numRemovedTargets);
+    }
+
+    @Override
+    public @Nullable String getName() {
+      return "Forward Collateral Coverage Detector";
     }
   }
 }
