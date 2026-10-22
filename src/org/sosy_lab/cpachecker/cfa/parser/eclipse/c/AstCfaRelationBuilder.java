@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -22,9 +24,9 @@ import java.util.function.BinaryOperator;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -71,7 +73,7 @@ class AstCfaRelationBuilder {
     ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> result =
         ImmutableMap.builderWithExpectedSize(pLocalVariables.size());
     for (Entry<CFANode, Set<AVariableDeclaration>> entry : pLocalVariables.entrySet()) {
-      Set<CSimpleDeclaration> outOfScope = entry.getKey().getOutOfScopeVariables();
+      Set<? extends ASimpleDeclaration> outOfScope = entry.getKey().getOutOfScopeVariables();
       Map<String, AVariableDeclaration> innermostDeclarations = new LinkedHashMap<>();
       for (AVariableDeclaration variable : entry.getValue()) {
         if (!outOfScope.contains(variable)) {
@@ -103,12 +105,11 @@ class AstCfaRelationBuilder {
     ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> result =
         ImmutableMap.builderWithExpectedSize(pParameters.size());
     for (Entry<CFANode, Set<AParameterDeclaration>> entry : pParameters.entrySet()) {
-      Set<CSimpleDeclaration> outOfScope = entry.getKey().getOutOfScopeVariables();
+      Set<? extends ASimpleDeclaration> outOfScope = entry.getKey().getOutOfScopeVariables();
       ImmutableSet<String> localNames =
-          FluentIterable.from(
-                  pLocalVariablesInInputProgram.getOrDefault(entry.getKey(), ImmutableSet.of()))
-              .transform(AVariableDeclaration::getOrigName)
-              .toSet();
+          transformedImmutableSetCopy(
+              pLocalVariablesInInputProgram.getOrDefault(entry.getKey(), ImmutableSet.of()),
+              AVariableDeclaration::getOrigName);
       ImmutableSet<AParameterDeclaration> parameters =
           FluentIterable.from(entry.getValue())
               .filter(
