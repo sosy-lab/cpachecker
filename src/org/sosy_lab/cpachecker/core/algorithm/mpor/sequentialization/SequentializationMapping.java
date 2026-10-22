@@ -1,0 +1,118 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+
+/**
+ * Information that relates elements of a sequentialized program to the concurrent input program it
+ * was created from.
+ *
+ * <p>The sequentialization is created as C code and parsed again, so only names survive that
+ * transformation unchanged. Everything here is therefore keyed by a name of the output program and
+ * holds the elements of the input program themselves, which is what keeps their source locations.
+ */
+public final class SequentializationMapping {
+
+  /**
+   * Maps declarations of substituted variables in the sequentialization to the declaration of the
+   * input program variable.
+   *
+   * <p>This is intentionally private because callers should not depend on the exact representation
+   * of the mapping. Variables of the sequentialization that have no counterpart in the input
+   * program, e.g. program counters, are absent.
+   */
+  private final ImmutableMap<CSimpleDeclaration, CSimpleDeclaration>
+      substituteToOriginalDeclarations;
+
+  /**
+   * Maps the name of the label that precedes a block of statements in the sequentialization to the
+   * input program elements the block simulates.
+   */
+  private final ImmutableMap<String, BlockOrigin> blockOriginsByLabel;
+
+  /**
+   * Maps the {@link CFAEdgeForThread} of the input program that creates a thread, e.g. a {@code
+   * pthread_create} call, to the ID of the created thread.
+   *
+   * <p>The main thread is created by no edge and hence absent, and so is an edge that creates
+   * several threads, because which of them an execution of the edge creates cannot be told apart.
+   */
+  private final ImmutableMap<CFAEdgeForThread, Integer> threadIdByCreationEdge;
+
+  public SequentializationMapping(
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pSubstituteToOriginalDeclarations,
+      ImmutableMap<String, BlockOrigin> pBlockOriginsByLabel,
+      ImmutableMap<CFAEdgeForThread, Integer> pThreadIdByCreationEdge) {
+
+    substituteToOriginalDeclarations = pSubstituteToOriginalDeclarations;
+    blockOriginsByLabel = pBlockOriginsByLabel;
+    threadIdByCreationEdge = pThreadIdByCreationEdge;
+  }
+
+  public ImmutableMap<String, BlockOrigin> blockOriginsByLabel() {
+    return blockOriginsByLabel;
+  }
+
+  public ImmutableMap<CFAEdgeForThread, Integer> threadIdByCreationEdge() {
+    return threadIdByCreationEdge;
+  }
+
+  /**
+   * Returns the value in the internal substitute-to-original mapping for the fuzzy key {@code
+   * pSubstitute}, but without checking whether the variable is global, {@link CInitializer} and
+   * {@link CType}, because of all of these an be changed by the sequentialization.
+   */
+  public Optional<CSimpleDeclaration> getOriginalDeclarationBySubstitute(
+      CSimpleDeclaration pSubstitute) {
+
+    CVariableDeclaration substitute = MPORUtil.convertToVariableDeclaration(pSubstitute);
+    for (var entry : substituteToOriginalDeclarations.entrySet()) {
+      CVariableDeclaration key = MPORUtil.convertToVariableDeclaration(entry.getKey());
+      if (key.getName().equals(substitute.getName())
+          && key.getOrigName().equals(substitute.getOrigName())
+          && key.getQualifiedName().equals(substitute.getQualifiedName())
+          && key.hasThreadLocalStorage() == substitute.hasThreadLocalStorage()
+          && key.getCStorageClass().equals(substitute.getCStorageClass())) {
+        return Optional.of(entry.getValue());
+      }
+    }
+    return Optional.empty();
+  }
+
+  public boolean isSubstituteToOriginalDeclarationsMapEmpty() {
+    return substituteToOriginalDeclarations.isEmpty();
+  }
+
+  public ImmutableSet<String> getOriginalNames() {
+    return substituteToOriginalDeclarations.values().stream()
+        .map(CSimpleDeclaration::getName)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  /**
+   * The input program elements that one block of statements of the sequentialization simulates.
+   *
+   * @param threadId The ID of the thread that executes the block.
+   * @param originalEdgeByStatement For each statement of the block, the {@link CFAEdgeForThread} of
+   *     the input program it simulates. A block with two statements simulates the two assume edges
+   *     of a branching.
+   */
+  public record BlockOrigin(
+      int threadId, ImmutableList<CFAEdgeForThread> originalEdgeByStatement) {}
+}

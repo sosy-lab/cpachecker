@@ -1,0 +1,83 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Regression test for a waypoint of main after a waypoint that thread 1 passes on a
+# local-only step. Local-access locks of the ThreadingCPA do not let main run there.
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: "2.2"
+    uuid: "7b1e4c2a-3d5f-4a6b-9c8d-0e1f2a3b4c5d"
+    creation_time: "2026-10-03T12:00:00Z"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./concurrent-data-race-local-prefix.c"
+      input_file_hashes:
+        "./concurrent-data-race-local-prefix.c": "c3a23acac84afb132c138a3bce75a97a3a07d470fd5b4c85d6a21c188d42e83c"
+      specification: "G ! data-race"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race-local-prefix.c"
+              line: 42
+              column: 17
+              function: "main"
+    - segment:
+        - waypoint:
+            type: assumption
+            action: follow
+            thread_id: 1
+            constraint:
+              value: "1"
+              format: c_expression
+            location:
+              file_name: "./concurrent-data-race-local-prefix.c"
+              line: 35
+              column: 3
+              function: "worker"
+    - segment:
+        - waypoint:
+            type: assumption
+            action: follow
+            thread_id: 0
+            constraint:
+              value: "1"
+              format: c_expression
+            location:
+              file_name: "./concurrent-data-race-local-prefix.c"
+              line: 44
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race-local-prefix.c"
+              line: 44
+              column: 3
+              function: "main"
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 1
+            location:
+              file_name: "./concurrent-data-race-local-prefix.c"
+              line: 36
+              column: 3
+              function: "worker"

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,15 +44,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization.SequentializationResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationMapping;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -137,14 +139,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   }
 
   private static boolean isAlreadySequentialized(CFA pCFA) {
-    CfaTransformationMetadata transformationMetadata =
-        pCFA.getMetadata().getTransformationMetadata();
-    if (transformationMetadata == null) {
-      return false;
-    }
-
-    ProgramTransformation transformation = transformationMetadata.transformation();
-    return transformation.equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED);
+    return pCFA.getMetadata().getTransformation() instanceof MporSequentialization;
   }
 
   private CFA preprocessCfaUsingSequentialization(CFA pOldCFA)
@@ -158,8 +153,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     sequentializationStatistics.sequentializationTime.start();
     ImmutableCFA newCFA;
     try {
-      String sequentializedCode = sequentializeAndExportProgram();
-      sequentializationStatistics.sequentializedProgramString = sequentializedCode;
+      SequentializationResult sequentialization = sequentializeAndExportProgram();
+      sequentializationStatistics.sequentializedProgramString = sequentialization.program();
       // disable preprocessing in the updated config, since input cfa was preprocessed already
       Configuration configWithoutPreprocessor =
           Configuration.builder()
@@ -167,11 +162,11 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
               .setOption("parser.usePreprocessor", "false")
               .build();
       CFACreator cfaCreator = new CFACreator(configWithoutPreprocessor, logger, shutdownNotifier);
-      newCFA = cfaCreator.parseSourceAndCreateCFA(sequentializedCode);
+      newCFA = cfaCreator.parseSourceAndCreateCFA(sequentialization.program());
 
       newCFA =
           newCFA.copyWithMetadata(
-              getNewMetadata(pOldCFA, newCFA, ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED));
+              getNewMetadata(pOldCFA, newCFA, Optional.of(sequentialization.mapping())));
     } finally {
       sequentializationStatistics.sequentializationTime.stop();
     }
@@ -182,7 +177,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   }
 
   private static CfaMetadata getNewMetadata(
-      CFA pOldCFA, CFA pNewCfa, ProgramTransformation pSequentializationStatus)
+      CFA pOldCFA, CFA pNewCfa, Optional<SequentializationMapping> pMapping)
       throws UnsupportedSequentializationException {
     if (!pOldCFA
         .getMainFunction()
@@ -192,10 +187,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           "We can only sequentialize programs without changing the main function name.");
     }
 
-    return pNewCfa
-        .getMetadata()
-        .withTransformationMetadata(
-            new CfaTransformationMetadata(pOldCFA, pSequentializationStatus));
+    return pNewCfa.getMetadata().withTransformation(new MporSequentialization(pOldCFA, pMapping));
   }
 
   @CanIgnoreReturnValue
@@ -225,8 +217,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           e,
           "Sequentialization of the input program failed, falling back to using the original"
               + " program.");
-      CfaMetadata newMetadata =
-          getNewMetadata(cfa, newCfa, ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED);
+      CfaMetadata newMetadata = getNewMetadata(cfa, newCfa, Optional.empty());
       // Mark the CFA as having failed sequentialization
       // TODO: Simplify with sealed classes
       if (cfa instanceof ImmutableCFA immutableCfa) {
@@ -346,13 +337,13 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
    * CPAchecker directly.
    */
   @CanIgnoreReturnValue
-  private String sequentializeAndExportProgram()
+  private SequentializationResult sequentializeAndExportProgram()
       throws UnrecognizedCodeException, InterruptedException {
 
     InputRejection.handleRejections(cfa);
-    String rProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
-    handleExport(rProgram, cfa.getFileNames());
-    return rProgram;
+    SequentializationResult rResult = Sequentialization.tryBuildProgram(options, cfa, utils);
+    handleExport(rResult.program(), cfa.getFileNames());
+    return rResult;
   }
 
   private static final String PROGRAM_NOT_EXPORTED_MESSAGE =
