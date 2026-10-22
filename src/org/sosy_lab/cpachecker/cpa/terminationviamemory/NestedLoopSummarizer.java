@@ -17,10 +17,8 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -52,10 +50,10 @@ import org.sosy_lab.java_smt.api.FormulaType;
  * do more iterations of a nested loop where the ARG path leaves the nested loop: there, the
  * execution may go back to the abstract state of the last visit of the nested loop head, because it
  * covers further visits. A covered state has the same, non-empty transition invariants T as the
- * covering one, and T is inductive for the iterations that end in covered states. The further
- * iterations are thus overapproximated by s_exit = s_entry or T(s_entry, s_exit), where the
- * variables that the nested loop does not modify keep their values. If T is empty, the state covers
- * no other state, and the ARG path is exact.
+ * covering one, and T is inductive for the iterations that end in covered states. One or more
+ * further iterations are thus overapproximated by T(s_entry, s_exit), where the variables that the
+ * nested loop does not modify keep their values. Zero further iterations are the concrete iteration
+ * of the ARG path. If T is empty, the state covers no other state, and the ARG path is exact.
  */
 class NestedLoopSummarizer {
 
@@ -102,8 +100,7 @@ class NestedLoopSummarizer {
       LoopHeadVisit visit = visits.get(i);
       // Summarize further iterations of a nested loop only at the last visit of its head before
       // the path leaves the nested loop, since the path contains the earlier iterations exactly.
-      // Transition invariants exist only from the second visit of the head on the path. The
-      // summary also allows zero further iterations, i.e., leaving the nested loop directly.
+      // Transition invariants exist only from the second visit of the head on the path.
       if (!visit.transitionInvariants().isEmpty()
           && leavesLoopAfter(visits, i, last, pState.getPathSequence())) {
         suffix = summarizeFurtherIterations(visit, suffix, end, endsInSummary);
@@ -135,8 +132,8 @@ class NestedLoopSummarizer {
 
   /**
    * Conjoins the given formula after the visit of a nested loop head with the overapproximation of
-   * further iterations of the nested loop. In the given formula, the entry state of the modified
-   * variables is replaced by their exit state after these iterations.
+   * one or more further iterations of the nested loop. In the given formula, the entry state of the
+   * modified variables is replaced by their exit state after these iterations.
    *
    * @param pEnd the SSA map at the end of the iteration
    * @param pEndsInSummary the variables whose end state in the iteration is the exit state of a
@@ -164,12 +161,11 @@ class NestedLoopSummarizer {
             pEnd,
             pEndsInSummary,
             summary);
-    BooleanFormula noFurtherIterations = makeIdentity(exits, entry);
     BooleanFormula furtherIterations =
         instantiateTransitionInvariant(transitionInvariant, exits, entry, summary);
     BooleanFormula suffix =
         replaceEntryByExit(pSuffix, exits, entry, modifiedProgramVariables, summary);
-    return bfmgr.and(bfmgr.or(noFurtherIterations, furtherIterations), suffix);
+    return bfmgr.and(furtherIterations, suffix);
   }
 
   /**
@@ -215,17 +211,6 @@ class NestedLoopSummarizer {
                   : fmgr.makeVariable(type, getExitName(variable, pSummary)));
         });
     return exits.buildOrThrow();
-  }
-
-  /** Returns s_exit = s_entry. */
-  private BooleanFormula makeIdentity(Map<String, Formula> pExits, SSAMap pEntry) {
-    List<BooleanFormula> identity = new ArrayList<>();
-    pExits.forEach(
-        (variable, exit) ->
-            identity.add(
-                fmgr.assignment(
-                    exit, makeEntryVariable(variable, fmgr.getFormulaType(exit), pEntry))));
-    return bfmgr.and(identity);
   }
 
   /**
