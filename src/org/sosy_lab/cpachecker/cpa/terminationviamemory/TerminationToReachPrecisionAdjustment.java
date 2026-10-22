@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -132,29 +131,31 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
-    Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
+    ProgramCounter programCounter = new ProgramCounter(locationState, callstackState);
 
     if (TransitionInvariantUtils.isLoopHead(location, allLoops)
-        && terminationState.getStoredValues().containsKey(keyPair)) {
-      if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
+        && terminationState.getStoredValues().containsKey(programCounter)) {
+      if (terminationState.getNumberOfIterationsAtLoopHead(programCounter) > 1) {
         boolean isOverapproximating = false;
         PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
         SSAMap largestIndices =
-            terminationState.getPathFormulasForIteration().get(keyPair).getSsa();
+            terminationState.getPathFormulasForIteration().get(programCounter).getSsa();
 
         // The concrete last iteration is used to search for a lasso and to compute the first
         // interpolant, the iteration with overapproximated nested loops for transition invariants
         PartitionedRelationFormula iterationFormula =
             new PartitionedRelationFormula(
-                terminationState.getPathFormulasForIteration().get(keyPair).getFormula(), fmgr);
+                terminationState.getPathFormulasForIteration().get(programCounter).getFormula(),
+                fmgr);
         PartitionedRelationFormula summarizedIterationFormula =
             new PartitionedRelationFormula(
-                nestedLoopSummarizer.summarizeLastIteration(terminationState, keyPair), fmgr);
+                nestedLoopSummarizer.summarizeLastIteration(terminationState, programCounter),
+                fmgr);
         ImmutableList<BooleanFormula> sameStateFormulas =
             buildComparingFormulas(
-                terminationState.getStoredValues().get(keyPair),
+                terminationState.getStoredValues().get(programCounter),
                 largestIndices,
-                terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
+                terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1);
 
         // Compute all the transition predicates that hold for the current state
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =

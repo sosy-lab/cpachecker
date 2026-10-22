@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState.LoopHeadVisit;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -81,7 +79,7 @@ class NestedLoopSummarizer {
    * previous visit of the same loop head, with the nested loops overapproximated.
    */
   public BooleanFormula summarizeLastIteration(
-      TerminationToReachState pState, Pair<LocationState, CallstackState> pLoopHead) {
+      TerminationToReachState pState, ProgramCounter pLoopHead) {
     ImmutableList<LoopHeadVisit> visits = pState.getLoopHeadVisits();
     int last = visits.size() - 1;
     checkState(last >= 0 && visits.get(last).loopHead().equals(pLoopHead));
@@ -121,7 +119,7 @@ class NestedLoopSummarizer {
     Set<CFANode> loopNodes =
         cfa.getLoopStructure()
             .orElseThrow()
-            .getLoopNodesForLoopHead(visit.loopHead().getFirst().getLocationNode());
+            .getLoopNodesForLoopHead(visit.loopHead().location().getLocationNode());
     for (int i = pVisit + 1; i <= pLast; i++) {
       if (pVisits.get(i).loopHead().equals(visit.loopHead())) {
         return !loopNodes.containsAll(pPath.subList(visit.pathIndex(), pVisits.get(i).pathIndex()));
@@ -143,7 +141,7 @@ class NestedLoopSummarizer {
       LoopHeadVisit pVisit, BooleanFormula pSuffix, SSAMap pEnd, Set<String> pEndsInSummary) {
     SSAMap entry = pVisit.block().getSsa();
     ImmutableSet<String> modifiedProgramVariables =
-        getModifiedProgramVariables(pVisit.loopHead().getFirst().getLocationNode());
+        getModifiedProgramVariables(pVisit.loopHead().location().getLocationNode());
     BooleanFormula transitionInvariant =
         bfmgr.and(
             pVisit.transitionInvariants().stream()
