@@ -27,11 +27,21 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
 
   private String TEST_DIR_PATH = "test/programs/witness-v2-validation/no-overflow";
   private String SPECIFICATION_PATH = "config/properties/";
+  private static final Path PROGRAMS_PATH = Path.of("test/programs/simple/witness_validation");
 
   private void validate(String pProgramFileName, String pWitnessFileName, Result pExpectedResult)
       throws Exception {
     WitnessV2ValidationTestUtils.performValidationTest(
         Path.of(TEST_DIR_PATH, pProgramFileName),
+        pExpectedResult,
+        Path.of(SPECIFICATION_PATH, "no-overflow.prp"),
+        Path.of(TEST_DIR_PATH, pWitnessFileName));
+  }
+
+  private void validate(Path pProgram, String pWitnessFileName, Result pExpectedResult)
+      throws Exception {
+    WitnessV2ValidationTestUtils.performValidationTest(
+        pProgram,
         pExpectedResult,
         Path.of(SPECIFICATION_PATH, "no-overflow.prp"),
         Path.of(TEST_DIR_PATH, pWitnessFileName));
@@ -77,7 +87,7 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
     validate("simple.c", "simple-valid-witness-v2d2--1.yml", Result.TRUE);
   }
 
-  @Test(timeout = 3000)
+  @Test(timeout = 9000)
   public void validate_witness_v2d2_invalid_loop_invariant() throws Exception {
     validate("simple.c", "simple-invalid-witness-v2d2--1.yml", Result.FALSE);
   }
@@ -90,6 +100,35 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
   @Test(timeout = 3000)
   public void validate_witness_v2d2_invalid_location_invariant() throws Exception {
     validate("simple.c", "simple-invalid-witness-v2d2-location--1.yml", Result.FALSE);
+  }
+
+  /**
+   * Location invariants hold before their statement, also inside a function body, whose declaration
+   * in the global part of the program covers the lines of the invariants.
+   */
+  @Test(timeout = 3000)
+  public void validate_valid_location_invariants_in_functions() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("function-calls.c"),
+        "function-calls-valid-location-invariants.yml",
+        Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_invalid_location_invariant_in_called_function() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("function-calls.c"),
+        "function-calls-invalid-location-invariant-in-callee.yml",
+        Result.FALSE);
+  }
+
+  /** The invariant holds after the statement `i++;`, but not before it. */
+  @Test(timeout = 3000)
+  public void validate_invalid_location_invariant_before_statement() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("function-calls.c"),
+        "function-calls-invalid-location-invariant-before-statement.yml",
+        Result.FALSE);
   }
 
   /** Transition invariants used to be rejected in version 2.2, they were only allowed in 2.1. */

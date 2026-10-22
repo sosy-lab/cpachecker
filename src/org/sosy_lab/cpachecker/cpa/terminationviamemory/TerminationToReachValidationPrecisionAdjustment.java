@@ -96,6 +96,18 @@ public class TerminationToReachValidationPrecisionAdjustment
   }
 
   /**
+   * Returns no transition invariants. The inductive transition invariants may contain the one from
+   * the witness, which is not irreflexive by construction. Without a fix-point, their conjunction
+   * did not pass the check for a lasso in the overapproximation, so a state with them could be
+   * covered before the unrolling finds a lasso.
+   */
+  @Override
+  protected ImmutableSet<PartitionedRelationFormula> getTransitionInvariantsWithoutFixPoint(
+      ImmutableSet<PartitionedRelationFormula> pInductiveTransitionInvariants) {
+    return ImmutableSet.of();
+  }
+
+  /**
    * The transition invariants from the witness that are inductive are known before computing new
    * transition invariants. If their conjunction excludes a lasso, the fix-point is reached.
    */

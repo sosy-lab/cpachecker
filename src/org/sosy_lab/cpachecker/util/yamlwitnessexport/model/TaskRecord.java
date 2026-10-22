@@ -80,9 +80,6 @@ public class TaskRecord {
 
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
       throws IOException {
-    if (pCFA.getMetadata().getTransformationMetadata() != null) {
-      pCFA = pCFA.getMetadata().getTransformationMetadata().originalCfa();
-    }
 
     List<Path> inputFiles = pCFA.getFileNames();
     ImmutableMap.Builder<String, String> inputFileHashes = ImmutableMap.builder();

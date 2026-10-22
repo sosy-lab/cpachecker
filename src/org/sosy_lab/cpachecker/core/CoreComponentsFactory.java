@@ -21,8 +21,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -61,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedS
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -504,9 +503,6 @@ public class CoreComponentsFactory {
 
     // Allow for deactivating pre-processing steps like the sequentialization in inner analyses
     // which do not need it.
-    CfaTransformationMetadata transformationMetadata =
-        cfa.getMetadata().getTransformationMetadata();
-
     // Whenever we want to use the original CFA instead of a pre-processed one, we retrieve it here.
     // This is necessary to pre-process the CFA only once, e.g., by sequentialization, but still
     // allow analyses which do not need the pre-processed CFA to use the original one. For example,
@@ -514,11 +510,9 @@ public class CoreComponentsFactory {
     // sequentialization in a parallel portfolio we want the analyses which natively support
     // concurrency to use the original CFA.
     if (preferOriginalCfaOverSequentialized
-        && transformationMetadata != null
-        && transformationMetadata
-            .transformation()
-            .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
-      cfa = transformationMetadata.originalCfa();
+        && cfa.getMetadata().getTransformation()
+            instanceof MporSequentialization sequentialization) {
+      cfa = sequentialization.originalCfa();
     }
 
     if (useTerminationAlgorithm) {

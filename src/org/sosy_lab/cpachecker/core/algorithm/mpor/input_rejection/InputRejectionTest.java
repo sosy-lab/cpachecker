@@ -47,9 +47,9 @@ public class InputRejectionTest {
   }
 
   /**
-   * Tests if {@link Sequentialization#tryBuildProgramString(MPOROptions, CFA,
-   * SequentializationUtils)} throws a {@link UnsupportedCodeException} when invoked with the
-   * program in {@code pInputFilePath}.
+   * Tests if {@link Sequentialization#tryBuildProgram(MPOROptions, CFA, SequentializationUtils)}
+   * throws a {@link UnsupportedCodeException} when invoked with the program in {@code
+   * pInputFilePath}.
    */
   private void testExpectedRejectionWhenBuildingProgram(
       MPOROptions pOptions,
@@ -67,7 +67,7 @@ public class InputRejectionTest {
     UnsupportedCodeException throwable =
         assertThrows(
             UnsupportedCodeException.class,
-            () -> Sequentialization.tryBuildProgramString(pOptions, cfa, utils));
+            () -> Sequentialization.tryBuildProgram(pOptions, cfa, utils));
     assertThat(throwable.getMessage()).contains(pExpected.message);
   }
 

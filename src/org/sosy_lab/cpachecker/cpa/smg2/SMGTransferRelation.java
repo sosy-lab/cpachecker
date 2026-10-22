@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGCPABuiltins.getFunctionNameFrom;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 
 import com.google.common.base.Preconditions;
@@ -1010,20 +1011,17 @@ public class SMGTransferRelation
     } else if (cStmt instanceof CFunctionCallStatement cFCall) {
       // Check the arguments for the function, then simply execute the function
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
-      CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
-      String calledFunctionName = fileNameExpression.toASTString();
 
       List<ValueAndSMGState> handledFunReturn =
           evaluator
               .getBuiltinFunctionHandler()
-              .handleFunctionCallWithoutBody(
-                  cFCExpression, calledFunctionName, initialState, pCfaEdge);
+              .handleFunctionCallWithoutBody(cFCExpression, initialState, pCfaEdge);
 
       // Memory allocating function calls that need to be freed without remembering the pointer
       // leads to memory-leaks. Speed up this process.
       handledFunReturn =
           postprocessBuiltinCFunctionWithoutReturn(
-              handledFunReturn, pCfaEdge, calledFunctionName, logger);
+              handledFunReturn, pCfaEdge, getFunctionNameFrom(cFCExpression), logger);
 
       return transformedImmutableListCopy(handledFunReturn, ValueAndSMGState::getState);
 
