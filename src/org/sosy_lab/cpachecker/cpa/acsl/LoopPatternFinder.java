@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -172,7 +173,8 @@ class LoopPatternFinder {
       if (extractedLower.isEmpty()) {
         logger.log(
             Level.WARNING,
-            "Found Array Initialization, but could not extract lower bound from loop entry predicate.");
+            "Found Array Initialization, but could not extract lower bound from loop entry"
+                + " predicate.");
         return Optional.empty();
       } else {
 
@@ -239,12 +241,9 @@ class LoopPatternFinder {
     if (p instanceof AcslBinaryTermPredicate acslP
         && loopCondition instanceof CBinaryExpression cBinaryEx) {
 
-      String o1 =
-          acslP
-              .getOperand1()
-              .toString()
-              .split("@")[0]; // TODO find a cleaner way to get rid of SSA indices
-      String o2 = acslP.getOperand2().toString().split("@")[0];
+      // TODO find a cleaner way to get rid of SSA indices
+      String o1 = Splitter.on("@").splitToList(acslP.getOperand1().toString()).getFirst();
+      String o2 = Splitter.on("@").splitToList(acslP.getOperand2().toString()).getFirst();
 
       if (!(o1.equals(cBinaryEx.getOperand1().toString())
           && o2.equals(cBinaryEx.getOperand2().toString()))) {
@@ -285,8 +284,8 @@ class LoopPatternFinder {
 
   private Boolean isSameVariable(AcslTerm t1, AcslTerm t2) {
     if (t1 instanceof AcslIdTerm idt1 && t2 instanceof AcslIdTerm idt2) {
-      String nameBeforeSSA1 = idt1.getName().split("@")[0];
-      String nameBeforeSSA2 = idt2.getName().split("@")[0];
+      String nameBeforeSSA1 = Splitter.on("@").splitToList(idt1.getName()).getFirst();
+      String nameBeforeSSA2 = Splitter.on("@").splitToList(idt2.getName()).getFirst();
       return idt1.getExpressionType().equals(idt2.getExpressionType())
           && nameBeforeSSA1.equals(nameBeforeSSA2);
     }

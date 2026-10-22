@@ -113,16 +113,16 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
   @Override
   public Formula visitFreeVariable(Formula f, String name) {
     String variableNameFull = name;
-//    if (name.startsWith("*")) {
-//      variableNameFull = name;
-//    } else {
-//      variableNameFull =
-//          name.substring(
-//              0,
-//              name.indexOf('@') == -1
-//                  ? name.length()
-//                  : name.indexOf('@')); // TODO das vielleicht nicht...
-//    }
+    //    if (name.startsWith("*")) {
+    //      variableNameFull = name;
+    //    } else {
+    //      variableNameFull =
+    //          name.substring(
+    //              0,
+    //              name.indexOf('@') == -1
+    //                  ? name.length()
+    //                  : name.indexOf('@')); // TODO das vielleicht nicht...
+    //    }
     List<String> parts = Splitter.on(FUNCTION_NAME_SEPARATOR).splitToList(variableNameFull);
     final String variableName = (parts.size() == 2) ? parts.get(1) : variableNameFull;
     AcslType acslType = getAcslType(f);
