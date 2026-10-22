@@ -522,6 +522,12 @@ public class ARGToCorrectnessWitnessV2 extends AbstractARGToCorrectnessWitness {
       case LOOP_INVARIANT ->
           getASTStructure()
               .getTightestIterationStructureForNode(pNode)
+              // The validator checks the invariant at the head of this loop, which must be the node
+              .filter(
+                  iteration ->
+                      cfa.getLoopStructure()
+                          .flatMap(iteration::getLoopHead)
+                          .equals(Optional.of(pNode)))
               .map(iteration -> iteration.getCompleteElement().location());
       case LOCATION_INVARIANT -> getASTStructure().getStatementStartingAtNode(pNode);
       default -> throw new AssertionError("Cannot export invariants of type " + pType);
