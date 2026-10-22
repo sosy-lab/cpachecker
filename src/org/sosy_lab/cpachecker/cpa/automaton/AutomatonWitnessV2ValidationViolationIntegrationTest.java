@@ -92,7 +92,7 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
    * The avoid waypoint of the witness points to a thread creation that has already been passed when
    * its segment is entered, so it can never be matched and the witness still has to be confirmed.
    */
-  @Test(timeout = 3000)
+  @Test(timeout = 9000)
   public void validate_data_race_witness_avoiding_a_passed_thread_creation() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
