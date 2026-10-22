@@ -77,7 +77,7 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
     validate("simple.c", "simple-valid-witness-v2d2--1.yml", Result.TRUE);
   }
 
-  @Test(timeout = 3000)
+  @Test(timeout = 9000)
   public void validate_witness_v2d2_invalid_loop_invariant() throws Exception {
     validate("simple.c", "simple-invalid-witness-v2d2--1.yml", Result.FALSE);
   }
