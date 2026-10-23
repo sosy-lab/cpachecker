@@ -27,6 +27,8 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
 
   private String CONCURRENCY_TEST_DIR_PATH = "test/programs/witness-v2-validation/concurrency";
 
+  private String UNREACH_CALL_TEST_DIR_PATH = "test/programs/witness-v2-validation/unreach-call";
+
   private String PROGRAMS_PATH = "test/programs/simple/witness_validation";
 
   private String SPECIFICATION_PATH = "config/properties/";
@@ -38,6 +40,17 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
     Path inputFilePath = Path.of(PROGRAMS_PATH, "overflow-in-condition.c");
     WitnessV2ValidationTestUtils.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  /** The name {@code data} in the assumption refers to the inner of two variables. */
+  @Test(timeout = 3000)
+  public void validate_assumption_with_shadowed_variable() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-violation.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "shadowed-variable-violation.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
   @Test(timeout = 3000)

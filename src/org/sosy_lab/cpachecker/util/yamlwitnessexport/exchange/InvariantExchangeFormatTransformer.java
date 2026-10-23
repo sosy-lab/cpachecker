@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -182,13 +181,7 @@ public class InvariantExchangeFormatTransformer {
       node =
           astCfaRelation
               .getTightestStatementForStarting(line, column)
-              .flatMap(
-                  statement ->
-                      statement.edges().stream()
-                          .map(CFAEdge::getPredecessor)
-                          // Not a node in a function called by the statement
-                          .filter(candidate -> candidate.getFunctionName().equals(function))
-                          .findFirst());
+              .flatMap(statement -> astCfaRelation.getNodeBeforeStatement(statement, function));
     }
     return node.flatMap(astCfaRelation::getVariablesAndParametersInScope)
         .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());

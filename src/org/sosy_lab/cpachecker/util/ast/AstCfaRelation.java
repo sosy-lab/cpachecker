@@ -470,6 +470,17 @@ public final class AstCfaRelation {
   }
 
   /**
+   * Returns the node before the given statement in the given function, i.e., not a node in a
+   * function that the statement calls.
+   */
+  public Optional<CFANode> getNodeBeforeStatement(ASTElement pStatement, String pFunction) {
+    return pStatement.edges().stream()
+        .map(CFAEdge::getPredecessor)
+        .filter(node -> node.getFunctionName().equals(pFunction))
+        .findFirst();
+  }
+
+  /**
    * This method returns all the best approximation we have for the file location of the node in the
    * original program.
    *
