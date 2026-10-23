@@ -380,7 +380,7 @@ public final class LoopStructure {
 
     @Override
     public int hashCode() {
-      return Objects.hash(loopHeads);
+      return Objects.hashCode(loopHeads);
     }
 
     @Override

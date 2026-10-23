@@ -358,7 +358,7 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
     final int prime = 31;
     int result = 7;
     result = prime * result + Arrays.hashCode(coefficients);
-    result = prime * result + Objects.hash(size);
+    result = prime * result + Objects.hashCode(size);
     return result;
   }
 

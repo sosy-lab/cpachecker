@@ -276,7 +276,7 @@ class JDouble extends CFloat {
 
   @Override
   public int hashCode() {
-    return Objects.hash(value);
+    return Objects.hashCode(value);
   }
 
   @Override
