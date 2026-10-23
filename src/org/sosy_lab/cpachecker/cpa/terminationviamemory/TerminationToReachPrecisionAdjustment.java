@@ -15,10 +15,17 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PREV_KEYWORD;
 
 import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -39,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState.LoopHeadVisit;
@@ -92,6 +100,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       description =
           "Disables checks for fix-point with transition invariants and performs " + "plain BMC.")
   private boolean disableTransitionAbstractions = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Use the formulas that the abstract states, e.g., of the InvariantsCPA, report at the"
+              + " start of an iteration as supporting invariants for the transition invariants.")
+  private boolean useInvariantsFromAbstractStates = false;
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
@@ -157,13 +172,22 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 terminationState.getStoredValues().get(programCounter),
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1);
+        BooleanFormula supportingInvariants =
+            bfmgr.and(
+                getSupportingInvariants(location),
+                getInvariantsAtIterationStart(
+                    fullState,
+                    programCounter,
+                    prefixPathFormula.getSsa(),
+                    iterationFormula,
+                    summarizedIterationFormula));
 
         // Compute all the transition predicates that hold for the current state
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
             ImmutableSet.builder();
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
             collectInductiveTransitionInvariants(
-                terminationState, summarizedIterationFormula, location);
+                terminationState, summarizedIterationFormula, location, supportingInvariants);
         // The result if no fix-point is reached, with the inductive transition invariants
         PrecisionAdjustmentResult noFixPointResult =
             withTransitionInvariants(
@@ -180,6 +204,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 summarizedIterationFormula,
                 prefixPathFormula,
                 location,
+                supportingInvariants,
                 terminationState,
                 builderTransitionPredicates,
                 builderTransitionInvariants,
@@ -202,6 +227,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   prefixPathFormula,
                   terminationState,
                   location,
+                  supportingInvariants,
                   result,
                   noFixPointResult);
           if (lassoResult.isPresent()) {
@@ -225,6 +251,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   candidateTransInv,
                   summarizedIterationFormula,
                   location,
+                  supportingInvariants,
                   terminationState,
                   builderTransitionPredicates,
                   builderTransitionInvariants,
@@ -241,7 +268,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   prefixPathFormula,
                   latestSameStateFormula,
                   callstackState,
-                  location);
+                  supportingInvariants);
           if (newCandidateTransInv.isEmpty()) {
             return Optional.of(noFixPointResult);
           }
@@ -263,13 +290,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   protected ImmutableSet.Builder<PartitionedRelationFormula> collectInductiveTransitionInvariants(
       TerminationToReachState terminationState,
       PartitionedRelationFormula iterationFormula,
-      CFANode location)
+      CFANode location,
+      BooleanFormula supportingInvariants)
       throws InterruptedException {
     ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
         ImmutableSet.builder();
     for (PartitionedRelationFormula transitionPredicate :
         terminationState.getTransitionPredicates()) {
-      if (isInductiveTransitionInvariant(transitionPredicate, iterationFormula, location)) {
+      if (isInductiveTransitionInvariant(
+          transitionPredicate, iterationFormula, location, supportingInvariants)) {
         builderTransitionInvariants.add(transitionPredicate);
       }
     }
@@ -336,6 +365,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PathFormula prefixPathFormula,
       TerminationToReachState terminationState,
       CFANode location,
+      BooleanFormula supportingInvariants,
       PrecisionAdjustmentResult result,
       PrecisionAdjustmentResult noFixPointResult)
       throws InterruptedException {
@@ -347,7 +377,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               isOverapproximating ? Optional.of(candidateTransInv) : Optional.empty(),
               isOverapproximating ? summarizedIterationFormula : iterationFormula,
               prefixPathFormula,
-              location);
+              supportingInvariants);
       if (numberOfUnrollingsForLasso.isPresent()) {
         if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
           TerminationToReachState cycleState =
@@ -383,13 +413,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PartitionedRelationFormula candidateTransInv,
       PartitionedRelationFormula iterationFormula,
       CFANode location,
+      BooleanFormula supportingInvariants,
       TerminationToReachState terminationState,
       ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates,
       ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants,
       PrecisionAdjustmentResult result)
       throws InterruptedException {
     if (isOverapproximating
-        && isInductiveTransitionInvariant(candidateTransInv, iterationFormula, location)) {
+        && isInductiveTransitionInvariant(
+            candidateTransInv, iterationFormula, location, supportingInvariants)) {
       // Set the computed candidateTransInv to the terminationState
       builderTransitionPredicates.add(candidateTransInv);
       builderTransitionPredicates.addAll(terminationState.getTransitionPredicates());
@@ -436,7 +468,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PathFormula prefixPathFormula,
       BooleanFormula latestSameStateFormula,
       CallstackState callstackState,
-      CFANode location)
+      BooleanFormula supportingInvariants)
       throws CPAException, InterruptedException {
     candidateTransInv = candidateTransInv.withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD);
     candidateTransInv = candidateTransInv.withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
@@ -451,7 +483,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               prefixPathFormula,
               latestSameStateFormula,
               callstackState,
-              location);
+              supportingInvariants);
     } catch (RefinementFailedException e) {
       // The solver cannot interpolate the formulas, so no transition invariant is found
       logger.logDebugException(e);
@@ -489,7 +521,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       Optional<PartitionedRelationFormula> pCandidateTransInv,
       PartitionedRelationFormula iterationFormula,
       PathFormula prefixPathFormula,
-      CFANode pLocation)
+      BooleanFormula pSupportingInvariants)
       throws InterruptedException, SolverException {
 
     for (int i = 0; i < sameStateFormulas.size(); i++) {
@@ -520,7 +552,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             !solver.isUnsat(
                 bfmgr.and(
                     candidateTransInv.getFormula(),
-                    getSupportingInvariants(pLocation),
+                    pSupportingInvariants,
                     iterationFormula.getFormula(),
                     buildFrameCondition(sameStateFormulaRelation.getFormula(), iterationFormula),
                     sameStateFormulaRelation.getFormula()));
@@ -570,7 +602,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PathFormula prefixPathFormula,
       BooleanFormula latestSameStateFormula,
       CallstackState callstackState,
-      CFANode location)
+      BooleanFormula supportingInvariants)
       throws CPAException, InterruptedException {
 
     BooleanFormula firstStep = prefixPathFormula.getFormula();
@@ -584,7 +616,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       firstStep =
           bfmgr.and(
               candidateTransInv.getFormula(),
-              getSupportingInvariants(location),
+              supportingInvariants,
               buildFrameCondition(latestSameStateFormula, iterationFormula));
     }
 
@@ -668,6 +700,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PartitionedRelationFormula iterationFormula,
       PathFormula prefixPathFormula,
       CFANode location,
+      BooleanFormula supportingInvariants,
       TerminationToReachState terminationState,
       ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates,
       ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants,
@@ -686,6 +719,73 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
    */
   protected BooleanFormula getSupportingInvariants(CFANode pLocation) throws InterruptedException {
     return bfmgr.makeTrue();
+  }
+
+  /**
+   * Returns the formulas that the abstract states report at the previous visits of the loop head on
+   * the ARG paths to the given state, i.e., where the last iteration starts. The stop operator
+   * covers a state only by a state with a weaker formula, so the formula holds at the start of all
+   * further iterations.
+   *
+   * <p>Only the conjuncts are kept whose variables the iteration formulas read at the start, i.e.,
+   * with the SSA index of the start state. These variables are renamed to the suffix {@code
+   * CURR_KEYWORD}.
+   */
+  private BooleanFormula getInvariantsAtIterationStart(
+      AbstractState pFullState,
+      ProgramCounter pLoopHead,
+      SSAMap pSsaAtStart,
+      PartitionedRelationFormula pIterationFormula,
+      PartitionedRelationFormula pSummarizedIterationFormula) {
+    if (!useInvariantsFromAbstractStates || !(pFullState instanceof ARGState argState)) {
+      return bfmgr.makeTrue();
+    }
+    Set<Formula> iterationVariables =
+        Sets.intersection(
+            ImmutableSet.copyOf(fmgr.extractVariables(pIterationFormula.getFormula()).values()),
+            ImmutableSet.copyOf(
+                fmgr.extractVariables(pSummarizedIterationFormula.getFormula()).values()));
+    ImmutableList.Builder<BooleanFormula> invariants = ImmutableList.builder();
+    Set<ARGState> visited = new HashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>(argState.getParents());
+    while (!waitlist.isEmpty()) {
+      ARGState ancestor = waitlist.pop();
+      if (!visited.add(ancestor)) {
+        continue;
+      }
+      ProgramCounter programCounter =
+          new ProgramCounter(
+              AbstractStates.extractStateByType(ancestor, LocationState.class),
+              AbstractStates.extractStateByType(ancestor, CallstackState.class));
+      if (!programCounter.equals(pLoopHead)) {
+        waitlist.addAll(ancestor.getParents());
+        continue;
+      }
+      BooleanFormula invariant =
+          fmgr.instantiate(AbstractStates.extractReportedFormulas(fmgr, ancestor), pSsaAtStart);
+      invariants.add(
+          bfmgr.and(
+              FluentIterable.from(bfmgr.toConjunctionArgs(invariant, true))
+                  .filter(
+                      conjunct ->
+                          iterationVariables.containsAll(fmgr.extractVariables(conjunct).values()))
+                  .toList()));
+    }
+    if (invariants.build().isEmpty()) {
+      return bfmgr.makeTrue();
+    }
+    BooleanFormula invariant = bfmgr.or(invariants.build());
+    return fmgr.substitute(
+        invariant,
+        ImmutableMap.copyOf(
+            Maps.asMap(
+                ImmutableSet.copyOf(fmgr.extractVariables(invariant).values()),
+                variable ->
+                    fmgr.makeVariable(
+                        fmgr.getFormulaType(variable),
+                        TransitionInvariantUtils.removeKeyWordAfterTransInv(
+                                fmgr.uninstantiate(variable).toString())
+                            + CURR_KEYWORD))));
   }
 
   /**
@@ -720,7 +820,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   protected boolean isInductiveTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
-      CFANode pLocation)
+      CFANode pLocation,
+      BooleanFormula supportingInvariants)
       throws InterruptedException {
     // The goal is to construct formula of the following form:
     // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR2)
@@ -745,9 +846,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     // Construct Tr(x__CURR, x__CURR2)
     iterationFormula = iterationFormula.withPrevVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
     iterationFormula = iterationFormula.withCurrVarsWrapped(EMPTY_PREFIX, CURR2_KEYWORD);
-
-    // I(x__CURR), the supporting invariants hold in the state where the iteration starts
-    BooleanFormula supportingInvariants = getSupportingInvariants(pLocation);
 
     try {
       // Check I(x__CURR) and Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)

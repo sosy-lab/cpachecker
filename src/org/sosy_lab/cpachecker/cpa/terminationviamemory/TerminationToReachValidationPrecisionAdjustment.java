@@ -81,15 +81,18 @@ public class TerminationToReachValidationPrecisionAdjustment
   protected ImmutableSet.Builder<PartitionedRelationFormula> collectInductiveTransitionInvariants(
       TerminationToReachState terminationState,
       PartitionedRelationFormula iterationFormula,
-      CFANode location)
+      CFANode location,
+      BooleanFormula supportingInvariants)
       throws InterruptedException {
     ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
-        super.collectInductiveTransitionInvariants(terminationState, iterationFormula, location);
+        super.collectInductiveTransitionInvariants(
+            terminationState, iterationFormula, location, supportingInvariants);
 
     // Add the predicates from the witness
     PartitionedRelationFormula invariantFromWitness =
         new PartitionedRelationFormula(collectCandidateTransitionInvariants(location), fmgr);
-    if (isInductiveTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
+    if (isInductiveTransitionInvariant(
+        invariantFromWitness, iterationFormula, location, supportingInvariants)) {
       builderTransitionInvariants.add(invariantFromWitness);
     }
     return builderTransitionInvariants;
@@ -117,6 +120,7 @@ public class TerminationToReachValidationPrecisionAdjustment
       PartitionedRelationFormula iterationFormula,
       PathFormula prefixPathFormula,
       CFANode location,
+      BooleanFormula supportingInvariants,
       TerminationToReachState terminationState,
       ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates,
       ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants,
@@ -142,7 +146,7 @@ public class TerminationToReachValidationPrecisionAdjustment
               Optional.of(conjunction),
               iterationFormula,
               prefixPathFormula,
-              location)
+              supportingInvariants)
           .isPresent()) {
         return Optional.empty();
       }
@@ -155,6 +159,7 @@ public class TerminationToReachValidationPrecisionAdjustment
         conjunction,
         iterationFormula,
         location,
+        supportingInvariants,
         terminationState,
         builderTransitionPredicates,
         builderTransitionInvariants,

@@ -4081,6 +4081,11 @@ cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 # BMC.
 cpa.terminationviamemory.disableTransitionAbstractions = false
 
+# Use the formulas that the abstract states, e.g., of the InvariantsCPA,
+# report at the start of an iteration as supporting invariants for the
+# transition invariants.
+cpa.terminationviamemory.useInvariantsFromAbstractStates = false
+
 # Enables use of transition predicates from the witness.
 cpa.terminationviamemory.useTransitionPredicatesFromWitness = false
 
