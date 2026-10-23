@@ -360,7 +360,14 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
         new AutomatonTransition.Builder(expr, nextStateId);
     transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
 
-    handleConstraint(constraint, Optional.ofNullable(function), followLine, transitionBuilder);
+    // The constraint is evaluated among the variables in scope before the statement
+    Optional<CFANode> nodeBefore =
+        nodesBeforeEmptyBody.isPresent()
+            ? nodesBeforeEmptyBody.orElseThrow().stream().findFirst()
+            : Optional.ofNullable(function)
+                .flatMap(f -> cfa.getAstCfaRelation().getNodeBeforeStatement(enterElement, f));
+    handleConstraint(
+        constraint, Optional.ofNullable(function), followLine, nodeBefore, transitionBuilder);
 
     transitions.add(transitionBuilder.build());
   }

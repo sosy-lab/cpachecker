@@ -16,6 +16,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -40,6 +41,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
@@ -127,9 +130,13 @@ public class InvariantExchangeFormatTransformer {
     // The fresh variables are not declared in the CFA, so they are added to the scope
     Scope scope =
         switch (cfa.getLanguage()) {
-          case C ->
-              new CProgramScope(cfa, logger)
-                  .withAdditionalDeclarations(previousValueVariables.keySet());
+          case C -> {
+            CProgramScope programScope = new CProgramScope(cfa, logger);
+            yield variablesInScope(pInvariantEntry)
+                .map(programScope::withVariablesInScope)
+                .orElse(programScope)
+                .withAdditionalDeclarations(previousValueVariables.keySet());
+          }
           default -> DummyScope.getInstance();
         };
 
@@ -137,6 +144,47 @@ public class InvariantExchangeFormatTransformer {
         pInvariantEntry,
         createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope),
         previousValueVariables);
+  }
+
+  /**
+   * The variables of the input program in scope where the invariant holds, if they are known. Their
+   * names in the input program are distinct, although CPAchecker renamed some of them, e.g., to
+   * {@code i} and {@code i__1}.
+   */
+  private Optional<ImmutableSet<CSimpleDeclaration>> variablesInScope(
+      InvariantEntry pInvariantEntry) {
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+    int line = pInvariantEntry.getLocation().getLine();
+    OptionalInt column = pInvariantEntry.getLocation().getColumn();
+    String function = pInvariantEntry.getLocation().getFunction();
+    Optional<CFANode> node;
+    if (InvariantRecordType.fromKeyword(pInvariantEntry.getType())
+            == InvariantRecordType.LOOP_INVARIANT
+        || InvariantRecordType.fromKeyword(pInvariantEntry.getType())
+            == InvariantRecordType.TRANSITION_LOOP_INVARIANT) {
+      // A node at the start of the loop body has the variables of the loop in scope
+      node =
+          astCfaRelation
+              .getIterationStructureFollowingColumnAtTheSameLine(column, line)
+              .flatMap(
+                  loop -> {
+                    try {
+                      return loop.getNodesBetweenConditionAndBody().stream()
+                          // Not a node in a function called at the start of the body
+                          .filter(candidate -> candidate.getFunctionName().equals(function))
+                          .findFirst();
+                    } catch (BoundaryNodesComputationFailed e) {
+                      return Optional.empty();
+                    }
+                  });
+    } else {
+      node =
+          astCfaRelation
+              .getTightestStatementForStarting(line, column)
+              .flatMap(statement -> astCfaRelation.getNodeBeforeStatement(statement, function));
+    }
+    return node.flatMap(astCfaRelation::getVariablesAndParametersInScope)
+        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
   }
 
   /**

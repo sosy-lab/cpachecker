@@ -204,4 +204,38 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
   public void validate_witness_v2d2_function_contract() throws Exception {
     validate("simple.c", "simple-valid-witness-v2d2-contract--1.yml", Result.TRUE);
   }
+
+  /** The name {@code data} in the invariant refers to the inner of two variables with this name. */
+  @Test(timeout = 3000)
+  public void validate_valid_invariant_with_shadowed_variable() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("shadowed-variable.c"),
+        "shadowed-variable-valid-loop-invariant.yml",
+        Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_invalid_invariant_with_shadowed_variable() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("shadowed-variable.c"),
+        "shadowed-variable-invalid-loop-invariant.yml",
+        Result.FALSE);
+  }
+
+  /** The names in a loop invariant refer to the function of the loop, not to the called one. */
+  @Test(timeout = 3000)
+  public void validate_valid_loop_invariant_with_call_in_body() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("loop-with-call-in-body.c"),
+        "loop-with-call-in-body-valid-loop-invariant.yml",
+        Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_invalid_loop_invariant_with_call_in_body() throws Exception {
+    validate(
+        PROGRAMS_PATH.resolve("loop-with-call-in-body.c"),
+        "loop-with-call-in-body-invalid-loop-invariant.yml",
+        Result.FALSE);
+  }
 }
