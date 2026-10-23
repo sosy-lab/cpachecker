@@ -36,7 +36,7 @@ public class AstCfaRelationScopeTest {
     // The CFA builder gives the node the scope of the loop
     assertThat(
             FluentIterable.from(
-                    cfa.getAstCfaRelation().getBuilderLocalVariablesInScopeByCfaNode(afterLoop))
+                    cfa.getAstCfaRelation().getDeclaredLocalVariablesByCfaNode(afterLoop))
                 .transform(AbstractSimpleDeclaration::getOrigName))
         .contains("i");
   }

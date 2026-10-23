@@ -73,11 +73,10 @@ public final class AstCfaRelation {
   // ones hidden by an inner declaration with the same name.
   private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
   private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
-  // As recorded by the CFA builder, which gives a node the scope in which it was created, e.g., the
-  // node after a for loop still has the variable of the loop.
-  private final ImmutableMap<CFANode, Set<AVariableDeclaration>>
-      cfaNodeToBuilderLocalVariablesInScope;
-  private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToBuilderParametersInScope;
+  // All declared ones, as recorded by the CFA builder, which gives a node the scope in which it was
+  // created, e.g., the node after a for loop still has the variable of the loop.
+  private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToDeclaredLocalVariables;
+  private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToDeclaredParameters;
   private final ImmutableSet<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
@@ -87,8 +86,8 @@ public final class AstCfaRelation {
       ImmutableSet<StatementElement> pStatementElements,
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
-      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToBuilderLocalVariablesInScope,
-      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToBuilderParametersInScope,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToDeclaredLocalVariables,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToDeclaredParameters,
       ImmutableSet<AVariableDeclaration> pGlobalVariables,
       ImmutableSortedSet<FileLocation> pExpressionLocations) {
     ifElements = pIfElements;
@@ -97,8 +96,8 @@ public final class AstCfaRelation {
     statementElements = pStatementElements;
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
-    cfaNodeToBuilderLocalVariablesInScope = pCfaNodeToBuilderLocalVariablesInScope;
-    cfaNodeToBuilderParametersInScope = pCfaNodeToBuilderParametersInScope;
+    cfaNodeToDeclaredLocalVariables = pCfaNodeToDeclaredLocalVariables;
+    cfaNodeToDeclaredParameters = pCfaNodeToDeclaredParameters;
     globalVariables = pGlobalVariables;
     expressionLocations = pExpressionLocations;
   }
@@ -553,28 +552,27 @@ public final class AstCfaRelation {
   }
 
   /**
-   * Returns the local variables in scope at the node as recorded by the CFA builder, i.e., also the
-   * ones that go out of scope at the node or are hidden by another declaration with the same name.
+   * Returns the local variables declared in the blocks around the node, as recorded by the CFA
+   * builder. Unlike {@link #getVariablesAndParametersInScope}, they include the ones that go out of
+   * scope at the node and the ones hidden by another declaration with the same name.
    */
-  public ImmutableSet<AVariableDeclaration> getBuilderLocalVariablesInScopeByCfaNode(
-      CFANode pCfaNode) {
-    if (!cfaNodeToBuilderLocalVariablesInScope.containsKey(pCfaNode)) {
+  public ImmutableSet<AVariableDeclaration> getDeclaredLocalVariablesByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToDeclaredLocalVariables.containsKey(pCfaNode)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToBuilderLocalVariablesInScope.get(pCfaNode)));
+        Objects.requireNonNull(cfaNodeToDeclaredLocalVariables.get(pCfaNode)));
   }
 
   /**
-   * Returns the parameters in scope at the node as recorded by the CFA builder, see {@link
-   * #getBuilderLocalVariablesInScopeByCfaNode}.
+   * Returns the parameters of the function of the node, as recorded by the CFA builder. Unlike
+   * {@link #getVariablesAndParametersInScope}, they include the ones that go out of scope at the
+   * node and the ones hidden by a local variable with the same name.
    */
-  public ImmutableSet<AParameterDeclaration> getBuilderParametersInScopeByCfaNode(
-      CFANode pCfaNode) {
-    if (!cfaNodeToBuilderParametersInScope.containsKey(pCfaNode)) {
+  public ImmutableSet<AParameterDeclaration> getDeclaredParametersByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToDeclaredParameters.containsKey(pCfaNode)) {
       return ImmutableSet.of();
     }
-    return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToBuilderParametersInScope.get(pCfaNode)));
+    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToDeclaredParameters.get(pCfaNode)));
   }
 }
