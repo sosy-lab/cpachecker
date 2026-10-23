@@ -382,9 +382,9 @@ public class ProgramDeclarations {
 
       // handle the same issues we have with pointer types here for arrays
     } else if (type1 instanceof CArrayType a1
-        && (((CArrayType) type1).getType() instanceof CComplexType
-            || ((CArrayType) type1).getType() instanceof CFunctionType
-            || ((CArrayType) type1).getType() instanceof CPointerType)) {
+        && (a1.getType() instanceof CComplexType
+            || a1.getType() instanceof CFunctionType
+            || a1.getType() instanceof CPointerType)) {
 
       // first check if the lengths are matching
       CArrayType a2 = (CArrayType) type2;
@@ -400,8 +400,7 @@ public class ProgramDeclarations {
       }
 
       // length is ok, so check if the types are ok, too
-      return areEqualTypes(
-          ((CArrayType) type1).getType(), ((CArrayType) type2).getType(), foundTypes);
+      return areEqualTypes(a1.getType(), ((CArrayType) type2).getType(), foundTypes);
 
     } else if (type1 instanceof CFunctionType cFunctionType) {
       return areEqualFunctionTypes(cFunctionType, (CFunctionType) type2, foundTypes);
