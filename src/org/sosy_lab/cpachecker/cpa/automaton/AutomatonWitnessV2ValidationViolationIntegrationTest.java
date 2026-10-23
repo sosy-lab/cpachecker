@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -51,6 +54,17 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         Path.of(UNREACH_CALL_TEST_DIR_PATH, "shadowed-variable-violation.witness-2.2.yml");
     WitnessV2ValidationTestUtils.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The exported assumption names the inner of two variables as in the input program. */
+  @Test(timeout = 9000)
+  public void validate_shadowed_variable_roundtrip() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-violation.c");
+    Path witnessFilePath =
+        WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+            inputFilePath, Result.FALSE, specificationFilePath);
+    assertThat(Files.readString(witnessFilePath)).contains("\"(data == 5)\"");
   }
 
   @Test(timeout = 3000)
