@@ -44,7 +44,7 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
 
   @Override
   public int hashCode() {
-    return Objects.hash(setOfStates);
+    return Objects.hashCode(setOfStates);
   }
 
   @Override

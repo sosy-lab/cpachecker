@@ -297,7 +297,7 @@ public class ExpressionToFormulaVisitor
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
         && e1 instanceof CBinaryExpression or
-        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BITWISE_OR) {
+        && or.getOperator() == BinaryOperator.BITWISE_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
       // but for non-bitprecise analysis it can be handled in a better way as (a == 0) || (b == 0).

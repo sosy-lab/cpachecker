@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -963,45 +962,46 @@ public class ValueAnalysisTransferRelation
       return state;
     }
 
-    if (op1 instanceof AIdExpression aIdExpression) {
-      /*
-       * Assignment of the form
-       *  a = ...
-       */
+    return switch (op1) {
+      case AIdExpression aIdExpression -> {
+        /*
+         * Assignment of the form
+         *  a = ...
+         */
 
-      if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
-        missingScopedFieldName = true;
-        notScopedField = jIdExpression;
+        if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
+          missingScopedFieldName = true;
+          notScopedField = jIdExpression;
+        }
+
+        MemoryLocation memloc = getMemoryLocation(aIdExpression);
+
+        yield handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
       }
+      case APointerExpression unused -> {
+        // *a = ...
 
-      MemoryLocation memloc = getMemoryLocation(aIdExpression);
-
-      return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
-    } else if (op1 instanceof APointerExpression) {
-      // *a = ...
-
-      if (isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
+        if (isRelevant(op1, op2)) {
+          missingInformationList.add(new MissingInformation(op1, op2));
+        }
+        yield state;
       }
+      case CFieldReference cFieldReference -> {
+        ExpressionValueVisitor v = getVisitor();
 
-    } else if (op1 instanceof CFieldReference cFieldReference) {
+        MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
 
-      ExpressionValueVisitor v = getVisitor();
+        if (v.hasMissingPointer() && isRelevant(op1, op2)) {
+          missingInformationList.add(new MissingInformation(op1, op2));
+        }
 
-      MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
-
-      if (v.hasMissingPointer() && isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
+        if (memLoc != null) {
+          yield handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+        }
+        yield state;
       }
-
-      if (memLoc != null) {
-        return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
-      }
-
-    } else if (op1 instanceof AArraySubscriptExpression) {
       // array cell
-      if (op1 instanceof CArraySubscriptExpression) {
-
+      case CArraySubscriptExpression unused -> {
         ExpressionValueVisitor v = getVisitor();
 
         MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
@@ -1011,9 +1011,12 @@ public class ValueAnalysisTransferRelation
         }
 
         if (memLoc != null) {
-          return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+          yield handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
         }
-      } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
+        yield state;
+      }
+
+      case JArraySubscriptExpression arrayExpression -> {
         ExpressionValueVisitor evv = getVisitor();
 
         ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
@@ -1040,15 +1043,14 @@ public class ValueAnalysisTransferRelation
 
           // changes array value in old state
           handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-          return ValueAnalysisState.copyOf(state);
+          yield ValueAnalysisState.copyOf(state);
         }
+        yield state;
       }
-    } else {
-      throw new UnrecognizedCodeException(
-          "left operand of assignment has to be a variable", cfaEdge, op1);
-    }
-
-    return state; // the default return-value is the old state
+      default ->
+          throw new UnrecognizedCodeException(
+              "left operand of assignment has to be a variable", cfaEdge, op1);
+    };
   }
 
   private boolean isTrackedType(Type pType) {

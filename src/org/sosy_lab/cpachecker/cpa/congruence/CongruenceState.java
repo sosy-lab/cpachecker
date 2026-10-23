@@ -141,7 +141,7 @@ public class CongruenceState
 
   @Override
   public int hashCode() {
-    return Objects.hash(data);
+    return Objects.hashCode(data);
   }
 
   @Override
