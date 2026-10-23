@@ -706,7 +706,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      // TODO Auto-generated method stub
       pOut.println("Number of test targets identified: " + numRemovedTargets);
     }
 
