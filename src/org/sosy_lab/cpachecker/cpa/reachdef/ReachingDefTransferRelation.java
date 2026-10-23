@@ -229,13 +229,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
                   @Override
                   protected Collection<CLeftHandSide> visitDefault(CExpression pExp)
                       throws NoException {
-                    switch (pExp) {
-                      case CLeftHandSide cLeftHandSide -> {
-                        return ImmutableList.of(cLeftHandSide);
-                      }
-                      case CLiteralExpression unused -> {
-                        return ImmutableList.of();
-                      }
+                    return switch (pExp) {
+                      case CLeftHandSide cLeftHandSide -> ImmutableList.of(cLeftHandSide);
+                      case CLiteralExpression unused -> ImmutableList.of();
                       case CBinaryExpression binExp -> {
                         Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
                         Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
@@ -244,13 +240,12 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
                         res.addAll(sndRes);
 
-                        return res;
+                        yield res;
                       }
-                      case CUnaryExpression cUnaryExpression -> {
-                        return cUnaryExpression.getOperand().accept(this);
-                      }
+                      case CUnaryExpression cUnaryExpression ->
+                          cUnaryExpression.getOperand().accept(this);
                       default -> throw new AssertionError("Unhandled operation: " + pExp);
-                    }
+                    };
                   }
 
                   @Override

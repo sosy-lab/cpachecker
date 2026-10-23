@@ -359,27 +359,25 @@ public class LiveVariablesTransferRelation
   protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
     BitSet out = state.getDataCopy();
-    switch (statement) {
+    return switch (statement) {
       case AExpressionAssignmentStatement unused -> {
         handleAssignment((AAssignment) statement, out);
-        return LiveVariablesState.ofUnique(out, this);
+        yield LiveVariablesState.ofUnique(out, this);
 
         // no changes as there is no assignment, thus we can return the last state
       }
-      case AExpressionStatement unused -> {
-        return state;
-      }
+      case AExpressionStatement unused -> state;
       case AFunctionCallAssignmentStatement unused -> {
         handleAssignment((AAssignment) statement, out);
-        return LiveVariablesState.ofUnique(out, this);
+        yield LiveVariablesState.ofUnique(out, this);
       }
       case AFunctionCallStatement funcStmt -> {
         getVariablesUsedAsParameters(
             funcStmt.getFunctionCallExpression().getParameterExpressions(), out);
-        return LiveVariablesState.ofUnique(out, this);
+        yield LiveVariablesState.ofUnique(out, this);
       }
       default -> throw new CPATransferException("Missing case for if-then-else statement.");
-    }
+    };
   }
 
   @Override

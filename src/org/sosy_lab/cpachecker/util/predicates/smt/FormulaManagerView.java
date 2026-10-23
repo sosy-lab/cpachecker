@@ -594,54 +594,57 @@ public class FormulaManagerView {
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makePlus(T pF1, T pF2) {
-    Formula t;
-    switch (pF1) {
-      case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
-          t = getIntegerFormulaManager().add(f1, f2);
-      case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
-          t = getRationalFormulaManager().add(f1, f2);
-      case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
-          t = getBitvectorFormulaManager().add(f1, f2);
-      case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
-          t = getFloatingPointFormulaManager().add(f1, f2);
-      default -> throw new IllegalArgumentException("Not supported interface");
-    }
+
+    Formula t =
+        switch (pF1) {
+          case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
+              getIntegerFormulaManager().add(f1, f2);
+          case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
+              getRationalFormulaManager().add(f1, f2);
+          case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
+              getBitvectorFormulaManager().add(f1, f2);
+          case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
+              getFloatingPointFormulaManager().add(f1, f2);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
 
     return (T) t;
   }
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeMinus(T pF1, T pF2) {
-    Formula t;
-    switch (pF1) {
-      case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
-          t = getIntegerFormulaManager().subtract(f1, f2);
-      case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
-          t = getRationalFormulaManager().subtract(f1, f2);
-      case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
-          t = getBitvectorFormulaManager().subtract(f1, f2);
-      case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
-          t = getFloatingPointFormulaManager().subtract(f1, f2);
-      default -> throw new IllegalArgumentException("Not supported interface");
-    }
+
+    Formula t =
+        switch (pF1) {
+          case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
+              getIntegerFormulaManager().subtract(f1, f2);
+          case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
+              getRationalFormulaManager().subtract(f1, f2);
+          case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
+              getBitvectorFormulaManager().subtract(f1, f2);
+          case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
+              getFloatingPointFormulaManager().subtract(f1, f2);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
 
     return (T) t;
   }
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeMultiply(T pF1, T pF2) {
-    Formula t;
-    switch (pF1) {
-      case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
-          t = getIntegerFormulaManager().multiply(f1, f2);
-      case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
-          t = getRationalFormulaManager().multiply(f1, f2);
-      case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
-          t = getBitvectorFormulaManager().multiply(f1, f2);
-      case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
-          t = getFloatingPointFormulaManager().multiply(f1, f2);
-      default -> throw new IllegalArgumentException("Not supported interface");
-    }
+
+    Formula t =
+        switch (pF1) {
+          case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
+              getIntegerFormulaManager().multiply(f1, f2);
+          case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
+              getRationalFormulaManager().multiply(f1, f2);
+          case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
+              getBitvectorFormulaManager().multiply(f1, f2);
+          case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
+              getFloatingPointFormulaManager().multiply(f1, f2);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
 
     return (T) t;
   }
@@ -655,18 +658,19 @@ public class FormulaManagerView {
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeDivide(T pF1, T pF2, boolean pSigned) {
-    Formula t;
-    switch (pF1) {
-      case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
-          t = getIntegerFormulaManager().divide(f1, f2);
-      case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
-          t = getRationalFormulaManager().divide(f1, f2);
-      case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
-          t = getBitvectorFormulaManager().divide(f1, f2, pSigned);
-      case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
-          t = getFloatingPointFormulaManager().divide(f1, f2);
-      default -> throw new IllegalArgumentException("Not supported interface");
-    }
+
+    Formula t =
+        switch (pF1) {
+          case IntegerFormula f1 when pF2 instanceof IntegerFormula f2 ->
+              getIntegerFormulaManager().divide(f1, f2);
+          case NumeralFormula f1 when pF2 instanceof NumeralFormula f2 ->
+              getRationalFormulaManager().divide(f1, f2);
+          case BitvectorFormula f1 when pF2 instanceof BitvectorFormula f2 ->
+              getBitvectorFormulaManager().divide(f1, f2, pSigned);
+          case FloatingPointFormula f1 when pF2 instanceof FloatingPointFormula f2 ->
+              getFloatingPointFormulaManager().divide(f1, f2);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
 
     return (T) t;
   }
@@ -887,70 +891,74 @@ public class FormulaManagerView {
   }
 
   public <T extends Formula> BooleanFormula makeLessOrEqual(T pLhs, T pRhs, boolean signed) {
-    BooleanFormula t;
-    switch (pLhs) {
-      case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
-          t = getIntegerFormulaManager().lessOrEquals(lhs, rhs);
-      case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
-          t = getRationalFormulaManager().lessOrEquals(lhs, rhs);
-      case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
-          t = getBitvectorFormulaManager().lessOrEquals(lhs, rhs, signed);
-      case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
-          t = getFloatingPointFormulaManager().lessOrEquals(lhs, rhs);
-      default ->
-          throw new IllegalArgumentException("Not supported interface: " + pLhs + " " + pRhs);
-    }
+
+    BooleanFormula t =
+        switch (pLhs) {
+          case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
+              getIntegerFormulaManager().lessOrEquals(lhs, rhs);
+          case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
+              getRationalFormulaManager().lessOrEquals(lhs, rhs);
+          case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
+              getBitvectorFormulaManager().lessOrEquals(lhs, rhs, signed);
+          case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
+              getFloatingPointFormulaManager().lessOrEquals(lhs, rhs);
+          default ->
+              throw new IllegalArgumentException("Not supported interface: " + pLhs + " " + pRhs);
+        };
 
     return t;
   }
 
   public <T extends Formula> BooleanFormula makeLessThan(T pLhs, T pRhs, boolean signed) {
-    BooleanFormula t;
-    switch (pLhs) {
-      case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
-          t = getIntegerFormulaManager().lessThan(lhs, rhs);
-      case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
-          t = getRationalFormulaManager().lessThan(lhs, rhs);
-      case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
-          t = getBitvectorFormulaManager().lessThan(lhs, rhs, signed);
-      case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
-          t = getFloatingPointFormulaManager().lessThan(lhs, rhs);
-      default -> throw new IllegalArgumentException("Not supported interface");
-    }
+
+    BooleanFormula t =
+        switch (pLhs) {
+          case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
+              getIntegerFormulaManager().lessThan(lhs, rhs);
+          case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
+              getRationalFormulaManager().lessThan(lhs, rhs);
+          case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
+              getBitvectorFormulaManager().lessThan(lhs, rhs, signed);
+          case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
+              getFloatingPointFormulaManager().lessThan(lhs, rhs);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
 
     return t;
   }
 
   public <T extends Formula> BooleanFormula makeGreaterThan(T pLhs, T pRhs, boolean signed) {
-    BooleanFormula t;
-    switch (pLhs) {
-      case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
-          t = getIntegerFormulaManager().greaterThan(lhs, rhs);
-      case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
-          t = getRationalFormulaManager().greaterThan(lhs, rhs);
-      case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
-          t = getBitvectorFormulaManager().greaterThan(lhs, rhs, signed);
-      case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
-          t = getFloatingPointFormulaManager().greaterThan(lhs, rhs);
-      default -> throw new IllegalArgumentException("Not supported interface");
-    }
+
+    BooleanFormula t =
+        switch (pLhs) {
+          case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
+              getIntegerFormulaManager().greaterThan(lhs, rhs);
+          case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
+              getRationalFormulaManager().greaterThan(lhs, rhs);
+          case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
+              getBitvectorFormulaManager().greaterThan(lhs, rhs, signed);
+          case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
+              getFloatingPointFormulaManager().greaterThan(lhs, rhs);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
 
     return t;
   }
 
   public <T extends Formula> BooleanFormula makeGreaterOrEqual(T pLhs, T pRhs, boolean signed) {
-    BooleanFormula t;
-    switch (pLhs) {
-      case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
-          t = getIntegerFormulaManager().greaterOrEquals(lhs, rhs);
-      case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
-          t = getRationalFormulaManager().greaterOrEquals(lhs, rhs);
-      case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
-          t = getBitvectorFormulaManager().greaterOrEquals(lhs, rhs, signed);
-      case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
-          t = getFloatingPointFormulaManager().greaterOrEquals(lhs, rhs);
-      default -> throw new IllegalArgumentException("Not supported interface");
-    }
+
+    BooleanFormula t =
+        switch (pLhs) {
+          case IntegerFormula lhs when pRhs instanceof IntegerFormula rhs ->
+              getIntegerFormulaManager().greaterOrEquals(lhs, rhs);
+          case NumeralFormula lhs when pRhs instanceof NumeralFormula rhs ->
+              getRationalFormulaManager().greaterOrEquals(lhs, rhs);
+          case BitvectorFormula lhs when pRhs instanceof BitvectorFormula rhs ->
+              getBitvectorFormulaManager().greaterOrEquals(lhs, rhs, signed);
+          case FloatingPointFormula lhs when pRhs instanceof FloatingPointFormula rhs ->
+              getFloatingPointFormulaManager().greaterOrEquals(lhs, rhs);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
 
     return t;
   }

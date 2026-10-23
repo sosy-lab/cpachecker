@@ -283,29 +283,25 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       nameExp = ((CCastExpression) nameExp).getOperand();
     }
 
-    switch (nameExp) {
-      case CIdExpression unused -> {
-        // a = f(b) or a = (*f)(b)
-        return ((CIdExpression) nameExp).getDeclaration().getQualifiedName();
-      }
-      case CFieldReference unused -> {
-        // TODO This is a function pointer call "(s->f)()" or "(s.f)()"
-        return null;
-      }
-      case CArraySubscriptExpression unused -> {
-        // TODO This is a function pointer call (*a[i])()
-        return null;
-      }
-      case CPointerExpression unused -> {
-        // TODO double dereference (**f)()
-        return null;
-      }
+    return switch (nameExp) {
+      case CIdExpression unused ->
+          // a = f(b) or a = (*f)(b)
+          ((CIdExpression) nameExp).getDeclaration().getQualifiedName();
+      case CFieldReference unused ->
+          // TODO This is a function pointer call "(s->f)()" or "(s.f)()"
+          null;
+      case CArraySubscriptExpression unused ->
+          // TODO This is a function pointer call (*a[i])()
+          null;
+      case CPointerExpression unused ->
+          // TODO double dereference (**f)()
+          null;
       default ->
           throw new UnrecognizedCodeException(
               "unknown function call expression of type " + nameExp.getClass().getSimpleName(),
               pCfaEdge,
               nameExp);
-    }
+    };
   }
 
   /**

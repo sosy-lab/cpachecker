@@ -1281,25 +1281,23 @@ class CFAFunctionBuilder extends ASTVisitor {
       Set<CFANode> pInnerNodes) {
 
     // unwrap (a)
-    switch (condition) {
+    return switch (condition) {
       case IASTUnaryExpression iASTUnaryExpression
-          when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary -> {
-        return buildConditionTree(
-            pRawSignature,
-            iASTUnaryExpression.getOperand(),
-            fileLocation,
-            rootNode,
-            thenNode,
-            elseNode,
-            thenNode,
-            elseNode,
-            true,
-            true,
-            flippedThenElse,
-            pInnerNodes);
-
-        // !a --> switch branches
-      }
+          when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary ->
+          // !a --> switch branches
+          buildConditionTree(
+              pRawSignature,
+              iASTUnaryExpression.getOperand(),
+              fileLocation,
+              rootNode,
+              thenNode,
+              elseNode,
+              thenNode,
+              elseNode,
+              true,
+              true,
+              flippedThenElse,
+              pInnerNodes);
       case IASTUnaryExpression iASTUnaryExpression
           when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_not -> {
         buildConditionTree(
@@ -1315,7 +1313,7 @@ class CFAFunctionBuilder extends ASTVisitor {
             true,
             !flippedThenElse,
             pInnerNodes);
-        return Optional.empty();
+        yield Optional.empty();
 
         // a && b
       }
@@ -1352,7 +1350,7 @@ class CFAFunctionBuilder extends ASTVisitor {
             true,
             flippedThenElse,
             pInnerNodes);
-        return Optional.empty();
+        yield Optional.empty();
 
         // a || b
       }
@@ -1389,27 +1387,26 @@ class CFAFunctionBuilder extends ASTVisitor {
             true,
             flippedThenElse,
             pInnerNodes);
-        return Optional.empty();
+        yield Optional.empty();
 
         // plain condition
       }
-      default -> {
-        return Optional.of(
-            buildConditionTreeLeaf(
-                pRawSignature,
-                condition,
-                fileLocation,
-                rootNode,
-                thenNode,
-                elseNode,
-                thenNodeForLastThen,
-                elseNodeForLastElse,
-                furtherThenComputation,
-                furtherElseComputation,
-                flippedThenElse,
-                pInnerNodes));
-      }
-    }
+      default ->
+          Optional.of(
+              buildConditionTreeLeaf(
+                  pRawSignature,
+                  condition,
+                  fileLocation,
+                  rootNode,
+                  thenNode,
+                  elseNode,
+                  thenNodeForLastThen,
+                  elseNodeForLastElse,
+                  furtherThenComputation,
+                  furtherElseComputation,
+                  flippedThenElse,
+                  pInnerNodes));
+    };
   }
 
   /** Handle a leaf node of a condition tree, i.e. the most primitive part of a condition. */
