@@ -62,6 +62,30 @@ public class AstCfaRelationScopeTest {
   }
 
   @Test
+  public void hiddenParameterNotInScope() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "shadowed-parameter.c");
+    CFANode inBlock = TestCfaUtils.getEdge("result = result + n__1;", cfa).getPredecessor();
+
+    assertThat(
+            variablesInScope(cfa, inBlock)
+                .filter(variable -> variable.getOrigName().equals("n"))
+                .transform(AbstractSimpleDeclaration::getName))
+        .containsExactly("n__1");
+  }
+
+  @Test
+  public void hiddenParameterInScopeAfterBlock() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "shadowed-parameter.c");
+    CFANode afterBlock = TestCfaUtils.getEdge("result = result + n__1;", cfa).getSuccessor();
+
+    assertThat(
+            variablesInScope(cfa, afterBlock)
+                .filter(variable -> variable.getOrigName().equals("n"))
+                .transform(AbstractSimpleDeclaration::getName))
+        .containsExactly("n");
+  }
+
+  @Test
   public void staticLocalVariableInScopeOnce() throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "static-local-variable.c");
     CFANode beforeReturn =
