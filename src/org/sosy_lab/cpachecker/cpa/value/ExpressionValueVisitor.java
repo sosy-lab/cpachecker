@@ -354,27 +354,31 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName) {
 
-      if (ownerType instanceof CElaboratedType cElaboratedType) {
-        return getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
-      } else if (ownerType instanceof CCompositeType cCompositeType) {
-        return bitsToByte(evv.getMachineModel().getFieldOffsetInBits(cCompositeType, fieldName));
-      } else if (ownerType instanceof CPointerType) {
-        evv.missingPointer = true;
-        return OptionalLong.empty();
-      } else if (ownerType instanceof CProblemType) {
-        /*
-         * At this point CProblemType should not occur
-         * unless the parsing of the automaton for
-         * Counterexample-check failed to determine
-         * the type of an assumptions operand.
-         *
-         * This is unfortunate but not as critical as
-         * letting CPAchecker crash here.
-         */
-        return OptionalLong.empty();
+      switch (ownerType) {
+        case CElaboratedType cElaboratedType -> {
+          return getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
+        }
+        case CCompositeType cCompositeType -> {
+          return bitsToByte(evv.getMachineModel().getFieldOffsetInBits(cCompositeType, fieldName));
+        }
+        case CPointerType unused -> {
+          evv.missingPointer = true;
+          return OptionalLong.empty();
+        }
+        case CProblemType unused -> {
+          /*
+           * At this point CProblemType should not occur
+           * unless the parsing of the automaton for
+           * Counterexample-check failed to determine
+           * the type of an assumptions operand.
+           *
+           * This is unfortunate but not as critical as
+           * letting CPAchecker crash here.
+           */
+          return OptionalLong.empty();
+        }
+        default -> throw new AssertionError();
       }
-
-      throw new AssertionError();
     }
 
     private OptionalLong bitsToByte(BigInteger bits) {

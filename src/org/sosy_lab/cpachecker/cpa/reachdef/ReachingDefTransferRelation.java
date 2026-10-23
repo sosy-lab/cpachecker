@@ -229,27 +229,27 @@ public class ReachingDefTransferRelation implements TransferRelation {
                   @Override
                   protected Collection<CLeftHandSide> visitDefault(CExpression pExp)
                       throws NoException {
-                    if (pExp instanceof CLeftHandSide cLeftHandSide) {
-                      return ImmutableList.of(cLeftHandSide);
+                    switch (pExp) {
+                      case CLeftHandSide cLeftHandSide -> {
+                        return ImmutableList.of(cLeftHandSide);
+                      }
+                      case CLiteralExpression unused -> {
+                        return ImmutableList.of();
+                      }
+                      case CBinaryExpression binExp -> {
+                        Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
+                        Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
 
-                    } else if (pExp instanceof CLiteralExpression) {
-                      return ImmutableList.of();
+                        Set<CLeftHandSide> res = new HashSet<>(firstRes);
 
-                    } else if (pExp instanceof CBinaryExpression binExp) {
-                      Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
-                      Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
+                        res.addAll(sndRes);
 
-                      Set<CLeftHandSide> res = new HashSet<>(firstRes);
-
-                      res.addAll(sndRes);
-
-                      return res;
-
-                    } else if (pExp instanceof CUnaryExpression cUnaryExpression) {
-                      return cUnaryExpression.getOperand().accept(this);
-
-                    } else {
-                      throw new AssertionError("Unhandled operation: " + pExp);
+                        return res;
+                      }
+                      case CUnaryExpression cUnaryExpression -> {
+                        return cUnaryExpression.getOperand().accept(this);
+                      }
+                      default -> throw new AssertionError("Unhandled operation: " + pExp);
                     }
                   }
 

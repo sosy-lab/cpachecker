@@ -963,48 +963,33 @@ public class ValueAnalysisTransferRelation
       return state;
     }
 
-    if (op1 instanceof AIdExpression aIdExpression) {
-      /*
-       * Assignment of the form
-       *  a = ...
-       */
+    switch (op1) {
+      case AIdExpression aIdExpression -> {
+        /*
+         * Assignment of the form
+         *  a = ...
+         */
 
-      if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
-        missingScopedFieldName = true;
-        notScopedField = jIdExpression;
+        if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
+          missingScopedFieldName = true;
+          notScopedField = jIdExpression;
+        }
+
+        MemoryLocation memloc = getMemoryLocation(aIdExpression);
+
+        return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
       }
+      case APointerExpression unused -> {
+        // *a = ...
 
-      MemoryLocation memloc = getMemoryLocation(aIdExpression);
-
-      return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
-    } else if (op1 instanceof APointerExpression) {
-      // *a = ...
-
-      if (isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
+        if (isRelevant(op1, op2)) {
+          missingInformationList.add(new MissingInformation(op1, op2));
+        }
       }
-
-    } else if (op1 instanceof CFieldReference cFieldReference) {
-
-      ExpressionValueVisitor v = getVisitor();
-
-      MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
-
-      if (v.hasMissingPointer() && isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
-      }
-
-      if (memLoc != null) {
-        return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
-      }
-
-    } else if (op1 instanceof AArraySubscriptExpression) {
-      // array cell
-      if (op1 instanceof CArraySubscriptExpression) {
-
+      case CFieldReference cFieldReference -> {
         ExpressionValueVisitor v = getVisitor();
 
-        MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
+        MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
 
         if (v.hasMissingPointer() && isRelevant(op1, op2)) {
           missingInformationList.add(new MissingInformation(op1, op2));
@@ -1013,39 +998,56 @@ public class ValueAnalysisTransferRelation
         if (memLoc != null) {
           return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
         }
-      } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
-        ExpressionValueVisitor evv = getVisitor();
+      }
+      case AArraySubscriptExpression unused -> {
+        // array cell
+        if (op1 instanceof CArraySubscriptExpression) {
 
-        ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
-        Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
+          ExpressionValueVisitor v = getVisitor();
 
-        if (arrayToChange == null || maybeIndex.isUnknown()) {
-          assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
+          MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
-        } else {
-          long concreteIndex = ((NumericValue) maybeIndex).longValue();
-
-          final int arraySize = arrayToChange.getArraySize();
-          if (concreteIndex < 0 || concreteIndex >= arraySize) {
-            final JArrayType arrayType = arrayToChange.getArrayType();
-            throw new UnrecognizedCodeException(
-                "Invalid index "
-                    + concreteIndex
-                    + " for array type "
-                    + arrayType
-                    + "with array size "
-                    + arraySize,
-                cfaEdge);
+          if (v.hasMissingPointer() && isRelevant(op1, op2)) {
+            missingInformationList.add(new MissingInformation(op1, op2));
           }
 
-          // changes array value in old state
-          handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-          return ValueAnalysisState.copyOf(state);
+          if (memLoc != null) {
+            return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+          }
+        } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
+          ExpressionValueVisitor evv = getVisitor();
+
+          ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
+          Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
+
+          if (arrayToChange == null || maybeIndex.isUnknown()) {
+            assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
+
+          } else {
+            long concreteIndex = ((NumericValue) maybeIndex).longValue();
+
+            final int arraySize = arrayToChange.getArraySize();
+            if (concreteIndex < 0 || concreteIndex >= arraySize) {
+              final JArrayType arrayType = arrayToChange.getArrayType();
+              throw new UnrecognizedCodeException(
+                  "Invalid index "
+                      + concreteIndex
+                      + " for array type "
+                      + arrayType
+                      + "with array size "
+                      + arraySize,
+                  cfaEdge);
+            }
+
+            // changes array value in old state
+            handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
+            return ValueAnalysisState.copyOf(state);
+          }
         }
       }
-    } else {
-      throw new UnrecognizedCodeException(
-          "left operand of assignment has to be a variable", cfaEdge, op1);
+      default ->
+          throw new UnrecognizedCodeException(
+              "left operand of assignment has to be a variable", cfaEdge, op1);
     }
 
     return state; // the default return-value is the old state

@@ -327,87 +327,91 @@ public class ProgramDeclarations {
 
     // special case complex type is handled here this is necessary because
     // in the equals method of CComplexTypes the members are not compared
-    if (type1 instanceof CComplexType cComplexType) {
-      boolean isOuterTypeEqual = cComplexType.equalsWithOrigName(type2);
+    switch (type1) {
+      case CComplexType cComplexType -> {
+        boolean isOuterTypeEqual = cComplexType.equalsWithOrigName(type2);
 
-      // now we need to compare the members of the CComplexTypes
-      // due to the checks before we now that at this stage both types
-      // have the same class
-      if (isOuterTypeEqual) {
-        if (type1 instanceof CCompositeType cCompositeType) {
-          if (!foundTypes.containsKey(typePair)) {
-            boolean areEqual =
-                areEqualCompositeTypes(cCompositeType, (CCompositeType) type2, foundTypes);
-            foundTypes.put(typePair, areEqual);
-            return areEqual;
+        // now we need to compare the members of the CComplexTypes
+        // due to the checks before we now that at this stage both types
+        // have the same class
+        if (isOuterTypeEqual) {
+          if (type1 instanceof CCompositeType cCompositeType) {
+            if (!foundTypes.containsKey(typePair)) {
+              boolean areEqual =
+                  areEqualCompositeTypes(cCompositeType, (CCompositeType) type2, foundTypes);
+              foundTypes.put(typePair, areEqual);
+              return areEqual;
 
-            // the type was already found before so we can return true here
+              // the type was already found before so we can return true here
+            } else {
+              return foundTypes.get(typePair);
+            }
+
+          } else if (type1 instanceof CEnumType cEnumType) {
+            return areEqualEnumTypes(cEnumType, (CEnumType) type2);
+
+            // no more checks necessary as the outer type is equal and the elaborated
+            // type does not have any inner type right now
+          } else if (type1 instanceof CElaboratedType) {
+            return true;
+
+            // in case new CComplexTypes get introduced
           } else {
-            return foundTypes.get(typePair);
+            throw new AssertionError("Unhandled CComplexType with kind: " + type1.getClass());
           }
 
-        } else if (type1 instanceof CEnumType cEnumType) {
-          return areEqualEnumTypes(cEnumType, (CEnumType) type2);
+          // one or both types are only elaborated, so we can only check the name of the type
+          // and not the members, as elaborated types are always renamed to the
+          // file specific version this check has to be done on the original type
+          // names
+        } else if (type1.getClass() != type2.getClass() || type1 instanceof CElaboratedType) {
+          return cComplexType.getOrigName().equals(((CComplexType) type2).getOrigName());
 
-          // no more checks necessary as the outer type is equal and the elaborated
-          // type does not have any inner type right now
-        } else if (type1 instanceof CElaboratedType) {
-          return true;
-
-          // in case new CComplexTypes get introduced
+          // the types are not equal
         } else {
-          throw new AssertionError("Unhandled CComplexType with kind: " + type1.getClass());
-        }
-
-        // one or both types are only elaborated, so we can only check the name of the type
-        // and not the members, as elaborated types are always renamed to the
-        // file specific version this check has to be done on the original type
-        // names
-      } else if (type1.getClass() != type2.getClass() || type1 instanceof CElaboratedType) {
-        return cComplexType.getOrigName().equals(((CComplexType) type2).getOrigName());
-
-        // the types are not equal
-      } else {
-        return false;
-      }
-
-      // a pointer could point to a struct type which needs to be compared
-      // with this equality method, thus we have this special case here
-    } else if (type1 instanceof CPointerType cPointerType
-        && (cPointerType.getType() instanceof CComplexType
-            || cPointerType.getType() instanceof CFunctionType
-            || cPointerType.getType() instanceof CPointerType)) {
-
-      return areEqualTypes(cPointerType.getType(), cPointerType.getType(), foundTypes);
-
-      // handle the same issues we have with pointer types here for arrays
-    } else if (type1 instanceof CArrayType a1
-        && (a1.getType() instanceof CComplexType
-            || a1.getType() instanceof CFunctionType
-            || a1.getType() instanceof CPointerType)) {
-
-      // first check if the lengths are matching
-      CArrayType a2 = (CArrayType) type2;
-      if (a1.getLength() instanceof CIntegerLiteralExpression a1Length
-          && a2.getLength() instanceof CIntegerLiteralExpression a2Length) {
-        if (!a1Length.getValue().equals(a2Length.getValue())) {
           return false;
         }
-      } else {
-        if (!Objects.equals(a1.getLength(), a2.getLength())) {
-          return false;
-        }
+
+        // a pointer could point to a struct type which needs to be compared
+        // with this equality method, thus we have this special case here
       }
+      case CPointerType cPointerType
+          when (cPointerType.getType() instanceof CComplexType
+              || cPointerType.getType() instanceof CFunctionType
+              || cPointerType.getType() instanceof CPointerType) -> {
+        return areEqualTypes(cPointerType.getType(), cPointerType.getType(), foundTypes);
 
-      // length is ok, so check if the types are ok, too
-      return areEqualTypes(a1.getType(), ((CArrayType) type2).getType(), foundTypes);
+        // handle the same issues we have with pointer types here for arrays
+      }
+      case CArrayType a1
+          when (a1.getType() instanceof CComplexType
+              || a1.getType() instanceof CFunctionType
+              || a1.getType() instanceof CPointerType) -> {
 
-    } else if (type1 instanceof CFunctionType cFunctionType) {
-      return areEqualFunctionTypes(cFunctionType, (CFunctionType) type2, foundTypes);
+        // first check if the lengths are matching
+        CArrayType a2 = (CArrayType) type2;
+        if (a1.getLength() instanceof CIntegerLiteralExpression a1Length
+            && a2.getLength() instanceof CIntegerLiteralExpression a2Length) {
+          if (!a1Length.getValue().equals(a2Length.getValue())) {
+            return false;
+          }
+        } else {
+          if (!Objects.equals(a1.getLength(), a2.getLength())) {
+            return false;
+          }
+        }
 
-      // no struct, union or enum we can just use the usual equals method
-    } else {
-      return type1.equals(type2);
+        // length is ok, so check if the types are ok, too
+        return areEqualTypes(a1.getType(), ((CArrayType) type2).getType(), foundTypes);
+      }
+      case CFunctionType cFunctionType -> {
+        return areEqualFunctionTypes(cFunctionType, (CFunctionType) type2, foundTypes);
+
+        // no struct, union or enum we can just use the usual equals method
+      }
+      default -> {
+        return type1.equals(type2);
+      }
     }
   }
 

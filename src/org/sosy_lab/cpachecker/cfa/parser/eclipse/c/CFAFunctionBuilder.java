@@ -1281,128 +1281,134 @@ class CFAFunctionBuilder extends ASTVisitor {
       Set<CFANode> pInnerNodes) {
 
     // unwrap (a)
-    if (condition instanceof IASTUnaryExpression iASTUnaryExpression
-        && iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-      return buildConditionTree(
-          pRawSignature,
-          iASTUnaryExpression.getOperand(),
-          fileLocation,
-          rootNode,
-          thenNode,
-          elseNode,
-          thenNode,
-          elseNode,
-          true,
-          true,
-          flippedThenElse,
-          pInnerNodes);
+    switch (condition) {
+      case IASTUnaryExpression iASTUnaryExpression
+          when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary -> {
+        return buildConditionTree(
+            pRawSignature,
+            iASTUnaryExpression.getOperand(),
+            fileLocation,
+            rootNode,
+            thenNode,
+            elseNode,
+            thenNode,
+            elseNode,
+            true,
+            true,
+            flippedThenElse,
+            pInnerNodes);
 
-      // !a --> switch branches
-    } else if (condition instanceof IASTUnaryExpression iASTUnaryExpression
-        && iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_not) {
-      buildConditionTree(
-          pRawSignature,
-          iASTUnaryExpression.getOperand(),
-          fileLocation,
-          rootNode,
-          elseNode,
-          thenNode,
-          elseNode,
-          thenNode,
-          true,
-          true,
-          !flippedThenElse,
-          pInnerNodes);
-      return Optional.empty();
+        // !a --> switch branches
+      }
+      case IASTUnaryExpression iASTUnaryExpression
+          when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_not -> {
+        buildConditionTree(
+            pRawSignature,
+            iASTUnaryExpression.getOperand(),
+            fileLocation,
+            rootNode,
+            elseNode,
+            thenNode,
+            elseNode,
+            thenNode,
+            true,
+            true,
+            !flippedThenElse,
+            pInnerNodes);
+        return Optional.empty();
 
-      // a && b
-    } else if (condition instanceof IASTBinaryExpression iASTBinaryExpression
-        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalAnd) {
-      // This case is not necessary,
-      // but it prevents the need for a temporary variable in the common case of
-      // "if (a && b)"
-      CFANode innerNode = newCFANode();
-      pInnerNodes.add(innerNode);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          innerNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNode,
-          true,
-          false,
-          flippedThenElse,
-          pInnerNodes);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true,
-          flippedThenElse,
-          pInnerNodes);
-      return Optional.empty();
+        // a && b
+      }
+      case IASTBinaryExpression iASTBinaryExpression
+          when iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalAnd -> {
+        // This case is not necessary,
+        // but it prevents the need for a temporary variable in the common case of
+        // "if (a && b)"
+        CFANode innerNode = newCFANode();
+        pInnerNodes.add(innerNode);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            innerNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNode,
+            true,
+            false,
+            flippedThenElse,
+            pInnerNodes);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true,
+            flippedThenElse,
+            pInnerNodes);
+        return Optional.empty();
 
-      // a || b
-    } else if (condition instanceof IASTBinaryExpression iASTBinaryExpression
-        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalOr) {
-      // This case is not necessary,
-      // but it prevents the need for a temporary variable in the common case of
-      // "if (a || b)"
-      CFANode innerNode = newCFANode();
-      pInnerNodes.add(innerNode);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          thenNode,
-          innerNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          false,
-          true,
-          flippedThenElse,
-          pInnerNodes);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true,
-          flippedThenElse,
-          pInnerNodes);
-      return Optional.empty();
+        // a || b
+      }
+      case IASTBinaryExpression iASTBinaryExpression
+          when iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalOr -> {
+        // This case is not necessary,
+        // but it prevents the need for a temporary variable in the common case of
+        // "if (a || b)"
+        CFANode innerNode = newCFANode();
+        pInnerNodes.add(innerNode);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            thenNode,
+            innerNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            false,
+            true,
+            flippedThenElse,
+            pInnerNodes);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true,
+            flippedThenElse,
+            pInnerNodes);
+        return Optional.empty();
 
-      // plain condition
-    } else {
-      return Optional.of(
-          buildConditionTreeLeaf(
-              pRawSignature,
-              condition,
-              fileLocation,
-              rootNode,
-              thenNode,
-              elseNode,
-              thenNodeForLastThen,
-              elseNodeForLastElse,
-              furtherThenComputation,
-              furtherElseComputation,
-              flippedThenElse,
-              pInnerNodes));
+        // plain condition
+      }
+      default -> {
+        return Optional.of(
+            buildConditionTreeLeaf(
+                pRawSignature,
+                condition,
+                fileLocation,
+                rootNode,
+                thenNode,
+                elseNode,
+                thenNodeForLastThen,
+                elseNodeForLastElse,
+                furtherThenComputation,
+                furtherElseComputation,
+                flippedThenElse,
+                pInnerNodes));
+      }
     }
   }
 

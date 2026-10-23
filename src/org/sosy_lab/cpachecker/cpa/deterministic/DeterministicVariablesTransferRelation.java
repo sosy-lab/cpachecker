@@ -122,18 +122,22 @@ public class DeterministicVariablesTransferRelation
   @Override
   protected DeterministicVariablesState handleStatementEdge(
       final AStatementEdge cfaEdge, final AStatement statement) throws CPATransferException {
-    if (statement instanceof AExpressionStatement) {
-      // no assignments, thus return identity
-      return state;
-    } else if (statement instanceof AFunctionCallStatement) {
-      // no assignments, thus return identity
-      return state;
-    } else if (statement instanceof AExpressionAssignmentStatement) {
-      return handleAssignments((AAssignment) statement);
-    } else if (statement instanceof AFunctionCallAssignmentStatement) {
-      return handleAssignments((AAssignment) statement);
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
+    switch (statement) {
+      case AExpressionStatement unused -> {
+        // no assignments, thus return identity
+        return state;
+      }
+      case AFunctionCallStatement unused -> {
+        // no assignments, thus return identity
+        return state;
+      }
+      case AExpressionAssignmentStatement unused -> {
+        return handleAssignments((AAssignment) statement);
+      }
+      case AFunctionCallAssignmentStatement unused -> {
+        return handleAssignments((AAssignment) statement);
+      }
+      default -> throw new CPATransferException("Missing case for if-then-else statement.");
     }
   }
 

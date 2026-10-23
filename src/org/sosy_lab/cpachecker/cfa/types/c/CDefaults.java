@@ -35,53 +35,54 @@ public final class CDefaults {
     // Get default value of a type for initializations
     // according to C standard §6.7.9 (10)
     type = type.getCanonicalType();
-    if (type instanceof CPointerType) {
-      return initializerFor(signedIntZero(fileLoc), fileLoc);
-
-    } else if (type instanceof CSimpleType) {
-      CBasicType basicType = ((CSimpleType) type).getType();
-      return switch (basicType) {
-        case CHAR -> initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
-        case FLOAT, DOUBLE, FLOAT128 ->
-            initializerFor(
-                new CFloatLiteralExpression(
-                    fileLoc,
-                    pMachineModel,
-                    type,
-                    FloatValue.zero(FloatValue.Format.fromCType(pMachineModel, type))),
-                fileLoc);
-        case UNSPECIFIED, BOOL, INT128, INT ->
-            initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
-      };
-
-    } else if (type instanceof CEnumType) {
-      // enum declaration: enum e { ... } var;
-      return initializerFor(signedIntZero(fileLoc), fileLoc);
-
-    } else if (type instanceof CElaboratedType) {
-      if (((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM) {
-        // enum declaration: enum e var;
+    switch (type) {
+      case CPointerType unused -> {
         return initializerFor(signedIntZero(fileLoc), fileLoc);
-
-      } else {
-        // struct or union that is incompletely defined,
-        // cannot produce an initializer
-        throw new IllegalArgumentException(
-            "Cannot produce initializer for incompletely defined type " + type);
       }
+      case CSimpleType unused -> {
+        CBasicType basicType = ((CSimpleType) type).getType();
+        return switch (basicType) {
+          case CHAR -> initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
+          case FLOAT, DOUBLE, FLOAT128 ->
+              initializerFor(
+                  new CFloatLiteralExpression(
+                      fileLoc,
+                      pMachineModel,
+                      type,
+                      FloatValue.zero(FloatValue.Format.fromCType(pMachineModel, type))),
+                  fileLoc);
+          case UNSPECIFIED, BOOL, INT128, INT ->
+              initializerFor(
+                  new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
+        };
+      }
+      case CEnumType unused -> {
+        // enum declaration: enum e { ... } var;
+        return initializerFor(signedIntZero(fileLoc), fileLoc);
+      }
+      case CElaboratedType unused -> {
+        if (((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM) {
+          // enum declaration: enum e var;
+          return initializerFor(signedIntZero(fileLoc), fileLoc);
 
-    } else if (type instanceof CCompositeType) {
-      // struct or union
-      return emptyAggregate(fileLoc);
-
-    } else if (type instanceof CArrayType) {
-      return emptyAggregate(fileLoc);
-
-    } else if (type instanceof CBitFieldType) {
-      return forType(pMachineModel, ((CBitFieldType) type).getType(), fileLoc);
-
-    } else {
-      throw new IllegalArgumentException("Type " + type + " has no default value");
+        } else {
+          // struct or union that is incompletely defined,
+          // cannot produce an initializer
+          throw new IllegalArgumentException(
+              "Cannot produce initializer for incompletely defined type " + type);
+        }
+      }
+      case CCompositeType unused -> {
+        // struct or union
+        return emptyAggregate(fileLoc);
+      }
+      case CArrayType unused -> {
+        return emptyAggregate(fileLoc);
+      }
+      case CBitFieldType unused -> {
+        return forType(pMachineModel, ((CBitFieldType) type).getType(), fileLoc);
+      }
+      default -> throw new IllegalArgumentException("Type " + type + " has no default value");
     }
   }
 
