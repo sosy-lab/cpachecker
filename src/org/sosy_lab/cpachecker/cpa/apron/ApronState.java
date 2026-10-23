@@ -156,7 +156,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     result = prime * result + Objects.hashCode(integerToIndexMap);
     result = prime * result + Objects.hashCode(realToIndexMap);
     result = prime * result + Objects.hashCode(variableToTypeMap);
-    result = prime * result + Objects.hashCode(isLoopHead);
+    result = prime * result + Boolean.hashCode(isLoopHead);
     return result;
   }
 

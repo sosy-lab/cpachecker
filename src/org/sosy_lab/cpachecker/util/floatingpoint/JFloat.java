@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
@@ -277,7 +276,7 @@ class JFloat extends CFloat {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(value);
+    return Float.hashCode(value);
   }
 
   @Override
