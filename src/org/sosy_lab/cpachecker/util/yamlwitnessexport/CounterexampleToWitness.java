@@ -748,7 +748,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // which it is valid
     // The index of the step in `pSteps` from which each segment was created
     ImmutableList.Builder<Integer> segmentEdgeIndices = ImmutableList.builder();
-    for (int i = 0; i < pSteps.size(); i++) {
+    // The target waypoint describes the violating step, so a waypoint for it, e.g., a branching
+    // waypoint for a condition containing the violation, could only be passed after the target.
+    int violatingStepIndex = pSteps.lastIndexOf(violatingStep(pSteps));
+    for (int i = 0; i < violatingStepIndex; i++) {
       WitnessPathStep step = pSteps.get(i);
       List<WaypointRecord> waypoints =
           buildWaypoints(

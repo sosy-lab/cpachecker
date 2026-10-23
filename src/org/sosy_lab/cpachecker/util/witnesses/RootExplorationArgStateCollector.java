@@ -12,11 +12,13 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.graph.Traverser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -29,6 +31,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /** Traverses the ARG from the given root node to find all relevant ARG states for Witnesses */
 public class RootExplorationArgStateCollector implements RelevantArgStatesCollector {
+
+  private final ImmutableSet<CFANode> loopInvariantNodes;
+
+  /**
+   * @param pLoopInvariantNodes the nodes at which loop invariants are collected, e.g., the heads of
+   *     the loops of the {@link org.sosy_lab.cpachecker.util.LoopStructure}
+   */
+  public RootExplorationArgStateCollector(Set<CFANode> pLoopInvariantNodes) {
+    loopInvariantNodes = ImmutableSet.copyOf(pLoopInvariantNodes);
+  }
 
   @Override
   public CollectedARGStates getRelevantStates(ARGState pRootState) {
@@ -63,7 +75,7 @@ public class RootExplorationArgStateCollector implements RelevantArgStatesCollec
             AbstractStates.asIterable(state).filter(LocationState.class)) {
           CFANode node = locationState.getLocationNode();
           FluentIterable<CFAEdge> leavingEdges = node.getLeavingEdges();
-          if (node.isLoopStart()) {
+          if (loopInvariantNodes.contains(node)) {
             collectedStates.loopInvariants().put(node, state);
           } else if (leavingEdges.size() == 1
               && leavingEdges.anyMatch(FunctionCallEdge.class::isInstance)) {
