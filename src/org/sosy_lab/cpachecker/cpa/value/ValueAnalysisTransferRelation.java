@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -963,7 +962,7 @@ public class ValueAnalysisTransferRelation
       return state;
     }
 
-    switch (op1) {
+    return switch (op1) {
       case AIdExpression aIdExpression -> {
         /*
          * Assignment of the form
@@ -977,7 +976,7 @@ public class ValueAnalysisTransferRelation
 
         MemoryLocation memloc = getMemoryLocation(aIdExpression);
 
-        return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
+        yield handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
       }
       case APointerExpression unused -> {
         // *a = ...
@@ -985,6 +984,7 @@ public class ValueAnalysisTransferRelation
         if (isRelevant(op1, op2)) {
           missingInformationList.add(new MissingInformation(op1, op2));
         }
+        yield state;
       }
       case CFieldReference cFieldReference -> {
         ExpressionValueVisitor v = getVisitor();
@@ -996,61 +996,61 @@ public class ValueAnalysisTransferRelation
         }
 
         if (memLoc != null) {
-          return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+          yield handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
         }
+        yield state;
       }
-      case AArraySubscriptExpression unused -> {
-        // array cell
-        if (op1 instanceof CArraySubscriptExpression) {
+      // array cell
+      case CArraySubscriptExpression unused -> {
+        ExpressionValueVisitor v = getVisitor();
 
-          ExpressionValueVisitor v = getVisitor();
+        MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
-          MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
-
-          if (v.hasMissingPointer() && isRelevant(op1, op2)) {
-            missingInformationList.add(new MissingInformation(op1, op2));
-          }
-
-          if (memLoc != null) {
-            return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
-          }
-        } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
-          ExpressionValueVisitor evv = getVisitor();
-
-          ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
-          Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
-
-          if (arrayToChange == null || maybeIndex.isUnknown()) {
-            assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
-
-          } else {
-            long concreteIndex = ((NumericValue) maybeIndex).longValue();
-
-            final int arraySize = arrayToChange.getArraySize();
-            if (concreteIndex < 0 || concreteIndex >= arraySize) {
-              final JArrayType arrayType = arrayToChange.getArrayType();
-              throw new UnrecognizedCodeException(
-                  "Invalid index "
-                      + concreteIndex
-                      + " for array type "
-                      + arrayType
-                      + "with array size "
-                      + arraySize,
-                  cfaEdge);
-            }
-
-            // changes array value in old state
-            handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-            return ValueAnalysisState.copyOf(state);
-          }
+        if (v.hasMissingPointer() && isRelevant(op1, op2)) {
+          missingInformationList.add(new MissingInformation(op1, op2));
         }
+
+        if (memLoc != null) {
+          yield handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+        }
+        yield state;
+      }
+
+      case JArraySubscriptExpression arrayExpression -> {
+        ExpressionValueVisitor evv = getVisitor();
+
+        ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
+        Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
+
+        if (arrayToChange == null || maybeIndex.isUnknown()) {
+          assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
+
+        } else {
+          long concreteIndex = ((NumericValue) maybeIndex).longValue();
+
+          final int arraySize = arrayToChange.getArraySize();
+          if (concreteIndex < 0 || concreteIndex >= arraySize) {
+            final JArrayType arrayType = arrayToChange.getArrayType();
+            throw new UnrecognizedCodeException(
+                "Invalid index "
+                    + concreteIndex
+                    + " for array type "
+                    + arrayType
+                    + "with array size "
+                    + arraySize,
+                cfaEdge);
+          }
+
+          // changes array value in old state
+          handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
+          yield ValueAnalysisState.copyOf(state);
+        }
+        yield state;
       }
       default ->
           throw new UnrecognizedCodeException(
               "left operand of assignment has to be a variable", cfaEdge, op1);
-    }
-
-    return state; // the default return-value is the old state
+    };
   }
 
   private boolean isTrackedType(Type pType) {

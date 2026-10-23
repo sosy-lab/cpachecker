@@ -1280,11 +1280,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       boolean flippedThenElse,
       Set<CFANode> pInnerNodes) {
 
-    // unwrap (a)
     return switch (condition) {
+      // unwrap (a)
       case IASTUnaryExpression iASTUnaryExpression
           when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary ->
-          // !a --> switch branches
           buildConditionTree(
               pRawSignature,
               iASTUnaryExpression.getOperand(),
@@ -1298,6 +1297,8 @@ class CFAFunctionBuilder extends ASTVisitor {
               true,
               flippedThenElse,
               pInnerNodes);
+
+      // !a --> switch branches
       case IASTUnaryExpression iASTUnaryExpression
           when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_not -> {
         buildConditionTree(
@@ -1314,14 +1315,13 @@ class CFAFunctionBuilder extends ASTVisitor {
             !flippedThenElse,
             pInnerNodes);
         yield Optional.empty();
-
-        // a && b
       }
+
+      // a && b
       case IASTBinaryExpression iASTBinaryExpression
           when iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalAnd -> {
         // This case is not necessary,
-        // but it prevents the need for a temporary variable in the common case of
-        // "if (a && b)"
+        // but it prevents the need for a temporary variable in the common case of "if (a && b)"
         CFANode innerNode = newCFANode();
         pInnerNodes.add(innerNode);
         buildConditionTree(
@@ -1351,14 +1351,13 @@ class CFAFunctionBuilder extends ASTVisitor {
             flippedThenElse,
             pInnerNodes);
         yield Optional.empty();
-
-        // a || b
       }
+
+      // a || b
       case IASTBinaryExpression iASTBinaryExpression
           when iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalOr -> {
         // This case is not necessary,
-        // but it prevents the need for a temporary variable in the common case of
-        // "if (a || b)"
+        // but it prevents the need for a temporary variable in the common case of "if (a || b)"
         CFANode innerNode = newCFANode();
         pInnerNodes.add(innerNode);
         buildConditionTree(
@@ -1388,9 +1387,9 @@ class CFAFunctionBuilder extends ASTVisitor {
             flippedThenElse,
             pInnerNodes);
         yield Optional.empty();
-
-        // plain condition
       }
+
+      // plain condition
       default ->
           Optional.of(
               buildConditionTreeLeaf(
