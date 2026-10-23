@@ -16,7 +16,20 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--no-output-files"/>
   <option name="--heap">11000M</option>
 
-  <rundefinition name="Overflow-Portfolio">
+  <!--
+  Generate the test-set definition file to validate the witnesses
+  produced by this test-set definition using ../util/generate_witness_validation_testdef.py
+  -->
+  <resultfiles>**/witness*.*</resultfiles>
+
+  <option name="--option">counterexample.export.graphml=witness.graphml</option>
+  <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
+  <option name="--option">cpa.arg.compressWitness=true</option>
+  <option name="--option">counterexample.export.compressWitness=true</option>
+  <option name="--option">counterexample.export.yaml=witness.yml</option>
+  <option name="--option">cpa.arg.yamlProofWitness=witness.yml</option>
+
+  <rundefinition>
     <option name="--overflowAnalysis"/>
   </rundefinition>
 
