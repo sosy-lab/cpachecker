@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,40 +47,30 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private AcslCPA(
       CFA pCFA, LogManager pLogManager, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    super("sep", "sep", null);
+    super("join", "join", null);
     this.cfa = pCFA;
     this.logger = pLogManager;
     solver = Solver.create(pConfig, this.logger, pShutdownNotifier);
     this.fmgr = solver.getFormulaManager();
-    initializeConverters(fmgr, this.logger, pConfig, pShutdownNotifier, pCFA.getMachineModel());
-    logger.log(Level.INFO, "AcslCPA created.");
-  }
-
-  private void initializeConverters(
-      FormulaManagerView pFormulaManager,
-      LogManager pLogger,
-      Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier,
-      MachineModel pMachineModel)
-      throws InvalidConfigurationException {
+    MachineModel machineModel = pCFA.getMachineModel();
 
     CFormulaEncodingWithPointerAliasingOptions options =
         new CFormulaEncodingWithPointerAliasingOptions(pConfig);
     TypeHandlerWithPointerAliasing typeHandler =
-        new TypeHandlerWithPointerAliasing(logger, pMachineModel, options);
+        new TypeHandlerWithPointerAliasing(logger, machineModel, options);
 
     converter =
         new CToFormulaConverterWithPointerAliasing(
             options,
-            pFormulaManager,
-            pMachineModel,
+            fmgr,
+            machineModel,
             Optional.empty(),
-            pLogger,
+            this.logger,
             pShutdownNotifier,
             typeHandler,
             AnalysisDirection.FORWARD);
 
-    formulaConverter = new FormulaToAcslConverter(pFormulaManager, cfa.getMachineModel());
+    formulaConverter = new FormulaToAcslConverter(fmgr, cfa.getMachineModel());
   }
 
   public static CPAFactory factory() {

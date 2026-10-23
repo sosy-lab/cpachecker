@@ -54,7 +54,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     logger.log(
         logLevel, "[ACSL] Transfer: " + cfaEdge.getPredecessor() + " -> " + cfaEdge.getSuccessor());
 
-    if (cfaEdge.getSuccessor().isLoopStart()) {
+    if (cfa.getAllLoopHeads().get().contains(cfaEdge.getSuccessor())) {
       // TODO
     }
     return ImmutableList.of(state);

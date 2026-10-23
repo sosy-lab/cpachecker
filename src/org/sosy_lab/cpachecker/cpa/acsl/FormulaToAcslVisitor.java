@@ -151,18 +151,14 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
   @Override
   public Formula visitConstant(Formula f, Object value) {
-    AcslAstNode result;
-
-    if (value instanceof Boolean b) {
-      result = new AcslBooleanLiteralPredicate(DUMMY_LOC, b);
-    } else if (value instanceof BigInteger i) {
-      result = new AcslIntegerLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.INTEGER, i);
-    } else if (value instanceof BigDecimal d) {
-      result = new AcslRealLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.REAL, d);
-    } else {
-      throw new UnsupportedOperationException(
+    AcslAstNode result = switch (value) {
+      case Boolean b -> new AcslBooleanLiteralPredicate(DUMMY_LOC, b);
+      case BigInteger i -> new AcslIntegerLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.INTEGER, i);
+      case BigDecimal d -> new AcslRealLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.REAL, d);
+      default -> throw new UnsupportedOperationException(
           "Unsupported constant in SMT formula: " + value + " (" + value.getClass() + ")");
-    }
+    };
+
     cache.put(f, result);
     return f;
   }
@@ -179,23 +175,10 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
                   getPredicate(newArgs.getFirst()),
                   AcslUnaryPredicate.AcslUnaryExpressionOperator.NEGATION);
           case AND ->
-              new AcslBinaryPredicate(
-                  DUMMY_LOC,
-                  getPredicate(newArgs.get(0)),
-                  getPredicate(newArgs.get(1)),
-                  AcslBinaryPredicate.AcslBinaryPredicateOperator.AND);
+              makeBinaryPredicate(newArgs, AcslBinaryPredicate.AcslBinaryPredicateOperator.AND);
           case OR ->
-              new AcslBinaryPredicate(
-                  DUMMY_LOC,
-                  getPredicate(newArgs.get(0)),
-                  getPredicate(newArgs.get(1)),
-                  AcslBinaryPredicate.AcslBinaryPredicateOperator.OR);
-          case IMPLIES ->
-              new AcslBinaryPredicate(
-                  DUMMY_LOC,
-                  getPredicate(newArgs.get(0)),
-                  getPredicate(newArgs.get(1)),
-                  AcslBinaryPredicateOperator.IMPLICATION);
+              makeBinaryPredicate(newArgs, AcslBinaryPredicate.AcslBinaryPredicateOperator.OR);
+          case IMPLIES -> makeBinaryPredicate(newArgs, AcslBinaryPredicateOperator.IMPLICATION);
 
           case UMINUS, BV_NEG, FP_NEG ->
               new AcslUnaryTerm(
@@ -229,19 +212,19 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
           case BV_SHL -> makeBinaryTerm(f, newArgs, AcslBinaryTermOperator.SHIFT_LEFT);
 
           case EQ, BV_EQ, FP_EQ ->
-              makeBinaryPredicate(
+              makeBinaryTermPredicate(
                   newArgs, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.EQUALS);
           case LT, BV_SLT, BV_ULT, FP_LT ->
-              makeBinaryPredicate(
+              makeBinaryTermPredicate(
                   newArgs, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.LESS_THAN);
           case LTE, BV_SLE, BV_ULE, FP_LE ->
-              makeBinaryPredicate(
+              makeBinaryTermPredicate(
                   newArgs, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.LESS_EQUAL);
           case GT, BV_SGT, BV_UGT, FP_GT ->
-              makeBinaryPredicate(
+              makeBinaryTermPredicate(
                   newArgs, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.GREATER_THAN);
           case GTE, BV_SGE, BV_UGE, FP_GE ->
-              makeBinaryPredicate(
+              makeBinaryTermPredicate(
                   newArgs, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator.GREATER_EQUAL);
 
           case EQ_ZERO -> makeEqualsZero(newArgs.getFirst());
@@ -301,7 +284,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
         }
       }
     }
-    return pTerm; // now simplification possible
+    return pTerm; // no simplification possible
   }
 
   /**
@@ -339,7 +322,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
         DUMMY_LOC, getAcslType(f), getTerm(args.get(0)), getTerm(args.get(1)), operator);
   }
 
-  private AcslPredicate makeBinaryPredicate(
+  private AcslPredicate makeBinaryTermPredicate(
       List<Formula> args, AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator operator) {
 
     // Special case: for array store we see formulas like (= *int@x (store ...)) where store itself
@@ -352,6 +335,12 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
     return new AcslBinaryTermPredicate(
         DUMMY_LOC, getTerm(args.get(0)), getTerm(args.get(1)), operator);
+  }
+
+  private AcslPredicate makeBinaryPredicate(
+      List<Formula> args, AcslBinaryPredicate.AcslBinaryPredicateOperator operator) {
+    return new AcslBinaryPredicate(
+        DUMMY_LOC, getPredicate(args.get(0)), getPredicate(args.get(1)), operator);
   }
 
   private AcslPredicate makeEqualsZero(Formula operand) {
