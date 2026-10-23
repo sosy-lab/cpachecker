@@ -83,6 +83,15 @@ public class DssDecompositionOptions {
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path importDecomposition = null;
 
+  @Option(
+      description =
+          "Whether INLINING_DECOMPOSITION encodes the call stack of a block copy into its ID."
+              + " Keeping it makes IDs human-readable for debugging, at the cost of long,"
+              + " repeated ID strings on large block graphs; nothing in the analysis depends on"
+              + " the ID's content, only on its uniqueness.",
+      secure = true)
+  private boolean keepCallStackInBlockIds = false;
+
   private final BlockOperator blockOperator;
 
   public DssDecompositionOptions(Configuration pConfiguration, CFA pCFA)
@@ -118,7 +127,8 @@ public class DssDecompositionOptions {
               true);
       case INLINING_DECOMPOSITION ->
           new MergeBlockNodesDecomposition(
-              new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd)),
+              new InliningDecomposition(
+                  new LinearBlockNodeDecomposition(isBlockEnd), keepCallStackInBlockIds),
               2,
               largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),

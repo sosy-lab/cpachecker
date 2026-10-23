@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -186,7 +185,6 @@ public class BlockGraph {
         .forEach(
             n -> {
               Map<String, Object> attributes = new HashMap<>();
-              attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
               attributes.put("predecessors", ImmutableList.copyOf(n.getPredecessorIds()));
               attributes.put("successors", ImmutableList.copyOf(n.getSuccessorIds()));
               attributes.put(

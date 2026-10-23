@@ -14,9 +14,12 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,10 +35,31 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 
 public class InliningDecomposition implements DssBlockDecomposition {
 
-  private DssBlockDecomposition childDecomposition;
+  /**
+   * Assigns a short, arbitrary ID to every distinct call-stack-suffixed ID it sees, in first-seen
+   * order. Used in place of the verbose call-stack-encoded ID when {@code keepCallStackInBlockIds}
+   * is {@code false}: the ID's content is never read back by anything, only its uniqueness matters,
+   * so interning it this way avoids ever storing the (often long) call-stack-derived string.
+   */
+  private static final class BlockIdInterner {
+    private final Map<String, String> shortIdOf = new LinkedHashMap<>();
+
+    String intern(String pVerboseId) {
+      return shortIdOf.computeIfAbsent(pVerboseId, unused -> Integer.toString(shortIdOf.size()));
+    }
+  }
+
+  private final DssBlockDecomposition childDecomposition;
+  private final boolean keepCallStackInBlockIds;
 
   public InliningDecomposition(DssBlockDecomposition pChildDecomposition) {
+    this(pChildDecomposition, true);
+  }
+
+  public InliningDecomposition(
+      DssBlockDecomposition pChildDecomposition, boolean pKeepCallStackInBlockIds) {
     childDecomposition = pChildDecomposition;
+    keepCallStackInBlockIds = pKeepCallStackInBlockIds;
   }
 
   @Override
@@ -47,19 +71,24 @@ public class InliningDecomposition implements DssBlockDecomposition {
 
     Multimap<FunctionSCC, CallStack> callStacks = sccGraph.findCallStacks();
 
-    ImmutableSet<BlockNode> nodes = copyNodesWithCallStacks(callStacks);
+    BlockIdInterner interner = keepCallStackInBlockIds ? null : new BlockIdInterner();
+    ImmutableSet<BlockNode> nodes = copyNodesWithCallStacks(callStacks, interner);
 
     BlockGraph inlined = new BlockGraph(nodes);
 
     return inlined;
   }
 
+  private String blockId(@Nullable BlockIdInterner pInterner, String pVerboseId) {
+    return pInterner == null ? pVerboseId : pInterner.intern(pVerboseId);
+  }
+
   private ImmutableSet<@NonNull BlockNode> copyNodesWithCallStacks(
-      Multimap<FunctionSCC, CallStack> pCallStacks) {
+      Multimap<FunctionSCC, CallStack> pCallStacks, @Nullable BlockIdInterner pInterner) {
     ImmutableSet.Builder<BlockNode> blocks = ImmutableSet.builder();
 
     for (Entry<FunctionSCC, CallStack> entry : pCallStacks.entries()) {
-      blocks.addAll(mapBlocksWithCallStack(entry.getKey(), entry.getValue()));
+      blocks.addAll(mapBlocksWithCallStack(entry.getKey(), entry.getValue(), pInterner));
     }
 
     return blocks.build();
@@ -70,7 +99,8 @@ public class InliningDecomposition implements DssBlockDecomposition {
    *
    * <p>Besides the own ID, the successors and predecessors are also adjusted correctly.
    */
-  private Iterable<BlockNode> mapBlocksWithCallStack(FunctionSCC scc, CallStack stack) {
+  private Iterable<BlockNode> mapBlocksWithCallStack(
+      FunctionSCC scc, CallStack stack, @Nullable BlockIdInterner interner) {
 
     CallStack previousStack = stack.pop();
 
@@ -94,17 +124,19 @@ public class InliningDecomposition implements DssBlockDecomposition {
             node -> {
               Predicate<String> successorFilter = successorFilter(idsInScc, returnBlockId, node);
 
-              Function<String, String> succMapper = successorMapper(scc, node, idsInScc, stack);
+              Function<String, String> succMapper =
+                  successorMapper(scc, node, idsInScc, stack, interner);
 
               Predicate<String> predecessorFilter =
                   predecessorFilter(node, idsInScc, callingBlockId);
 
               Function<String, String> predMapper =
-                  predecessorMapper(scc, node, idsInScc, callingBlockId, stack, previousStack);
+                  predecessorMapper(
+                      scc, node, idsInScc, callingBlockId, stack, previousStack, interner);
 
               return copyWithMappedBlockIds(
                   node,
-                  stack::toStringWithBlockId,
+                  id -> blockId(interner, stack.toStringWithBlockId(id)),
                   predecessorFilter,
                   predMapper,
                   successorFilter,
@@ -159,7 +191,11 @@ public class InliningDecomposition implements DssBlockDecomposition {
    * @return a function that adds the correct stack suffix to the successor ids
    */
   private Function<String, String> successorMapper(
-      FunctionSCC scc, BlockNode node, Set<String> idsInScc, CallStack stack) {
+      FunctionSCC scc,
+      BlockNode node,
+      Set<String> idsInScc,
+      CallStack stack,
+      @Nullable BlockIdInterner interner) {
 
     FunctionSCC callingSCC = stack.getLastCallScc();
     var blocksInCallingSCC =
@@ -171,15 +207,15 @@ public class InliningDecomposition implements DssBlockDecomposition {
 
     return s -> {
       if (idsInScc.contains(s)) {
-        return stack.toStringWithBlockId(s);
+        return blockId(interner, stack.toStringWithBlockId(s));
       } else {
         if (blocksInCallingSCC.contains(s)) {
           // The block is in the SCC that called into the current SCC
           // -> This is a return from this SCC -> successor has less stack
-          return stack.pop().toStringWithBlockId(s);
+          return blockId(interner, stack.pop().toStringWithBlockId(s));
         }
         // This is a call to outside this SCC -> successor has additional stack
-        return stack.addCall(scc, node).toStringWithBlockId(s);
+        return blockId(interner, stack.addCall(scc, node).toStringWithBlockId(s));
       }
     };
   }
@@ -203,13 +239,14 @@ public class InliningDecomposition implements DssBlockDecomposition {
       Set<String> idsInScc,
       String callingBlockId,
       CallStack stack,
-      CallStack previousStack) {
+      CallStack previousStack,
+      @Nullable BlockIdInterner interner) {
     return s -> {
       if (idsInScc.contains(s)) {
-        return stack.toStringWithBlockId(s);
+        return blockId(interner, stack.toStringWithBlockId(s));
       } else {
         if (s.equals(callingBlockId)) {
-          return previousStack.toStringWithBlockId(s);
+          return blockId(interner, previousStack.toStringWithBlockId(s));
         } else {
           // This is a return from a call to outside this SCC, everything else should
           // be filtered out.
@@ -218,7 +255,7 @@ public class InliningDecomposition implements DssBlockDecomposition {
           CFANode exitNode = node.getInitialLocation();
           BlockNode callBlock = getCallBlockForExitNode(scc, node, exitNode);
 
-          return stack.addCall(scc, callBlock).toStringWithBlockId(s);
+          return blockId(interner, stack.addCall(scc, callBlock).toStringWithBlockId(s));
         }
       }
     };
