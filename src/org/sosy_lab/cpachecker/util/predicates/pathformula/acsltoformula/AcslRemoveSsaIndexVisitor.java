@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
@@ -27,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
@@ -48,14 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class AcslRemoveSsaIndexVisitor
@@ -82,7 +71,8 @@ public class AcslRemoveSsaIndexVisitor
   @Override
   public AcslPredicate visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
     AcslSimpleDeclaration declaration = renameDeclaration(pAcslIdPredicate.getDeclaration());
-    return new AcslIdPredicate(pAcslIdPredicate.getFileLocation(), (AcslPredicateDeclaration) declaration);
+    return new AcslIdPredicate(
+        pAcslIdPredicate.getFileLocation(), (AcslPredicateDeclaration) declaration);
   }
 
   @Override
@@ -246,7 +236,7 @@ public class AcslRemoveSsaIndexVisitor
   @Override
   public AcslTerm visit(AcslCExpression pAcslCExpression) {
     return pAcslCExpression; // For now, we don't rename C expressions, but we could implement this
-                             // if needed
+    // if needed
   }
 
   private String removeSsaIndex(String name) {
@@ -278,7 +268,7 @@ public class AcslRemoveSsaIndexVisitor
               qualName);
         } else if (declaration instanceof AcslCVariableDeclaration) {
           return declaration; // For now, we don't rename C variable declarations, but we could
-                              // implement this if needed
+          // implement this if needed
         } else if (declaration instanceof AcslPredicateDeclaration aPredDecl) {
           String origName = removeSsaIndex(aPredDecl.getOrigName());
           return new AcslPredicateDeclaration(
