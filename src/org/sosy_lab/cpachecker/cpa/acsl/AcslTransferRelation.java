@@ -15,6 +15,9 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -93,7 +96,11 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
 
           if (detected.isPresent()) {
             ArrayInitialization init = detected.get();
-            logger.log(logLevel, "SUCCESS: Detected array initialization: " + init);
+            logger.log(Level.INFO, "SUCCESS: Detected array initialization: " + init);
+
+            CProgramScope scope = new CProgramScope(cfa, logger);
+            AcslPredicate inv = detected.get().toInvariant(scope, FileLocation.DUMMY, logger);
+            logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
 
             if (updatedState instanceof AcslState acslState) {
               updatedState = acslState.withAddedInvariant(cfaEdge.getSuccessor(), init);

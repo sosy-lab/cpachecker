@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
 public interface AcslInvariantProvider {
-  public AcslPredicate toInvariant();
+  public AcslPredicate toInvariant(CProgramScope pScope, FileLocation pLoc, LogManager pLog);
 }
