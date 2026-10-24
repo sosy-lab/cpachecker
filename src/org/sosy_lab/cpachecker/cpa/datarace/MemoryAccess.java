@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 class MemoryAccess {
 
@@ -57,6 +58,14 @@ class MemoryAccess {
 
   boolean isOverapproximating() {
     return memoryLocation.isAmbiguous() || !memoryLocation.isPrecise();
+  }
+
+  boolean mayBePointedTo() {
+    return memoryLocation.mayBePointedTo();
+  }
+
+  CType getType() {
+    return memoryLocation.getType();
   }
 
   boolean memoryLocationIsAtomic() {

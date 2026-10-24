@@ -9,7 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Set;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,17 +27,28 @@ public class DataRaceCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(DataRaceCPA.class);
   }
 
-  private DataRaceCPA() {
+  private final MachineModel machineModel;
+  private final Set<String> addressedVariables;
+
+  private DataRaceCPA(CFA pCfa) throws InvalidConfigurationException {
     // TODO: Stop always is sound if DataRaceCPA is used together with ThreadingCPA (as it should)
     //       and prevents exploding reached set due to not stopping.
     //       However, we might be able to switch to stop sep if the tracked memory accesses in each
     //       DataRaceState are further reduced.
     super("sep", "always", null);
+    machineModel = pCfa.getMachineModel();
+    addressedVariables =
+        pCfa.getVarClassification()
+            .orElseThrow(
+                () ->
+                    new InvalidConfigurationException(
+                        "DataRaceCPA needs the variable classification of the CFA"))
+            .getAddressedVariables();
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new DataRaceTransferRelation();
+    return new DataRaceTransferRelation(machineModel, addressedVariables);
   }
 
   @Override

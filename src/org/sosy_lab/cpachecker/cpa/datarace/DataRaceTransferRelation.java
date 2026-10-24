@@ -24,6 +24,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,7 +37,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
-  private final MemoryAccessExtractor memoryAccessExtractor = new MemoryAccessExtractor();
+  private final MemoryAccessExtractor memoryAccessExtractor;
+  private final MachineModel machineModel;
+
+  DataRaceTransferRelation(MachineModel pMachineModel, Set<String> pAddressedVariables) {
+    machineModel = pMachineModel;
+    memoryAccessExtractor = new MemoryAccessExtractor(pAddressedVariables);
+  }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -101,11 +110,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     Set<MemoryAccess> newMemoryAccesses =
         memoryAccessExtractor.getNewAccesses(
             threadInfo.get(activeThread), cfaEdge, activeThreadLocks);
-    for (MemoryAccess newAccess : newMemoryAccesses) {
-      if (newAccess.isOverapproximating()) {
-        throw new CPATransferException("DataRaceCPA does not support pointer analysis");
-      }
-    }
 
     // Update tracked memory accesses
     ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
@@ -145,6 +149,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
     // Determine whether any of the new accesses constitutes a data race
     boolean hasDataRace = state.hasDataRace();
+    boolean hasConflictThroughPointer = false;
     Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
     for (MemoryAccess access : memoryAccessBuilder.build()) {
       if (hasDataRace) {
@@ -158,8 +163,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
 
       for (MemoryAccess newAccess : newMemoryAccesses) {
-        if (access.mightAccessSameLocationAs(newAccess)
-            && (access.isWrite() || newAccess.isWrite())
+        boolean bothPrecise = !access.isOverapproximating() && !newAccess.isOverapproximating();
+        if ((access.isWrite() || newAccess.isWrite())
+            && (bothPrecise
+                ? access.mightAccessSameLocationAs(newAccess)
+                : mayOverlap(access, newAccess))
             && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
             && !access.happensBefore(newAccess, threadSynchronizations)
             && !(newAccess.memoryLocationIsAtomic() && access.memoryLocationIsAtomic())) {
@@ -170,10 +178,16 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           // Two conflicting accesses constitute a data race unless:
           //   - Both accesses are performed through atomic operations, or
           //   - One access happens-before the other
-          hasDataRace = true;
-          break;
+          if (bothPrecise) {
+            hasDataRace = true;
+            break;
+          }
+          hasConflictThroughPointer = true;
         }
       }
+    }
+    if (!hasDataRace && hasConflictThroughPointer) {
+      throw new CPATransferException("DataRaceCPA does not support pointer analysis");
     }
 
     return ImmutableSet.of(
@@ -185,6 +199,27 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
             heldLocks,
             lastReleases,
             hasDataRace));
+  }
+
+  /**
+   * Checks whether two accesses, of which at least one is through a pointer, may overlap. A
+   * variable whose address is never taken can not be accessed through a pointer. By the
+   * strict-aliasing rule, scalars of different sizes do not overlap unless one of them is a
+   * character.
+   */
+  private boolean mayOverlap(MemoryAccess pAccess1, MemoryAccess pAccess2) {
+    if (!pAccess1.mayBePointedTo() || !pAccess2.mayBePointedTo()) {
+      return false;
+    }
+    CType type1 = pAccess1.getType();
+    CType type2 = pAccess2.getType();
+    if (CTypes.isCharacterType(type1)
+        || CTypes.isCharacterType(type2)
+        || !CTypes.isScalarType(type1)
+        || !CTypes.isScalarType(type2)) {
+      return true;
+    }
+    return machineModel.getSizeof(type1).equals(machineModel.getSizeof(type2));
   }
 
   private static Set<MemoryAccess> determineSuccessorAccessedMemoryLocations(

@@ -21,21 +21,28 @@ public class OverapproximatingMemoryLocation {
   private final CType type;
   private final boolean isAmbiguous;
   private final boolean isPrecise;
+  // Whether a pointer may point to this location, i.e., its address is taken or it is an array
+  private final boolean mayBePointedTo;
 
   /**
    * Create an {@link OverapproximatingMemoryLocation} that may represent any memory location of the
    * given type.
    */
   public OverapproximatingMemoryLocation(CType pType) {
-    this(ImmutableSet.of(), pType, true, false);
+    this(ImmutableSet.of(), pType, true, false, true);
   }
 
   public OverapproximatingMemoryLocation(
-      Set<MemoryLocation> pMemoryLocations, CType pType, boolean pIsAmbiguous, boolean pIsPrecise) {
+      Set<MemoryLocation> pMemoryLocations,
+      CType pType,
+      boolean pIsAmbiguous,
+      boolean pIsPrecise,
+      boolean pMayBePointedTo) {
     memoryLocations = ImmutableSet.copyOf(pMemoryLocations);
     type = pType;
     isAmbiguous = pIsAmbiguous;
     isPrecise = pIsPrecise;
+    mayBePointedTo = pMayBePointedTo;
   }
 
   public Set<MemoryLocation> getMemoryLocations() {
@@ -52,6 +59,10 @@ public class OverapproximatingMemoryLocation {
 
   public boolean isPrecise() {
     return isPrecise;
+  }
+
+  public boolean mayBePointedTo() {
+    return mayBePointedTo;
   }
 
   @Override
