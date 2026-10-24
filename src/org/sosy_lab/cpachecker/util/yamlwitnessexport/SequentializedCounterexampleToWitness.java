@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationMapping;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationMapping.BlockOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -200,9 +201,11 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
       rSteps.add(step.orElseThrow());
       if (pWithAssumptions) {
         // exactly one constraint per step, so that the indices of repeated edges stay aligned
+        CFAEdge originalEdge = step.orElseThrow().edge();
         rAssumptions.put(
-            step.orElseThrow().edge(),
-            projectAssumptions(assumptionsMatchPath ? assumptions.get(i) : null));
+            originalEdge,
+            projectAssumptions(
+                assumptionsMatchPath ? assumptions.get(i) : null, originalEdge.getSuccessor()));
       }
     }
     return new ProjectedCounterexample(
@@ -287,7 +290,8 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
    * Returns the constraints of a single step, expressed over the variables of the input program.
    * Constraints that talk about variables without a counterpart in the input program are dropped.
    */
-  private String projectAssumptions(@Nullable CFAEdgeWithAssumptions pEdgeWithAssumptions) {
+  private String projectAssumptions(
+      @Nullable CFAEdgeWithAssumptions pEdgeWithAssumptions, CFANode pNodeAfterEdge) {
     FluentIterable<CExpression> assumptions =
         pEdgeWithAssumptions == null
             ? FluentIterable.of()
@@ -295,7 +299,7 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
                 .transform(this::toOriginalVocabulary)
                 .filter(Optional::isPresent)
                 .transform(Optional::orElseThrow);
-    return buildAssumptionConstraint(assumptions);
+    return buildAssumptionConstraint(assumptions, pNodeAfterEdge);
   }
 
   /**

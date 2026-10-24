@@ -609,8 +609,8 @@ class ASTConverter {
    */
   private Condition getConditionKind(IASTExpression exp) {
     if (exp instanceof IASTBinaryExpression binExp
-        && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
-            || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
+        && (binExp.getOperator() == IASTBinaryExpression.op_logicalAnd
+            || binExp.getOperator() == IASTBinaryExpression.op_logicalOr)) {
       return switch (binExp.getOperator()) {
         case IASTBinaryExpression.op_logicalAnd -> {
           Condition left = getConditionKind(binExp.getOperand1());
