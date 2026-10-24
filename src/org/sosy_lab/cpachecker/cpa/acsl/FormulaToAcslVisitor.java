@@ -151,13 +151,16 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
   @Override
   public Formula visitConstant(Formula f, Object value) {
-    AcslAstNode result = switch (value) {
-      case Boolean b -> new AcslBooleanLiteralPredicate(DUMMY_LOC, b);
-      case BigInteger i -> new AcslIntegerLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.INTEGER, i);
-      case BigDecimal d -> new AcslRealLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.REAL, d);
-      default -> throw new UnsupportedOperationException(
-          "Unsupported constant in SMT formula: " + value + " (" + value.getClass() + ")");
-    };
+    AcslAstNode result =
+        switch (value) {
+          case Boolean b -> new AcslBooleanLiteralPredicate(DUMMY_LOC, b);
+          case BigInteger i ->
+              new AcslIntegerLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.INTEGER, i);
+          case BigDecimal d -> new AcslRealLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.REAL, d);
+          default ->
+              throw new UnsupportedOperationException(
+                  "Unsupported constant in SMT formula: " + value + " (" + value.getClass() + ")");
+        };
 
     cache.put(f, result);
     return f;
