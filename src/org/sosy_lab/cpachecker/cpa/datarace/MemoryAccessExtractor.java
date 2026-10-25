@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -221,10 +222,9 @@ public class MemoryAccessExtractor {
           when declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration ->
           ImmutableSet.of(MemoryLocation.fromQualifiedName(declaration.getQualifiedName()));
       case FunctionCallEdge functionCallEdge ->
-          FluentIterable.from(functionCallEdge.getSuccessor().getFunctionParameters())
-              .transform(
-                  parameter -> MemoryLocation.fromQualifiedName(parameter.getQualifiedName()))
-              .toSet();
+          transformedImmutableSetCopy(
+              functionCallEdge.getSuccessor().getFunctionParameters(),
+              parameter -> MemoryLocation.fromQualifiedName(parameter.getQualifiedName()));
       case FunctionReturnEdge functionReturnEdge
           when functionReturnEdge.getSummaryEdge().getExpression()
               instanceof AFunctionCallAssignmentStatement assignment ->

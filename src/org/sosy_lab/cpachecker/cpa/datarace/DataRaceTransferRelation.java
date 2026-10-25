@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -133,11 +136,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     // Collect new accesses
     Set<MemoryLocation> changedVariables = memoryAccessExtractor.getChangedVariables(cfaEdge);
     Set<MemoryAccess> newMemoryAccesses =
-        FluentIterable.from(
-                memoryAccessExtractor.getNewAccesses(
-                    threadInfo.get(activeThread), cfaEdge, activeThreadLocks))
-            .transform(access -> access.withChangedVariables(changedVariables))
-            .toSet();
+        transformedImmutableSetCopy(
+            memoryAccessExtractor.getNewAccesses(
+                threadInfo.get(activeThread), cfaEdge, activeThreadLocks),
+            access -> access.withChangedVariables(changedVariables));
 
     // Update tracked memory accesses
     ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
@@ -351,15 +353,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   private static List<CExpression> getDereferencedPointers(CExpression pExpression) {
     return switch (pExpression) {
       case CPointerExpression pointerExpression ->
-          ImmutableList.<CExpression>builder()
-              .add(pointerExpression.getOperand())
-              .addAll(getDereferencedPointers(pointerExpression.getOperand()))
-              .build();
+          elementAndList(
+              pointerExpression.getOperand(),
+              getDereferencedPointers(pointerExpression.getOperand()));
       case CFieldReference fieldRef when fieldRef.isPointerDereference() ->
-          ImmutableList.<CExpression>builder()
-              .add(fieldRef.getFieldOwner())
-              .addAll(getDereferencedPointers(fieldRef.getFieldOwner()))
-              .build();
+          elementAndList(
+              fieldRef.getFieldOwner(), getDereferencedPointers(fieldRef.getFieldOwner()));
       case CFieldReference fieldRef -> getDereferencedPointers(fieldRef.getFieldOwner());
       case CArraySubscriptExpression subscript -> {
         ImmutableList.Builder<CExpression> pointers = ImmutableList.builder();
