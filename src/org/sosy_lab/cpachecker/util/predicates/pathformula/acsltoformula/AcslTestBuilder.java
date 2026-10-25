@@ -82,6 +82,10 @@ public class AcslTestBuilder {
     return binaryTerm(left, right, type, AcslBinaryTermOperator.MULTIPLY);
   }
 
+  public AcslTerm divide(AcslTerm left, AcslTerm right) {
+    return binaryTerm(left, right, DEFAULT_TYPE, AcslBinaryTermOperator.DIVIDE);
+  }
+
   public AcslTerm unaryMinus(AcslTerm term) {
     return new AcslUnaryTerm(DUMMY_LOC, DEFAULT_TYPE, term, AcslUnaryTermOperator.MINUS);
   }
