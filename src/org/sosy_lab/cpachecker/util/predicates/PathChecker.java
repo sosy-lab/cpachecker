@@ -135,7 +135,7 @@ public class PathChecker {
     pmgr = pPmgr;
     solver = pSolver;
     assignmentToPathAllocator = pAssignmentToPathAllocator;
-    pConfig.inject(this);
+    pConfig.inject(this, PathChecker.class);
   }
 
   /**
@@ -301,7 +301,7 @@ public class PathChecker {
    * @param pPath calculate the precise list of SSAMaps for this path.
    * @return the PathFormula and the precise list of SSAMaps for the given path.
    */
-  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
+  protected Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());

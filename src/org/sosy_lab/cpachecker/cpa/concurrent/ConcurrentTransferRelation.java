@@ -691,6 +691,40 @@ public class ConcurrentTransferRelation implements TransferRelation {
         "", FileLocation.DUMMY, edge.getPredecessor(), edge.getSuccessor(), identity, true);
   }
 
+  /**
+   * Recreates thread identity and initialization constraints for concrete counterexample replay.
+   */
+  List<CFAEdge> getBookkeepingEdges(ConcurrentState parent, ConcurrentState child, CFAEdge edge)
+      throws CPATransferException {
+    List<CFAEdge> edges = new ArrayList<>();
+    Optional<String> name = calledFunctionName(edge);
+    if (name.isEmpty()) {
+      return edges;
+    }
+    List<? extends AExpression> params = callParameters(edge);
+    if (ThreadFunctions.isCreateFunction(name.orElseThrow())) {
+      int newPid = parent.threads().size();
+      edges.add(writeThreadHandleEdge((CExpression) params.getFirst(), newPid, edge));
+      threadArgumentInitEdge(
+              ThreadFunctions.extractCreateFunctionName(params),
+              (CExpression) params.get(3),
+              newPid,
+              edge)
+          .ifPresent(edges::add);
+      for (CVariableDeclaration declaration : threadLocalGlobals) {
+        edges.add(threadLocalInitEdge(declaration, newPid, edge));
+      }
+    } else if (ThreadFunctions.isJoinFunction(name.orElseThrow())) {
+      CExpression handle = (CExpression) params.getFirst();
+      for (int pid : parent.livePids()) {
+        if (!child.livePids().contains(pid)) {
+          edges.add(assumeThreadHandleEqualsEdge(handle, pid, edge));
+        }
+      }
+    }
+    return edges;
+  }
+
   ConcurrentState initial(AbstractState wrappedInitialState) throws InterruptedException {
     return addNewThreadNode(
         por.emptyState(wrappedInitialState, cfa, logger, random), false, "main", Optional.empty());
