@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @SuppressWarnings("unused")
@@ -35,6 +37,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
   private final LoopPatternFinder loopPatternFinder;
   private final FormulaToAcslConverter formulaConverter;
   private final FormulaManagerView fmgr;
+  private final boolean hasNestedLoop;
   private final Level logLevel = Level.FINER; // TODO change this to INFO while debugging
 
   public AcslTransferRelation(
@@ -47,6 +50,14 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     this.loopPatternFinder = new LoopPatternFinder(logger, pFormulaConverter);
     this.formulaConverter = pFormulaConverter;
     this.fmgr = pFmgr;
+    if (cfa.getLoopStructure().isEmpty()) {
+      this.logger.log(
+          Level.WARNING,
+          "Could not retrieve loop structure to determine if ACSL invariants can be generated.");
+      this.hasNestedLoop = false;
+    } else {
+      this.hasNestedLoop = hasNestedLoops(cfa.getLoopStructure().get());
+    }
   }
 
   @Override
@@ -71,9 +82,9 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       Precision precision)
       throws CPATransferException, InterruptedException {
 
-    if (cfa.getAllLoopHeads().isEmpty() || cfa.getAllLoopHeads().get().size() > 1) {
+    if (hasNestedLoop) {
       logger.log(
-          Level.INFO, "Generating ACSL Loop invariants with number of loop heads != 1 impossible");
+          Level.INFO, "Generating ACSL Loop invariants with nested loops is not implemented.");
       return super.strengthen(state, otherStates, cfaEdge, precision);
     }
 
@@ -114,5 +125,21 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return super.strengthen(updatedState, otherStates, cfaEdge, precision);
+  }
+
+  private static boolean hasNestedLoops(LoopStructure loopStructure) {
+    ImmutableList<Loop> loops = ImmutableList.copyOf(loopStructure.getAllLoops());
+
+    for (int i = 0; i < loops.size(); i++) {
+      for (int j = i + 1; j < loops.size(); j++) {
+        Loop first = loops.get(i);
+        Loop second = loops.get(j);
+
+        if (first.isOuterLoopOf(second) || second.isOuterLoopOf(first)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
