@@ -171,7 +171,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private final CallstackCPA callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
-  private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
+  private final GlobalAccessChecker globalAccessChecker;
 
   public ThreadingTransferRelation(Configuration pConfig, CFA pCfa, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -180,6 +180,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
     logger = new LogManagerWithoutDuplicates(pLogger);
+    globalAccessChecker = new GlobalAccessChecker(pCfa);
   }
 
   @Override
