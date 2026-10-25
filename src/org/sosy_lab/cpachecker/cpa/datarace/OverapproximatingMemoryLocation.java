@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -23,13 +24,25 @@ public class OverapproximatingMemoryLocation {
   private final boolean isPrecise;
   // Whether a pointer may point to this location, i.e., its address is taken or it is an array
   private final boolean mayBePointedTo;
+  // The accessed lvalue
+  private final CExpression expression;
+  // The variables read to compute the address of an imprecise location
+  private final ImmutableSet<MemoryLocation> addressVariables;
 
   /**
-   * Create an {@link OverapproximatingMemoryLocation} that may represent any memory location of the
-   * given type.
+   * Create an {@link OverapproximatingMemoryLocation} for the given lvalue that may represent any
+   * memory location of its type.
    */
-  public OverapproximatingMemoryLocation(CType pType) {
-    this(ImmutableSet.of(), pType, true, false, true);
+  public OverapproximatingMemoryLocation(
+      CExpression pExpression, Set<MemoryLocation> pAddressVariables) {
+    this(
+        ImmutableSet.of(),
+        pExpression.getExpressionType(),
+        true,
+        false,
+        true,
+        pExpression,
+        pAddressVariables);
   }
 
   public OverapproximatingMemoryLocation(
@@ -37,12 +50,33 @@ public class OverapproximatingMemoryLocation {
       CType pType,
       boolean pIsAmbiguous,
       boolean pIsPrecise,
-      boolean pMayBePointedTo) {
+      boolean pMayBePointedTo,
+      CExpression pExpression) {
+    this(
+        pMemoryLocations,
+        pType,
+        pIsAmbiguous,
+        pIsPrecise,
+        pMayBePointedTo,
+        pExpression,
+        ImmutableSet.of());
+  }
+
+  private OverapproximatingMemoryLocation(
+      Set<MemoryLocation> pMemoryLocations,
+      CType pType,
+      boolean pIsAmbiguous,
+      boolean pIsPrecise,
+      boolean pMayBePointedTo,
+      CExpression pExpression,
+      Set<MemoryLocation> pAddressVariables) {
     memoryLocations = ImmutableSet.copyOf(pMemoryLocations);
     type = pType;
     isAmbiguous = pIsAmbiguous;
     isPrecise = pIsPrecise;
     mayBePointedTo = pMayBePointedTo;
+    expression = pExpression;
+    addressVariables = ImmutableSet.copyOf(pAddressVariables);
   }
 
   public Set<MemoryLocation> getMemoryLocations() {
@@ -63,6 +97,14 @@ public class OverapproximatingMemoryLocation {
 
   public boolean mayBePointedTo() {
     return mayBePointedTo;
+  }
+
+  public CExpression getExpression() {
+    return expression;
+  }
+
+  public Set<MemoryLocation> getAddressVariables() {
+    return addressVariables;
   }
 
   @Override

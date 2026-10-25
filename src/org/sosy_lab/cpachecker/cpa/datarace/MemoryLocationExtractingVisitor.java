@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -202,11 +203,11 @@ public class MemoryLocationExtractingVisitor
         String varName = fieldRef.getFieldName();
         CExpression owner = fieldRef.getFieldOwner();
         if (fieldRef.isPointerDereference()) {
-          return new OverapproximatingMemoryLocation(type);
+          return new OverapproximatingMemoryLocation(fieldRef, getAddressVariables(fieldRef));
         } else {
           OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
           if (ownerLocation.isAmbiguous()) {
-            return new OverapproximatingMemoryLocation(type);
+            return new OverapproximatingMemoryLocation(fieldRef, getAddressVariables(fieldRef));
           } else {
             varName = ownerLocation.getMemoryLocations().iterator().next() + "." + varName;
             potentialLocations.add(MemoryLocation.fromQualifiedName(varName));
@@ -214,11 +215,12 @@ public class MemoryLocationExtractingVisitor
           }
         }
       }
-      case CArraySubscriptExpression unused -> {
-        return new OverapproximatingMemoryLocation(type);
+      case CArraySubscriptExpression subscript -> {
+        return new OverapproximatingMemoryLocation(subscript, getAddressVariables(subscript));
       }
-      case CPointerExpression unused -> {
-        return new OverapproximatingMemoryLocation(type);
+      case CPointerExpression pointerExpression -> {
+        return new OverapproximatingMemoryLocation(
+            pointerExpression, getAddressVariables(pointerExpression));
       }
       case CCastExpression cast -> {
         return getMemoryLocation(cast.getOperand());
@@ -229,6 +231,14 @@ public class MemoryLocationExtractingVisitor
     }
     assert !potentialLocations.isEmpty();
     return new OverapproximatingMemoryLocation(
-        potentialLocations, type, potentialLocations.size() > 1, true, mayBePointedTo);
+        potentialLocations, type, potentialLocations.size() > 1, true, mayBePointedTo, expression);
+  }
+
+  /** Returns the variables read to compute the address of the given lvalue. */
+  private Set<MemoryLocation> getAddressVariables(CExpression pLvalue) {
+    return FluentIterable.from(getAddressReads(pLvalue))
+        .filter(OverapproximatingMemoryLocation::isPrecise)
+        .transformAndConcat(OverapproximatingMemoryLocation::getMemoryLocations)
+        .toSet();
   }
 }

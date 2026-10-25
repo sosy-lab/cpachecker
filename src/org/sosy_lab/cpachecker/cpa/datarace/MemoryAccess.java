@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class MemoryAccess {
 
@@ -24,6 +27,8 @@ class MemoryAccess {
   private final ImmutableSet<String> locks;
   private final CFAEdge edge;
   private final int accessEpoch;
+  // Whether a variable used to compute the address was changed after the access
+  private final boolean addressMayHaveChanged;
 
   MemoryAccess(
       String pThreadId,
@@ -32,12 +37,41 @@ class MemoryAccess {
       Set<String> pLocks,
       CFAEdge pEdge,
       int pAccessEpoch) {
+    this(pThreadId, pMemoryLocation, pIsWrite, pLocks, pEdge, pAccessEpoch, false);
+  }
+
+  private MemoryAccess(
+      String pThreadId,
+      OverapproximatingMemoryLocation pMemoryLocation,
+      boolean pIsWrite,
+      Set<String> pLocks,
+      CFAEdge pEdge,
+      int pAccessEpoch,
+      boolean pAddressMayHaveChanged) {
     threadId = pThreadId;
     memoryLocation = pMemoryLocation;
     isWrite = pIsWrite;
     locks = ImmutableSet.copyOf(pLocks);
     edge = pEdge;
     accessEpoch = pAccessEpoch;
+    addressMayHaveChanged = pAddressMayHaveChanged;
+  }
+
+  /** Returns this access, marked if its address depends on one of the given changed variables. */
+  MemoryAccess withChangedVariables(Set<MemoryLocation> pChangedVariables) {
+    if (addressMayHaveChanged
+        || Collections.disjoint(memoryLocation.getAddressVariables(), pChangedVariables)) {
+      return this;
+    }
+    return new MemoryAccess(threadId, memoryLocation, isWrite, locks, edge, accessEpoch, true);
+  }
+
+  boolean addressMayHaveChanged() {
+    return addressMayHaveChanged;
+  }
+
+  CExpression getExpression() {
+    return memoryLocation.getExpression();
   }
 
   String getThreadId() {
@@ -141,6 +175,7 @@ class MemoryAccess {
     return pO instanceof MemoryAccess access
         && isWrite == access.isWrite
         && accessEpoch == access.accessEpoch
+        && addressMayHaveChanged == access.addressMayHaveChanged
         && threadId.equals(access.threadId)
         && memoryLocation.equals(access.memoryLocation)
         && locks.equals(access.locks)
@@ -149,6 +184,7 @@ class MemoryAccess {
 
   @Override
   public int hashCode() {
-    return Objects.hash(threadId, memoryLocation, isWrite, locks, edge, accessEpoch);
+    return Objects.hash(
+        threadId, memoryLocation, isWrite, locks, edge, accessEpoch, addressMayHaveChanged);
   }
 }

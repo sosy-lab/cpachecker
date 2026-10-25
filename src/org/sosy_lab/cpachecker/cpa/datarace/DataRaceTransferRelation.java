@@ -9,23 +9,40 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,16 +50,23 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
   private final MemoryAccessExtractor memoryAccessExtractor;
   private final MachineModel machineModel;
+  private final CBinaryExpressionBuilder expressionBuilder;
 
-  DataRaceTransferRelation(MachineModel pMachineModel, Set<String> pAddressedVariables) {
+  DataRaceTransferRelation(
+      MachineModel pMachineModel,
+      Set<String> pAddressedVariables,
+      CBinaryExpressionBuilder pExpressionBuilder) {
     machineModel = pMachineModel;
     memoryAccessExtractor = new MemoryAccessExtractor(pAddressedVariables);
+    expressionBuilder = pExpressionBuilder;
   }
 
   @Override
@@ -50,7 +74,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pState, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     // Can only update state with info from ThreadingCPA
-    return ImmutableSet.of(pState);
+    return ImmutableSet.of(((DataRaceState) pState).withoutAssumptions());
   }
 
   @Override
@@ -107,9 +131,13 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Collect new accesses
+    Set<MemoryLocation> changedVariables = memoryAccessExtractor.getChangedVariables(cfaEdge);
     Set<MemoryAccess> newMemoryAccesses =
-        memoryAccessExtractor.getNewAccesses(
-            threadInfo.get(activeThread), cfaEdge, activeThreadLocks);
+        FluentIterable.from(
+                memoryAccessExtractor.getNewAccesses(
+                    threadInfo.get(activeThread), cfaEdge, activeThreadLocks))
+            .transform(access -> access.withChangedVariables(changedVariables))
+            .toSet();
 
     // Update tracked memory accesses
     ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
@@ -120,7 +148,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         // Therefore, we do not need to track it any longer.
         continue;
       }
-      memoryAccessBuilder.add(access);
+      memoryAccessBuilder.add(access.withChangedVariables(changedVariables));
 
       for (MemoryAccess newAccess : newMemoryAccesses) {
         if (!access.mightAccessSameLocationAs(newAccess)) {
@@ -149,7 +177,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
     // Determine whether any of the new accesses constitutes a data race
     boolean hasDataRace = state.hasDataRace();
-    boolean hasConflictThroughPointer = false;
+    boolean hasUnsupportedConflict = false;
+    ImmutableSet.Builder<CExpression> aliasConditions = ImmutableSet.builder();
     Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
     for (MemoryAccess access : memoryAccessBuilder.build()) {
       if (hasDataRace) {
@@ -182,23 +211,189 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
             hasDataRace = true;
             break;
           }
-          hasConflictThroughPointer = true;
+          Optional<CExpression> aliasCondition = getAliasCondition(access, newAccess);
+          if (aliasCondition.isPresent()) {
+            aliasConditions.add(aliasCondition.orElseThrow());
+          } else {
+            hasUnsupportedConflict = true;
+          }
         }
       }
     }
-    if (!hasDataRace && hasConflictThroughPointer) {
+    if (!hasDataRace && hasUnsupportedConflict) {
       throw new CPATransferException("DataRaceCPA does not support pointer analysis");
     }
 
-    return ImmutableSet.of(
+    Set<MemoryAccess> successorAccesses =
+        determineSuccessorAccessedMemoryLocations(
+            memoryAccessBuilder.build(), newMemoryAccesses, cfaEdge, activeThreadLocks);
+    ImmutableList<CExpression> conditions = aliasConditions.build().asList();
+    if (hasDataRace || conditions.isEmpty()) {
+      return ImmutableSet.of(
+          new DataRaceState(
+              successorAccesses,
+              newThreadInfo,
+              threadSynchronizations,
+              heldLocks,
+              lastReleases,
+              hasDataRace,
+              ImmutableList.of()));
+    }
+
+    // There is a data race iff an access through a pointer refers to the location of a conflicting
+    // access, which the other CPAs check with the following assumptions.
+    CExpression raceCondition = conditions.getFirst();
+    for (CExpression condition : conditions.subList(1, conditions.size())) {
+      raceCondition =
+          expressionBuilder.buildBinaryExpression(
+              raceCondition, condition, BinaryOperator.BITWISE_OR);
+    }
+    if (!(raceCondition instanceof CBinaryExpression binaryExpression
+        && binaryExpression.getOperator().isLogicalOperator())) {
+      raceCondition =
+          expressionBuilder.buildBinaryExpression(
+              raceCondition, CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
+    }
+    ImmutableList.Builder<CExpression> noRaceConditions = ImmutableList.builder();
+    for (CExpression condition : conditions) {
+      noRaceConditions.add(expressionBuilder.negateExpressionAndSimplify(condition));
+    }
+    return ImmutableList.of(
         new DataRaceState(
-            determineSuccessorAccessedMemoryLocations(
-                memoryAccessBuilder.build(), newMemoryAccesses, cfaEdge, activeThreadLocks),
+            successorAccesses,
             newThreadInfo,
             threadSynchronizations,
             heldLocks,
             lastReleases,
-            hasDataRace));
+            true,
+            ImmutableList.of(raceCondition)),
+        new DataRaceState(
+            successorAccesses,
+            newThreadInfo,
+            threadSynchronizations,
+            heldLocks,
+            lastReleases,
+            false,
+            noRaceConditions.build()));
+  }
+
+  /**
+   * Returns the condition under which the two accesses overlap and the pointers dereferenced on the
+   * way are not null (otherwise the program crashes). Returns empty if the address of an access may
+   * have changed since the access.
+   */
+  private Optional<CExpression> getAliasCondition(MemoryAccess pAccess1, MemoryAccess pAccess2)
+      throws UnrecognizedCodeException {
+    CType type1 = pAccess1.getType();
+    CType type2 = pAccess2.getType();
+    if (pAccess1.addressMayHaveChanged()
+        || pAccess2.addressMayHaveChanged()
+        || type1.isIncomplete()
+        || type2.isIncomplete()) {
+      return Optional.empty();
+    }
+    BigInteger size1 = machineModel.getSizeof(type1);
+    BigInteger size2 = machineModel.getSizeof(type2);
+    CExpression address1 = getAddress(pAccess1.getExpression());
+    CExpression address2 = getAddress(pAccess2.getExpression());
+    CExpression condition;
+    if (size1.equals(size2) && CTypes.isScalarType(type1) && CTypes.isScalarType(type2)) {
+      // Aligned scalars of the same size overlap iff they start at the same address
+      if (!address1
+          .getExpressionType()
+          .getCanonicalType()
+          .equals(address2.getExpressionType().getCanonicalType())) {
+        address1 =
+            new CCastExpression(address1.getFileLocation(), CPointerType.POINTER_TO_VOID, address1);
+        address2 =
+            new CCastExpression(address2.getFileLocation(), CPointerType.POINTER_TO_VOID, address2);
+      }
+      condition =
+          expressionBuilder.buildBinaryExpression(address1, address2, BinaryOperator.EQUALS);
+    } else {
+      // Two locations overlap iff each of them starts before the other one ends
+      CExpression start1 =
+          new CCastExpression(address1.getFileLocation(), CPointerType.POINTER_TO_CHAR, address1);
+      CExpression start2 =
+          new CCastExpression(address2.getFileLocation(), CPointerType.POINTER_TO_CHAR, address2);
+      condition =
+          expressionBuilder.buildBinaryExpression(
+              expressionBuilder.buildBinaryExpression(
+                  start1, getEnd(start2, size2), BinaryOperator.LESS_THAN),
+              expressionBuilder.buildBinaryExpression(
+                  start2, getEnd(start1, size1), BinaryOperator.LESS_THAN),
+              BinaryOperator.BITWISE_AND);
+    }
+    for (CExpression pointer :
+        Iterables.concat(
+            getDereferencedPointers(pAccess1.getExpression()),
+            getDereferencedPointers(pAccess2.getExpression()))) {
+      condition =
+          expressionBuilder.buildBinaryExpression(
+              condition,
+              expressionBuilder.buildBinaryExpression(
+                  pointer, CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS),
+              BinaryOperator.BITWISE_AND);
+    }
+    return Optional.of(condition);
+  }
+
+  private CExpression getEnd(CExpression pStart, BigInteger pSize)
+      throws UnrecognizedCodeException {
+    return expressionBuilder.buildBinaryExpression(
+        pStart,
+        new CIntegerLiteralExpression(
+            pStart.getFileLocation(), machineModel.getPointerSizedIntType(), pSize),
+        BinaryOperator.PLUS);
+  }
+
+  /** Returns the pointers that are dereferenced to evaluate the given expression. */
+  private static List<CExpression> getDereferencedPointers(CExpression pExpression) {
+    return switch (pExpression) {
+      case CPointerExpression pointerExpression ->
+          ImmutableList.<CExpression>builder()
+              .add(pointerExpression.getOperand())
+              .addAll(getDereferencedPointers(pointerExpression.getOperand()))
+              .build();
+      case CFieldReference fieldRef when fieldRef.isPointerDereference() ->
+          ImmutableList.<CExpression>builder()
+              .add(fieldRef.getFieldOwner())
+              .addAll(getDereferencedPointers(fieldRef.getFieldOwner()))
+              .build();
+      case CFieldReference fieldRef -> getDereferencedPointers(fieldRef.getFieldOwner());
+      case CArraySubscriptExpression subscript -> {
+        ImmutableList.Builder<CExpression> pointers = ImmutableList.builder();
+        if (subscript.getArrayExpression().getExpressionType().getCanonicalType()
+            instanceof CPointerType) {
+          pointers.add(subscript.getArrayExpression());
+        }
+        yield pointers
+            .addAll(getDereferencedPointers(subscript.getArrayExpression()))
+            .addAll(getDereferencedPointers(subscript.getSubscriptExpression()))
+            .build();
+      }
+      case CCastExpression cast -> getDereferencedPointers(cast.getOperand());
+      case CUnaryExpression unary -> getDereferencedPointers(unary.getOperand());
+      case CBinaryExpression binary ->
+          ImmutableList.<CExpression>builder()
+              .addAll(getDereferencedPointers(binary.getOperand1()))
+              .addAll(getDereferencedPointers(binary.getOperand2()))
+              .build();
+      default -> ImmutableList.of();
+    };
+  }
+
+  private static CExpression getAddress(CExpression pLvalue) {
+    if (pLvalue instanceof CPointerExpression pointerExpression
+        && pointerExpression.getOperand().getExpressionType().getCanonicalType()
+            instanceof CPointerType) {
+      return pointerExpression.getOperand();
+    }
+    return new CUnaryExpression(
+        pLvalue.getFileLocation(),
+        new CPointerType(CTypeQualifiers.NONE, pLvalue.getExpressionType()),
+        pLvalue,
+        UnaryOperator.AMPER);
   }
 
   /**
