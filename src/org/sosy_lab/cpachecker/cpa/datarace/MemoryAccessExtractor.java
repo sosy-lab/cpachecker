@@ -186,10 +186,11 @@ public class MemoryAccessExtractor {
         FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) edge;
         if (functionReturnEdge.getSummaryEdge().getExpression()
             instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
-
-          readLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  functionCallAssignmentStatement.getLeftHandSide(), functionReturnEdge));
+          addLeftHandSide(
+              functionCallAssignmentStatement.getLeftHandSide(),
+              functionReturnEdge,
+              writeLocationBuilder,
+              readLocationBuilder);
         }
       }
       case BlankEdge, CallToReturnEdge -> {}
