@@ -93,7 +93,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
       description =
           "Merge operator: SEP never merges states; JOIN delegates to the wrapped merge operator"
               + " when thread states are compatible.")
-  private String mergeType = "JOIN";
+  private String mergeType = "SEP";
 
   @Option(
       secure = true,
