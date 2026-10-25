@@ -275,7 +275,11 @@ public class ConcurrentState extends AbstractSingleWrapperState
 
   @Override
   public Object getPartitionKey() {
-    return getLocationNodes();
+    Object wrappedPartitionKey = super.getPartitionKey();
+    if (wrappedPartitionKey == null) {
+      return getLocationNodes();
+    }
+    return ImmutableList.of(getLocationNodes(), wrappedPartitionKey);
   }
 
   @Override
