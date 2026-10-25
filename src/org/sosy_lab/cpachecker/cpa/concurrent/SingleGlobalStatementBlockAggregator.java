@@ -98,8 +98,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
               // anywhere in the chain consumes the single-global-statement budget, so a block can
               // contain at most one critical-section entry and no global statement besides it.
               || MutexFunctions.isLockCall(currentEdge))
-          && !atomicBlockNodes.contains(
-              ConcurrentEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
+          && !atomicBlockNodes.contains(currentEdge.getPredecessor().getOriginal())) {
         if (anyGlobalStatements) {
           return false;
         }

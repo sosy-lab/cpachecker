@@ -56,8 +56,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
     public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
         AbstractState pState, Precision pPrecision, CFAEdge pEdge)
         throws CPATransferException, InterruptedException {
-      return delegate.getAbstractSuccessorsForEdge(
-          pState, pPrecision, ConcurrentEdgeCloner.getOriginalEdge(pEdge));
+      return delegate.getAbstractSuccessorsForEdge(pState, pPrecision, pEdge.getOriginal());
     }
 
     @Override
@@ -70,9 +69,9 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
       Iterable<AbstractState> others = pOtherStates;
       if (pEdge != null) {
         // the clone the edge belongs to names the thread, which no state of the composite knows
-        OptionalInt pid = ConcurrentEdgeCloner.getThreadIdForNode(pEdge.getSuccessor());
+        OptionalInt pid = pEdge.getSuccessor().getCloneThreadId();
         if (pid.isEmpty()) {
-          pid = ConcurrentEdgeCloner.getThreadIdForNode(pEdge.getPredecessor());
+          pid = pEdge.getPredecessor().getCloneThreadId();
         }
         if (pid.isPresent()) {
           others =
@@ -83,10 +82,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
         }
       }
       return delegate.strengthen(
-          pState,
-          others,
-          pEdge == null ? null : ConcurrentEdgeCloner.getOriginalEdge(pEdge),
-          pPrecision);
+          pState, others, pEdge == null ? null : pEdge.getOriginal(), pPrecision);
     }
   }
 

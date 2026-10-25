@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.concurrent;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Optional;
-import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -61,30 +60,6 @@ public final class ConcurrentEdgeCloner {
   static CFANode getClonedNode(final CFANode pNode, final int pid, final CFA pCfa) {
     ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(pid, pCfa);
     return cfaCloner.getClonedNode(pNode);
-  }
-
-  /**
-   * Returns the original CFA node corresponding to the given (potentially cloned) node. If the node
-   * is not a cloned node, it is returned as-is.
-   */
-  static CFANode getOriginalNode(final CFANode pNode) {
-    return ConcurrentCfaCloner.getOriginalNode(pNode);
-  }
-
-  /**
-   * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
-   * POR node.
-   */
-  static OptionalInt getThreadIdForNode(final CFANode pNode) {
-    return ConcurrentCfaCloner.getThreadIdForNode(pNode);
-  }
-
-  /**
-   * Returns the original CFA edge corresponding to the given (potentially cloned) edge. If the edge
-   * is not a cloned edge, it is returned as-is.
-   */
-  static CFAEdge getOriginalEdge(final CFAEdge pEdge) {
-    return ConcurrentCfaCloner.getOriginalEdge(pEdge);
   }
 
   /**

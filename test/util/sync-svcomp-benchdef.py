@@ -31,7 +31,9 @@ from pathlib import Path
 UPSTREAM_PROJECT = "https://gitlab.com/sosy-lab/sv-comp/bench-defs/-"
 UPSTREAM_URL = UPSTREAM_PROJECT + "/blob/main/benchmark-defs/cpachecker.xml"
 DEFAULT_TEMPLATE = UPSTREAM_PROJECT + "/raw/main/benchmark-defs/cpachecker.xml"
-DEFAULT_OUTPUT = Path(__file__).parent.parent.parent / "test" / "test-sets" / "svcomp.xml"
+DEFAULT_OUTPUT = (
+    Path(__file__).parent.parent.parent / "test" / "test-sets" / "svcomp.xml"
+)
 
 # Paths of the competition layout mapped to the paths of this repository.
 # test/programs/benchmarks is a checkout of sv-benchmarks/c,

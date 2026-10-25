@@ -338,7 +338,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
         assert threadState != null : "threads must contain pid to exit " + pid;
         CFANode currentNode = threadState.getLocationNode();
         // Resolve to original CFA node to find exit node in the original CFA
-        CFANode originalCurrentNode = ConcurrentEdgeCloner.getOriginalNode(currentNode);
+        CFANode originalCurrentNode = currentNode.getOriginal();
         String function = originalCurrentNode.getFunctionName();
 
         CFANode originalExitNode =

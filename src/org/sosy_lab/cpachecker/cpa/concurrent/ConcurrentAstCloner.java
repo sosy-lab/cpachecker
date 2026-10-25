@@ -48,15 +48,22 @@ class ConcurrentAstCloner extends CAstCloner {
 
   private final int threadId;
   private final @Nullable GlobalAccessRenamer globalRenamer;
+  private final boolean useThreadSpecificNames;
 
   ConcurrentAstCloner(int pThreadId) {
+    this(pThreadId, true);
+  }
+
+  ConcurrentAstCloner(int pThreadId, boolean pUseThreadSpecificNames) {
     this.threadId = pThreadId;
     this.globalRenamer = null;
+    useThreadSpecificNames = pUseThreadSpecificNames;
   }
 
   ConcurrentAstCloner(int pThreadId, GlobalAccessRenamer pGlobalRenamer) {
     this.threadId = pThreadId;
     this.globalRenamer = checkNotNull(pGlobalRenamer);
+    useThreadSpecificNames = true;
   }
 
   /** Only the parameter declarations are rebuilt, to give them the per-thread names. */
@@ -137,7 +144,9 @@ class ConcurrentAstCloner extends CAstCloner {
    */
   @Override
   protected String changeQualifiedName(CSimpleDeclaration decl) {
-    return ThreadFunctions.perThreadName(threadId, decl.getQualifiedName());
+    return useThreadSpecificNames
+        ? ThreadFunctions.perThreadName(threadId, decl.getQualifiedName())
+        : decl.getQualifiedName();
   }
 
   @Override

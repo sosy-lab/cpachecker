@@ -143,7 +143,7 @@ public final class AstCfaRelation {
       initializeMapFromConditionEdgesToIfStructures();
     }
 
-    IfElement result = conditionEdgesToIfStructure.getOrDefault(pEdge, null);
+    IfElement result = conditionEdgesToIfStructure.getOrDefault(pEdge.getOriginal(), null);
 
     return Optional.ofNullable(result);
   }
@@ -160,10 +160,13 @@ public final class AstCfaRelation {
    * @return the tightest iteration structure that contains the given node
    */
   public Optional<IterationElement> getTightestIterationStructureForNode(CFANode pNode) {
+    CFANode originalNode = pNode.getOriginal();
     Optional<IterationElement> result = Optional.empty();
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().edges().stream()
-          .anyMatch(pEdge -> pEdge.getPredecessor() == pNode || pEdge.getSuccessor() == pNode)) {
+          .anyMatch(
+              pEdge ->
+                  pEdge.getPredecessor() == originalNode || pEdge.getSuccessor() == originalNode)) {
         if (result.isPresent()) {
           if (result
               .orElseThrow()
@@ -417,15 +420,16 @@ public final class AstCfaRelation {
    */
   public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
       CFANode pNode) {
-    if (!cfaNodeToAstParametersInScope.containsKey(pNode)
-        || !cfaNodeToAstLocalVariablesInScope.containsKey(pNode)) {
+    CFANode originalNode = pNode.getOriginal();
+    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)
+        || !cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
       return Optional.empty();
     }
 
     return Optional.of(
         FluentIterable.concat(
-            Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
-            Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
+            Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode)),
+            Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode)),
             globalVariables));
   }
 
@@ -497,17 +501,20 @@ public final class AstCfaRelation {
   }
 
   public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
-    if (!cfaNodeToAstLocalVariablesInScope.containsKey(pCfaNode)) {
+    CFANode originalNode = pCfaNode.getOriginal();
+    if (!cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pCfaNode)));
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode)));
   }
 
   public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
-    if (!cfaNodeToAstParametersInScope.containsKey(pCfaNode)) {
+    CFANode originalNode = pCfaNode.getOriginal();
+    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)) {
       return ImmutableSet.of();
     }
-    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pCfaNode)));
+    return ImmutableSet.copyOf(
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode)));
   }
 }
