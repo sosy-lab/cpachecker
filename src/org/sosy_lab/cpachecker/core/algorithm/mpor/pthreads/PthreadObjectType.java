@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public enum PthreadObjectType {
+  COUNT("", true, ImmutableSet.of()),
   PTHREAD_BARRIER_T(
       "pthread_barrier_t",
       true,
