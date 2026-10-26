@@ -46,15 +46,23 @@ public class MutexStateTest {
       new CPointerType(CTypeQualifiers.NONE, PROBLEM_TYPE);
 
   private static CVariableDeclaration variable(String qualifiedName, CType type) {
+    return variable(qualifiedName, qualifiedName, type);
+  }
+
+  private static CVariableDeclaration variable(String name, String qualifiedName, CType type) {
     return new CVariableDeclaration(
         FileLocation.DUMMY,
         /* pIsGlobal= */ true,
         CStorageClass.AUTO,
         type,
-        qualifiedName,
+        name,
         qualifiedName,
         qualifiedName,
         /* pInitializer= */ null);
+  }
+
+  private static MutexHandle handle(String qualifiedName) {
+    return new MutexHandle(variable(qualifiedName, PROBLEM_TYPE));
   }
 
   /**
@@ -136,9 +144,9 @@ public class MutexStateTest {
 
   @Test
   public void twoReadersOnSameRwlockDoNotCrash() {
-    MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
+    MutexLock read = new MutexLock(handle("rwlock"), MutexLockType.READ);
 
-    MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
+    MutexState state = MutexState.EMPTY.withInit(handle("rwlock"));
     state = state.withLock(read, 1).orElseThrow();
     // A 2nd concurrent reader used to throw IllegalArgumentException("Multiple entries with
     // same key") because withLock's builder put()'d the already-putAll()'d key again.
@@ -149,9 +157,9 @@ public class MutexStateTest {
 
   @Test
   public void unlockingOneReaderKeepsTheOtherLocked() {
-    MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
+    MutexLock read = new MutexLock(handle("rwlock"), MutexLockType.READ);
 
-    MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
+    MutexState state = MutexState.EMPTY.withInit(handle("rwlock"));
     state = state.withLock(read, 1).orElseThrow();
     state = state.withLock(read, 2).orElseThrow();
     state = state.withUnlock(read, 1);
@@ -161,19 +169,35 @@ public class MutexStateTest {
     assertThat(state.isMutexBlockedFor(read, 3)).isFalse();
     assertThat(
             state.isMutexBlockedFor(
-                new MutexLock(new MutexHandle("rwlock"), MutexLockType.WRITE), 3))
+                new MutexLock(handle("rwlock"), MutexLockType.WRITE), 3))
         .isTrue();
   }
 
   @Test
   public void unlockingLastReaderRemovesTheEntry() {
-    MutexLock read = new MutexLock(new MutexHandle("rwlock"), MutexLockType.READ);
+    MutexLock read = new MutexLock(handle("rwlock"), MutexLockType.READ);
 
-    MutexState state = MutexState.EMPTY.withInit(new MutexHandle("rwlock"));
+    MutexState state = MutexState.EMPTY.withInit(handle("rwlock"));
     state = state.withLock(read, 1).orElseThrow();
     state = state.withUnlock(read, 1);
 
     assertThat(state.isLocked(read)).isFalse();
+  }
+
+  @Test
+  public void mutexHandleUsesVariableDeclaration() {
+    CVariableDeclaration first = variable("mutex", "first::mutex", PROBLEM_TYPE);
+    CVariableDeclaration second = variable("mutex", "second::mutex", PROBLEM_TYPE);
+    CIdExpression firstId = new CIdExpression(FileLocation.DUMMY, first);
+
+    assertThat(MutexFunctions.extractMutexName(firstId)).hasValue(new MutexHandle(first));
+    assertThat(
+            MutexFunctions.extractMutexName(
+                new CUnaryExpression(
+                    FileLocation.DUMMY, POINTER_TO_PROBLEM_TYPE, firstId, UnaryOperator.AMPER)))
+        .hasValue(new MutexHandle(first));
+    assertThat(new MutexHandle(first)).isNotEqualTo(new MutexHandle(second));
+    assertThat(new MutexHandle(first).toString()).isEqualTo("first::mutex");
   }
 
   @Test

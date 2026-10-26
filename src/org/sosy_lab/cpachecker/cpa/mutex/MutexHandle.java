@@ -10,19 +10,21 @@ package org.sosy_lab.cpachecker.cpa.mutex;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+
 /**
- * The identity of a mutex, as the canonical key of the lvalue that denotes it. Several syntactic
- * forms denote the same mutex ({@code m}, {@code &m}, {@code (pthread_mutex_t *)&m}), so the key is
- * the canonicalized form computed by {@link MutexFunctions#extractMutexName}, not the expression
- * itself. This wrapper exists so that such a key cannot be confused with an ordinary variable name.
+ * The identity of a mutex, represented by the declaration of the variable that denotes it. Several
+ * syntactic forms denote the same mutex ({@code m}, {@code &m}, {@code (pthread_mutex_t *)&m}), so
+ * the declaration is extracted from the expression rather than storing the expression itself. Using
+ * the declaration also distinguishes variables with the same name in different scopes.
  */
-public record MutexHandle(String key) {
+public record MutexHandle(CVariableDeclaration declaration) {
   public MutexHandle {
-    checkNotNull(key);
+    checkNotNull(declaration);
   }
 
   @Override
   public String toString() {
-    return key;
+    return declaration.getQualifiedName();
   }
 }

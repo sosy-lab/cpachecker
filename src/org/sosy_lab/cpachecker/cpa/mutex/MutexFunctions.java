@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -78,12 +79,18 @@ public final class MutexFunctions {
     if (expr instanceof CUnaryExpression unary
         && unary.getOperator() == UnaryOperator.AMPER
         && unary.getOperand() instanceof CIdExpression id) {
-      return Optional.of(new MutexHandle(id.getName()));
+      return extractMutexHandle(id);
     }
     if (expr instanceof CIdExpression id) {
-      return Optional.of(new MutexHandle(id.getName()));
+      return extractMutexHandle(id);
     }
     return Optional.empty();
+  }
+
+  private static Optional<MutexHandle> extractMutexHandle(CIdExpression id) {
+    return id.getDeclaration() instanceof CVariableDeclaration variableDeclaration
+        ? Optional.of(new MutexHandle(variableDeclaration))
+        : Optional.empty();
   }
 
   /** Returns {@code true} if the given CFA edge is a mutex lock function call. */
@@ -97,16 +104,16 @@ public final class MutexFunctions {
   }
 
   /**
-   * If the given CFA edge is a mutex lock call, returns the mutex variable name; otherwise returns
-   * {@code null}.
+   * If the given CFA edge is a mutex lock call with a statically resolvable handle, returns that
+   * handle; otherwise returns empty.
    */
   public static Optional<MutexLock> getLockMutex(CFAEdge edge) {
     return getMutexLockForFunctionSet(edge, LOCK_FUNCTIONS);
   }
 
   /**
-   * If the given CFA edge is a mutex unlock call, returns the mutex variable name; otherwise
-   * returns {@code null}.
+   * If the given CFA edge is a mutex unlock call with a statically resolvable handle, returns that
+   * handle; otherwise returns empty.
    */
   public static Optional<MutexLock> getUnlockMutex(CFAEdge edge) {
     return getMutexLockForFunctionSet(edge, UNLOCK_FUNCTIONS);

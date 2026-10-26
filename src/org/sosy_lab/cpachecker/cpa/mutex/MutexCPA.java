@@ -52,8 +52,8 @@ public class MutexCPA extends AbstractCPA {
   }
 
   private static ImmutableMap<MutexHandle, MutexHandle> collectMutexHandleCandidates(CFA pCFA) {
-    Set<String> variableDeclarations = new HashSet<>();
-    Map<String, Integer> assignmentCounts = new HashMap<>();
+    Set<CVariableDeclaration> variableDeclarations = new HashSet<>();
+    Map<CVariableDeclaration, Integer> assignmentCounts = new HashMap<>();
     Map<MutexHandle, MutexHandle> aliases = new HashMap<>();
 
     for (CFAEdge edge : pCFA.edges()) {
@@ -62,12 +62,11 @@ public class MutexCPA extends AbstractCPA {
         // instanceof CVariableDeclaration already excludes CParameterDeclaration (a distinct
         // AST type), but the intent is spelled out explicitly since that was a requirement.
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
-          String name = variableDeclaration.getQualifiedName();
-          variableDeclarations.add(name);
+          variableDeclarations.add(variableDeclaration);
           if (variableDeclaration.getInitializer() != null) {
-            assignmentCounts.merge(name, 1, Integer::sum);
+            assignmentCounts.merge(variableDeclaration, 1, Integer::sum);
           } else {
-            assignmentCounts.merge(name, 0, Integer::sum);
+            assignmentCounts.merge(variableDeclaration, 0, Integer::sum);
           }
         }
       } else if (edge instanceof CStatementEdge statementEdge) {
@@ -79,14 +78,13 @@ public class MutexCPA extends AbstractCPA {
             CRightHandSide rhs = assignment.getRightHandSide();
             if (rhs instanceof CUnaryExpression unaryRhs
                 && UnaryOperator.AMPER.equals(unaryRhs.getOperator())
-                && unaryRhs.getOperand() instanceof CIdExpression aliased) {
-              assignmentCounts.merge(decl.getQualifiedName(), 1, Integer::sum);
-              aliases.put(
-                  new MutexHandle(decl.getQualifiedName()),
-                  new MutexHandle(aliased.getDeclaration().getQualifiedName()));
+                && unaryRhs.getOperand() instanceof CIdExpression aliased
+                && aliased.getDeclaration() instanceof CVariableDeclaration aliasedDeclaration) {
+              assignmentCounts.merge(decl, 1, Integer::sum);
+              aliases.put(new MutexHandle(decl), new MutexHandle(aliasedDeclaration));
             } else {
               // unsupported candidate
-              assignmentCounts.put(decl.getQualifiedName(), 2);
+              assignmentCounts.put(decl, 2);
             }
           }
         }
@@ -94,10 +92,10 @@ public class MutexCPA extends AbstractCPA {
     }
 
     ImmutableMap.Builder<MutexHandle, MutexHandle> candidates = ImmutableMap.builder();
-    for (String name : variableDeclarations) {
-      int count = assignmentCounts.getOrDefault(name, -1);
+    for (CVariableDeclaration declaration : variableDeclarations) {
+      int count = assignmentCounts.getOrDefault(declaration, -1);
       if (0 <= count && count <= 1) {
-        MutexHandle handle = new MutexHandle(name);
+        MutexHandle handle = new MutexHandle(declaration);
         candidates.put(handle, aliases.getOrDefault(handle, handle));
       }
     }
