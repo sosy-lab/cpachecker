@@ -16,8 +16,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import org.sosy_lab.common.collect.Collections3;
@@ -285,111 +283,11 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
     if (mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
     }
-    final MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-    final StopOperator threadSpecificStopOperator = threadSpecificCPA.getStopOperator();
-
-    return (state1, state2, precision) -> {
-      if (state1 instanceof ConcurrentState pConcurrentState1
-          && state2 instanceof ConcurrentState pConcurrentState2
-          && precision instanceof ConcurrentPrecision pConcurrentPrecision) {
-        if (canMerge(pConcurrentState1, pConcurrentState2, threadSpecificStopOperator)) {
-          AbstractState wrapped1 = pConcurrentState1.getWrappedState();
-          AbstractState wrapped2 = pConcurrentState2.getWrappedState();
-          Precision wrappedPrecision = pConcurrentPrecision.getWrappedPrecision();
-          AbstractState mergedWrapped =
-              wrappedMergeOperator.merge(wrapped1, wrapped2, wrappedPrecision);
-          if (wrapped2.equals(mergedWrapped)) {
-            return pConcurrentState2;
-          } else {
-            return pConcurrentState1.withWrappedState(mergedWrapped);
-          }
-        }
-      }
-      return state2;
-    };
-  }
-
-  private boolean canMerge(ConcurrentState c1, ConcurrentState c2, StopOperator stopOperator)
-      throws CPAException, InterruptedException {
-    if (!c1.livePids.equals(c2.livePids)) {
-      return false;
-    }
-    if (c1.threads.size() != c2.threads.size()) {
-      return false;
-    }
-    for (Entry<Integer, ThreadState> entry : c1.threads.entrySet()) {
-      ThreadState thisThreadState = entry.getValue();
-      ThreadState otherThreadState = c2.threads.get(entry.getKey());
-      if (otherThreadState == null) {
-        return false;
-      }
-      if (!thisThreadState.getLocationNode().equals(otherThreadState.getLocationNode())) {
-        return false;
-      }
-
-      AbstractState wrapped1 = thisThreadState.getWrappedState();
-      AbstractState wrapped2 = otherThreadState.getWrappedState();
-      // The merged state keeps c1's threads, so require equivalence in both directions.
-      if (wrapped1 != wrapped2
-          && (!stopOperator.stop(wrapped1, ImmutableList.of(wrapped2), threadSpecificUnitPrecision)
-              || !stopOperator.stop(
-                  wrapped2, ImmutableList.of(wrapped1), threadSpecificUnitPrecision))) {
-        return false;
-      }
-    }
-    return true;
+    return new ConcurrentMergeOperator(getWrappedCpa());
   }
 
   @Override
   public StopOperator getStopOperator() {
-    final StopOperator threadSpecificStop = threadSpecificCPA.getStopOperator();
-    final Precision threadSpecificPrecision;
-    try {
-      threadSpecificPrecision =
-          threadSpecificCPA.getInitialPrecision(
-              CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
-    } catch (InterruptedException e) {
-      throw new IllegalArgumentException(
-          "Could not get initial precision for thread-specific CPA", e);
-    }
-    return (state, reached, precision) -> {
-      if (state instanceof ConcurrentState concurrentState
-          && precision instanceof ConcurrentPrecision concurrentPrecision) {
-        ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
-        for (AbstractState reachedState : reached) {
-          if (reachedState instanceof ConcurrentState reachedConcurrentState
-              && concurrentState.threads().size() == reachedConcurrentState.threads().size()
-              && Objects.equals(concurrentState.livePids(), reachedConcurrentState.livePids())) {
-            boolean allThreadsStop = true;
-            for (var entry : concurrentState.threads.entrySet()) {
-              int pid = entry.getKey();
-              ThreadState reachedThreadState = reachedConcurrentState.threads.get(pid);
-              if (reachedThreadState == null) {
-                allThreadsStop = false;
-                break;
-              }
-              ThreadState threadState = entry.getValue();
-              if (!threadSpecificStop.stop(
-                  threadState.getWrappedState(),
-                  ImmutableList.of(reachedThreadState.getWrappedState()),
-                  threadSpecificPrecision)) {
-                allThreadsStop = false;
-                break;
-              }
-            }
-            if (allThreadsStop) {
-              builder.add(reachedConcurrentState.getWrappedState());
-            }
-          }
-        }
-        return getWrappedCpa()
-            .getStopOperator()
-            .stop(
-                concurrentState.getWrappedState(),
-                builder.build(),
-                concurrentPrecision.getWrappedPrecision());
-      }
-      return false;
-    };
+    return new ConcurrentStopOperator(getWrappedCpa(), threadSpecificCPA);
   }
 }
