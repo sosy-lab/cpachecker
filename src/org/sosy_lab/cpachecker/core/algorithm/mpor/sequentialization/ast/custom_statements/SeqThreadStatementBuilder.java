@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -45,10 +47,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -651,8 +655,53 @@ public record SeqThreadStatementBuilder(
       parameterExpressions = functionCall.getFunctionCallExpression().getParameterExpressions();
     }
 
-    return PthreadFunctionSubstitution.buildInlinedFunctionStatements(
-        parameterExpressions, pFunctionType, binaryExpressionBuilder);
+    ImmutableList<CExpression> expressions;
+    if (isAnyPointer(parameterExpressions)) {
+      expressions = parameterExpressions;
+    } else {
+      ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
+      for (CExpression expression : parameterExpressions) {
+        if (expression instanceof CUnaryExpression unaryExpression
+            && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+          // from unary amper expressions such as "&mutex", only "mutex" is used
+          nonPointerExpressions.add(unaryExpression.getOperand());
+        } else {
+          // all other expressions such as "(void*)0" or literals "capacity" are added unchanged,
+          // regardless of whether they are actually used s.t. the parameter list has the same size
+          nonPointerExpressions.add(expression);
+        }
+      }
+      expressions = nonPointerExpressions.build();
+    }
+
+    return switch (pFunctionType) {
+      case PTHREAD_BARRIER_INIT ->
+          PthreadFunctionSubstitution.buildBarrierInitFunctionStatements(expressions);
+      case PTHREAD_COND_SIGNAL ->
+          PthreadFunctionSubstitution.buildCondSignalFunctionStatements(
+              Iterables.getOnlyElement(expressions));
+      case PTHREAD_COND_WAIT ->
+          PthreadFunctionSubstitution.buildCondWaitFunctionStatements(expressions);
+      case PTHREAD_MUTEX_LOCK ->
+          PthreadFunctionSubstitution.buildMutexLockFunctionStatements(
+              Iterables.getOnlyElement(expressions));
+      case PTHREAD_MUTEX_UNLOCK ->
+          PthreadFunctionSubstitution.buildMutexUnlockFunctionStatements(
+              Iterables.getOnlyElement(expressions));
+      case PTHREAD_RWLOCK_RDLOCK ->
+          PthreadFunctionSubstitution.buildRwLockRdLockFunctionStatements(
+              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+      case PTHREAD_RWLOCK_UNLOCK ->
+          PthreadFunctionSubstitution.buildRwLockUnlockFunctionStatements(
+              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+      case PTHREAD_RWLOCK_WRLOCK ->
+          PthreadFunctionSubstitution.buildRwLockWrLockFunctionStatements(
+              Iterables.getOnlyElement(expressions));
+      default ->
+          throw new IllegalArgumentException(
+              "Cannot build inlined function call statements for the following pFunctionType: "
+                  + pFunctionType);
+    };
   }
 
   // Helpers
@@ -706,6 +755,27 @@ public record SeqThreadStatementBuilder(
         if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
           // not explicitly handled PthreadFunc -> empty case code
           return !PthreadUtil.isExplicitlyHandledPthreadFunction(pSubstituteEdge.cfaEdge);
+        }
+      }
+    }
+    return false;
+  }
+
+  private static boolean isAnyPointer(ImmutableList<CExpression> pExpressions) {
+    for (CExpression expression : pExpressions) {
+      ImmutableSet<CSimpleDeclaration> declarations =
+          SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true);
+      // finding no declaration is only possible for void pointer expressions: "(void*)0"
+      if (declarations.isEmpty()) {
+        checkState(MPORUtil.isVoidPointer(expression));
+      } else {
+        // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
+        if (declarations.size() > 1) {
+          return true;
+        }
+        CSimpleDeclaration declaration = Iterables.getOnlyElement(declarations);
+        if (declaration.getType().getCanonicalType() instanceof CPointerType) {
+          return true;
         }
       }
     }
