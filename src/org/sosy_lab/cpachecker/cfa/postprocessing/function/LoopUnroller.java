@@ -127,6 +127,17 @@ public class LoopUnroller implements StatisticsProvider {
   @IntegerOption(min = 1)
   private int maxNumberOfUnrollings = 100;
 
+  @Option(
+      secure = true,
+      name = "keepLoopHeads",
+      description =
+          "keep the copies of the head of an unrolled loop as places at which an analysis has a"
+              + " state, so that an invariant of the loop can still be reported for the program."
+              + " Without this a basic-block aggregation runs through them (cf."
+              + " cpa.composite.aggregateBasicBlocks), which is cheaper but leaves the loops of the"
+              + " program without any invariant")
+  private boolean keepLoopHeads = true;
+
   private final CfaCopyOrigins copyOrigins;
 
   public LoopUnroller(CfaCopyOrigins pCopyOrigins, LogManager pLogger, Configuration pConfig)
@@ -160,6 +171,9 @@ public class LoopUnroller implements StatisticsProvider {
   }
 
   public void unrollBoundedLoops(MutableCFA cfa) {
+    if (keepLoopHeads) {
+      copyOrigins.letCopiesOfLoopHeadsEndABlock();
+    }
     stats.totalTime.start();
     try {
       unrollBoundedLoops0(cfa);

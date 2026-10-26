@@ -221,9 +221,19 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     result =
         result
             && nodeAfterEdge.getNumEnteringEdges() == 1
-            && nodeAfterEdge.getClass() == CFANode.class;
+            && nodeAfterEdge.getClass() == CFANode.class
+            && !endsABlock(nodeAfterEdge);
 
     return result && !containsFunctionCall(edge);
+  }
+
+  /**
+   * This method checks whether a block has to end at the given node although the shape of the CFA
+   * does not say so, which is the case for a node that a post-processing copied from one that the
+   * program branches at.
+   */
+  private boolean endsABlock(CFANode node) {
+    return cfa.getMetadata().getCopyOrigins().endsABlock(node);
   }
 
   /**

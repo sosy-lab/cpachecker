@@ -1244,6 +1244,13 @@ cfa.threads.threadSelfJoin = "pthread_join_N"
 # unroll loops that a can be determined to have a fixed upper bound
 cfa.unrollBoundedLoops = false
 
+# keep the copies of the head of an unrolled loop as places at which an
+# analysis has a state, so that an invariant of the loop can still be
+# reported for the program. Without this a basic-block aggregation runs
+# through them (cf. cpa.composite.aggregateBasicBlocks), which is cheaper but
+# leaves the loops of the program without any invariant
+cfa.unrollBoundedLoops.keepLoopHeads = true
+
 # limits the maximum size of an unrolled loop, so that smaller loops can be
 # unrolled more often than large ones (iterations * nodes in loop <= limit)
 cfa.unrollBoundedLoops.maxAddedNodes = 1000

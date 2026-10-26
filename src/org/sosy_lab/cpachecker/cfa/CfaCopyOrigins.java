@@ -28,6 +28,7 @@ public final class CfaCopyOrigins {
 
   private final Map<CFANode, CFANode> nodes = new LinkedHashMap<>();
   private final Map<CFAEdge, CFAEdge> edges = new LinkedHashMap<>();
+  private boolean copiesOfLoopHeadsEndABlock = false;
 
   /** Remembers that the given node was copied from the given one. */
   public void rememberNode(CFANode pCopy, CFANode pCopiedFrom) {
@@ -44,6 +45,15 @@ public final class CfaCopyOrigins {
   }
 
   /**
+   * Asks for the copies of a loop head to end a block, cf. {@link #endsABlock}. The post-processing
+   * that copies them decides this, because it is the one that knows whether anything still reports
+   * about the loops of the program afterwards.
+   */
+  public void letCopiesOfLoopHeadsEndABlock() {
+    copiesOfLoopHeadsEndABlock = true;
+  }
+
+  /**
    * The node of the program that the given node stands for, which is the node itself unless a
    * post-processing copied it.
    */
@@ -57,5 +67,15 @@ public final class CfaCopyOrigins {
    */
   public CFAEdge originalOf(CFAEdge pEdge) {
     return edges.getOrDefault(pEdge, pEdge);
+  }
+
+  /**
+   * Whether a block of a basic-block aggregation has to end at the given node, although the shape
+   * of the CFA does not say so.
+   */
+  public boolean endsABlock(CFANode pNode) {
+    // A loop head of the program is entered from more than one place and ends a block on its own,
+    // while a copy of it is entered from one place only.
+    return copiesOfLoopHeadsEndABlock && originalOf(pNode).isLoopStart();
   }
 }
