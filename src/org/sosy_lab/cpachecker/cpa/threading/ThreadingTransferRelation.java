@@ -12,14 +12,18 @@ import static com.google.common.collect.Collections2.transform;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -37,7 +41,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -60,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -72,6 +80,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState.Barrier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -141,6 +150,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_MUTEX_INIT = "pthread_mutex_init";
   private static final String THREAD_MUTEXATTR_SETTYPE = "pthread_mutexattr_settype";
   public static final String THREAD_ONCE = "pthread_once";
+  private static final String THREAD_BARRIER_INIT = "pthread_barrier_init";
+  private static final String THREAD_BARRIER_WAIT = "pthread_barrier_wait";
   // value of PTHREAD_MUTEX_RECURSIVE in glibc
   private static final BigInteger PTHREAD_MUTEX_RECURSIVE = BigInteger.ONE;
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
@@ -170,6 +181,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           THREAD_JOIN,
           THREAD_EXIT,
           THREAD_ONCE,
+          THREAD_BARRIER_INIT,
+          THREAD_BARRIER_WAIT,
           VERIFIER_ATOMIC_BEGIN,
           VERIFIER_ATOMIC_END);
 
@@ -197,7 +210,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     ThreadingState state = (ThreadingState) pState;
 
-    ThreadingState threadingState = exitThreads(state);
+    ThreadingState threadingState = exitThreads(state).withAssumptions(ImmutableList.of());
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
     if (activeThread == null) {
@@ -314,6 +327,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
               }
               case THREAD_ONCE -> {
                 return callOnce(threadingState, activeThread, statement, results, cfaEdge);
+              }
+              case THREAD_BARRIER_INIT -> {
+                return initBarrier(statement, results, cfaEdge);
+              }
+              case THREAD_BARRIER_WAIT -> {
+                return waitAtBarrier(threadingState, activeThread, statement, results, cfaEdge);
               }
               case THREAD_EXIT -> {
                 // this function-call is already handled in the beginning with isLastNodeOfThread.
@@ -877,6 +896,159 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         "pthread_once with an init routine that is not a function", cfaEdge);
   }
 
+  /**
+   * pthread_barrier_init(b, attr, count) sets the capacity of the barrier. If count is no literal,
+   * there is one successor per capacity, with an assumption about count.
+   */
+  private Collection<ThreadingState> initBarrier(
+      final AStatement statement, final Collection<ThreadingState> results, final CFAEdge cfaEdge)
+      throws UnsupportedCodeException {
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    String barrierId = extractGlobalObjectId(params.get(0), cfaEdge);
+    CExpression count = (CExpression) params.get(2);
+
+    CExpression literal = count;
+    while (literal instanceof CCastExpression cast) {
+      literal = cast.getOperand();
+    }
+    if (literal instanceof CIntegerLiteralExpression integerLiteral) {
+      BigInteger value = integerLiteral.getValue();
+      boolean releasable =
+          value.signum() > 0
+              && value.bitLength() < Integer.SIZE
+              && (maxNumberOfThreads == -1 || value.intValueExact() <= maxNumberOfThreads);
+      Barrier barrier =
+          new Barrier(
+              releasable ? value.intValueExact() : Barrier.NEVER_RELEASED, ImmutableSet.of());
+      return transform(results, ts -> ts.setBarrierAndCopy(barrierId, barrier));
+    }
+    if (maxNumberOfThreads == -1) {
+      throw new UnsupportedCodeException(
+          "pthread_barrier_init with a count that is no literal and no limit of threads", cfaEdge);
+    }
+
+    // pthread_barrier_init converts the count to unsigned int
+    FileLocation loc = cfaEdge.getFileLocation();
+    CExpression unsignedCount = new CCastExpression(loc, CNumericTypes.UNSIGNED_INT, count);
+    CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+    Map<CExpression, Integer> capacities = new LinkedHashMap<>();
+    for (int capacity = 1; capacity <= maxNumberOfThreads; capacity++) {
+      capacities.put(
+          builder.buildBinaryExpressionUnchecked(
+              unsignedCount, unsignedLiteral(loc, capacity), BinaryOperator.EQUALS),
+          capacity);
+    }
+    capacities.put(
+        builder.buildBinaryExpressionUnchecked(
+            unsignedCount, unsignedLiteral(loc, 0), BinaryOperator.EQUALS),
+        Barrier.NEVER_RELEASED);
+    capacities.put(
+        builder.buildBinaryExpressionUnchecked(
+            unsignedCount, unsignedLiteral(loc, maxNumberOfThreads), BinaryOperator.GREATER_THAN),
+        Barrier.NEVER_RELEASED);
+
+    ImmutableList.Builder<ThreadingState> newResults = ImmutableList.builder();
+    for (Map.Entry<CExpression, Integer> entry : capacities.entrySet()) {
+      Barrier barrier = new Barrier(entry.getValue(), ImmutableSet.of());
+      for (ThreadingState ts : results) {
+        newResults.add(
+            ts.setBarrierAndCopy(barrierId, barrier)
+                .withAssumptions(ImmutableList.of(entry.getKey())));
+      }
+    }
+    return newResults.build();
+  }
+
+  private static CIntegerLiteralExpression unsignedLiteral(FileLocation loc, int value) {
+    return new CIntegerLiteralExpression(
+        loc, CNumericTypes.UNSIGNED_INT, BigInteger.valueOf(value));
+  }
+
+  /**
+   * A thread passes pthread_barrier_wait if the barrier released it, or if capacity - 1 other
+   * threads wait at the barrier. In the second case, the barrier releases these other threads. A
+   * thread waits at a barrier if its next edge is pthread_barrier_wait for this barrier.
+   */
+  private static Collection<ThreadingState> waitAtBarrier(
+      final ThreadingState threadingState,
+      final String activeThread,
+      final AStatement statement,
+      final Collection<ThreadingState> results,
+      final CFAEdge cfaEdge)
+      throws UnsupportedCodeException {
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    String barrierId = extractGlobalObjectId(params.get(0), cfaEdge);
+    Barrier barrier = threadingState.getBarrier(barrierId);
+    if (barrier == null) {
+      throw new UnsupportedCodeException(
+          "pthread_barrier_wait without pthread_barrier_init", cfaEdge);
+    }
+
+    if (barrier.released().contains(activeThread)) {
+      Barrier passed =
+          new Barrier(
+              barrier.capacity(),
+              ImmutableSet.copyOf(
+                  Sets.difference(barrier.released(), ImmutableSet.of(activeThread))));
+      return transform(results, ts -> ts.setBarrierAndCopy(barrierId, passed));
+    }
+    if (barrier.capacity() == Barrier.NEVER_RELEASED) {
+      return ImmutableSet.of();
+    }
+
+    ImmutableSet<String> waiting =
+        FluentIterable.from(threadingState.getThreadIds())
+            .filter(
+                id ->
+                    !id.equals(activeThread)
+                        && !barrier.released().contains(id)
+                        && !threadingState.isWaitingForOnce(id)
+                        && waitsAtBarrier(threadingState, id, barrierId))
+            .toSet();
+    if (waiting.size() < barrier.capacity() - 1) {
+      return ImmutableSet.of();
+    }
+
+    ImmutableList.Builder<ThreadingState> newResults = ImmutableList.builder();
+    for (Set<String> others : Sets.combinations(waiting, barrier.capacity() - 1)) {
+      Barrier released =
+          new Barrier(
+              barrier.capacity(),
+              ImmutableSet.<String>builder().addAll(barrier.released()).addAll(others).build());
+      for (ThreadingState ts : results) {
+        newResults.add(ts.setBarrierAndCopy(barrierId, released));
+      }
+    }
+    return newResults.build();
+  }
+
+  private static boolean waitsAtBarrier(
+      ThreadingState threadingState, String threadId, String barrierId) {
+    for (CFAEdge edge : threadingState.getThreadLocation(threadId).getOutgoingEdges()) {
+      if (isBarrierWait(edge)
+          && getGlobalObjectId(
+                  ((AFunctionCall) ((AStatementEdge) edge).getStatement())
+                      .getFunctionCallExpression()
+                      .getParameterExpressions()
+                      .get(0))
+              .filter(barrierId::equals)
+              .isPresent()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isBarrierWait(CFAEdge edge) {
+    return edge instanceof AStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof AFunctionCall call
+        && call.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof AIdExpression function
+        && THREAD_BARRIER_WAIT.equals(function.getName());
+  }
+
   private static String extractGlobalObjectId(AExpression pArgument, CFAEdge cfaEdge)
       throws UnsupportedCodeException {
     return getGlobalObjectId(pArgument)
@@ -946,7 +1118,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     // add local access lock, if necessary and possible
     final boolean isImporantForThreading =
-        globalAccessChecker.hasGlobalAccess(cfaEdge) || isImporantForThreading(cfaEdge);
+        globalAccessChecker.hasGlobalAccess(cfaEdge)
+            || isImporantForThreading(cfaEdge)
+            // other threads observe that a thread waits at a barrier
+            || cfaEdge
+                .getSuccessor()
+                .getLeavingEdges()
+                .anyMatch(ThreadingTransferRelation::isBarrierWait);
     if (isImporantForThreading) {
       return threadingState.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
     } else {

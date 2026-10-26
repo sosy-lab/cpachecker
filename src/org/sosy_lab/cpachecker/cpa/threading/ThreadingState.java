@@ -18,10 +18,12 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -41,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -54,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** This immutable state represents a location state combined with a callstack state. */
 public class ThreadingState
     implements AbstractState,
+        AbstractStateWithAssumptions,
         AbstractStateWithLocations,
         Graphable,
         Partitionable,
@@ -96,6 +101,16 @@ public class ThreadingState
   // String :: identifier of a pthread_once_t whose init routine has finished
   private final ImmutableSet<String> finishedOnces;
 
+  // String :: identifier of a pthread_barrier_t  -->  Barrier
+  private final PersistentMap<String, Barrier> barriers;
+
+  /**
+   * Assumptions about the program state that hold after the edge that produced this state, cf.
+   * {@link #getAssumptions()}. They are not part of {@link #equals}, because the other CPAs already
+   * restrict their states with them.
+   */
+  private final ImmutableList<CExpression> assumptions;
+
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
    * should only be set in {@link ThreadingTransferRelation#getAbstractSuccessorsForEdge} and must
@@ -135,6 +150,8 @@ public class ThreadingState
     recursiveMutexAttributes = ImmutableSet.of();
     onceRunners = PathCopyingPersistentTreeMap.of();
     finishedOnces = ImmutableSet.of();
+    barriers = PathCopyingPersistentTreeMap.of();
+    assumptions = ImmutableList.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -147,6 +164,8 @@ public class ThreadingState
       ImmutableSet<String> pRecursiveMutexAttributes,
       PersistentMap<String, OnceRun> pOnceRunners,
       ImmutableSet<String> pFinishedOnces,
+      PersistentMap<String, Barrier> pBarriers,
+      ImmutableList<CExpression> pAssumptions,
       String pActiveThread,
       FunctionCallEdge entryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness) {
@@ -156,6 +175,8 @@ public class ThreadingState
     recursiveMutexAttributes = pRecursiveMutexAttributes;
     onceRunners = pOnceRunners;
     finishedOnces = pFinishedOnces;
+    barriers = pBarriers;
+    assumptions = pAssumptions;
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
@@ -169,6 +190,8 @@ public class ThreadingState
         recursiveMutexAttributes,
         onceRunners,
         finishedOnces,
+        barriers,
+        assumptions,
         activeThread,
         entryFunction,
         threadIdsForWitness);
@@ -183,6 +206,8 @@ public class ThreadingState
         recursiveMutexAttributes,
         onceRunners,
         finishedOnces,
+        barriers,
+        assumptions,
         activeThread,
         entryFunction,
         threadIdsForWitness);
@@ -197,6 +222,8 @@ public class ThreadingState
         pRecursiveMutexAttributes,
         onceRunners,
         finishedOnces,
+        barriers,
+        assumptions,
         activeThread,
         entryFunction,
         threadIdsForWitness);
@@ -211,6 +238,23 @@ public class ThreadingState
         recursiveMutexAttributes,
         pOnceRunners,
         pFinishedOnces,
+        barriers,
+        assumptions,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
+  }
+
+  private ThreadingState withBarriers(PersistentMap<String, Barrier> pBarriers) {
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
+        pBarriers,
+        assumptions,
         activeThread,
         entryFunction,
         threadIdsForWitness);
@@ -225,6 +269,8 @@ public class ThreadingState
         recursiveMutexAttributes,
         onceRunners,
         finishedOnces,
+        barriers,
+        assumptions,
         activeThread,
         entryFunction,
         pThreadIdsForWitness);
@@ -390,6 +436,14 @@ public class ThreadingState
     return onceRun == null ? threadId : getProgramThread(onceRun.caller());
   }
 
+  public @Nullable Barrier getBarrier(String barrierId) {
+    return barriers.get(barrierId);
+  }
+
+  public ThreadingState setBarrierAndCopy(String barrierId, Barrier barrier) {
+    return withBarriers(barriers.putAndCopy(barrierId, barrier));
+  }
+
   /** returns whether any of the threads has the lock */
   public boolean hasLock(String lockId) {
     return locks.containsKey(lockId); // TODO threadId needed?
@@ -430,6 +484,12 @@ public class ThreadingState
                 + Joiner.on(", ").withKeyValueSeparator("=").join(onceRunners)
                 + "}, finished onces="
                 + finishedOnces))
+        + (barriers.isEmpty()
+            ? ""
+            : ("\n and barriers={"
+                + Joiner.on(", ").withKeyValueSeparator("=").join(barriers)
+                + "}"))
+        + (assumptions.isEmpty() ? "" : ("\n assuming " + assumptions))
         + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
         + " \n"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadIdsForWitness)
@@ -445,6 +505,7 @@ public class ThreadingState
         && recursiveMutexAttributes.equals(ts.recursiveMutexAttributes)
         && onceRunners.equals(ts.onceRunners)
         && finishedOnces.equals(ts.finishedOnces)
+        && barriers.equals(ts.barriers)
         && Objects.equals(activeThread, ts.activeThread)
         && threadIdsForWitness.equals(ts.threadIdsForWitness);
   }
@@ -458,6 +519,7 @@ public class ThreadingState
         recursiveMutexAttributes,
         onceRunners,
         finishedOnces,
+        barriers,
         activeThread,
         threadIdsForWitness);
   }
@@ -616,6 +678,16 @@ public class ThreadingState
   /** The init routine of the pthread_once_t onceId, which the thread caller waits for. */
   record OnceRun(String onceId, String caller) {}
 
+  /**
+   * A barrier that releases its waiting threads when capacity threads wait. The threads in released
+   * can pass their pthread_barrier_wait.
+   */
+  record Barrier(int capacity, ImmutableSet<String> released) {
+
+    /** The capacity of a barrier that never releases its threads, e.g. for a count of 0. */
+    static final int NEVER_RELEASED = Integer.MAX_VALUE;
+  }
+
   /** A ThreadState describes the state of a single thread. */
   private static class ThreadState {
 
@@ -674,6 +746,8 @@ public class ThreadingState
         recursiveMutexAttributes,
         onceRunners,
         finishedOnces,
+        barriers,
+        assumptions,
         pActiveThread,
         entryFunction,
         threadIdsForWitness);
@@ -692,9 +766,36 @@ public class ThreadingState
         recursiveMutexAttributes,
         onceRunners,
         finishedOnces,
+        barriers,
+        assumptions,
         activeThread,
         pEntryFunction,
         threadIdsForWitness);
+  }
+
+  /** See {@link #assumptions}. */
+  public ThreadingState withAssumptions(ImmutableList<CExpression> pAssumptions) {
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
+        barriers,
+        pAssumptions,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
+  }
+
+  /**
+   * Returns the assumptions of the edge that produced this state, e.g. about the count of a
+   * barrier. They are set only for this edge, and the next edge removes them.
+   */
+  @Override
+  public List<CExpression> getAssumptions() {
+    return assumptions;
   }
 
   /** See {@link #entryFunction}. */

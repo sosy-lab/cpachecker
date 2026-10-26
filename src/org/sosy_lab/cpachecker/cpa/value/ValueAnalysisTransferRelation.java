@@ -1384,6 +1384,19 @@ public class ValueAnalysisTransferRelation
           toStrengthen.clear();
           toStrengthen.addAll(result);
         }
+        case ThreadingState threadingState -> {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            result.addAll(
+                strengthenWithAssumptions(
+                    threadingState,
+                    strengthenWithThreads(threadingState, stateToStrengthen),
+                    pCfaEdge));
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        }
         case AbstractStateWithAssumptions stateWithAssumptions -> {
           result.clear();
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
@@ -1391,15 +1404,6 @@ public class ValueAnalysisTransferRelation
 
             result.addAll(
                 strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
-          }
-          toStrengthen.clear();
-          toStrengthen.addAll(result);
-        }
-        case ThreadingState threadingState -> {
-          result.clear();
-          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-            super.setInfo(pElement, pPrecision, pCfaEdge);
-            result.add(strengthenWithThreads(threadingState, stateToStrengthen));
           }
           toStrengthen.clear();
           toStrengthen.addAll(result);
