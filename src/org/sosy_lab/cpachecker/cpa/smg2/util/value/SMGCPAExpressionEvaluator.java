@@ -2505,8 +2505,9 @@ public class SMGCPAExpressionEvaluator {
     return ImmutableList.of(currentState);
   }
 
-  /*
-   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case arrays.
+  /**
+   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case
+   * arrays (but we might interpret them as pointers!).
    */
   private List<SMGState> handleInitializerList(
       SMGState pState,
@@ -2522,16 +2523,51 @@ public class SMGCPAExpressionEvaluator {
     Value memberTypeSize = getBitSizeof(pState, memberType, pEdge);
 
     List<CInitializer> initList = pNewInitializer.getInitializers();
-    // The initilizerlist might exceed the memory allocated. In this case we cut off the rest of the
-    // initializer
-    // Also, the initializer might be smaller, in that case we pad 0
+    // The initializer-list might exceed the memory allocated.
+    // In this case we cut off the rest of the initializer
+    // Also, the initializer might be smaller, in that case we pad 0.
+    // TODO: why not use the CArrayType from pLValueType? Is it wrong?
     if (pVarDecl != null && pVarDecl.getType().getCanonicalType().hasKnownConstantSize()) {
-      BigInteger typeSize = machineModel.getSizeof(pVarDecl.getType().getCanonicalType());
-      int initializerSize = pNewInitializer.getInitializers().size();
-      if (typeSize.intValueExact() < initializerSize) {
-        initList = initList.subList(0, typeSize.intValueExact());
+      CType varType = pVarDecl.getType().getCanonicalType();
+      BigInteger memSizeInBytes;
+      if (varType instanceof CArrayType) {
+        memSizeInBytes = machineModel.getSizeof(varType);
+      } else {
+        // resolve the array size from the allocated memory directly
+        checkState(variableName.contains("__STRING_LITERAL_CPACHECKER"));
+        SMGObject memory =
+            pState.getMemoryModel().getGlobalVariableToSmgObjectMap().get(variableName);
+        checkNotNull(memory);
+        Value memorySize = memory.getSize();
+        // We can only work with concrete sizes here
+        if (memorySize instanceof NumericValue numMemorySize) {
+          memSizeInBytes =
+              numMemorySize
+                  .bigIntegerValue()
+                  .divide(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+        } else {
+          throw new SMGException(
+              "Can't handle symbolic memory size in initializer for declaration: " + pVarDecl);
+        }
       }
-      // TODO: handle smaller initializer lists
+
+      int initializerSize = initList.size();
+      if (memSizeInBytes.intValueExact() < initializerSize) {
+        initList = initList.subList(0, memSizeInBytes.intValueExact());
+      } else {
+        // Smaller list (or equal)
+        ImmutableList.Builder<CInitializer> newInitList =
+            ImmutableList.<CInitializer>builder().addAll(initList);
+        for (int i = 0; i < memSizeInBytes.intValueExact() - initializerSize; i++) {
+          newInitList.add(
+              new CInitializerExpression(
+                  FileLocation.DUMMY,
+                  new CCharLiteralExpression(FileLocation.DUMMY, CNumericTypes.SIGNED_CHAR, '\0')));
+        }
+        // TODO: why not just zero the entire memory first?
+        //   Is it already zeroed? Local arrays are always zeroed!
+        initList = newInitList.build();
+      }
     }
 
     SMGState currentState = pState;
