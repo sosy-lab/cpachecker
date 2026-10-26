@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
@@ -37,8 +38,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -48,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.terminationviamemory.PartitionedRelationFormu
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -60,6 +64,41 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class TerminationArgumentsToWitnessUtils {
+
+  private static final Pattern VARIABLE =
+      Pattern.compile("(?<![\\w:])((?:\\w+::)?\\w+)(?![\\w:(])");
+
+  /** Maps the qualified names of the variables of the CFA to their names in the program. */
+  public static ImmutableMap<String, String> getNamesOfProgram(CFA pCfa) {
+    Map<String, String> names = new HashMap<>();
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+      if (edge instanceof CDeclarationEdge declarationEdge
+          && declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration) {
+        names.put(declaration.getQualifiedName(), declaration.getOrigName());
+      }
+    }
+    return ImmutableMap.copyOf(names);
+  }
+
+  /**
+   * Replaces the variables by their names in the program, which differ from the names in CPAchecker
+   * for renamed variables, e.g., for the second declaration of i in a function, which is i__1.
+   */
+  private static String useNamesOfProgram(
+      String pExpression, String pFunction, ImmutableMap<String, String> pNamesOfProgram) {
+    String expression =
+        VARIABLE
+            .matcher(pExpression)
+            .replaceAll(
+                match -> {
+                  String variable = match.group(1);
+                  String name =
+                      pNamesOfProgram.getOrDefault(
+                          pFunction + "::" + variable, pNamesOfProgram.get(variable));
+                  return Matcher.quoteReplacement(name == null ? variable : name);
+                });
+    return TransitionInvariantUtils.removeFunctionFromVarsName(expression);
+  }
 
   private static String rightSideOfRankingFunction(String pRankingFunction) {
     // The ranking function comes from LassoRanker, so we have little options on how to process it,
@@ -148,7 +187,10 @@ public class TerminationArgumentsToWitnessUtils {
 
   /** Converts supporting invariant into an invariant entry. */
   public static InvariantEntry convertSupportingInvariantToInvariantEntry(
-      SupportingInvariant pSupportingInvariant, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
+      SupportingInvariant pSupportingInvariant,
+      CFANode pLoopHead,
+      CFAEdge pIncomingLoopEdge,
+      ImmutableMap<String, String> pNamesOfProgram) {
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
     // This is planned in https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1483
     FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();
@@ -166,7 +208,7 @@ public class TerminationArgumentsToWitnessUtils {
             wrapTheVariablesWithCastToLongLong(
                 pSupportingInvariant.toString(), pSupportingInvariant.getVariables()));
     return new InvariantEntry(
-        TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
+        useNamesOfProgram(invariant, pLoopHead.getFunctionName(), pNamesOfProgram),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.C,
         locationRecord);
@@ -177,7 +219,10 @@ public class TerminationArgumentsToWitnessUtils {
    * to invariant entry expressed with transition invariant.
    */
   public static InvariantEntry convertRankgingFunctionsToTransitionInvariants(
-      Collection<TerminationArgument> pArguments, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
+      Collection<TerminationArgument> pArguments,
+      CFANode pLoopHead,
+      CFAEdge pIncomingLoopEdge,
+      ImmutableMap<String, String> pNamesOfProgram) {
     ImmutableList.Builder<String> transitionInvariants = ImmutableList.builder();
 
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
@@ -221,10 +266,12 @@ public class TerminationArgumentsToWitnessUtils {
       }
     }
     return new InvariantEntry(
-        TransitionInvariantUtils.removeFunctionFromVarsName(
+        useNamesOfProgram(
             FluentIterable.from(transitionInvariants.build())
                 .transform(disjunct -> "(" + disjunct + ")")
-                .join(Joiner.on(" || "))),
+                .join(Joiner.on(" || ")),
+            pLoopHead.getFunctionName(),
+            pNamesOfProgram),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.EXT_C,
         locationRecord);
@@ -268,6 +315,7 @@ public class TerminationArgumentsToWitnessUtils {
       Scope scope) {
     Map<FileLocation, InvariantEntry> transitionInvariants = new HashMap<>();
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
+    ImmutableMap<String, String> namesOfProgram = getNamesOfProgram(pCFA);
     for (AbstractState state :
         pReached.stream()
             .filter(
@@ -294,7 +342,7 @@ public class TerminationArgumentsToWitnessUtils {
                       wrappedFormula.getFormula(), bfmgr, fmgr, scope)
                   .replace(AT_PREFIX_NON_C, AT_PREFIX);
           transitionInvariantAsC =
-              TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
+              useNamesOfProgram(transitionInvariantAsC, location.getFunctionName(), namesOfProgram);
         } catch (CPAException e) {
           transitionInvariantAsC = "true";
         }
