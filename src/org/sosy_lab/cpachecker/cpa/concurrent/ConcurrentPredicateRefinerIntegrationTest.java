@@ -184,6 +184,30 @@ public class ConcurrentPredicateRefinerIntegrationTest {
   }
 
   @Test
+  public void aggregatesBasicBlocksWithoutSkippingLoopTransitions() throws Exception {
+    try (CPAcheckerResult result =
+        run(
+            """
+            int x;
+            void *writer(void *arg) {
+              for (int i = 0; i < 3; i++) { x = i; }
+              return 0;
+            }
+            int main(void) {
+              pthread_t a;
+              pthread_create(&a, 0, writer, 0);
+              pthread_join(a, 0);
+              if (x != 2) { ERROR: return 0; }
+              return 0;
+            }
+            """,
+            "cpa.concurrent.aggregateBasicBlocks",
+            "true")) {
+      assertThat(result.getResult()).isEqualTo(CPAcheckerResult.Result.TRUE);
+    }
+  }
+
+  @Test
   public void replaysRecursiveCalls() throws Exception {
     try (CPAcheckerResult result =
         run(

@@ -101,8 +101,8 @@ final class ConcurrentCfaCloner {
         .computeIfAbsent(pCfa, unused -> new HashMap<>())
         .computeIfAbsent(
             pThreadId,
-            pid -> {
-              ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(pid);
+            threadId -> {
+              ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(threadId);
               cloner.cloneEntireCfa(pCfa);
               return cloner;
             });

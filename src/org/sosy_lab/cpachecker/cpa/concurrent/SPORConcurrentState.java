@@ -57,20 +57,20 @@ class SPORConcurrentState extends ConcurrentState {
       CFA pCfa,
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
-      ImmutableSet<Integer> pLivePids,
-      ImmutableMap<String, Integer> pHandleHints,
+      ImmutableSet<Integer> pLiveThreadIds,
+      ImmutableMap<String, Integer> pHandleThreadIdHints,
       Random pRandom) {
-    super(pWrappedState, pCfa, pLogger, pThreads, pLivePids, pHandleHints, pRandom);
+    super(pWrappedState, pCfa, pLogger, pThreads, pLiveThreadIds, pHandleThreadIdHints, pRandom);
   }
 
   @Override
   protected ConcurrentState update(
       AbstractState pWrappedState,
       ImmutableMap<Integer, ThreadState> pThreads,
-      ImmutableSet<Integer> pLivePids,
-      ImmutableMap<String, Integer> pHandleHints) {
+      ImmutableSet<Integer> pLiveThreadIds,
+      ImmutableMap<String, Integer> pHandleThreadIdHints) {
     return new SPORConcurrentState(
-        pWrappedState, cfa, logger, pThreads, pLivePids, pHandleHints, random);
+        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleThreadIdHints, random);
   }
 
   /**
@@ -96,7 +96,7 @@ class SPORConcurrentState extends ConcurrentState {
       MutexState mutexState =
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
       if (mutexState != null) {
-        mutexState.addEdgePids(edgePidMap);
+        mutexState.addEdgePids(edgeThreadIds);
       }
     }
     return sourceSet;
@@ -107,16 +107,16 @@ class SPORConcurrentState extends ConcurrentState {
     MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     final var enabledThreads =
         Streams.stream(allOutgoingEdges)
-            .map(e -> getEdgePid(e))
+            .map(this::getEdgeThreadId)
             .distinct()
             .collect(Collectors.toCollection(ArrayList::new));
     Collections.shuffle(enabledThreads, random);
     final ImmutableList.Builder<ImmutableCollection<CFAEdge>> sourceSetFirstActions =
         ImmutableList.builder();
-    for (final var pid : enabledThreads) {
+    for (final var threadId : enabledThreads) {
       final Collection<CFAEdge> firstActions = new ArrayList<>();
       for (final var edge : allOutgoingEdges) {
-        if (pid.equals(edgePidMap.get(edge))) {
+        if (threadId.equals(edgeThreadIds.get(edge))) {
           firstActions.add(edge);
         }
       }
@@ -128,7 +128,7 @@ class SPORConcurrentState extends ConcurrentState {
                       e -> {
                         Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(e);
                         return lockMutex.isPresent()
-                            && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), pid);
+                            && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), threadId);
                       });
       if (!allBlocked) {
         sourceSetFirstActions.add(ImmutableList.copyOf(firstActions));
@@ -147,7 +147,7 @@ class SPORConcurrentState extends ConcurrentState {
     final var otherEdges = new ArrayList<CFAEdge>();
     for (final var edge : allOutgoingEdges) {
       if (firstActions.contains(edge)) {
-        if (edge.getPredecessor().isLoopStart()) {
+        if (isLoopHead(edge)) {
           return allOutgoingEdges;
         }
         currentSourceSet.add(edge);
@@ -169,7 +169,7 @@ class SPORConcurrentState extends ConcurrentState {
           }
         }
         if (isDependent) {
-          if (edge.getPredecessor().isLoopStart()) {
+          if (isLoopHead(edge)) {
             return allOutgoingEdges;
           }
           currentSourceSet.add(edge);
@@ -189,13 +189,19 @@ class SPORConcurrentState extends ConcurrentState {
       ConcurrentPrecision precision,
       BasicBlockAggregator basicBlock)
       throws CPATransferException {
-    if (edgePidMap.get(sourceSetEdge).equals(edgePidMap.get(edge))) {
+    if (edgeThreadIds.get(sourceSetEdge).equals(edgeThreadIds.get(edge))) {
       return true;
     }
 
     final var sourceSetMemLocs = getUsedGlobalVars(sourceSetEdge, basicBlock);
     final var influencedMemLocs = getInfluencedGlobalVars(edge);
     return intersect(sourceSetMemLocs, influencedMemLocs, precision);
+  }
+
+  private boolean isLoopHead(CFAEdge edge) {
+    return cfa.getAllLoopHeads()
+        .map(loopHeads -> loopHeads.contains(edge.getPredecessor().getOriginal()))
+        .orElse(false);
   }
 
   private EdgeDefUseData getDirectlyUsedGlobalVars(CFAEdge edge) {
@@ -216,7 +222,7 @@ class SPORConcurrentState extends ConcurrentState {
     }
 
     final MutexState initialMutexState;
-    final Integer pid;
+    final Integer threadId;
     if (MutexFunctions.isLockCall(edge)) {
       MutexState currentMutexState =
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
@@ -227,20 +233,20 @@ class SPORConcurrentState extends ConcurrentState {
         }
       }
       initialMutexState = currentInitialMutexState;
-      pid = getEdgePid(edge);
+      threadId = getEdgeThreadId(edge);
       final BiPredicate<CFAEdge, MutexState> originalGoFurther = goFurther;
       goFurther =
           (pCFAEdge, pMutexState) ->
               (pMutexState != null
                       && (!pMutexState.getLockedMutexes().isEmpty()
-                          || pMutexState.getAtomicHolder().orElse(-1) == pid))
+                          || pMutexState.getAtomicHolder().orElse(-1) == threadId))
                   || originalGoFurther.test(pCFAEdge, pMutexState);
     } else {
       initialMutexState = null;
-      pid = null;
+      threadId = null;
     }
 
-    return getVarsWithTraversal(edge, goFurther, initialMutexState, pid, false);
+    return getVarsWithTraversal(edge, goFurther, initialMutexState, threadId, false);
   }
 
   private EdgeDefUseData getInfluencedGlobalVars(CFAEdge edge) throws CPATransferException {
@@ -251,7 +257,7 @@ class SPORConcurrentState extends ConcurrentState {
       CFAEdge startEdge,
       BiPredicate<CFAEdge, MutexState> goFurther,
       MutexState initialMutexState,
-      Integer pid,
+      Integer threadId,
       boolean visitStartedThreadFunction)
       throws CPATransferException {
     EdgeDefUseData uses = EdgeDefUseData.empty();
@@ -265,7 +271,7 @@ class SPORConcurrentState extends ConcurrentState {
       exploredEdges.add(edge);
       uses = uses.merge(getDirectlyUsedGlobalVars(edge));
       if (mutexState != null) {
-        Optional<MutexState> result = mutexState.update(edge, pid, null);
+        Optional<MutexState> result = mutexState.update(edge, threadId, null);
         if (result.isEmpty()) {
           continue;
         }

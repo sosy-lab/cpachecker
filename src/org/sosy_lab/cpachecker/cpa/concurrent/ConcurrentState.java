@@ -58,10 +58,10 @@ public class ConcurrentState extends AbstractSingleWrapperState
   protected final ImmutableMap<Integer, ThreadState> threads;
 
   /** Thread instances created so far along this path and not yet joined away. */
-  protected final ImmutableSet<Integer> livePids;
+  protected final ImmutableSet<Integer> liveThreadIds;
 
   /**
-   * Fast-path hint from a handle variable's qualified name to the pid it was last assigned by
+   * Fast-path hint from a handle variable's qualified name to the thread ID it was last assigned by
    * {@code pthread_create(&name, ...)}, for the common case where the handle is a plain variable
    * (not an array element, struct field, ...). Excluded from {@link #equals}/{@link #hashCode} — it
    * is pure optimization, never load-bearing for correctness (see {@link
@@ -69,59 +69,64 @@ public class ConcurrentState extends AbstractSingleWrapperState
    * candidate-branching mechanism whenever no hint applies), so two states that agree on everything
    * else may still merge/cover regardless of it.
    */
-  protected final ImmutableMap<String, Integer> handleHints;
+  protected final ImmutableMap<String, Integer> handleThreadIdHints;
 
-  /** Transient mapping from cloned outgoing edges to their originating thread PID. */
-  protected final IdentityHashMap<CFAEdge, Integer> edgePidMap = new IdentityHashMap<>();
+  /** Transient mapping from cloned outgoing edges to their originating thread ID. */
+  protected final IdentityHashMap<CFAEdge, Integer> edgeThreadIds = new IdentityHashMap<>();
 
   protected ConcurrentState(
       AbstractState pWrappedState,
       CFA pCfa,
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
-      ImmutableSet<Integer> pLivePids,
-      ImmutableMap<String, Integer> pHandleHints,
+      ImmutableSet<Integer> pLiveThreadIds,
+      ImmutableMap<String, Integer> pHandleThreadIdHints,
       Random pRandom) {
     super(pWrappedState);
 
     cfa = pCfa;
     logger = pLogger;
     threads = pThreads;
-    livePids = pLivePids;
-    handleHints = pHandleHints;
+    liveThreadIds = pLiveThreadIds;
+    handleThreadIdHints = pHandleThreadIdHints;
     random = pRandom;
   }
 
   protected ConcurrentState update(
       AbstractState pWrappedState,
       ImmutableMap<Integer, ThreadState> pThreads,
-      ImmutableSet<Integer> pLivePids,
-      ImmutableMap<String, Integer> pHandleHints) {
+      ImmutableSet<Integer> pLiveThreadIds,
+      ImmutableMap<String, Integer> pHandleThreadIdHints) {
     return new ConcurrentState(
-        pWrappedState, cfa, logger, pThreads, pLivePids, pHandleHints, random);
+        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleThreadIdHints, random);
   }
 
   public ImmutableMap<Integer, ThreadState> threads() {
     return threads;
   }
 
+  public ImmutableSet<Integer> liveThreadIds() {
+    return liveThreadIds;
+  }
+
+  /** Compatibility accessor for witness export; prefer {@link #liveThreadIds()} in the CPA. */
   public ImmutableSet<Integer> livePids() {
-    return livePids;
+    return liveThreadIds;
   }
 
   /**
-   * The fast-path candidate hint for a handle's qualified name, if any (see {@link #handleHints}),
-   * or null.
+   * The fast-path candidate thread ID for a handle's qualified name, if any (see {@link
+   * #handleThreadIdHints}), or empty.
    */
-  public OptionalInt getHandleHint(String qualifiedName) {
-    Integer hint = handleHints.get(qualifiedName);
+  public OptionalInt getHandleThreadIdHint(String qualifiedName) {
+    Integer hint = handleThreadIdHints.get(qualifiedName);
     return hint == null ? OptionalInt.empty() : OptionalInt.of(hint);
   }
 
   /**
-   * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
-   * POR node. Since the CFA is cloned per thread, a cloned node uniquely identifies the thread it
-   * belongs to. The PID is assigned in creation order with the main thread having PID 0, which
+   * Returns the thread ID the given node was cloned for, or empty if the node is not a cloned POR
+   * node. Since the CFA is cloned per thread, a cloned node uniquely identifies the thread it
+   * belongs to. The ID is assigned in creation order with the main thread having ID 0, which
    * matches the thread IDs used in the witnesses.
    */
   public static OptionalInt getThreadIdForClonedNode(CFANode pNode) {
@@ -129,67 +134,68 @@ public class ConcurrentState extends AbstractSingleWrapperState
   }
 
   boolean canMerge(ConcurrentState other) {
-    return threads.equals(other.threads) && livePids.equals(other.livePids);
+    return threads.equals(other.threads) && liveThreadIds.equals(other.liveThreadIds);
   }
 
   /**
-   * Adds a new thread instance. {@code pAddToLivePids} is false only for the main thread (created
+   * Adds a new thread instance. {@code pIsJoinable} is false only for the main thread (created
    * synthetically at analysis start, not via a real {@code pthread_create}): nothing can join it,
-   * so it was never made a join candidate under the old handle-name scheme either. {@code
-   * pHandleQualifiedName}, if given, records this pid as the fast-path join candidate for that
-   * variable (see {@link #handleHints}) — last write wins, matching ordinary variable semantics if
-   * the same storage is reused for a later create.
+   * so it is not a join candidate. {@code pHandleQualifiedName}, if given, records this thread ID
+   * as the fast-path join candidate for that variable (see {@link #handleThreadIdHints}) — last
+   * write wins, matching ordinary variable semantics if the same storage is reused for a later
+   * create.
    */
   ConcurrentState addNewThread(
-      boolean pAddToLivePids,
-      Optional<String> pHandleQualifiedName,
-      ThreadState pInitialThreadState) {
-    final int newPid = threads.size();
+      boolean pIsJoinable, Optional<String> pHandleQualifiedName, ThreadState pInitialThreadState) {
+    final int newThreadId = threads.size();
     final ImmutableMap<Integer, ThreadState> newThreads =
         ImmutableMap.<Integer, ThreadState>builder()
             .putAll(threads)
-            .put(newPid, pInitialThreadState)
+            .put(newThreadId, pInitialThreadState)
             .buildKeepingLast();
-    final ImmutableSet<Integer> newLivePids =
-        pAddToLivePids
-            ? ImmutableSet.<Integer>builder().addAll(livePids).add(newPid).build()
-            : livePids;
-    final ImmutableMap<String, Integer> newHandleHints =
+    final ImmutableSet<Integer> newLiveThreadIds =
+        pIsJoinable
+            ? ImmutableSet.<Integer>builder().addAll(liveThreadIds).add(newThreadId).build()
+            : liveThreadIds;
+    final ImmutableMap<String, Integer> newHandleThreadIdHints =
         pHandleQualifiedName
             .map(
                 pS ->
                     ImmutableMap.<String, Integer>builder()
-                        .putAll(handleHints)
-                        .put(pS, newPid)
+                        .putAll(handleThreadIdHints)
+                        .put(pS, newThreadId)
                         .buildKeepingLast())
-            .orElse(handleHints);
-    return update(getWrappedState(), newThreads, newLivePids, newHandleHints);
+            .orElse(handleThreadIdHints);
+    return update(getWrappedState(), newThreads, newLiveThreadIds, newHandleThreadIdHints);
   }
 
   /**
-   * Joins the given candidate thread instance (one of {@link #livePids}), blocking (returning null)
-   * until it has finished. Which candidate a given {@code pthread_join} call actually targets is
-   * resolved by the transfer relation — either directly, via {@link #getHandleHint} for the common
-   * case of a plain handle variable, or by branching over every live candidate and keeping only the
-   * ones the wrapped analysis finds feasible (see ConcurrentTransferRelation's join dispatch) — not
-   * by this method.
+   * Joins the given candidate thread instance (one of {@link #liveThreadIds}), blocking (returning
+   * empty) until it has finished. Which candidate a given {@code pthread_join} call actually
+   * targets is resolved by the transfer relation — either directly, via {@link
+   * #getHandleThreadIdHint} for the common case of a plain handle variable, or by branching over
+   * every live candidate and keeping only the ones the wrapped analysis finds feasible (see
+   * ConcurrentTransferRelation's join dispatch) — not by this method.
    */
-  Optional<ConcurrentState> joinThread(int pPid) {
-    if (!canJoin(pPid)) {
+  Optional<ConcurrentState> joinThread(int pThreadId) {
+    if (!canJoin(pThreadId)) {
       return Optional.empty();
     }
 
     final ImmutableMap<Integer, ThreadState> newThreads =
         threads.entrySet().stream()
-            .filter(e -> e.getKey() != pPid)
+            .filter(e -> e.getKey() != pThreadId)
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
-    final ImmutableSet<Integer> newLivePids =
-        livePids.stream().filter(pid -> pid != pPid).collect(ImmutableSet.toImmutableSet());
-    return Optional.of(update(getWrappedState(), newThreads, newLivePids, handleHints));
+    final ImmutableSet<Integer> newLiveThreadIds =
+        liveThreadIds.stream()
+            .filter(threadId -> threadId != pThreadId)
+            .collect(ImmutableSet.toImmutableSet());
+    return Optional.of(
+        update(getWrappedState(), newThreads, newLiveThreadIds, handleThreadIdHints));
   }
 
-  private boolean canJoin(int pPid) {
-    var threadState = threads.get(pPid);
+  private boolean canJoin(int pThreadId) {
+    var threadState = threads.get(pThreadId);
     return threadState != null && !threadState.getOutgoingEdges().iterator().hasNext();
   }
 
@@ -203,55 +209,56 @@ public class ConcurrentState extends AbstractSingleWrapperState
     if (!params.isEmpty() && params.getFirst() instanceof CExpression handle) {
       Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
       if (handleKey.isPresent()) {
-        Integer hint = handleHints.get(handleKey.orElseThrow());
-        if (hint != null && livePids.contains(hint)) {
+        Integer hint = handleThreadIdHints.get(handleKey.orElseThrow());
+        if (hint != null && liveThreadIds.contains(hint)) {
           return canJoin(hint);
         }
       }
     }
-    return livePids.stream().anyMatch(this::canJoin);
+    return liveThreadIds.stream().anyMatch(this::canJoin);
   }
 
-  public ConcurrentState stepThread(int pPid, ThreadState pNextThreadState) {
-    assert threads.containsKey(pPid) : "threads must contain pid to step " + pPid;
+  public ConcurrentState stepThread(int pThreadId, ThreadState pNextThreadState) {
+    assert threads.containsKey(pThreadId) : "threads must contain thread ID to step " + pThreadId;
     final ImmutableMap.Builder<Integer, ThreadState> newThreads = ImmutableMap.builder();
     for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
-      if (entry.getKey() != pPid) {
+      if (entry.getKey() != pThreadId) {
         newThreads.put(entry.getKey(), entry.getValue());
       }
     }
-    newThreads.put(pPid, pNextThreadState);
-    return update(getWrappedState(), newThreads.buildKeepingLast(), livePids, handleHints);
+    newThreads.put(pThreadId, pNextThreadState);
+    return update(
+        getWrappedState(), newThreads.buildKeepingLast(), liveThreadIds, handleThreadIdHints);
   }
 
   ConcurrentState withWrappedState(AbstractState pWrappedState) {
-    return update(pWrappedState, threads, livePids, handleHints);
+    return update(pWrappedState, threads, liveThreadIds, handleThreadIdHints);
   }
 
   /**
-   * Returns the thread PID that produced the given cloned outgoing edge. This mapping is populated
+   * Returns the thread ID that produced the given cloned outgoing edge. This mapping is populated
    * during {@link #getOutgoingEdges()}.
    */
-  public Integer getEdgePid(CFAEdge edge) {
-    return edgePidMap.get(edge);
+  public Integer getEdgeThreadId(CFAEdge edge) {
+    return edgeThreadIds.get(edge);
   }
 
-  public CFAEdge getNextBasicBlockEdge(int pid) {
-    var threadState = threads.get(pid);
+  public CFAEdge getNextBasicBlockEdge(int threadId) {
+    var threadState = threads.get(threadId);
     if (threadState == null) {
-      throw new IllegalArgumentException("No thread with pid " + pid);
+      throw new IllegalArgumentException("No thread with ID " + threadId);
     }
 
     CFANode locationNode = threadState.getLocationNode();
-    CFANode clonedNode = ConcurrentEdgeCloner.getClonedNode(locationNode, pid, cfa);
+    CFANode clonedNode = ConcurrentEdgeCloner.getClonedNode(locationNode, threadId, cfa);
     var leavingEdges = clonedNode.getLeavingEdges();
     assert leavingEdges.size() == 1 : "Expected exactly one leaving edge for basic block stepping";
     CFAEdge cloned = leavingEdges.get(0);
-    edgePidMap.put(cloned, pid);
+    edgeThreadIds.put(cloned, threadId);
 
     MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     if (mutexState != null) {
-      mutexState.addEdgePids(edgePidMap);
+      mutexState.addEdgePids(edgeThreadIds);
     }
 
     return cloned;
@@ -285,28 +292,29 @@ public class ConcurrentState extends AbstractSingleWrapperState
   @Override
   public ImmutableList<CFAEdge> getOutgoingEdges() {
     MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
-    edgePidMap.clear();
+    edgeThreadIds.clear();
     ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
     for (Entry<Integer, ThreadState> entry : threads.entrySet()) {
-      int pid = entry.getKey();
+      int threadId = entry.getKey();
       ThreadState threadState = entry.getValue();
 
       // Atomic block filtering: if another thread holds the atomic block, this thread is blocked.
       OptionalInt atomicHolder =
           mutexState != null ? mutexState.getAtomicHolder() : OptionalInt.empty();
-      if (atomicHolder.isPresent() && atomicHolder.orElseThrow() != pid) {
+      if (atomicHolder.isPresent() && atomicHolder.orElseThrow() != threadId) {
         continue;
       }
 
       CFANode locationNode = threadState.getLocationNode();
-      CFANode clonedNode = ConcurrentEdgeCloner.getClonedNode(locationNode, pid, cfa);
+      CFANode clonedNode = ConcurrentEdgeCloner.getClonedNode(locationNode, threadId, cfa);
       for (CFAEdge cloned : clonedNode.getLeavingEdges()) {
 
         if (mutexState != null) {
           // Mutex lock filtering: if this edge is a lock call and the mutex is held by another
           // thread, this thread is blocked and cannot proceed along this edge.
           Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(cloned);
-          if (lockMutex.isPresent() && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), pid)) {
+          if (lockMutex.isPresent()
+              && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), threadId)) {
             continue;
           }
         }
@@ -323,13 +331,13 @@ public class ConcurrentState extends AbstractSingleWrapperState
             && !isJoinCurrentlyEnabled(functionCall)) {
           continue;
         }
-        edgePidMap.put(cloned, pid);
+        edgeThreadIds.put(cloned, threadId);
         ret.add(cloned);
       }
     }
 
     if (mutexState != null) {
-      mutexState.addEdgePids(edgePidMap);
+      mutexState.addEdgePids(edgeThreadIds);
     }
 
     return ret.build();
@@ -433,12 +441,12 @@ public class ConcurrentState extends AbstractSingleWrapperState
     }
     return o instanceof ConcurrentState other
         && Objects.equals(threads, other.threads)
-        && Objects.equals(livePids, other.livePids)
+        && Objects.equals(liveThreadIds, other.liveThreadIds)
         && Objects.equals(getWrappedState(), other.getWrappedState());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, livePids, getWrappedState());
+    return Objects.hash(threads, liveThreadIds, getWrappedState());
   }
 }

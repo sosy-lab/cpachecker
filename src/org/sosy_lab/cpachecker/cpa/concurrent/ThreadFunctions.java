@@ -174,7 +174,12 @@ public final class ThreadFunctions {
    * agree exactly, or a thread would initialize a copy nobody ever reads.
    */
   public static String perThreadName(int pThreadId, String pQualifiedName) {
-    return "T%d_%s".formatted(pThreadId, pQualifiedName);
+    return perThreadNamePrefix(pThreadId) + pQualifiedName;
+  }
+
+  /** The thread-specific prefix shared by all renamed variables for the given thread ID. */
+  public static String perThreadNamePrefix(int pThreadId) {
+    return "T%d_".formatted(pThreadId);
   }
 
   /**

@@ -23,8 +23,8 @@ public interface PartialOrderReductionStrategy {
       CFA pCfa,
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
-      ImmutableSet<Integer> pLivePids,
-      ImmutableMap<String, Integer> pHandleHints,
+      ImmutableSet<Integer> pLiveThreadIds,
+      ImmutableMap<String, Integer> pHandleThreadIdHints,
       Random pRandom);
 
   default ConcurrentState emptyState(

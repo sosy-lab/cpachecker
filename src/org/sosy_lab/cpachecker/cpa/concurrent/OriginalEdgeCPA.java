@@ -69,15 +69,15 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
       Iterable<AbstractState> others = pOtherStates;
       if (pEdge != null) {
         // the clone the edge belongs to names the thread, which no state of the composite knows
-        OptionalInt pid = pEdge.getSuccessor().getCloneThreadId();
-        if (pid.isEmpty()) {
-          pid = pEdge.getPredecessor().getCloneThreadId();
+        OptionalInt threadId = pEdge.getSuccessor().getCloneThreadId();
+        if (threadId.isEmpty()) {
+          threadId = pEdge.getPredecessor().getCloneThreadId();
         }
-        if (pid.isPresent()) {
+        if (threadId.isPresent()) {
           others =
               ImmutableList.<AbstractState>builder()
                   .addAll(pOtherStates)
-                  .add(new ActiveThreadState(pid.orElseThrow()))
+                  .add(new ActiveThreadState(threadId.orElseThrow()))
                   .build();
         }
       }
@@ -87,7 +87,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
   }
 
   /** Answers the witness automaton's thread query, which only a sibling state can. */
-  private record ActiveThreadState(int pid) implements AbstractQueryableState {
+  private record ActiveThreadState(int threadId) implements AbstractQueryableState {
 
     @Override
     public String getCPAName() {
@@ -102,7 +102,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
       String expected =
           pProperty.substring(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY.length());
       try {
-        return pid == Integer.parseInt(expected);
+        return threadId == Integer.parseInt(expected);
       } catch (NumberFormatException e) {
         throw new InvalidQueryException(
             "Query '" + pProperty + "' does not compare against an integer.", e);

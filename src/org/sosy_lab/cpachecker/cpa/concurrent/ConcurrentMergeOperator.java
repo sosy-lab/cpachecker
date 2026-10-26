@@ -45,7 +45,7 @@ class ConcurrentMergeOperator implements MergeOperator {
   }
 
   private boolean canMerge(ConcurrentState c1, ConcurrentState c2) {
-    if (!c1.livePids.equals(c2.livePids)) {
+    if (!c1.liveThreadIds.equals(c2.liveThreadIds)) {
       return false;
     }
     if (c1.threads.size() != c2.threads.size()) {

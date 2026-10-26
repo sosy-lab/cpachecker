@@ -26,8 +26,7 @@ class ConcurrentStopOperator implements StopOperator {
   private final Precision threadSpecificUnitPrecision;
 
   ConcurrentStopOperator(
-      ConfigurableProgramAnalysis pWrappedCpa,
-      ConfigurableProgramAnalysis pThreadSpecificCpa) {
+      ConfigurableProgramAnalysis pWrappedCpa, ConfigurableProgramAnalysis pThreadSpecificCpa) {
     wrappedCpa = pWrappedCpa;
     threadSpecificStop = pThreadSpecificCpa.getStopOperator();
     try {
@@ -49,11 +48,12 @@ class ConcurrentStopOperator implements StopOperator {
       for (AbstractState reachedState : reached) {
         if (reachedState instanceof ConcurrentState reachedConcurrentState
             && concurrentState.threads().size() == reachedConcurrentState.threads().size()
-            && Objects.equals(concurrentState.livePids(), reachedConcurrentState.livePids())) {
+            && Objects.equals(
+                concurrentState.liveThreadIds(), reachedConcurrentState.liveThreadIds())) {
           boolean allThreadsStop = true;
           for (var entry : concurrentState.threads.entrySet()) {
-            int pid = entry.getKey();
-            ThreadState reachedThreadState = reachedConcurrentState.threads.get(pid);
+            int threadId = entry.getKey();
+            ThreadState reachedThreadState = reachedConcurrentState.threads.get(threadId);
             if (reachedThreadState == null) {
               allThreadsStop = false;
               break;

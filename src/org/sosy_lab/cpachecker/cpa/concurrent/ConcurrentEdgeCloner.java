@@ -48,8 +48,8 @@ public final class ConcurrentEdgeCloner {
    * given thread ID triggers a full CFA clone. If the edge is already a cloned edge, it is returned
    * as-is.
    */
-  static CFAEdge clone(final CFAEdge pCFAEdge, final int pid, final CFA pCfa) {
-    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(pid, pCfa);
+  static CFAEdge clone(final CFAEdge pCFAEdge, final int threadId, final CFA pCfa) {
+    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(threadId, pCfa);
     return cfaCloner.getClonedEdge(pCFAEdge);
   }
 
@@ -57,8 +57,8 @@ public final class ConcurrentEdgeCloner {
    * Returns the cloned CFA node corresponding to the given node for the given thread ID. If the
    * node is already a cloned node, it is returned as-is.
    */
-  static CFANode getClonedNode(final CFANode pNode, final int pid, final CFA pCfa) {
-    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(pid, pCfa);
+  static CFANode getClonedNode(final CFANode pNode, final int threadId, final CFA pCfa) {
+    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(threadId, pCfa);
     return cfaCloner.getClonedNode(pNode);
   }
 

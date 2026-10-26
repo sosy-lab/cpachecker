@@ -222,17 +222,18 @@ final class ConcurrentPathChecker extends PathChecker {
       throw new CPATransferException("Concurrent ARG transition has no CFA edges");
     }
     for (CFAEdge edge : edges) {
-      int pid = edge.getPredecessor().getCloneThreadId().orElseThrow();
-      ImmutableList<SSAMap> stack = stacks.getOrDefault(pid, ImmutableList.of());
+      int threadId = edge.getPredecessor().getCloneThreadId().orElseThrow();
+      ImmutableList<SSAMap> stack = stacks.getOrDefault(threadId, ImmutableList.of());
       if (edge instanceof FunctionCallEdge) {
         SSAMap.SSAMapBuilder locals = SSAMap.emptySSAMap().builder();
         for (String variable : formula.getSsa().allVariables()) {
-          if (isThreadLocal(variable, pid)) {
+          if (isThreadLocal(variable, threadId)) {
             locals.setIndex(
                 variable, formula.getSsa().getType(variable), formula.getSsa().getIndex(variable));
           }
         }
-        stacks.put(pid, ImmutableList.<SSAMap>builder().add(locals.build()).addAll(stack).build());
+        stacks.put(
+            threadId, ImmutableList.<SSAMap>builder().add(locals.build()).addAll(stack).build());
       } else if (edge instanceof FunctionReturnEdge returning) {
         if (stack.isEmpty()) {
           throw new CPATransferException("Concurrent function return has no matching call");
@@ -247,16 +248,16 @@ final class ConcurrentPathChecker extends PathChecker {
         SSAMap.SSAMapBuilder restored = formula.getSsa().builder();
         // A return must not restore another thread's local variables.
         for (String variable : current.allVariables()) {
-          if (!isThreadLocal(variable, pid)) {
+          if (!isThreadLocal(variable, threadId)) {
             restored.deleteVariable(variable);
             restored.setIndex(variable, current.getType(variable), current.getIndex(variable));
           }
         }
         formula = formula.withContext(restored.build(), formula.getPointerTargetSet());
         if (stack.size() == 1) {
-          stacks.remove(pid);
+          stacks.remove(threadId);
         } else {
-          stacks.put(pid, stack.subList(1, stack.size()));
+          stacks.put(threadId, stack.subList(1, stack.size()));
         }
       }
       formula = formulas.makeAnd(formula, edge);
@@ -272,8 +273,9 @@ final class ConcurrentPathChecker extends PathChecker {
     return new Context(formula, ImmutableMap.copyOf(stacks));
   }
 
-  private static boolean isThreadLocal(String variable, int pid) {
-    return variable.startsWith("T" + pid + "_") && variable.contains("::");
+  private static boolean isThreadLocal(String variable, int threadId) {
+    return variable.startsWith(ThreadFunctions.perThreadNamePrefix(threadId))
+        && variable.contains("::");
   }
 
   private PathFormula addAssumptions(PathFormula formula, ARGState state)
