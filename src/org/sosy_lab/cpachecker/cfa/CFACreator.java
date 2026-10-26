@@ -675,6 +675,8 @@ public class CFACreator {
 
     assert mainFunction != null;
 
+    CfaCopyOrigins copyOrigins = new CfaCopyOrigins();
+
     CfaMetadata cfaMetadata =
         CfaMetadata.forMandatoryAttributes(
             machineModel,
@@ -697,7 +699,7 @@ public class CFACreator {
     // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
     stats.processingTime.start();
 
-    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.globalDeclarations());
+    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.globalDeclarations(), copyOrigins);
 
     // Check CFA again after post-processings
     stats.checkTime.start();
@@ -758,8 +760,11 @@ public class CFACreator {
 
     stats.processingTime.stop();
 
+    // The post-processings are done, so this is what the nodes and edges they copied stand for.
+    cfa.setCopyOrigins(copyOrigins);
+
     if (pParseResult.astStructure().isPresent()) {
-      cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
+      cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow().withCopyOrigins(copyOrigins));
     }
 
     if (pParseResult.svLibCfaMetadata().isPresent()) {
@@ -851,7 +856,9 @@ public class CFACreator {
    * @return either a modified old CFA or a complete new CFA
    */
   private MutableCFA postProcessingOnMutableCFAs(
-      MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
+      MutableCFA cfa,
+      final List<Pair<ADeclaration, String>> globalDeclarations,
+      final CfaCopyOrigins copyOrigins)
       throws InvalidConfigurationException, CParserException {
     // remove all edges which don't have any effect on the program
     if (simplifyCfa) {
@@ -900,12 +907,12 @@ public class CFACreator {
 
     if (useFunctionCallUnwinding) {
       // must be done before adding global vars
-      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config);
+      final FunctionCallUnwinder fca = new FunctionCallUnwinder(copyOrigins, cfa, config);
       cfa = fca.unwindRecursion();
     }
 
     if (unrollBoundedLoops) {
-      final LoopUnroller unroller = new LoopUnroller(logger, config);
+      final LoopUnroller unroller = new LoopUnroller(copyOrigins, logger, config);
       unroller.unrollBoundedLoops(cfa);
       unroller.collectStatistics(stats.statisticsCollection);
     }
@@ -914,7 +921,7 @@ public class CFACreator {
       // cloning must be done before adding global vars,
       // current use case is ThreadingCPA, thus we check for the creation of new threads first.
       logger.log(Level.INFO, "program contains concurrency, cloning functions...");
-      final CFACloner cloner = new CFACloner(cfa, config);
+      final CFACloner cloner = new CFACloner(copyOrigins, cfa, config);
       cfa = cloner.execute();
     }
 

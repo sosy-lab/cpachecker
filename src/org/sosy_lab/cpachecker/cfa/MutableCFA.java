@@ -172,6 +172,10 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
     metadata = metadata.withAstCfaRelation(pAstCfaRelation);
   }
 
+  public void setCopyOrigins(CfaCopyOrigins pCopyOrigins) {
+    metadata = metadata.withCopyOrigins(pCopyOrigins);
+  }
+
   public void setSvLibCfaMetadata(SvLibCfaMetadata pSvLibCfaMetadata) {
     metadata = metadata.withSvLibCfaMetadata(pSvLibCfaMetadata);
   }

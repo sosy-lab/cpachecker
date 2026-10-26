@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -126,8 +127,11 @@ public class LoopUnroller implements StatisticsProvider {
   @IntegerOption(min = 1)
   private int maxNumberOfUnrollings = 100;
 
-  public LoopUnroller(LogManager pLogger, Configuration pConfig)
+  private final CfaCopyOrigins copyOrigins;
+
+  public LoopUnroller(CfaCopyOrigins pCopyOrigins, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
+    copyOrigins = pCopyOrigins;
     logger = pLogger;
     pConfig.inject(this);
   }
@@ -289,7 +293,7 @@ public class LoopUnroller implements StatisticsProvider {
    *
    * @return the entry node of the first iteration
    */
-  private static CFANode createLoopCopy(
+  private CFANode createLoopCopy(
       MutableCFA pCfa,
       Loop pLoop,
       CFANode pEntryNode,
@@ -344,7 +348,7 @@ public class LoopUnroller implements StatisticsProvider {
    * @param renamedVariables the map of original nested variables to the ones of the current
    *     iteration
    */
-  private static void createEdgeCopies(
+  private void createEdgeCopies(
       Map<CFAEdge, CFANode> successors,
       Map<CFANode, CFANode> nodeCopies,
       ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables) {
@@ -352,14 +356,17 @@ public class LoopUnroller implements StatisticsProvider {
     successors.keySet().forEach(edge -> branchesOfNode.add(edge.getPredecessor()));
 
     successors.forEach(
-        (edge, successor) ->
-            CFACreationUtils.addEdgeUnconditionallyToCFA(
-                copyEdge(
-                    edge,
-                    nodeCopies.get(edge.getPredecessor()),
-                    successor,
-                    branchesOfNode.count(edge.getPredecessor()) < 2,
-                    renamedVariables)));
+        (edge, successor) -> {
+          CFAEdge copy =
+              copyEdge(
+                  edge,
+                  nodeCopies.get(edge.getPredecessor()),
+                  successor,
+                  branchesOfNode.count(edge.getPredecessor()) < 2,
+                  renamedVariables);
+          copyOrigins.rememberEdge(copy, edge);
+          CFACreationUtils.addEdgeUnconditionallyToCFA(copy);
+        });
   }
 
   /**
@@ -423,7 +430,7 @@ public class LoopUnroller implements StatisticsProvider {
    * @param renamedVariables the map of original nested variables to the ones of this iteration
    * @return a map from the original edges to the copies
    */
-  private static Map<CFANode, CFANode> createNodeCopy(
+  private Map<CFANode, CFANode> createNodeCopy(
       MutableCFA pCfa,
       Loop pLoop,
       CFANode pEntryNode,
@@ -436,6 +443,7 @@ public class LoopUnroller implements StatisticsProvider {
         continue;
       }
       CFANode copy = copyNode(node, renamedVariables);
+      copyOrigins.rememberNode(copy, node);
       if (node.isLoopStart() && !node.equals(pEntryNode) && !pLoop.getLoopHeads().contains(node)) {
         copy.setLoopStart(); // keep the flag for nested loops
       }
@@ -450,13 +458,15 @@ public class LoopUnroller implements StatisticsProvider {
     for (CFAEdge enteringEdge : pLoop.getIncomingEdges()) {
       CFACreationUtils.removeEdgeFromNodes(enteringEdge);
       // An edge that enters the loop is outside of it and cannot read what it declares.
-      CFACreationUtils.addEdgeUnconditionallyToCFA(
+      CFAEdge copy =
           copyEdge(
               enteringEdge,
               enteringEdge.getPredecessor(),
               pFirstIterationEntry,
               false,
-              ImmutableMap.of()));
+              ImmutableMap.of());
+      copyOrigins.rememberEdge(copy, enteringEdge);
+      CFACreationUtils.addEdgeUnconditionallyToCFA(copy);
     }
   }
 

@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -70,6 +71,11 @@ public final class AstCfaRelation {
   private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
   private final ImmutableSet<AVariableDeclaration> globalVariables;
 
+  // A post-processing of the CFA can copy nodes and edges, for example when a loop is unrolled.
+  // The copies are not part of the AST, so every lookup below answers for the element of the
+  // program that a copy stands for instead. The CFA keeps these, cf. CfaMetadata.
+  private final CfaCopyOrigins copyOrigins;
+
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
@@ -87,6 +93,43 @@ public final class AstCfaRelation {
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
     globalVariables = pGlobalVariables;
     expressionLocations = pExpressionLocations;
+    copyOrigins = new CfaCopyOrigins();
+  }
+
+  private AstCfaRelation(AstCfaRelation pOther, CfaCopyOrigins pCopyOrigins) {
+    ifElements = pOther.ifElements;
+    iterationStructures = pOther.iterationStructures;
+    statementOffsetsToLocations = pOther.statementOffsetsToLocations;
+    statementElements = pOther.statementElements;
+    cfaNodeToAstLocalVariablesInScope = pOther.cfaNodeToAstLocalVariablesInScope;
+    cfaNodeToAstParametersInScope = pOther.cfaNodeToAstParametersInScope;
+    globalVariables = pOther.globalVariables;
+    expressionLocations = pOther.expressionLocations;
+    copyOrigins = pCopyOrigins;
+  }
+
+  /**
+   * This relation, resolving the nodes and edges that a post-processing of the CFA copied through
+   * the given origins.
+   */
+  public AstCfaRelation withCopyOrigins(CfaCopyOrigins pCopyOrigins) {
+    return new AstCfaRelation(this, pCopyOrigins);
+  }
+
+  /**
+   * The node of the program that the given node stands for, which is the node itself unless a
+   * post-processing of the CFA copied it.
+   */
+  public CFANode originalOf(CFANode pNode) {
+    return copyOrigins.originalOf(pNode);
+  }
+
+  /**
+   * The edge of the program that the given edge stands for, which is the edge itself unless a
+   * post-processing of the CFA copied it.
+   */
+  public CFAEdge originalOf(CFAEdge pEdge) {
+    return copyOrigins.originalOf(pEdge);
   }
 
   /**
@@ -123,7 +166,7 @@ public final class AstCfaRelation {
       initializeMapFromConditionEdgesToIfStructures();
     }
 
-    IfElement result = conditionEdgesToIfStructure.getOrDefault(pEdge, null);
+    IfElement result = conditionEdgesToIfStructure.getOrDefault(originalOf(pEdge), null);
 
     return Optional.ofNullable(result);
   }
@@ -136,10 +179,11 @@ public final class AstCfaRelation {
    * <p>There is no guarantee what happens when more than one loop contains the given node and their
    * edges are not in a strict subset relation.
    *
-   * @param pNode the node to look for
+   * @param pCfaNode the node to look for, or a copy of it that was recorded in the CfaCopyOrigins
    * @return the tightest iteration structure that contains the given node
    */
-  public Optional<IterationElement> getTightestIterationStructureForNode(CFANode pNode) {
+  public Optional<IterationElement> getTightestIterationStructureForNode(CFANode pCfaNode) {
+    CFANode pNode = originalOf(pCfaNode);
     Optional<IterationElement> result = Optional.empty();
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().edges().stream()
@@ -382,11 +426,13 @@ public final class AstCfaRelation {
    * happen with difficult control structures which may make it difficult to determine a single
    * location.
    *
-   * @param pNode The node for which we want to get the file location
+   * @param pCfaNode The node for which we want to get the file location, or a copy of it that was
+   *     recorded in the CfaCopyOrigins
    * @return An Optional containing the best approximation we have for the position of a CFANode in
    *     the input program, or an empty Optional if we cannot generate such a matching
    */
-  public Optional<FileLocation> getStatementFileLocationForNode(CFANode pNode) {
+  public Optional<FileLocation> getStatementFileLocationForNode(CFANode pCfaNode) {
+    CFANode pNode = originalOf(pCfaNode);
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
     }
@@ -441,7 +487,9 @@ public final class AstCfaRelation {
     return Optional.of(globalVariables);
   }
 
-  public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
+  public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(
+      CFANode pCopyOrCfaNode) {
+    CFANode pCfaNode = originalOf(pCopyOrCfaNode);
     if (!cfaNodeToAstLocalVariablesInScope.containsKey(pCfaNode)) {
       return ImmutableSet.of();
     }
@@ -449,7 +497,9 @@ public final class AstCfaRelation {
         Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pCfaNode)));
   }
 
-  public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
+  public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(
+      CFANode pCopyOrCfaNode) {
+    CFANode pCfaNode = originalOf(pCopyOrCfaNode);
     if (!cfaNodeToAstParametersInScope.containsKey(pCfaNode)) {
       return ImmutableSet.of();
     }

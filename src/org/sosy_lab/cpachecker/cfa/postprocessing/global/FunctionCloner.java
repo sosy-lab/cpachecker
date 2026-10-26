@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -110,26 +111,32 @@ class FunctionCloner implements CFAVisitor {
   private final String newFunctionName;
   // needed to replace functioncalls, where args stay equal, but functionname changes
   private final boolean replaceFunctionOnly;
+  private final CfaCopyOrigins copyOrigins;
 
   /** FunctionCloner clones a function of the CFA and uses a new functionName. */
   public FunctionCloner(
       final String pOldFunctionName,
       final String pNewFunctionName,
-      final boolean pReplaceFunctionOnly) {
+      final boolean pReplaceFunctionOnly,
+      final CfaCopyOrigins pCopyOrigins) {
     this.oldFunctionName = pOldFunctionName;
     this.newFunctionName = pNewFunctionName;
     this.replaceFunctionOnly = pReplaceFunctionOnly;
+    copyOrigins = pCopyOrigins;
   }
 
   /**
    * clones a complete function and returns the new functionstart and the nodes of the new function.
    */
   public static Pair<FunctionEntryNode, Collection<CFANode>> cloneCFA(
-      final FunctionEntryNode pFunctionstart, final String newFunctionName) {
+      final FunctionEntryNode pFunctionstart,
+      final String newFunctionName,
+      final CfaCopyOrigins pCopyOrigins) {
 
     final String oldFunctionName = pFunctionstart.getFunctionName();
     assert !oldFunctionName.equals(newFunctionName);
-    final FunctionCloner visitor = new FunctionCloner(oldFunctionName, newFunctionName, false);
+    final FunctionCloner visitor =
+        new FunctionCloner(oldFunctionName, newFunctionName, false, pCopyOrigins);
 
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pFunctionstart, visitor);
 
@@ -231,6 +238,8 @@ class FunctionCloner implements CFAVisitor {
       default -> throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
     }
 
+    copyOrigins.rememberEdge(newEdge, edge);
+
     return (T) newEdge;
   }
 
@@ -285,6 +294,7 @@ class FunctionCloner implements CFAVisitor {
     }
 
     nodeCache.put(node, newNode);
+    copyOrigins.rememberNode(newNode, node);
 
     return (T) newNode;
   }

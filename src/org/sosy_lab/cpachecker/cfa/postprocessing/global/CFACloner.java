@@ -18,6 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -34,10 +35,14 @@ public class CFACloner {
 
   private final CFA cfa;
 
+  private final CfaCopyOrigins copyOrigins;
+
   @Option(secure = true, description = "how often do we clone a function?")
   private int numberOfCopies = 5;
 
-  public CFACloner(final CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
+  public CFACloner(final CfaCopyOrigins pCopyOrigins, final CFA pCfa, final Configuration pConfig)
+      throws InvalidConfigurationException {
+    copyOrigins = pCopyOrigins;
     cfa = pCfa;
     pConfig.inject(this);
   }
@@ -69,7 +74,7 @@ public class CFACloner {
 
         Preconditions.checkArgument(!cfa.getAllFunctionNames().contains(newFunctionName));
         final Pair<FunctionEntryNode, Collection<CFANode>> newFunction =
-            FunctionCloner.cloneCFA(entryNode, newFunctionName);
+            FunctionCloner.cloneCFA(entryNode, newFunctionName, copyOrigins);
         functions.put(newFunctionName, newFunction.getFirst());
         nodes.putAll(newFunctionName, newFunction.getSecond());
 
@@ -85,7 +90,8 @@ public class CFACloner {
           if (FunctionCallUnwinder.isFunctionCall(statementEdge, functions.keySet())) {
             final String calledFunctionName = FunctionCallUnwinder.getNameOfFunction(statementEdge);
             final String newCalledFunctionName = getFunctionName(calledFunctionName, i);
-            FunctionCallUnwinder.replaceFunctionCall(statementEdge, newCalledFunctionName);
+            FunctionCallUnwinder.replaceFunctionCall(
+                statementEdge, newCalledFunctionName, copyOrigins);
           }
         }
       }

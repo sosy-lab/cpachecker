@@ -193,7 +193,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
 
       return ImmutableList.of(assumptionWaypoint.orElseThrow());
-    } else if (pEdge instanceof AssumeEdge assumeEdge) {
+    } else if (pEdge instanceof AssumeEdge) {
+      // A post-processing of the CFA may have copied this edge, for example when it unrolled a
+      // loop. The witness is about the original program, and the AST structure only knows the
+      // nodes of that one, so everything below works with the edge that this copy stands for.
+      AssumeEdge assumeEdge = (AssumeEdge) pAstCFARelation.originalOf(pEdge);
+
       // Without the AST structure we cannot guarantee that we are exporting at the beginning of
       // an iteration or if statement
       // To export the branching waypoint, we first find the IfElement or IterationElement

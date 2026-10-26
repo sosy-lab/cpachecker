@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -68,7 +69,7 @@ public class LoopUnrollerTest {
   }
 
   private static LoopUnroller createUnroller() throws Exception {
-    return new LoopUnroller(logger, TestUtils.configurationForTest().build());
+    return new LoopUnroller(new CfaCopyOrigins(), logger, TestUtils.configurationForTest().build());
   }
 
   /** The loop with the most nodes, which is the outermost one if the loops are nested. */

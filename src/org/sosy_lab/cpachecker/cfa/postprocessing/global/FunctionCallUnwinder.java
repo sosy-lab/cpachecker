@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -55,9 +56,13 @@ public class FunctionCallUnwinder {
 
   private final MutableCFA cfa;
 
-  public FunctionCallUnwinder(final MutableCFA pCfa, final Configuration config)
+  private final CfaCopyOrigins copyOrigins;
+
+  public FunctionCallUnwinder(
+      final CfaCopyOrigins pCopyOrigins, final MutableCFA pCfa, final Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
+    copyOrigins = pCopyOrigins;
     cfa = pCfa;
 
     if (cfa.getLanguage() != Language.C) {
@@ -117,11 +122,11 @@ public class FunctionCallUnwinder {
           if (!calledFunction.equals(newFunctionname)) {
             // if we have found recursion and need a functioncall-replacement
             if (!functions.containsKey(newFunctionname)) {
-              cloneFunction(calledFunction, newFunctionname, functions, nodes);
+              cloneFunction(calledFunction, newFunctionname, functions, nodes, copyOrigins);
             }
 
             // redirect from caller to new (cloned) called function
-            replaceFunctionCall(statementEdge, newFunctionname);
+            replaceFunctionCall(statementEdge, newFunctionname, copyOrigins);
           }
         }
 
@@ -134,7 +139,9 @@ public class FunctionCallUnwinder {
   }
 
   static void replaceFunctionCall(
-      final AStatementEdge functionCallEdge, final String newFunctionName) {
+      final AStatementEdge functionCallEdge,
+      final String newFunctionName,
+      final CfaCopyOrigins pCopyOrigins) {
     final CFANode pred = functionCallEdge.getPredecessor();
     final CFANode succ = functionCallEdge.getSuccessor();
     final AFunctionCall call = (AFunctionCall) functionCallEdge.getStatement();
@@ -148,7 +155,8 @@ public class FunctionCallUnwinder {
       final String oldFunctionName = declaration.getQualifiedName();
 
       // build new edge
-      final FunctionCloner fc = new FunctionCloner(oldFunctionName, newFunctionName, true);
+      final FunctionCloner fc =
+          new FunctionCloner(oldFunctionName, newFunctionName, true, pCopyOrigins);
       newEdge = fc.cloneEdge(functionCallEdge, pred, succ);
     } else {
       // TODO support JAVA
@@ -165,14 +173,15 @@ public class FunctionCallUnwinder {
       final String oldFunctionname,
       final String newFunctionname,
       final Map<String, FunctionEntryNode> functions,
-      final SortedSetMultimap<String, CFANode> nodes) {
+      final SortedSetMultimap<String, CFANode> nodes,
+      final CfaCopyOrigins pCopyOrigins) {
     Preconditions.checkArgument(
         !functions.containsKey(newFunctionname), "function exists, cloning is not allowed.");
 
     // clone
     final FunctionEntryNode entryNode = functions.get(oldFunctionname);
     final Pair<FunctionEntryNode, Collection<CFANode>> newFunction =
-        FunctionCloner.cloneCFA(entryNode, newFunctionname);
+        FunctionCloner.cloneCFA(entryNode, newFunctionname, pCopyOrigins);
 
     // add new function to CFA
     functions.put(newFunctionname, newFunction.getFirst());

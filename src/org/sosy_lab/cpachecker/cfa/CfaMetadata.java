@@ -50,6 +50,7 @@ public final class CfaMetadata {
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
   private final @Nullable CfaTransformationMetadata transformationMetadata;
+  private final CfaCopyOrigins copyOrigins;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -64,7 +65,8 @@ public final class CfaMetadata {
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
-      @Nullable CfaTransformationMetadata pCfaTransformationMetadata) {
+      @Nullable CfaTransformationMetadata pCfaTransformationMetadata,
+      CfaCopyOrigins pCopyOrigins) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -79,6 +81,7 @@ public final class CfaMetadata {
     edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
     transformationMetadata = pCfaTransformationMetadata;
+    copyOrigins = checkNotNull(pCopyOrigins);
   }
 
   /**
@@ -117,7 +120,8 @@ public final class CfaMetadata {
         null,
         null,
         null,
-        null);
+        null,
+        new CfaCopyOrigins());
   }
 
   /**
@@ -144,7 +148,8 @@ public final class CfaMetadata {
             liveVariables,
             edgesToAnnotations,
             svLibCfaMetadata,
-            pTransformationMetadata);
+            pTransformationMetadata,
+            copyOrigins);
     return newMetadata;
   }
 
@@ -211,7 +216,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
   }
 
   /**
@@ -244,7 +250,40 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
+  }
+
+  /**
+   * Returns what the nodes and edges that a post-processing of the CFA copied stand for in the
+   * program, which is empty if nothing was copied.
+   */
+  public CfaCopyOrigins getCopyOrigins() {
+    return copyOrigins;
+  }
+
+  /**
+   * Returns a copy of this instance, but with the specified copy origins.
+   *
+   * @param pCopyOrigins what the copied nodes and edges stand for in the program
+   * @return a copy of this instance, but with the specified copy origins
+   */
+  public CfaMetadata withCopyOrigins(CfaCopyOrigins pCopyOrigins) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata,
+        pCopyOrigins);
   }
 
   /**
@@ -290,7 +329,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
   }
 
   /**
@@ -327,7 +367,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         pSvLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
   }
 
   /**
@@ -351,7 +392,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
   }
 
   /**
@@ -387,7 +429,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
   }
 
   /**
@@ -422,7 +465,8 @@ public final class CfaMetadata {
         pLiveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
   }
 
   /**
@@ -461,7 +505,8 @@ public final class CfaMetadata {
         liveVariables,
         pedgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        copyOrigins);
   }
 
   @Override
