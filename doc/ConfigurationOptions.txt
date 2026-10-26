@@ -2128,6 +2128,11 @@ cpa.concurrent.aggregateBasicBlocks = false
 # thread identity that the counterexample check replays.
 cpa.concurrent.matchAutomataOnOriginalEdges = false
 
+# Merge operator: SEP never merges states; JOIN delegates to the wrapped
+# merge operator when thread states are compatible.
+cpa.concurrent.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
 # Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR
 cpa.concurrent.partialOrderReductionAlgorithm = "SPOR"
 
@@ -3238,6 +3243,11 @@ cpa.predicate.satCheck = 0
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
+
+# Restrict satisfiability checks triggered by cpa.predicate.satCheck to
+# assume edges. Checks at abstraction locations and target states are
+# unaffected.
+cpa.predicate.satCheckOnlyAtAssumeEdges = false
 
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
