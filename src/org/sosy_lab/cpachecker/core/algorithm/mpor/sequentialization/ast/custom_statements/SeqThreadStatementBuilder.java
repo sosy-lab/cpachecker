@@ -114,8 +114,8 @@ public record SeqThreadStatementBuilder(
   private static final CFunctionCallStatement REACH_ERROR_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, REACH_ERROR_FUNCTION_CALL_EXPRESSION);
 
-  public ImmutableList<SeqThreadStatement> buildStatementsFromThreadNode(
-      CFANodeForThread pThreadNode) throws UnrecognizedCodeException {
+  ImmutableList<SeqThreadStatement> buildStatementsFromThreadNode(CFANodeForThread pThreadNode)
+      throws UnrecognizedCodeException {
 
     if (!pThreadNode.leavingEdges().isEmpty()) {
       if (SeqThreadStatementUtil.isFunctionExitOrTerminationNode(pThreadNode.getCfaNode())) {
@@ -420,7 +420,7 @@ public record SeqThreadStatementBuilder(
     };
   }
 
-  public SeqThreadStatement buildAtomicStatement(
+  private SeqThreadStatement buildAtomicStatement(
       PthreadFunctionType pFunctionType,
       SeqThreadStatementType pStatementType,
       SubstituteEdge pSubstituteEdge,
@@ -459,7 +459,7 @@ public record SeqThreadStatementBuilder(
         data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
   }
 
-  public SeqThreadStatement buildCondStatement(
+  SeqThreadStatement buildCondStatement(
       SeqThreadStatementType pStatementType,
       PthreadFunctionType pFunctionType,
       SubstituteEdge pSubstituteEdge,
@@ -595,7 +595,7 @@ public record SeqThreadStatementBuilder(
         pSubstituteEdge.cfaEdge);
   }
 
-  public SeqThreadStatement buildMutexStatement(
+  SeqThreadStatement buildMutexStatement(
       SeqThreadStatementType pStatementType,
       PthreadFunctionType pFunctionType,
       SubstituteEdge pSubstituteEdge,
