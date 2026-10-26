@@ -376,11 +376,9 @@ public record SeqThreadStatementBuilder(
 
     return switch (functionType) {
       case PTHREAD_BARRIER_INIT ->
-          buildBarrierStatement(
-              SeqThreadStatementType.BARRIER_INIT, functionType, pSubstituteEdge, pTargetPc);
+          buildBarrierStatement(SeqThreadStatementType.BARRIER_INIT, pSubstituteEdge, pTargetPc);
       case PTHREAD_COND_SIGNAL ->
-          buildCondStatement(
-              SeqThreadStatementType.COND_SIGNAL, functionType, pSubstituteEdge, pTargetPc);
+          buildCondStatement(SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, pTargetPc);
       case PTHREAD_COND_WAIT ->
           throw new AssertionError(
               "pthread_cond_wait is handled separately, it requires two clauses");
@@ -389,61 +387,42 @@ public record SeqThreadStatementBuilder(
       case PTHREAD_JOIN ->
           buildThreadJoinStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc);
       case PTHREAD_MUTEX_LOCK ->
-          buildMutexStatement(
-              SeqThreadStatementType.MUTEX_LOCK, functionType, pSubstituteEdge, pTargetPc);
+          buildMutexStatement(SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, pTargetPc);
       case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexStatement(
-              SeqThreadStatementType.MUTEX_UNLOCK, functionType, pSubstituteEdge, pTargetPc);
+          buildMutexStatement(SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, pTargetPc);
       case PTHREAD_RWLOCK_RDLOCK ->
-          buildRwLockStatement(
-              SeqThreadStatementType.RW_LOCK_RD_LOCK, functionType, pSubstituteEdge, pTargetPc);
+          buildRwLockStatement(SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, pTargetPc);
       case PTHREAD_RWLOCK_UNLOCK ->
-          buildRwLockStatement(
-              SeqThreadStatementType.RW_LOCK_UNLOCK, functionType, pSubstituteEdge, pTargetPc);
+          buildRwLockStatement(SeqThreadStatementType.RW_LOCK_UNLOCK, pSubstituteEdge, pTargetPc);
       case PTHREAD_RWLOCK_WRLOCK ->
-          buildRwLockStatement(
-              SeqThreadStatementType.RW_LOCK_WR_LOCK, functionType, pSubstituteEdge, pTargetPc);
+          buildRwLockStatement(SeqThreadStatementType.RW_LOCK_WR_LOCK, pSubstituteEdge, pTargetPc);
       case VERIFIER_ATOMIC_BEGIN ->
-          buildAtomicStatement(
-              PthreadFunctionType.VERIFIER_ATOMIC_BEGIN,
-              SeqThreadStatementType.ATOMIC_BEGIN,
-              pSubstituteEdge,
-              pTargetPc);
+          buildAtomicStatement(SeqThreadStatementType.ATOMIC_BEGIN, pSubstituteEdge, pTargetPc);
       case VERIFIER_ATOMIC_END ->
-          buildAtomicStatement(
-              PthreadFunctionType.VERIFIER_ATOMIC_END,
-              SeqThreadStatementType.ATOMIC_END,
-              pSubstituteEdge,
-              pTargetPc);
+          buildAtomicStatement(SeqThreadStatementType.ATOMIC_END, pSubstituteEdge, pTargetPc);
       default ->
           throw new AssertionError("unhandled relevant pthread method: " + functionType.name);
     };
   }
 
   private SeqThreadStatement buildAtomicStatement(
-      PthreadFunctionType pFunctionType,
-      SeqThreadStatementType pStatementType,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc) {
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     checkArgument(
-        pFunctionType.equals(PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)
-            || pFunctionType.equals(PthreadFunctionType.VERIFIER_ATOMIC_END),
-        "pFunctionType must be VERIFIER_ATOMIC_BEGIN or VERIFIER_ATOMIC_END.");
+        pStatementType.equals(SeqThreadStatementType.ATOMIC_BEGIN)
+            || pStatementType.equals(SeqThreadStatementType.ATOMIC_END),
+        "pStatementType must be ATOMIC_BEGIN or ATOMIC_END.");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     // just add a comment with the function name for better overview in the output program
-    CComment commentStatement = new CComment(pFunctionType.name + ";");
+    CComment commentStatement = new CComment(pStatementType.toString());
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(commentStatement));
   }
 
   SeqThreadStatement buildBarrierStatement(
-      SeqThreadStatementType pStatementType,
-      PthreadFunctionType pFunctionType,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnrecognizedCodeException {
 
     checkArgument(
@@ -456,14 +435,11 @@ public record SeqThreadStatementBuilder(
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
   SeqThreadStatement buildCondStatement(
-      SeqThreadStatementType pStatementType,
-      PthreadFunctionType pFunctionType,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnrecognizedCodeException {
 
     checkArgument(
@@ -476,7 +452,7 @@ public record SeqThreadStatementBuilder(
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
   private SeqThreadStatement buildThreadCreationStatement(
@@ -599,10 +575,7 @@ public record SeqThreadStatementBuilder(
   }
 
   SeqThreadStatement buildMutexStatement(
-      SeqThreadStatementType pStatementType,
-      PthreadFunctionType pFunctionType,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnrecognizedCodeException {
 
     checkArgument(
@@ -612,14 +585,11 @@ public record SeqThreadStatementBuilder(
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
   private SeqThreadStatement buildRwLockStatement(
-      SeqThreadStatementType pStatementType,
-      PthreadFunctionType pFunctionType,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnrecognizedCodeException {
 
     checkArgument(
@@ -632,15 +602,13 @@ public record SeqThreadStatementBuilder(
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
   // Thread Sync Statements
 
   private ImmutableList<CCompoundStatementElement> buildThreadSyncStatements(
-      SeqThreadStatementType pStatementType,
-      PthreadFunctionType pFunctionType,
-      SubstituteEdge pSubstituteEdge)
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
       throws UnrecognizedCodeException {
 
     CFunctionCall functionCall =
@@ -697,8 +665,8 @@ public record SeqThreadStatementBuilder(
               Iterables.getOnlyElement(expressions));
       default ->
           throw new IllegalArgumentException(
-              "Cannot build inlined function call statements for the following pFunctionType: "
-                  + pFunctionType);
+              "Cannot build inlined statements for the following SeqThreadStatementType: "
+                  + pStatementType);
     };
   }
 

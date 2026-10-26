@@ -435,20 +435,14 @@ public record SeqThreadStatementClauseBuilder(
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqThreadStatement numWaitersIncrement =
         pStatementBuilder.buildBarrierStatement(
-            SeqThreadStatementType.BARRIER_WAIT_INCREMENT,
-            PthreadFunctionType.PTHREAD_BARRIER_WAIT,
-            pSubstituteEdge,
-            nextFreePc);
+            SeqThreadStatementType.BARRIER_WAIT_INCREMENT, pSubstituteEdge, nextFreePc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(numWaitersIncrement)));
 
     // step 2: assume that num_waiters equals the count specified on barrier initialization
     SeqThreadStatement countAssumption =
         pStatementBuilder.buildBarrierStatement(
-            SeqThreadStatementType.BARRIER_WAIT_ASSUMPTION,
-            PthreadFunctionType.PTHREAD_BARRIER_WAIT,
-            pSubstituteEdge,
-            pTargetPc);
+            SeqThreadStatementType.BARRIER_WAIT_ASSUMPTION, pSubstituteEdge, pTargetPc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(countAssumption)));
 
@@ -476,20 +470,14 @@ public record SeqThreadStatementClauseBuilder(
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqThreadStatement mutexUnlockStatement =
         pStatementBuilder.buildMutexStatement(
-            SeqThreadStatementType.COND_WAIT_UNLOCK,
-            PthreadFunctionType.PTHREAD_COND_WAIT,
-            pSubstituteEdge,
-            nextFreePc);
+            SeqThreadStatementType.COND_WAIT_UNLOCK, pSubstituteEdge, nextFreePc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
 
     // step 2: build pthread_cond_t handling statement
     SeqThreadStatement condWaitStatement =
         pStatementBuilder.buildCondStatement(
-            SeqThreadStatementType.COND_WAIT_LOCK,
-            PthreadFunctionType.PTHREAD_COND_WAIT,
-            pSubstituteEdge,
-            pTargetPc);
+            SeqThreadStatementType.COND_WAIT_LOCK, pSubstituteEdge, pTargetPc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(condWaitStatement)));
 
