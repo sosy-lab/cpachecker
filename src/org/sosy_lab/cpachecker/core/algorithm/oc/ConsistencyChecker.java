@@ -22,11 +22,11 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.CsPair;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.PoEdge;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.RfPair;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.WsPair;
-import org.sosy_lab.cpachecker.cpa.oc.EventKind;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model;
@@ -149,8 +149,8 @@ final class ConsistencyChecker {
       }
     }
 
-    ImmutableListMultimap<Integer, MemoryEvent> sameCellWrites = sameCellWrites();
-    BigInteger[] addressValues = evaluateAddresses(pModel);
+    ImmutableListMultimap<OcEncoder.CellKey, MemoryEvent> writesByCell = encoder.writesByCell();
+    List<@Nullable BigInteger> addressValues = evaluateAddresses(pModel);
 
     boolean changed = true;
     while (changed) {
@@ -160,8 +160,8 @@ final class ConsistencyChecker {
         MemoryEvent writeEvent = rf.write();
         int write = writeEvent.id();
         int read = rf.read().id();
-        for (MemoryEvent other : sameCellWrites.get(write)) {
-          if (!enabled.contains(other)) {
+        for (MemoryEvent other : writesByCell.get(OcEncoder.cellKey(writeEvent))) {
+          if (other == writeEvent || !enabled.contains(other)) {
             continue;
           }
           ImmutableList.Builder<BooleanFormula> sideBuilder = ImmutableList.builder();
@@ -309,20 +309,6 @@ final class ConsistencyChecker {
     return ImmutableList.copyOf(edges).reverse();
   }
 
-  private ImmutableListMultimap<Integer, MemoryEvent> sameCellWrites() {
-    ImmutableListMultimap.Builder<Integer, MemoryEvent> result = ImmutableListMultimap.builder();
-    List<MemoryEvent> writes =
-        encoder.getEvents().stream().filter(e -> e.kind() == EventKind.WRITE).toList();
-    for (MemoryEvent write : writes) {
-      for (MemoryEvent other : writes) {
-        if (other.id() != write.id() && OcEncoder.cellKey(write).equals(OcEncoder.cellKey(other))) {
-          result.put(write.id(), other);
-        }
-      }
-    }
-    return result.build();
-  }
-
   /**
    * The model's full byte address ({@code base + offset}) of every region event, by event id, or
    * null if it did not evaluate to a concrete integer. This mirrors {@link OcEncoder#sameAddress}:
@@ -330,15 +316,18 @@ final class ConsistencyChecker {
    * address is a combined {@code base + offset} is compared on the same footing as a base/offset
    * pair.
    */
-  private BigInteger[] evaluateAddresses(Model pModel) {
-    BigInteger[] values = new BigInteger[eventCount];
+  private List<@Nullable BigInteger> evaluateAddresses(Model pModel) {
+    List<@Nullable BigInteger> values = new ArrayList<>(eventCount);
+    for (int i = 0; i < eventCount; i++) {
+      values.add(null);
+    }
     for (MemoryEvent event : encoder.getEvents()) {
       if (event.isRegionAccess()) {
         Object base = pModel.evaluate(event.addressTerm());
         Object offset = event.offsetTerm() == null ? null : pModel.evaluate(event.offsetTerm());
         if (base instanceof BigInteger baseValue) {
           BigInteger offsetValue = offset instanceof BigInteger o ? o : BigInteger.ZERO;
-          values[event.id()] = baseValue.add(offsetValue);
+          values.set(event.id(), baseValue.add(offsetValue));
         }
       }
     }
@@ -351,9 +340,9 @@ final class ConsistencyChecker {
    * falls in that range; two ordinary accesses match iff their full addresses are equal.
    */
   private boolean sameCellInModel(
-      MemoryEvent pFirst, MemoryEvent pSecond, BigInteger[] pAddresses) {
-    BigInteger a = pAddresses[pFirst.id()];
-    BigInteger b = pAddresses[pSecond.id()];
+      MemoryEvent pFirst, MemoryEvent pSecond, List<@Nullable BigInteger> pAddresses) {
+    @Nullable BigInteger a = pAddresses.get(pFirst.id());
+    @Nullable BigInteger b = pAddresses.get(pSecond.id());
     if (a == null || b == null) {
       return false;
     }

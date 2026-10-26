@@ -5180,15 +5180,18 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
-# log every collected memory event before solving (debugging aid)
+# write every collected memory event before solving (debugging aid)
 oc.dumpEvents = false
 
-# log the enabled events and read-from choices of a found violation model
+# write the enabled events and read-from choices of a found violation model
 oc.dumpViolationModel = false
 
 # how the ordering constraints are decided
 oc.encoding = CLOCKS
   enum:     [REFINEMENT, CLOCKS]
+
+# file for the collected memory-event dump
+oc.eventsDumpFile = "OrderingConsistency-events.txt"
 
 # file for the violation execution graph (DOT/graphviz)
 oc.executionGraphFile = "executionGraph.dot"
@@ -5212,6 +5215,9 @@ oc.loopBoundStep = 5
 
 # file for the sequentialized counterexample trace
 oc.sequentializedCounterexampleFile = "Counterexample.oc.txt"
+
+# file for the violation-model dump
+oc.violationModelFile = "OrderingConsistency-model.txt"
 
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false

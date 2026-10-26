@@ -70,10 +70,12 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
@@ -263,7 +265,19 @@ public class ARGStatistics implements Statistics {
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for subclasses
 
-    counterexampleOptions = new CEXExportOptions(config);
+    Configuration counterexampleConfig = config;
+    if (CPAs.retrieveCPA(pCpa, OrderingConsistencyCPA.class) != null) {
+      // OC counterexamples are synthetic interleavings; these exporters require a CFA-connected
+      // path and can crash or produce invalid output even if a user overrides the OC config.
+      counterexampleConfig =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOption("counterexample.export.exportAsSource", "false")
+              .setOption("counterexample.export.exportWitness", "false")
+              .setOption("counterexample.export.exportHarness", "false")
+              .build();
+    }
+    counterexampleOptions = new CEXExportOptions(counterexampleConfig);
     argToBitmapExporterOptions = new PixelsWriterOptions(config);
     logger = pLogger;
     cpa = pCpa;

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -33,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -98,6 +101,12 @@ final class OcEncoder {
 
   /** An edge of the program order, from the earlier event to the later one. */
   record PoEdge(MemoryEvent from, MemoryEvent to) {}
+
+  sealed interface CellKey {
+    record Location(MemoryLocation value) implements CellKey {}
+
+    record Region(String value) implements CellKey {}
+  }
 
   private final OcExplorationRegistry registry;
   private final FormulaManagerView fmgr;
@@ -436,7 +445,7 @@ final class OcEncoder {
               imgr.lessThan(clocks.get(cross.from()), clocks.get(cross.to()))));
     }
 
-    ImmutableListMultimap<Object, MemoryEvent> writesByCell = writesByCell();
+    ImmutableListMultimap<CellKey, MemoryEvent> writesByCell = writesByCell();
     for (RfPair rf : rfPairs) {
       constraints.add(
           bfmgr.implication(
@@ -692,8 +701,10 @@ final class OcEncoder {
    * that can never be aliased, the whole alias region otherwise (there, address-equality
    * constraints decide cell identity precisely).
    */
-  static Object cellKey(MemoryEvent pEvent) {
-    return pEvent.isRegionAccess() ? pEvent.regionId() : pEvent.memoryLocation();
+  static CellKey cellKey(MemoryEvent pEvent) {
+    return pEvent.isRegionAccess()
+        ? new CellKey.Region(checkNotNull(pEvent.regionId()))
+        : new CellKey.Location(checkNotNull(pEvent.memoryLocation()));
   }
 
   /**
@@ -761,14 +772,14 @@ final class OcEncoder {
     return pFirst.isRegionAccess() ? sameAddress(pFirst, pSecond) : bfmgr.makeTrue();
   }
 
-  private ImmutableListMultimap<Object, MemoryEvent> writesByCell() {
+  ImmutableListMultimap<CellKey, MemoryEvent> writesByCell() {
     return events.stream()
         .filter(e -> e.kind() == EventKind.WRITE)
         .collect(ImmutableListMultimap.toImmutableListMultimap(OcEncoder::cellKey, e -> e));
   }
 
   private ImmutableList<RfPair> buildRfPairs() {
-    ImmutableListMultimap<Object, MemoryEvent> writes = writesByCell();
+    ImmutableListMultimap<CellKey, MemoryEvent> writes = writesByCell();
     ImmutableList.Builder<RfPair> result = ImmutableList.builder();
     for (MemoryEvent read : events) {
       if (read.kind() != EventKind.READ) {
@@ -789,7 +800,7 @@ final class OcEncoder {
   }
 
   private ImmutableList<WsPair> buildWsPairs() {
-    ImmutableListMultimap<Object, MemoryEvent> writes = writesByCell();
+    ImmutableListMultimap<CellKey, MemoryEvent> writes = writesByCell();
     ImmutableList.Builder<WsPair> result = ImmutableList.builder();
     for (List<MemoryEvent> sameLocation : Multimaps.asMap(writes).values()) {
       for (int i = 0; i < sameLocation.size(); i++) {

@@ -130,13 +130,21 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(
       secure = true,
-      description = "log the enabled events and read-from choices of a found violation model")
+      description = "write the enabled events and read-from choices of a found violation model")
   private boolean dumpViolationModel = false;
 
   @Option(
       secure = true,
-      description = "log every collected memory event before solving (debugging aid)")
+      description = "write every collected memory event before solving (debugging aid)")
   private boolean dumpEvents = false;
+
+  @Option(secure = true, description = "file for the collected memory-event dump")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path eventsDumpFile = Path.of("OrderingConsistency-events.txt");
+
+  @Option(secure = true, description = "file for the violation-model dump")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path violationModelFile = Path.of("OrderingConsistency-model.txt");
 
   @Option(
       secure = true,
@@ -355,7 +363,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
                 event.fill(),
                 event.edge() == null ? "-" : event.edge().getDescription().replace('\n', ' ')));
       }
-      logger.log(Level.INFO, dump.toString());
+      writeDump(eventsDumpFile, "collected memory events", dump.toString());
     }
 
     // the property-specific violation formula, and whether any candidate exists at all: without one
@@ -502,7 +510,16 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         }
       }
     }
-    logger.log(Level.INFO, dump.toString());
+    writeDump(violationModelFile, "violation model", dump.toString());
+  }
+
+  private void writeDump(Path pFile, String pDescription, String pContent) {
+    try {
+      IO.writeFile(pFile, Charset.defaultCharset(), pContent);
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not write " + pDescription + " to " + pFile);
+    }
   }
 
   /**
