@@ -75,6 +75,12 @@ public final class MutexFunctions {
 
   private MutexFunctions() {}
 
+  /**
+   * Extracts a statically identifiable mutex handle from an expression.
+   *
+   * <p>Resolution through pointers is tracked in
+   * <a href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1779">issue 1779</a>.
+   */
   public static Optional<MutexHandle> extractMutexName(AExpression expr) {
     if (expr instanceof CUnaryExpression unary
         && unary.getOperator() == UnaryOperator.AMPER
