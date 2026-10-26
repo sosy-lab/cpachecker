@@ -377,6 +377,9 @@ public record SeqThreadStatementBuilder(
     return switch (functionType) {
       case PTHREAD_BARRIER_INIT ->
           buildBarrierStatement(SeqThreadStatementType.BARRIER_INIT, pSubstituteEdge, pTargetPc);
+      case PTHREAD_BARRIER_WAIT ->
+          throw new AssertionError(
+              "pthread_barrier_wait is handled separately, it requires two clauses");
       case PTHREAD_COND_SIGNAL ->
           buildCondStatement(SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, pTargetPc);
       case PTHREAD_COND_WAIT ->
@@ -401,7 +404,10 @@ public record SeqThreadStatementBuilder(
       case VERIFIER_ATOMIC_END ->
           buildAtomicStatement(SeqThreadStatementType.ATOMIC_END, pSubstituteEdge, pTargetPc);
       default ->
-          throw new AssertionError("unhandled relevant pthread method: " + functionType.name);
+          throw new AssertionError(
+              "The following pthread function from the input program was not rejected, but it"
+                  + " cannot be handled: "
+                  + functionType.name);
     };
   }
 
