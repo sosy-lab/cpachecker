@@ -534,25 +534,29 @@ public class TerminationWitnessValidator implements Algorithm {
     PathFormula loopFormula =
         constructStrengthenedLoopFormulaForK(pLoop, pSupportingInvariants, k, states);
 
-    // T(s,t_0) && T(s,t_1) && ... && T(s,t_{k-1})
     // The state s is the first state of a pair in R^+, so it is a reachable loop head that has a
     // successor, i.e., the supporting invariants hold in s and there is u with R(s,u)
-    BooleanFormula hypothesis =
-        buildFactsAboutStartState(pLoop, pSupportingInvariants, pMapPrevToCurrVars);
+    BooleanFormula startStateConstraint =
+        buildStartStateConstraint(pLoop, pSupportingInvariants, pMapPrevToCurrVars);
+    // T(s,t_0) && T(s,t_1) && ... && T(s,t_{k-1})
+    BooleanFormula assumedTransitionInvariants = bfmgr.makeTrue();
     for (SSAMap state : states.subList(0, k)) {
-      hypothesis =
+      assumedTransitionInvariants =
           bfmgr.and(
-              hypothesis,
+              assumedTransitionInvariants,
               instantiateTransitionInvariant(pCandidateInvariant, state, pMapPrevToCurrVars));
     }
     // T(s,t_k)
-    BooleanFormula conclusion =
+    BooleanFormula transitionInvariantAtLastState =
         instantiateTransitionInvariant(pCandidateInvariant, states.get(k), pMapPrevToCurrVars);
 
     boolean isTransitionInvariant;
     try {
       isTransitionInvariant =
-          solver.implies(bfmgr.and(hypothesis, loopFormula.getFormula()), conclusion);
+          solver.implies(
+              bfmgr.and(
+                  startStateConstraint, assumedTransitionInvariants, loopFormula.getFormula()),
+              transitionInvariantAtLastState);
     } catch (SolverException e) {
       logger.logUserException(Level.WARNING, e, "Transition invariant check failed!");
       return false;
@@ -568,7 +572,7 @@ public class TerminationWitnessValidator implements Algorithm {
    * The variables that do not have a previous variable, and the variables of the successor u, are
    * renamed to fresh variables.
    */
-  private BooleanFormula buildFactsAboutStartState(
+  private BooleanFormula buildStartStateConstraint(
       Loop pLoop,
       ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
@@ -601,7 +605,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       substitution.put(variable.getValue(), renamed);
     }
-    BooleanFormula facts = fmgr.substitute(step.getFormula(), substitution.buildOrThrow());
+    BooleanFormula constraint = fmgr.substitute(step.getFormula(), substitution.buildOrThrow());
 
     // I(s)
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
@@ -617,11 +621,12 @@ public class TerminationWitnessValidator implements Algorithm {
                     type, currentToPrevious.get(name), PrevStateIndices.INDEX_FIRST.getIndex())
                 : fmgr.makeVariable(type, name + START_STATE_SUFFIX, 1));
       }
-      facts =
+      constraint =
           bfmgr.and(
-              facts, fmgr.substitute(supportingInvariant, invariantSubstitution.buildOrThrow()));
+              constraint,
+              fmgr.substitute(supportingInvariant, invariantSubstitution.buildOrThrow()));
     }
-    return facts;
+    return constraint;
   }
 
   /**
