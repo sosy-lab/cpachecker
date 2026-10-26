@@ -193,11 +193,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
 
       return ImmutableList.of(assumptionWaypoint.orElseThrow());
-    } else if (pEdge instanceof AssumeEdge) {
+    } else if (pAstCFARelation.originalOf(pEdge) instanceof AssumeEdge assumeEdge) {
       // A post-processing of the CFA may have copied this edge, for example when it unrolled a
       // loop. The witness is about the original program, and the AST structure only knows the
       // nodes of that one, so everything below works with the edge that this copy stands for.
-      AssumeEdge assumeEdge = (AssumeEdge) pAstCFARelation.originalOf(pEdge);
+      //
+      // The copy itself does not have to be a branch anymore: a copy of an iteration of a loop
+      // that was unrolled only goes on, so its condition is a blank edge there. The program still
+      // takes that branch at this point, which is what the waypoint says.
 
       // Without the AST structure we cannot guarantee that we are exporting at the beginning of
       // an iteration or if statement
@@ -247,7 +250,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           return ImmutableList.of();
         }
 
-        if (!iterationElement.getControllingExpression().orElseThrow().edges().contains(pEdge)) {
+        if (!iterationElement
+            .getControllingExpression()
+            .orElseThrow()
+            .edges()
+            .contains(assumeEdge)) {
           // In this case we have an assume edge inside the loop which has nothing to do with its
           // controlling expression. This case should be ignored.
           return ImmutableList.of();
@@ -266,7 +273,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // and then added to the AstCfaRelation. The problem is that this occurs at the expression
         // level and we currently only consider statements. The relevant parser expression type is
         // IASTConditionalExpression.
-        logger.log(Level.FINEST, "Could not find the AST structure for the edge: " + pEdge);
+        logger.log(Level.FINEST, "Could not find the AST structure for the edge: " + assumeEdge);
         return ImmutableList.of();
       }
 
