@@ -58,7 +58,9 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
@@ -72,6 +74,7 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.OcCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.SequentializedCounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
@@ -164,7 +167,7 @@ public class CEXExporter {
         cexToWitness =
             pSpecification.getProperties().contains(CommonVerificationProperty.TERMINATION)
                 ? new NonterminationCounterexampleToWitness(config, pCFA, pSpecification, pLogger)
-                : createCexToWitness(config, pCFA, pSpecification, pLogger);
+                : createCexToWitness(config, pCFA, pSpecification, pLogger, cpa);
       } else {
         cexToWitness = null;
       }
@@ -182,7 +185,11 @@ public class CEXExporter {
    * program needs one that maps the counterexample back to the input program first.
    */
   private static CounterexampleToWitness createCexToWitness(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
     if (pCfa.getMetadata().getTransformation() instanceof MporSequentialization sequentialization
@@ -193,6 +200,9 @@ public class CEXExporter {
           sequentialization.mapping().orElseThrow(),
           pSpecification,
           pLogger);
+    }
+    if (CPAs.retrieveCPA(pCpa, OrderingConsistencyCPA.class) != null) {
+      return new OcCounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
     }
     return new CounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
   }

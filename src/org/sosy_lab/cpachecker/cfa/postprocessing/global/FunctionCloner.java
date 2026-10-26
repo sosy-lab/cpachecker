@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstCloner;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -221,13 +222,15 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
     // clone correct type of node
     final CFANode newNode;
     if (node instanceof CFALabelNode cFALabelNode) {
-      newNode = new CFALabelNode(cloneAst(node.getFunction()), cFALabelNode.getLabel());
+      newNode =
+          new CFALabelNode(
+              cloneAst((CFunctionDeclaration) node.getFunction()), cFALabelNode.getLabel());
 
     } else if (node instanceof CFATerminationNode) {
-      newNode = new CFATerminationNode(cloneAst(node.getFunction()));
+      newNode = new CFATerminationNode(cloneAst((CFunctionDeclaration) node.getFunction()));
 
     } else if (node instanceof FunctionExitNode) {
-      newNode = new FunctionExitNode(cloneAst(node.getFunction()));
+      newNode = new FunctionExitNode(cloneAst((CFunctionDeclaration) node.getFunction()));
 
     } else if (node instanceof CFunctionEntryNode n) {
       @Nullable FunctionExitNode newExitNode = n.getExitNode().map(this::cloneNode).orElse(null);
@@ -250,7 +253,7 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
     } else {
       assert node.getClass() == CFANode.class
           : "unhandled subclass for CFANode: " + node.getClass();
-      newNode = new CFANode(cloneAst(node.getFunction()));
+      newNode = new CFANode(cloneAst((CFunctionDeclaration) node.getFunction()));
     }
 
     // copy information from original node

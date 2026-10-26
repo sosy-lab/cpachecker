@@ -60,9 +60,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentState;
 import org.sosy_lab.cpachecker.cpa.concurrent.ThreadState;
-import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
-import org.sosy_lab.cpachecker.cpa.oc.OcThreadInstanceState;
-import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -224,7 +221,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunction().getOrigName()));
   }
 
-  protected static Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
+  protected Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
     if (threadingState != null) {
       for (String threadId : threadingState.getThreadIds()) {
@@ -251,17 +248,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    // The ordering-consistency analysis records the executing thread instance on every state of
-    // its sequentialized counterexample path.
-    OcThreadInstanceState ocState = extractStateByType(pState, OcThreadInstanceState.class);
-    if (ocState != null) {
-      return Optional.of(getOcThreadName(ocState.getThreadInstanceId()));
-    }
-
     return Optional.empty();
   }
 
-  protected static Optional<String> getNewThreadNameIfExists(
+  protected Optional<String> getNewThreadNameIfExists(
       ARGState pState, ARGState pPreviousState) {
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
     ThreadingState previousThreadingState =
@@ -289,25 +279,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    // The ordering-consistency analysis does not track threads in a state either: its counter-
-    // example is one interleaving of the whole execution, and the state reached by a step records
-    // the thread instance that step created, if any.
-    OcThreadInstanceState ocState = extractStateByType(pState, OcThreadInstanceState.class);
-    if (ocState != null && ocState.getCreatedThreadInstanceId() != MemoryEvent.NO_INSTANCE) {
-      return Optional.of(getOcThreadName(ocState.getCreatedThreadInstanceId()));
-    }
-
     return Optional.empty();
-  }
-
-  /**
-   * Returns the name used to refer to a thread instance of the ordering-consistency analysis. The
-   * main instance always has id {@link ThreadInstance#MAIN_INSTANCE_ID} and is named "main" to
-   * match the thread ids used during the export; every other instance is named by its id, which is
-   * assigned in creation order and is unique per run.
-   */
-  private static String getOcThreadName(int pInstanceId) {
-    return pInstanceId == ThreadInstance.MAIN_INSTANCE_ID ? "main" : "T" + pInstanceId;
   }
 
   /**
@@ -1031,7 +1003,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * last edge of a hole matches it directly (e.g., with cpa.concurrent.aggregateBasicBlocks). A
    * hole is a block of one thread, so the other edges of the hole get the thread of its last edge.
    */
-  protected static ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
+  protected ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
     ImmutableList<EdgeWithStates> edges = getEdgesWithStates(pPath);
     ImmutableList.Builder<WitnessPathStep> steps = ImmutableList.builder();
 

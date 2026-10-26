@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -307,7 +309,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
     if (callee.isPresent()
         && WRITE_THROUGH_POINTER_FUNCTIONS.contains(callee.orElseThrow())
-        && callsWithAddressOfGlobal(pEdge)) {
+        && callsWithAddressOfGlobal(pEdge)
+        && !isStandaloneFscanfCall(pEdge)) {
       throw new UnsupportedCodeException(
           callee.orElseThrow()
               + " writes to a global through a pointer argument, which the data-race analysis"
@@ -336,6 +339,32 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
     }
     return false;
+  }
+
+  private static boolean isStandaloneFscanfCall(CFAEdge pEdge) {
+    return pEdge instanceof CStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof CFunctionCallStatement call
+        && call.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof CIdExpression functionName
+        && BuiltinIoFunctions.matchesFscanf(functionName.getName());
+  }
+
+  private static CFAEdge rewriteFscanfCall(CFAEdge pEdge) throws CPATransferException {
+    if (!isStandaloneFscanfCall(pEdge)) {
+      return pEdge;
+    }
+
+    CStatementEdge statementEdge = (CStatementEdge) pEdge;
+    CFunctionCallStatement call = (CFunctionCallStatement) statementEdge.getStatement();
+    CFunctionCallAssignmentStatement assignment =
+        BuiltinIoFunctions.createNondetCallModellingFscanf(
+            call.getFunctionCallExpression(), pEdge);
+    return new CStatementEdge(
+        pEdge.getRawStatement(),
+        assignment,
+        pEdge.getFileLocation(),
+        pEdge.getPredecessor(),
+        pEdge.getSuccessor());
   }
 
   /**
@@ -764,8 +793,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     PathFormula edgeFormula;
     try {
+      CFAEdge edgeToClone = rewriteFscanfCall(pEdge);
       CFAEdge rewritten =
-          ConcurrentEdgeCloner.cloneSingleEdge(pEdge, pState.getInstanceId(), pRenamer);
+          ConcurrentEdgeCloner.cloneSingleEdge(edgeToClone, pState.getInstanceId(), pRenamer);
       edgeFormula =
           pathFormulaManager.makeAnd(
               pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),

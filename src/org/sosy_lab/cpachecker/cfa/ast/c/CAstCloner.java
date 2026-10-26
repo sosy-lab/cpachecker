@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  * #isLhs()}, set via {@link #cloneAstLeftSide} and {@link #cloneAstRightSide}). Subclasses that
  * enable the cache must not let hooks depend on that flag, because the cache is not keyed by it.
  */
-public abstract class CAstCloner {
+public abstract class CAstCloner extends AbstractTransformingCAstNodeVisitor<NoException> {
 
   private final CExpressionCloner expCloner = new CExpressionCloner();
 
@@ -46,7 +46,7 @@ public abstract class CAstCloner {
 
   /** Returns a deep copy of the given AST node, or {@code null} for a {@code null} argument. */
   @SuppressWarnings("unchecked")
-  public final @Nullable <T extends AAstNode> T cloneAst(final @Nullable T ast) {
+  public final @Nullable <T extends CAstNode> T cloneAst(final @Nullable T ast) {
     if (ast == null) {
       return null;
     }
@@ -64,16 +64,16 @@ public abstract class CAstCloner {
   }
 
   /** Returns a deep copy of an AST node that is written, e.g. an assignment's left-hand side. */
-  public final @Nullable <T extends AAstNode> T cloneAstLeftSide(final @Nullable T ast) {
+  public final @Nullable <T extends CAstNode> T cloneAstLeftSide(final @Nullable T ast) {
     return cloneAst(ast, true);
   }
 
   /** Returns a deep copy of an AST node that is read, e.g. an assignment's right-hand side. */
-  public final @Nullable <T extends AAstNode> T cloneAstRightSide(final @Nullable T ast) {
+  public final @Nullable <T extends CAstNode> T cloneAstRightSide(final @Nullable T ast) {
     return cloneAst(ast, false);
   }
 
-  private <T extends AAstNode> @Nullable T cloneAst(final @Nullable T ast, final boolean pIsLhs) {
+  private <T extends CAstNode> @Nullable T cloneAst(final @Nullable T ast, final boolean pIsLhs) {
     final boolean oldIsLhs = isLhs;
     isLhs = pIsLhs;
     try {
@@ -95,7 +95,7 @@ public abstract class CAstCloner {
   }
 
   /** Returns a new list with cloned elements, each cloned as a read. */
-  protected final <T extends AAstNode> List<T> cloneAstList(final List<T> astList) {
+  protected final <T extends CAstNode> List<T> cloneAstList(final List<T> astList) {
     final List<T> list = new ArrayList<>(astList.size());
     for (T ast : astList) {
       list.add(cloneAstRightSide(ast));
@@ -179,112 +179,193 @@ public abstract class CAstCloner {
   }
 
   /** Returns a deep copy of the given AST node, without consulting the cache. */
-  private AAstNode cloneAstDirect(final AAstNode ast) {
-    final FileLocation loc = ast.getFileLocation();
+  private CAstNode cloneAstDirect(final CAstNode ast) {
+    return ast.accept(this);
+  }
 
-    return switch (ast) {
-      // CRightHandSide sub classes
-      case CExpression cExpression -> cExpression.accept(expCloner);
+  @Override
+  public CAstNode visit(CFunctionCallExpression func) {
+    return new CFunctionCallExpression(
+        func.getFileLocation(),
+        cloneType(func.getExpressionType()),
+        cloneAst(func.getFunctionNameExpression()),
+        cloneAstList(func.getParameterExpressions()),
+        cloneAst(func.getDeclaration()));
+  }
 
-      case CFunctionCallExpression func ->
-          new CFunctionCallExpression(
-              loc,
-              cloneType(func.getExpressionType()),
-              cloneAst(func.getFunctionNameExpression()),
-              cloneAstList(func.getParameterExpressions()),
-              cloneAst(func.getDeclaration()));
+  @Override
+  public CAstNode visit(CInitializerExpression initializer) {
+    return new CInitializerExpression(
+        initializer.getFileLocation(), cloneAstRightSide(initializer.getExpression()));
+  }
 
-      // CInitializer sub classes
-      case CInitializerExpression cInitializerExpression ->
-          new CInitializerExpression(
-              loc, cloneAstRightSide(cInitializerExpression.getExpression()));
-      case CInitializerList cInitializerList ->
-          new CInitializerList(loc, cloneAstList(cInitializerList.getInitializers()));
-      case CDesignatedInitializer di ->
-          new CDesignatedInitializer(
-              loc, cloneAstList(di.getDesignators()), cloneAstRightSide(di.getRightHandSide()));
+  @Override
+  public CAstNode visit(CInitializerList initializer) {
+    return new CInitializerList(
+        initializer.getFileLocation(), cloneAstList(initializer.getInitializers()));
+  }
 
-      // CSimpleDeclaration sub classes
-      case CVariableDeclaration decl -> {
-        // Declaring a variable is always an initializing write, regardless of the ambient side.
-        CVariableDeclaration newDecl = cloneVariableDeclaration(decl, true);
-        if (newDecl == decl) {
-          yield decl;
-        }
-        // cache the declaration, then clone the initializer and add it.
-        // this is needed for the following code: int x = x;
-        storeInCache(ast, newDecl);
-        newDecl.addInitializer(cloneAstRightSide(decl.getInitializer()));
-        yield newDecl;
-      }
-      case CFunctionDeclaration decl -> {
-        List<CParameterDeclaration> l = new ArrayList<>(decl.getParameters().size());
-        for (CParameterDeclaration param : decl.getParameters()) {
-          l.add(cloneAstRightSide(param));
-        }
-        yield new CFunctionDeclaration(
-            loc,
-            cloneFunctionType(decl.getType()),
-            changeFunctionName(decl.getName()),
-            decl.getOrigName(),
-            l,
-            decl.getAttributes());
-      }
-      case CComplexTypeDeclaration decl ->
-          new CComplexTypeDeclaration(loc, decl.isGlobal(), cloneType(decl.getType()));
+  @Override
+  public CAstNode visit(CDesignatedInitializer initializer) {
+    return new CDesignatedInitializer(
+        initializer.getFileLocation(),
+        cloneAstList(initializer.getDesignators()),
+        cloneAstRightSide(initializer.getRightHandSide()));
+  }
 
-      case CTypeDefDeclaration decl ->
-          new CTypeDefDeclaration(
-              loc,
-              decl.isGlobal(),
-              cloneType(decl.getType()),
-              decl.getName(),
-              changeTypeQualifiedName(decl));
+  @Override
+  public CAstNode visit(CVariableDeclaration decl) {
+    // Declaring a variable is always an initializing write, regardless of the ambient side.
+    CVariableDeclaration newDecl = cloneVariableDeclaration(decl, true);
+    if (newDecl == decl) {
+      return decl;
+    }
+    // Cache the declaration before cloning its initializer, as in `int x = x;`.
+    storeInCache(decl, newDecl);
+    newDecl.addInitializer(cloneAstRightSide(decl.getInitializer()));
+    return newDecl;
+  }
 
-      case CParameterDeclaration decl -> {
-        // we do not cache CParameterDeclaration, but clone it directly,
-        // because its equals- and hashcode-Method are insufficient for caching
-        // TODO do we need to cache it?
-        CParameterDeclaration newDecl =
-            new CParameterDeclaration(loc, cloneType(decl.getType()), decl.getName());
-        newDecl.setQualifiedName(changeQualifiedName(decl));
-        yield newDecl;
-      }
-      case CEnumerator decl ->
-          new CEnumerator(loc, decl.getName(), changeTypeQualifiedName(decl), decl.getValue());
+  @Override
+  public CAstNode visit(CFunctionDeclaration decl) {
+    List<CParameterDeclaration> parameters = new ArrayList<>(decl.getParameters().size());
+    for (CParameterDeclaration param : decl.getParameters()) {
+      parameters.add(cloneAstRightSide(param));
+    }
+    return new CFunctionDeclaration(
+        decl.getFileLocation(),
+        cloneFunctionType(decl.getType()),
+        changeFunctionName(decl.getName()),
+        decl.getOrigName(),
+        parameters,
+        decl.getAttributes());
+  }
 
-      // CStatement sub classes
-      case CFunctionCallAssignmentStatement stat ->
-          new CFunctionCallAssignmentStatement(
-              loc,
-              cloneAstLeftSide(stat.getLeftHandSide()),
-              cloneAstRightSide(stat.getRightHandSide()));
-      case CExpressionAssignmentStatement stat ->
-          new CExpressionAssignmentStatement(
-              loc,
-              cloneAstLeftSide(stat.getLeftHandSide()),
-              cloneAstRightSide(stat.getRightHandSide()));
-      case CFunctionCallStatement cFunctionCallStatement ->
-          new CFunctionCallStatement(
-              loc, cloneAstRightSide(cFunctionCallStatement.getFunctionCallExpression()));
-      case CExpressionStatement cExpressionStatement ->
-          new CExpressionStatement(loc, cloneAstRightSide(cExpressionStatement.getExpression()));
+  @Override
+  public CAstNode visit(CComplexTypeDeclaration decl) {
+    return new CComplexTypeDeclaration(
+        decl.getFileLocation(), decl.isGlobal(), cloneType(decl.getType()));
+  }
 
-      case CReturnStatement cReturnStatement -> cloneReturnStatement(loc, cReturnStatement);
+  @Override
+  public CAstNode visit(CTypeDefDeclaration decl) {
+    return new CTypeDefDeclaration(
+        decl.getFileLocation(),
+        decl.isGlobal(),
+        cloneType(decl.getType()),
+        decl.getName(),
+        changeTypeQualifiedName(decl));
+  }
 
-      // CDesignator sub classes
-      case CArrayDesignator cArrayDesignator ->
-          new CArrayDesignator(loc, cloneAstRightSide(cArrayDesignator.getSubscriptExpression()));
-      case CArrayRangeDesignator cArrayRangeDesignator ->
-          new CArrayRangeDesignator(
-              loc,
-              cloneAstRightSide(cArrayRangeDesignator.getFloorExpression()),
-              cloneAstRightSide(cArrayRangeDesignator.getCeilExpression()));
-      case CFieldDesignator cFieldDesignator ->
-          new CFieldDesignator(loc, cFieldDesignator.getFieldName());
+  @Override
+  public CAstNode visit(CParameterDeclaration decl) {
+    // CParameterDeclaration's equals and hashCode are insufficient for caching.
+    CParameterDeclaration newDecl =
+        new CParameterDeclaration(
+            decl.getFileLocation(), cloneType(decl.getType()), decl.getName());
+    newDecl.setQualifiedName(changeQualifiedName(decl));
+    return newDecl;
+  }
 
-      default -> throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
-    };
+  @Override
+  public CAstNode visit(CEnumerator decl) {
+    return new CEnumerator(
+        decl.getFileLocation(),
+        decl.getName(),
+        changeTypeQualifiedName(decl),
+        decl.getValue());
+  }
+
+  @Override
+  public CAstNode visit(CFunctionCallAssignmentStatement stat) {
+    return new CFunctionCallAssignmentStatement(
+        stat.getFileLocation(),
+        cloneAstLeftSide(stat.getLeftHandSide()),
+        cloneAstRightSide(stat.getRightHandSide()));
+  }
+
+  @Override
+  public CAstNode visit(CExpressionAssignmentStatement stat) {
+    return new CExpressionAssignmentStatement(
+        stat.getFileLocation(),
+        cloneAstLeftSide(stat.getLeftHandSide()),
+        cloneAstRightSide(stat.getRightHandSide()));
+  }
+
+  @Override
+  public CAstNode visit(CFunctionCallStatement stat) {
+    return new CFunctionCallStatement(
+        stat.getFileLocation(), cloneAstRightSide(stat.getFunctionCallExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CExpressionStatement stat) {
+    return new CExpressionStatement(
+        stat.getFileLocation(), cloneAstRightSide(stat.getExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CReturnStatement ret) {
+    return cloneReturnStatement(ret.getFileLocation(), ret);
+  }
+
+  @Override
+  public CAstNode visit(CArrayDesignator designator) {
+    return new CArrayDesignator(
+        designator.getFileLocation(), cloneAstRightSide(designator.getSubscriptExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CArrayRangeDesignator designator) {
+    return new CArrayRangeDesignator(
+        designator.getFileLocation(),
+        cloneAstRightSide(designator.getFloorExpression()),
+        cloneAstRightSide(designator.getCeilExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CFieldDesignator designator) {
+    return new CFieldDesignator(designator.getFileLocation(), designator.getFieldName());
+  }
+
+  @Override
+  public CAstNode visit(CBinaryExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CCastExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CUnaryExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CArraySubscriptExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CFieldReference exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CIdExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CPointerExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CComplexCastExpression exp) {
+    return exp.accept(expCloner);
   }
 
   private CReturnStatement cloneReturnStatement(
