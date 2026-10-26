@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.NestedLoopSummarizer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -116,6 +117,7 @@ public class TerminationWitnessValidator implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
+  private final NestedLoopSummarizer nestedLoopSummarizer;
   // The scope and the checker are created in run(), since the scope has to contain the
   // declarations of the __PREV variables from the witness
   private Scope scope;
@@ -155,6 +157,7 @@ public class TerminationWitnessValidator implements Algorithm {
     pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    nestedLoopSummarizer = new NestedLoopSummarizer(fmgr, bfmgr, cfa);
 
     if (pWitnessPath.isEmpty()) {
       throw new InvalidConfigurationException("Witness file is missing in specification.");
@@ -854,6 +857,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // s_exit = s_entry for the assigned variables, i.e., the loop is not entered
     BooleanFormula identity = bfmgr.makeTrue();
+    ImmutableMap.Builder<String, Formula> exits = ImmutableMap.builder();
     for (String variable : assignedVariables) {
       Formula uninstantiated = uninstantiatedVariables.get(variable);
       if (uninstantiated == null) {
@@ -861,12 +865,12 @@ public class TerminationWitnessValidator implements Algorithm {
         continue;
       }
       FormulaType<Formula> type = fmgr.getFormulaType(uninstantiated);
+      Formula exit = fmgr.makeVariable(type, variable, exitSsa.getIndex(variable));
+      exits.put(variable, exit);
       identity =
           bfmgr.and(
               identity,
-              fmgr.makeEqual(
-                  fmgr.makeVariable(type, variable, exitSsa.getIndex(variable)),
-                  fmgr.makeVariable(type, variable, entrySsa.getIndex(variable))));
+              fmgr.makeEqual(exit, fmgr.makeVariable(type, variable, entrySsa.getIndex(variable))));
     }
 
     if (transitionInvariant == null) {
@@ -875,27 +879,13 @@ public class TerminationWitnessValidator implements Algorithm {
     }
 
     // T(s_entry, s_exit)
-    BooleanFormula transitionRelation = transitionInvariant;
-    ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
-    for (Map.Entry<String, Formula> variable :
-        fmgr.extractVariables(transitionRelation).entrySet()) {
-      FormulaType<Formula> type = fmgr.getFormulaType(variable.getValue());
-      String name = variable.getKey();
-      if (TransitionInvariantUtils.isPrevVariable(name, mapPrevToCurrVars)) {
-        String currentName =
-            mapPrevToCurrVars
-                .get(TransitionInvariantUtils.getPrevDeclaration(name, mapPrevToCurrVars))
-                .getQualifiedName();
-        substitution.put(
-            variable.getValue(),
-            fmgr.makeVariable(type, currentName, getIndexOrInitial(entrySsa, currentName)));
-      } else {
-        substitution.put(
-            variable.getValue(), fmgr.makeVariable(type, name, getIndexOrInitial(exitSsa, name)));
-      }
-    }
     BooleanFormula summary =
-        bfmgr.or(identity, fmgr.substitute(transitionRelation, substitution.buildOrThrow()));
+        bfmgr.or(
+            identity,
+            nestedLoopSummarizer.instantiateTransitionInvariant(
+                toTerminationToSafetyNaming(transitionInvariant, mapPrevToCurrVars),
+                exits.buildOrThrow(),
+                entrySsa));
 
     // ¬I(s_entry), the transition invariant is only valid for states satisfying I
     if (!supportingInvariants.isEmpty()) {
@@ -907,6 +897,31 @@ public class TerminationWitnessValidator implements Algorithm {
     return pPath
         .withContext(exitSsa, allEdges.getPointerTargetSet())
         .withFormula(bfmgr.and(pPath.getFormula(), summary));
+  }
+
+  /**
+   * Renames the variables of the transition invariant T(s,t) of the witness as in the transition
+   * invariants of TerminationToSafety, i.e., the variables of s and of t contain {@link
+   * TransitionInvariantUtils#PREV_KEYWORD} and {@link TransitionInvariantUtils#CURR_KEYWORD}.
+   */
+  private BooleanFormula toTerminationToSafetyNaming(
+      BooleanFormula pTransitionInvariant,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+    Set<String> variables = fmgr.extractVariableNames(pTransitionInvariant);
+    return fmgr.renameFreeVariablesAndUFs(
+        pTransitionInvariant,
+        name -> {
+          if (!variables.contains(name)) {
+            return name;
+          }
+          if (TransitionInvariantUtils.isPrevVariable(name, pMapPrevToCurrVars)) {
+            return pMapPrevToCurrVars
+                    .get(TransitionInvariantUtils.getPrevDeclaration(name, pMapPrevToCurrVars))
+                    .getQualifiedName()
+                + TransitionInvariantUtils.PREV_KEYWORD;
+          }
+          return name + TransitionInvariantUtils.CURR_KEYWORD;
+        });
   }
 
   /** Variables that do not occur in a path formula yet have the initial SSA index 1. */
