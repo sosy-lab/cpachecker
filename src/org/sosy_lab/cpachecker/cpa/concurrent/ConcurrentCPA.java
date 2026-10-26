@@ -119,7 +119,6 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
   private final ConcurrentTransferRelation transferRelation;
   private final ConfigurableProgramAnalysis threadSpecificCPA;
-  private final Precision threadSpecificUnitPrecision;
   private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
 
@@ -133,9 +132,6 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
     logger = pLogger;
 
     threadSpecificCPA = new ThreadSpecificCPA(pConfig, pCfa, pLogger);
-    threadSpecificUnitPrecision =
-        threadSpecificCPA.getInitialPrecision(
-            CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
 
     PartialOrderReductionStrategy strategy =
         switch (partialOrderReductionAlgorithm) {
