@@ -651,7 +651,7 @@ public record SeqThreadStatementBuilder(
           PthreadFunctionSubstitution.buildCondSignalFunctionStatements(
               Iterables.getOnlyElement(expressions));
       case COND_WAIT_UNLOCK ->
-          PthreadFunctionSubstitution.buildCondWaitUnlockFunctionStatements((expressions));
+          PthreadFunctionSubstitution.buildCondWaitUnlockFunctionStatements(expressions);
       case COND_WAIT_LOCK ->
           PthreadFunctionSubstitution.buildCondWaitLockFunctionStatements(expressions);
       case MUTEX_LOCK ->

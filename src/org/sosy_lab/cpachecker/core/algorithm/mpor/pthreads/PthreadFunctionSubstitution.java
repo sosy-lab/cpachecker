@@ -84,13 +84,44 @@ public class PthreadFunctionSubstitution {
     CFieldReference barrierNumWaitersFieldReference =
         buildBarrierFieldReference(
             pBarrierExpression, PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION);
+
+    // Equality checks on composite types are not allowed, e.g., "(A.member) == (B.member)"
+    // so instead local variables are declared that are primitive and hold the values.
+    // The declarations are inside compound statements, so they do not collide with other names.
+    CVariableDeclaration barrierCountDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getType(),
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+            new CInitializerExpression(FileLocation.DUMMY, barrierCountFieldReference));
+    CVariableDeclaration barrierNumWaitersDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getType(),
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
+            new CInitializerExpression(FileLocation.DUMMY, barrierNumWaitersFieldReference));
+
     CBinaryExpression equalsExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            barrierCountFieldReference, barrierNumWaitersFieldReference, BinaryOperator.EQUALS);
+            new CIdExpression(FileLocation.DUMMY, barrierCountDeclaration),
+            new CIdExpression(FileLocation.DUMMY, barrierNumWaitersDeclaration),
+            BinaryOperator.EQUALS);
     CCompoundStatementElement countEqualsNumWaitersAssumption =
         new CStatementWrapper(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(equalsExpression));
-    return ImmutableList.of(countEqualsNumWaitersAssumption);
+
+    return ImmutableList.of(
+        new CVariableDeclarationWrapper(barrierCountDeclaration),
+        new CVariableDeclarationWrapper(barrierNumWaitersDeclaration),
+        countEqualsNumWaitersAssumption);
   }
 
   private static CFieldReference buildBarrierFieldReference(
