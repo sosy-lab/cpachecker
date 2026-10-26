@@ -184,8 +184,10 @@ public class TerminationWitnessValidator implements Algorithm {
     }
 
     scope =
-        new CProgramScope(cfa, logger)
-            .withAdditionalDeclarations(collectPrevVariableDeclarations(invariants));
+        new CfaVariableScope(
+            new CProgramScope(cfa, logger)
+                .withAdditionalDeclarations(collectPrevVariableDeclarations(invariants)),
+            cfa);
     if (checkWithInfiniteSpace) {
       try {
         wellFoundednessChecker =
