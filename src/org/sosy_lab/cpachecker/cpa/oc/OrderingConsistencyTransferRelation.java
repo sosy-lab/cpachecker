@@ -2130,7 +2130,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private static String baseNameFor(CVariableDeclaration pDecl, int pInstanceId) {
     return pDecl.isGlobal()
         ? baseNameFor(pDecl.getQualifiedName())
-        : "__oc_base_T" + pInstanceId + "_" + pDecl.getQualifiedName();
+        : baseNameFor("T" + pInstanceId + "_" + pDecl.getQualifiedName());
   }
 
   private static String regionOf(CType pType) {

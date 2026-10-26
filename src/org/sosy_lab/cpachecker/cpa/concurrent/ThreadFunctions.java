@@ -221,7 +221,7 @@ public final class ThreadFunctions {
    * The value a freshly spawned thread's private copy of {@code pDeclaration} starts out with: the
    * declaration's own initializer, or the type's zero when it has none (C zero-initializes static
    * storage, §6.7.9 (10) — which is what makes {@code __thread int data = 0;} and {@code __thread
-   * int data;} behave identically, and what the spurious-race benchmark relies on).
+   * int data;} behave identically).
    *
    * <p>Only a scalar with a literal initializer is supported. An aggregate is rejected rather than
    * approximated: its copy would be a whole memory region, not one value symbol, so the

@@ -58,6 +58,9 @@ final class OcEncoder {
    * realistic program has.
    */
   private static final long LAYOUT_CEILING = 1L << 30;
+  private static final String CLOCK_VARIABLE_PREFIX = "__oc_clk_";
+  private static final String READ_FROM_VARIABLE_PREFIX = "__oc_rf_";
+  private static final String WRITE_SERIALIZATION_VARIABLE_PREFIX = "__oc_ws_";
 
   /** A read-from pair with its Boolean selector variable. */
   record RfPair(MemoryEvent write, MemoryEvent read, BooleanFormula variable) {}
@@ -288,8 +291,8 @@ final class OcEncoder {
     IntegerFormula one = imgr.makeNumber(1);
     List<BooleanFormula> disjuncts = new ArrayList<>();
     for (RacePair pair : getRacePairs()) {
-      IntegerFormula clock1 = imgr.makeVariable("__oc_clk_" + pair.access1().id());
-      IntegerFormula clock2 = imgr.makeVariable("__oc_clk_" + pair.access2().id());
+      IntegerFormula clock1 = imgr.makeVariable(CLOCK_VARIABLE_PREFIX + pair.access1().id());
+      IntegerFormula clock2 = imgr.makeVariable(CLOCK_VARIABLE_PREFIX + pair.access2().id());
       BooleanFormula adjacent =
           bfmgr.or(
               imgr.equal(clock1, imgr.add(clock2, one)), imgr.equal(clock2, imgr.add(clock1, one)));
@@ -419,7 +422,7 @@ final class OcEncoder {
     var imgr = fmgr.getIntegerFormulaManager();
     Map<MemoryEvent, IntegerFormula> clocks = new LinkedHashMap<>();
     for (MemoryEvent event : events) {
-      clocks.put(event, imgr.makeVariable("__oc_clk_" + event.id()));
+      clocks.put(event, imgr.makeVariable(CLOCK_VARIABLE_PREFIX + event.id()));
     }
 
     List<BooleanFormula> constraints = new ArrayList<>();
@@ -776,7 +779,10 @@ final class OcEncoder {
           continue; // the write is in program order after the read
         }
         result.add(
-            new RfPair(write, read, bfmgr.makeVariable("__oc_rf_" + write.id() + "_" + read.id())));
+            new RfPair(
+                write,
+                read,
+                bfmgr.makeVariable(READ_FROM_VARIABLE_PREFIX + write.id() + "_" + read.id())));
       }
     }
     return result.build();
@@ -799,8 +805,8 @@ final class OcEncoder {
               new WsPair(
                   w1,
                   w2,
-                  bfmgr.makeVariable("__oc_ws_" + w1.id() + "_" + w2.id()),
-                  bfmgr.makeVariable("__oc_ws_" + w2.id() + "_" + w1.id())));
+                  bfmgr.makeVariable(WRITE_SERIALIZATION_VARIABLE_PREFIX + w1.id() + "_" + w2.id()),
+                  bfmgr.makeVariable(WRITE_SERIALIZATION_VARIABLE_PREFIX + w2.id() + "_" + w1.id())));
         }
       }
     }
