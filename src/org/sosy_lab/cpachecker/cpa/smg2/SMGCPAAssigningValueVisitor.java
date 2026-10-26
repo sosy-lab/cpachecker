@@ -654,17 +654,16 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * @throws SMGException in case of a critical error.
    */
   private String getExtendedQualifiedName(CExpression expr) throws SMGException {
-    if (expr instanceof CIdExpression cIdExpression) {
-      return cIdExpression.getDeclaration().getQualifiedName();
-    } else if (expr instanceof CArraySubscriptExpression) {
-      return expr.toQualifiedASTString();
-    } else if (expr instanceof CFieldReference cFieldReference) {
-      return cFieldReference.getFieldOwner().toQualifiedASTString()
-          + cFieldReference.getFieldName();
-    } else if (expr instanceof CPointerExpression) {
-      return expr.toQualifiedASTString();
-    }
-    throw new SMGException("Internal error when getting the qualified name of a CExpression.");
+    return switch (expr) {
+      case CIdExpression cIdExpression -> cIdExpression.getDeclaration().getQualifiedName();
+      case CArraySubscriptExpression unused -> expr.toQualifiedASTString();
+      case CFieldReference cFieldReference ->
+          cFieldReference.getFieldOwner().toQualifiedASTString() + cFieldReference.getFieldName();
+      case CPointerExpression unused -> expr.toQualifiedASTString();
+      default ->
+          throw new SMGException(
+              "Internal error when getting the qualified name of a CExpression.");
+    };
   }
 
   /**
