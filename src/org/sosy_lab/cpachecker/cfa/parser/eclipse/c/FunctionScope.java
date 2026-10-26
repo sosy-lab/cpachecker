@@ -71,6 +71,30 @@ class FunctionScope extends AbstractScope {
       new ArrayDeque<>();
   private boolean modifiedParameters = true;
 
+  // The local variables and parameters in scope as in the input program. Unlike the caches above,
+  // they do not contain hidden declarations: a declaration in an inner block hides (shadows) a
+  // declaration with the same name in an outer block until the inner block ends. The CFA builder
+  // renames the inner declaration, so the caches above contain both. Example:
+  //
+  //   int f(int x) {
+  //     int y = x;
+  //     {
+  //       int x = 1;  // hides parameter x, renamed to x__1
+  //       int y = 2;  // hides variable y, renamed to y__1
+  //       // caches above: parameter x, variables y, x__1, y__1
+  //       // stacks below: variables x__1, y__1
+  //     }
+  //     // both: parameter x, variable y
+  //   }
+  //
+  // AstCfaRelationBuilder uses them, so that it does not have to remove the hidden declarations
+  // for each CFA node. While no local variable is hidden, the sets of local variables below are
+  // the same instances as above, so they need no additional memory.
+  private final Deque<PersistentSet<AVariableDeclaration>> visibleLocalVarsStack =
+      new ArrayDeque<>();
+  private final Deque<ImmutableSet<AParameterDeclaration>> visibleParametersStack =
+      new ArrayDeque<>();
+
   private CFunctionDeclaration currentFunction = null;
   private Optional<CVariableDeclaration> returnVariable = null;
 
@@ -93,7 +117,10 @@ class FunctionScope extends AbstractScope {
     varsListWithNewNames.push(pGlobalVars);
 
     artificialScope = pArtificialScope;
-    localVarsStackWitNewNames.add(PersistentSet.of());
+    PersistentSet<AVariableDeclaration> noLocalVars = PersistentSet.of();
+    localVarsStackWitNewNames.add(noLocalVars);
+    visibleLocalVarsStack.add(noLocalVars);
+    visibleParametersStack.add(ImmutableSet.of());
 
     enterBlock();
   }
@@ -154,6 +181,8 @@ class FunctionScope extends AbstractScope {
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
     // Optimizations to keep track of all variables which are in scope
     localVarsStackWitNewNames.addLast(localVarsStackWitNewNames.peekLast());
+    visibleLocalVarsStack.addLast(visibleLocalVarsStack.peekLast());
+    visibleParametersStack.addLast(visibleParametersStack.peekLast());
   }
 
   public void leaveBlock() {
@@ -165,6 +194,8 @@ class FunctionScope extends AbstractScope {
     labelsNodeStack.removeLast();
     // Optimizations to keep track of all variables which are in scope
     localVarsStackWitNewNames.removeLast();
+    visibleLocalVarsStack.removeLast();
+    visibleParametersStack.removeLast();
   }
 
   /** returns only the most local scope, i.e., the scope between the nearest curly brackets. */
@@ -211,6 +242,41 @@ class FunctionScope extends AbstractScope {
       modifiedParameters = false;
     }
     return parameterDeclarations;
+  }
+
+  /**
+   * Like {@link #getVariablesInScope}, but without the variables hidden (shadowed) by a declaration
+   * with the same name in an inner block, see the example at {@code visibleLocalVarsStack}.
+   */
+  public Set<AVariableDeclaration> getVisibleVariablesInScope() {
+    return visibleLocalVarsStack.peekLast();
+  }
+
+  /**
+   * Like {@link #getParameters}, but without the parameters hidden (shadowed) by a local variable
+   * with the same name in an inner block, see the example at {@code visibleLocalVarsStack}.
+   */
+  public ImmutableSet<AParameterDeclaration> getVisibleParameters() {
+    return visibleParametersStack.peekLast();
+  }
+
+  /**
+   * Returns the local variable or parameter that a new declaration with this name in the current
+   * block hides (shadows), i.e., the innermost one with this name in the enclosing blocks. In the
+   * example at {@code visibleLocalVarsStack}, this is parameter x for {@code int x = 1;}. Global
+   * variables and enumerators are not in the caches, so it skips them.
+   */
+  private @Nullable CSimpleDeclaration getHiddenDeclaration(String pName) {
+    Iterator<Map<String, CSimpleDeclaration>> it = varsStack.descendingIterator();
+    while (it.hasNext()) {
+      CSimpleDeclaration declaration = it.next().get(pName);
+      if (declaration instanceof CParameterDeclaration
+          || (declaration instanceof CVariableDeclaration variable
+              && localVarsStackWitNewNames.peekLast().contains(variable))) {
+        return declaration;
+      }
+    }
+    return null;
   }
 
   @Override
@@ -315,15 +381,40 @@ class FunctionScope extends AbstractScope {
           "Variable " + name + " already declared", declaration);
     }
 
+    CSimpleDeclaration hidden = getHiddenDeclaration(name);
     vars.put(name, declaration);
     varsWithNewNames.put(declaration.getName(), declaration);
 
     // Optimizations to keep track of all variables which are in scope
     if (declaration instanceof AVariableDeclaration pAVariableDeclaration) {
-      localVarsStackWitNewNames.addLast(
-          localVarsStackWitNewNames.removeLast().addAndCopy(pAVariableDeclaration));
-    } else if (declaration instanceof AParameterDeclaration) {
+      PersistentSet<AVariableDeclaration> localVars = localVarsStackWitNewNames.removeLast();
+      PersistentSet<AVariableDeclaration> newLocalVars =
+          localVars.addAndCopy(pAVariableDeclaration);
+      localVarsStackWitNewNames.addLast(newLocalVars);
+
+      // In the example at visibleLocalVarsStack, x__1 replaces parameter x and y__1 replaces y
+      PersistentSet<AVariableDeclaration> visibleLocalVars = visibleLocalVarsStack.removeLast();
+      if (hidden instanceof AVariableDeclaration hiddenVariable) {
+        visibleLocalVars = visibleLocalVars.removeAndCopy(hiddenVariable);
+      }
+      visibleLocalVarsStack.addLast(
+          visibleLocalVars == localVars
+              ? newLocalVars
+              : visibleLocalVars.addAndCopy(pAVariableDeclaration));
+
+      if (hidden instanceof AParameterDeclaration hiddenParameter) {
+        visibleParametersStack.addLast(
+            FluentIterable.from(visibleParametersStack.removeLast())
+                .filter(parameter -> !parameter.equals(hiddenParameter))
+                .toSet());
+      }
+    } else if (declaration instanceof AParameterDeclaration pAParameterDeclaration) {
       modifiedParameters = true;
+      visibleParametersStack.addLast(
+          ImmutableSet.<AParameterDeclaration>builder()
+              .addAll(visibleParametersStack.removeLast())
+              .add(pAParameterDeclaration)
+              .build());
     }
   }
 

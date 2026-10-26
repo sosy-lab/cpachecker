@@ -187,6 +187,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Sideassignments sideAssignmentStack;
   ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
   ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToVisibleLocalVariables;
+  ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToVisibleParameters;
 
   private boolean encounteredAsm = false;
 
@@ -202,6 +204,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       CheckBindingVisitor pCheckBinding,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters,
       NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
     options = pOptions;
     logger = pLogger;
@@ -231,6 +235,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     sideAssignmentStack = pSideAssignmentStack;
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersInScope;
+    cfaNodeToVisibleLocalVariables = pCfaNodeToVisibleLocalVariables;
+    cfaNodeToVisibleParameters = pCfaNodeToVisibleParameters;
   }
 
   FunctionEntryNode getStartNode() {
@@ -1049,6 +1055,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void trackScopeInformation(CFANode pNode) {
     cfaNodeToAstLocalVariablesInScope.put(pNode, scope.getVariablesInScope());
     cfaNodeToAstParametersInScope.put(pNode, scope.getParameters());
+    cfaNodeToVisibleLocalVariables.put(pNode, scope.getVisibleVariablesInScope());
+    cfaNodeToVisibleParameters.put(pNode, scope.getVisibleParameters());
   }
 
   /**

@@ -41,6 +41,8 @@ class AstCfaRelationBuilder {
       List<IASTTranslationUnit> pAsts,
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters,
       ImmutableSet<AVariableDeclaration> pGlobalVariables) {
     AstLocationClassifier classifier = new AstLocationClassifier(pSourceOriginMapping);
     for (IASTTranslationUnit ast : pAsts) {
@@ -53,6 +55,16 @@ class AstCfaRelationBuilder {
     for (Entry<CFANode, Set<AVariableDeclaration>> entry :
         pCfaNodeToAstLocalVariablesInScope.entrySet()) {
       CFANode node = entry.getKey();
+      if (node.getOutOfScopeVariables().isEmpty()) {
+        // The CFA builder computed them incrementally, which is much faster than below. At a node
+        // with variables out of scope, e.g., at the end of a block, the CFA builder recorded the
+        // sets of the inner block, which do not contain the declarations hidden in that block.
+        localVariablesInInputProgram.put(
+            node, Objects.requireNonNull(pCfaNodeToVisibleLocalVariables.get(node)));
+        parametersInInputProgram.put(
+            node, Objects.requireNonNull(pCfaNodeToVisibleParameters.get(node)));
+        continue;
+      }
       Set<AVariableDeclaration> localVariables = entry.getValue();
       Set<AParameterDeclaration> parameters =
           Objects.requireNonNull(pCfaNodeToAstParametersVariablesInScope.get(node));
