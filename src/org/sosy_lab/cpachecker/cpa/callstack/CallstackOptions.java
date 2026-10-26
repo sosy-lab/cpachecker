@@ -24,6 +24,8 @@ class CallstackOptions {
   private ImmutableSet<String> unsupportedFunctions =
       ImmutableSet.of(
           "pthread_create",
+          "pthread_once",
+          "pthread_barrier_wait",
           "pthread_key_create",
           "_longjmp",
           "longjmp",

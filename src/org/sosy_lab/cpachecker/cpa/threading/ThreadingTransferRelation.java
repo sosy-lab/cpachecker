@@ -186,6 +186,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           VERIFIER_ATOMIC_BEGIN,
           VERIFIER_ATOMIC_END);
 
+  /** Functions whose semantics only an analysis with the ThreadingCPA models. */
+  public static final ImmutableSet<String> FUNCTIONS_REQUIRING_THREADING =
+      ImmutableSet.of(THREAD_START, THREAD_ONCE, THREAD_BARRIER_WAIT);
+
   private final CFA cfa;
   private final LogManagerWithoutDuplicates logger;
   private final CallstackCPA callstackCPA;
