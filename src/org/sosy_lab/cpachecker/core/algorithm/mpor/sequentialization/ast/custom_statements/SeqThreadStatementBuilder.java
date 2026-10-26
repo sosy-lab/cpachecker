@@ -737,10 +737,8 @@ public record SeqThreadStatementBuilder(
     for (CExpression expression : pExpressions) {
       ImmutableSet<CSimpleDeclaration> declarations =
           SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true);
-      // finding no declaration is only possible for void pointer expressions: "(void*)0"
-      if (declarations.isEmpty()) {
-        checkState(MPORUtil.isVoidPointer(expression));
-      } else {
+      // finding no declaration is possible e.g. for "(void*)0" or "2"
+      if (!declarations.isEmpty()) {
         // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
         if (declarations.size() > 1) {
           return true;
