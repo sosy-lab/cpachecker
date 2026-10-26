@@ -15,6 +15,7 @@ public enum SeqThreadStatementType {
   // ATOMIC_BEGIN does not synchronize threads because executing it is not conditional
   ATOMIC_BEGIN(true, false),
   ATOMIC_END(true, false),
+  BARRIER_INIT(true, false),
   COND_SIGNAL(true, false),
   COND_WAIT(true, true),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */

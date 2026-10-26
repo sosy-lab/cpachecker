@@ -371,6 +371,9 @@ public record SeqThreadStatementBuilder(
     PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(functionCall);
 
     return switch (functionType) {
+      case PTHREAD_BARRIER_INIT ->
+          buildBarrierStatement(
+              SeqThreadStatementType.BARRIER_INIT, functionType, pSubstituteEdge, pTargetPc);
       case PTHREAD_COND_SIGNAL ->
           buildCondStatement(
               SeqThreadStatementType.COND_SIGNAL, functionType, pSubstituteEdge, pTargetPc);
@@ -430,6 +433,19 @@ public record SeqThreadStatementBuilder(
     // just add a comment with the function name for better overview in the output program
     CComment commentStatement = new CComment(pFunctionType.name + ";");
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(commentStatement));
+  }
+
+  private SeqThreadStatement buildBarrierStatement(
+      SeqThreadStatementType pStatementType,
+      PthreadFunctionType pFunctionType,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc)
+      throws UnrecognizedCodeException {
+
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
+    return SeqThreadStatement.of(
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pFunctionType, pSubstituteEdge));
   }
 
   public SeqThreadStatement buildCondStatement(

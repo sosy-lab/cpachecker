@@ -75,6 +75,7 @@ public class PthreadFunctionSubstitution {
     }
 
     return switch (pFunctionType) {
+      case PTHREAD_BARRIER_INIT -> buildBarrierInitFunctionStatements(expressions);
       case PTHREAD_COND_SIGNAL ->
           buildCondSignalFunctionStatements(Iterables.getOnlyElement(expressions));
       case PTHREAD_COND_WAIT -> buildCondWaitFunctionStatements(expressions);
@@ -153,6 +154,35 @@ public class PthreadFunctionSubstitution {
     return ImmutableList.of(
         new CVariableDeclarationWrapper(variableDeclaration),
         new CStatementWrapper(incrementOrDecrementStatement));
+  }
+
+  // pthread_barrier_t
+
+  private static CFieldReference buildBarrierFieldReference(CExpression pBarrierExpression) {
+    return new CFieldReference(
+        FileLocation.DUMMY,
+        PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE,
+        PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+        pBarrierExpression,
+        pBarrierExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
+  }
+
+  private static ImmutableList<CCompoundStatementElement> buildBarrierInitFunctionStatements(
+      ImmutableList<CExpression> pExpressions) {
+
+    CExpression barrierExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_BARRIER_INIT.getParameterIndex(
+                PthreadObjectType.PTHREAD_BARRIER_T));
+    CExpression countExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_BARRIER_INIT.getParameterIndex(PthreadObjectType.COUNT));
+
+    CFieldReference barrierFieldReference = buildBarrierFieldReference(barrierExpression);
+    return ImmutableList.of(
+        new CStatementWrapper(
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY, barrierFieldReference, countExpression)));
   }
 
   // pthread_mutex_t

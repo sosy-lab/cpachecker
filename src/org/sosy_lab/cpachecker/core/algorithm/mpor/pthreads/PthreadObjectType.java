@@ -156,14 +156,18 @@ public enum PthreadObjectType {
     private static final String BARRIER_SUBSTITUTION_NAME =
         Sequentialization.MPOR_PREFIX + BARRIER_NAME;
 
+    static final CCompositeTypeMemberDeclaration BARRIER_NUM_WAITERS_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_INT, "NUM_WAITERS");
+
     static final CCompositeTypeMemberDeclaration BARRIER_COUNT_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.LONG_INT, "COUNT");
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_INT, "COUNT");
 
     private static final CCompositeType BARRIER_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.UNION,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, BARRIER_COUNT_MEMBER_DECLARATION),
+            ImmutableList.of(
+                BARRIER_COUNT_MEMBER_DECLARATION, BARRIER_NUM_WAITERS_MEMBER_DECLARATION),
             BARRIER_SUBSTITUTION_NAME,
             BARRIER_SUBSTITUTION_NAME);
 
