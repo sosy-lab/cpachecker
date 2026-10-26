@@ -19,7 +19,8 @@ public enum SeqThreadStatementType {
   BARRIER_WAIT_INCREMENT(true, false),
   BARRIER_WAIT_ASSUMPTION(true, true),
   COND_SIGNAL(true, false),
-  COND_WAIT(true, true),
+  COND_WAIT_UNLOCK(true, false),
+  COND_WAIT_LOCK(true, true),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
   DEFAULT(true, false),
   FUNCTION_EXIT(true, false),

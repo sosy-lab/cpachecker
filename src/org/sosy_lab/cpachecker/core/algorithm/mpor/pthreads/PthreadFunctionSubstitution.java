@@ -161,7 +161,18 @@ public class PthreadFunctionSubstitution {
     return ImmutableList.of(condAssignment);
   }
 
-  public static ImmutableList<CCompoundStatementElement> buildCondWaitFunctionStatements(
+  public static ImmutableList<CCompoundStatementElement> buildCondWaitUnlockFunctionStatements(
+      ImmutableList<CExpression> pExpressions) {
+
+    checkArgument(pExpressions.size() == 2);
+    CExpression mutexExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
+                PthreadObjectType.PTHREAD_MUTEX_T));
+    return buildMutexUnlockFunctionStatements(mutexExpression);
+  }
+
+  public static ImmutableList<CCompoundStatementElement> buildCondWaitLockFunctionStatements(
       ImmutableList<CExpression> pExpressions) {
 
     checkArgument(pExpressions.size() == 2);

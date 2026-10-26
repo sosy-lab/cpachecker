@@ -467,7 +467,10 @@ public record SeqThreadStatementBuilder(
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pStatementType.in(SeqThreadStatementType.COND_SIGNAL, SeqThreadStatementType.COND_WAIT),
+        pStatementType.in(
+            SeqThreadStatementType.COND_SIGNAL,
+            SeqThreadStatementType.COND_WAIT_UNLOCK,
+            SeqThreadStatementType.COND_WAIT_LOCK),
         "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
@@ -603,10 +606,7 @@ public record SeqThreadStatementBuilder(
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pStatementType.in(
-            SeqThreadStatementType.MUTEX_LOCK,
-            SeqThreadStatementType.MUTEX_UNLOCK,
-            SeqThreadStatementType.COND_WAIT),
+        pStatementType.in(SeqThreadStatementType.MUTEX_LOCK, SeqThreadStatementType.MUTEX_UNLOCK),
         "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
@@ -646,28 +646,11 @@ public record SeqThreadStatementBuilder(
     CFunctionCall functionCall =
         PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
 
-    ImmutableList<CExpression> parameterExpressions;
-    if (pStatementType.equals(SeqThreadStatementType.COND_WAIT)
-        && pFunctionType.equals(PthreadFunctionType.PTHREAD_MUTEX_UNLOCK)) {
-      // when calling pthread_mutex_unlock in a COND_WAIT statement, extract the mutex parameter
-      int mutexIndex =
-          PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
-              PthreadObjectType.PTHREAD_MUTEX_T);
-      parameterExpressions =
-          functionCall
-              .getFunctionCallExpression()
-              .getParameterExpressions()
-              .subList(mutexIndex, mutexIndex + 1);
-    } else {
-      parameterExpressions = functionCall.getFunctionCallExpression().getParameterExpressions();
-    }
-
-    ImmutableList<CExpression> expressions;
-    if (isAnyPointer(parameterExpressions)) {
-      expressions = parameterExpressions;
-    } else {
+    ImmutableList<CExpression> expressions =
+        functionCall.getFunctionCallExpression().getParameterExpressions();
+    if (!isAnyPointer(expressions)) {
       ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
-      for (CExpression expression : parameterExpressions) {
+      for (CExpression expression : expressions) {
         if (expression instanceof CUnaryExpression unaryExpression
             && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
           // from unary amper expressions such as "&mutex", only "mutex" is used
@@ -693,7 +676,10 @@ public record SeqThreadStatementBuilder(
       case COND_SIGNAL ->
           PthreadFunctionSubstitution.buildCondSignalFunctionStatements(
               Iterables.getOnlyElement(expressions));
-      case COND_WAIT -> PthreadFunctionSubstitution.buildCondWaitFunctionStatements(expressions);
+      case COND_WAIT_UNLOCK ->
+          PthreadFunctionSubstitution.buildCondWaitUnlockFunctionStatements((expressions));
+      case COND_WAIT_LOCK ->
+          PthreadFunctionSubstitution.buildCondWaitLockFunctionStatements(expressions);
       case MUTEX_LOCK ->
           PthreadFunctionSubstitution.buildMutexLockFunctionStatements(
               Iterables.getOnlyElement(expressions));
