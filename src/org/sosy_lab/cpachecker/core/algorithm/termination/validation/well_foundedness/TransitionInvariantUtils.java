@@ -206,7 +206,7 @@ public class TransitionInvariantUtils {
     for (Map.Entry<String, Formula> entry : prevMapNamesToVars.entrySet()) {
       String prevVarPure =
           removeFunctionFromVarsName(
-              fmgr.extractVariables(fmgr.uninstantiate(entry.getValue())).keySet().stream()
+              fmgr.extractVariableNames(fmgr.uninstantiate(entry.getValue())).stream()
                   .findAny()
                   .orElseThrow());
       String prevVar = entry.getKey();
@@ -217,7 +217,7 @@ public class TransitionInvariantUtils {
         for (Map.Entry<String, Formula> entry2 : currMapNamesToVars.entrySet()) {
           String currVarPure =
               removeFunctionFromVarsName(
-                  fmgr.extractVariables(fmgr.uninstantiate(entry2.getValue())).keySet().stream()
+                  fmgr.extractVariableNames(fmgr.uninstantiate(entry2.getValue())).stream()
                       .findAny()
                       .orElseThrow());
           if (currVarName.equals(currVarPure)) {

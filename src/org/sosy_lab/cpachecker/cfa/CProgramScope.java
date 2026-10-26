@@ -372,6 +372,13 @@ public class CProgramScope implements Scope {
         result = null;
       }
     }
+    if (result == null && pName.contains("::")) {
+      // The qualified names of renamed variables, e.g., main::x__1, are not names of the program
+      result =
+          from(qualifiedDeclarations.values())
+              .firstMatch(declaration -> pName.equals(declaration.getQualifiedName()))
+              .orNull();
+    }
     return result;
   }
 
