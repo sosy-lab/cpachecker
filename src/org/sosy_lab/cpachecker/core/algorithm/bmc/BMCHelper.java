@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -253,6 +254,56 @@ public final class BMCHelper {
 
   public static FluentIterable<AbstractState> filterIterationsBetween(
       Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
+    return filterIterations(
+        pStates,
+        pMinIt,
+        pMaxIt,
+        pLoopHeads,
+        (minIt, maxIt, lowerIt, upperIt) -> minIt <= lowerIt && lowerIt <= maxIt);
+  }
+
+  /**
+   * Filters the states of which some represented path may be in an iteration between the given
+   * bounds. A state can represent paths of different iterations if the analysis merges them (cf.
+   * {@link LoopIterationReportingState}); otherwise, this is the same as {@link
+   * #filterIterationsBetween}. Use it to select the states at which a property is checked.
+   */
+  public static FluentIterable<AbstractState> filterIterationsPossiblyBetween(
+      Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
+    return filterIterations(
+        pStates,
+        pMinIt,
+        pMaxIt,
+        pLoopHeads,
+        (minIt, maxIt, lowerIt, upperIt) -> lowerIt <= maxIt && minIt <= upperIt);
+  }
+
+  /**
+   * Filters the states of which all represented paths are in an iteration between the given bounds.
+   * A state can represent paths of different iterations if the analysis merges them (cf. {@link
+   * LoopIterationReportingState}); otherwise, this is the same as {@link #filterIterationsBetween}.
+   * Use it to select the states at which a property is assumed.
+   */
+  public static FluentIterable<AbstractState> filterIterationsCertainlyBetween(
+      Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
+    return filterIterations(
+        pStates,
+        pMinIt,
+        pMaxIt,
+        pLoopHeads,
+        (minIt, maxIt, lowerIt, upperIt) -> minIt <= lowerIt && upperIt <= maxIt);
+  }
+
+  private interface IterationFilter {
+    boolean accepts(int pMinIt, int pMaxIt, int pLowerIt, int pUpperIt);
+  }
+
+  private static FluentIterable<AbstractState> filterIterations(
+      Iterable<AbstractState> pStates,
+      int pMinIt,
+      int pMaxIt,
+      Set<CFANode> pLoopHeads,
+      IterationFilter pFilter) {
     Objects.requireNonNull(pLoopHeads);
     if (pMinIt > pMaxIt) {
       throw new IllegalArgumentException(
@@ -271,9 +322,16 @@ public final class BMCHelper {
               }
               int minIt = convertIteration(pMinIt, state, pLoopHeads);
               int maxIt = convertIteration(pMaxIt, state, pLoopHeads);
-              int actualIt = ls.getDeepestIteration();
-              return minIt <= actualIt && actualIt <= maxIt;
+              return pFilter.accepts(
+                  minIt, maxIt, ls.getDeepestIteration(), ls.getDeepestIterationUpperBound());
             });
+  }
+
+  /** Returns whether the paths represented by the state may have different iteration counts. */
+  static boolean hasIterationRange(AbstractState pState) {
+    LoopIterationReportingState ls =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    return ls != null && ls.hasIterationRange();
   }
 
   public static FluentIterable<AbstractState> filterIterationsUpTo(
@@ -390,16 +448,16 @@ public final class BMCHelper {
 
   static FluentIterable<AbstractState> filterBmcChecked(
       Iterable<AbstractState> pStates, Set<Object> pCheckedKeys) {
-    return FluentIterable.from(pStates)
-        .filter(
-            pArg0 -> {
-              if (pArg0 == null) {
-                return false;
-              }
-              LoopIterationReportingState ls =
-                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
-              return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
-            });
+    return FluentIterable.from(pStates).filter(state -> isBmcChecked(state, pCheckedKeys));
+  }
+
+  static boolean isBmcChecked(@Nullable AbstractState pState, Set<Object> pCheckedKeys) {
+    if (pState == null) {
+      return false;
+    }
+    LoopIterationReportingState ls =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
   }
 
   /**
@@ -430,7 +488,7 @@ public final class BMCHelper {
       LoopIterationReportingState checkedState = (LoopIterationReportingState) key;
       boolean withinCheckedRange = true;
       for (Loop loop : pLoops) {
-        if (loopState.getIteration(loop) > checkedState.getIteration(loop)) {
+        if (loopState.getIterationUpperBound(loop) > checkedState.getIteration(loop)) {
           withinCheckedRange = false;
           break;
         }

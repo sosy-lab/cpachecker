@@ -150,12 +150,20 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    int k = ((LoopBoundState) state).getDeepestIteration();
-    if ((k < startAtBound || (!checkOnlyAtBounds.isEmpty() && !checkOnlyAtBounds.contains(k)))
+    if (!checksTargetsInSomeIteration((LoopBoundState) state)
         && Iterators.any(otherStates.iterator(), AbstractStates::isTargetState)) {
       return ImmutableList.of();
     } else {
       return Collections.singleton(state);
     }
+  }
+
+  private boolean checksTargetsInSomeIteration(LoopBoundState pState) {
+    for (int k = pState.getDeepestIteration(); k <= pState.getDeepestIterationUpperBound(); k++) {
+      if (k >= startAtBound && (checkOnlyAtBounds.isEmpty() || checkOnlyAtBounds.contains(k))) {
+        return true;
+      }
+    }
+    return false;
   }
 }

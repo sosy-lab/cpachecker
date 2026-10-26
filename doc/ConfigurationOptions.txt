@@ -1093,14 +1093,13 @@ bmc.propagateInvGenInterrupts = false
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
 
-# Configuration file with options for an additional, relaxed induction step
-# case. Its options are added on top of the configuration of the analysis.
-# The relaxed step case checks the safety property first, so that a bound k
-# for which the property is not k-inductive is ruled out quickly. Its options
-# may make it drop paths, for example cpa.loopbound.domain=DEEPEST_ITERATION,
-# so a proof by it is only accepted after the step case built from the
-# configuration of the analysis succeeds for the same k as well. Candidate
-# invariants other than the safety property are only checked by the latter.
+# Configuration file with options that apply to the induction step case only.
+# Its options are added on top of the configuration of the analysis.
+# This allows the step case to merge states that the base case keeps apart,
+# e.g., with cpa.loopbound.domain=RANGE, which only the step case supports.
+# The options must not make the step case drop paths: a path that is missing
+# in the step case can hide a counterexample to induction and lead to a wrong
+# proof.
 bmc.stepCaseConfig = no default value
 
 # Use generalized counterexamples to induction as candidate invariants.
@@ -2410,17 +2409,15 @@ cpa.loopbound.cyclicStopModulus = -1
 # Which abstract domain to use for the loop-bound CPA.
 # FLAT (the default) considers two states comparable only if their whole
 # per-loop iteration vectors are equal.
-# DEEPEST_ITERATION considers them comparable as soon as their deepest loop
-# iteration is equal, which lets states that merely visited a different set
-# of loops be merged and cover each other. A merged state keeps the per-loop
-# counts of only one of the merged states, so the iteration numbers of the
-# paths of the other one become wrong after further loop iterations, and
-# paths are numbered into the wrong iteration or cut off too early. This is
-# NOT sound for BMC and k-induction; it is only used for the relaxed
-# induction step case (bmc.stepCaseConfig), whose proofs are confirmed by the
-# regular step case.
+# RANGE merges states with different per-loop iteration counts and keeps, for
+# each loop, the smallest and the largest count of the merged states. A
+# merged state is cut off by the loop bound only once all of its paths exceed
+# it. Only the induction step case of k-induction takes the ranges into
+# account, so this domain is only meant for bmc.stepCaseConfig. It requires
+# trackStack=false and neither cyclicStopModulus nor
+# loopIterationsBeforeAbstraction.
 cpa.loopbound.domain = "FLAT"
-  allowed values: [FLAT, DEEPEST_ITERATION]
+  allowed values: [FLAT, RANGE]
 
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.

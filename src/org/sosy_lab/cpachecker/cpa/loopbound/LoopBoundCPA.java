@@ -25,10 +25,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -63,19 +65,17 @@ public class LoopBoundCPA extends AbstractCPA
       secure = true,
       name = "domain",
       toUppercase = true,
-      values = {"FLAT", "DEEPEST_ITERATION"},
+      values = {"FLAT", "RANGE"},
       description =
           "Which abstract domain to use for the loop-bound CPA.\n"
               + "FLAT (the default) considers two states comparable only if their whole per-loop"
               + " iteration vectors are equal.\n"
-              + "DEEPEST_ITERATION considers them comparable as soon as their deepest loop"
-              + " iteration is equal, which lets states that merely visited a different set of"
-              + " loops be merged and cover each other. A merged state keeps the per-loop counts"
-              + " of only one of the merged states, so the iteration numbers of the paths of the"
-              + " other one become wrong after further loop iterations, and paths are numbered"
-              + " into the wrong iteration or cut off too early. This is NOT sound for BMC and"
-              + " k-induction; it is only used for the relaxed induction step case"
-              + " (bmc.stepCaseConfig), whose proofs are confirmed by the regular step case.")
+              + "RANGE merges states with different per-loop iteration counts and keeps, for each"
+              + " loop, the smallest and the largest count of the merged states. A merged state is"
+              + " cut off by the loop bound only once all of its paths exceed it. Only the"
+              + " induction step case of k-induction takes the ranges into account, so this"
+              + " domain is only meant for bmc.stepCaseConfig. It requires trackStack=false and"
+              + " neither cyclicStopModulus nor loopIterationsBeforeAbstraction.")
   private String domainType = "FLAT";
 
   public static CPAFactory factory() {
@@ -92,15 +92,32 @@ public class LoopBoundCPA extends AbstractCPA
     pConfig.inject(this);
     loopStructure = pCFA.getLoopStructure().orElseThrow();
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
+    if (domainType.equals("RANGE")
+        && (trackStack
+            || cyclicStopModulus > 0
+            || precisionAdjustment.getLoopIterationsBeforeAbstraction() != Integer.MAX_VALUE)) {
+      throw new InvalidConfigurationException(
+          "cpa.loopbound.domain=RANGE does not support cpa.loopbound.trackStack,"
+              + " cpa.loopbound.cyclicStopModulus, or"
+              + " cpa.loopbound.loopIterationsBeforeAbstraction");
+    }
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
     return switch (domainType) {
       case "FLAT" -> super.getAbstractDomain();
-      case "DEEPEST_ITERATION" -> LoopBoundDeepestIterationDomain.INSTANCE;
+      case "RANGE" -> LoopBoundRangeDomain.INSTANCE;
       default -> throw new AssertionError("Unknown domain type for loop-bound CPA: " + domainType);
     };
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    if (domainType.equals("RANGE")) {
+      return new MergeJoinOperator(getAbstractDomain());
+    }
+    return super.getMergeOperator();
   }
 
   @Override

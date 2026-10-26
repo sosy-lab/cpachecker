@@ -9,10 +9,9 @@
 // The error is reachable: the innermost loop can increment a past 10.
 //
 // k-induction reported TRUE for this program at k = 2 when its step case merged
-// states with different per-loop iteration counts (cpa.loopbound.domain =
-// DEEPEST_ITERATION, cf. #1694): the merged state keeps the counts of only one
-// of the merged states, so the paths of the other one get wrong iteration
-// numbers and counterexamples to induction get lost. For small k, they all
+// states with different per-loop iteration counts and kept the counts of only
+// one of the merged states (cf. #1694): the paths of the other one got wrong
+// iteration numbers and counterexamples to induction got lost. For small k, they all
 // start at an inner loop head with a > 10, because a is at most 5 after the
 // reset at the start of the outer loop.
 

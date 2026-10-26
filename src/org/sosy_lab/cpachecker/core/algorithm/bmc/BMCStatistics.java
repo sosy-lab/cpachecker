@@ -31,8 +31,6 @@ public class BMCStatistics implements Statistics {
   final Timer inductionPreparation = new Timer();
   final Timer inductionUnrolling = new Timer();
   final Timer inductionCheck = new Timer();
-  int relaxedStepCaseProofs = 0;
-  int unconfirmedRelaxedStepCaseProofs = 0;
 
   // IMC/ISMC/DAR operations
   final Timer interpolationPreparation = new Timer();
@@ -81,11 +79,6 @@ public class BMCStatistics implements Statistics {
     }
     if (inductionCheck.getNumberOfIntervals() > 0) {
       out.println("Time for induction check:                        " + inductionCheck);
-    }
-    if (relaxedStepCaseProofs > 0) {
-      out.println("Number of relaxed step-case proofs:              " + relaxedStepCaseProofs);
-      out.println(
-          "  of which not confirmed:                        " + unconfirmedRelaxedStepCaseProofs);
     }
     if (fixedPointComputation.getNumberOfIntervals() > 0) {
       out.println("Time for collecting formulas for interpolation:  " + interpolationPreparation);
