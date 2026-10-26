@@ -187,6 +187,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   private final ShutdownNotifier shutdownNotifier;
   private final OcStatistics statistics = new OcStatistics();
 
+  OrderingConsistencyCPA getOcCpa() {
+    return ocCpa;
+  }
+
+  boolean isDataRaceTarget() {
+    return targetProperty == TargetProperty.DATA_RACE;
+  }
+
   public OrderingConsistencyAlgorithm(
       Algorithm pInnerAlgorithm,
       ConfigurableProgramAnalysis pCpa,
@@ -682,7 +690,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static Optional<AExpressionStatement> assumptionFor(
+  static Optional<AExpressionStatement> assumptionFor(
       MemoryEvent pEvent, CFAEdge pEdge, Model pModel) {
     if (pEvent.variable() == null
         || !(pEdge instanceof CStatementEdge statementEdge)
@@ -710,7 +718,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   }
 
   /** The thread instance a CREATE event starts, or {@link MemoryEvent#NO_INSTANCE} otherwise. */
-  private static int createdInstanceOf(MemoryEvent pEvent) {
+  static int createdInstanceOf(MemoryEvent pEvent) {
     return pEvent.kind() == EventKind.CREATE ? pEvent.otherInstanceId() : MemoryEvent.NO_INSTANCE;
   }
 
@@ -728,156 +736,8 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   private void attachCounterexample(
       ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
       throws SolverException {
-    try (Model model = pProver.getModel()) {
-      List<CFAEdge> edges = new ArrayList<>();
-      // the thread instance that executes each edge, and the instance its step creates (if any),
-      // so that the violation witness can label every waypoint with the thread it belongs to
-      List<Integer> edgeInstances = new ArrayList<>();
-      List<Integer> edgeCreatedInstances = new ArrayList<>();
-      List<List<AExpressionStatement>> edgeAssumptions = new ArrayList<>();
-      // the event that ends the counterexample path (the reached error for unreach-call, the later
-      // of the two racing accesses for no-data-race); its reached state becomes the CEX target
-      MemoryEvent terminalEvent = terminalViolationEvent(model, pEncoder);
-      if (terminalEvent == null) {
-        return;
-      }
-      CFAEdge previousEdge = null;
-      Map<Integer, Integer> chainToEdgeIndex = new HashMap<>();
-      // after the earlier of two racing accesses only the thread of the later one runs, so that the
-      // earlier access is the last step of its thread on the path
-      MemoryEvent earlierAccess = null;
-      if (targetProperty == TargetProperty.DATA_RACE) {
-        OcEncoder.RacePair race = findRace(model, pEncoder);
-        earlierAccess = race.access1().id() == terminalEvent.id() ? race.access2() : race.access1();
-      }
-      boolean earlierAccessPassed = false;
-      for (MemoryEvent event : orderedViolationEvents(model, pEncoder)) {
-        if (earlierAccessPassed
-            && earlierAccess != null
-            && event.instanceId() != terminalEvent.instanceId()
-            && ocCpa.getRegistry().chainTerminalEventId(event.id())
-                != ocCpa.getRegistry().chainTerminalEventId(earlierAccess.id())) {
-          continue;
-        }
-        if (earlierAccess != null && event.id() == earlierAccess.id()) {
-          earlierAccessPassed = true;
-        }
-        if (event.edge() != null) {
-          CFAEdge edge = displayEdge(event, model);
-          // collapse events of one execution of an edge, which other threads' events may separate:
-          // one statement can produce several events (e.g. a[k]=5 is a read of k and a write of
-          // a[k]), and a shared branch-condition read can be tagged on several reads of the same
-          // assume edge
-          int chain = ocCpa.getRegistry().chainTerminalEventId(event.id());
-          Integer index = chainToEdgeIndex.get(chain);
-          if (index == null
-              && edge.equals(previousEdge)
-              && event.instanceId() == edgeInstances.getLast()
-              && !EnumSet.of(EventKind.READ, EventKind.WRITE, EventKind.CREATE)
-                  .contains(event.kind())) {
-            index = edges.size() - 1;
-          }
-          if (index == null || event.id() == terminalEvent.id()) {
-            edges.add(edge);
-            edgeInstances.add(event.instanceId());
-            edgeCreatedInstances.add(createdInstanceOf(event));
-            edgeAssumptions.add(new ArrayList<>());
-            previousEdge = edge;
-            index = edges.size() - 1;
-          } else if (edgeCreatedInstances.get(index) == MemoryEvent.NO_INSTANCE) {
-            // one statement can produce several events; whichever of them is the create is the
-            // one that names the new thread
-            edgeCreatedInstances.set(index, createdInstanceOf(event));
-          }
-          chainToEdgeIndex.put(chain, index);
-          assumptionFor(event, edge, model).ifPresent(edgeAssumptions.get(index)::add);
-        }
-        if (event.id() == terminalEvent.id()) {
-          break; // the execution stops at the violating event
-        }
-      }
-      if (targetProperty == TargetProperty.DATA_RACE) {
-        // the exploration marks every syntactically reachable reach_error state as a target; those
-        // are irrelevant to the data-race property and would otherwise leak into the verdict. Drop
-        // them here, then mark the actual racing state below as the sole target.
-        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
-      }
-      // the reached state that carries the terminal event; it must be the last state of the path so
-      // CounterexampleInfo accepts it (getTargetState().isTarget()). The terminal event need not
-      // itself be a state's lastEventIds: several accesses chained on one edge (e.g. both operands
-      // of `a != b`) share one successor state, and only the last of the chain is recorded there
-      // (see OcExplorationRegistry#chainTerminalEventId).
-      int terminalChainId = ocCpa.getRegistry().chainTerminalEventId(terminalEvent.id());
-      ARGState target = null;
-      for (AbstractState reached : pReachedSet) {
-        OrderingConsistencyState ocState =
-            AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
-        if (reached instanceof ARGState argState
-            && ocState != null
-            && ocState.getLastEventIds().contains(terminalChainId)) {
-          if (targetProperty == TargetProperty.DATA_RACE) {
-            // no exploration-time target exists for a race; mark this reached state so the verdict
-            // is FALSE (the reached set now contains a genuine target with a proper location)
-            ocState.markRaceTarget();
-          }
-          target = argState;
-          break;
-        }
-      }
-      if (target == null || edges.isEmpty()) {
-        return;
-      }
-      // a fresh linear chain of location states ending at the real target. Each state carries the
-      // successor node of its incoming edge, so the full-path iterator (which advances a state
-      // whenever the current edge's successor is that state's location) stays in lockstep with the
-      // edge list — even across thread-jumps, where the edges are not CFA-connected. The real
-      // target
-      // already sits at the terminal edge's successor, matching the last edge. It is only appended
-      // to
-      // the state list, never parent-linked, so the reached-set ARG is left untouched.
-      List<ARGState> states = new ArrayList<>();
-      ARGState previous =
-          new ARGState(
-              ocCpa.counterexampleStateFor(
-                  edges.getFirst().getPredecessor(),
-                  edgeInstances.getFirst(),
-                  MemoryEvent.NO_INSTANCE),
-              null);
-      states.add(previous);
-      for (int i = 1; i < edges.size(); i++) {
-        // the state after an edge carries that edge's thread, which is what the witness export
-        // consults for the waypoint it builds from the edge
-        ARGState next =
-            new ARGState(
-                ocCpa.counterexampleStateFor(
-                    edges.get(i - 1).getSuccessor(),
-                    edgeInstances.get(i - 1),
-                    edgeCreatedInstances.get(i - 1)),
-                previous);
-        states.add(next);
-        previous = next;
-      }
-      states.add(target);
-      ARGPath path = new ARGPath(states, ImmutableList.copyOf(edges));
-      ImmutableList.Builder<CFAEdgeWithAssumptions> assumptions = ImmutableList.builder();
-      for (int i = 0; i < edges.size(); i++) {
-        assumptions.add(
-            new CFAEdgeWithAssumptions(
-                edges.get(i), ImmutableList.copyOf(edgeAssumptions.get(i)), ""));
-      }
-      target.addCounterexampleInformation(
-          CounterexampleInfo.feasiblePrecise(
-              path, CFAPathWithAssumptions.from(assumptions.build())));
-      // every syntactically reachable error state is a target, and the exporter would derive a
-      // second counterexample from one, starting at its thread root and naming no thread instances
-      for (AbstractState reached : pReachedSet) {
-        OrderingConsistencyState other =
-            AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
-        if (other != null && reached != target) {
-          other.clearTarget();
-        }
-      }
-    }
+    OrderingConsistencyCounterexampleExtractor.attachCounterexample(
+        this, pReachedSet, pProver, pEncoder);
   }
 
   /**
@@ -885,7 +745,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * later (higher-clock) of the two racing accesses for no-data-race. Returns null if none is found
    * (the counterexample is then skipped, but the verdict already stands).
    */
-  private MemoryEvent terminalViolationEvent(Model pModel, OcEncoder pEncoder) {
+  MemoryEvent terminalViolationEvent(Model pModel, OcEncoder pEncoder) {
     return switch (targetProperty) {
       case UNREACH_CALL -> {
         MemoryEvent errorEvent = null;
@@ -916,7 +776,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * A conflicting cross-instance access pair that is enabled and at adjacent clock values in the
    * model — i.e. the concrete data race the solver found — or null if none matches.
    */
-  private OcEncoder.RacePair findRace(Model pModel, OcEncoder pEncoder) {
+  OcEncoder.RacePair findRace(Model pModel, OcEncoder pEncoder) {
     var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
     for (OcEncoder.RacePair pair : pEncoder.getRacePairs()) {
       if (!Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(pair.access1())))
@@ -945,7 +805,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * is a topological order of the happens-before relation (program order, thread create/join, and
    * the chosen read-from edges), which is acyclic for a consistent violation.
    */
-  private List<MemoryEvent> orderedViolationEvents(Model pModel, OcEncoder pEncoder) {
+  List<MemoryEvent> orderedViolationEvents(Model pModel, OcEncoder pEncoder) {
     List<MemoryEvent> enabled = new ArrayList<>();
     for (MemoryEvent event : pEncoder.getEvents()) {
       if (Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(event)))) {
@@ -1104,7 +964,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * recovered by evaluating the branch condition in the model, so the counterexample shows the real
    * branch.
    */
-  private CFAEdge displayEdge(MemoryEvent event, Model model) {
+  CFAEdge displayEdge(MemoryEvent event, Model model) {
     Optional<OcExplorationRegistry.AssumeBranch> branch =
         ocCpa.getRegistry().getAssumeBranch(event.id());
     if (branch.isPresent()) {
