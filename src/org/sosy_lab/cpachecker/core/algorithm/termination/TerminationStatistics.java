@@ -164,7 +164,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       secure = true,
       name = "exportSupportingInvariantsInWitness",
       description =
-          "export supporting invariants in the witness. Only the supporting invariants that are"
+          "Export supporting invariants in the witness. Only the supporting invariants that are"
               + " proven to be invariants of the program are exported.")
   private boolean exportSupportingInvariantsInWitness = true;
 
@@ -172,7 +172,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       secure = true,
       name = "supportingInvariantsCheckTimeLimit",
       description =
-          "wall-time limit for checking whether the supporting invariants are invariants of the"
+          "Wall-time limit for checking whether the supporting invariants are invariants of the"
               + " program before they are exported into the witness. The limit is for all"
               + " supporting invariants together (0 means no limit).")
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)

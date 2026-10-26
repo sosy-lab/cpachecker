@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownManager;
@@ -33,9 +32,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -77,19 +74,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       secure = true,
       description =
           "configuration of the termination analysis that proves the well-foundedness of the"
-              + " transition invariants by proving the termination of an overapproximating program")
+              + " transition invariants by proving the termination of an overapproximating"
+              + " program, its resource limits apply to each transition invariant")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path wellFoundednessConfig =
       Classes.getCodeLocation(ImplicitRankingChecker.class)
-          .resolveSibling("config/terminationToSafety.properties");
-
-  @Option(
-      secure = true,
-      description =
-          "wall-time limit for proving the well-foundedness of one transition invariant (0 means"
-              + " no limit)")
-  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
-  private TimeSpan wellFoundednessCheckTimeLimit = TimeSpan.ofSeconds(60);
+          .resolveSibling(
+              "config/components/correctnessWitnessValidation-termination--wellFoundedness.properties");
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -177,17 +168,18 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       CFA overapproximatingCFA = cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
       CFANode mainEntryNode = overapproximatingCFA.getMainFunction();
 
-      // The termination analysis may not terminate, so it gets its own time limit
+      // The termination analysis may not terminate, so it gets the limits of its configuration
+      Configuration checkConfig =
+          Configuration.builder().loadFromFile(wellFoundednessConfig).build();
       ShutdownManager checkShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker limitChecker =
-          ResourceLimitChecker.createWallTimeLimitChecker(
-              checkShutdownManager, wellFoundednessCheckTimeLimit);
+          ResourceLimitChecker.fromConfiguration(checkConfig, logger, checkShutdownManager);
       limitChecker.start();
       try {
         // CPA
         CoreComponentsFactory coreComponents =
             new CoreComponentsFactory(
-                Configuration.builder().loadFromFile(wellFoundednessConfig).build(),
+                checkConfig,
                 logger,
                 checkShutdownManager.getNotifier(),
                 AggregatedReachedSets.empty(),
@@ -215,9 +207,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
           return false;
         }
       } catch (InterruptedException e) {
-        // Only the time limit of the check stops the check without stopping the validation
+        // Only the limits of the check stop the check without stopping the validation
         shutdownNotifier.shutdownIfNecessary();
-        logger.log(Level.FINE, "Proving the well-foundedness reached the time limit.");
+        logger.log(Level.FINE, "Proving the well-foundedness reached a resource limit.");
         return false;
       } finally {
         limitChecker.cancel();

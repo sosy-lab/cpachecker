@@ -5841,14 +5841,11 @@ termination.validation.checkWithInfiniteSpace = false
 # well-founded candidate is a transition invariant, i.e., R^+ => T
 termination.validation.maxInductionDepth = 5
 
-# wall-time limit for proving the well-foundedness of one transition
-# invariant (0 means no limit)
-termination.validation.wellFoundednessCheckTimeLimit = 60s
-
 # configuration of the termination analysis that proves the well-foundedness
 # of the transition invariants by proving the termination of an
-# overapproximating program
-termination.validation.wellFoundednessConfig = "config/terminationToSafety.properties"
+# overapproximating program, its resource limits apply to each transition
+# invariant
+termination.validation.wellFoundednessConfig = "config/components/correctnessWitnessValidation-termination--wellFoundedness.properties"
 
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
