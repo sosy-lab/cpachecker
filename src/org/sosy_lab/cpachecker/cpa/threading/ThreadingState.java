@@ -90,6 +90,12 @@ public class ThreadingState
   // String :: identifier of a mutex attribute of type PTHREAD_MUTEX_RECURSIVE
   private final ImmutableSet<String> recursiveMutexAttributes;
 
+  // String :: thread-id of a thread that runs the init routine of pthread_once  -->  OnceRun
+  private final PersistentMap<String, OnceRun> onceRunners;
+
+  // String :: identifier of a pthread_once_t whose init routine has finished
+  private final ImmutableSet<String> finishedOnces;
+
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
    * should only be set in {@link ThreadingTransferRelation#getAbstractSuccessorsForEdge} and must
@@ -127,6 +133,8 @@ public class ThreadingState
     locks = PathCopyingPersistentTreeMap.of();
     recursiveMutexes = PathCopyingPersistentTreeMap.of();
     recursiveMutexAttributes = ImmutableSet.of();
+    onceRunners = PathCopyingPersistentTreeMap.of();
+    finishedOnces = ImmutableSet.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -137,6 +145,8 @@ public class ThreadingState
       PersistentMap<String, String> pLocks,
       PersistentMap<String, Integer> pRecursiveMutexes,
       ImmutableSet<String> pRecursiveMutexAttributes,
+      PersistentMap<String, OnceRun> pOnceRunners,
+      ImmutableSet<String> pFinishedOnces,
       String pActiveThread,
       FunctionCallEdge entryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness) {
@@ -144,6 +154,8 @@ public class ThreadingState
     locks = pLocks;
     recursiveMutexes = pRecursiveMutexes;
     recursiveMutexAttributes = pRecursiveMutexAttributes;
+    onceRunners = pOnceRunners;
+    finishedOnces = pFinishedOnces;
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
@@ -155,6 +167,8 @@ public class ThreadingState
         locks,
         recursiveMutexes,
         recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
         activeThread,
         entryFunction,
         threadIdsForWitness);
@@ -167,6 +181,8 @@ public class ThreadingState
         pLocks,
         pRecursiveMutexes,
         recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
         activeThread,
         entryFunction,
         threadIdsForWitness);
@@ -179,6 +195,22 @@ public class ThreadingState
         locks,
         recursiveMutexes,
         pRecursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
+  }
+
+  private ThreadingState withOnces(
+      PersistentMap<String, OnceRun> pOnceRunners, ImmutableSet<String> pFinishedOnces) {
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        pOnceRunners,
+        pFinishedOnces,
         activeThread,
         entryFunction,
         threadIdsForWitness);
@@ -191,6 +223,8 @@ public class ThreadingState
         locks,
         recursiveMutexes,
         recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
         activeThread,
         entryFunction,
         pThreadIdsForWitness);
@@ -210,10 +244,18 @@ public class ThreadingState
         threads.putAndCopy(id, new ThreadState(loc, stack, threads.get(id).getNum())));
   }
 
+  /** Removes the thread. If it ran the init routine of a pthread_once, the routine is finished. */
   public ThreadingState removeThreadAndCopy(String id) {
     Preconditions.checkNotNull(id);
     checkState(threads.containsKey(id), "leaving non-existing thread: %s", id);
-    return withThreads(threads.removeAndCopy(id));
+    ThreadingState result = withThreads(threads.removeAndCopy(id));
+    OnceRun onceRun = onceRunners.get(id);
+    if (onceRun == null) {
+      return result;
+    }
+    return result.withOnces(
+        onceRunners.removeAndCopy(id),
+        ImmutableSet.<String>builder().addAll(finishedOnces).add(onceRun.onceId()).build());
   }
 
   public Set<String> getThreadIds() {
@@ -320,6 +362,34 @@ public class ThreadingState
                 Sets.difference(recursiveMutexAttributes, ImmutableSet.of(attributeId))));
   }
 
+  /** The thread runner runs the init routine of the pthread_once_t onceId for the thread caller. */
+  public ThreadingState startOnceAndCopy(String runner, String onceId, String caller) {
+    checkArgument(threads.containsKey(runner), "unknown runner thread: %s", runner);
+    return withOnces(onceRunners.putAndCopy(runner, new OnceRun(onceId, caller)), finishedOnces);
+  }
+
+  public boolean isOnceFinished(String onceId) {
+    return finishedOnces.contains(onceId);
+  }
+
+  public boolean isOnceRunning(String onceId) {
+    return onceRunners.values().stream().anyMatch(run -> run.onceId().equals(onceId));
+  }
+
+  /** Whether the thread waits in pthread_once until the init routine has finished. */
+  public boolean isWaitingForOnce(String threadId) {
+    return onceRunners.values().stream().anyMatch(run -> run.caller().equals(threadId));
+  }
+
+  /**
+   * Returns the thread that executes the code of the given thread in the program. For a thread that
+   * runs the init routine of pthread_once, this is the thread that called pthread_once.
+   */
+  public String getProgramThread(String threadId) {
+    OnceRun onceRun = onceRunners.get(threadId);
+    return onceRun == null ? threadId : getProgramThread(onceRun.caller());
+  }
+
   /** returns whether any of the threads has the lock */
   public boolean hasLock(String lockId) {
     return locks.containsKey(lockId); // TODO threadId needed?
@@ -354,6 +424,12 @@ public class ThreadingState
             : ("\n and recursive mutexes={"
                 + Joiner.on(", ").withKeyValueSeparator("=").join(recursiveMutexes)
                 + "}"))
+        + (onceRunners.isEmpty() && finishedOnces.isEmpty()
+            ? ""
+            : ("\n and once runners={"
+                + Joiner.on(", ").withKeyValueSeparator("=").join(onceRunners)
+                + "}, finished onces="
+                + finishedOnces))
         + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
         + " \n"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadIdsForWitness)
@@ -367,6 +443,8 @@ public class ThreadingState
         && locks.equals(ts.locks)
         && recursiveMutexes.equals(ts.recursiveMutexes)
         && recursiveMutexAttributes.equals(ts.recursiveMutexAttributes)
+        && onceRunners.equals(ts.onceRunners)
+        && finishedOnces.equals(ts.finishedOnces)
         && Objects.equals(activeThread, ts.activeThread)
         && threadIdsForWitness.equals(ts.threadIdsForWitness);
   }
@@ -378,6 +456,8 @@ public class ThreadingState
         locks,
         recursiveMutexes,
         recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
         activeThread,
         threadIdsForWitness);
   }
@@ -459,7 +539,8 @@ public class ThreadingState
     // in which a witness automaton evaluates its transition guards.
     checkState(
         activeThread != null, "Query '%s' is only valid while an edge is handled.", pProperty);
-    return Objects.equals(getThreadIdForWitness(activeThread), expectedWitnessId);
+    // the witness names the caller of pthread_once for the steps of the init routine
+    return Objects.equals(getThreadIdForWitness(getProgramThread(activeThread)), expectedWitnessId);
   }
 
   /**
@@ -532,6 +613,9 @@ public class ThreadingState
     return false;
   }
 
+  /** The init routine of the pthread_once_t onceId, which the thread caller waits for. */
+  record OnceRun(String onceId, String caller) {}
+
   /** A ThreadState describes the state of a single thread. */
   private static class ThreadState {
 
@@ -588,6 +672,8 @@ public class ThreadingState
         locks,
         recursiveMutexes,
         recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
         pActiveThread,
         entryFunction,
         threadIdsForWitness);
@@ -604,6 +690,8 @@ public class ThreadingState
         locks,
         recursiveMutexes,
         recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
         activeThread,
         pEntryFunction,
         threadIdsForWitness);

@@ -8,7 +8,7 @@ SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-This directory contains concurrent C programs with at least one call to `pthread_create`.
+This directory contains C programs with at least one call to `pthread_create` or `pthread_once`.
 
 All files except
 
