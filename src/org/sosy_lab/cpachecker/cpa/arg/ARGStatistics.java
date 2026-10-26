@@ -287,7 +287,11 @@ public class ARGStatistics implements Statistics {
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
       argToWitnessWriter =
           new ARGToYAMLWitnessExport(
-              config, pCFA, pSpecification, pLogger, new RootExplorationArgStateCollector());
+              config,
+              pCFA,
+              pSpecification,
+              pLogger,
+              new RootExplorationArgStateCollector(pCFA.getMetadata().getCopyOrigins()));
     } else {
       argToWitnessWriter = null;
     }

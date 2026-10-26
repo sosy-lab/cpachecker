@@ -17,6 +17,7 @@ import com.google.common.graph.Traverser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -29,6 +30,42 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /** Traverses the ARG from the given root node to find all relevant ARG states for Witnesses */
 public class RootExplorationArgStateCollector implements RelevantArgStatesCollector {
+
+  private final CfaCopyOrigins copyOrigins;
+
+  /** A collector for a CFA whose nodes are all nodes of the program. */
+  public RootExplorationArgStateCollector() {
+    this(new CfaCopyOrigins());
+  }
+
+  /**
+   * A collector that uses the given origins to find out which node of the program a node of the CFA
+   * stands for. A post-processing may have copied a node, for example when it unrolled a loop, and
+   * the states of all copies of a node belong to the one node that they stand for: an invariant
+   * there has to hold whenever the program is there, not only in one of the copies.
+   */
+  public RootExplorationArgStateCollector(CfaCopyOrigins pCopyOrigins) {
+    copyOrigins = pCopyOrigins;
+  }
+
+  private CFANode programNodeOf(CFANode pNode) {
+    return copyOrigins.originalOf(pNode);
+  }
+
+  /**
+   * The node of the program that the given node stands for, which is of the same kind: a copy is
+   * built as the kind of node it is a copy of.
+   */
+  private <T extends CFANode> T programNodeOf(T pNode, Class<T> pKind) {
+    CFANode programNode = programNodeOf(pNode);
+    Verify.verify(
+        pKind.isInstance(programNode),
+        "%s is a copy of %s, which is not a %s",
+        pNode,
+        programNode,
+        pKind.getSimpleName());
+    return pKind.cast(programNode);
+  }
 
   @Override
   public CollectedARGStates getRelevantStates(ARGState pRootState) {
@@ -62,15 +99,21 @@ public class RootExplorationArgStateCollector implements RelevantArgStatesCollec
         for (LocationState locationState :
             AbstractStates.asIterable(state).filter(LocationState.class)) {
           CFANode node = locationState.getLocationNode();
+          // A copy of a loop head is not a loop head itself, so what the node stands for decides
+          // which kind of invariant belongs here, and it is also the key under which the states of
+          // all copies are collected.
+          CFANode programNode = programNodeOf(node);
           FluentIterable<CFAEdge> leavingEdges = node.getLeavingEdges();
-          if (node.isLoopStart()) {
-            collectedStates.loopInvariants().put(node, state);
+          if (programNode.isLoopStart()) {
+            collectedStates.loopInvariants().put(programNode, state);
           } else if (leavingEdges.size() == 1
               && leavingEdges.anyMatch(FunctionCallEdge.class::isInstance)) {
-            collectedStates.functionCallInvariants().put(node, state);
+            collectedStates.functionCallInvariants().put(programNode, state);
           } else if (node instanceof FunctionEntryNode functionEntryNode) {
             functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), state);
-            collectedStates.functionContractRequires().put(functionEntryNode, state);
+            collectedStates
+                .functionContractRequires()
+                .put(programNodeOf(functionEntryNode, FunctionEntryNode.class), state);
           } else if (node instanceof FunctionExitNode functionExitNode) {
             List<ARGState> functionEntryNodes =
                 functionEntryStatesCallStack.get(node.getFunction());
@@ -78,7 +121,7 @@ public class RootExplorationArgStateCollector implements RelevantArgStatesCollec
             collectedStates
                 .functionContractEnsures()
                 .put(
-                    functionExitNode,
+                    programNodeOf(functionExitNode, FunctionExitNode.class),
                     new FunctionEntryExitPair(functionEntryNodes.removeLast(), state));
           }
 
