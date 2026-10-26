@@ -238,7 +238,13 @@ public class InvariantExchangeFormatTransformer {
     String functionName =
         Objects.requireNonNullElse(
             pInvariantEntry.getLocation().getFunction(), locationNode.getFunctionName());
-    Scope scope = new CProgramScope(cfa, logger).withFunctionScope(functionName);
+    // As in the invariant, a name refers to the variable in scope, e.g., x to x__1
+    CProgramScope programScope = new CProgramScope(cfa, logger);
+    Scope scope =
+        variablesInScope(pInvariantEntry)
+            .map(programScope::withVariablesInScope)
+            .orElse(programScope)
+            .withFunctionScope(functionName);
     Set<String> alreadyDeclaredVariables = new HashSet<>();
 
     while (matcher.find()) {
