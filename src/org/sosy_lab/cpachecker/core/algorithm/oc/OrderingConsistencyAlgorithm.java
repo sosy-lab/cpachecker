@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.oc.EventKind;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
@@ -196,6 +197,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       Specification pSpecification)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    if (new CEXExportOptions(pConfig).hasCfaPathDependentFormats()) {
+      throw new InvalidConfigurationException(
+          "the ordering-consistency analysis creates synthetic interleaving counterexamples that"
+              + " cannot be exported as source, GraphML, or harness files; set"
+              + " counterexample.export.exportAsSource=false,"
+              + " counterexample.export.exportWitness=false, and"
+              + " counterexample.export.exportHarness=false");
+    }
     if (loopBoundStep < 1) {
       throw new InvalidConfigurationException("oc.loopBoundStep must be positive");
     }

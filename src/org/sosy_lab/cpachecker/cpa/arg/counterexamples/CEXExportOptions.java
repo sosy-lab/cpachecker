@@ -173,6 +173,11 @@ public final class CEXExportOptions {
     config.inject(this);
   }
 
+  /** Whether an enabled export format requires a counterexample path connected to the CFA. */
+  public boolean hasCfaPathDependentFormats() {
+    return getSourceFile() != null || getWitnessFile() != null || getTestHarnessFile() != null;
+  }
+
   public boolean disabledCompletely() {
     return getAutomatonFile() == null
         && getCoreFile() == null
