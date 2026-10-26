@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -226,11 +227,15 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * Returns a call of a function that returns a nondeterministic value of the given type, and
    * records the declaration of the function, see {@link #finishProgram}.
    */
-  private String nondetCall(CType pType) {
-    String typeName = pType.getCanonicalType().toASTString("").trim();
-    String functionName = "__VERIFIER_nondet_" + typeName.replaceAll("\\W+", "_");
-    nondetDeclarations.putIfAbsent(
-        functionName, "extern " + typeName + " " + functionName + "(void);");
+  private String nondetCall(CSimpleType pType) {
+    CType type = pType.withoutQualifiers();
+    // A type without a function of SV-COMP, e.g., long double, gets a function named after it
+    String functionName =
+        VerifierNondetFunctions.getFunctionName(pType)
+            .orElse(
+                VerifierNondetFunctions.PREFIX
+                    + type.toASTString("").trim().replaceAll("\\W+", "_"));
+    nondetDeclarations.putIfAbsent(functionName, type.toASTString(functionName + "(void)") + ";");
     return functionName + "()";
   }
 
@@ -349,8 +354,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
-        if (scope.lookupVariable(variable).getType() instanceof CSimpleType) {
-          nondetVerifierCall = nondetCall(scope.lookupVariable(variable).getType()) + ";";
+        if (scope.lookupVariable(variable).getType().getCanonicalType()
+            instanceof CSimpleType simpleType) {
+          nondetVerifierCall = nondetCall(simpleType) + ";";
         } else {
           throw new CPAException(
               "We currently do not support nondeterministic initialization of complex types.");
@@ -425,25 +431,22 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       CType type = (CType) variable.getType();
       // Only variables of simple types are declared, since the generated program does not contain
       // the declarations of the types, e.g., of the structs that pointers point to
-      if (!(type.getCanonicalType() instanceof CSimpleType)
+      if (!(type.getCanonicalType() instanceof CSimpleType simpleType)
           || isGlobalVariableOverwrittenByLocal(variable, variablesInScope)) {
         continue;
       }
       if (alreadyDeclaredVars.add(variable.getName())) {
         // The variables have arbitrary initial values, the termination analyses may treat
         // uninitialized variables imprecisely
-        builder.add(type.toASTString(variable.getName()) + " = " + nondetCall(type) + ";");
+        builder.add(type.toASTString(variable.getName()) + " = " + nondetCall(simpleType) + ";");
       }
     }
     for (String variable : mapNamesToVariables.keySet()) {
       String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
       CSimpleDeclaration declaration = scope.lookupVariable(variable);
-      if (declaration.getType().getCanonicalType() instanceof CSimpleType) {
+      if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
         varDeclaration =
-            declaration.getType().toASTString(variableName)
-                + " = "
-                + nondetCall(declaration.getType())
-                + ";";
+            declaration.getType().toASTString(variableName) + " = " + nondetCall(simpleType) + ";";
       } else {
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(declaration.toString());
