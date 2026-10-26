@@ -216,7 +216,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final MachineModel machineModel;
 
   private final CFA cfa;
-  private final ImmutableMap<String, String> namesOfProgram;
   // The supporting invariants that are invariants of the program, see confirmSupportingInvariants
   private final Set<InvariantEntry> confirmedSupportingInvariants = Sets.newConcurrentHashSet();
 
@@ -231,7 +230,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCFA);
-    namesOfProgram = TerminationArgumentsToWitnessUtils.getNamesOfProgram(pCFA);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
 
@@ -556,7 +554,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
               InvariantEntry supportingInvariantEntry =
                   TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                      supportingInvariant, loopHead, incomingLoopEdge, namesOfProgram);
+                      supportingInvariant, loopHead, incomingLoopEdge, cfa.getAstCfaRelation());
               if (confirmedSupportingInvariants.contains(supportingInvariantEntry)) {
                 entries.add(supportingInvariantEntry);
               }
@@ -570,7 +568,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                     loop, pTerminationArguments.keySet(), pTerminationArguments),
                 loopHead,
                 incomingLoopEdge,
-                namesOfProgram));
+                cfa.getAstCfaRelation()));
       }
     }
     return entries.build();
@@ -599,7 +597,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
             supportingInvariants.add(
                 TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                    supportingInvariant, loopHead, incomingLoopEdge, namesOfProgram));
+                    supportingInvariant, loopHead, incomingLoopEdge, cfa.getAstCfaRelation()));
           }
         }
       }
