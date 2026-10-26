@@ -474,7 +474,7 @@ analysis.algorithm.MPV = false
 
 # use the ordering-consistency algorithm for concurrent programs, works only
 # with the OrderingConsistencyCPA
-analysis.algorithm.OC = false
+analysis.algorithm.OrderingConsistency = false
 
 # use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths

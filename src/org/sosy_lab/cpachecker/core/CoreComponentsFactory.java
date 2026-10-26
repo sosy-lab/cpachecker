@@ -167,7 +167,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.OC",
+      name = "algorithm.OrderingConsistency",
       description =
           "use the ordering-consistency algorithm for concurrent programs, "
               + "works only with the OrderingConsistencyCPA")
