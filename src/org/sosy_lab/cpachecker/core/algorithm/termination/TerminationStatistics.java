@@ -216,20 +216,28 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final MachineModel machineModel;
 
   private final CFA cfa;
+  // The CFA of the input program, which the AstCfaRelation refers to. The analysis may work on a
+  // copy of it (analysis.algorithm.copyCFA).
+  private final CFA originalCfa;
   // The supporting invariants that are invariants of the program, see confirmSupportingInvariants
   private final Set<InvariantEntry> confirmedSupportingInvariants = Sets.newConcurrentHashSet();
 
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, 0, pCFA);
+    this(pConfig, pLogger, 0, pCFA, pCFA);
   }
 
   public TerminationStatistics(
-      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
+      Configuration pConfig,
+      LogManager pLogger,
+      int pTotalNumberOfLoops,
+      CFA pCFA,
+      CFA pOriginalCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCFA);
+    originalCfa = checkNotNull(pOriginalCfa);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
 
@@ -649,7 +657,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       InvariantCheckResult result =
           SupportingInvariantsChecker.checkInvariants(
               witness,
-              cfa,
+              // The invariants of the witness refer to the nodes of the original CFA
+              originalCfa,
               logger.withComponentName("SupportingInvariantCheck"),
               pShutdownNotifier,
               // The boolean abstraction may not react to a shutdown request for a long time
