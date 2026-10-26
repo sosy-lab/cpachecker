@@ -221,39 +221,43 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
 
     // clone correct type of node
     final CFANode newNode;
-    if (node instanceof CFALabelNode cFALabelNode) {
-      newNode =
-          new CFALabelNode(
-              cloneAst((CFunctionDeclaration) node.getFunction()), cFALabelNode.getLabel());
+    switch (node) {
+      case CFALabelNode cFALabelNode ->
+          newNode =
+              new CFALabelNode(
+                  cloneAst((CFunctionDeclaration) cFALabelNode.getFunction()),
+                  cFALabelNode.getLabel());
+      case CFATerminationNode terminationNode ->
+          newNode =
+              new CFATerminationNode(
+                  cloneAst((CFunctionDeclaration) terminationNode.getFunction()));
+      case FunctionExitNode exitNode ->
+          newNode =
+              new FunctionExitNode(cloneAst((CFunctionDeclaration) exitNode.getFunction()));
+      case CFunctionEntryNode n -> {
+        @Nullable FunctionExitNode newExitNode = n.getExitNode().map(this::cloneNode).orElse(null);
 
-    } else if (node instanceof CFATerminationNode) {
-      newNode = new CFATerminationNode(cloneAst((CFunctionDeclaration) node.getFunction()));
-
-    } else if (node instanceof FunctionExitNode) {
-      newNode = new FunctionExitNode(cloneAst((CFunctionDeclaration) node.getFunction()));
-
-    } else if (node instanceof CFunctionEntryNode n) {
-      @Nullable FunctionExitNode newExitNode = n.getExitNode().map(this::cloneNode).orElse(null);
-
-      Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
-      if (returnVariable.isPresent()) {
-        returnVariable = Optional.of(cloneAst(returnVariable.orElseThrow()));
+        Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
+        if (returnVariable.isPresent()) {
+          returnVariable = Optional.of(cloneAst(returnVariable.orElseThrow()));
+        }
+        final CFunctionEntryNode entryNode =
+            new CFunctionEntryNode(
+                n.getFileLocation(),
+                cloneAst(n.getFunctionDefinition()),
+                newExitNode,
+                returnVariable);
+        if (newExitNode != null) {
+          newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
+        }
+        newNode = entryNode;
       }
-      final CFunctionEntryNode entryNode =
-          new CFunctionEntryNode(
-              n.getFileLocation(),
-              cloneAst(n.getFunctionDefinition()),
-              newExitNode,
-              returnVariable);
-      if (newExitNode != null) {
-        newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
+      default -> {
+        assert node.getClass() == CFANode.class
+            : "unhandled subclass for CFANode: " + node.getClass();
+        newNode =
+            new CFANode(cloneAst((CFunctionDeclaration) node.getFunction()));
       }
-      newNode = entryNode;
-
-    } else {
-      assert node.getClass() == CFANode.class
-          : "unhandled subclass for CFANode: " + node.getClass();
-      newNode = new CFANode(cloneAst((CFunctionDeclaration) node.getFunction()));
     }
 
     // copy information from original node

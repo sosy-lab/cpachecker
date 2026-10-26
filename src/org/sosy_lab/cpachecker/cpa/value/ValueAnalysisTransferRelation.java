@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -225,20 +224,6 @@ public class ValueAnalysisTransferRelation
                 + " without side-effects and return a new nondeterministic value every time they"
                 + " are called. This can be unsound!")
     private Set<String> additionalAllowedUnsupportedFunctions = ImmutableSet.of();
-
-    @Option(
-        secure = true,
-        name = "alwaysUseQualifiedNames",
-        description =
-            "If this option is set to true, the value analysis will always use qualified names for"
-                + " variables instead of assembling a qualified name on-the-fly with the current"
-                + " function name and the variable name. This can lead to slightly diminished"
-                + " performance (c.f., qualified name parsing), however, it is necessary for some"
-                + " use cases, e.g., when using value analysis for concurrent programs where"
-                + " multiple threads can execute the same function. Then, the thread ID must also"
-                + " be included in the qualified name, which is only possible if the qualified name"
-                + " is used.")
-    private boolean alwaysUseQualifiedNames = false;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -431,13 +416,7 @@ public class ValueAnalysisTransferRelation
       AParameterDeclaration param = parameters.get(i);
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName;
-      if (options.alwaysUseQualifiedNames) {
-        formalParamName = MemoryLocation.forDeclaration(param);
-      } else {
-        String paramName = param.getName();
-        formalParamName = MemoryLocation.forLocalVariable(calledFunctionName, paramName);
-      }
+      MemoryLocation formalParamName = MemoryLocation.forDeclaration(param);
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -806,16 +785,8 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    MemoryLocation memoryLocation;
-
     // assign initial value if necessary
-    if (options.alwaysUseQualifiedNames) {
-      memoryLocation = MemoryLocation.forDeclaration(decl);
-    } else if (decl.isGlobal()) {
-      memoryLocation = MemoryLocation.forIdentifier(varName);
-    } else {
-      memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
-    }
+    MemoryLocation memoryLocation = MemoryLocation.forDeclaration(decl);
 
     if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);
@@ -991,45 +962,46 @@ public class ValueAnalysisTransferRelation
       return state;
     }
 
-    if (op1 instanceof AIdExpression aIdExpression) {
-      /*
-       * Assignment of the form
-       *  a = ...
-       */
+    return switch (op1) {
+      case AIdExpression aIdExpression -> {
+        /*
+         * Assignment of the form
+         *  a = ...
+         */
 
-      if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
-        missingScopedFieldName = true;
-        notScopedField = jIdExpression;
+        if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
+          missingScopedFieldName = true;
+          notScopedField = jIdExpression;
+        }
+
+        MemoryLocation memloc = getMemoryLocation(aIdExpression);
+
+        yield handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
       }
+      case APointerExpression unused -> {
+        // *a = ...
 
-      MemoryLocation memloc = getMemoryLocation(aIdExpression);
-
-      return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
-    } else if (op1 instanceof APointerExpression) {
-      // *a = ...
-
-      if (isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
+        if (isRelevant(op1, op2)) {
+          missingInformationList.add(new MissingInformation(op1, op2));
+        }
+        yield state;
       }
+      case CFieldReference cFieldReference -> {
+        ExpressionValueVisitor v = getVisitor();
 
-    } else if (op1 instanceof CFieldReference cFieldReference) {
+        MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
 
-      ExpressionValueVisitor v = getVisitor();
+        if (v.hasMissingPointer() && isRelevant(op1, op2)) {
+          missingInformationList.add(new MissingInformation(op1, op2));
+        }
 
-      MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
-
-      if (v.hasMissingPointer() && isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
+        if (memLoc != null) {
+          yield handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+        }
+        yield state;
       }
-
-      if (memLoc != null) {
-        return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
-      }
-
-    } else if (op1 instanceof AArraySubscriptExpression) {
       // array cell
-      if (op1 instanceof CArraySubscriptExpression) {
-
+      case CArraySubscriptExpression unused -> {
         ExpressionValueVisitor v = getVisitor();
 
         MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
@@ -1039,9 +1011,12 @@ public class ValueAnalysisTransferRelation
         }
 
         if (memLoc != null) {
-          return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+          yield handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
         }
-      } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
+        yield state;
+      }
+
+      case JArraySubscriptExpression arrayExpression -> {
         ExpressionValueVisitor evv = getVisitor();
 
         ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
@@ -1068,15 +1043,14 @@ public class ValueAnalysisTransferRelation
 
           // changes array value in old state
           handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-          return ValueAnalysisState.copyOf(state);
+          yield ValueAnalysisState.copyOf(state);
         }
+        yield state;
       }
-    } else {
-      throw new UnrecognizedCodeException(
-          "left operand of assignment has to be a variable", cfaEdge, op1);
-    }
-
-    return state; // the default return-value is the old state
+      default ->
+          throw new UnrecognizedCodeException(
+              "left operand of assignment has to be a variable", cfaEdge, op1);
+    };
   }
 
   private boolean isTrackedType(Type pType) {
@@ -1086,15 +1060,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
-    String varName = pIdExpression.getName();
-
-    if (options.alwaysUseQualifiedNames) {
-      return MemoryLocation.forDeclaration(pIdExpression.getDeclaration());
-    } else if (isGlobal(pIdExpression)) {
-      return MemoryLocation.parseExtendedQualifiedName(varName);
-    } else {
-      return MemoryLocation.forLocalVariable(functionName, varName);
-    }
+    return MemoryLocation.forDeclaration(pIdExpression.getDeclaration());
   }
 
   private boolean isRelevant(AExpression pOp1, ARightHandSide pOp2) {

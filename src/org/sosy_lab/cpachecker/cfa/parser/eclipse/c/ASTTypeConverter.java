@@ -179,12 +179,11 @@ class ASTTypeConverter {
 
       case IEnumeration iEnumeration -> conv(iEnumeration);
 
-      case IProblemType iProblemType -> {
-        // Of course, the obvious idea would be to throw an exception here.
-        // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
-        // e.g. in cdaudio_safe.i.cil.c
-        yield new CProblemType(t + ": " + iProblemType.getMessage());
-      }
+      case IProblemType iProblemType ->
+          // Of course, the obvious idea would be to throw an exception here.
+          // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
+          // e.g. in cdaudio_safe.i.cil.c
+          new CProblemType(t + ": " + iProblemType.getMessage());
       case IProblemBinding problem -> {
         if (problem.getASTNode().getRawSignature().equals("__label__")) {
           // This is a "local label" (a GNU C extension).

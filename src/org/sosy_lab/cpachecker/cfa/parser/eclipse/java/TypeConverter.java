@@ -36,19 +36,14 @@ abstract class TypeConverter {
     // have to be gotten by resolving their binding.
     // It is unnecessary for Array Types and primitive Types e.g.
 
-    if (t.getNodeType() == ASTNode.PRIMITIVE_TYPE) {
-      return convert((PrimitiveType) t);
-    } else if (t.getNodeType() == ASTNode.ARRAY_TYPE) {
-      return convert((ArrayType) t);
-    } else if (t.getNodeType() == ASTNode.QUALIFIED_TYPE) {
-      return convert((QualifiedType) t);
-    } else if (t.getNodeType() == ASTNode.SIMPLE_TYPE) {
-      return convert((SimpleType) t);
-    } else if (t.getNodeType() == ASTNode.PARAMETERIZED_TYPE) {
-      return convert(((ParameterizedType) t).getType());
-    } else {
-      return JSimpleType.UNSPECIFIED;
-    }
+    return switch (t.getNodeType()) {
+      case ASTNode.PRIMITIVE_TYPE -> convert((PrimitiveType) t);
+      case ASTNode.ARRAY_TYPE -> convert((ArrayType) t);
+      case ASTNode.QUALIFIED_TYPE -> convert((QualifiedType) t);
+      case ASTNode.SIMPLE_TYPE -> convert((SimpleType) t);
+      case ASTNode.PARAMETERIZED_TYPE -> convert(((ParameterizedType) t).getType());
+      default -> JSimpleType.UNSPECIFIED;
+    };
   }
 
   private JType convert(QualifiedType t) {
