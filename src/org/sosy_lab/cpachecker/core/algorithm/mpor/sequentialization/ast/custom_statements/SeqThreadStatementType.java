@@ -16,6 +16,8 @@ public enum SeqThreadStatementType {
   ATOMIC_BEGIN(true, false),
   ATOMIC_END(true, false),
   BARRIER_INIT(true, false),
+  BARRIER_WAIT_INCREMENT(true, false),
+  BARRIER_WAIT_ASSUMPTION(true, true),
   COND_SIGNAL(true, false),
   COND_WAIT(true, true),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */

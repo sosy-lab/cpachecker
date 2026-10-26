@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -53,18 +54,51 @@ public class PthreadFunctionSubstitution {
         pExpressions.get(
             PthreadFunctionType.PTHREAD_BARRIER_INIT.getParameterIndex(PthreadObjectType.COUNT));
 
-    CFieldReference barrierFieldReference = buildBarrierFieldReference(barrierExpression);
+    CFieldReference barrierCountFieldReference =
+        buildBarrierFieldReference(
+            barrierExpression, PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION);
     return ImmutableList.of(
         new CStatementWrapper(
             new CExpressionAssignmentStatement(
-                FileLocation.DUMMY, barrierFieldReference, countExpression)));
+                FileLocation.DUMMY, barrierCountFieldReference, countExpression)));
   }
 
-  private static CFieldReference buildBarrierFieldReference(CExpression pBarrierExpression) {
+  public static ImmutableList<CCompoundStatementElement> buildBarrierIncrementFunctionStatements(
+      CExpression pBarrierExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CFieldReference barrierNumWaitersFieldReference =
+        buildBarrierFieldReference(
+            pBarrierExpression, PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION);
+    return buildIncrementOrDecrementFromFieldReference(
+        barrierNumWaitersFieldReference, pBinaryExpressionBuilder, BinaryOperator.PLUS);
+  }
+
+  public static ImmutableList<CCompoundStatementElement> buildBarrierAssumptionFunctionStatements(
+      CExpression pBarrierExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CFieldReference barrierCountFieldReference =
+        buildBarrierFieldReference(
+            pBarrierExpression, PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION);
+    CFieldReference barrierNumWaitersFieldReference =
+        buildBarrierFieldReference(
+            pBarrierExpression, PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION);
+    CBinaryExpression equalsExpression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            barrierCountFieldReference, barrierNumWaitersFieldReference, BinaryOperator.EQUALS);
+    CCompoundStatementElement countEqualsNumWaitersAssumption =
+        new CStatementWrapper(
+            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(equalsExpression));
+    return ImmutableList.of(countEqualsNumWaitersAssumption);
+  }
+
+  private static CFieldReference buildBarrierFieldReference(
+      CExpression pBarrierExpression, CCompositeTypeMemberDeclaration pMemberDeclaration) {
     return new CFieldReference(
         FileLocation.DUMMY,
         PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE,
-        PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+        pMemberDeclaration.getName(),
         pBarrierExpression,
         pBarrierExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
   }

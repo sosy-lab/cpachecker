@@ -165,7 +165,7 @@ public enum PthreadObjectType {
     private static final CCompositeType BARRIER_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
-            ComplexTypeKind.UNION,
+            ComplexTypeKind.STRUCT,
             ImmutableList.of(
                 BARRIER_COUNT_MEMBER_DECLARATION, BARRIER_NUM_WAITERS_MEMBER_DECLARATION),
             BARRIER_SUBSTITUTION_NAME,

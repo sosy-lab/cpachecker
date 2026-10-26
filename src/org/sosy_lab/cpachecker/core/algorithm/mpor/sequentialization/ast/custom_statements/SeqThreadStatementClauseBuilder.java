@@ -219,18 +219,36 @@ public record SeqThreadStatementClauseBuilder(
     Optional<CLabelStatement> nextThreadLabel = ghostElements.tryGetNextThreadLabel(pThread);
     int labelPc = pThreadNode.pc;
 
-    // pthread_cond_wait is special because it requires multiple clauses build from a single edge
+    // some functions require multiple clauses built from a single edge
     if (!pThreadNode.leavingEdges().isEmpty()) {
       CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
+      int targetPc = firstThreadEdge.getSuccessor().pc;
+
       if (PthreadUtil.isCallToPthreadFunction(
           firstThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_COND_WAIT)) {
-        SubstituteEdge substituteEdge =
-            Objects.requireNonNull(substituteEdges.get(firstThreadEdge));
-        int targetPc = firstThreadEdge.getSuccessor().pc;
         ImmutableList<SeqThreadStatementClause> condWaitClauses =
             buildCondWaitClauses(
-                pThread, nextThreadLabel, substituteEdge, labelPc, targetPc, pStatementBuilder);
+                pThread,
+                nextThreadLabel,
+                Objects.requireNonNull(substituteEdges.get(firstThreadEdge)),
+                labelPc,
+                targetPc,
+                pStatementBuilder);
         return appendResetAssignmentsForOutOfScopePointers(pThread, pThreadNode, condWaitClauses);
+      }
+
+      if (PthreadUtil.isCallToPthreadFunction(
+          firstThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_BARRIER_WAIT)) {
+        ImmutableList<SeqThreadStatementClause> barrierWaitClauses =
+            buildBarrierInitClauses(
+                pThread,
+                nextThreadLabel,
+                Objects.requireNonNull(substituteEdges.get(firstThreadEdge)),
+                labelPc,
+                targetPc,
+                pStatementBuilder);
+        return appendResetAssignmentsForOutOfScopePointers(
+            pThread, pThreadNode, barrierWaitClauses);
       }
     }
 
@@ -395,6 +413,47 @@ public record SeqThreadStatementClauseBuilder(
   }
 
   // Helpers =====================================================================================
+
+  /**
+   * Returns the clauses associated with {@link PthreadFunctionType#PTHREAD_BARRIER_WAIT}. This
+   * function requires an interleaving between the increment of the variable storing the number of
+   * waiters and the assumption that the count was reached, forcing us two create two {@link
+   * SeqThreadStatement} from a single {@link CFAEdgeForThread}.
+   */
+  private ImmutableList<SeqThreadStatementClause> buildBarrierInitClauses(
+      MPORThread pThread,
+      Optional<CLabelStatement> pNextThreadLabel,
+      SubstituteEdge pSubstituteEdge,
+      int pLabelPc,
+      int pTargetPc,
+      SeqThreadStatementBuilder pStatementBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
+
+    // step 1: increment the num_waiters variable
+    int nextFreePc = pThread.cfa().getNextFreePc();
+    SeqThreadStatement numWaitersIncrement =
+        pStatementBuilder.buildBarrierStatement(
+            SeqThreadStatementType.BARRIER_WAIT_INCREMENT,
+            PthreadFunctionType.PTHREAD_BARRIER_WAIT,
+            pSubstituteEdge,
+            nextFreePc);
+    rClauses.add(
+        buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(numWaitersIncrement)));
+
+    // step 2: assume that num_waiters equals the count specified on barrier initialization
+    SeqThreadStatement countAssumption =
+        pStatementBuilder.buildBarrierStatement(
+            SeqThreadStatementType.BARRIER_WAIT_ASSUMPTION,
+            PthreadFunctionType.PTHREAD_BARRIER_WAIT,
+            pSubstituteEdge,
+            pTargetPc);
+    rClauses.add(
+        buildClause(pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(countAssumption)));
+
+    return rClauses.build();
+  }
 
   /**
    * Returns the clauses associated with {@link PthreadFunctionType#PTHREAD_COND_WAIT}. This

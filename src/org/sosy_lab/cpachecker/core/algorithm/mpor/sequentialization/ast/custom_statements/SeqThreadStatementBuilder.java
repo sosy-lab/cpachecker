@@ -439,12 +439,19 @@ public record SeqThreadStatementBuilder(
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(commentStatement));
   }
 
-  private SeqThreadStatement buildBarrierStatement(
+  SeqThreadStatement buildBarrierStatement(
       SeqThreadStatementType pStatementType,
       PthreadFunctionType pFunctionType,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc)
       throws UnrecognizedCodeException {
+
+    checkArgument(
+        pStatementType.in(
+            SeqThreadStatementType.BARRIER_INIT,
+            SeqThreadStatementType.BARRIER_WAIT_INCREMENT,
+            SeqThreadStatementType.BARRIER_WAIT_ASSUMPTION),
+        "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
@@ -674,27 +681,32 @@ public record SeqThreadStatementBuilder(
       expressions = nonPointerExpressions.build();
     }
 
-    return switch (pFunctionType) {
-      case PTHREAD_BARRIER_INIT ->
+    return switch (pStatementType) {
+      case BARRIER_INIT ->
           PthreadFunctionSubstitution.buildBarrierInitFunctionStatements(expressions);
-      case PTHREAD_COND_SIGNAL ->
+      case BARRIER_WAIT_INCREMENT ->
+          PthreadFunctionSubstitution.buildBarrierIncrementFunctionStatements(
+              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+      case BARRIER_WAIT_ASSUMPTION ->
+          PthreadFunctionSubstitution.buildBarrierAssumptionFunctionStatements(
+              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+      case COND_SIGNAL ->
           PthreadFunctionSubstitution.buildCondSignalFunctionStatements(
               Iterables.getOnlyElement(expressions));
-      case PTHREAD_COND_WAIT ->
-          PthreadFunctionSubstitution.buildCondWaitFunctionStatements(expressions);
-      case PTHREAD_MUTEX_LOCK ->
+      case COND_WAIT -> PthreadFunctionSubstitution.buildCondWaitFunctionStatements(expressions);
+      case MUTEX_LOCK ->
           PthreadFunctionSubstitution.buildMutexLockFunctionStatements(
               Iterables.getOnlyElement(expressions));
-      case PTHREAD_MUTEX_UNLOCK ->
+      case MUTEX_UNLOCK ->
           PthreadFunctionSubstitution.buildMutexUnlockFunctionStatements(
               Iterables.getOnlyElement(expressions));
-      case PTHREAD_RWLOCK_RDLOCK ->
+      case RW_LOCK_RD_LOCK ->
           PthreadFunctionSubstitution.buildRwLockRdLockFunctionStatements(
               Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
-      case PTHREAD_RWLOCK_UNLOCK ->
+      case RW_LOCK_UNLOCK ->
           PthreadFunctionSubstitution.buildRwLockUnlockFunctionStatements(
               Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
-      case PTHREAD_RWLOCK_WRLOCK ->
+      case RW_LOCK_WR_LOCK ->
           PthreadFunctionSubstitution.buildRwLockWrLockFunctionStatements(
               Iterables.getOnlyElement(expressions));
       default ->
