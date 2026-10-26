@@ -652,10 +652,7 @@ public record SeqThreadStatementBuilder(
     }
 
     return PthreadFunctionSubstitution.buildInlinedFunctionStatements(
-        pSubstituteEdge.getOriginalCfaEdge(),
-        parameterExpressions,
-        pFunctionType,
-        binaryExpressionBuilder);
+        parameterExpressions, pFunctionType, binaryExpressionBuilder);
   }
 
   // Helpers

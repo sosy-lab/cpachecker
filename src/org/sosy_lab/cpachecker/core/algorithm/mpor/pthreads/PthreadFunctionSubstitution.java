@@ -28,16 +28,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
@@ -50,7 +49,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 public class PthreadFunctionSubstitution {
 
   public static ImmutableList<CCompoundStatementElement> buildInlinedFunctionStatements(
-      CFAEdge pOriginalCfaEdge,
       ImmutableList<CExpression> pParameterExpressions,
       PthreadFunctionType pFunctionType,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -64,11 +62,12 @@ public class PthreadFunctionSubstitution {
       for (CExpression expression : pParameterExpressions) {
         if (expression instanceof CUnaryExpression unaryExpression
             && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+          // from unary amper expressions such as "&mutex", only "mutex" is used
           nonPointerExpressions.add(unaryExpression.getOperand());
         } else {
-          throw new UnsupportedCodeException(
-              "Expected CUnaryExpression with UnaryOperator.AMPER as parameter expression but got ",
-              pOriginalCfaEdge);
+          // all other expressions such as "(void*)0" or literals "capacity" are added unchanged,
+          // regardless of whether they are actually used s.t. the parameter list has the same size
+          nonPointerExpressions.add(expression);
         }
       }
       expressions = nonPointerExpressions.build();
@@ -102,14 +101,18 @@ public class PthreadFunctionSubstitution {
     for (CExpression expression : pExpressions) {
       ImmutableSet<CSimpleDeclaration> declarations =
           SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true);
-      checkState(!declarations.isEmpty());
-      // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
-      if (declarations.size() > 1) {
-        return true;
-      }
-      CSimpleDeclaration declaration = Iterables.getOnlyElement(declarations);
-      if (declaration.getType().getCanonicalType() instanceof CPointerType) {
-        return true;
+      // finding no declaration is only possible for void pointer expressions: "(void*)0"
+      if (declarations.isEmpty()) {
+        checkState(MPORUtil.isVoidPointer(expression));
+      } else {
+        // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
+        if (declarations.size() > 1) {
+          return true;
+        }
+        CSimpleDeclaration declaration = Iterables.getOnlyElement(declarations);
+        if (declaration.getType().getCanonicalType() instanceof CPointerType) {
+          return true;
+        }
       }
     }
     return false;
