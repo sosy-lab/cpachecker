@@ -325,7 +325,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
           // The condition has side effects, which are not part of the generated program
           return false;
         }
-        path = listAndElement(pPath, assumeEdge.getTruthAssumption() ? "(" + expression + ")" : "!(" + expression + ")");
+        path =
+            listAndElement(
+                pPath,
+                assumeEdge.getTruthAssumption() ? "(" + expression + ")" : "!(" + expression + ")");
       } else if (!(edge instanceof BlankEdge)) {
         return false;
       }
