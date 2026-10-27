@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class DssMessageJsonUtils {
@@ -23,6 +24,10 @@ public final class DssMessageJsonUtils {
   }
 
   public static void write(DssMessagePayload pPayload, Path pPath) throws IOException {
+    Path parent = pPath.getParent();
+    if (parent != null) {
+      Files.createDirectories(parent);
+    }
     OBJECT_MAPPER.writeValue(pPath.toFile(), pPayload);
   }
 }
