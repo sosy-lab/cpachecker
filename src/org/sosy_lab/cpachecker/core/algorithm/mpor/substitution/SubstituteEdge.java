@@ -10,16 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
@@ -34,10 +28,6 @@ public class SubstituteEdge {
   public final CFAEdge cfaEdge;
 
   private final CFAEdgeForThread threadEdge;
-
-  private final ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs;
-
-  private final ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes;
 
   // POINTER ASSIGNMENTS ===========================================================================
 
@@ -67,8 +57,6 @@ public class SubstituteEdge {
   private SubstituteEdge(
       CFAEdge pCfaEdge,
       CFAEdgeForThread pThreadEdge,
-      ImmutableSet<CVariableDeclaration> pAccessedMainFunctionArgs,
-      ImmutableListMultimap<CParameterDeclaration, CIdExpression> pParameterSubstitutes,
       Optional<SeqPointerAssignment> pPointerAssignment,
       ImmutableSet<SeqMemoryLocation> pAccessedPointerDereferences,
       ImmutableSet<SeqMemoryLocation> pWrittenPointerDereferences,
@@ -81,9 +69,6 @@ public class SubstituteEdge {
     cfaEdge = pCfaEdge;
     threadEdge = pThreadEdge;
 
-    accessedMainFunctionArgs = pAccessedMainFunctionArgs;
-
-    parameterSubstitutes = pParameterSubstitutes;
     pointerAssignment = pPointerAssignment;
 
     accessedPointerDereferences = pAccessedPointerDereferences;
@@ -102,8 +87,6 @@ public class SubstituteEdge {
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
-        ImmutableSet.of(),
-        ImmutableListMultimap.of(),
         Optional.empty(),
         ImmutableSet.of(),
         ImmutableSet.of(),
@@ -112,37 +95,19 @@ public class SubstituteEdge {
   }
 
   /**
-   * Creates a {@link SubstituteEdge} based on the {@link MPORSubstitutionTracker} in {@code
-   * pTracker}.
+   * Creates a {@link SubstituteEdge} based on the {@link MPORSubstitutionTracker} which tracks
+   * pointer interaction in the underlying {@link CFAEdge}.
    */
   static SubstituteEdge of(
-      CFAEdge pCfaEdge,
-      CFAEdgeForThread pThreadEdge,
-      MPORSubstitution pSubstitution,
-      MPORSubstitutionTracker pTracker) {
+      CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge, MPORSubstitutionTracker pTracker) {
 
-    ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes =
-        pThreadEdge.callContext.cfaEdgeForThread().isPresent()
-            ? pSubstitution
-                .getParameterSubstitutes()
-                .row(pThreadEdge.callContext)
-                .entrySet()
-                .stream()
-                .flatMap(
-                    entry -> entry.getValue().stream().map(val -> Map.entry(entry.getKey(), val)))
-                .collect(
-                    ImmutableListMultimap.toImmutableListMultimap(Entry::getKey, Entry::getValue))
-            : ImmutableListMultimap.of();
     ImmutableSet<SeqPointerAssignment> pointerAssignments = pTracker.getPointerAssignments();
-
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
-        pTracker.getAccessedMainFunctionArgs(),
-        parameterSubstitutes,
         pointerAssignments.isEmpty()
             ? Optional.empty()
-            : Optional.of(Iterables.getOnlyElement(pTracker.getPointerAssignments())),
+            : Optional.of(Iterables.getOnlyElement(pointerAssignments)),
         SubstituteUtil.getPointerDereferencesByAccessType(pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getPointerDereferencesByAccessType(pTracker, SeqMemoryAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(pTracker, SeqMemoryAccessType.ACCESS),
