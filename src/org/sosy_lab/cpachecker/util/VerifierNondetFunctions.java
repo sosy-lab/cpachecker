@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /**
@@ -23,41 +22,42 @@ public final class VerifierNondetFunctions {
 
   /**
    * Returns the name of the function that returns nondeterministic values of the given type, e.g.,
-   * __VERIFIER_nondet_uint for unsigned int, or nothing if SV-COMP defines no such function.
+   * __VERIFIER_nondet_uint for unsigned int. SV-COMP defines no function for long double and
+   * __float128, so their functions are named like the others, e.g., __VERIFIER_nondet_longdouble.
+   * Verifiers treat them like any undefined function with a nondeterministic result.
    */
-  public static Optional<String> getFunctionName(CSimpleType pType) {
-    return getSuffix(pType).map(suffix -> PREFIX + suffix);
+  public static String getFunctionName(CSimpleType pType) {
+    return PREFIX + getSuffix(pType);
   }
 
   /**
    * Returns the declaration of the function that returns nondeterministic values of the given type,
    * e.g., {@code unsigned int __VERIFIER_nondet_uint(void);}, see {@link #getFunctionName}.
    */
-  public static Optional<String> getFunctionDeclaration(CSimpleType pType) {
-    return getFunctionName(pType)
-        .map(name -> pType.withoutQualifiers().toASTString(name + "(void)") + ";");
+  public static String getFunctionDeclaration(CSimpleType pType) {
+    return pType.withoutQualifiers().toASTString(getFunctionName(pType) + "(void)") + ";";
   }
 
-  private static Optional<String> getSuffix(CSimpleType pType) {
+  private static String getSuffix(CSimpleType pType) {
     boolean unsigned = pType.hasUnsignedSpecifier();
     return switch (pType.getType()) {
-      case BOOL -> Optional.of("bool");
-      case CHAR -> Optional.of(unsigned ? "uchar" : "char");
+      case BOOL -> "bool";
+      case CHAR -> unsigned ? "uchar" : "char";
       case INT, UNSPECIFIED -> {
         if (pType.hasShortSpecifier()) {
-          yield Optional.of(unsigned ? "ushort" : "short");
+          yield unsigned ? "ushort" : "short";
         } else if (pType.hasLongLongSpecifier()) {
-          yield Optional.of(unsigned ? "ulonglong" : "longlong");
+          yield unsigned ? "ulonglong" : "longlong";
         } else if (pType.hasLongSpecifier()) {
-          yield Optional.of(unsigned ? "ulong" : "long");
+          yield unsigned ? "ulong" : "long";
         } else {
-          yield Optional.of(unsigned ? "uint" : "int");
+          yield unsigned ? "uint" : "int";
         }
       }
-      case INT128 -> Optional.of(unsigned ? "uint128" : "int128");
-      case FLOAT -> Optional.of("float");
-      case DOUBLE -> pType.hasLongSpecifier() ? Optional.empty() : Optional.of("double");
-      case FLOAT128 -> Optional.empty();
+      case INT128 -> unsigned ? "uint128" : "int128";
+      case FLOAT -> "float";
+      case DOUBLE -> pType.hasLongSpecifier() ? "longdouble" : "double";
+      case FLOAT128 -> "float128";
     };
   }
 }

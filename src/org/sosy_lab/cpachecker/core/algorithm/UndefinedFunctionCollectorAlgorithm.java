@@ -259,10 +259,8 @@ public class UndefinedFunctionCollectorAlgorithm
         buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
       }
       case CSimpleType ct -> {
-        String nondetFunc =
-            VerifierNondetFunctions.getFunctionName(ct)
-                .orElseThrow(() -> new RuntimeException("Unknown type " + ct));
-        prepend.append(VerifierNondetFunctions.getFunctionDeclaration(ct).orElseThrow() + "\n");
+        String nondetFunc = VerifierNondetFunctions.getFunctionName(ct);
+        prepend.append(VerifierNondetFunctions.getFunctionDeclaration(ct) + "\n");
         buf.append(indent + "// Simple type\n");
         buf.append(indent + "return " + nondetFunc + "();\n");
       }

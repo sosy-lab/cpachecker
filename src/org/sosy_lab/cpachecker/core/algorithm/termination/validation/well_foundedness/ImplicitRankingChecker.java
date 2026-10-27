@@ -228,14 +228,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * records the declaration of the function, see {@link #finishProgram}.
    */
   private String nondetCall(CSimpleType pType) {
-    CType type = pType.withoutQualifiers();
-    // A type without a function of SV-COMP, e.g., long double, gets a function named after it
-    String functionName =
-        VerifierNondetFunctions.getFunctionName(pType)
-            .orElse(
-                VerifierNondetFunctions.PREFIX
-                    + type.toASTString("").trim().replaceAll("\\W+", "_"));
-    nondetDeclarations.putIfAbsent(functionName, type.toASTString(functionName + "(void)") + ";");
+    String functionName = VerifierNondetFunctions.getFunctionName(pType);
+    nondetDeclarations.putIfAbsent(
+        functionName, VerifierNondetFunctions.getFunctionDeclaration(pType));
     return functionName + "()";
   }
 
