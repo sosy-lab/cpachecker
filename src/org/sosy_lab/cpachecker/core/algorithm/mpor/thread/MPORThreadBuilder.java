@@ -154,7 +154,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     // check if node was visited already in a specific calling context
     Multimap<CFANode, SeqCallContext> visitedNodes = ArrayListMultimap.create();
-    Map<SeqCallContext, CFunctionSummaryEdge> visitedInitRoutines = new HashMap<>();
+    Map<SeqCallContext, CFAEdgeForThread> visitedInitRoutines = new HashMap<>();
     ImmutableList.Builder<CFANodeForThread> threadNodes = ImmutableList.builder();
     // we use an immutable map to preserve ordering (important when declaring types)
     ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> threadEdges = ImmutableMap.builder();
@@ -197,7 +197,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   private void buildThreadCfaVariables(
       final int pThreadId,
       Multimap<CFANode, SeqCallContext> pVisitedCfaNodes,
-      Map<SeqCallContext, CFunctionSummaryEdge> pVisitedInitRoutines,
+      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines,
       ImmutableList.Builder<CFANodeForThread> pThreadNodes,
       ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> pThreadEdges,
       CFANode pCurrentNode,
@@ -377,7 +377,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       int pThreadId,
       CFANode pCfaNode,
       SeqCallContext pCallContext,
-      Map<SeqCallContext, CFunctionSummaryEdge> pVisitedInitRoutines)
+      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines)
       throws UnsupportedCodeException {
 
     // use ImmutableMap to retain insertion order
@@ -414,14 +414,17 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
                 routineCall,
                 functionSummaryEdge);
 
-        rThreadEdges.put(
-            new CFAEdgeForThread(pThreadId, functionSummaryEdge, pCallContext),
-            functionSummaryEdge);
+        CFAEdgeForThread functionSummaryThreadEdge =
+            new CFAEdgeForThread(pThreadId, functionSummaryEdge, pCallContext);
+        rThreadEdges.put(functionSummaryThreadEdge, functionSummaryEdge);
+
         CFAEdgeForThread functionCallThreadEdge =
             new CFAEdgeForThread(pThreadId, functionCallEdge, pCallContext);
         rThreadEdges.put(functionCallThreadEdge, functionCallEdge);
+
         pVisitedInitRoutines.put(
-            new SeqCallContext(Optional.of(functionCallThreadEdge)), functionSummaryEdge);
+            new SeqCallContext(Optional.of(functionCallThreadEdge)), functionSummaryThreadEdge);
+
       } else {
         rThreadEdges.put(new CFAEdgeForThread(pThreadId, edge, pCallContext), edge);
       }

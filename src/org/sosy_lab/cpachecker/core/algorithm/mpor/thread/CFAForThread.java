@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -57,7 +56,7 @@ public class CFAForThread {
       ImmutableList<CFANodeForThread> pThreadNodes,
       ImmutableSet<CFANodeForThread> pLoopHeads,
       ImmutableList<CFAEdgeForThread> pThreadEdges,
-      Map<SeqCallContext, CFunctionSummaryEdge> pVisitedInitRoutines) {
+      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines) {
 
     checkArgument(
         pThreadNodes.stream().anyMatch(n -> n.getCfaNode().equals(pEntryNode)),
@@ -70,7 +69,7 @@ public class CFAForThread {
     loopHeads = pLoopHeads;
     threadEdges = pThreadEdges;
     initPredecessors(pThreadNodes);
-    initSuccessors(threadEdges, pThreadNodes);
+    initSuccessors(pThreadEdges, pThreadNodes);
     threadNodes =
         handleFunctionReturnEdges(pThreadId, pThreadNodes, pThreadEdges, pVisitedInitRoutines);
     nextFreePc = MPORThreadUtil.getHighestPc(threadNodes) + 1;
@@ -84,34 +83,36 @@ public class CFAForThread {
       int pThreadId,
       ImmutableList<CFANodeForThread> pThreadNodes,
       ImmutableList<CFAEdgeForThread> pThreadEdges,
-      Map<SeqCallContext, CFunctionSummaryEdge> pVisitedInitRoutines) {
+      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines) {
 
     ImmutableList.Builder<CFANodeForThread> updatedThreadNodes = ImmutableList.builder();
 
     for (CFANodeForThread threadNode : pThreadNodes) {
-      if (threadNode.getCfaNode() instanceof FunctionExitNode functionExitNode) {
+      CFANodeForThread updatedNode = threadNode;
 
+      if (threadNode.getCfaNode() instanceof FunctionExitNode functionExitNode) {
         // add the missing FunctionReturnEdges after entering the init_routine from pthread_once
         if (threadNode.leavingEdges().isEmpty()
-            && pVisitedInitRoutines.containsKey(threadNode.callContext)
-            && pVisitedInitRoutines
-                .get(threadNode.callContext)
-                .getFunctionEntry()
-                .equals(functionExitNode.getEntryNode())) {
-          FunctionSummaryEdge functionSummaryEdge =
+            && pVisitedInitRoutines.containsKey(threadNode.callContext)) {
+          CFAEdgeForThread functionSummaryThreadEdge =
               pVisitedInitRoutines.get(threadNode.callContext);
-          FunctionReturnEdge functionReturnEdge =
-              new FunctionReturnEdge(
-                  FileLocation.DUMMY,
-                  functionExitNode,
-                  functionSummaryEdge.getSuccessor(),
-                  functionSummaryEdge);
-          CFAEdgeForThread threadEdge =
-              new CFAEdgeForThread(pThreadId, functionReturnEdge, threadNode.callContext);
-          updatedThreadNodes.add(threadNode.withLeavingEdges(ImmutableList.of(threadEdge)));
+          CFunctionSummaryEdge functionSummaryEdge =
+              (CFunctionSummaryEdge) functionSummaryThreadEdge.cfaEdge;
 
+          if (functionSummaryEdge.getFunctionEntry().equals(functionExitNode.getEntryNode())) {
+            FunctionReturnEdge functionReturnEdge =
+                new FunctionReturnEdge(
+                    FileLocation.DUMMY,
+                    functionExitNode,
+                    functionSummaryEdge.getSuccessor(),
+                    functionSummaryEdge);
+
+            CFAEdgeForThread functionReturnThreadEdge =
+                new CFAEdgeForThread(pThreadId, functionReturnEdge, threadNode.callContext);
+            functionReturnThreadEdge.setSuccessor(functionSummaryThreadEdge.getSuccessor());
+            updatedNode = threadNode.withLeavingEdges(ImmutableList.of(functionReturnThreadEdge));
+          }
         } else {
-          updatedThreadNodes.add(threadNode);
           Set<CFAEdgeForThread> prunedEdges = new HashSet<>();
           for (CFAEdgeForThread threadEdge : threadNode.leavingEdges()) {
             Optional<CFANodeForThread> returnThreadNode =
@@ -125,9 +126,8 @@ public class CFAForThread {
           }
           prunedEdges.forEach(p -> pruneEdge(p, pThreadNodes, pThreadEdges));
         }
-      } else {
-        updatedThreadNodes.add(threadNode);
       }
+      updatedThreadNodes.add(updatedNode);
     }
 
     ImmutableList<CFANodeForThread> rUpdated = updatedThreadNodes.build();
