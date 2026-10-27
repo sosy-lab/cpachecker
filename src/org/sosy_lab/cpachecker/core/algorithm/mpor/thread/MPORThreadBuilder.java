@@ -187,7 +187,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         finalThreadNodes,
         loopHeads,
         ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()),
-        visitedInitRoutines);
+        ImmutableMap.copyOf(visitedInitRoutines));
   }
 
   /**

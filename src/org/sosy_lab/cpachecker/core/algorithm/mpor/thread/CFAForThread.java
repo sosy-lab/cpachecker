@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class CFAForThread {
       ImmutableList<CFANodeForThread> pInitialNodes,
       ImmutableSet<CFANodeForThread> pLoopHeads,
       ImmutableList<CFAEdgeForThread> pInitialEdges,
-      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines) {
+      ImmutableMap<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines) {
 
     checkArgument(
         pInitialNodes.stream().anyMatch(n -> n.getCfaNode().equals(pEntryNode)),
@@ -92,7 +93,7 @@ public class CFAForThread {
       ImmutableList<CFAEdgeForThread> pInitialEdges,
       List<CFANodeForThread> pFinalNodes,
       List<CFAEdgeForThread> pFinalEdges,
-      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines) {
+      ImmutableMap<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines) {
 
     for (CFANodeForThread threadNode : pInitialNodes) {
       CFANodeForThread finalNode = threadNode;
@@ -105,7 +106,7 @@ public class CFAForThread {
           CFAEdgeForThread functionSummaryThreadEdge =
               pVisitedInitRoutines.get(threadNode.callContext);
           CFunctionSummaryEdge functionSummaryEdge =
-              (CFunctionSummaryEdge) functionSummaryThreadEdge.cfaEdge;
+              (CFunctionSummaryEdge) Objects.requireNonNull(functionSummaryThreadEdge).cfaEdge;
 
           if (functionSummaryEdge.getFunctionEntry().equals(functionExitNode.getEntryNode())) {
             FunctionReturnEdge functionReturnEdge =
