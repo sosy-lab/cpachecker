@@ -354,7 +354,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
-        if (scope.lookupVariable(variable).getType().getCanonicalType()
+        if (scope
+                .lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable))
+                .getType()
+                .getCanonicalType()
             instanceof CSimpleType simpleType) {
           nondetVerifierCall = nondetCall(simpleType) + ";";
         } else {
@@ -410,7 +413,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(
-                scope.lookupVariable(variable).toString());
+                scope.lookupVariable(variableName).toString());
         if (alreadyDeclaredVars.add(variableName)) {
           builder.add(varDeclaration);
         }
@@ -443,7 +446,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     for (String variable : mapNamesToVariables.keySet()) {
       String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
-      CSimpleDeclaration declaration = scope.lookupVariable(variable);
+      CSimpleDeclaration declaration = scope.lookupVariable(variableName);
       if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
         varDeclaration =
             declaration.getType().toASTString(variableName) + " = " + nondetCall(simpleType) + ";";

@@ -178,7 +178,7 @@ public class TransitionInvariantUtils {
       }
       builder.setIndex(
           var,
-          scope.lookupVariable(var).getType(),
+          scope.lookupVariable(removeFunctionFromVarsName(var)).getType(),
           isPrevVariable(var, pMapPrevToCurrVars) ? prevIndex : currIndex);
     }
     return builder.build();

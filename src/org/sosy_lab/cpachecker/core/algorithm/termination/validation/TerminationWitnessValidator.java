@@ -118,8 +118,10 @@ public class TerminationWitnessValidator implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
   private final NestedLoopSummarizer nestedLoopSummarizer;
-  // The scope and the checker are created in run(), since the scope has to contain the
-  // declarations of the __PREV variables from the witness
+  // The scope of the program, which is created in run()
+  private CProgramScope programScope;
+  // The scope and the checker for the loop whose transition invariant is checked, see
+  // useScopeOfLoop
   private Scope scope;
   private WellFoundednessChecker wellFoundednessChecker;
 
@@ -186,21 +188,7 @@ public class TerminationWitnessValidator implements Algorithm {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
 
-    scope =
-        new CfaVariableScope(
-            new CProgramScope(cfa, logger)
-                .withAdditionalDeclarations(collectPrevVariableDeclarations(invariants)),
-            cfa);
-    if (checkWithInfiniteSpace) {
-      try {
-        wellFoundednessChecker =
-            new ImplicitRankingChecker(fmgr, bfmgr, logger, config, shutdownNotifier, scope, cfa);
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Invalid configuration of the well-foundedness check", e);
-      }
-    } else {
-      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
-    }
+    programScope = new CProgramScope(cfa, logger);
 
     ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(loops, invariants);
@@ -252,6 +240,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
           joinPrevDeclarationMapsForLoop(loop, invariants);
+      useScopeOfLoop(loop, mapPrevVarsToCurrVars);
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
 
@@ -338,12 +327,34 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /** Collects the declarations of the __PREV variables of all transition invariants. */
-  private static ImmutableSet<CSimpleDeclaration> collectPrevVariableDeclarations(
-      Set<ExpressionTreeLocationInvariant> invariants) {
-    return FluentIterable.from(invariants)
-        .filter(ExpressionTreeLocationTransitionInvariant.class)
-        .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().keySet())
-        .toSet();
+  /**
+   * Sets the scope and the well-foundedness checker for the given loop. The scope has the variables
+   * in scope at the loop head, whose names without the function are distinct, also for variables
+   * that CPAchecker renamed, e.g., to i__1, and the __PREV variables of the loop.
+   */
+  private void useScopeOfLoop(
+      Loop pLoop, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      throws CPAException {
+    CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
+    scope =
+        cfa.getAstCfaRelation()
+            .getVariablesAndParametersInScope(loopHead)
+            .map(
+                variables ->
+                    programScope.withVariablesInScope(
+                        variables.filter(CSimpleDeclaration.class).toSet()))
+            .orElse(programScope)
+            .withAdditionalDeclarations(pMapPrevToCurrVars.keySet());
+    if (checkWithInfiniteSpace) {
+      try {
+        wellFoundednessChecker =
+            new ImplicitRankingChecker(fmgr, bfmgr, logger, config, shutdownNotifier, scope, cfa);
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Invalid configuration of the well-foundedness check", e);
+      }
+    } else {
+      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
+    }
   }
 
   private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinPrevDeclarationMapsForLoop(
