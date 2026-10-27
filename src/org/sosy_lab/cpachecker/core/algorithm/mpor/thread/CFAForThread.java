@@ -96,7 +96,6 @@ public class CFAForThread {
       ImmutableMap<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines) {
 
     for (CFANodeForThread threadNode : pInitialNodes) {
-      CFANodeForThread finalNode = threadNode;
       List<CFAEdgeForThread> finalEdges = new ArrayList<>(threadNode.leavingEdges());
 
       if (threadNode.getCfaNode() instanceof FunctionExitNode functionExitNode) {
@@ -140,10 +139,10 @@ public class CFAForThread {
       }
 
       if (!finalEdges.equals(threadNode.leavingEdges())) {
-        finalNode = threadNode.withLeavingEdges(ImmutableList.copyOf(finalEdges));
+        pFinalNodes.add(threadNode.withLeavingEdges(ImmutableList.copyOf(finalEdges)));
+      } else {
+        pFinalNodes.add(threadNode);
       }
-
-      pFinalNodes.add(finalNode);
       pFinalEdges.addAll(finalEdges);
     }
   }
