@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -24,8 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStateAndPrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationWitnessMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DssBlockStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DssCompositeStatePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DssBlockStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicateStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssSSAVariablePayload;
@@ -39,14 +38,14 @@ public class DssDebugUtilsTest {
   }
 
   private static DssPostConditionMessage postCondition(
-      List<DssStateAndPrecisionPayload> pStates) {
+      ImmutableList<DssStateAndPrecisionPayload> pStates) {
     return new DssPostConditionMessage(
         "B1", AlgorithmStatus.SOUND_AND_PRECISE, ImmutableList.copyOf(pStates));
   }
 
   @Test
   public void summarizeRendersSubtypeSpecificInformation() {
-    DssMessage condition = postCondition(List.of(locationState(1)));
+    DssMessage condition = postCondition(ImmutableList.of(locationState(1)));
     DssMessage result = new DssResultMessage("worker", Result.TRUE);
     DssMessage exception = new DssExceptionMessage("worker", "first line\nsecond line");
     DssMessage witness = new DssViolationWitnessMessage("worker", SegmentedPaths.EMPTY);
@@ -64,13 +63,11 @@ public class DssDebugUtilsTest {
   public void describeRendersNestedPayloadsAndOmitsNoPrecision() {
     DssPredicateStatePayload predicateState =
         new DssPredicateStatePayload(
-            "x == 0",
-            ImmutableMap.of("x", new DssSSAVariablePayload(3, "int")),
-            "pts-1",
-            "x == 0");
+            "x == 0", ImmutableMap.of("x", new DssSSAVariablePayload(3, "int")), "pts-1", "x == 0");
     DssMessage message =
         postCondition(
-            List.of(new DssStateAndPrecisionPayload(predicateState, DssNoPrecisionPayload.INSTANCE)));
+            ImmutableList.of(
+                new DssStateAndPrecisionPayload(predicateState, DssNoPrecisionPayload.INSTANCE)));
 
     String description = DssDebugUtils.describe(message);
 
@@ -88,10 +85,9 @@ public class DssDebugUtilsTest {
     DssMessage result = new DssResultMessage("worker", Result.FALSE);
     DssMessage blockMessage =
         postCondition(
-            List.of(
+            ImmutableList.of(
                 new DssStateAndPrecisionPayload(
-                    new DssBlockStatePayload(
-                        "unique-id", "block-1", "", ImmutableList.of()),
+                    new DssBlockStatePayload("unique-id", "block-1", "", ImmutableList.of()),
                     DssNoPrecisionPayload.INSTANCE)));
 
     String resultDescription = DssDebugUtils.describe(result);
@@ -108,7 +104,8 @@ public class DssDebugUtilsTest {
     String table =
         DssDebugUtils.messageTable(
             ImmutableList.<DssMessage>of(
-                new DssResultMessage("worker", Result.TRUE), postCondition(List.of(locationState(1)))));
+                new DssResultMessage("worker", Result.TRUE),
+                postCondition(ImmutableList.of(locationState(1)))));
 
     assertThat(table).contains("RESULT");
     assertThat(table).contains("POST_CONDITION");
@@ -118,9 +115,9 @@ public class DssDebugUtilsTest {
   }
 
   @Test
-  public void diffReportsNestedStateChangesAndListLengthChanges() {
-    DssMessage left = postCondition(List.of(locationState(1)));
-    DssMessage right = postCondition(List.of(locationState(2), locationState(3)));
+  public void diffReportsNestedStateChangesAndImmutableListLengthChanges() {
+    DssMessage left = postCondition(ImmutableList.of(locationState(1)));
+    DssMessage right = postCondition(ImmutableList.of(locationState(2), locationState(3)));
 
     String diff = DssDebugUtils.diff(left, right);
 
@@ -134,7 +131,7 @@ public class DssDebugUtilsTest {
 
   @Test
   public void diffReportsEqualPayloadsAsEqual() {
-    DssMessage message = postCondition(List.of(locationState(1)));
+    DssMessage message = postCondition(ImmutableList.of(locationState(1)));
 
     String diff = DssDebugUtils.diff(message, message);
 
@@ -155,7 +152,7 @@ public class DssDebugUtilsTest {
                     predicateState)),
             DssNoPrecisionPayload.INSTANCE);
 
-    String description = DssDebugUtils.describe(postCondition(List.of(composite)));
+    String description = DssDebugUtils.describe(postCondition(ImmutableList.of(composite)));
 
     assertThat(description).contains("compositeState");
     assertThat(description).contains("components.[locationState].nodeId");
