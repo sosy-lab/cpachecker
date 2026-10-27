@@ -12,9 +12,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -33,18 +35,19 @@ public class SubstituteEdge {
 
   private final CFAEdgeForThread threadEdge;
 
-  public final ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs;
+  private final ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs;
 
-  public final ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes;
+  private final ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes;
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  private final ImmutableSet<SeqPointerAssignment> pointerAssignments;
+  /** An edge can have either 0 or 1 pointer assignment / write, hence {@link Optional}. */
+  private final Optional<SeqPointerAssignment> pointerAssignment;
 
   // POINTER DEREFERENCES ==========================================================================
 
   /** The set of accessed pointer dereferences i.e. reads and writes. */
-  final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
+  private final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
 
   /** The set of read pointer dereferences including reads, e.g. {@code var = 42 + *ptr;} */
   private final ImmutableSet<SeqMemoryLocation> readPointerDereferences;
@@ -55,7 +58,7 @@ public class SubstituteEdge {
   // MEMORY LOCATIONS ==============================================================================
 
   /** The set of global variable declarations that this edge accesses. */
-  final ImmutableSet<SeqMemoryLocation> accessedMemoryLocations;
+  private final ImmutableSet<SeqMemoryLocation> accessedMemoryLocations;
 
   private final ImmutableSet<SeqMemoryLocation> readMemoryLocations;
 
@@ -66,16 +69,12 @@ public class SubstituteEdge {
       CFAEdgeForThread pThreadEdge,
       ImmutableSet<CVariableDeclaration> pAccessedMainFunctionArgs,
       ImmutableListMultimap<CParameterDeclaration, CIdExpression> pParameterSubstitutes,
-      ImmutableSet<SeqPointerAssignment> pPointerAssignments,
+      Optional<SeqPointerAssignment> pPointerAssignment,
       ImmutableSet<SeqMemoryLocation> pAccessedPointerDereferences,
       ImmutableSet<SeqMemoryLocation> pWrittenPointerDereferences,
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
       ImmutableSet<SeqMemoryLocation> pWrittenMemoryLocations) {
 
-    // TODO maybe make it an optional single entry then? ...
-    checkArgument(
-        pPointerAssignments.size() <= 1,
-        "a single edge can have either 0 or 1 pointer assignments");
     checkArgument(
         pCfaEdge.equals(pThreadEdge.cfaEdge), "pCfaEdge and pThreadEdge cfaEdge must match");
 
@@ -85,7 +84,7 @@ public class SubstituteEdge {
     accessedMainFunctionArgs = pAccessedMainFunctionArgs;
 
     parameterSubstitutes = pParameterSubstitutes;
-    pointerAssignments = pPointerAssignments;
+    pointerAssignment = pPointerAssignment;
 
     accessedPointerDereferences = pAccessedPointerDereferences;
     writtenPointerDereferences = pWrittenPointerDereferences;
@@ -105,7 +104,7 @@ public class SubstituteEdge {
         pThreadEdge,
         ImmutableSet.of(),
         ImmutableListMultimap.of(),
-        ImmutableSet.of(),
+        Optional.empty(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
@@ -134,21 +133,24 @@ public class SubstituteEdge {
                 .collect(
                     ImmutableListMultimap.toImmutableListMultimap(Entry::getKey, Entry::getValue))
             : ImmutableListMultimap.of();
+    ImmutableSet<SeqPointerAssignment> pointerAssignments = pTracker.getPointerAssignments();
 
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
         parameterSubstitutes,
-        pTracker.getPointerAssignments(),
+        pointerAssignments.isEmpty()
+            ? Optional.empty()
+            : Optional.of(Iterables.getOnlyElement(pTracker.getPointerAssignments())),
         SubstituteUtil.getPointerDereferencesByAccessType(pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getPointerDereferencesByAccessType(pTracker, SeqMemoryAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(pTracker, SeqMemoryAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(pTracker, SeqMemoryAccessType.WRITE));
   }
 
-  public ImmutableSet<SeqPointerAssignment> getPointerAssignments() {
-    return pointerAssignments;
+  public Optional<SeqPointerAssignment> getPointerAssignment() {
+    return pointerAssignment;
   }
 
   public ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(

@@ -102,16 +102,12 @@ public class SeqNameUtil {
   }
 
   public static String buildStartRoutineArgName(
-      MPOROptions pOptions,
-      // TODO make name (String) parameter directly
-      CParameterDeclaration pStartRoutineArgDeclaration,
-      int pThreadId,
-      String pFunctionName) {
+      MPOROptions pOptions, String pStartRoutineArgName, int pThreadId, String pFunctionName) {
 
     String startPrefix = pOptions.shortVariableNames() ? "S" : "START_ROUTINE_ARG";
     String threadPrefix = buildThreadPrefix(pOptions, pThreadId);
     return Joiner.on(STRING_SEPARATOR)
-        .join(startPrefix, pFunctionName, threadPrefix, pStartRoutineArgDeclaration.getName());
+        .join(startPrefix, pFunctionName, threadPrefix, pStartRoutineArgName);
   }
 
   public static String buildStartRoutineExitVariableName(MPOROptions pOptions, int pThreadId) {

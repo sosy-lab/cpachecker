@@ -365,7 +365,7 @@ public record MPORSubstitutionBuilder(
           String substituteName =
               SeqNameUtil.buildStartRoutineArgName(
                   options,
-                  parameterDeclaration,
+                  parameterDeclaration.getName(),
                   pCreatedThread.id(),
                   startRoutineDeclaration.getOrigName());
           CVariableDeclaration substituteParameterDeclaration =

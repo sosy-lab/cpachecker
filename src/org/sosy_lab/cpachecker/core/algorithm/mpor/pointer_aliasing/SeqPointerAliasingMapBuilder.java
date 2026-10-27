@@ -40,7 +40,9 @@ public record SeqPointerAliasingMapBuilder(
   public SeqPointerAliasingMap buildPointerAliasingMap() throws UnsupportedCodeException {
     ImmutableSet<SeqPointerAssignment> pointerAssignments =
         substituteEdges.stream()
-            .flatMap(edge -> edge.getPointerAssignments().stream())
+            .map(SubstituteEdge::getPointerAssignment)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
             .collect(ImmutableSet.toImmutableSet());
 
     ImmutableSet<SeqPointerAssignment> pointerParameterAssignments =
