@@ -779,7 +779,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     iterationFormula = iterationFormula.withCurrVarsWrapped(EMPTY_PREFIX, CURR2_KEYWORD);
 
     // I(x__CURR), the supporting invariants hold in the state where the iteration starts
-    BooleanFormula supportingInvariants = getSupportingInvariants(pLocation);
+    BooleanFormula candidateSupportingInvariants = getSupportingInvariants(pLocation);
 
     try {
       // Check I(x__CURR) and Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
@@ -789,13 +789,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       return solver.implies(
               bfmgr.and(
                   firstStepInTransInv,
-                  supportingInvariants,
+                  candidateSupportingInvariants,
                   iterationFormula.getFormula(),
                   buildFrameCondition(secondStepInTransInv, iterationFormula)),
               secondStepInTransInv)
           && solver.implies(
               bfmgr.and(
-                  supportingInvariants,
+                  candidateSupportingInvariants,
                   iterationFormula.getFormula(),
                   buildFrameCondition(candidateTransitionInvariant.getFormula(), iterationFormula)),
               candidateTransitionInvariant.getFormula());

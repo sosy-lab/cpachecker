@@ -5760,7 +5760,7 @@ termination.config = no default value
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
 
-# export supporting invariants in the witness. Only the supporting invariants
+# Export supporting invariants in the witness. Only the supporting invariants
 # that are proven to be invariants of the program are exported.
 termination.exportSupportingInvariantsInWitness = true
 
@@ -5820,7 +5820,7 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
 
-# wall-time limit for checking whether the supporting invariants are
+# Wall-time limit for checking whether the supporting invariants are
 # invariants of the program before they are exported into the witness. The
 # limit is for all supporting invariants together (0 means no limit).
 termination.supportingInvariantsCheckTimeLimit = 60s
