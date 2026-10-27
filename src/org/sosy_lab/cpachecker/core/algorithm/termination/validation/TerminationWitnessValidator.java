@@ -325,8 +325,7 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants) {
     return !pLoopsToSupportingInvariants.keys().isEmpty();
   }
-
-  /** Collects the declarations of the __PREV variables of all transition invariants. */
+  
   /**
    * Sets the scope and the well-foundedness checker for the given loop. The scope has the variables
    * in scope at the loop head, whose names without the function are distinct, also for variables
