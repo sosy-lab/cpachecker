@@ -208,7 +208,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     SeqCallContext callContext =
         MPORThreadUtil.getCallContextOrStartRoutineCall(pCallContext, pStartRoutineCall);
-    // if node was visited in this context already, return
+    // If this node was visited in this context already, return to prevent infinite recursion.
     if (pVisitedCfaNodes.containsKey(pCurrentNode)) {
       if (pVisitedCfaNodes.get(pCurrentNode).contains(callContext)) {
         return;
@@ -216,14 +216,16 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     }
     pVisitedCfaNodes.put(pCurrentNode, callContext);
 
-    // all leaving edges of a node are in the atomic block
+    // The block types for the leaving edges are the same as in this node.
     ImmutableMultimap<CFAEdgeForThread, CFAEdge> threadEdges =
         buildThreadEdgesFromCfaEdges(pThreadId, pCurrentNode, callContext, pVisitedInitRoutines);
     pThreadEdges.putAll(threadEdges.entries());
     List<CFAEdgeForThread> edgeList = new ArrayList<>(threadEdges.keySet());
 
-    // recursively build cfa nodes and edges
-    if (threadEdges.isEmpty()) {
+    // Recursively build nodes and edges.
+    // The exit nodes of init_routines from pthread_once do not have any leaving edges, but they do
+    // not terminate the thread because their leaving edges are added later in CFA post-processing.
+    if (threadEdges.isEmpty() && !pVisitedInitRoutines.containsKey(pCallContext)) {
       pThreadNodes.add(
           new CFANodeForThread(
               pThreadId,
@@ -231,7 +233,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               SeqProgramCounterVariables.EXIT_PC,
               callContext,
               edgeList,
-              // thread exits are never in any block
+              // Thread exits are never in any block.
               ImmutableSet.of()));
     } else {
       pThreadNodes.add(
@@ -243,10 +245,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               edgeList,
               pBlockTypes.columnKeySet()));
       for (CFAEdge cfaEdge : threadEdges.values()) {
-        // exclude CFunctionReturnEdges in the search, their successors may be in other threads.
-        // the original, same-thread successor is included due to the CFunctionSummaryEdge.
+        // Exclude CFunctionReturnEdges in the search, their successors may be in other threads.
+        // The original, same-thread successor is included due to the CFunctionSummaryEdge.
         if (!(cfaEdge instanceof CFunctionReturnEdge)) {
-          // update the calling context, if a function call is encountered
+          // Update the call context, if a function call is encountered.
           if (cfaEdge instanceof CFunctionCallEdge) {
             Optional<CFAEdgeForThread> callContextEdge =
                 Optional.ofNullable(
