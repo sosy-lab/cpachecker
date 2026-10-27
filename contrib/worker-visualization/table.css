@@ -782,6 +782,18 @@ body {
     background: #faf5ff;
 }
 
+.message-card.correctness-witness,
+.timeline-message-card.correctness-witness {
+    border-left-color: #8e44ad;
+    background: #faf5ff;
+}
+
+.message-card.violation-witness,
+.timeline-message-card.violation-witness {
+    border-left-color: #6c3483;
+    background: #f8f0fc;
+}
+
 .message-card.exception,
 .timeline-message-card.exception {
     border-left-color: #c0392b;
@@ -867,6 +879,11 @@ body {
     background: #7d3c98;
 }
 
+.type-badge.correctness-witness,
+.type-badge.violation-witness {
+    background: #7d3c98;
+}
+
 .type-badge.exception {
     background: #922b21;
 }
@@ -879,6 +896,17 @@ body {
     background: white;
     color: #555;
     border: 1px solid #d0d0d0;
+}
+
+.status-badge {
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 0.68em;
+    font-weight: 500;
+    white-space: nowrap;
+    color: #34495e;
+    background: #ecf0f1;
+    border: 1px solid #d5dbdb;
 }
 
 .card-flow {
@@ -939,6 +967,7 @@ body {
 
 .kv-table th,
 .kv-table td,
+.state-table th,
 .state-table td {
     border: 1px solid #ececec;
     padding: 3px 6px;
@@ -946,6 +975,11 @@ body {
     vertical-align: top;
     word-break: break-word;
     overflow-wrap: anywhere;
+}
+
+.state-table th {
+    background: #f2f4f6;
+    font-weight: 600;
 }
 
 .kv-table th {
@@ -956,6 +990,60 @@ body {
 
 .state-block {
     margin-top: 8px;
+}
+
+.component-group {
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px solid #dfe6e9;
+    border-radius: 4px;
+    background: #f8fafb;
+}
+
+.component-group-title {
+    color: #2c3e50;
+    font-size: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.25px;
+    text-transform: uppercase;
+}
+
+.component-children {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.component-section {
+    min-width: 0;
+    border: 1px solid #e1e7ea;
+    border-radius: 4px;
+    background: white;
+}
+
+.component-summary {
+    padding: 6px 8px;
+    cursor: pointer;
+    color: #34495e;
+    font-size: 0.75em;
+    font-weight: 700;
+    user-select: none;
+}
+
+.component-summary:hover {
+    background: #f2f6f8;
+}
+
+.component-section .state-table {
+    margin: 0 6px 6px;
+    width: calc(100% - 12px);
+}
+
+.component-summary-hint {
+    color: #7f8c8d;
+    font-weight: 400;
+    text-transform: none;
 }
 
 .state-title {

@@ -37,18 +37,27 @@ lights up the sender and the edges the message travels along, so a
 back-and-forth between two blocks becomes visible as a pattern. `▶` replays
 automatically, the arrow keys step by hand.
 
-Every message is rendered as a card that shows
+Every typed message is rendered as a card that shows
 
-* the message type (post condition, violation condition, result, witness,
-  exception) and the blocks it travels from and to,
-* the decoded content: the flat `state<i>.<CPA>.<field>` key space of a message
-  is regrouped per contained abstract state and per CPA, machine-only blobs
-  (such as the serialized pointer-target set) are elided, and the serialized
-  `BlockState` is expanded into its block id, its block-graph history and the
-  size of its witness,
+* the message type (including separate correctness and violation witnesses)
+  and the blocks it travels from and to,
+* the message metadata: status flags, result, witness subtype, exception text,
+  and post-condition reachability information,
+* the decoded content: nested state and precision payloads are displayed by
+  component and field; composite states are unfolded into component sections
+  with compact summaries, machine-only blobs (such as the serialized
+  pointer-target set) are elided, and `BlockState` is expanded into its block
+  id, block-graph history, and witness-segment count,
 * what changed with respect to the previous message of the same type from the
   same block, with the old and the new value side by side, and
-* a **repeat** badge if the content is byte-identical to that previous message.
+* a **repeat** badge if the semantic payload is identical to that previous
+  message (timestamps and run headers are ignored).
+
+The visualizer consumes the typed JSON format written by
+`DssMessageJsonUtils`. Message types are represented by the top-level `type`
+field (`postCondition`, `violationCondition`, `result`, `exception`,
+`correctnessWitness`, or `violationWitness`); state and precision data are
+stored as nested objects rather than the former flat content key space.
 
 The columns of the table view are necessarily narrow, so every card carries a
 `⤢` button (or double-click its header) that opens the decoded content in a

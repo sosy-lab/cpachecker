@@ -14,17 +14,12 @@ Worker Log Visualization Tool
 Transforms the messages exported by the ``DssVisualizationWorker`` of the
 distributed-summary-synthesis (DSS) algorithm into an interactive HTML report.
 
-The exported messages are flat JSON maps of the shape::
-
-    {"header":  {"senderId": ..., "messageType": ..., "timestamp": ..., "identifier": ...},
-     "content": {"states": "2",
-                 "status.sound": "true",
-                 "state0.<fully.qualified.CpaState>.<field>": ...}}
-
-This script regroups that key space per contained abstract state and per CPA,
-decodes the serialized ``BlockState`` (block id, block-graph history, witness),
-elides machine-only blobs, and marks messages that repeat the content a block
-has already sent -- the usual symptom of a fixpoint that is not reached.
+The exported messages use the typed JSON representation from
+``DssMessageJsonUtils``.  State and precision payloads are nested records,
+which lets this script display their structure directly instead of rebuilding
+it from a flat key space.  Machine-only blobs are elided, and messages that
+repeat the semantic payload a block has already sent are marked -- the usual
+symptom of a fixpoint that is not reached.
 """
 
 import argparse
@@ -43,21 +38,43 @@ import pydot
 
 ENCODING = "UTF-8"
 
-#: All message types the Java side can emit (``DssMessage.DssMessageType``).
+#: All message types the Java side can emit in the JSON representation.
 MESSAGE_TYPES = (
     "POST_CONDITION",
     "VIOLATION_CONDITION",
+    "CORRECTNESS_WITNESS",
+    "VIOLATION_WITNESS",
     "RESULT",
-    "WITNESS",
     "EXCEPTION",
+    "UNKNOWN",
 )
+
+WIRE_TYPES = {
+    "postCondition": "POST_CONDITION",
+    "violationCondition": "VIOLATION_CONDITION",
+    "correctnessWitness": "CORRECTNESS_WITNESS",
+    "violationWitness": "VIOLATION_WITNESS",
+    "result": "RESULT",
+    "exception": "EXCEPTION",
+}
+
+TYPE_LABELS = {
+    "POST_CONDITION": "post condition",
+    "VIOLATION_CONDITION": "violation condition",
+    "CORRECTNESS_WITNESS": "correctness witness",
+    "VIOLATION_WITNESS": "violation witness",
+    "RESULT": "result",
+    "EXCEPTION": "exception",
+    "UNKNOWN": "unknown message",
+}
 
 #: Message type -> CSS modifier class.
 TYPE_TO_CSS_CLASS = {
     "POST_CONDITION": "post-condition",
     "VIOLATION_CONDITION": "violation-condition",
+    "CORRECTNESS_WITNESS": "correctness-witness",
+    "VIOLATION_WITNESS": "violation-witness",
     "RESULT": "result",
-    "WITNESS": "witness",
     "EXCEPTION": "exception",
 }
 
@@ -65,20 +82,17 @@ TYPE_TO_CSS_CLASS = {
 TYPE_TO_ARROW = {
     "POST_CONDITION": "&darr;",
     "VIOLATION_CONDITION": "&uarr;",
+    "CORRECTNESS_WITNESS": "&#9679;",
+    "VIOLATION_WITNESS": "&#9679;",
     "RESULT": "&#9679;",
-    "WITNESS": "&#9679;",
     "EXCEPTION": "&#9888;",
 }
 
 #: Content fields that only a machine can read; never worth showing.
-OPAQUE_FIELDS = frozenset({"pts"})
+OPAQUE_FIELDS = frozenset({"pts", "pointerTargetSet"})
 
 #: Values longer than this are abbreviated in the rendered content.
 MAX_VALUE_LENGTH = 400
-
-#: ``state<index>.`` prefix of a content key.
-STATE_KEY_PATTERN = re.compile(r"^state(\d+)\.(.*)$")
-
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -119,8 +133,8 @@ class Message:
     identifier: str
     sender: str
     message_type: str
-    timestamp_ns: int
-    content: dict[str, str]
+    timestamp_ns: int | None
+    payload: dict[str, Any]
 
     # Derived, filled in by ``analyze_messages``.
     relative_ms: float = 0.0
@@ -135,64 +149,56 @@ class Message:
 
     @property
     def state_count(self) -> int:
-        try:
-            return int(self.content.get("states", "0"))
-        except ValueError:
-            return 0
+        states = self.payload.get("states", [])
+        return len(states) if isinstance(states, list) else 0
+
+    @property
+    def type_label(self) -> str:
+        if self.message_type == "UNKNOWN":
+            return f"unknown ({self.payload.get('type', 'message')})"
+        return TYPE_LABELS.get(self.message_type, self.message_type.lower())
+
+    @property
+    def timestamp_label(self) -> str:
+        return str(self.timestamp_ns) if self.timestamp_ns is not None else "unknown"
+
+    @property
+    def semantic_payload(self) -> dict[str, Any]:
+        """Payload fields that describe the message, excluding volatile headers."""
+        return {
+            key: value
+            for key, value in self.payload.items()
+            if key not in {"header", "type"}
+        }
 
     @classmethod
     def from_json(cls, file_name: str, data: dict[str, Any]) -> "Message | None":
         header = data.get("header")
-        content = data.get("content")
-        if not isinstance(header, dict) or not isinstance(content, dict):
+        wire_type = data.get("type")
+        if not isinstance(header, dict) or not isinstance(wire_type, str):
             print(f"WARNING: {file_name} is not a DSS message", file=sys.stderr)
             return None
+        timestamp_value = header.get("timestamp")
         try:
-            timestamp = int(header["timestamp"])
-        except (KeyError, ValueError):
+            timestamp = int(timestamp_value) if timestamp_value is not None else None
+        except (TypeError, ValueError):
             print(f"WARNING: {file_name} has no usable timestamp", file=sys.stderr)
-            return None
-        message_type = header.get("messageType", "UNKNOWN")
-        if message_type not in MESSAGE_TYPES:
+            timestamp = None
+        message_type = WIRE_TYPES.get(wire_type, "UNKNOWN")
+        if message_type == "UNKNOWN":
             print(
-                f"WARNING: {file_name} has unknown message type {message_type!r}",
+                f"WARNING: {file_name} has unknown message type {wire_type!r}",
                 file=sys.stderr,
             )
         return cls(
             file_name=file_name,
             sequence=sequence_number(file_name),
-            identifier=header.get("identifier", "UNKNOWN"),
-            sender=header.get("senderId", "UNKNOWN"),
+            identifier=str(header.get("identifier", "UNKNOWN")),
+            sender=str(header.get("senderId", "UNKNOWN")),
             message_type=message_type,
             timestamp_ns=timestamp,
-            content=dict(content),
+            payload=dict(data),
         )
-
-
-@dataclass(frozen=True)
-class ContentKey:
-    """A content key of the shape ``state<index>.<package>.<Component>.<field>``."""
-
-    index: int
-    component: str
-    field_name: str
-
-    @classmethod
-    def parse(cls, key: str) -> "ContentKey | None":
-        match = STATE_KEY_PATTERN.match(key)
-        if not match:
-            return None
-        segments = match.group(2).split(".")
-        # The component is the first segment starting with an upper-case letter:
-        # everything before it is the package, everything after it is the field.
-        for position, segment in enumerate(segments[:-1]):
-            if segment[:1].isupper():
-                return cls(
-                    index=int(match.group(1)),
-                    component=segment,
-                    field_name=".".join(segments[position + 1 :]),
-                )
-        return cls(index=int(match.group(1)), component="?", field_name=match.group(2))
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +260,7 @@ def load_messages(message_dir: Path) -> list[Message]:
         message = Message.from_json(json_file.name, data)
         if message is not None:
             messages.append(message)
-    messages.sort(key=lambda m: (m.timestamp_ns, m.sequence))
+    messages.sort(key=lambda m: (m.timestamp_ns is None, m.timestamp_ns or 0, m.sequence))
     return messages
 
 
@@ -281,7 +287,14 @@ def select_run(messages: list[Message], requested_run: str | None) -> list[Messa
             return []
         selected = requested_run
     else:
-        selected = max(runs, key=lambda run: runs[run][-1].timestamp_ns)
+        selected = max(
+            runs,
+            key=lambda run: (
+                runs[run][-1].timestamp_ns is not None,
+                runs[run][-1].timestamp_ns or 0,
+                runs[run][-1].sequence,
+            ),
+        )
 
     if len(runs) > 1:
         others = ", ".join(
@@ -321,10 +334,20 @@ def describe_runs(messages: list[Message]) -> str:
     for message in messages:
         runs[message.identifier].append(message)
     lines = ["identifier          messages  duration  types"]
-    for identifier, run in sorted(runs.items(), key=lambda kv: kv[1][-1].timestamp_ns):
-        duration_ms = (run[-1].timestamp_ns - run[0].timestamp_ns) / 1e6
+    for identifier, run in sorted(
+        runs.items(),
+        key=lambda kv: (
+            kv[1][-1].timestamp_ns is not None,
+            kv[1][-1].timestamp_ns or 0,
+            kv[1][-1].sequence,
+        ),
+    ):
+        duration_ms = message_duration_ms(run)
         types = Counter(m.message_type for m in run)
-        summary = ", ".join(f"{count}x{name}" for name, count in types.most_common())
+        summary = ", ".join(
+            f"{count}x{TYPE_LABELS.get(name, name.lower())}"
+            for name, count in types.most_common()
+        )
         lines.append(
             f"{identifier:<18}  {len(run):>8}  {duration_ms:>7.1f}ms  {summary}"
         )
@@ -344,40 +367,69 @@ def analyze_messages(messages: list[Message]) -> None:
     first_timestamp = messages[0].timestamp_ns
     previous: dict[tuple[str, str], Message] = {}
     for message in messages:
-        message.relative_ms = (message.timestamp_ns - first_timestamp) / 1e6
+        if first_timestamp is not None and message.timestamp_ns is not None:
+            message.relative_ms = (message.timestamp_ns - first_timestamp) / 1e6
+        else:
+            message.relative_ms = float(message.sequence - messages[0].sequence)
         key = (message.sender, message.message_type)
         earlier = previous.get(key)
         if earlier is not None:
-            if earlier.content == message.content:
+            if canonical_json(earlier.semantic_payload) == canonical_json(
+                message.semantic_payload
+            ):
                 message.repeats = earlier.label
             else:
-                message.changes = [
-                    (key, earlier.content.get(key), message.content.get(key))
-                    for key in sorted(set(earlier.content) | set(message.content))
-                    if earlier.content.get(key) != message.content.get(key)
-                ]
+                message.changes = semantic_changes(
+                    earlier.semantic_payload, message.semantic_payload
+                )
         previous[key] = message
 
 
 # ---------------------------------------------------------------------------
-# Content decoding
+# Payload decoding
 # ---------------------------------------------------------------------------
 
 
-def decode_block_state(value: str) -> str:
-    """Decode the wire format of a ``BlockState`` (``<id> W:<witness> H:<history>``)."""
-    block_and_rest = value.split(" W:", 1)
-    if len(block_and_rest) != 2:
-        return "<unparsable>"
-    block_id, rest = block_and_rest
-    witness_and_history = rest.split(" H:", 1)
-    witness = witness_and_history[0]
-    history = witness_and_history[1] if len(witness_and_history) == 2 else ""
-    segments = [s for s in witness.split(";") if s]
-    parts = [f"block={block_id}"]
-    parts.append("history=[" + " -> ".join(h for h in history.split(",") if h) + "]")
-    parts.append(f"witnessSegments={len(segments)}")
-    return "  ".join(parts)
+def canonical_json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def flatten_payload(value: Any, path: str = "") -> dict[str, Any]:
+    """Flatten nested payload data into stable paths for repeat diffs."""
+    if isinstance(value, dict):
+        if not value:
+            return {path: value}
+        result: dict[str, Any] = {}
+        for key, child in value.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            result.update(flatten_payload(child, child_path))
+        return result
+    if isinstance(value, list):
+        if not value:
+            return {path: value}
+        result = {}
+        for index, child in enumerate(value):
+            result.update(flatten_payload(child, f"{path}[{index}]"))
+        return result
+    return {path: value}
+
+
+def semantic_changes(
+    earlier: dict[str, Any], current: dict[str, Any]
+) -> list[tuple[str, Any, Any]]:
+    old = flatten_payload(earlier)
+    new = flatten_payload(current)
+    return [
+        (path, old.get(path), new.get(path))
+        for path in sorted(set(old) | set(new))
+        if old.get(path) != new.get(path)
+    ]
+
+
+def message_duration_ms(messages: list[Message]) -> float:
+    if not messages or messages[0].timestamp_ns is None or messages[-1].timestamp_ns is None:
+        return float(max(0, messages[-1].sequence - messages[0].sequence)) if messages else 0.0
+    return (messages[-1].timestamp_ns - messages[0].timestamp_ns) / 1e6
 
 
 def abbreviate(value: str, max_length: int | None = None) -> str:
@@ -388,36 +440,20 @@ def abbreviate(value: str, max_length: int | None = None) -> str:
     return f"{value[:limit]}... <{len(value)} chars total>"
 
 
-def render_value(field_name: str, value: str, has_readable: bool) -> str:
+def render_value(field_name: str, value: Any, has_readable: bool = False) -> str:
     """Render one content value, eliding what cannot be read anyway."""
     if field_name in OPAQUE_FIELDS:
-        return f"<opaque blob, {len(value)} chars, elided>"
-    if has_readable and field_name == "state":
-        return f"<smt2, {len(value)} chars; see 'readable'>"
-    if not value:
+        size = len(value) if isinstance(value, str) else len(canonical_json(value))
+        return f"<opaque blob, {size} chars, elided>"
+    if has_readable and field_name in {"state", "formula"} and isinstance(value, str):
+        return f"<smt2, {len(value)} chars; see 'readableFormula'>"
+    if value is None:
+        return "<absent>"
+    if value == "":
         return "<empty>"
-    return abbreviate(value)
-
-
-def split_content(
-    content: dict[str, str],
-) -> tuple[dict[str, str], dict[int, dict[str, dict[str, str]]]]:
-    """Split a flat content map into message-level meta data and per-state data.
-
-    Returns ``(meta, states)`` where ``states`` maps a state index to a mapping
-    from CPA component name to its fields.
-    """
-    meta: dict[str, str] = {}
-    states: dict[int, dict[str, dict[str, str]]] = defaultdict(
-        lambda: defaultdict(dict)
-    )
-    for key, value in content.items():
-        parsed = ContentKey.parse(key)
-        if parsed is None:
-            meta[key] = value
-        else:
-            states[parsed.index][parsed.component][parsed.field_name] = value
-    return meta, dict(states)
+    if isinstance(value, (dict, list)):
+        value = canonical_json(value)
+    return abbreviate(str(value))
 
 
 # ---------------------------------------------------------------------------
@@ -430,47 +466,202 @@ def esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
-def render_meta_table(meta: dict[str, str]) -> str:
-    if not meta:
-        return ""
-    rows = "".join(
-        f"<tr><th>{esc(key)}</th><td>{esc(abbreviate(value))}</td></tr>"
-        for key, value in sorted(meta.items())
+def pretty_key(key: str) -> str:
+    return re.sub(r"(?<!^)([A-Z])", r" \1", key).replace("_", " ").lower()
+
+
+def format_status(status: dict[str, Any]) -> str:
+    labels = {
+        "sound": ("sound", "unsound"),
+        "precise": ("precise", "imprecise"),
+        "property": ("property checked", "property not checked"),
+    }
+    return " · ".join(
+        labels[key][bool(status[key])]
+        for key in ("sound", "precise", "property")
+        if key in status
     )
-    return f'<table class="kv-table">{rows}</table>'
 
 
-def render_states(states: dict[int, dict[str, dict[str, str]]]) -> str:
-    if not states:
+def render_meta_table(message: Message) -> str:
+    rows = [
+        ("sender", message.sender),
+        ("type", message.type_label),
+        ("timestamp", message.timestamp_label),
+        ("run identifier", message.identifier),
+    ]
+    for key, value in message.semantic_payload.items():
+        if key == "states":
+            continue
+        if key == "status" and isinstance(value, dict):
+            value = format_status(value)
+        rows.append((pretty_key(key), render_value(key, value)))
+    rendered = "".join(
+        f"<tr><th>{esc(key)}</th><td>{esc(value)}</td></tr>"
+        for key, value in rows
+    )
+    return f'<table class="kv-table">{rendered}</table>'
+
+
+def add_nested_rows(
+    rows: list[str],
+    kind: str,
+    component: str,
+    value: Any,
+    path: str = "",
+    has_readable: bool = False,
+) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key == "type":
+                continue
+            child_path = f"{path}.{key}" if path else key
+            add_nested_rows(rows, kind, component, child, child_path, has_readable)
+        return
+    if isinstance(value, list):
+        if not value:
+            rows.append(
+                f'<tr><td class="kind">{esc(kind)}</td><td class="cpa">{esc(component)}</td>'
+                f'<td class="field">{esc(path)}</td><td class="value">&empty;</td></tr>'
+            )
+        for index, child in enumerate(value):
+            child_path = f"{path}[{index}]"
+            add_nested_rows(rows, kind, component, child, child_path, has_readable)
+        return
+    rows.append(
+        f'<tr><td class="kind">{esc(kind)}</td><td class="cpa">{esc(component)}</td>'
+        f'<td class="field">{esc(path)}</td>'
+        f'<td class="value">{esc(render_value(path.rsplit(".", 1)[-1], value, has_readable))}</td></tr>'
+    )
+
+
+def decode_structured_block_state(value: dict[str, Any]) -> str:
+    block_id = value.get("blockId", "<unknown>")
+    history = value.get("history", [])
+    witness = value.get("witness", "")
+    history_text = " -> ".join(str(item) for item in history)
+    witness_count = len([segment for segment in str(witness).split(",") if segment])
+    return (
+        f"block={block_id}  history=[{history_text}]  "
+        f"witnessSegments={witness_count}"
+    )
+
+
+def component_summary(value: dict[str, Any]) -> str:
+    component = value.get("type", "unknown")
+    if component == "blockState":
+        history = value.get("history", [])
+        return (
+            f"block {value.get('blockId', '<unknown>')} · "
+            f"history length {len(history) if isinstance(history, list) else 0}"
+        )
+    if component == "locationState":
+        return f"node {value.get('nodeId', '<unknown>')}"
+    if component == "callstackState":
+        states = value.get("states", [])
+        count = len(states) if isinstance(states, list) else 0
+        return f"{count} frame{'s' if count != 1 else ''}"
+    if component == "functionPointerState":
+        entries = value.get("entries", [])
+        count = len(entries) if isinstance(entries, list) else 0
+        return f"{count} entr{'ies' if count != 1 else 'y'}"
+    if component == "predicateState":
+        formula = "formula available" if value.get("formula") else "no formula"
+        variables = value.get("ssaMap", {})
+        count = len(variables) if isinstance(variables, dict) else 0
+        return f"{formula} · {count} SSA variable{'s' if count != 1 else ''}"
+    if component in {"compositeState", "compositePrecision"}:
+        components = value.get("components", {})
+        count = len(components) if isinstance(components, dict) else 0
+        return f"{count} component{'s' if count != 1 else ''}"
+    return ""
+
+
+def component_open_by_default(component: str) -> bool:
+    return component in {"blockState", "locationState", "callstackState"}
+
+
+def render_component_section(kind: str, value: Any, open_default: bool = False) -> str:
+    if not isinstance(value, dict):
+        rows: list[str] = []
+        add_nested_rows(rows, kind, "?", value)
+        return f'<table class="state-table">{"".join(rows)}</table>'
+
+    component = str(value.get("type", "unknown"))
+    component_label = pretty_key(component)
+    summary = component_summary(value)
+    summary_text = f"{component_label}"
+    if summary:
+        summary_text += f" <span class=\"component-summary-hint\">· {esc(summary)}</span>"
+
+    if component in {"compositeState", "compositePrecision"}:
+        children = value.get("components", {})
+        child_sections = []
+        if isinstance(children, dict):
+            for child in children.values():
+                child_type = child.get("type") if isinstance(child, dict) else "unknown"
+                child_sections.append(
+                    render_component_section(
+                        kind,
+                        child,
+                        open_default=component_open_by_default(str(child_type)),
+                    )
+                )
+        return (
+            f'<section class="component-group {esc(component)}">'
+            f'<div class="component-group-title">{esc(kind)} · {esc(component_label)}'
+            f' <span class="component-summary-hint">· {esc(summary)}</span></div>'
+            f'<div class="component-children">{"".join(child_sections)}</div></section>'
+        )
+
+    rows: list[str] = []
+    has_readable = value.get("readableFormula") is not None
+    fields = {key: child for key, child in value.items() if key != "type"}
+    add_nested_rows(rows, kind, component, fields, has_readable=has_readable)
+    if component == "blockState":
+        rows.append(
+            '<tr class="decoded"><td class="kind">'
+            f"{esc(kind)}</td><td class=\"cpa\">{esc(component)}</td>"
+            '<td class="field">&rarr; decoded</td>'
+            f'<td class="value">{esc(decode_structured_block_state(value))}</td></tr>'
+        )
+    open_attribute = " open" if open_default else ""
+    return (
+        f'<details class="component-section {esc(component)}"{open_attribute}>'
+        f'<summary class="component-summary">{summary_text}</summary>'
+        f'<table class="state-table">{"".join(rows)}</table></details>'
+    )
+
+
+def render_states(states: Any) -> str:
+    if not isinstance(states, list):
         return ""
     blocks = []
-    for index in sorted(states):
-        rows = []
-        for component, fields in states[index].items():
-            has_readable = "readable" in fields
-            for field_name, value in fields.items():
-                rows.append(
-                    f'<tr><td class="cpa">{esc(component)}</td>'
-                    f'<td class="field">{esc(field_name)}</td>'
-                    f'<td class="value">{esc(render_value(field_name, value, has_readable))}</td></tr>'
-                )
-            if component == "BlockState" and "state" in fields:
-                rows.append(
-                    '<tr class="decoded"><td class="cpa"></td>'
-                    '<td class="field">&rarr; decoded</td>'
-                    f'<td class="value">{esc(decode_block_state(fields["state"]))}</td></tr>'
-                )
+    for index, state_entry in enumerate(states):
+        if isinstance(state_entry, dict):
+            state_html = render_component_section("state", state_entry.get("state"), True)
+            precision = state_entry.get("precision")
+            if not (isinstance(precision, dict) and precision.get("type") == "noPrecision"):
+                precision_html = render_component_section("precision", precision, True)
+            else:
+                precision_html = ""
+        else:
+            state_html = ""
+            precision_html = ""
         blocks.append(
             f'<div class="state-block"><div class="state-title">state {index}</div>'
-            f'<table class="state-table">{"".join(rows)}</table></div>'
+            f"{state_html}{precision_html}</div>"
         )
     return "".join(blocks)
 
 
 def render_message_body(message: Message) -> str:
-    """The expandable body of a message card: meta data plus decoded states."""
-    meta, states = split_content(message.content)
-    parts = [render_meta_table(meta), render_states(states), render_changes(message)]
+    """The expandable body of a message card with typed payload sections."""
+    parts = [
+        render_meta_table(message),
+        render_states(message.payload.get("states")),
+        render_changes(message),
+    ]
     return "".join(part for part in parts if part)
 
 
@@ -485,44 +676,29 @@ def render_changes(message: Message) -> str:
         return ""
     rows = []
     for key, old, new in message.changes:
-        parsed = ContentKey.parse(key)
-        field_name = parsed.field_name if parsed else key
+        field_name = key.rsplit(".", 1)[-1]
         rows.append(
-            f'<tr><td class="cpa">{esc(shorten_key(key))}</td>'
+            f'<tr><td class="cpa">{esc(key)}</td>'
             f'<td class="value old">{esc(change_value(field_name, old))}</td>'
             f'<td class="value new">{esc(change_value(field_name, new))}</td></tr>'
         )
-        if parsed is not None and parsed.component == "BlockState":
-            rows.append(
-                '<tr class="decoded"><td class="cpa">&rarr; decoded</td>'
-                f'<td class="value old">{esc(decode_block_state(old or ""))}</td>'
-                f'<td class="value new">{esc(decode_block_state(new or ""))}</td></tr>'
-            )
     return (
         '<div class="changed-keys"><div class="state-title">changed since previous '
-        f"{esc(message.message_type)} of {esc(message.sender)}</div>"
-        f'<table class="state-table"><thead><tr><td class="cpa">key</td>'
+        f"{esc(message.type_label)} of {esc(message.sender)}</div>"
+        f'<table class="state-table"><thead><tr><th class="cpa">field</th>'
         '<td class="value">before</td><td class="value">now</td></tr></thead>'
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 
 
-def change_value(field_name: str, value: str | None) -> str:
+def change_value(field_name: str, value: Any) -> str:
     if value is None:
         return "<absent>"
     if field_name in OPAQUE_FIELDS:
-        return f"<opaque blob, {len(value)} chars, elided>"
-    if not value:
-        return "<empty>"
-    return abbreviate(value, MAX_VALUE_LENGTH // 2)
-
-
-def shorten_key(key: str) -> str:
-    """``state0.org.....BlockState.state`` -> ``state0.BlockState.state``."""
-    parsed = ContentKey.parse(key)
-    if parsed is None:
-        return key
-    return f"state{parsed.index}.{parsed.component}.{parsed.field_name}"
+        size = len(value) if isinstance(value, str) else len(canonical_json(value))
+        return f"<opaque blob, {size} chars, elided>"
+    rendered = render_value(field_name, value)
+    return abbreviate(rendered, MAX_VALUE_LENGTH // 2)
 
 
 def participants(
@@ -549,11 +725,23 @@ def render_message_card(
     block = blocks.get(message.sender)
     tooltip = f"{message.sender}:\n{block.code}" if block else message.sender
     css_class = TYPE_TO_CSS_CLASS.get(message.message_type, "normal")
+    family_class = " witness" if "WITNESS" in message.message_type else ""
     arrow = TYPE_TO_ARROW.get(message.message_type, "-")
 
     badges = [
-        f'<span class="type-badge {css_class}">{esc(message.message_type)}</span>'
+        f'<span class="type-badge {css_class}">{esc(message.type_label)}</span>'
     ]
+    status = message.payload.get("status")
+    if isinstance(status, dict):
+        status_text = format_status(status)
+        badges.append(f'<span class="status-badge">{esc(status_text)}</span>')
+    if "unreachableBlockEnd" in message.payload:
+        state = "unreachable block end" if message.payload["unreachableBlockEnd"] else "reachable block end"
+        badges.append(f'<span class="status-badge">{esc(state)}</span>')
+    if message.message_type == "RESULT":
+        badges.append(f'<span class="status-badge">{esc(message.payload.get("result", "unknown"))}</span>')
+    if message.message_type in {"CORRECTNESS_WITNESS", "VIOLATION_WITNESS"}:
+        badges.append('<span class="status-badge">witness payload</span>')
     if message.repeats:
         badges.append(
             f'<span class="repeat-badge" title="identical content to {esc(message.repeats)}">'
@@ -582,7 +770,7 @@ def render_message_card(
     )
 
     return f"""
-    <div class="{card_class} {css_class}" title="{esc(tooltip)}"
+    <div class="{card_class} {css_class}{family_class}" title="{esc(tooltip)}"
          data-sender="{esc(message.sender)}" data-type="{esc(message.message_type)}"
          data-repeat="{"yes" if message.repeats else "no"}">
         <div class="card-header">
@@ -878,7 +1066,7 @@ def generate_exception_panel(messages: list[Message]) -> str:
         return ""
     items = []
     for message in exceptions:
-        text = message.content.get("exception", "<no exception text>")
+        text = message.payload.get("exception", "<no exception text>")
         first_line = text.splitlines()[0] if text else ""
         items.append(
             f'<details class="exception-item"><summary>{esc(message.sender)} '
@@ -895,7 +1083,7 @@ def generate_stats_panel(messages: list[Message], blocks: dict[str, Block]) -> s
     """Overall counters plus a per-block, per-type breakdown."""
     per_type = Counter(m.message_type for m in messages)
     repeats = sum(1 for m in messages if m.repeats)
-    duration = messages[-1].relative_ms if messages else 0.0
+    duration = message_duration_ms(messages)
 
     cards = [
         ("Messages", len(messages)),
@@ -914,7 +1102,7 @@ def generate_stats_panel(messages: list[Message], blocks: dict[str, Block]) -> s
     for message in messages:
         per_block[message.sender][message.message_type] += 1
 
-    header = "".join(f"<th>{esc(t.replace('_', ' '))}</th>" for t in MESSAGE_TYPES)
+    header = "".join(f"<th>{esc(TYPE_LABELS[t])}</th>" for t in MESSAGE_TYPES)
     body_rows = []
     for sender in sorted(per_block, key=natural_key):
         counts = per_block[sender]
@@ -934,7 +1122,7 @@ def generate_stats_panel(messages: list[Message], blocks: dict[str, Block]) -> s
 def generate_controls() -> str:
     filter_buttons = " ".join(
         f'<button class="filter-btn active" data-filter-type="{t}">'
-        f"{t.replace('_', ' ')}</button>"
+        f"{esc(TYPE_LABELS[t])}</button>"
         for t in MESSAGE_TYPES
     )
     return f"""
