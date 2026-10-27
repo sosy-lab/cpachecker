@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -175,7 +174,7 @@ public class CFAForThread {
   /**
    * Initializes all successor ThreadNodes for each ThreadEdge except CFunctionReturnEdges which are
    * handled in {@link CFAForThread#handleFunctionReturnEdges(int, ImmutableList, ImmutableList,
-   * Map)}.
+   * List, List, ImmutableMap)}
    */
   private static void initSuccessors(
       ImmutableList<CFAEdgeForThread> pThreadEdges, ImmutableList<CFANodeForThread> pThreadNodes) {
