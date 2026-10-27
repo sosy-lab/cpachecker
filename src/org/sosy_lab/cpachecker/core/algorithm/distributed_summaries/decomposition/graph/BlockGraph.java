@@ -178,6 +178,16 @@ public class BlockGraph {
   }
 
   public Map<String, Map<String, Object>> getExportData(CFA cfa) {
+    return getExportData(cfa, null);
+  }
+
+  /**
+   * Like {@link #getExportData(CFA)}, but if {@code pTargetLocations} is given, every block is also
+   * marked with whether it {@link #containsTarget(BlockNode, Set) contains} one of them
+   * ("containsTarget").
+   */
+  public Map<String, Map<String, Object>> getExportData(
+      CFA cfa, @Nullable Set<CFANode> pTargetLocations) {
     Map<String, Map<String, Object>> treeMap = new HashMap<>();
     int minCfaNodeNumber =
         cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().orElseThrow();
@@ -207,9 +217,25 @@ public class BlockGraph {
                   "abstractionLocation",
                   shiftedNodeNumber(
                       n.getViolationConditionLocation().getNodeNumber(), minCfaNodeNumber));
+              if (pTargetLocations != null) {
+                attributes.put("containsTarget", containsTarget(n, pTargetLocations));
+              }
               treeMap.put(n.getId(), attributes);
             });
     return treeMap;
+  }
+
+  /**
+   * Whether one of the edges of {@code pBlock} leads to one of {@code pTargetLocations}. A block
+   * that merely starts at a target location does not contain it: the edge into it belongs to a
+   * predecessor block.
+   *
+   * <p>Only a block that contains a target location can find a violation in its initial analysis.
+   * Without a violation condition, no state of the block is a target state of the block analysis,
+   * so the initial analysis of every other block finds nothing and publishes nothing.
+   */
+  public static boolean containsTarget(BlockNode pBlock, Set<CFANode> pTargetLocations) {
+    return pBlock.getEdges().stream().anyMatch(e -> pTargetLocations.contains(e.getSuccessor()));
   }
 
   // All node IDs are shifted such that they start from 0

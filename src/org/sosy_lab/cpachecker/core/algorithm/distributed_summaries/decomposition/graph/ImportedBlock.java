@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public record ImportedBlock(
     List<String> code,
@@ -19,4 +20,6 @@ public record ImportedBlock(
     List<List<Integer>> edges,
     int abstractionLocation,
     List<String> loopPredecessors,
-    List<String> loopSuccessors) {}
+    List<String> loopSuccessors,
+    // set by the block-graph-only export if a specification was given, see BlockGraph#containsTarget
+    @Nullable Boolean containsTarget) {}

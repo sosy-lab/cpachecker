@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -169,6 +170,33 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     return blockGraph;
   }
 
+  /**
+   * The block graph as exported by {@link DssDecompositionOptions#generateBlockGraphOnly()}. If the
+   * specification has a property, every block is also marked with whether it contains a target
+   * location of the specification (see {@link BlockGraph#containsTarget}). Only those blocks can
+   * find anything in their initial analysis.
+   */
+  private Map<String, Map<String, Object>> exportBlockGraph(BlockGraph pBlockGraph) {
+    if (spec.getSpecificationAutomata().isEmpty()) {
+      logger.log(Level.INFO, "No specification automaton, blocks are not marked with targets.");
+      return pBlockGraph.getExportData(initialCFA);
+    }
+    ImmutableSet<CFANode> targetLocations =
+        new TargetLocationProviderImpl(shutdownManager.getNotifier(), logger, initialCFA)
+            .tryGetAutomatonTargetLocations(initialCFA.getMainFunction(), spec);
+    long targetBlocks =
+        pBlockGraph.getNodes().stream()
+            .filter(b -> BlockGraph.containsTarget(b, targetLocations))
+            .count();
+    logger.logf(
+        Level.INFO,
+        "%d of %d blocks contain one of %d target locations.",
+        targetBlocks,
+        pBlockGraph.getNodes().size(),
+        targetLocations.size());
+    return pBlockGraph.getExportData(initialCFA, targetLocations);
+  }
+
   private Modification modifyBlockGraph(BlockGraph blockGraph) {
     dssStats.getInstrumentationTimer().start();
     Modification modification =
@@ -225,8 +253,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       BlockGraph blockGraph;
       if (decompositionOptions.generateBlockGraphOnly()) {
         blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
-        JSON.writeJSONString(
-            blockGraph.getExportData(initialCFA), decompositionOptions.getBlockCFAFile());
+        JSON.writeJSONString(exportBlockGraph(blockGraph), decompositionOptions.getBlockCFAFile());
         logger.logf(
             Level.INFO, "Block graph exported to %s.", decompositionOptions.getBlockCFAFile());
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
