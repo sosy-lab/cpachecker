@@ -211,15 +211,14 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     }
     pVisitedCfaNodes.put(pCurrentNode, callContext);
 
-    ImmutableList<CFAEdge> leavingCfaEdges = getUpdatedLeavingEdges(pCurrentNode);
     // all leaving edges of a node are in the atomic block
     ImmutableMultimap<CFAEdgeForThread, CFAEdge> threadEdges =
-        buildThreadEdgesFromCfaEdges(pThreadId, leavingCfaEdges, callContext);
+        buildThreadEdgesFromCfaEdges(pThreadId, pCurrentNode, callContext);
     pThreadEdges.putAll(threadEdges.entries());
     List<CFAEdgeForThread> edgeList = new ArrayList<>(threadEdges.keySet());
 
     // recursively build cfa nodes and edges
-    if (leavingCfaEdges.isEmpty()) {
+    if (threadEdges.isEmpty()) {
       pThreadNodes.add(
           new CFANodeForThread(
               pThreadId,
@@ -238,7 +237,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               callContext,
               edgeList,
               pBlockTypes.columnKeySet()));
-      for (CFAEdge cfaEdge : leavingCfaEdges) {
+      for (CFAEdge cfaEdge : threadEdges.values()) {
         // exclude CFunctionReturnEdges in the search, their successors may be in other threads.
         // the original, same-thread successor is included due to the CFunctionSummaryEdge.
         if (!(cfaEdge instanceof CFunctionReturnEdge)) {
@@ -265,54 +264,6 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         }
       }
     }
-  }
-
-  /**
-   * Returns the leaving {@link CFAEdge}s of {@code pCurrentNode}, and optionally updates the edges
-   * with custom semantics.
-   */
-  private ImmutableList<CFAEdge> getUpdatedLeavingEdges(CFANode pCurrentNode)
-      throws UnsupportedCodeException {
-    ImmutableList.Builder<CFAEdge> rEdges = ImmutableList.builder();
-
-    for (CFAEdge edge : pCurrentNode.getAllLeavingEdges()) {
-      // replace the call to pthread_once with a call to the init_routine
-      if (PthreadUtil.isCallToPthreadFunction(edge, PthreadFunctionType.PTHREAD_ONCE)) {
-        CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(edge).orElseThrow();
-        CFunctionDeclaration routineDeclaration =
-            PthreadUtil.extractStartRoutineDeclaration(functionCall);
-        CFunctionEntryNode functionEntryNode =
-            (CFunctionEntryNode) cfa.getFunctionHead(routineDeclaration.getName());
-        CFunctionCall routineCall =
-            PthreadUtil.createStartRoutineFunctionCall(routineDeclaration, Optional.empty());
-
-        // create the injected function edges
-        CFunctionSummaryEdge functionSummaryEdge =
-            new CFunctionSummaryEdge(
-                routineCall.toASTString(),
-                edge.getFileLocation(),
-                pCurrentNode,
-                // the summary edge contains the original call context
-                edge.getSuccessor(),
-                routineCall,
-                functionEntryNode);
-        CFunctionCallEdge functionCallEdge =
-            new CFunctionCallEdge(
-                routineCall.toASTString(),
-                edge.getFileLocation(),
-                pCurrentNode,
-                functionEntryNode,
-                routineCall,
-                functionSummaryEdge);
-
-        rEdges.add(functionSummaryEdge);
-        rEdges.add(functionCallEdge);
-      } else {
-        rEdges.add(edge);
-      }
-    }
-
-    return rEdges.build();
   }
 
   /**
@@ -417,13 +368,51 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   // (Private) Helpers =============================================================================
 
   private ImmutableListMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
-      int pThreadId, ImmutableList<CFAEdge> pCfaEdges, SeqCallContext pCallContext) {
+      int pThreadId, CFANode pCfaNode, SeqCallContext pCallContext)
+      throws UnsupportedCodeException {
 
     // use ImmutableMap to retain insertion order
     ImmutableListMultimap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges =
         ImmutableListMultimap.builder();
-    for (CFAEdge cfaEdge : pCfaEdges) {
-      rThreadEdges.put(new CFAEdgeForThread(pThreadId, cfaEdge, pCallContext), cfaEdge);
+
+    for (CFAEdge edge : pCfaNode.getAllLeavingEdges()) {
+      // replace the call to pthread_once with a call to the init_routine
+      if (PthreadUtil.isCallToPthreadFunction(edge, PthreadFunctionType.PTHREAD_ONCE)) {
+        CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(edge).orElseThrow();
+        CFunctionDeclaration routineDeclaration =
+            PthreadUtil.extractStartRoutineDeclaration(functionCall);
+        CFunctionEntryNode functionEntryNode =
+            (CFunctionEntryNode) cfa.getFunctionHead(routineDeclaration.getName());
+        CFunctionCall routineCall =
+            PthreadUtil.createStartRoutineFunctionCall(routineDeclaration, Optional.empty());
+
+        // create the injected function edges
+        CFunctionSummaryEdge functionSummaryEdge =
+            new CFunctionSummaryEdge(
+                routineCall.toASTString(),
+                edge.getFileLocation(),
+                pCfaNode,
+                // the summary edge contains the original call context
+                edge.getSuccessor(),
+                routineCall,
+                functionEntryNode);
+        CFunctionCallEdge functionCallEdge =
+            new CFunctionCallEdge(
+                routineCall.toASTString(),
+                edge.getFileLocation(),
+                pCfaNode,
+                functionEntryNode,
+                routineCall,
+                functionSummaryEdge);
+
+        rThreadEdges.put(
+            new CFAEdgeForThread(pThreadId, functionSummaryEdge, pCallContext),
+            functionSummaryEdge);
+        rThreadEdges.put(
+            new CFAEdgeForThread(pThreadId, functionCallEdge, pCallContext), functionCallEdge);
+      } else {
+        rThreadEdges.put(new CFAEdgeForThread(pThreadId, edge, pCallContext), edge);
+      }
     }
     return rThreadEdges.build();
   }
