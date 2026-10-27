@@ -58,9 +58,10 @@ public class InputRejection {
 
   enum InputRejectionMessage {
     FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
-    LANGUAGE_NOT_C("MPOR only supports language C", false),
+    LANGUAGE_NOT_C("MPOR only supports language C.", false),
     NOT_CONCURRENT(
-        "MPOR expects concurrent C program with at least one pthread_create call", false),
+        "MPOR expects concurrent C program with at least one pthread_create or pthread_once call.",
+        false),
     DUPLICATE_STRUCT_MEMBER_NAMES(
         "MPOR does not support non unique nested struct member names in line ", true),
     FIELD_MEMBER_NOT_FOUND(
@@ -85,7 +86,7 @@ public class InputRejection {
         "allowPointerWrites is disabled, but the input program contains a pointer write in line ",
         true),
     PTHREAD_CREATE_LOOP(
-        "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
+        "MPOR does not support pthread_create calls in loops (or recursive functions).", false),
     PTHREAD_FUNCTION_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
     PTHREAD_OBJECT_ARRAY(
@@ -106,7 +107,7 @@ public class InputRejection {
 
     public String formatMessage() {
       if (containsLineAndCode) {
-        return message + "%s: %s";
+        return message + "%s: %s.";
       } else {
         return message;
       }
@@ -148,7 +149,9 @@ public class InputRejection {
       Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
       if (functionCall.isPresent()) {
         if (PthreadUtil.isCallToPthreadFunction(
-            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)) {
+                functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)
+            || PthreadUtil.isCallToPthreadFunction(
+                functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_ONCE)) {
           isParallel = true;
           break;
         }
