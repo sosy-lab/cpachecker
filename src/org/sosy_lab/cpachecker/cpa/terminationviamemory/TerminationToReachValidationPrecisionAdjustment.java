@@ -51,7 +51,6 @@ public class TerminationToReachValidationPrecisionAdjustment
   private final PathFormulaManager pthfmgr;
   private final ImmutableSet<ExpressionTreeLocationInvariant> candidateInvariants;
   private final LogManager logger;
-  private final Map<CFANode, BooleanFormula> supportingInvariantsAtLocation = new HashMap<>();
 
   public TerminationToReachValidationPrecisionAdjustment(
       Solver pSolver,
@@ -65,11 +64,63 @@ public class TerminationToReachValidationPrecisionAdjustment
       Configuration pConfiguration,
       ImmutableSet<Loop> pAllLoops,
       ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants)
-      throws InvalidConfigurationException {
-    super(pSolver, pStatistics, plogger, pCFA, pBfmgr, pFmgr, pItpMgr, pConfiguration, pAllLoops);
+      throws InvalidConfigurationException, InterruptedException {
+    super(
+        pSolver,
+        pStatistics,
+        plogger,
+        pCFA,
+        pBfmgr,
+        pFmgr,
+        pItpMgr,
+        pConfiguration,
+        pAllLoops,
+        collectSupportingInvariants(pCandidateInvariants, pFmgr, pPthfmgr, plogger));
     logger = plogger;
     pthfmgr = pPthfmgr;
     candidateInvariants = pCandidateInvariants;
+  }
+
+  /**
+   * Conjoins the (supporting) invariants from the witness at each location. Their variables are
+   * renamed to the variables of the state where the iteration starts. The witness is only used if
+   * these invariants were proven to hold, see {@link TerminationToReachCPA}.
+   */
+  private static ImmutableMap<CFANode, BooleanFormula> collectSupportingInvariants(
+      ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPthfmgr,
+      LogManager pLogger)
+      throws InterruptedException {
+    Map<CFANode, BooleanFormula> invariantsAtLocations = new HashMap<>();
+    for (ExpressionTreeLocationInvariant invariant : pCandidateInvariants) {
+      if (invariant instanceof ExpressionTreeLocationTransitionInvariant
+          || invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
+        continue;
+      }
+      try {
+        invariantsAtLocations.merge(
+            invariant.getLocation(),
+            invariant.getFormula(pFmgr, pPthfmgr, pPthfmgr.makeEmptyPathFormula()),
+            pFmgr.getBooleanFormulaManager()::and);
+      } catch (CPATransferException e) {
+        // Ignoring an invariant only weakens the checks
+        pLogger.logDebugException(e, "Could not convert the supporting invariant " + invariant);
+      }
+    }
+    return ImmutableMap.copyOf(
+        Maps.transformValues(
+            invariantsAtLocations,
+            invariant ->
+                pFmgr.substitute(
+                    invariant,
+                    ImmutableMap.copyOf(
+                        Maps.asMap(
+                            ImmutableSet.copyOf(pFmgr.extractVariables(invariant).values()),
+                            variable ->
+                                pFmgr.makeVariable(
+                                    pFmgr.getFormulaType(variable),
+                                    pFmgr.uninstantiate(variable).toString() + CURR_KEYWORD))))));
   }
 
   /**
@@ -159,48 +210,6 @@ public class TerminationToReachValidationPrecisionAdjustment
         builderTransitionPredicates,
         builderTransitionInvariants,
         result);
-  }
-
-  /**
-   * Conjoins all (supporting) invariants from the witness at the given location. The witness is
-   * only used if these invariants were proven to hold, see {@link TerminationToReachCPA}.
-   */
-  @Override
-  protected BooleanFormula getSupportingInvariants(CFANode pLocation) throws InterruptedException {
-    BooleanFormula cachedInvariant = supportingInvariantsAtLocation.get(pLocation);
-    if (cachedInvariant != null) {
-      return cachedInvariant;
-    }
-    BooleanFormula supportingInvariant = bfmgr.makeTrue();
-    for (ExpressionTreeLocationInvariant invariant : candidateInvariants) {
-      if (invariant instanceof ExpressionTreeLocationTransitionInvariant
-          || !invariant.getLocation().equals(pLocation)
-          || invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
-        continue;
-      }
-      try {
-        supportingInvariant =
-            bfmgr.and(
-                supportingInvariant,
-                invariant.getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula()));
-      } catch (CPATransferException e) {
-        // Ignoring an invariant only weakens the checks
-        logger.logDebugException(e, "Could not convert the supporting invariant " + invariant);
-      }
-    }
-    // Rename the variables to the variables of the state where the iteration starts
-    supportingInvariant =
-        fmgr.substitute(
-            supportingInvariant,
-            ImmutableMap.copyOf(
-                Maps.asMap(
-                    ImmutableSet.copyOf(fmgr.extractVariables(supportingInvariant).values()),
-                    variable ->
-                        fmgr.makeVariable(
-                            fmgr.getFormulaType(variable),
-                            fmgr.uninstantiate(variable).toString() + CURR_KEYWORD))));
-    supportingInvariantsAtLocation.put(pLocation, supportingInvariant);
-    return supportingInvariant;
   }
 
   /**

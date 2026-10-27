@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -68,6 +69,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final CFA cfa;
   private final LogManager logger;
   private final ImmutableSet<Loop> allLoops;
+  private final ImmutableMap<CFANode, BooleanFormula> supportingInvariants;
   private final NestedLoopSummarizer nestedLoopSummarizer;
 
   @Option(
@@ -104,6 +106,35 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       Configuration pConfiguration,
       ImmutableSet<Loop> pAllLoops)
       throws InvalidConfigurationException {
+    this(
+        pSolver,
+        pStatistics,
+        plogger,
+        pCFA,
+        pBfmgr,
+        pFmgr,
+        pItpMgr,
+        pConfiguration,
+        pAllLoops,
+        ImmutableMap.of());
+  }
+
+  /**
+   * @param pSupportingInvariants the supporting invariants at the locations, see {@link
+   *     #getSupportingInvariants}
+   */
+  protected TerminationToReachPrecisionAdjustment(
+      Solver pSolver,
+      TerminationToReachStatistics pStatistics,
+      LogManager plogger,
+      CFA pCFA,
+      BooleanFormulaManagerView pBfmgr,
+      FormulaManagerView pFmgr,
+      InterpolationManager pItpMgr,
+      Configuration pConfiguration,
+      ImmutableSet<Loop> pAllLoops,
+      ImmutableMap<CFANode, BooleanFormula> pSupportingInvariants)
+      throws InvalidConfigurationException {
     pConfiguration.inject(this, TerminationToReachPrecisionAdjustment.class);
     solver = pSolver;
     statistics = pStatistics;
@@ -113,6 +144,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     logger = plogger;
     itpMgr = pItpMgr;
     allLoops = pAllLoops;
+    supportingInvariants = pSupportingInvariants;
     nestedLoopSummarizer = new NestedLoopSummarizer(pFmgr, pBfmgr, pCFA);
   }
 
@@ -684,8 +716,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
    * <p>The supporting invariants have to be proven to hold, since they are used to strengthen the
    * check whether a candidate is a transition invariant.
    */
-  protected BooleanFormula getSupportingInvariants(CFANode pLocation) throws InterruptedException {
-    return bfmgr.makeTrue();
+  private BooleanFormula getSupportingInvariants(CFANode pLocation) {
+    return supportingInvariants.getOrDefault(pLocation, bfmgr.makeTrue());
   }
 
   /**

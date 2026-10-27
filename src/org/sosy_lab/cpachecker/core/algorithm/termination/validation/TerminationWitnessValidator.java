@@ -139,8 +139,7 @@ public class TerminationWitnessValidator implements Algorithm {
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final ImmutableSet<Path> pWitnessPath,
-      final Specification pSpecification)
+      final ImmutableSet<Path> pWitnessPath)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
@@ -325,7 +324,7 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants) {
     return !pLoopsToSupportingInvariants.keys().isEmpty();
   }
-  
+
   /**
    * Sets the scope and the well-foundedness checker for the given loop. The scope has the variables
    * in scope at the loop head, whose names without the function are distinct, also for variables
