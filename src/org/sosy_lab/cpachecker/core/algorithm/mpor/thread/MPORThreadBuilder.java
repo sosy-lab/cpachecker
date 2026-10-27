@@ -29,10 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -285,6 +282,8 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
             PthreadUtil.extractStartRoutineDeclaration(functionCall);
         CFunctionEntryNode functionEntryNode =
             (CFunctionEntryNode) cfa.getFunctionHead(routineDeclaration.getName());
+        CFunctionCall routineCall =
+            PthreadUtil.createStartRoutineFunctionCall(routineDeclaration, Optional.empty());
 
         // create the injected function edges
         CFunctionSummaryEdge functionSummaryEdge =
@@ -294,7 +293,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
                 pCurrentNode,
                 // the summary edge contains the original call context
                 edge.getSuccessor(),
-                functionCall,
+                routineCall,
                 functionEntryNode);
         CFunctionCallEdge functionCallEdge =
             new CFunctionCallEdge(
@@ -302,7 +301,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
                 edge.getFileLocation(),
                 pCurrentNode,
                 functionEntryNode,
-                functionCall,
+                routineCall,
                 functionSummaryEdge);
 
         rEdges.add(functionSummaryEdge);
@@ -360,15 +359,8 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.PTHREAD_ONCE)) {
         CFunctionDeclaration initRoutineDeclaration =
             PthreadUtil.extractStartRoutineDeclaration(call);
-        CFunctionCallExpression initRoutineCallExpression =
-            new CFunctionCallExpression(
-                FileLocation.DUMMY,
-                initRoutineDeclaration.getType(),
-                new CIdExpression(FileLocation.DUMMY, initRoutineDeclaration),
-                ImmutableList.of(),
-                initRoutineDeclaration);
         CFunctionCall initRoutineCall =
-            new CFunctionCallStatement(FileLocation.DUMMY, initRoutineCallExpression);
+            PthreadUtil.createStartRoutineFunctionCall(initRoutineDeclaration, Optional.empty());
         blockTypes.put(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE, initRoutineCall);
       }
     }

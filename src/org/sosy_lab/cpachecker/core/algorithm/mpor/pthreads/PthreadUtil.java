@@ -10,14 +10,17 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -108,6 +111,27 @@ public class PthreadUtil {
   }
 
   // START_ROUTINE =================================================================================
+
+  public static CFunctionCall createStartRoutineFunctionCall(
+      CFunctionDeclaration pStartRoutineDeclaration, Optional<CExpression> pParameter) {
+
+    if (pParameter.isPresent()) {
+      checkArgument(pStartRoutineDeclaration.getType().getParameters().size() == 1);
+    } else {
+      checkArgument(pStartRoutineDeclaration.getType().getParameters().isEmpty());
+    }
+
+    CFunctionCallExpression initRoutineCallExpression =
+        new CFunctionCallExpression(
+            FileLocation.DUMMY,
+            pStartRoutineDeclaration.getType(),
+            new CIdExpression(FileLocation.DUMMY, pStartRoutineDeclaration),
+            pParameter.isPresent()
+                ? ImmutableList.of(pParameter.orElseThrow())
+                : ImmutableList.of(),
+            pStartRoutineDeclaration);
+    return new CFunctionCallStatement(FileLocation.DUMMY, initRoutineCallExpression);
+  }
 
   public static CFunctionDeclaration extractStartRoutineDeclaration(CFunctionCall pFunctionCall)
       throws UnsupportedCodeException {
