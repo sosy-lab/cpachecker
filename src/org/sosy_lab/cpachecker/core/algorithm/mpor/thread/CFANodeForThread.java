@@ -94,6 +94,10 @@ public class CFANodeForThread {
     leavingEdges.remove(pThreadEdge);
   }
 
+  CFANodeForThread withLeavingEdges(ImmutableList<CFAEdgeForThread> pLeavingEdges) {
+    return new CFANodeForThread(threadId, cfaNode, pc, callContext, pLeavingEdges, blockTypes);
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(id, threadId, cfaNode, pc, blockTypes);

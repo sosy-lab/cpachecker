@@ -9,18 +9,23 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -51,7 +56,8 @@ public class CFAForThread {
       FunctionEntryNode pEntryNode,
       ImmutableList<CFANodeForThread> pThreadNodes,
       ImmutableSet<CFANodeForThread> pLoopHeads,
-      ImmutableList<CFAEdgeForThread> pThreadEdges) {
+      ImmutableList<CFAEdgeForThread> pThreadEdges,
+      Map<SeqCallContext, CFunctionSummaryEdge> pVisitedInitRoutines) {
 
     checkArgument(
         pThreadNodes.stream().anyMatch(n -> n.getCfaNode().equals(pEntryNode)),
@@ -61,46 +67,84 @@ public class CFAForThread {
 
     threadId = pThreadId;
     entryNode = pEntryNode;
-    threadNodes = pThreadNodes;
     loopHeads = pLoopHeads;
     threadEdges = pThreadEdges;
-    initPredecessors(threadNodes);
-    initSuccessors(threadEdges, threadNodes);
-    handleFunctionReturnEdges();
+    initPredecessors(pThreadNodes);
+    initSuccessors(threadEdges, pThreadNodes);
+    threadNodes =
+        handleFunctionReturnEdges(pThreadId, pThreadNodes, pThreadEdges, pVisitedInitRoutines);
     nextFreePc = MPORThreadUtil.getHighestPc(threadNodes) + 1;
   }
 
   /**
-   * Initializes successors of CFunctionReturnEdges or prunes them if they lead to another thread.
+   * Initializes {@link FunctionReturnEdge}s and their successors or prunes them if they lead to
+   * another thread, and returns the updated list of {@link CFANodeForThread}.
    */
-  private void handleFunctionReturnEdges() {
-    for (CFANodeForThread threadNode : threadNodes) {
-      if (threadNode.getCfaNode() instanceof FunctionExitNode) {
-        Set<CFAEdgeForThread> prunedEdges = new HashSet<>();
-        for (CFAEdgeForThread threadEdge : threadNode.leavingEdges()) {
-          Optional<CFANodeForThread> returnThreadNode =
-              getReturnThreadNodeByCallContext(
-                  threadEdge.cfaEdge.getSuccessor(), threadEdge.callContext);
-          if (returnThreadNode.isPresent()) {
-            threadEdge.setSuccessor(returnThreadNode.orElseThrow());
-          } else {
-            prunedEdges.add(threadEdge);
+  private static ImmutableList<CFANodeForThread> handleFunctionReturnEdges(
+      int pThreadId,
+      ImmutableList<CFANodeForThread> pThreadNodes,
+      ImmutableList<CFAEdgeForThread> pThreadEdges,
+      Map<SeqCallContext, CFunctionSummaryEdge> pVisitedInitRoutines) {
+
+    ImmutableList.Builder<CFANodeForThread> updatedThreadNodes = ImmutableList.builder();
+
+    for (CFANodeForThread threadNode : pThreadNodes) {
+      if (threadNode.getCfaNode() instanceof FunctionExitNode functionExitNode) {
+
+        // add the missing FunctionReturnEdges after entering the init_routine from pthread_once
+        if (threadNode.leavingEdges().isEmpty()
+            && pVisitedInitRoutines.containsKey(threadNode.callContext)
+            && pVisitedInitRoutines
+                .get(threadNode.callContext)
+                .getFunctionEntry()
+                .equals(functionExitNode.getEntryNode())) {
+          FunctionSummaryEdge functionSummaryEdge =
+              pVisitedInitRoutines.get(threadNode.callContext);
+          FunctionReturnEdge functionReturnEdge =
+              new FunctionReturnEdge(
+                  FileLocation.DUMMY,
+                  functionExitNode,
+                  functionSummaryEdge.getSuccessor(),
+                  functionSummaryEdge);
+          CFAEdgeForThread threadEdge =
+              new CFAEdgeForThread(pThreadId, functionReturnEdge, threadNode.callContext);
+          updatedThreadNodes.add(threadNode.withLeavingEdges(ImmutableList.of(threadEdge)));
+
+        } else {
+          updatedThreadNodes.add(threadNode);
+          Set<CFAEdgeForThread> prunedEdges = new HashSet<>();
+          for (CFAEdgeForThread threadEdge : threadNode.leavingEdges()) {
+            Optional<CFANodeForThread> returnThreadNode =
+                getReturnThreadNodeByCallContext(
+                    threadEdge.cfaEdge.getSuccessor(), threadEdge.callContext, pThreadNodes);
+            if (returnThreadNode.isPresent()) {
+              threadEdge.setSuccessor(returnThreadNode.orElseThrow());
+            } else {
+              prunedEdges.add(threadEdge);
+            }
           }
+          prunedEdges.forEach(p -> pruneEdge(p, pThreadNodes, pThreadEdges));
         }
-        for (CFAEdgeForThread prunedEdge : prunedEdges) {
-          pruneEdge(prunedEdge);
-        }
+      } else {
+        updatedThreadNodes.add(threadNode);
       }
     }
+
+    ImmutableList<CFANodeForThread> rUpdated = updatedThreadNodes.build();
+    checkState(rUpdated.size() == pThreadNodes.size());
+    return rUpdated;
   }
 
-  private void pruneEdge(CFAEdgeForThread pThreadEdge) {
-    checkArgument(threadEdges.contains(pThreadEdge), "pThreadEdge not in threadEdges");
+  private static void pruneEdge(
+      CFAEdgeForThread pThreadEdge,
+      ImmutableList<CFANodeForThread> pThreadNodes,
+      ImmutableList<CFAEdgeForThread> pThreadEdges) {
+    checkArgument(pThreadEdges.contains(pThreadEdge), "pThreadEdge not in threadEdges");
     checkArgument(
         pThreadEdge.cfaEdge instanceof CFunctionReturnEdge,
         "only CFunctionReturnEdges can be pruned");
 
-    for (CFANodeForThread threadNode : threadNodes) {
+    for (CFANodeForThread threadNode : pThreadNodes) {
       if (threadNode.leavingEdges().contains(pThreadEdge)) {
         threadNode.pruneLeavingEdge(pThreadEdge);
       }
@@ -117,7 +161,8 @@ public class CFAForThread {
 
   /**
    * Initializes all successor ThreadNodes for each ThreadEdge except CFunctionReturnEdges which are
-   * handled in {@link CFAForThread#handleFunctionReturnEdges()}.
+   * handled in {@link CFAForThread#handleFunctionReturnEdges(int, ImmutableList, ImmutableList,
+   * Map)}.
    */
   private static void initSuccessors(
       ImmutableList<CFAEdgeForThread> pThreadEdges, ImmutableList<CFANodeForThread> pThreadNodes) {
@@ -149,12 +194,13 @@ public class CFAForThread {
     }
   }
 
-  private Optional<CFANodeForThread> getReturnThreadNodeByCallContext(
-      CFANode pCfaNode, SeqCallContext pCallContext) {
+  private static Optional<CFANodeForThread> getReturnThreadNodeByCallContext(
+      CFANode pCfaNode, SeqCallContext pCallContext, ImmutableList<CFANodeForThread> pThreadNodes) {
 
     // no call context -> return the single thread node corresponding to pCfaNode
     if (pCallContext.cfaEdgeForThread().isEmpty()) {
-      ImmutableSet<CFANodeForThread> threadNodesByCfaNode = getThreadNodesByCfaNode(pCfaNode);
+      ImmutableSet<CFANodeForThread> threadNodesByCfaNode =
+          getThreadNodesByCfaNode(pCfaNode, pThreadNodes);
       return Optional.of(Iterables.getOnlyElement(threadNodesByCfaNode));
     }
 
@@ -163,7 +209,7 @@ public class CFAForThread {
     for (CFAEdgeForThread threadEdge : callNode.leavingEdges()) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
         return getThreadNodeByCfaNodeAndCallContext(
-            functionSummaryEdge.getSuccessor(), threadEdge.callContext);
+            functionSummaryEdge.getSuccessor(), threadEdge.callContext, pThreadNodes);
       }
     }
     return Optional.empty();
@@ -173,16 +219,17 @@ public class CFAForThread {
    * Returns all {@link CFANodeForThread}s associated with {@code pCfaNode}, one for each call
    * context.
    */
-  private ImmutableSet<CFANodeForThread> getThreadNodesByCfaNode(CFANode pCfaNode) {
-    return threadNodes.stream()
+  private static ImmutableSet<CFANodeForThread> getThreadNodesByCfaNode(
+      CFANode pCfaNode, ImmutableList<CFANodeForThread> pThreadNodes) {
+    return pThreadNodes.stream()
         .filter(threadNode -> threadNode.getCfaNode().equals(pCfaNode))
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  private Optional<CFANodeForThread> getThreadNodeByCfaNodeAndCallContext(
-      CFANode pCfaNode, SeqCallContext pCallContext) {
+  private static Optional<CFANodeForThread> getThreadNodeByCfaNodeAndCallContext(
+      CFANode pCfaNode, SeqCallContext pCallContext, ImmutableList<CFANodeForThread> pThreadNodes) {
 
-    for (CFANodeForThread threadNode : threadNodes) {
+    for (CFANodeForThread threadNode : pThreadNodes) {
       if (threadNode.getCfaNode().equals(pCfaNode)) {
         if (threadNode.callContext.equals(pCallContext)) {
           return Optional.of(threadNode);
