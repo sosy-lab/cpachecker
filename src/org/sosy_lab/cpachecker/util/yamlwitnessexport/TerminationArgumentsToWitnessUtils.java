@@ -35,7 +35,9 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -61,35 +63,44 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 public class TerminationArgumentsToWitnessUtils {
 
   /**
-   * Returns the qualified name of the variable with the name of the variable in the input program
-   * at the given node, e.g., main::i for main::i__1, see {@link
-   * AstCfaRelation#getNameInInputProgram}.
+   * Returns the scope of the variables in scope at the given node, in which a name of the input
+   * program refers to the variable in scope, as in the invariants of a witness, and the names of
+   * the variables in CPAchecker without the function are distinct, e.g., i__1.
    */
-  private static String toNameInInputProgram(
-      String pVariable, CFANode pNode, AstCfaRelation pAstCfaRelation) {
-    int nameStart = pVariable.lastIndexOf("::") + 2;
-    if (nameStart < 2) {
-      return pAstCfaRelation.getNameInInputProgram(pNode, pVariable);
-    }
-    return pVariable.substring(0, nameStart)
-        + pAstCfaRelation.getNameInInputProgram(pNode, pVariable.substring(nameStart));
+  private static Scope getScopeAtNode(
+      CProgramScope pProgramScope, CFANode pNode, AstCfaRelation pAstCfaRelation) {
+    return pAstCfaRelation
+        .getVariablesAndParametersInScope(pNode)
+        .map(
+            variables ->
+                pProgramScope.withVariablesInScope(
+                    variables.filter(CSimpleDeclaration.class).toSet()))
+        .orElse(pProgramScope)
+        .withFunctionScope(pNode.getFunctionName());
+  }
+
+  /**
+   * Returns the qualified name with the name in the input program of the variable with the given
+   * qualified name in CPAchecker, e.g., main::i for main::i__1. Other names are returned unchanged.
+   */
+  private static String toNameInInputProgram(String pVariable, Scope pScope) {
+    CSimpleDeclaration variable =
+        pScope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(pVariable));
+    return variable == null ? pVariable : pScope.createScopedNameOf(variable.getOrigName());
   }
 
   /**
    * Returns the name in the input program of a variable of a transition invariant of
    * TerminationToSafety, whose variables of the previous state are wrapped into \at(x, AnyPrev).
    */
-  private static String toNameInTransitionInvariant(
-      String pVariable, CFANode pNode, AstCfaRelation pAstCfaRelation) {
+  private static String toNameInTransitionInvariant(String pVariable, Scope pScope) {
     if (pVariable.startsWith(AT_PREFIX_NON_C) && pVariable.endsWith(ANYPREV_SUFFIX)) {
       String previousVariable =
           pVariable.substring(
               AT_PREFIX_NON_C.length(), pVariable.length() - ANYPREV_SUFFIX.length());
-      return AT_PREFIX_NON_C
-          + toNameInInputProgram(previousVariable, pNode, pAstCfaRelation)
-          + ANYPREV_SUFFIX;
+      return AT_PREFIX_NON_C + toNameInInputProgram(previousVariable, pScope) + ANYPREV_SUFFIX;
     }
-    return toNameInInputProgram(pVariable, pNode, pAstCfaRelation);
+    return toNameInInputProgram(pVariable, pScope);
   }
 
   /**
@@ -168,7 +179,8 @@ public class TerminationArgumentsToWitnessUtils {
       SupportingInvariant pSupportingInvariant,
       CFANode pLoopHead,
       CFAEdge pIncomingLoopEdge,
-      AstCfaRelation pAstCfaRelation) {
+      AstCfaRelation pAstCfaRelation,
+      CProgramScope pProgramScope) {
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
     // This is planned in https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1483
     FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();
@@ -181,12 +193,16 @@ public class TerminationArgumentsToWitnessUtils {
     // Supporting invariant is an object from LassoRanker library, and we do not have a transformer
     // to our CExpression. Maybe in future, we could implement such transformer, however, so far,
     // we did not have problems with just using it as string.
-    CFANode loopStart = getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation);
+    Scope scope =
+        getScopeAtNode(
+            pProgramScope,
+            getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
+            pAstCfaRelation);
     String invariant =
         wrapTheVariablesWithCastToLongLong(
             pSupportingInvariant.toString(),
             pSupportingInvariant.getVariables(),
-            variable -> toNameInInputProgram(variable, loopStart, pAstCfaRelation));
+            variable -> toNameInInputProgram(variable, scope));
     return new InvariantEntry(
         TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
@@ -202,7 +218,8 @@ public class TerminationArgumentsToWitnessUtils {
       Collection<TerminationArgument> pArguments,
       CFANode pLoopHead,
       CFAEdge pIncomingLoopEdge,
-      AstCfaRelation pAstCfaRelation) {
+      AstCfaRelation pAstCfaRelation,
+      CProgramScope pProgramScope) {
     ImmutableList.Builder<String> transitionInvariants = ImmutableList.builder();
 
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
@@ -213,9 +230,12 @@ public class TerminationArgumentsToWitnessUtils {
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
-    CFANode loopStart = getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation);
-    Function<String, String> names =
-        variable -> toNameInInputProgram(variable, loopStart, pAstCfaRelation);
+    Scope scope =
+        getScopeAtNode(
+            pProgramScope,
+            getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
+            pAstCfaRelation);
+    Function<String, String> names = variable -> toNameInInputProgram(variable, scope);
     for (TerminationArgument argument : pArguments) {
       RankingFunction rankingFunction = argument.getRankingFunction();
       if (rankingFunction instanceof LexicographicRankingFunction pLexicographicRankingFunction) {
@@ -301,7 +321,7 @@ public class TerminationArgumentsToWitnessUtils {
       CFA pCFA,
       FormulaManagerView fmgr,
       BooleanFormulaManagerView bfmgr,
-      Scope scope) {
+      CProgramScope scope) {
     Map<FileLocation, InvariantEntry> transitionInvariants = new HashMap<>();
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
     for (AbstractState state :
@@ -331,7 +351,9 @@ public class TerminationArgumentsToWitnessUtils {
                       bfmgr,
                       fmgr,
                       scope,
-                      variable -> toNameInTransitionInvariant(variable, location, astCfaRelation))
+                      variable ->
+                          toNameInTransitionInvariant(
+                              variable, getScopeAtNode(scope, location, astCfaRelation)))
                   .replace(AT_PREFIX_NON_C, AT_PREFIX);
           transitionInvariantAsC =
               TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);

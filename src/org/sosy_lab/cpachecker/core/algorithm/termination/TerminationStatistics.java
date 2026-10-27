@@ -79,6 +79,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -219,6 +220,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   // The CFA of the input program, which the AstCfaRelation refers to. The analysis may work on a
   // copy of it (analysis.algorithm.copyCFA).
   private final CFA originalCfa;
+  private final CProgramScope programScope;
   // The supporting invariants that are invariants of the program, see confirmSupportingInvariants
   private final Set<InvariantEntry> confirmedSupportingInvariants = Sets.newConcurrentHashSet();
 
@@ -238,6 +240,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCFA);
     originalCfa = checkNotNull(pOriginalCfa);
+    programScope = new CProgramScope(pOriginalCfa, pLogger);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
 
@@ -562,7 +565,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
               InvariantEntry supportingInvariantEntry =
                   TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                      supportingInvariant, loopHead, incomingLoopEdge, cfa.getAstCfaRelation());
+                      supportingInvariant,
+                      loopHead,
+                      incomingLoopEdge,
+                      cfa.getAstCfaRelation(),
+                      programScope);
               if (confirmedSupportingInvariants.contains(supportingInvariantEntry)) {
                 entries.add(supportingInvariantEntry);
               }
@@ -576,7 +583,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                     loop, pTerminationArguments.keySet(), pTerminationArguments),
                 loopHead,
                 incomingLoopEdge,
-                cfa.getAstCfaRelation()));
+                cfa.getAstCfaRelation(),
+                programScope));
       }
     }
     return entries.build();
@@ -605,7 +613,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
             supportingInvariants.add(
                 TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                    supportingInvariant, loopHead, incomingLoopEdge, cfa.getAstCfaRelation()));
+                    supportingInvariant,
+                    loopHead,
+                    incomingLoopEdge,
+                    cfa.getAstCfaRelation(),
+                    programScope));
           }
         }
       }
