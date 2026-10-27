@@ -11,16 +11,18 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -166,7 +168,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         threadEdges,
         pEntryNode,
         // at start, there is never any block
-        ImmutableMap.of(),
+        ImmutableTable.of(),
         // at start, use an empty call context
         SeqCallContext.EMPTY,
         pStartRoutineCall);
@@ -197,7 +199,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       ImmutableList.Builder<CFANodeForThread> pThreadNodes,
       ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> pThreadEdges,
       CFANode pCurrentNode,
-      ImmutableMap<BlockType, CFunctionCall> pBlockTypes,
+      ImmutableTable<SeqCallContext, BlockType, CFunctionCall> pBlockTypes,
       SeqCallContext pCallContext,
       final Optional<CFAEdgeForThread> pStartRoutineCall)
       throws UnsupportedCodeException {
@@ -233,7 +235,12 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     } else {
       pThreadNodes.add(
           new CFANodeForThread(
-              pThreadId, pCurrentNode, currentPc++, callContext, edgeList, pBlockTypes.keySet()));
+              pThreadId,
+              pCurrentNode,
+              currentPc++,
+              callContext,
+              edgeList,
+              pBlockTypes.columnKeySet()));
       for (CFAEdge cfaEdge : leavingCfaEdges) {
         // exclude CFunctionReturnEdges in the search, their successors may be in other threads.
         // the original, same-thread successor is included due to the CFunctionSummaryEdge.
@@ -255,7 +262,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               pThreadNodes,
               pThreadEdges,
               cfaEdge.getSuccessor(),
-              updateBlockTypes(cfaEdge, pBlockTypes),
+              updateBlockTypes(cfaEdge, callContext, pBlockTypes),
               callContext,
               pStartRoutineCall);
         }
@@ -310,40 +317,45 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
   /**
    * Updates the {@link BlockType}s so that they are still valid after the given {@link CFAEdge} is
-   * executed. Returns the map of {@link BlockType} to the {@link CFunctionCall} that triggered the
-   * block.
+   * executed. Returns the table mapping call contexts and block types to the {@link CFunctionCall}
+   * that triggered the block. Since the {@link CFunctionCall} may be injected and not present in
+   * the input program, the {@link SeqCallContext} and {@link CFunctionCall} may differ.
    */
-  private ImmutableMap<BlockType, CFunctionCall> updateBlockTypes(
-      CFAEdge pCfaEdge, ImmutableMap<BlockType, CFunctionCall> pCurrentBlockTypes)
+  private ImmutableTable<SeqCallContext, BlockType, CFunctionCall> updateBlockTypes(
+      CFAEdge pCfaEdge,
+      SeqCallContext pCallContext,
+      ImmutableTable<SeqCallContext, BlockType, CFunctionCall> pCurrentBlockTypes)
       throws UnsupportedCodeException {
 
-    // use set so that elements can be removed
-    Map<BlockType, CFunctionCall> blockTypes = new HashMap<>(pCurrentBlockTypes);
+    // Use a mutable table so that elements can be removed.
+    Table<SeqCallContext, BlockType, CFunctionCall> blockTypes =
+        HashBasedTable.create(pCurrentBlockTypes);
 
-    if (pCurrentBlockTypes.containsKey(BlockType.PTHREAD_ONCE_ROUTINE)) {
+    if (blockTypes.contains(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE)) {
       CFunctionDeclaration initRoutineDeclaration =
-          Objects.requireNonNull(pCurrentBlockTypes.get(BlockType.PTHREAD_ONCE_ROUTINE))
+          Objects.requireNonNull(blockTypes.get(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE))
               .getFunctionCallExpression()
               .getDeclaration();
 
       // The pthread_once init_routine is left only if the predecessor equals the declaration.
-      // This excludes the inner functions called inside init_routine from triggering the condition.
+      // This excludes inner functions called inside init_routine from triggering the condition.
       if (pCfaEdge.getPredecessor().getFunction().equals(initRoutineDeclaration)
           && pCfaEdge.getSuccessor() instanceof FunctionExitNode
           // Since the init_routine call was not present in the input, there are no leaving edges.
           && pCfaEdge.getSuccessor().getLeavingEdges().isEmpty()) {
-        blockTypes.remove(BlockType.PTHREAD_ONCE_ROUTINE);
+        blockTypes.remove(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE);
       }
     }
 
     Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(pCfaEdge);
+
     if (functionCall.isPresent()) {
       CFunctionCall call = functionCall.orElseThrow();
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
-        blockTypes.put(BlockType.ATOMIC, call);
+        blockTypes.put(pCallContext, BlockType.ATOMIC, call);
       }
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_END)) {
-        blockTypes.remove(BlockType.ATOMIC);
+        blockTypes.remove(pCallContext, BlockType.ATOMIC);
       }
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.PTHREAD_ONCE)) {
         CFunctionDeclaration initRoutineDeclaration =
@@ -357,11 +369,11 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
                 initRoutineDeclaration);
         CFunctionCall initRoutineCall =
             new CFunctionCallStatement(FileLocation.DUMMY, initRoutineCallExpression);
-        blockTypes.put(BlockType.PTHREAD_ONCE_ROUTINE, initRoutineCall);
+        blockTypes.put(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE, initRoutineCall);
       }
     }
 
-    return ImmutableMap.copyOf(blockTypes);
+    return ImmutableTable.copyOf(blockTypes);
   }
 
   /**
