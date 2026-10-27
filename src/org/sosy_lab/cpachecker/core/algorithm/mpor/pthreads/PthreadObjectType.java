@@ -47,7 +47,9 @@ public enum PthreadObjectType {
           PthreadObjectSubstitutions.MUTEX_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
           PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE)),
-  PTHREAD_ONCE_T("pthread_once_t", false, ImmutableSet.of()),
+  PTHREAD_ONCE_T(
+      "pthread_once_t", true, ImmutableSet.of(PthreadObjectSubstitutions.ONCE_TYPEDEF_TYPE)),
+  PTHREAD_ONCE_INITIALIZER("PTHREAD_ONCE_INIT", false, ImmutableSet.of()),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
       true,
@@ -406,6 +408,13 @@ public enum PthreadObjectType {
 
     private static final CTypedefType COND_TYPEDEF_TYPE =
         new CTypedefType(CTypeQualifiers.NONE, COND_NAME, COND_ELABORATED_TYPE);
+
+    // pthread_once_t
+
+    private static final String ONCE_NAME = "pthread_once_t";
+
+    private static final CTypedefType ONCE_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, ONCE_NAME, CNumericTypes.UNSIGNED_INT);
 
     // pthread_rwlock_t
 

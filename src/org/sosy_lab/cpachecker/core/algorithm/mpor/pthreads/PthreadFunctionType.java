@@ -110,7 +110,12 @@ public enum PthreadFunctionType {
       true,
       true,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
-  PTHREAD_ONCE("pthread_once", false, false),
+  PTHREAD_ONCE(
+      "pthread_once",
+      true,
+      true,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_ONCE_T, 0),
+      new PthreadParameterInfo(PthreadObjectType.START_ROUTINE, 1)),
   PTHREAD_RWLOCK_RDLOCK(
       "pthread_rwlock_rdlock",
       true,
