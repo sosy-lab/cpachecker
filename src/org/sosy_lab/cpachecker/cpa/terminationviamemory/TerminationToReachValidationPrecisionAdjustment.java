@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.TRANS_INV_KEYWORD;
 
@@ -182,9 +183,7 @@ public class TerminationToReachValidationPrecisionAdjustment
     PartitionedRelationFormula conjunction =
         new PartitionedRelationFormula(
             bfmgr.and(
-                FluentIterable.from(knownTransitionInvariants)
-                    .transform(PartitionedRelationFormula::getFormula)
-                    .toList()),
+                transformedImmutableListCopy(knownTransitionInvariants, PartitionedRelationFormula::getFormula)),
             fmgr);
     try {
       if (findNonterminatingLoop(

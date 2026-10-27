@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -269,7 +272,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       return "1";
     }
     ImmutableSet<CFANode> successorsInCondition =
-        FluentIterable.from(conditionEdges).transform(CFAEdge::getSuccessor).toSet();
+        transformedImmutableSetCopy(conditionEdges, CFAEdge::getSuccessor);
     ImmutableSet<CFANode> conditionEntries =
         FluentIterable.from(conditionEdges)
             .transform(CFAEdge::getPredecessor)
@@ -322,14 +325,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
           // The condition has side effects, which are not part of the generated program
           return false;
         }
-        path =
-            ImmutableList.<String>builder()
-                .addAll(pPath)
-                .add(
-                    assumeEdge.getTruthAssumption()
-                        ? "(" + expression + ")"
-                        : "!(" + expression + ")")
-                .build();
+        path = listAndElement(pPath, assumeEdge.getTruthAssumption() ? "(" + expression + ")" : "!(" + expression + ")");
       } else if (!(edge instanceof BlankEdge)) {
         return false;
       }
