@@ -276,6 +276,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     ImmutableList.Builder<CFAEdge> rEdges = ImmutableList.builder();
 
     for (CFAEdge edge : pCurrentNode.getAllLeavingEdges()) {
+      // replace the call to pthread_once with a call to the init_routine
       if (PthreadUtil.isCallToPthreadFunction(edge, PthreadFunctionType.PTHREAD_ONCE)) {
         CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(edge).orElseThrow();
         CFunctionDeclaration routineDeclaration =
@@ -288,7 +289,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         // create the injected function edges
         CFunctionSummaryEdge functionSummaryEdge =
             new CFunctionSummaryEdge(
-                edge.getRawStatement(),
+                routineCall.toASTString(),
                 edge.getFileLocation(),
                 pCurrentNode,
                 // the summary edge contains the original call context
@@ -297,7 +298,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
                 functionEntryNode);
         CFunctionCallEdge functionCallEdge =
             new CFunctionCallEdge(
-                edge.getRawStatement(),
+                routineCall.toASTString(),
                 edge.getFileLocation(),
                 pCurrentNode,
                 functionEntryNode,
