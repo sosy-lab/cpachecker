@@ -12,9 +12,11 @@
 const ALL_TYPES = [
     'POST_CONDITION',
     'VIOLATION_CONDITION',
+    'CORRECTNESS_WITNESS',
+    'VIOLATION_WITNESS',
     'RESULT',
-    'WITNESS',
     'EXCEPTION',
+    'UNKNOWN',
 ];
 
 const filterState = {
@@ -355,7 +357,7 @@ function initializeGraphView() {
             }
             item.append(element('span', 'msg-time', `${entry.time} ms`));
             item.append(element('span', 'msg-id', entry.id));
-            item.append(element('span', 'msg-type', entry.type.replace(/_/g, ' ')));
+            item.append(element('span', 'msg-type', entry.type.replace(/_/g, ' ').toLowerCase()));
             if (entry.card.dataset.repeat === 'yes') {
                 item.append(element('span', 'msg-repeat', 'repeat'));
             }
@@ -387,7 +389,7 @@ function initializeGraphView() {
         });
         positionLabel.textContent =
             `${index + 1} / ${entries.length}  -  ${entry.id} ` +
-            `${entry.type.replace(/_/g, ' ')} from ${entry.sender} at ${entry.time} ms`;
+            `${entry.type.replace(/_/g, ' ').toLowerCase()} from ${entry.sender} at ${entry.time} ms`;
         renderBlock(entry.sender, entry);
         const current = detail.querySelector('.graph-message-list .current');
         if (current && current.scrollIntoView) {
@@ -519,7 +521,7 @@ function initializeDetailView() {
         }
         const sender = card.querySelector('.card-sender')?.textContent.trim() || '';
         const id = card.querySelector('.card-id')?.textContent.trim() || '';
-        title.textContent = `${sender} ${id} - ${card.dataset.type.replace(/_/g, ' ')}`;
+        title.textContent = `${sender} ${id} - ${card.dataset.type.replace(/_/g, ' ').toLowerCase()}`;
         body.replaceChildren(content.cloneNode(true));
         modal.classList.add('active');
     }
