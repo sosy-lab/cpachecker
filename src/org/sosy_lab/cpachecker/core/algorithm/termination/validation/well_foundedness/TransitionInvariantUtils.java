@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -120,6 +121,22 @@ public class TransitionInvariantUtils {
       FormulaManagerView fmgr,
       Scope pScope)
       throws CPAException {
+    return transformFormulaToStringWithTrivialReplacement(
+        pFormula, bfmgr, fmgr, pScope, Function.identity());
+  }
+
+  /**
+   * Transforms the formula to a C expression like {@link
+   * #transformFormulaToStringWithTrivialReplacement(BooleanFormula, BooleanFormulaManagerView,
+   * FormulaManagerView, Scope)}, where the variables get the names given by the function.
+   */
+  public static String transformFormulaToStringWithTrivialReplacement(
+      BooleanFormula pFormula,
+      BooleanFormulaManagerView bfmgr,
+      FormulaManagerView fmgr,
+      Scope pScope,
+      Function<String, String> pVariableNames)
+      throws CPAException {
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
     try {
       // Replace the literals containing pointer variables with true. The formula is converted to
@@ -132,7 +149,8 @@ public class TransitionInvariantUtils {
       } else if (bfmgr.isFalse(formula)) {
         return "0";
       }
-      return converter.formulaToCExpression(formula);
+      return converter.formulaToCExpression(
+          fmgr.renameFreeVariablesAndUFs(formula, pVariableNames));
     } catch (SolverException | InterruptedException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }

@@ -60,21 +60,36 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class TerminationArgumentsToWitnessUtils {
 
-  private static final Pattern VARIABLE =
-      Pattern.compile("(?<![\\w:])(?:\\w+::)?(\\w+)(?![\\w:(])");
+  /**
+   * Returns the qualified name of the variable with the name of the variable in the input program
+   * at the given node, e.g., main::i for main::i__1, see {@link
+   * AstCfaRelation#getNameInInputProgram}.
+   */
+  private static String toNameInInputProgram(
+      String pVariable, CFANode pNode, AstCfaRelation pAstCfaRelation) {
+    int nameStart = pVariable.lastIndexOf("::") + 2;
+    if (nameStart < 2) {
+      return pAstCfaRelation.getNameInInputProgram(pNode, pVariable);
+    }
+    return pVariable.substring(0, nameStart)
+        + pAstCfaRelation.getNameInInputProgram(pNode, pVariable.substring(nameStart));
+  }
 
   /**
-   * Replaces the variables by their names in the input program at the given node, which differ from
-   * the names in CPAchecker for renamed variables, e.g., i for the variable i__1.
+   * Returns the name in the input program of a variable of a transition invariant of
+   * TerminationToSafety, whose variables of the previous state are wrapped into \at(x, AnyPrev).
    */
-  private static String useNamesOfInputProgram(
-      String pExpression, CFANode pNode, AstCfaRelation pAstCfaRelation) {
-    return VARIABLE
-        .matcher(pExpression)
-        .replaceAll(
-            match ->
-                Matcher.quoteReplacement(
-                    pAstCfaRelation.getNameInInputProgram(pNode, match.group(1))));
+  private static String toNameInTransitionInvariant(
+      String pVariable, CFANode pNode, AstCfaRelation pAstCfaRelation) {
+    if (pVariable.startsWith(AT_PREFIX_NON_C) && pVariable.endsWith(ANYPREV_SUFFIX)) {
+      String previousVariable =
+          pVariable.substring(
+              AT_PREFIX_NON_C.length(), pVariable.length() - ANYPREV_SUFFIX.length());
+      return AT_PREFIX_NON_C
+          + toNameInInputProgram(previousVariable, pNode, pAstCfaRelation)
+          + ANYPREV_SUFFIX;
+    }
+    return toNameInInputProgram(pVariable, pNode, pAstCfaRelation);
   }
 
   /**
@@ -99,18 +114,19 @@ public class TerminationArgumentsToWitnessUtils {
   // The function replaces variable names with annotation \at(..., AnyPrev), i.e. x -> \at(x,
   // AnyPrev) and casts them into a larger type
   private static String wrapTheVariablesWithAtAnyPrev(
-      String pRankingFunction, Iterable<IProgramVar> pVars) {
+      String pRankingFunction, Iterable<IProgramVar> pVars, Function<String, String> pNames) {
     return replaceVariables(
         pRankingFunction,
         pVars,
-        varName -> "((__int128)" + AT_PREFIX + varName + ANYPREV_SUFFIX + ")");
+        varName -> "((__int128)" + AT_PREFIX + pNames.apply(varName) + ANYPREV_SUFFIX + ")");
   }
 
   // The function casts the variables into (__int128) as we want to prevent overflows in the
   // witness
   private static String wrapTheVariablesWithCastToLongLong(
-      String pRankingFunction, Iterable<IProgramVar> pVars) {
-    return replaceVariables(pRankingFunction, pVars, varName -> "((__int128)" + varName + ")");
+      String pRankingFunction, Iterable<IProgramVar> pVars, Function<String, String> pNames) {
+    return replaceVariables(
+        pRankingFunction, pVars, varName -> "((__int128)" + pNames.apply(varName) + ")");
   }
 
   /**
@@ -165,14 +181,14 @@ public class TerminationArgumentsToWitnessUtils {
     // Supporting invariant is an object from LassoRanker library, and we do not have a transformer
     // to our CExpression. Maybe in future, we could implement such transformer, however, so far,
     // we did not have problems with just using it as string.
+    CFANode loopStart = getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation);
     String invariant =
         wrapTheVariablesWithCastToLongLong(
-            pSupportingInvariant.toString(), pSupportingInvariant.getVariables());
+            pSupportingInvariant.toString(),
+            pSupportingInvariant.getVariables(),
+            variable -> toNameInInputProgram(variable, loopStart, pAstCfaRelation));
     return new InvariantEntry(
-        useNamesOfInputProgram(
-            invariant,
-            getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
-            pAstCfaRelation),
+        TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.C,
         locationRecord);
@@ -197,6 +213,9 @@ public class TerminationArgumentsToWitnessUtils {
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
+    CFANode loopStart = getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation);
+    Function<String, String> names =
+        variable -> toNameInInputProgram(variable, loopStart, pAstCfaRelation);
     for (TerminationArgument argument : pArguments) {
       RankingFunction rankingFunction = argument.getRankingFunction();
       if (rankingFunction instanceof LexicographicRankingFunction pLexicographicRankingFunction) {
@@ -205,14 +224,16 @@ public class TerminationArgumentsToWitnessUtils {
               constructTransitionInvariantRelation(
                   pLexicographicRankingFunction.getComponents()[i].toString(),
                   pLexicographicRankingFunction.getComponents()[i].getVariables(),
-                  true);
+                  true,
+                  names);
           for (int j = 0; j < pLexicographicRankingFunction.getComponents().length; j++) {
             componentConjunction +=
                 "&&"
                     + constructTransitionInvariantRelation(
                         pLexicographicRankingFunction.getComponents()[j].toString(),
                         pLexicographicRankingFunction.getComponents()[j].getVariables(),
-                        false);
+                        false,
+                        names);
           }
           transitionInvariants.add(componentConjunction);
         }
@@ -221,32 +242,38 @@ public class TerminationArgumentsToWitnessUtils {
         for (AffineFunction nestedRankingFunction : pNestedRankingFunction.getComponents()) {
           transitionInvariants.add(
               constructTransitionInvariantRelation(
-                  nestedRankingFunction.toString(), nestedRankingFunction.getVariables(), true));
+                  nestedRankingFunction.toString(),
+                  nestedRankingFunction.getVariables(),
+                  true,
+                  names));
         }
       } else {
         transitionInvariants.add(
             constructTransitionInvariantRelation(
-                rankingFunction.toString(), rankingFunction.getVariables(), true));
+                rankingFunction.toString(), rankingFunction.getVariables(), true, names));
       }
     }
     return new InvariantEntry(
-        useNamesOfInputProgram(
+        TransitionInvariantUtils.removeFunctionFromVarsName(
             FluentIterable.from(transitionInvariants.build())
                 .transform(disjunct -> "(" + disjunct + ")")
-                .join(Joiner.on(" || ")),
-            getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
-            pAstCfaRelation),
+                .join(Joiner.on(" || "))),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.EXT_C,
         locationRecord);
   }
 
   private static String constructTransitionInvariantRelation(
-      String rankingFunction, Iterable<IProgramVar> variables, boolean strictRelation) {
+      String rankingFunction,
+      Iterable<IProgramVar> variables,
+      boolean strictRelation,
+      Function<String, String> pNames) {
     String prevRank =
-        rightSideOfRankingFunction(wrapTheVariablesWithAtAnyPrev(rankingFunction, variables));
+        rightSideOfRankingFunction(
+            wrapTheVariablesWithAtAnyPrev(rankingFunction, variables, pNames));
     String currentRank =
-        rightSideOfRankingFunction(wrapTheVariablesWithCastToLongLong(rankingFunction, variables));
+        rightSideOfRankingFunction(
+            wrapTheVariablesWithCastToLongLong(rankingFunction, variables, pNames));
     if (prevRank.contains(CParserUtils.CPACHECKER_TMP_PREFIX)) {
       return "0";
     }
@@ -300,10 +327,14 @@ public class TerminationArgumentsToWitnessUtils {
         try {
           transitionInvariantAsC =
               TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-                      wrappedFormula.getFormula(), bfmgr, fmgr, scope)
+                      wrappedFormula.getFormula(),
+                      bfmgr,
+                      fmgr,
+                      scope,
+                      variable -> toNameInTransitionInvariant(variable, location, astCfaRelation))
                   .replace(AT_PREFIX_NON_C, AT_PREFIX);
           transitionInvariantAsC =
-              useNamesOfInputProgram(transitionInvariantAsC, location, astCfaRelation);
+              TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
         } catch (CPAException e) {
           transitionInvariantAsC = "true";
         }
