@@ -27,13 +27,17 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -310,22 +314,50 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
    * block.
    */
   private ImmutableMap<BlockType, CFunctionCall> updateBlockTypes(
-      CFAEdge pCfaEdge, ImmutableMap<BlockType, CFunctionCall> pCurrentBlockTypes) {
+      CFAEdge pCfaEdge, ImmutableMap<BlockType, CFunctionCall> pCurrentBlockTypes)
+      throws UnsupportedCodeException {
 
     // use set so that elements can be removed
     Map<BlockType, CFunctionCall> blockTypes = new HashMap<>(pCurrentBlockTypes);
+
+    if (pCurrentBlockTypes.containsKey(BlockType.PTHREAD_ONCE_ROUTINE)) {
+      CFunctionDeclaration initRoutineDeclaration =
+          Objects.requireNonNull(pCurrentBlockTypes.get(BlockType.PTHREAD_ONCE_ROUTINE))
+              .getFunctionCallExpression()
+              .getDeclaration();
+
+      // The pthread_once init_routine is left only if the predecessor equals the declaration.
+      // This excludes the inner functions called inside init_routine from triggering the condition.
+      if (pCfaEdge.getPredecessor().getFunction().equals(initRoutineDeclaration)
+          && pCfaEdge.getSuccessor() instanceof FunctionExitNode
+          // Since the init_routine call was not present in the input, there are no leaving edges.
+          && pCfaEdge.getSuccessor().getLeavingEdges().isEmpty()) {
+        blockTypes.remove(BlockType.PTHREAD_ONCE_ROUTINE);
+      }
+    }
 
     Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(pCfaEdge);
     if (functionCall.isPresent()) {
       CFunctionCall call = functionCall.orElseThrow();
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
-        blockTypes.put(BlockType.ATOMIC, functionCall.orElseThrow());
+        blockTypes.put(BlockType.ATOMIC, call);
       }
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_END)) {
         blockTypes.remove(BlockType.ATOMIC);
       }
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.PTHREAD_ONCE)) {
-        blockTypes.put(BlockType.PTHREAD_ONCE_ROUTINE, call);
+        CFunctionDeclaration initRoutineDeclaration =
+            PthreadUtil.extractStartRoutineDeclaration(call);
+        CFunctionCallExpression initRoutineCallExpression =
+            new CFunctionCallExpression(
+                FileLocation.DUMMY,
+                initRoutineDeclaration.getType(),
+                new CIdExpression(FileLocation.DUMMY, initRoutineDeclaration),
+                ImmutableList.of(),
+                initRoutineDeclaration);
+        CFunctionCall initRoutineCall =
+            new CFunctionCallStatement(FileLocation.DUMMY, initRoutineCallExpression);
+        blockTypes.put(BlockType.PTHREAD_ONCE_ROUTINE, initRoutineCall);
       }
     }
 
