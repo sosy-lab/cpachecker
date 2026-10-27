@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread.BlockType;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
@@ -43,7 +44,7 @@ public final class SeqThreadStatementUtil {
     for (SubstituteEdge substituteEdge : pStatement.data().getSubstituteEdges()) {
       CFAEdgeForThread threadEdge = substituteEdge.getThreadEdge();
       // use the predecessor, since we require information about this statement
-      if (threadEdge.getPredecessor().isInAtomicBlock) {
+      if (threadEdge.getPredecessor().blockTypes.contains(BlockType.ATOMIC)) {
         return true;
       }
     }

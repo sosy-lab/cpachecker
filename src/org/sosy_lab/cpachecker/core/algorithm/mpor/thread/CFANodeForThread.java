@@ -11,12 +11,22 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class CFANodeForThread {
+
+  /**
+   * The block types that a {@link CFANodeForThread} can be a part of. A block is a sequence of
+   * nodes that are grouped together and need to be identified to handle their semantics.
+   */
+  public enum BlockType {
+    ATOMIC,
+    PTHREAD_ONCE_ROUTINE,
+  }
 
   private static int currentId = 0;
 
@@ -43,7 +53,7 @@ public class CFANodeForThread {
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
   private final List<CFAEdgeForThread> leavingEdges;
 
-  public final boolean isInAtomicBlock;
+  public final ImmutableSet<BlockType> blockTypes;
 
   CFANodeForThread(
       int pThreadId,
@@ -51,7 +61,7 @@ public class CFANodeForThread {
       int pPc,
       SeqCallContext pCallContext,
       List<CFAEdgeForThread> pLeavingEdges,
-      boolean pIsInAtomicBlock) {
+      ImmutableSet<BlockType> pBlockTypes) {
 
     id = getNewId();
     threadId = pThreadId;
@@ -59,7 +69,7 @@ public class CFANodeForThread {
     pc = pPc;
     callContext = pCallContext;
     leavingEdges = pLeavingEdges;
-    isInAtomicBlock = pIsInAtomicBlock;
+    blockTypes = pBlockTypes;
   }
 
   public CFAEdgeForThread firstLeavingEdge() {
@@ -86,7 +96,7 @@ public class CFANodeForThread {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, threadId, cfaNode, pc, isInAtomicBlock);
+    return Objects.hash(id, threadId, cfaNode, pc, blockTypes);
   }
 
   @Override
@@ -99,6 +109,6 @@ public class CFANodeForThread {
         && threadId == other.threadId
         && cfaNode.equals(other.cfaNode)
         && pc == other.pc
-        && isInAtomicBlock == other.isInAtomicBlock;
+        && blockTypes.equals(other.blockTypes);
   }
 }

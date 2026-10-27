@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread.BlockType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
@@ -155,8 +157,8 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         threadNodes,
         threadEdges,
         pEntryNode,
-        // at start, there is never an atomic block
-        false,
+        // at start, there is never any block
+        ImmutableMap.of(),
         // at start, use an empty call context
         SeqCallContext.EMPTY,
         pStartRoutineCall);
@@ -187,7 +189,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       ImmutableList.Builder<CFANodeForThread> pThreadNodes,
       ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> pThreadEdges,
       CFANode pCurrentNode,
-      boolean pIsInAtomicBlock,
+      ImmutableMap<BlockType, CFunctionCall> pBlockTypes,
       SeqCallContext pCallContext,
       final Optional<CFAEdgeForThread> pStartRoutineCall) {
 
@@ -212,17 +214,17 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     if (leavingCfaEdges.isEmpty()) {
       pThreadNodes.add(
           new CFANodeForThread(
-              // thread exits are never in atomic blocks
               pThreadId,
               pCurrentNode,
               SeqProgramCounterVariables.EXIT_PC,
               callContext,
               edgeList,
-              false));
+              // thread exits are never in any block
+              ImmutableSet.of()));
     } else {
       pThreadNodes.add(
           new CFANodeForThread(
-              pThreadId, pCurrentNode, currentPc++, callContext, edgeList, pIsInAtomicBlock));
+              pThreadId, pCurrentNode, currentPc++, callContext, edgeList, pBlockTypes.keySet()));
       for (CFAEdge cfaEdge : leavingCfaEdges) {
         // exclude CFunctionReturnEdges in the search, their successors may be in other threads.
         // the original, same-thread successor is included due to the CFunctionSummaryEdge.
@@ -244,7 +246,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               pThreadNodes,
               pThreadEdges,
               cfaEdge.getSuccessor(),
-              updateIsInAtomicBlock(cfaEdge, pIsInAtomicBlock),
+              updateBlockTypes(cfaEdge, pBlockTypes),
               callContext,
               pStartRoutineCall);
         }
@@ -252,19 +254,32 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     }
   }
 
-  /** Checks if, after calling {@code pCfaEdge}, the thread is still/yet in an atomic block. */
-  private boolean updateIsInAtomicBlock(CFAEdge pCfaEdge, boolean pPreviousIsInAtomicBlock) {
+  /**
+   * Updates the {@link BlockType}s so that they are still valid after the given {@link CFAEdge} is
+   * executed. Returns the map of {@link BlockType} to the {@link CFunctionCall} that triggered the
+   * block.
+   */
+  private ImmutableMap<BlockType, CFunctionCall> updateBlockTypes(
+      CFAEdge pCfaEdge, ImmutableMap<BlockType, CFunctionCall> pCurrentBlockTypes) {
+
+    // use set so that elements can be removed
+    Map<BlockType, CFunctionCall> blockTypes = new HashMap<>(pCurrentBlockTypes);
+
     Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(pCfaEdge);
     if (functionCall.isPresent()) {
-      if (PthreadUtil.isCallToPthreadFunction(
-          functionCall.orElseThrow(), PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
-        return true;
-      } else if (PthreadUtil.isCallToPthreadFunction(
-          functionCall.orElseThrow(), PthreadFunctionType.VERIFIER_ATOMIC_END)) {
-        return false;
+      CFunctionCall call = functionCall.orElseThrow();
+      if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
+        blockTypes.put(BlockType.ATOMIC, functionCall.orElseThrow());
+      }
+      if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_END)) {
+        blockTypes.remove(BlockType.ATOMIC);
+      }
+      if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.PTHREAD_ONCE)) {
+        blockTypes.put(BlockType.PTHREAD_ONCE_ROUTINE, call);
       }
     }
-    return pPreviousIsInAtomicBlock;
+
+    return ImmutableMap.copyOf(blockTypes);
   }
 
   /**
