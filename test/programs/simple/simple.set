@@ -27,3 +27,4 @@ function_pointers/*.yml
 verifier-nondet-memory-sanity/*.yml
 mathFunctions/*.yml
 memset/*.yml
+scanf/*.yml
