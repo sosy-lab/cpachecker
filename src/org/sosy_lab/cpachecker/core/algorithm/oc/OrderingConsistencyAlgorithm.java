@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.oc;
 import static com.google.common.base.Strings.nullToEmpty;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.math.BigInteger;
@@ -244,13 +245,21 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * than an error.
    *
    * <p>The target must therefore come from a {@code .prp} property file: {@link
-   * Specification#getProperties()} reports only those, so an automaton {@code .spc} file
-   * contributes nothing here and the analysis falls back to {@link TargetProperty#UNREACH_CALL}.
-   * Passing {@code specification/datarace.spc} instead of {@code properties/no-data-race.prp}
-   * silently checks reachability and reports a meaningless verdict.
+   * Specification#getProperties()} reports only those. Any other specification file (an automaton
+   * {@code .spc} file, or a witness to validate) is rejected, because its automata would be dropped
+   * and the verdict would silently ignore them.
    */
   private static Optional<TargetProperty> targetPropertyOf(Specification pSpecification)
       throws InvalidConfigurationException {
+    for (Path specFile : pSpecification.getFiles()) {
+      if (!MoreFiles.getFileExtension(specFile).equals("prp")) {
+        throw new InvalidConfigurationException(
+            "the ordering-consistency analysis does not support specification automata or"
+                + " witnesses, but got "
+                + specFile
+                + "; it needs a property file stating unreach-call or no-data-race");
+      }
+    }
     EnumSet<TargetProperty> targets = EnumSet.noneOf(TargetProperty.class);
     for (Property property : pSpecification.getProperties()) {
       if (property instanceof CommonVerificationProperty common) {
