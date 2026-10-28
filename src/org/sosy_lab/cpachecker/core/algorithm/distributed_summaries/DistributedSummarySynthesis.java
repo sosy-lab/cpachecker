@@ -170,19 +170,20 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     return blockGraph;
   }
 
-  private Map<String, Map<String, Object>> exportBlockGraph(BlockGraph pBlockGraph) {
-    ImmutableSet<CFANode> targetLocations =
-        new TargetLocationProviderImpl(shutdownManager.getNotifier(), logger, initialCFA)
-            .tryGetAutomatonTargetLocations(initialCFA.getMainFunction(), spec);
+  private ImmutableSet<CFANode> findTargetLocations() {
+    return new TargetLocationProviderImpl(shutdownManager.getNotifier(), logger, initialCFA)
+        .tryGetAutomatonTargetLocations(initialCFA.getMainFunction(), spec);
+  }
+
+  private void logTargetBlocks(BlockGraph pBlockGraph, ImmutableSet<CFANode> pTargetLocations) {
     long targetBlocks =
-        pBlockGraph.getNodes().stream().filter(b -> b.containsTarget(targetLocations)).count();
+        pBlockGraph.getNodes().stream().filter(b -> b.containsTarget(pTargetLocations)).count();
     logger.logf(
         Level.INFO,
         "%d of %d blocks contain one of %d target locations.",
         targetBlocks,
         pBlockGraph.getNodes().size(),
-        targetLocations.size());
-    return pBlockGraph.getExportData(initialCFA, targetLocations);
+        pTargetLocations.size());
   }
 
   private Modification modifyBlockGraph(BlockGraph blockGraph) {
@@ -241,7 +242,11 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       BlockGraph blockGraph;
       if (decompositionOptions.generateBlockGraphOnly()) {
         blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
-        JSON.writeJSONString(exportBlockGraph(blockGraph), decompositionOptions.getBlockCFAFile());
+        ImmutableSet<CFANode> targetLocations = findTargetLocations();
+        logTargetBlocks(blockGraph, targetLocations);
+        JSON.writeJSONString(
+            blockGraph.getExportData(initialCFA, targetLocations),
+            decompositionOptions.getBlockCFAFile());
         logger.logf(
             Level.INFO, "Block graph exported to %s.", decompositionOptions.getBlockCFAFile());
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
