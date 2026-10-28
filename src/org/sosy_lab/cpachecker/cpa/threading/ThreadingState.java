@@ -18,8 +18,12 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
@@ -40,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessViolationV2Parser;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -56,6 +61,19 @@ public class ThreadingState
 
   private static final String PROPERTY_DEADLOCK = "deadlock";
 
+  /**
+   * Marks a thread that was created but whose identifier in the witness is not known yet, cf.
+   * {@link #threadIdsForWitness}. It never matches the current thread, because identifiers of a
+   * witness are never negative.
+   */
+  private static final int AWAITING_WITNESS_THREAD_ID = -1;
+
+  /**
+   * Marks a thread that the witness does not refer to, because it did not pass a waypoint for the
+   * creation of that thread, cf. {@link #threadIdsForWitness}.
+   */
+  private static final int NO_WITNESS_THREAD_ID = -2;
+
   static final int MIN_THREAD_NUM = 0;
 
   // String :: identifier for the thread TODO change to object or memory-location
@@ -64,6 +82,13 @@ public class ThreadingState
 
   // String :: lock-id  -->  String :: thread-id
   private final PersistentMap<String, String> locks;
+
+  // String :: lock-id of a mutex of type PTHREAD_MUTEX_RECURSIVE
+  //   -->  Integer :: how often its holder locked it again
+  private final PersistentMap<String, Integer> recursiveMutexes;
+
+  // String :: identifier of a mutex attribute of type PTHREAD_MUTEX_RECURSIVE
+  private final ImmutableSet<String> recursiveMutexAttributes;
 
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
@@ -87,13 +112,21 @@ public class ThreadingState
 
   /**
    * This map contains the mapping of threadIds to the unique identifier used for witness
-   * validation. Without a witness, it should always be empty.
+   * validation. Without a witness that refers to threads, it should always be empty. It is filled
+   * by {@link ThreadingTransferRelation#strengthen}.
+   *
+   * <p>Besides the identifiers of the witness, which are never negative, the map also holds the two
+   * markers {@link #AWAITING_WITNESS_THREAD_ID} and {@link #NO_WITNESS_THREAD_ID}. Entries are
+   * never removed, not even when the thread they belong to terminates, so that a thread created
+   * afterwards cannot inherit the identifier of a thread that has already run.
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
+    recursiveMutexes = PathCopyingPersistentTreeMap.of();
+    recursiveMutexAttributes = ImmutableSet.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -102,27 +135,65 @@ public class ThreadingState
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
+      PersistentMap<String, Integer> pRecursiveMutexes,
+      ImmutableSet<String> pRecursiveMutexAttributes,
       String pActiveThread,
       FunctionCallEdge entryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness) {
     threads = pThreads;
     locks = pLocks;
+    recursiveMutexes = pRecursiveMutexes;
+    recursiveMutexAttributes = pRecursiveMutexAttributes;
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
-    return new ThreadingState(pThreads, locks, activeThread, entryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        pThreads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
   }
 
-  private ThreadingState withLocks(PersistentMap<String, String> pLocks) {
-    return new ThreadingState(threads, pLocks, activeThread, entryFunction, threadIdsForWitness);
+  private ThreadingState withLocks(
+      PersistentMap<String, String> pLocks, PersistentMap<String, Integer> pRecursiveMutexes) {
+    return new ThreadingState(
+        threads,
+        pLocks,
+        pRecursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
+  }
+
+  private ThreadingState withRecursiveMutexAttributes(
+      ImmutableSet<String> pRecursiveMutexAttributes) {
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        pRecursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness);
   }
 
   private ThreadingState withThreadIdsForWitness(
       PersistentMap<String, Integer> pThreadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, entryFunction, pThreadIdsForWitness);
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        entryFunction,
+        pThreadIdsForWitness);
   }
 
   public ThreadingState addThreadAndCopy(
@@ -184,7 +255,17 @@ public class ThreadingState
         "blocking non-existant thread: %s with lock: %s",
         threadId,
         lockId);
-    return withLocks(locks.putAndCopy(lockId, threadId));
+    return withLocks(locks.putAndCopy(lockId, threadId), recursiveMutexes);
+  }
+
+  /** The thread locks the recursive mutex again, which it already holds. */
+  public ThreadingState increaseRecursiveLockAndCopy(String threadId, String lockId) {
+    checkArgument(
+        hasLock(threadId, lockId) && isRecursiveMutex(lockId),
+        "thread %s does not hold recursive lock %s",
+        threadId,
+        lockId);
+    return withLocks(locks, recursiveMutexes.putAndCopy(lockId, recursiveMutexes.get(lockId) + 1));
   }
 
   public ThreadingState removeLockAndCopy(String threadId, String lockId) {
@@ -195,7 +276,48 @@ public class ThreadingState
         "unblocking non-existant thread: %s with lock: %s",
         threadId,
         lockId);
-    return withLocks(locks.removeAndCopy(lockId));
+    int count = recursiveMutexes.getOrDefault(lockId, 0);
+    if (count > 0 && hasLock(threadId, lockId)) {
+      return withLocks(locks, recursiveMutexes.putAndCopy(lockId, count - 1));
+    }
+    return withLocks(
+        locks.removeAndCopy(lockId),
+        count > 0 ? recursiveMutexes.putAndCopy(lockId, 0) : recursiveMutexes);
+  }
+
+  public boolean isRecursiveMutex(String lockId) {
+    return recursiveMutexes.containsKey(lockId);
+  }
+
+  /** Sets whether the mutex is recursive, e.g. when it is initialized. */
+  public ThreadingState setRecursiveMutexAndCopy(String lockId, boolean recursive) {
+    if (recursive == isRecursiveMutex(lockId)) {
+      return this;
+    }
+    return withLocks(
+        locks,
+        recursive
+            ? recursiveMutexes.putAndCopy(lockId, 0)
+            : recursiveMutexes.removeAndCopy(lockId));
+  }
+
+  public boolean isRecursiveMutexAttribute(String attributeId) {
+    return recursiveMutexAttributes.contains(attributeId);
+  }
+
+  /** Sets whether the mutex attribute has the type PTHREAD_MUTEX_RECURSIVE. */
+  public ThreadingState setRecursiveMutexAttributeAndCopy(String attributeId, boolean recursive) {
+    if (recursive == isRecursiveMutexAttribute(attributeId)) {
+      return this;
+    }
+    return withRecursiveMutexAttributes(
+        recursive
+            ? ImmutableSet.<String>builder()
+                .addAll(recursiveMutexAttributes)
+                .add(attributeId)
+                .build()
+            : ImmutableSet.copyOf(
+                Sets.difference(recursiveMutexAttributes, ImmutableSet.of(attributeId))));
   }
 
   /** returns whether any of the threads has the lock */
@@ -227,6 +349,11 @@ public class ThreadingState
         + "}\n and locks={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
         + "}"
+        + (recursiveMutexes.isEmpty()
+            ? ""
+            : ("\n and recursive mutexes={"
+                + Joiner.on(", ").withKeyValueSeparator("=").join(recursiveMutexes)
+                + "}"))
         + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
         + " \n"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadIdsForWitness)
@@ -238,13 +365,21 @@ public class ThreadingState
     return other instanceof ThreadingState ts
         && threads.equals(ts.threads)
         && locks.equals(ts.locks)
+        && recursiveMutexes.equals(ts.recursiveMutexes)
+        && recursiveMutexAttributes.equals(ts.recursiveMutexAttributes)
         && Objects.equals(activeThread, ts.activeThread)
         && threadIdsForWitness.equals(ts.threadIdsForWitness);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, locks, activeThread, threadIdsForWitness);
+    return Objects.hash(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        threadIdsForWitness);
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
@@ -302,7 +437,29 @@ public class ThreadingState
         throw new InvalidQueryException("deadlock-check had a problem", e);
       }
     }
+    if (pProperty.startsWith(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY)) {
+      return checkActiveThreadHasWitnessId(
+          pProperty,
+          pProperty.substring(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY.length()));
+    }
+
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+  }
+
+  private boolean checkActiveThreadHasWitnessId(String pProperty, String pExpectedWitnessId)
+      throws InvalidQueryException {
+    int expectedWitnessId;
+    try {
+      expectedWitnessId = Integer.parseInt(pExpectedWitnessId);
+    } catch (NumberFormatException e) {
+      throw new InvalidQueryException(
+          "Query '" + pProperty + "' does not compare against an integer.", e);
+    }
+    // The active thread is only known while an edge is being handled, which is the only situation
+    // in which a witness automaton evaluates its transition guards.
+    checkState(
+        activeThread != null, "Query '%s' is only valid while an edge is handled.", pProperty);
+    return Objects.equals(getThreadIdForWitness(activeThread), expectedWitnessId);
   }
 
   /**
@@ -340,7 +497,12 @@ public class ThreadingState
   /** check, if the edge required a lock, that is already used. This might cause a deadlock. */
   private boolean needsAlreadyUsedLock(CFAEdge edge) throws UnrecognizedCodeException {
     final String newLock = getLockId(edge);
-    return newLock != null && hasLock(newLock);
+    if (newLock == null || !hasLock(newLock)) {
+      return false;
+    }
+    // the holder of a recursive mutex can acquire it again
+    return !isRecursiveMutex(newLock)
+        || !Iterables.contains(getThreadLocation(locks.get(newLock)).getOutgoingEdges(), edge);
   }
 
   /**
@@ -421,7 +583,14 @@ public class ThreadingState
 
   /** See {@link #activeThread}. */
   public ThreadingState withActiveThread(@Nullable String pActiveThread) {
-    return new ThreadingState(threads, locks, pActiveThread, entryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        pActiveThread,
+        entryFunction,
+        threadIdsForWitness);
   }
 
   String getActiveThread() {
@@ -430,7 +599,14 @@ public class ThreadingState
 
   /** See {@link #entryFunction}. */
   public ThreadingState withEntryFunction(@Nullable FunctionCallEdge pEntryFunction) {
-    return new ThreadingState(threads, locks, activeThread, pEntryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        activeThread,
+        pEntryFunction,
+        threadIdsForWitness);
   }
 
   /** See {@link #entryFunction}. */
@@ -439,28 +615,53 @@ public class ThreadingState
     return entryFunction;
   }
 
-  @Nullable Integer getThreadIdForWitness(String threadId) {
+  private @Nullable Integer getThreadIdForWitness(String threadId) {
     Preconditions.checkNotNull(threadId);
     return threadIdsForWitness.get(threadId);
   }
 
-  boolean hasWitnessIdForThread(int witnessId) {
-    return threadIdsForWitness.containsValue(witnessId);
-  }
+  /**
+   * Returns this state with the identifiers updated by which a witness refers to its threads, cf.
+   * {@link #threadIdsForWitness}.
+   *
+   * <p>Only threads whose creation the witness passes a waypoint for have an identifier at all: the
+   * automaton assigns the identifier of the created thread to its thread-id variable when it passes
+   * that waypoint.
+   *
+   * <p>That new value is not visible on the edge of the creation itself, because the
+   * CompositeTransferRelation strengthens every component state with the states from before
+   * strengthening. A created thread hence only receives its identifier one edge later: if the
+   * automaton has advanced its variable to an identifier that no thread holds yet, that identifier
+   * belongs to the created thread, otherwise the witness does not refer to the thread at all.
+   *
+   * @param pAutomatonThreadId the current value of the thread-id variable of the witness automaton
+   */
+  ThreadingState updateThreadIdsForWitness(int pAutomatonThreadId) {
+    PersistentMap<String, Integer> ids = threadIdsForWitness;
 
-  ThreadingState setThreadIdForWitness(String threadId, int witnessId) {
-    Preconditions.checkNotNull(threadId);
-    Preconditions.checkArgument(
-        !threadIdsForWitness.containsKey(threadId), "threadId already exists");
-    Preconditions.checkArgument(
-        !threadIdsForWitness.containsValue(witnessId), "witnessId already exists");
-    return withThreadIdsForWitness(threadIdsForWitness.putAndCopy(threadId, witnessId));
-  }
+    // On the very first edge the initial thread receives the identifier the witness starts with.
+    if (ids.isEmpty() && activeThread != null) {
+      ids = ids.putAndCopy(activeThread, pAutomatonThreadId);
+    }
 
-  ThreadingState removeThreadIdForWitness(String threadId) {
-    Preconditions.checkNotNull(threadId);
-    checkArgument(
-        threadIdsForWitness.containsKey(threadId), "removing non-existant thread: %s", threadId);
-    return withThreadIdsForWitness(threadIdsForWitness.removeAndCopy(threadId));
+    // Resolve the thread created by the previous edge, see above. At most one thread can await its
+    // identifier, because at most one thread is created per edge.
+    for (Entry<String, Integer> entry : threadIdsForWitness.entrySet()) {
+      if (entry.getValue() == AWAITING_WITNESS_THREAD_ID) {
+        ids =
+            ids.putAndCopy(
+                entry.getKey(),
+                ids.containsValue(pAutomatonThreadId) ? NO_WITNESS_THREAD_ID : pAutomatonThreadId);
+      }
+    }
+
+    // A thread created by this edge only learns its identifier on the next edge, see above.
+    for (String threadId : threads.keySet()) {
+      if (!ids.containsKey(threadId)) {
+        ids = ids.putAndCopy(threadId, AWAITING_WITNESS_THREAD_ID);
+      }
+    }
+
+    return ids == threadIdsForWitness ? this : withThreadIdsForWitness(ids);
   }
 }

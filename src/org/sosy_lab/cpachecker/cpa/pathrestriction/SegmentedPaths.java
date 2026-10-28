@@ -47,6 +47,14 @@ public class SegmentedPaths {
 
   public static final SegmentedPaths EMPTY = new SegmentedPaths(ImmutableList.of());
 
+  public int size() {
+    int maxLength = 0;
+    for (ImmutableSet<ImmutableList<String>> path : paths) {
+      maxLength += path.stream().mapToInt(ImmutableList::size).max().orElse(0);
+    }
+    return maxLength;
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

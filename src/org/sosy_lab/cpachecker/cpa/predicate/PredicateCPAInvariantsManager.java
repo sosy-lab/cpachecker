@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -327,8 +326,9 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
-        limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
+        limits =
+            ResourceLimitChecker.createWallTimeLimitChecker(
+                invariantShutdown, timeForInvariantGeneration);
         limits.start();
       } else {
         limits = null;
@@ -421,8 +421,9 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
-        limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
+        limits =
+            ResourceLimitChecker.createWallTimeLimitChecker(
+                invariantShutdown, timeForInvariantGeneration);
         limits.start();
       } else {
         limits = null;

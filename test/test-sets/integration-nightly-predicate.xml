@@ -84,6 +84,13 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Hardness.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
+
+  <tasks name="C.unreach-call.Concurrency-Sequentialized">
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
   <tasks name="C.unreach-call.SoftwareSystems-AWS-C-Common">
     <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>

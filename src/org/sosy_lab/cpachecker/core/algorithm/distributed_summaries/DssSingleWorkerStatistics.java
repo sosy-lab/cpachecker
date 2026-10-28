@@ -39,6 +39,10 @@ public class DssSingleWorkerStatistics implements Statistics {
     STORE_PRECONDITION_STATES_TIME("time spent in storing precondition states", true),
     STORE_VIOLATION_CONDITION_STATES_COUNT("number of violation condition states stored", false),
     STORE_VIOLATION_CONDITION_STATES_TIME("time spent in storing violation condition states", true),
+    COVERAGE_COUNT("number of state comparisons", false),
+    COVERAGE_TIME("time spent comparing states", true),
+    VIOLATION_CONDITION_COUNT("number of violation conditions computed", false),
+    VIOLATION_CONDITION_TIME("time spent computing violation conditions", true),
     SERIALIZED_STATES_SIZE("serialized states size (chars)", false);
 
     private final String label;
@@ -66,6 +70,10 @@ public class DssSingleWorkerStatistics implements Statistics {
       new DssThreadCpuTimer(StatisticsKey.STORE_PRECONDITION_STATES_TIME.getLabel());
   private final DssThreadCpuTimer blockAnalysisTime =
       new DssThreadCpuTimer(StatisticsKey.BLOCK_ANALYSIS_TIME.getLabel());
+  private final DssThreadCpuTimer coverageTime =
+      new DssThreadCpuTimer(StatisticsKey.COVERAGE_TIME.getLabel());
+  private final DssThreadCpuTimer violationConditionTime =
+      new DssThreadCpuTimer(StatisticsKey.VIOLATION_CONDITION_TIME.getLabel());
 
   private @Nullable DssBlockAnalysisStatistics dcpaStatistics;
 
@@ -75,6 +83,10 @@ public class DssSingleWorkerStatistics implements Statistics {
       new StatCounter(StatisticsKey.STORE_PRECONDITION_STATES_COUNT.getLabel());
   private final StatCounter storeViolationConditionStatesCount =
       new StatCounter(StatisticsKey.STORE_VIOLATION_CONDITION_STATES_COUNT.getLabel());
+  private final StatCounter coverageCount =
+      new StatCounter(StatisticsKey.COVERAGE_COUNT.getLabel());
+  private final StatCounter violationConditionCount =
+      new StatCounter(StatisticsKey.VIOLATION_CONDITION_COUNT.getLabel());
   private final StatInt serializedStatesSize =
       new StatInt(StatKind.SUM, StatisticsKey.SERIALIZED_STATES_SIZE.getLabel());
 
@@ -110,6 +122,22 @@ public class DssSingleWorkerStatistics implements Statistics {
     return storeViolationConditionStatesCount;
   }
 
+  public DssThreadCpuTimer getCoverageTimer() {
+    return coverageTime;
+  }
+
+  public StatCounter getCoverageCounter() {
+    return coverageCount;
+  }
+
+  public DssThreadCpuTimer getViolationConditionTimer() {
+    return violationConditionTime;
+  }
+
+  public StatCounter getViolationConditionCounter() {
+    return violationConditionCount;
+  }
+
   public StatInt getSerializedStatesSizeStats() {
     return serializedStatesSize;
   }
@@ -138,6 +166,10 @@ public class DssSingleWorkerStatistics implements Statistics {
       case STORE_VIOLATION_CONDITION_STATES_COUNT ->
           storeViolationConditionStatesCount.getUpdateCount();
       case STORE_VIOLATION_CONDITION_STATES_TIME -> storeViolationConditionStatesTime.nanos();
+      case COVERAGE_COUNT -> coverageCount.getUpdateCount();
+      case COVERAGE_TIME -> coverageTime.nanos();
+      case VIOLATION_CONDITION_COUNT -> violationConditionCount.getUpdateCount();
+      case VIOLATION_CONDITION_TIME -> violationConditionTime.nanos();
       case SERIALIZED_STATES_SIZE -> serializedStatesSize.getValueSum();
     };
   }
@@ -186,6 +218,14 @@ public class DssSingleWorkerStatistics implements Statistics {
         .put(
             StatisticsKey.STORE_VIOLATION_CONDITION_STATES_TIME.getLabel(),
             formatNanos(storeViolationConditionStatesTime.nanos()))
+        .put(StatisticsKey.COVERAGE_COUNT.getLabel(), coverageCount.getUpdateCount())
+        .put(StatisticsKey.COVERAGE_TIME.getLabel(), formatNanos(coverageTime.nanos()))
+        .put(
+            StatisticsKey.VIOLATION_CONDITION_COUNT.getLabel(),
+            violationConditionCount.getUpdateCount())
+        .put(
+            StatisticsKey.VIOLATION_CONDITION_TIME.getLabel(),
+            formatNanos(violationConditionTime.nanos()))
         .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString());
   }
 

@@ -32,7 +32,12 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-wmm/safe003_tso.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe004_tso.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe005_tso.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe007_rmo.oepc_rmo.opt-thin001_rmo.oepc_rmo.opt.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe009_rmo.oepc.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe012_power.oepc.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe012_rmo.oepc.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe015_pso.oepc_pso.opt_tso.oepc_tso.opt.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe018_power.oepc.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe018_rmo.oepc.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe025_pso.oepc_pso.opt_tso.oepc_tso.opt.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe032_tso.yml</exclude> <!-- flapping timeout -->

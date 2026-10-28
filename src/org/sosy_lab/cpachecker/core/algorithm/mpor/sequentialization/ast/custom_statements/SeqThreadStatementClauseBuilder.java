@@ -197,8 +197,7 @@ public record SeqThreadStatementClauseBuilder(
             utils.binaryExpressionBuilder());
     for (CFANodeForThread threadNode : pThread.cfa().threadNodes) {
       if (pVisitedNodes.add(threadNode)) {
-        rClauses.addAll(
-            buildClausesFromThreadNode(pThread, pVisitedNodes, threadNode, statementBuilder));
+        rClauses.addAll(buildClausesFromThreadNode(pThread, threadNode, statementBuilder));
       }
     }
     return rClauses.build();
@@ -210,13 +209,8 @@ public record SeqThreadStatementClauseBuilder(
    * edges i.e. its {@code pc} is {@link SeqProgramCounterVariables#EXIT_PC}.
    */
   private ImmutableList<SeqThreadStatementClause> buildClausesFromThreadNode(
-      MPORThread pThread,
-      Set<CFANodeForThread> pCoveredNodes,
-      CFANodeForThread pThreadNode,
-      SeqThreadStatementBuilder pStatementBuilder)
+      MPORThread pThread, CFANodeForThread pThreadNode, SeqThreadStatementBuilder pStatementBuilder)
       throws UnrecognizedCodeException {
-
-    pCoveredNodes.add(pThreadNode);
 
     if (isExcludedNode(pThreadNode)) {
       return ImmutableList.of();
@@ -241,7 +235,7 @@ public record SeqThreadStatementClauseBuilder(
     }
 
     ImmutableList<SeqThreadStatement> statements =
-        pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes);
+        pStatementBuilder.buildStatementsFromThreadNode(pThreadNode);
     SeqThreadStatementClause clause = buildClause(pThread, nextThreadLabel, labelPc, statements);
     return appendResetAssignmentsForOutOfScopePointers(
         pThread, pThreadNode, ImmutableList.of(clause));
@@ -356,7 +350,7 @@ public record SeqThreadStatementClauseBuilder(
       ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           localVariableSubstituteTable = substitution.getLocalVariableSubstituteTable();
       ImmutableSet<AVariableDeclaration> localVariablesInScope =
-          astCfaRelation.getAstLocalVariablesInScopeByCfaNode(cfaNode);
+          astCfaRelation.getDeclaredLocalVariablesByCfaNode(cfaNode);
       for (AVariableDeclaration localVariableInScope : localVariablesInScope) {
         if (localVariableInScope.getType() instanceof CPointerType) {
           LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
@@ -377,7 +371,7 @@ public record SeqThreadStatementClauseBuilder(
       //    ptr = malloc(sizeof(int));
       // }
       ImmutableSet<AParameterDeclaration> parametersInScope =
-          astCfaRelation.getAstParametersInScopeByCfaNode(cfaNode);
+          astCfaRelation.getDeclaredParametersByCfaNode(cfaNode);
       for (AParameterDeclaration parameterInScope : parametersInScope) {
         if (parameterInScope.getType() instanceof CPointerType
             && pThreadNode.callContext.cfaEdgeForThread().isPresent()) {

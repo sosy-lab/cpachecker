@@ -1,0 +1,70 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Regression test for an assumption waypoint at the empty body of a loop, which has no
+# CFA edge of its own.
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: "2.2"
+    uuid: "8c2f5d3b-4e6a-4b7c-8d9e-1f2a3b4c5d6e"
+    creation_time: "2026-10-03T12:00:00Z"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./concurrent-data-race-empty-loop-body.c"
+      input_file_hashes:
+        "./concurrent-data-race-empty-loop-body.c": "b076a37d2448e7ba564474bffe58cc3b3cf83c9cfd28e96cbaaf6e337e56aa88"
+      specification: "G ! data-race"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race-empty-loop-body.c"
+              line: 40
+              column: 17
+              function: "main"
+    - segment:
+        - waypoint:
+            type: assumption
+            action: follow
+            thread_id: 0
+            constraint:
+              value: "1"
+              format: c_expression
+            location:
+              file_name: "./concurrent-data-race-empty-loop-body.c"
+              line: 41
+              column: 20
+              function: "main"
+    - segment:
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race-empty-loop-body.c"
+              line: 41
+              column: 10
+              function: "main"
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 1
+            location:
+              file_name: "./concurrent-data-race-empty-loop-body.c"
+              line: 34
+              column: 3
+              function: "worker"

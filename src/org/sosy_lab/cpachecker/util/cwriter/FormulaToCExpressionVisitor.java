@@ -168,24 +168,23 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case BV_NOT -> "~";
       case BV_SHL -> " << ";
 
-      case UF -> {
-        // There are several CPAchecker-internal UFs that replace unsupported function in solvers.
-        // See FormulaManagerView and ReplaceBitvectorWithNumeralAndFunctionTheory for details.
-        yield switch (pDeclaration.getName()) {
-          case "_&_" -> " & ";
-          case "_!!_" -> " | ";
-          case "_^_" -> " ^ ";
-          case "_~_" -> "~";
-          case "_<<_" -> " << ";
-          case "_>>_" -> " >> "; // TODO arithmetic or logical shift?
-          case "_%_" -> " % ";
-          default ->
-              throw new UnsupportedOperationException(
-                  String.format(
-                      "Unexpected operand %s (%s) in formula '%s'",
-                      pDeclaration.getKind(), pDeclaration.getName(), f));
-        };
-      }
+      case UF ->
+          // There are several CPAchecker-internal UFs that replace unsupported function in solvers.
+          // See FormulaManagerView and ReplaceBitvectorWithNumeralAndFunctionTheory for details.
+          switch (pDeclaration.getName()) {
+            case "_&_" -> " & ";
+            case "_!!_" -> " | ";
+            case "_^_" -> " ^ ";
+            case "_~_" -> "~";
+            case "_<<_" -> " << ";
+            case "_>>_" -> " >> "; // TODO arithmetic or logical shift?
+            case "_%_" -> " % ";
+            default ->
+                throw new UnsupportedOperationException(
+                    String.format(
+                        "Unexpected operand %s (%s) in formula '%s'",
+                        pDeclaration.getKind(), pDeclaration.getName(), f));
+          };
 
       default ->
           throw new UnsupportedOperationException(

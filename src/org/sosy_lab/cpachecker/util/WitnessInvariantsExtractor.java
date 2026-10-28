@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -246,9 +246,7 @@ public class WitnessInvariantsExtractor {
           IOException,
           InvalidWitnessException {
 
-    List<AbstractEntry> entries =
-        AutomatonWitnessV2ParserUtils.parseYAML(
-            MoreFiles.asByteSource(pPathToWitnessFile).openStream());
+    List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pPathToWitnessFile);
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
     Set<Invariant> invariants = transformer.generateInvariantsFromEntries(entries);
@@ -260,43 +258,54 @@ public class WitnessInvariantsExtractor {
     // edge match the lines present in the invariant, then the invariant is a
     // candidate for the node
     for (Invariant invariant : invariants) {
-      // For efficiency purposes, we match loop invariants differently to location invariants
-      Optional<CFANode> node;
+      // For efficiency purposes, we match loop invariants differently to location invariants.
+      // A post-processing of the CFA may have copied the place an invariant belongs to, for
+      // example when it unrolled a loop, and the invariant then holds at every copy of it.
+      ImmutableSet<CFANode> nodes;
       if (invariant.isLoopInvariant()) {
-        node =
-            cfa.getAstCfaRelation()
-                .getNodeForIterationStatementLocation(invariant.getLine(), invariant.getColumn());
+        nodes =
+            cfa.getLoopStructure()
+                .map(
+                    loopStructure ->
+                        cfa.getAstCfaRelation()
+                            .getNodesForIterationStatementLocation(
+                                invariant.getLine(), invariant.getColumn(), loopStructure))
+                .orElse(ImmutableSet.of());
       } else {
-        node =
+        nodes =
             cfa.getAstCfaRelation()
-                .getNodeForStatementLocation(invariant.getLine(), invariant.getColumn());
+                .getNodeForStatementLocation(invariant.getLine(), invariant.getColumn())
+                .map(ImmutableSet::of)
+                .orElse(ImmutableSet.of());
       }
 
-      if (node.isPresent()) {
-        ExpressionTreeLocationInvariant candidateInvariant;
-        if (invariant instanceof TransitionInvariant pTransitionInvariant) {
-          candidateInvariant =
-              new ExpressionTreeLocationTransitionInvariant(
-                  "Invariant matched at line "
-                      + invariant.getLine()
-                      + " with column "
-                      + invariant.getColumn(),
-                  node.orElseThrow(),
-                  invariant.getFormula(),
-                  toCodeVisitorCache,
-                  pTransitionInvariant.getMapCurrentVarsToPrev());
-        } else {
-          candidateInvariant =
-              new ExpressionTreeLocationInvariant(
-                  "Invariant matched at line "
-                      + invariant.getLine()
-                      + " with column "
-                      + invariant.getColumn(),
-                  node.orElseThrow(),
-                  invariant.getFormula(),
-                  toCodeVisitorCache);
+      if (!nodes.isEmpty()) {
+        for (CFANode node : nodes) {
+          ExpressionTreeLocationInvariant candidateInvariant;
+          if (invariant instanceof TransitionInvariant pTransitionInvariant) {
+            candidateInvariant =
+                new ExpressionTreeLocationTransitionInvariant(
+                    "Invariant matched at line "
+                        + invariant.getLine()
+                        + " with column "
+                        + invariant.getColumn(),
+                    node,
+                    invariant.getFormula(),
+                    toCodeVisitorCache,
+                    pTransitionInvariant.getMapCurrentVarsToPrev());
+          } else {
+            candidateInvariant =
+                new ExpressionTreeLocationInvariant(
+                    "Invariant matched at line "
+                        + invariant.getLine()
+                        + " with column "
+                        + invariant.getColumn(),
+                    node,
+                    invariant.getFormula(),
+                    toCodeVisitorCache);
+          }
+          candidateInvariants.add(candidateInvariant);
         }
-        candidateInvariants.add(candidateInvariant);
       } else {
         logger.log(
             Level.WARNING,

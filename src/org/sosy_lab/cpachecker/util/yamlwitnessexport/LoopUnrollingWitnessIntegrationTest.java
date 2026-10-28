@@ -52,9 +52,8 @@ public class LoopUnrollingWitnessIntegrationTest {
   /** A program with a loop that the heuristic counts, and an invariant to report for it. */
   private static final String SAFE_PROGRAM = "counted-while-safe.c";
 
-  // Several runs in one JVM number their counterexamples one after the other.
-  private static final String VIOLATION_WITNESS = "Counterexample.*.witness-2.0.yml";
-  private static final String CORRECTNESS_WITNESS = "witness-2.0.yml";
+  private static final String VIOLATION_WITNESS = "Counterexample.*.witness-*.yml";
+  private static final String CORRECTNESS_WITNESS = "witness-*.yml";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 

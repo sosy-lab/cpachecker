@@ -65,9 +65,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeTy
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -291,9 +289,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           ShutdownManager pointerShutdownManager =
               ShutdownManager.createWithParent(shutdownNotifier);
           pointerShutdownNotifier = pointerShutdownManager.getNotifier();
-          ResourceLimit timeLimit = WalltimeLimit.create(pointerAnalysisTime);
           pointerTimeChecker =
-              new ResourceLimitChecker(pointerShutdownManager, ImmutableList.of(timeLimit));
+              ResourceLimitChecker.createWallTimeLimitChecker(
+                  pointerShutdownManager, pointerAnalysisTime);
           pointerTimeChecker.start();
         } else {
           pointerShutdownNotifier = shutdownNotifier;

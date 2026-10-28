@@ -209,6 +209,22 @@ public abstract class DssMessage {
         .get(SerializeOperator.STATE_KEY);
   }
 
+  /**
+   * Whether the sender reports the end of its block as unreachable, i.e., its postcondition is
+   * {@code false} and successor blocks must not be entered through it.
+   *
+   * <p>This is an explicit flag on purpose. It must not be inferred from the states the message
+   * carries: the most general (top) state is a perfectly valid postcondition for a block whose end
+   * is reachable but unconstrained, and treating it as a marker would silently discard it.
+   *
+   * @return whether this message reports an unreachable block end
+   */
+  public final boolean indicatesUnreachableBlockEnd() {
+    checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
+    return Boolean.parseBoolean(
+        content.get(DssMessageFactory.DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY));
+  }
+
   public final AlgorithmStatus getAlgorithmStatus() {
     checkArgument(
         type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,

@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -32,6 +33,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -923,7 +925,7 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
     return getFormulaApproximation(
         pFunctionScope,
@@ -939,10 +941,13 @@ public final class ValueAnalysisState
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
+    FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+        ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
 
     return getFormulaApproximation(
         pFunctionScope,
@@ -950,17 +955,19 @@ public final class ValueAnalysisState
         varName ->
             (pFunctionScope.getReturnVariable().isEmpty()
                     || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
-                && pAstCfaRelation
-                    .getVariablesAndParametersInScope(pLocation)
-                    .orElseThrow()
-                    .anyMatch(v -> v.getName().equals(varName))
+                && variablesInScope.anyMatch(v -> v.getName().equals(varName))
                 && !varName.contains("__CPAchecker_"),
-        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+        varName -> {
+          String name = pAstCfaRelation.getNameInInputProgram(pLocation, varName);
+          return useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name;
+        });
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
       throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");

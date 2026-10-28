@@ -32,6 +32,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -64,6 +65,7 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
   private final Algorithm innerAlgorithm;
   private final int numSplits;
   private final ShutdownNotifier shutdownNotifier;
+  private final MachineModel machineModel;
 
   private final Timer determineSplitTime = new Timer();
   private final Timer extractSplitTime = new Timer();
@@ -77,13 +79,15 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
       final ConfigurableProgramAnalysis pCpa,
       final Configuration pConfig,
       final LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
     logger = pLogger;
     innerAlgorithm = pAlgorithm;
     shutdownNotifier = pShutdownNotifier;
+    machineModel = pMachineModel;
 
     SplitterCPA splitterCPA = CPAs.retrieveCPAOrFail(pCpa, SplitterCPA.class, getClass());
     numSplits = splitterCPA.getMaximalSplitNumber();
@@ -195,7 +199,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
                         falseAssumptionStates,
                         0,
                         true,
-                        false));
+                        false,
+                        machineModel));
       }
     } catch (IOException e) {
       logger.log(

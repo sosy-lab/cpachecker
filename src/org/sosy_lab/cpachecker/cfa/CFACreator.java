@@ -760,9 +760,8 @@ public class CFACreator {
 
     stats.processingTime.stop();
 
-    // The post-processings are done, so this is what the nodes and edges they copied stand for.
-    cfa.setCopyOrigins(copyOrigins);
-
+    // The post-processings are done, so the relation between the CFA and the program can tell
+    // what the nodes and edges that they copied stand for.
     if (pParseResult.astStructure().isPresent()) {
       cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow().withCopyOrigins(copyOrigins));
     }
@@ -794,6 +793,11 @@ public class CFACreator {
 
     logger.log(
         Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
+
+    // Now finally set the edges for the AstCfaRelation, as the CFA is now complete and immutable.
+    if (immutableCFA.getAstCfaRelation() != null) {
+      immutableCFA.getAstCfaRelation().setEdgesForAstElements(immutableCFA.edges());
+    }
 
     return immutableCFA;
   }
@@ -1257,7 +1261,8 @@ public class CFACreator {
                     v.getName(),
                     v.getOrigName(),
                     v.getQualifiedName(),
-                    initializer);
+                    initializer,
+                    v.hasThreadLocalStorage());
 
             previouslyInitializedVariables.add(name);
             iterator.set(Pair.of(v, p.getSecond())); // replace declaration

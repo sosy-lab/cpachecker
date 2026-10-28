@@ -73,7 +73,7 @@ public class DominatorState extends ForwardingSet<CFANode>
 
   @Override
   public int hashCode() {
-    return Objects.hash(dominators);
+    return Objects.hashCode(dominators);
   }
 
   @Override

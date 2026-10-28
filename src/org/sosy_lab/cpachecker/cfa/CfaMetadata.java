@@ -49,8 +49,7 @@ public final class CfaMetadata {
   private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
-  private final @Nullable CfaTransformationMetadata transformationMetadata;
-  private final CfaCopyOrigins copyOrigins;
+  private final @Nullable ProgramTransformation transformation;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -65,8 +64,7 @@ public final class CfaMetadata {
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
-      @Nullable CfaTransformationMetadata pCfaTransformationMetadata,
-      CfaCopyOrigins pCopyOrigins) {
+      @Nullable ProgramTransformation pProgramTransformation) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -80,8 +78,7 @@ public final class CfaMetadata {
     liveVariables = pLiveVariables;
     edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
-    transformationMetadata = pCfaTransformationMetadata;
-    copyOrigins = checkNotNull(pCopyOrigins);
+    transformation = pProgramTransformation;
   }
 
   /**
@@ -120,8 +117,7 @@ public final class CfaMetadata {
         null,
         null,
         null,
-        null,
-        new CfaCopyOrigins());
+        null);
   }
 
   /**
@@ -133,13 +129,14 @@ public final class CfaMetadata {
     return machineModel;
   }
 
-  public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
+  public CfaMetadata withTransformation(ProgramTransformation pTransformation) {
     CfaMetadata newMetadata =
         new CfaMetadata(
             machineModel,
             cfaLanguage,
             inputLanguage,
-            fileNames,
+            // use original files, because transforming does not change what the input files are
+            pTransformation.originalCfa().getFileNames(),
             mainFunctionEntry,
             connectedness,
             astCFARelation,
@@ -148,8 +145,7 @@ public final class CfaMetadata {
             liveVariables,
             edgesToAnnotations,
             svLibCfaMetadata,
-            pTransformationMetadata,
-            copyOrigins);
+            pTransformation);
     return newMetadata;
   }
 
@@ -180,8 +176,8 @@ public final class CfaMetadata {
     return fileNames;
   }
 
-  public @Nullable CfaTransformationMetadata getTransformationMetadata() {
-    return transformationMetadata;
+  public @Nullable ProgramTransformation getTransformation() {
+    return transformation;
   }
 
   /**
@@ -216,8 +212,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
+        transformation);
   }
 
   /**
@@ -250,40 +245,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
-  }
-
-  /**
-   * Returns what the nodes and edges that a post-processing of the CFA copied stand for in the
-   * program, which is empty if nothing was copied.
-   */
-  public CfaCopyOrigins getCopyOrigins() {
-    return copyOrigins;
-  }
-
-  /**
-   * Returns a copy of this instance, but with the specified copy origins.
-   *
-   * @param pCopyOrigins what the copied nodes and edges stand for in the program
-   * @return a copy of this instance, but with the specified copy origins
-   */
-  public CfaMetadata withCopyOrigins(CfaCopyOrigins pCopyOrigins) {
-    return new CfaMetadata(
-        machineModel,
-        cfaLanguage,
-        inputLanguage,
-        fileNames,
-        mainFunctionEntry,
-        connectedness,
-        astCFARelation,
-        loopStructure,
-        variableClassification,
-        liveVariables,
-        edgesToAnnotations,
-        svLibCfaMetadata,
-        transformationMetadata,
-        pCopyOrigins);
+        transformation);
   }
 
   /**
@@ -329,8 +291,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
+        transformation);
   }
 
   /**
@@ -367,8 +328,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         pSvLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
+        transformation);
   }
 
   /**
@@ -392,8 +352,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
+        transformation);
   }
 
   /**
@@ -429,8 +388,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
+        transformation);
   }
 
   /**
@@ -465,8 +423,7 @@ public final class CfaMetadata {
         pLiveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
+        transformation);
   }
 
   /**
@@ -505,8 +462,7 @@ public final class CfaMetadata {
         liveVariables,
         pedgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
-        copyOrigins);
+        transformation);
   }
 
   @Override
@@ -523,7 +479,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformation);
   }
 
   @Override
@@ -544,7 +500,7 @@ public final class CfaMetadata {
         && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
         && Objects.equals(astCFARelation, other.astCFARelation)
         && Objects.equals(svLibCfaMetadata, other.svLibCfaMetadata)
-        && Objects.equals(transformationMetadata, other.transformationMetadata);
+        && Objects.equals(transformation, other.transformation);
   }
 
   @Override
@@ -560,7 +516,7 @@ public final class CfaMetadata {
         .add("variableClassification", variableClassification)
         .add("liveVariables", liveVariables)
         .add("edgesToAnnotations", edgesToAnnotations)
-        .add("transformationMetadata", transformationMetadata)
+        .add("transformation", transformation)
         .toString();
   }
 }

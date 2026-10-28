@@ -14,15 +14,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * The element of the program that each node and edge a post-processing created stands for.
+ * Remembers the original element of the program (created by the parser) that each node and edge
+ * created by a post-processing stands for.
  *
  * <p>Everything that looks up a node or an edge of the program, for example the relation between
  * the CFA and the AST that witnesses are written with, only knows the ones the parser created. This
- * is what tells those lookups what a copy stands for.
- *
- * <p>Several post-processings copy nodes and edges, and they run one after the other, so a copy can
- * be copied again. Every copy is therefore resolved while it is remembered, which keeps every value
- * in here an element that the parser created.
+ * class tells those lookups what a copy stands for.
  */
 public final class CfaCopyOrigins {
 
@@ -70,12 +67,22 @@ public final class CfaCopyOrigins {
   }
 
   /**
+   * Whether the given node of the CFA is a copy that stands for the head of a loop of the program,
+   * for example one of the copies that an unrolling of that loop made for its iterations. Nothing
+   * about the CFA says so anymore, because the loop it was the head of is not in there.
+   */
+  public boolean standsForALoopHead(CFANode pNode) {
+    CFANode programNode = originalOf(pNode);
+    return !programNode.equals(pNode) && programNode.isLoopStart();
+  }
+
+  /**
    * Whether a block of a basic-block aggregation has to end at the given node, although the shape
    * of the CFA does not say so.
    */
   public boolean endsABlock(CFANode pNode) {
     // A loop head of the program is entered from more than one place and ends a block on its own,
     // while a copy of it is entered from one place only.
-    return copiesOfLoopHeadsEndABlock && originalOf(pNode).isLoopStart();
+    return copiesOfLoopHeadsEndABlock && standsForALoopHead(pNode);
   }
 }

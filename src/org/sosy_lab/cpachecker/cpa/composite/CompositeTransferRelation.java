@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
 final class CompositeTransferRelation implements WrapperTransferRelation {
 
@@ -229,11 +230,12 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
   /**
    * This method checks whether a block has to end at the given node although the shape of the CFA
-   * does not say so, which is the case for a node that a post-processing copied from one that the
-   * program branches at.
+   * does not say so. This can be the case for a node that post-processing copied from one that the
+   * program branches at. Does nothing if the astCfaRelation is not set.
    */
   private boolean endsABlock(CFANode node) {
-    return cfa.getMetadata().getCopyOrigins().endsABlock(node);
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+    return astCfaRelation != null && astCfaRelation.endsABlock(node);
   }
 
   /**

@@ -146,8 +146,8 @@ public class DistributedARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
+  public Object computeProgramPointId(AbstractState pAbstractState) {
     Preconditions.checkArgument(pAbstractState instanceof ARGState);
-    return wrappedCPA.computeProgramPointHash(((ARGState) pAbstractState).getWrappedState());
+    return wrappedCPA.computeProgramPointId(((ARGState) pAbstractState).getWrappedState());
   }
 }

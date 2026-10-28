@@ -73,7 +73,6 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
             new DssMessageFactory(options),
             ShutdownManager.create(),
             pAllWorkerStatistics.createWorkerStats("witness-collector"));
-
     blockGraph = pBlockGraph;
     idToNode = Maps.uniqueIndex(pBlockGraph.getNodes(), BlockNode::getId);
     modification = pModification;

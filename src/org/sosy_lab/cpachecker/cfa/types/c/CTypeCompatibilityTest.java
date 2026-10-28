@@ -505,7 +505,7 @@ public class CTypeCompatibilityTest {
     assertThat(POINTER_TO_CHAR.canBeAssignedFrom(UNKNOWN_ARRAY)).isFalse();
 
     for (CType type : TEST_TYPES) {
-      if (!type.getCanonicalType().withoutQualifiers().equals(CHAR)
+      if (!type.getCanonicalType().asUnqualified().equals(CHAR)
           && !(type.getCanonicalType() instanceof CVoidType)) {
         CPointerType pointerType = new CPointerType(CTypeQualifiers.NONE, type);
         assertThat(POINTER_TO_CHAR.canBeAssignedFrom(pointerType)).isFalse();
