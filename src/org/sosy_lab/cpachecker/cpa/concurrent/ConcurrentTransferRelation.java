@@ -317,7 +317,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
     // otherwise steer refinement toward facts about the handle rather than program behavior.
     Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
     if (handleKey.isPresent()) {
-      OptionalInt hint = state.getHandleThreadIdHint(handleKey.orElseThrow());
+      OptionalInt hint = state.getLastCreatedThreadId(handleKey.orElseThrow());
       if (hint.isPresent() && state.liveThreadIds().contains(hint.orElseThrow())) {
         Optional<ConcurrentState> joined = state.joinThread(hint.orElseThrow());
         if (joined.isPresent()) {

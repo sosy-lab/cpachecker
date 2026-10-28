@@ -61,15 +61,20 @@ public class ConcurrentState extends AbstractSingleWrapperState
   protected final ImmutableSet<Integer> liveThreadIds;
 
   /**
-   * Fast-path hint from a handle variable's qualified name to the thread ID it was last assigned by
-   * {@code pthread_create(&name, ...)}, for the common case where the handle is a plain variable
-   * (not an array element, struct field, ...). Excluded from {@link #equals}/{@link #hashCode} — it
-   * is pure optimization, never load-bearing for correctness (see {@link
-   * ConcurrentTransferRelation}'s join dispatch, which falls back to the general
-   * candidate-branching mechanism whenever no hint applies), so two states that agree on everything
-   * else may still merge/cover regardless of it.
+   * Maps a thread handle variable's qualified name to the ID of the thread most recently created
+   * through it by {@code pthread_create(&name, ...)}; only plain variables are tracked, not array
+   * elements, struct fields, etc. It is not a cache for merging: it is a shortcut for resolving
+   * which thread a later {@code pthread_join(name, ...)} refers to. For example, after {@code
+   * pthread_create(&t, ...)} created thread 1, the map holds {@code t -> 1}, so {@code
+   * pthread_join(t, ...)} joins thread 1 directly (see {@link ConcurrentTransferRelation}'s join
+   * dispatch) instead of branching over all live threads and filtering each candidate with a
+   * synthetic assumption in the wrapped analysis. If the handle has no entry, the general
+   * candidate-branching is used.
+   *
+   * <p>The map is excluded from {@link #equals}/{@link #hashCode} and from the merge and coverage
+   * checks.
    */
-  protected final ImmutableMap<String, Integer> handleThreadIdHints;
+  protected final ImmutableMap<String, Integer> handleToLastCreatedThreadId;
 
   /** Transient mapping from cloned outgoing edges to their originating thread ID. */
   protected final IdentityHashMap<CFAEdge, Integer> edgeThreadIds = new IdentityHashMap<>();
@@ -80,7 +85,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
-      ImmutableMap<String, Integer> pHandleThreadIdHints,
+      ImmutableMap<String, Integer> pHandleToLastCreatedThreadId,
       Random pRandom) {
     super(pWrappedState);
 
@@ -88,7 +93,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
     logger = pLogger;
     threads = pThreads;
     liveThreadIds = pLiveThreadIds;
-    handleThreadIdHints = pHandleThreadIdHints;
+    handleToLastCreatedThreadId = pHandleToLastCreatedThreadId;
     random = pRandom;
   }
 
@@ -96,9 +101,9 @@ public class ConcurrentState extends AbstractSingleWrapperState
       AbstractState pWrappedState,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
-      ImmutableMap<String, Integer> pHandleThreadIdHints) {
+      ImmutableMap<String, Integer> pHandleToLastCreatedThreadId) {
     return new ConcurrentState(
-        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleThreadIdHints, random);
+        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleToLastCreatedThreadId, random);
   }
 
   public ImmutableMap<Integer, ThreadState> threads() {
@@ -115,11 +120,11 @@ public class ConcurrentState extends AbstractSingleWrapperState
   }
 
   /**
-   * The fast-path candidate thread ID for a handle's qualified name, if any (see {@link
-   * #handleThreadIdHints}), or empty.
+   * The ID of the thread most recently created through the given handle variable, if tracked (see
+   * {@link #handleToLastCreatedThreadId}), or empty.
    */
-  public OptionalInt getHandleThreadIdHint(String qualifiedName) {
-    Integer hint = handleThreadIdHints.get(qualifiedName);
+  public OptionalInt getLastCreatedThreadId(String qualifiedName) {
+    Integer hint = handleToLastCreatedThreadId.get(qualifiedName);
     return hint == null ? OptionalInt.empty() : OptionalInt.of(hint);
   }
 
@@ -141,7 +146,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
    * Adds a new thread instance. {@code pIsJoinable} is false only for the main thread (created
    * synthetically at analysis start, not via a real {@code pthread_create}): nothing can join it,
    * so it is not a join candidate. {@code pHandleQualifiedName}, if given, records this thread ID
-   * as the fast-path join candidate for that variable (see {@link #handleThreadIdHints}) — last
+   * as the thread created through that variable (see {@link #handleToLastCreatedThreadId}) — last
    * write wins, matching ordinary variable semantics if the same storage is reused for a later
    * create.
    */
@@ -157,23 +162,23 @@ public class ConcurrentState extends AbstractSingleWrapperState
         pIsJoinable
             ? ImmutableSet.<Integer>builder().addAll(liveThreadIds).add(newThreadId).build()
             : liveThreadIds;
-    final ImmutableMap<String, Integer> newHandleThreadIdHints =
+    final ImmutableMap<String, Integer> newHandleToLastCreatedThreadId =
         pHandleQualifiedName
             .map(
                 pS ->
                     ImmutableMap.<String, Integer>builder()
-                        .putAll(handleThreadIdHints)
+                        .putAll(handleToLastCreatedThreadId)
                         .put(pS, newThreadId)
                         .buildKeepingLast())
-            .orElse(handleThreadIdHints);
-    return update(getWrappedState(), newThreads, newLiveThreadIds, newHandleThreadIdHints);
+            .orElse(handleToLastCreatedThreadId);
+    return update(getWrappedState(), newThreads, newLiveThreadIds, newHandleToLastCreatedThreadId);
   }
 
   /**
    * Joins the given candidate thread instance (one of {@link #liveThreadIds}), blocking (returning
    * empty) until it has finished. Which candidate a given {@code pthread_join} call actually
    * targets is resolved by the transfer relation — either directly, via {@link
-   * #getHandleThreadIdHint} for the common case of a plain handle variable, or by branching over
+   * #getLastCreatedThreadId} for the common case of a plain handle variable, or by branching over
    * every live candidate and keeping only the ones the wrapped analysis finds feasible (see
    * ConcurrentTransferRelation's join dispatch) — not by this method.
    */
@@ -191,7 +196,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
             .filter(threadId -> threadId != pThreadId)
             .collect(ImmutableSet.toImmutableSet());
     return Optional.of(
-        update(getWrappedState(), newThreads, newLiveThreadIds, handleThreadIdHints));
+        update(getWrappedState(), newThreads, newLiveThreadIds, handleToLastCreatedThreadId));
   }
 
   private boolean canJoin(int pThreadId) {
@@ -209,7 +214,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
     if (!params.isEmpty() && params.getFirst() instanceof CExpression handle) {
       Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
       if (handleKey.isPresent()) {
-        Integer hint = handleThreadIdHints.get(handleKey.orElseThrow());
+        Integer hint = handleToLastCreatedThreadId.get(handleKey.orElseThrow());
         if (hint != null && liveThreadIds.contains(hint)) {
           return canJoin(hint);
         }
@@ -228,11 +233,14 @@ public class ConcurrentState extends AbstractSingleWrapperState
     }
     newThreads.put(pThreadId, pNextThreadState);
     return update(
-        getWrappedState(), newThreads.buildKeepingLast(), liveThreadIds, handleThreadIdHints);
+        getWrappedState(),
+        newThreads.buildKeepingLast(),
+        liveThreadIds,
+        handleToLastCreatedThreadId);
   }
 
   ConcurrentState withWrappedState(AbstractState pWrappedState) {
-    return update(pWrappedState, threads, liveThreadIds, handleThreadIdHints);
+    return update(pWrappedState, threads, liveThreadIds, handleToLastCreatedThreadId);
   }
 
   /**

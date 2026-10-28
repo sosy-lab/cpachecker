@@ -24,7 +24,7 @@ public interface PartialOrderReductionStrategy {
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
-      ImmutableMap<String, Integer> pHandleThreadIdHints,
+      ImmutableMap<String, Integer> pHandleToLastCreatedThreadId,
       Random pRandom);
 
   default ConcurrentState emptyState(

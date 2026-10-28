@@ -58,9 +58,16 @@ class SPORConcurrentState extends ConcurrentState {
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
-      ImmutableMap<String, Integer> pHandleThreadIdHints,
+      ImmutableMap<String, Integer> pHandleToLastCreatedThreadId,
       Random pRandom) {
-    super(pWrappedState, pCfa, pLogger, pThreads, pLiveThreadIds, pHandleThreadIdHints, pRandom);
+    super(
+        pWrappedState,
+        pCfa,
+        pLogger,
+        pThreads,
+        pLiveThreadIds,
+        pHandleToLastCreatedThreadId,
+        pRandom);
   }
 
   @Override
@@ -68,9 +75,9 @@ class SPORConcurrentState extends ConcurrentState {
       AbstractState pWrappedState,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
-      ImmutableMap<String, Integer> pHandleThreadIdHints) {
+      ImmutableMap<String, Integer> pHandleToLastCreatedThreadId) {
     return new SPORConcurrentState(
-        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleThreadIdHints, random);
+        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleToLastCreatedThreadId, random);
   }
 
   /**
