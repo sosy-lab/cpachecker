@@ -260,7 +260,9 @@ def load_messages(message_dir: Path) -> list[Message]:
         message = Message.from_json(json_file.name, data)
         if message is not None:
             messages.append(message)
-    messages.sort(key=lambda m: (m.timestamp_ns is None, m.timestamp_ns or 0, m.sequence))
+    messages.sort(
+        key=lambda m: (m.timestamp_ns is None, m.timestamp_ns or 0, m.sequence)
+    )
     return messages
 
 
@@ -427,8 +429,16 @@ def semantic_changes(
 
 
 def message_duration_ms(messages: list[Message]) -> float:
-    if not messages or messages[0].timestamp_ns is None or messages[-1].timestamp_ns is None:
-        return float(max(0, messages[-1].sequence - messages[0].sequence)) if messages else 0.0
+    if (
+        not messages
+        or messages[0].timestamp_ns is None
+        or messages[-1].timestamp_ns is None
+    ):
+        return (
+            float(max(0, messages[-1].sequence - messages[0].sequence))
+            if messages
+            else 0.0
+        )
     return (messages[-1].timestamp_ns - messages[0].timestamp_ns) / 1e6
 
 
@@ -497,8 +507,7 @@ def render_meta_table(message: Message) -> str:
             value = format_status(value)
         rows.append((pretty_key(key), render_value(key, value)))
     rendered = "".join(
-        f"<tr><th>{esc(key)}</th><td>{esc(value)}</td></tr>"
-        for key, value in rows
+        f"<tr><th>{esc(key)}</th><td>{esc(value)}</td></tr>" for key, value in rows
     )
     return f'<table class="kv-table">{rendered}</table>'
 
@@ -542,8 +551,7 @@ def decode_structured_block_state(value: dict[str, Any]) -> str:
     history_text = " -> ".join(str(item) for item in history)
     witness_count = len([segment for segment in str(witness).split(",") if segment])
     return (
-        f"block={block_id}  history=[{history_text}]  "
-        f"witnessSegments={witness_count}"
+        f"block={block_id}  history=[{history_text}]  witnessSegments={witness_count}"
     )
 
 
@@ -592,7 +600,7 @@ def render_component_section(kind: str, value: Any, open_default: bool = False) 
     summary = component_summary(value)
     summary_text = f"{component_label}"
     if summary:
-        summary_text += f" <span class=\"component-summary-hint\">· {esc(summary)}</span>"
+        summary_text += f' <span class="component-summary-hint">· {esc(summary)}</span>'
 
     if component in {"compositeState", "compositePrecision"}:
         children = value.get("components", {})
@@ -621,7 +629,7 @@ def render_component_section(kind: str, value: Any, open_default: bool = False) 
     if component == "blockState":
         rows.append(
             '<tr class="decoded"><td class="kind">'
-            f"{esc(kind)}</td><td class=\"cpa\">{esc(component)}</td>"
+            f'{esc(kind)}</td><td class="cpa">{esc(component)}</td>'
             '<td class="field">&rarr; decoded</td>'
             f'<td class="value">{esc(decode_structured_block_state(value))}</td></tr>'
         )
@@ -639,9 +647,13 @@ def render_states(states: Any) -> str:
     blocks = []
     for index, state_entry in enumerate(states):
         if isinstance(state_entry, dict):
-            state_html = render_component_section("state", state_entry.get("state"), True)
+            state_html = render_component_section(
+                "state", state_entry.get("state"), True
+            )
             precision = state_entry.get("precision")
-            if not (isinstance(precision, dict) and precision.get("type") == "noPrecision"):
+            if not (
+                isinstance(precision, dict) and precision.get("type") == "noPrecision"
+            ):
                 precision_html = render_component_section("precision", precision, True)
             else:
                 precision_html = ""
@@ -728,18 +740,22 @@ def render_message_card(
     family_class = " witness" if "WITNESS" in message.message_type else ""
     arrow = TYPE_TO_ARROW.get(message.message_type, "-")
 
-    badges = [
-        f'<span class="type-badge {css_class}">{esc(message.type_label)}</span>'
-    ]
+    badges = [f'<span class="type-badge {css_class}">{esc(message.type_label)}</span>']
     status = message.payload.get("status")
     if isinstance(status, dict):
         status_text = format_status(status)
         badges.append(f'<span class="status-badge">{esc(status_text)}</span>')
     if "unreachableBlockEnd" in message.payload:
-        state = "unreachable block end" if message.payload["unreachableBlockEnd"] else "reachable block end"
+        state = (
+            "unreachable block end"
+            if message.payload["unreachableBlockEnd"]
+            else "reachable block end"
+        )
         badges.append(f'<span class="status-badge">{esc(state)}</span>')
     if message.message_type == "RESULT":
-        badges.append(f'<span class="status-badge">{esc(message.payload.get("result", "unknown"))}</span>')
+        badges.append(
+            f'<span class="status-badge">{esc(message.payload.get("result", "unknown"))}</span>'
+        )
     if message.message_type in {"CORRECTNESS_WITNESS", "VIOLATION_WITNESS"}:
         badges.append('<span class="status-badge">witness payload</span>')
     if message.repeats:
