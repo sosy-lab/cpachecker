@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.InliningDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
@@ -83,16 +84,8 @@ public class DssDecompositionOptions {
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path importDecomposition = null;
 
-  @Option(
-      description =
-          "Whether INLINING_DECOMPOSITION encodes the call stack of a block copy into its ID."
-              + " Keeping it makes IDs human-readable for debugging, at the cost of long,"
-              + " repeated ID strings on large block graphs; nothing in the analysis depends on"
-              + " the ID's content, only on its uniqueness.",
-      secure = true)
-  private boolean keepCallStackInBlockIds = false;
-
   private final BlockOperator blockOperator;
+  private final boolean debugMode;
 
   public DssDecompositionOptions(Configuration pConfiguration, CFA pCFA)
       throws InvalidConfigurationException {
@@ -105,6 +98,7 @@ public class DssDecompositionOptions {
       // if blockOperator.setCFA throws a CPAexception, this is because of an invalid configuration
       throw new InvalidConfigurationException("Initialization of block operator failed", e);
     }
+    debugMode = new DssAnalysisOptions(pConfiguration).isDebugModeEnabled();
   }
 
   public DssBlockDecomposition getConfiguredDecomposition() throws IOException {
@@ -127,8 +121,7 @@ public class DssDecompositionOptions {
               true);
       case INLINING_DECOMPOSITION ->
           new MergeBlockNodesDecomposition(
-              new InliningDecomposition(
-                  new LinearBlockNodeDecomposition(isBlockEnd), keepCallStackInBlockIds),
+              new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd), debugMode),
               2,
               largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
