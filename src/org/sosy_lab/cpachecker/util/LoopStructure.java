@@ -75,6 +75,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Class collecting and containing information about all loops in a CFA. */
@@ -290,26 +294,24 @@ public final class LoopStructure {
     private ImmutableSet<CFAEdge> getEdgesWithCalledFunctions() {
       ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
       edges.addAll(getInnerLoopEdges());
-      Deque<CFANode> waitlist = new ArrayDeque<>();
-      Set<CFANode> visited = new HashSet<>(nodes);
+      // Return edges are not followed, because they may lead to other callers.
+      // A caller continues via the summary edge of its call.
+      CFAVisitor visitor =
+          new NodeCollectingCFAVisitor(
+              new DefaultCFAVisitor() {
+                @Override
+                public TraversalProcess visitEdge(CFAEdge pEdge) {
+                  edges.add(pEdge);
+                  return pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+                      ? TraversalProcess.SKIP
+                      : TraversalProcess.CONTINUE;
+                }
+              });
       for (CFANode node : nodes) {
         for (CFAEdge edge : node.getLeavingEdges()) {
           if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
             edges.add(edge);
-            if (visited.add(edge.getSuccessor())) {
-              waitlist.push(edge.getSuccessor());
-            }
-          }
-        }
-      }
-      // Return edges are not followed, because they may lead to other callers
-      while (!waitlist.isEmpty()) {
-        CFANode node = waitlist.pop();
-        for (CFAEdge edge : node.getLeavingEdges()) {
-          edges.add(edge);
-          if (edge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
-              && visited.add(edge.getSuccessor())) {
-            waitlist.push(edge.getSuccessor());
+            CFATraversal.dfs().traverse(edge.getSuccessor(), visitor);
           }
         }
       }
