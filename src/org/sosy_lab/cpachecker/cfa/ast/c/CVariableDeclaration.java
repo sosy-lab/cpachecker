@@ -102,6 +102,9 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(cStorageClass.toASTString());
+    if (hasThreadLocalStorage) {
+      lASTString.append("_Thread_local ");
+    }
     lASTString.append(
         switch (pAAstNodeRepresentation) {
           case DEFAULT -> getType().toASTString(getName());

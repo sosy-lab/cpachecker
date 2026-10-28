@@ -78,6 +78,19 @@ public class ThreadLocalStorageTest {
   }
 
   @Test
+  public void testThreadLocalToASTString() throws CParserException, InterruptedException {
+    for (String code : new String[] {"_Thread_local int x = 1;", "extern _Thread_local int x;"}) {
+      CVariableDeclaration decl = parseGlobalVariable(code, "x");
+      assertThat(decl.toASTString()).isEqualTo(code);
+      // the output can be parsed again
+      assertThat(parseGlobalVariable(decl.toASTString(), "x").hasThreadLocalStorage()).isTrue();
+    }
+    assertThat(parseGlobalVariable("__thread int x;", "x").toASTString())
+        .isEqualTo("_Thread_local int x;");
+    assertThat(parseGlobalVariable("int x;", "x").toASTString()).isEqualTo("int x;");
+  }
+
+  @Test
   public void testThreadLocalStaticLocal() throws CParserException, InterruptedException {
     // block-scope static variables are allowed to be thread-local
     parse("void f(void) { static _Thread_local int x; }");
