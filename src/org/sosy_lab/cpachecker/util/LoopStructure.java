@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -248,7 +250,14 @@ public final class LoopStructure {
           }
           case CFunctionReturnEdge e when e.getFunctionCall() instanceof CAssignment assignment ->
               getAssignedVariable(assignment.getLeftHandSide()).ifPresent(variables::add);
-          default -> {}
+          case BlankEdge e -> {}
+          case CAssumeEdge e -> {}
+          case CDeclarationEdge e -> {}
+          case CStatementEdge e -> {}
+          case CFunctionReturnEdge e -> {}
+          // The effects of a call are on its function-call and function-return edges
+          case CFunctionSummaryEdge e -> {}
+          default -> throw new AssertionError("unexpected edge: " + edge);
         }
       }
       return variables.build();
