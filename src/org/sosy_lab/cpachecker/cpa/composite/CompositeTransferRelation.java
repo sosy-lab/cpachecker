@@ -231,7 +231,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   /**
    * This method checks whether a block has to end at the given node although the shape of the CFA
    * does not say so. This can be the case for a node that post-processing copied from one that the
-   * program branches at. Does nothing if the astCfaRelation is not set.
+   * program branches at. Without the relation between the CFA and the program nothing is known
+   * about such a node, so the block then ends where the CFA says it does.
    */
   private boolean endsABlock(CFANode node) {
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();

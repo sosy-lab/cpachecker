@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -331,9 +333,7 @@ public final class AstCfaRelation {
     }
 
     ImmutableSet<CFANode> headsOfTheProgram =
-        FluentIterable.from(nodesStandingForTheLoopHead(pLoop))
-            .transform(this::programNodeOf)
-            .toSet();
+        transformedImmutableSetCopy(nodesStandingForTheLoopHead(pLoop), this::programNodeOf);
 
     return headsOfTheProgram.size() == 1
         ? Optional.of(Iterables.getOnlyElement(headsOfTheProgram))

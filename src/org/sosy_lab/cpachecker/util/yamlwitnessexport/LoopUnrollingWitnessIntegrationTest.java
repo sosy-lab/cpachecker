@@ -57,6 +57,8 @@ public class LoopUnrollingWitnessIntegrationTest {
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
+  // discard printed statistics; a witness of a counterexample is written while they are printed
+  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private final PrintStream discardedOutput =
       new PrintStream(ByteStreams.nullOutputStream(), true, Charset.defaultCharset());
 
@@ -135,8 +137,8 @@ public class LoopUnrollingWitnessIntegrationTest {
             .getRoot()
             .toPath()
             .resolve((pUnrollLoops ? "unrolled" : "kept") + "-witness.yml");
-    Files.copy(witnesses.get(0), kept, StandardCopyOption.REPLACE_EXISTING);
-    Files.delete(witnesses.get(0));
+    Files.copy(witnesses.getFirst(), kept, StandardCopyOption.REPLACE_EXISTING);
+    Files.delete(witnesses.getFirst());
     return kept;
   }
 
