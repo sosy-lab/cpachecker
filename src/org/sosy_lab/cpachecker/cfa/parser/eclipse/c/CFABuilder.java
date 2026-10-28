@@ -419,7 +419,8 @@ class CFABuilder extends ASTVisitor {
       throw new CParserException(
           "Found %d cases of _Thread_local in unsupported locations, first one is in %s."
               .formatted(
-                  unhandledThreadLocalOccurrences.size(), unhandledThreadLocalOccurrences.first()));
+                  unhandledThreadLocalOccurrences.size(),
+                  unhandledThreadLocalOccurrences.getFirst()));
     }
 
     ParseResult result;
