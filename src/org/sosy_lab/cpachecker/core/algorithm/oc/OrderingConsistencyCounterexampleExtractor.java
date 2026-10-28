@@ -68,8 +68,7 @@ final class OrderingConsistencyCounterexampleExtractor {
       MemoryEvent earlierAccess = null;
       if (pAlgorithm.isDataRaceTarget()) {
         OcEncoder.RacePair race = pAlgorithm.findRace(model, pEncoder);
-        earlierAccess =
-            race.access1().id() == terminalEvent.id() ? race.access2() : race.access1();
+        earlierAccess = race.access1().id() == terminalEvent.id() ? race.access2() : race.access1();
       }
       boolean earlierAccessPassed = false;
       for (MemoryEvent event : pAlgorithm.orderedViolationEvents(model, pEncoder)) {
@@ -101,17 +100,18 @@ final class OrderingConsistencyCounterexampleExtractor {
           if (index == null || event.id() == terminalEvent.id()) {
             edges.add(edge);
             edgeInstances.add(event.instanceId());
-            edgeCreatedInstances.add(pAlgorithm.createdInstanceOf(event));
+            edgeCreatedInstances.add(OrderingConsistencyAlgorithm.createdInstanceOf(event));
             edgeAssumptions.add(new ArrayList<>());
             previousEdge = edge;
             index = edges.size() - 1;
           } else if (edgeCreatedInstances.get(index) == MemoryEvent.NO_INSTANCE) {
             // one statement can produce several events; whichever of them is the create is the
             // one that names the new thread
-            edgeCreatedInstances.set(index, pAlgorithm.createdInstanceOf(event));
+            edgeCreatedInstances.set(index, OrderingConsistencyAlgorithm.createdInstanceOf(event));
           }
           chainToEdgeIndex.put(chain, index);
-          pAlgorithm.assumptionFor(event, edge, model).ifPresent(edgeAssumptions.get(index)::add);
+          OrderingConsistencyAlgorithm.assumptionFor(event, edge, model)
+              .ifPresent(edgeAssumptions.get(index)::add);
         }
         if (event.id() == terminalEvent.id()) {
           break; // the execution stops at the violating event

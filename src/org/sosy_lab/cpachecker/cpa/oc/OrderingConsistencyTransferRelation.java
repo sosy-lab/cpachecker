@@ -357,8 +357,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     CStatementEdge statementEdge = (CStatementEdge) pEdge;
     CFunctionCallStatement call = (CFunctionCallStatement) statementEdge.getStatement();
     CFunctionCallAssignmentStatement assignment =
-        BuiltinIoFunctions.createNondetCallModellingFscanf(
-            call.getFunctionCallExpression(), pEdge);
+        BuiltinIoFunctions.createNondetCallModellingFscanf(call.getFunctionCallExpression(), pEdge);
     return new CStatementEdge(
         pEdge.getRawStatement(),
         assignment,

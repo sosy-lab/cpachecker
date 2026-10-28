@@ -257,8 +257,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return Optional.empty();
   }
 
-  protected Optional<String> getNewThreadNameIfExists(
-      ARGState pState, ARGState pPreviousState) {
+  protected Optional<String> getNewThreadNameIfExists(ARGState pState, ARGState pPreviousState) {
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
     ThreadingState previousThreadingState =
         extractStateByType(pPreviousState, ThreadingState.class);

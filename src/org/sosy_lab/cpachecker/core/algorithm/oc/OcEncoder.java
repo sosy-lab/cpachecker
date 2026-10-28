@@ -61,6 +61,7 @@ final class OcEncoder {
    * realistic program has.
    */
   private static final long LAYOUT_CEILING = 1L << 30;
+
   private static final String CLOCK_VARIABLE_PREFIX = "__oc_clk_";
   private static final String READ_FROM_VARIABLE_PREFIX = "__oc_rf_";
   private static final String WRITE_SERIALIZATION_VARIABLE_PREFIX = "__oc_ws_";
@@ -817,7 +818,8 @@ final class OcEncoder {
                   w1,
                   w2,
                   bfmgr.makeVariable(WRITE_SERIALIZATION_VARIABLE_PREFIX + w1.id() + "_" + w2.id()),
-                  bfmgr.makeVariable(WRITE_SERIALIZATION_VARIABLE_PREFIX + w2.id() + "_" + w1.id())));
+                  bfmgr.makeVariable(
+                      WRITE_SERIALIZATION_VARIABLE_PREFIX + w2.id() + "_" + w1.id())));
         }
       }
     }

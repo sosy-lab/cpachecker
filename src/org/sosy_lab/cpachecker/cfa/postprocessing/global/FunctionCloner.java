@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstCloner;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -232,8 +232,7 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
               new CFATerminationNode(
                   cloneAst((CFunctionDeclaration) terminationNode.getFunction()));
       case FunctionExitNode exitNode ->
-          newNode =
-              new FunctionExitNode(cloneAst((CFunctionDeclaration) exitNode.getFunction()));
+          newNode = new FunctionExitNode(cloneAst((CFunctionDeclaration) exitNode.getFunction()));
       case CFunctionEntryNode n -> {
         @Nullable FunctionExitNode newExitNode = n.getExitNode().map(this::cloneNode).orElse(null);
 
@@ -255,8 +254,7 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
       default -> {
         assert node.getClass() == CFANode.class
             : "unhandled subclass for CFANode: " + node.getClass();
-        newNode =
-            new CFANode(cloneAst((CFunctionDeclaration) node.getFunction()));
+        newNode = new CFANode(cloneAst((CFunctionDeclaration) node.getFunction()));
       }
     }
 

@@ -167,9 +167,7 @@ public class MutexStateTest {
     assertThat(state.getHolders(read)).containsExactly(2);
     assertThat(state.isMutexBlockedFor(read, 2)).isFalse();
     assertThat(state.isMutexBlockedFor(read, 3)).isFalse();
-    assertThat(
-            state.isMutexBlockedFor(
-                new MutexLock(handle("rwlock"), MutexLockType.WRITE), 3))
+    assertThat(state.isMutexBlockedFor(new MutexLock(handle("rwlock"), MutexLockType.WRITE), 3))
         .isTrue();
   }
 

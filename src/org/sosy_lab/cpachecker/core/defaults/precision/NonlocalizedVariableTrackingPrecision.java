@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * A "global" precision that tracks variables, i.e., a precision that does not depend on the
- * CFA location being the same at all locations.
+ * A "global" precision that tracks variables, i.e., a precision that does not depend on the CFA
+ * location being the same at all locations.
  */
 public abstract class NonlocalizedVariableTrackingPrecision extends VariableTrackingPrecision {
 

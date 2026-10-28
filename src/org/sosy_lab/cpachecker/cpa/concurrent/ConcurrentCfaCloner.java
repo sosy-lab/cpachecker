@@ -310,59 +310,62 @@ final class ConcurrentCfaCloner {
 
   @SuppressWarnings("unchecked")
   private CFANode cloneNode(CFANode originalNode) {
-    if (originalNode instanceof CFunctionEntryNode entryNode) {
-      // Clone the function declaration with renamed parameters
-      CFunctionDeclaration clonedFuncDecl = astCloner.cloneAst(entryNode.getFunctionDefinition());
+    return switch (originalNode) {
+      case CFunctionEntryNode entryNode -> {
+        // Clone the function declaration with renamed parameters
+        CFunctionDeclaration clonedFuncDecl = astCloner.cloneAst(entryNode.getFunctionDefinition());
 
-      // Clone the return variable if present
-      Optional<CVariableDeclaration> clonedReturnVar =
-          entryNode.getReturnVariable().map(retVar -> astCloner.cloneAstLeftSide(retVar));
+        // Clone the return variable if present
+        Optional<CVariableDeclaration> clonedReturnVar =
+            entryNode.getReturnVariable().map(retVar -> astCloner.cloneAstLeftSide(retVar));
 
-      FunctionExitNode clonedExitNode =
-          entryNode.getExitNode().map(nodeMap::get).map(FunctionExitNode.class::cast).orElse(null);
-      CFunctionEntryNode clonedEntry =
-          new CFunctionEntryNode(
-              entryNode.getFileLocation(), clonedFuncDecl, clonedExitNode, clonedReturnVar);
+        FunctionExitNode clonedExitNode =
+            entryNode
+                .getExitNode()
+                .map(nodeMap::get)
+                .map(FunctionExitNode.class::cast)
+                .orElse(null);
+        CFunctionEntryNode clonedEntry =
+            new CFunctionEntryNode(
+                entryNode.getFileLocation(), clonedFuncDecl, clonedExitNode, clonedReturnVar);
 
-      if (entryNode.isLoopStart()) {
-        clonedEntry.setLoopStart();
+        if (entryNode.isLoopStart()) {
+          clonedEntry.setLoopStart();
+        }
+
+        yield clonedEntry;
       }
+      case FunctionExitNode exitNode -> {
+        FunctionExitNode clonedExit = new FunctionExitNode(exitNode.getFunction());
 
-      return clonedEntry;
+        if (exitNode.isLoopStart()) {
+          clonedExit.setLoopStart();
+        }
 
-    } else if (originalNode instanceof FunctionExitNode exitNode) {
-      FunctionExitNode clonedExit = new FunctionExitNode(exitNode.getFunction());
-
-      if (exitNode.isLoopStart()) {
-        clonedExit.setLoopStart();
+        yield clonedExit;
       }
-
-      return clonedExit;
-
-    } else if (originalNode instanceof CFATerminationNode termNode) {
-      CFATerminationNode clonedTerm = new CFATerminationNode(termNode.getFunction());
       // CFATerminationNode never has leaving edges, no need to set loop start
-      return clonedTerm;
+      case CFATerminationNode termNode -> new CFATerminationNode(termNode.getFunction());
+      case CFALabelNode labelNode -> {
+        CFALabelNode clonedLabel = new CFALabelNode(labelNode.getFunction(), labelNode.getLabel());
 
-    } else if (originalNode instanceof CFALabelNode labelNode) {
-      CFALabelNode clonedLabel = new CFALabelNode(labelNode.getFunction(), labelNode.getLabel());
+        if (labelNode.isLoopStart()) {
+          clonedLabel.setLoopStart();
+        }
 
-      if (labelNode.isLoopStart()) {
-        clonedLabel.setLoopStart();
+        yield clonedLabel;
       }
+      default -> {
+        // Plain CFANode
+        CFANode clonedNode = new CFANode(originalNode.getFunction());
 
-      return clonedLabel;
+        if (originalNode.isLoopStart()) {
+          clonedNode.setLoopStart();
+        }
 
-    } else {
-      // Plain CFANode
-      CFANode clonedNode = new CFANode(originalNode.getFunction());
-
-      if (originalNode.isLoopStart()) {
-        clonedNode.setLoopStart();
+        yield clonedNode;
       }
-
-      return clonedNode;
-    }
+    };
   }
 
   /**

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -232,8 +233,7 @@ final class ConcurrentPathChecker extends PathChecker {
                 variable, formula.getSsa().getType(variable), formula.getSsa().getIndex(variable));
           }
         }
-        stacks.put(
-            threadId, ImmutableList.<SSAMap>builder().add(locals.build()).addAll(stack).build());
+        stacks.put(threadId, elementAndList(locals.build(), stack));
       } else if (edge instanceof FunctionReturnEdge returning) {
         if (stack.isEmpty()) {
           throw new CPATransferException("Concurrent function return has no matching call");

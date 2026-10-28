@@ -16,11 +16,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.cpa.oc.OcThreadInstanceState;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 
 /** Exports counterexamples whose states carry the executing OC thread instance. */
 public final class OcCounterexampleToWitness extends CounterexampleToWitness {

@@ -59,10 +59,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.PoEdge;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -81,7 +78,6 @@ import org.sosy_lab.cpachecker.cpa.oc.OcExplorationRegistry;
 import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
 import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
@@ -534,8 +530,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     try {
       IO.writeFile(pFile, Charset.defaultCharset(), pContent);
     } catch (IOException e) {
-      logger.logUserException(
-          Level.WARNING, e, "Could not write " + pDescription + " to " + pFile);
+      logger.logUserException(Level.WARNING, e, "Could not write " + pDescription + " to " + pFile);
     }
   }
 

@@ -82,25 +82,19 @@ public final class ConcurrentEdgeCloner {
 
     ConcurrentAstCloner renamerCloner = new ConcurrentAstCloner(pThreadId, pRenamer);
 
-    if (pEdge instanceof CAssumeEdge cEdge) {
-      return cloneSingleAssumeEdge(cEdge, renamerCloner);
-    } else if (pEdge instanceof CFunctionSummaryStatementEdge cEdge) {
-      return cloneSingleSummaryStatementEdge(cEdge, renamerCloner);
-    } else if (pEdge instanceof CStatementEdge cEdge) {
-      return cloneSingleStatementEdge(cEdge, renamerCloner);
-    } else if (pEdge instanceof CDeclarationEdge cEdge) {
-      return cloneSingleDeclarationEdge(cEdge, renamerCloner);
-    } else if (pEdge instanceof CReturnStatementEdge cEdge) {
-      return cloneSingleReturnStatementEdge(cEdge, renamerCloner);
-    } else if (pEdge instanceof CFunctionCallEdge cEdge) {
-      return cloneSingleFunctionCallEdge(cEdge, pThreadId, renamerCloner);
-    } else if (pEdge instanceof CFunctionReturnEdge cEdge) {
-      return cloneSingleFunctionReturnEdge(cEdge, pThreadId, renamerCloner);
-    } else if (pEdge instanceof CFunctionSummaryEdge cEdge) {
-      return cloneSingleFunctionSummaryEdge(cEdge, renamerCloner);
-    }
-
-    throw new AssertionError("unhandled edge " + pEdge + " of " + pEdge.getClass());
+    return switch (pEdge) {
+      case CAssumeEdge cEdge -> cloneSingleAssumeEdge(cEdge, renamerCloner);
+      case CFunctionSummaryStatementEdge cEdge ->
+          cloneSingleSummaryStatementEdge(cEdge, renamerCloner);
+      case CStatementEdge cEdge -> cloneSingleStatementEdge(cEdge, renamerCloner);
+      case CDeclarationEdge cEdge -> cloneSingleDeclarationEdge(cEdge, renamerCloner);
+      case CReturnStatementEdge cEdge -> cloneSingleReturnStatementEdge(cEdge, renamerCloner);
+      case CFunctionCallEdge cEdge -> cloneSingleFunctionCallEdge(cEdge, pThreadId, renamerCloner);
+      case CFunctionReturnEdge cEdge ->
+          cloneSingleFunctionReturnEdge(cEdge, pThreadId, renamerCloner);
+      case CFunctionSummaryEdge cEdge -> cloneSingleFunctionSummaryEdge(cEdge, renamerCloner);
+      default -> throw new AssertionError("unhandled edge " + pEdge + " of " + pEdge.getClass());
+    };
   }
 
   private static CFAEdge cloneSingleAssumeEdge(CAssumeEdge pEdge, ConcurrentAstCloner pCloner) {
