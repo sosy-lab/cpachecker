@@ -91,7 +91,7 @@ public final class OriginalEdgeCPA extends AbstractSingleWrapperCPA {
 
     @Override
     public String getCPAName() {
-      return "ConcurrentCPA";
+      return "OriginalEdgeCPA";
     }
 
     @Override
