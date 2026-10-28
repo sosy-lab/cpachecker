@@ -321,14 +321,11 @@ class NestedLoopSummarizer {
 
   /**
    * Checks whether a loop that assigns the given program variables may modify the given formula
-   * variable. The heap and the variables of the formula encoding, e.g., for the results of memory
-   * allocations, are always considered modified.
+   * variable. The heap and the variables of the formula encoding, e.g., for the fields of structs
+   * or the results of memory allocations, are always considered modified.
    */
   private boolean isModified(String pVariable, Set<String> pModifiedProgramVariables) {
-    // The fields of structs that are not on the heap are encoded as variables "struct$field"
-    int fieldSeparator = pVariable.indexOf('$');
-    String variable = fieldSeparator < 0 ? pVariable : pVariable.substring(0, fieldSeparator);
-    return !programVariables.contains(variable) || pModifiedProgramVariables.contains(variable);
+    return !programVariables.contains(pVariable) || pModifiedProgramVariables.contains(pVariable);
   }
 
   private static ImmutableSet<String> collectProgramVariables(CFA pCfa) {
