@@ -49,7 +49,9 @@ class ConcurrentStopOperator implements StopOperator {
         if (reachedState instanceof ConcurrentState reachedConcurrentState
             && concurrentState.threads().size() == reachedConcurrentState.threads().size()
             && Objects.equals(
-                concurrentState.liveThreadIds(), reachedConcurrentState.liveThreadIds())) {
+                concurrentState.liveThreadIds(), reachedConcurrentState.liveThreadIds())
+            && concurrentState.handleToLastCreatedThreadId.equals(
+                reachedConcurrentState.handleToLastCreatedThreadId)) {
           boolean allThreadsStop = true;
           for (var entry : concurrentState.threads.entrySet()) {
             int threadId = entry.getKey();

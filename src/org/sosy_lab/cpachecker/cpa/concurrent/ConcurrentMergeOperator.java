@@ -48,6 +48,9 @@ class ConcurrentMergeOperator implements MergeOperator {
     if (!c1.liveThreadIds.equals(c2.liveThreadIds)) {
       return false;
     }
+    if (!c1.handleToLastCreatedThreadId.equals(c2.handleToLastCreatedThreadId)) {
+      return false;
+    }
     if (c1.threads.size() != c2.threads.size()) {
       return false;
     }

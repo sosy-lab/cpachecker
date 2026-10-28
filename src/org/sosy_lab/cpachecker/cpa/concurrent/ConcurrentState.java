@@ -71,8 +71,9 @@ public class ConcurrentState extends AbstractSingleWrapperState
    * synthetic assumption in the wrapped analysis. If the handle has no entry, the general
    * candidate-branching is used.
    *
-   * <p>The map is excluded from {@link #equals}/{@link #hashCode} and from the merge and coverage
-   * checks.
+   * <p>The map decides which thread a join targets, so it is part of {@link #equals}, {@link
+   * #hashCode}, merging and coverage: two states with different maps must not be merged or covered
+   * by each other.
    */
   protected final ImmutableMap<String, Integer> handleToLastCreatedThreadId;
 
@@ -139,7 +140,9 @@ public class ConcurrentState extends AbstractSingleWrapperState
   }
 
   boolean canMerge(ConcurrentState other) {
-    return threads.equals(other.threads) && liveThreadIds.equals(other.liveThreadIds);
+    return threads.equals(other.threads)
+        && liveThreadIds.equals(other.liveThreadIds)
+        && handleToLastCreatedThreadId.equals(other.handleToLastCreatedThreadId);
   }
 
   /**
@@ -450,11 +453,12 @@ public class ConcurrentState extends AbstractSingleWrapperState
     return o instanceof ConcurrentState other
         && Objects.equals(threads, other.threads)
         && Objects.equals(liveThreadIds, other.liveThreadIds)
+        && Objects.equals(handleToLastCreatedThreadId, other.handleToLastCreatedThreadId)
         && Objects.equals(getWrappedState(), other.getWrappedState());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, liveThreadIds, getWrappedState());
+    return Objects.hash(threads, liveThreadIds, handleToLastCreatedThreadId, getWrappedState());
   }
 }
