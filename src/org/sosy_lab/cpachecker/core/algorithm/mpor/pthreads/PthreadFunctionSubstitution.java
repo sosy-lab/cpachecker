@@ -135,7 +135,8 @@ public class PthreadFunctionSubstitution {
             pFieldReference.getFieldName(),
             pFieldReference.getFieldName(),
             pFieldReference.getFieldName(),
-            new CInitializerExpression(FileLocation.DUMMY, pFieldReference));
+            new CInitializerExpression(FileLocation.DUMMY, pFieldReference),
+            /* pHasThreadLocalStorage= */ false);
     CIdExpression idExpression =
         new CIdExpression(
             FileLocation.DUMMY,

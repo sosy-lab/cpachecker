@@ -49,7 +49,8 @@ public class PthreadObjectSubstitution {
             variableDeclaration.getName(),
             variableDeclaration.getOrigName(),
             variableDeclaration.getQualifiedName(),
-            variableDeclaration.getInitializer());
+            variableDeclaration.getInitializer(),
+            variableDeclaration.hasThreadLocalStorage());
 
     return new CIdExpression(
         FileLocation.DUMMY,

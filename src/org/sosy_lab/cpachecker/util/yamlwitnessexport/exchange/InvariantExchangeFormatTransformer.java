@@ -266,7 +266,8 @@ public class InvariantExchangeFormatTransformer {
               prevVariable,
               // The scope is not relevant as these variables are not in the original program
               locationNode.getFunctionName() + "::" + prevVariable,
-              null);
+              null,
+              /* pHasThreadLocalStorage= */ false);
       mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }
     return mapPrevToCurr.buildOrThrow();

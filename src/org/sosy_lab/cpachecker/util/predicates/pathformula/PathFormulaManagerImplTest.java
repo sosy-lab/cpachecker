@@ -150,7 +150,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             "x",
             "x",
             "x",
-            new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
+            new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO),
+            /* pHasThreadLocalStorage= */ false);
 
     x_decl = new CDeclarationEdge("int x = 0", FileLocation.DUMMY, a, b, xDeclaration);
 

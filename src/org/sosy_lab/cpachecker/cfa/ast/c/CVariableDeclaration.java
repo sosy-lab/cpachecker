@@ -40,27 +40,6 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
       String pName,
       String pOrigName,
       String pQualifiedName,
-      @Nullable CInitializer pInitializer) {
-    this(
-        pFileLocation,
-        pIsGlobal,
-        pCStorageClass,
-        pType,
-        pName,
-        pOrigName,
-        pQualifiedName,
-        pInitializer,
-        /* pHasThreadLocalStorage= */ false);
-  }
-
-  public CVariableDeclaration(
-      FileLocation pFileLocation,
-      boolean pIsGlobal,
-      CStorageClass pCStorageClass,
-      CType pType,
-      String pName,
-      String pOrigName,
-      String pQualifiedName,
       @Nullable CInitializer pInitializer,
       boolean pHasThreadLocalStorage) {
 

@@ -983,7 +983,8 @@ public class SMGCPATransferRelationTest {
                               "SomeTypeNotQual",
                               "SomeTypeNotQual",
                               "SomeType",
-                              CDefaults.forType(MACHINE_MODEL, sizeofType, FileLocation.DUMMY))),
+                              CDefaults.forType(MACHINE_MODEL, sizeofType, FileLocation.DUMMY),
+                              /* pHasThreadLocalStorage= */ false)),
                       CUnaryExpression.UnaryOperator.SIZEOF),
                   BinaryOperator.MULTIPLY);
 
@@ -1685,7 +1686,8 @@ public class SMGCPATransferRelationTest {
                       variableName1,
                       variableName1,
                       variableName1,
-                      null)),
+                      null,
+                      /* pHasThreadLocalStorage= */ false)),
               new CIdExpression(
                   FileLocation.DUMMY,
                   new CPointerType(CTypeQualifiers.NONE, structType),
@@ -1698,7 +1700,8 @@ public class SMGCPATransferRelationTest {
                       variableName2,
                       variableName2,
                       variableName2,
-                      null)),
+                      null,
+                      /* pHasThreadLocalStorage= */ false)),
               BinaryOperator.EQUALS);
 
       Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
@@ -1753,7 +1756,8 @@ public class SMGCPATransferRelationTest {
                       variableName1,
                       variableName1,
                       variableName1,
-                      null)),
+                      null,
+                      /* pHasThreadLocalStorage= */ false)),
               new CIdExpression(
                   FileLocation.DUMMY,
                   new CPointerType(CTypeQualifiers.NONE, testType),
@@ -1766,7 +1770,8 @@ public class SMGCPATransferRelationTest {
                       variableName2,
                       variableName2,
                       variableName2,
-                      null)),
+                      null,
+                      /* pHasThreadLocalStorage= */ false)),
               BinaryOperator.EQUALS);
 
       Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
@@ -1986,7 +1991,8 @@ public class SMGCPATransferRelationTest {
                           variableName,
                           variableName,
                           variableName,
-                          null)),
+                          null,
+                          /* pHasThreadLocalStorage= */ false)),
                   new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, index)),
               valueExpr);
 
@@ -2132,7 +2138,8 @@ public class SMGCPATransferRelationTest {
                           variableName,
                           variableName,
                           variableName,
-                          null)),
+                          null,
+                          /* pHasThreadLocalStorage= */ false)),
                   new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, index)),
               valueExpr);
       index = index.add(BigInteger.ONE);
@@ -2325,7 +2332,8 @@ public class SMGCPATransferRelationTest {
                           variableName,
                           variableName,
                           variableName,
-                          null)),
+                          null,
+                          /* pHasThreadLocalStorage= */ false)),
                   true),
               valueExpr);
 
@@ -2393,7 +2401,8 @@ public class SMGCPATransferRelationTest {
         variableName,
         variableName,
         variableName,
-        initializer);
+        initializer,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   /**
