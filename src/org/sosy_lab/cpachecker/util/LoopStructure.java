@@ -221,7 +221,8 @@ public final class LoopStructure {
 
     /**
      * Get the variables that an iteration of this loop may assign, including in the functions that
-     * it calls. Memory that is written through pointers is not represented.
+     * it calls. Memory that is written through pointers, including array elements, is not
+     * represented.
      */
     public ImmutableSet<CVariableDeclaration> getModifiedVariables() {
       if (modifiedVariables == null) {
