@@ -182,6 +182,14 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
   /**
    * A copy of {@code pCpa} with every specification automaton behind an {@link OriginalEdgeCPA}.
    * Only the transfer relation uses it; the CPA tree itself stays as the builder made it.
+   *
+   * <p>Why this is needed: the concurrent transfer relation steps over per-thread clones of the CFA
+   * nodes and edges, whereas a witness automaton matches against the nodes of the unmodified CFA,
+   * where the waypoints were resolved; no clone is ever identical to those. {@link OriginalEdgeCPA}
+   * therefore hands the automaton {@code edge.getOriginal()}. Which thread took the step is part of
+   * the transition but not of the CFA edge, so it is passed on through a synthetic state that
+   * answers the automaton's {@code checkCurrentThreadId==N} query. Only used if {@code
+   * matchAutomataOnOriginalEdges} is set.
    */
   private static ConfigurableProgramAnalysis withOriginalEdgesForAutomata(
       ConfigurableProgramAnalysis pCpa, Configuration pConfig, CFA pCfa)
