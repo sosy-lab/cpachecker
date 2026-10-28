@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -96,5 +97,9 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
 
   public ImmutableSet<String> getSuccessorIds() {
     return successorIds;
+  }
+
+  public boolean containsTarget(Set<CFANode> pTargetLocations) {
+    return getEdges().stream().anyMatch(e -> pTargetLocations.contains(e.getSuccessor()));
   }
 }
