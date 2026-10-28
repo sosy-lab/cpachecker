@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -43,6 +44,9 @@ public class PthreadUtil {
       if (pCfaEdge.getRawAST().orElseThrow() instanceof CFunctionCall functionCall) {
         return Optional.of(functionCall);
       }
+    }
+    if (pCfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
+      return Optional.of(functionSummaryEdge.getExpression());
     }
     return Optional.empty();
   }
