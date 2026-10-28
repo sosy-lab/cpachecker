@@ -77,6 +77,13 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
       throws InvalidConfigurationException {
     super("sep", "never", null);
     pConfig.inject(this);
+    // memory is modeled by OC's own address events, so the encoding must not use the
+    // pointer-aliasing (heap/pointer-target-set) encoding, which is on by default
+    Configuration pathFormulaConfig =
+        Configuration.builder()
+            .copyFrom(pConfig)
+            .setOption("cpa.predicate.handlePointerAliasing", "false")
+            .build();
     cfa = pCfa;
     addressedVariables =
         pCfa.getVarClassification().isPresent()
@@ -86,7 +93,7 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
     pathFormulaManager =
         new PathFormulaManagerImpl(
             solver.getFormulaManager(),
-            pConfig,
+            pathFormulaConfig,
             pLogger,
             pShutdownNotifier,
             pCfa,
@@ -157,7 +164,8 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
     BooleanFormula mergedGuard = bfmgr.or(s1.getGuard(), s2.getGuard());
 
     // reconcile the branches' local SSA indices: makeOr yields
-    // (guard1 and bridge1) or (guard2 and bridge2), the guarded phi assignments of the join
+    // (guard1 and bridge1) or (guard2 and bridge2), the guarded phi assignments of the join;
+    // it also merges the pointer-target sets, which stay empty as pointer aliasing is disabled
     PathFormula merged =
         pathFormulaManager.makeOr(
             s1.getPathFormula().withFormula(s1.getGuard()),
