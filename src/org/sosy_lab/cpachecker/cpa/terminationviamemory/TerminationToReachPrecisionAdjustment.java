@@ -65,9 +65,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final InterpolationManager itpMgr;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
-  private final LogManager logger;
   private final ImmutableSet<Loop> allLoops;
   private final NestedLoopSummarizer nestedLoopSummarizer;
+  protected final LogManager logger;
 
   @Option(
       secure = true,
