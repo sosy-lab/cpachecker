@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentEdgeCloner.GlobalAccessRenamer;
 
 /**
  * AST cloner for POR. Locals, parameters and {@code __thread} variables are always renamed to

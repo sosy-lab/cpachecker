@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentEdgeCloner;
-import org.sosy_lab.cpachecker.cpa.concurrent.GlobalAccessRenamer;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentEdgeCloner.GlobalAccessRenamer;
 import org.sosy_lab.cpachecker.cpa.concurrent.ThreadFunctions;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
