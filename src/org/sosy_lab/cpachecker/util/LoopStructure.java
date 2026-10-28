@@ -51,11 +51,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -70,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -264,20 +264,20 @@ public final class LoopStructure {
     }
 
     /** Returns nothing if the expression is in memory that is written through a pointer. */
-    private static Optional<CVariableDeclaration> getAssignedVariable(CExpression pLeftHandSide) {
+    private static Optional<CVariableDeclaration> getAssignedVariable(CLeftHandSide pLeftHandSide) {
       return switch (pLeftHandSide) {
         case CIdExpression id when id.getDeclaration() instanceof CVariableDeclaration variable ->
             Optional.of(variable);
         case CIdExpression id when id.getDeclaration() instanceof CParameterDeclaration parameter ->
             Optional.of(parameter.asVariableDeclaration());
+        case CIdExpression id -> throw new AssertionError("unexpected assignment to " + id);
         case CFieldReference field when !field.isPointerDereference() ->
-            getAssignedVariable(field.getFieldOwner());
-        case CArraySubscriptExpression subscript
-            when subscript.getArrayExpression().getExpressionType().getCanonicalType()
-                instanceof CArrayType ->
-            getAssignedVariable(subscript.getArrayExpression());
-        case CComplexCastExpression cast -> getAssignedVariable(cast.getOperand());
-        default -> Optional.empty();
+            getAssignedVariable((CLeftHandSide) field.getFieldOwner());
+        case CFieldReference field -> Optional.empty();
+        // TODO: return the variable for arrays that are not parameters once #297 is resolved
+        case CArraySubscriptExpression subscript -> Optional.empty();
+        case CComplexCastExpression cast -> getAssignedVariable((CLeftHandSide) cast.getOperand());
+        case CPointerExpression pointer -> Optional.empty();
       };
     }
 
