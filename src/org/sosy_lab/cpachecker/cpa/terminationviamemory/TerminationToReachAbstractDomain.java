@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -15,6 +17,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class TerminationToReachAbstractDomain implements AbstractDomain {
 
@@ -73,8 +76,9 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
         && !lastIterationOfTheBranch.isEmpty()
         && lastIterationOfTheBranch.indexOf(newPath.getLast())
             == lastIterationOfTheBranch.size() - 1
-        && loopStructure
-            .getLoopNodesForLoopHead(newPath.getLast())
+        && from(loopStructure.getLoopsForLoopHead(newPath.getLast()))
+            .transformAndConcat(Loop::getLoopNodes)
+            .toSet()
             .containsAll(lastIterationOfTheBranch);
   }
 }

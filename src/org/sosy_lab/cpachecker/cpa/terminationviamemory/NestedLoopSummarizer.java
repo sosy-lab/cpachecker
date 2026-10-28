@@ -117,9 +117,11 @@ class NestedLoopSummarizer {
       ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, ImmutableList<CFANode> pPath) {
     LoopHeadVisit visit = pVisits.get(pVisit);
     Set<CFANode> loopNodes =
-        cfa.getLoopStructure()
-            .orElseThrow()
-            .getLoopNodesForLoopHead(visit.loopHead().location().getLocationNode());
+        from(cfa.getLoopStructure()
+                .orElseThrow()
+                .getLoopsForLoopHead(visit.loopHead().location().getLocationNode()))
+            .transformAndConcat(Loop::getLoopNodes)
+            .toSet();
     for (int i = pVisit + 1; i <= pLast; i++) {
       if (pVisits.get(i).loopHead().equals(visit.loopHead())) {
         return !loopNodes.containsAll(pPath.subList(visit.pathIndex(), pVisits.get(i).pathIndex()));
