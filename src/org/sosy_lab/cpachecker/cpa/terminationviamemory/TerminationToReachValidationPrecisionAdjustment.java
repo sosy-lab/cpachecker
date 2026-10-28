@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -71,7 +72,7 @@ public class TerminationToReachValidationPrecisionAdjustment
       TerminationToReachState terminationState,
       PartitionedRelationFormula iterationFormula,
       CFANode location)
-      throws CPATransferException, InterruptedException {
+      throws InterruptedException {
     ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
         super.collectInductiveTransitionInvariants(terminationState, iterationFormula, location);
 
@@ -102,7 +103,7 @@ public class TerminationToReachValidationPrecisionAdjustment
    * the current state.
    */
   private BooleanFormula collectCandidateTransitionInvariants(CFANode pLocation)
-      throws CPATransferException, InterruptedException {
+      throws InterruptedException {
     BooleanFormula candidateTransitionInvariant = bfmgr.makeTrue();
     for (ExpressionTreeLocationInvariant invariant : candidateInvariants) {
       if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
@@ -111,10 +112,15 @@ public class TerminationToReachValidationPrecisionAdjustment
 
       if (invariant.getLocation().equals(pLocation)) {
         BooleanFormula invariantFormula;
-        if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
+        try {
+          if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
+            invariantFormula = bfmgr.makeTrue();
+          } else {
+            invariantFormula = invariant.getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula());
+          }
+        } catch (CPATransferException e) {
+          logger.log(Level.WARNING, e);
           invariantFormula = bfmgr.makeTrue();
-        } else {
-          invariantFormula = invariant.getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula());
         }
         candidateTransitionInvariant = bfmgr.and(candidateTransitionInvariant, invariantFormula);
       }
