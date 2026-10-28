@@ -210,7 +210,8 @@ public class FormulaToAcslVisitorTest {
     assertThat(result).isEqualTo(expected);
   }
 
-  // TODO why does SMT do division as an unterpreted function?!
+  // TODO Decide what the intended behavior is, depending on config option this might be a UF
+  // option: solver.nonLinearArithmetic = USE
   @Ignore
   @Test
   public void testDivision() {

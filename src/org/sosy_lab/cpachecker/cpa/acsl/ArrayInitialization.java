@@ -63,7 +63,7 @@ public record ArrayInitialization(
             "__ACSL_inv_quantifier_index",
             "__ACSL_inv_quantifier_index",
             "__ACSL_inv_quantifier_index",
-            null); // TODO do I need that?
+            null);
     AcslParameterDeclaration paramiDecl =
         new AcslParameterDeclaration(
             pLoc, new AcslCType(basicInt()), "__ACSL_inv_quantifier_index");
