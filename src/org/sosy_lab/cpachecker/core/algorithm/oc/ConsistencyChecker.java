@@ -61,12 +61,16 @@ import org.sosy_lab.java_smt.api.Model;
 final class ConsistencyChecker {
 
   /**
-   * One edge of the event graph. {@code reasons} are the conditions under which the edge is
-   * present, to be read conjunctively; an empty list means the edge always holds.
+   * One edge of the event graph, whose nodes are the {@link MemoryEvent}s of the encoding (not CFA
+   * locations). {@code reasons} are the conditions under which the edge is present, to be read
+   * conjunctively; an empty list means the edge always holds.
    */
-  record Edge(int from, int to, ImmutableList<BooleanFormula> reasons) {}
+  record Edge(MemoryEvent from, MemoryEvent to, ImmutableList<BooleanFormula> reasons) {}
 
+  // The per-event data structures below are indexed by MemoryEvent#id(), which is dense in
+  // [0, eventCount) and equal to the event's position in OcEncoder#getEvents().
   private final OcEncoder encoder;
+  private final ImmutableList<MemoryEvent> events;
   private final int eventCount;
   private final List<List<Edge>> outgoing;
   private final Set<Long> presentEdges = new HashSet<>();
@@ -74,7 +78,8 @@ final class ConsistencyChecker {
 
   private ConsistencyChecker(OcEncoder pEncoder) {
     encoder = pEncoder;
-    eventCount = pEncoder.getEvents().size();
+    events = pEncoder.getEvents();
+    eventCount = events.size();
     outgoing = new ArrayList<>(eventCount);
     for (int i = 0; i < eventCount; i++) {
       outgoing.add(new ArrayList<>());
@@ -100,16 +105,14 @@ final class ConsistencyChecker {
     // excludes only models that genuinely contain the cycle.
     for (PoEdge edge : encoder.getProgramOrderDagEdges()) {
       if (enabled.contains(edge.from()) && enabled.contains(edge.to())) {
-        int from = edge.from().id();
-        int to = edge.to().id();
-        addEdge(new Edge(from, to, guardsOf(from, to)));
+        addEdge(new Edge(edge.from(), edge.to(), guardsOf(edge.from(), edge.to())));
       }
     }
     // create/join ordering holds only when the creating/joining event is enabled
     for (OcEncoder.CrossPoEdge cross : encoder.getCrossPoEdges()) {
-      int from = cross.from().id();
-      int to = cross.to().id();
-      if (enabled.contains(cross.from()) && enabled.contains(cross.to())) {
+      MemoryEvent from = cross.from();
+      MemoryEvent to = cross.to();
+      if (enabled.contains(from) && enabled.contains(to)) {
         addEdge(
             new Edge(
                 from,
@@ -120,32 +123,26 @@ final class ConsistencyChecker {
     List<RfPair> activeRf = new ArrayList<>();
     for (RfPair rf : encoder.getRfPairs()) {
       if (isTrue(pModel.evaluate(rf.variable()))) {
-        addEdge(new Edge(rf.write().id(), rf.read().id(), ImmutableList.of(rf.variable())));
+        addEdge(new Edge(rf.write(), rf.read(), ImmutableList.of(rf.variable())));
         activeRf.add(rf);
       }
     }
     for (WsPair ws : encoder.getWsPairs()) {
       if (isTrue(pModel.evaluate(ws.var12()))) {
-        addEdge(new Edge(ws.write1().id(), ws.write2().id(), ImmutableList.of(ws.var12())));
+        addEdge(new Edge(ws.write1(), ws.write2(), ImmutableList.of(ws.var12())));
       }
       if (isTrue(pModel.evaluate(ws.var21()))) {
-        addEdge(new Edge(ws.write2().id(), ws.write1().id(), ImmutableList.of(ws.var21())));
+        addEdge(new Edge(ws.write2(), ws.write1(), ImmutableList.of(ws.var21())));
       }
     }
     for (CsPair cs : encoder.getCsPairs()) {
       if (isTrue(pModel.evaluate(cs.var12()))) {
         addEdge(
-            new Edge(
-                cs.section1().unlock().id(),
-                cs.section2().lock().id(),
-                ImmutableList.of(cs.var12())));
+            new Edge(cs.section1().unlock(), cs.section2().lock(), ImmutableList.of(cs.var12())));
       }
       if (isTrue(pModel.evaluate(cs.var21()))) {
         addEdge(
-            new Edge(
-                cs.section2().unlock().id(),
-                cs.section1().lock().id(),
-                ImmutableList.of(cs.var21())));
+            new Edge(cs.section2().unlock(), cs.section1().lock(), ImmutableList.of(cs.var21())));
       }
     }
 
@@ -157,43 +154,42 @@ final class ConsistencyChecker {
       changed = false;
       computeReachability();
       for (RfPair rf : activeRf) {
-        MemoryEvent writeEvent = rf.write();
-        int write = writeEvent.id();
-        int read = rf.read().id();
-        for (MemoryEvent other : writesByCell.get(OcEncoder.cellKey(writeEvent))) {
-          if (other == writeEvent || !enabled.contains(other)) {
+        MemoryEvent write = rf.write();
+        MemoryEvent read = rf.read();
+        for (MemoryEvent other : writesByCell.get(OcEncoder.cellKey(write))) {
+          if (other == write || !enabled.contains(other)) {
             continue;
           }
           ImmutableList.Builder<BooleanFormula> sideBuilder = ImmutableList.builder();
           sideBuilder.add(encoder.getFullGuard(other));
-          if (writeEvent.isRegionAccess()) {
+          if (write.isRegionAccess()) {
             // in the aliasing regime, "same cell" additionally means equal addresses
-            if (!sameCellInModel(other, writeEvent, addressValues)) {
+            if (!sameCellInModel(other, write, addressValues)) {
               continue;
             }
-            sideBuilder.add(encoder.sameAddress(other, writeEvent));
+            sideBuilder.add(encoder.sameAddress(other, write));
           }
           ImmutableList<BooleanFormula> sideCondition = sideBuilder.build();
-          if (reachable[other.id()].get(read) && !hasEdge(other.id(), write)) {
+          if (isReachable(other, read) && !hasEdge(other, write)) {
             addEdge(
                 new Edge(
-                    other.id(),
+                    other,
                     write,
                     ImmutableList.<BooleanFormula>builder()
                         .add(rf.variable())
-                        .addAll(pathReasons(other.id(), read))
+                        .addAll(pathReasons(other, read))
                         .addAll(sideCondition)
                         .build()));
             changed = true;
           }
-          if (reachable[write].get(other.id()) && !hasEdge(read, other.id())) {
+          if (isReachable(write, other) && !hasEdge(read, other)) {
             addEdge(
                 new Edge(
                     read,
-                    other.id(),
+                    other,
                     ImmutableList.<BooleanFormula>builder()
                         .add(rf.variable())
-                        .addAll(pathReasons(write, other.id()))
+                        .addAll(pathReasons(write, other))
                         .addAll(sideCondition)
                         .build()));
             changed = true;
@@ -204,8 +200,8 @@ final class ConsistencyChecker {
 
     Set<ImmutableList<BooleanFormula>> seen = new LinkedHashSet<>();
     ImmutableList.Builder<ImmutableList<Edge>> cycles = ImmutableList.builder();
-    for (int event = 0; event < eventCount; event++) {
-      if (reachable[event].get(event)) {
+    for (MemoryEvent event : events) {
+      if (isReachable(event, event)) {
         ImmutableList<Edge> cycle = path(event, event);
         if (seen.add(reasonsOf(cycle))) {
           cycles.add(cycle);
@@ -223,40 +219,45 @@ final class ConsistencyChecker {
   }
 
   /** The presence condition of a program-order edge: both of its endpoints are enabled. */
-  private ImmutableList<BooleanFormula> guardsOf(int pFrom, int pTo) {
+  private ImmutableList<BooleanFormula> guardsOf(MemoryEvent pFrom, MemoryEvent pTo) {
     return ImmutableList.of(encoder.getFullGuard(pFrom), encoder.getFullGuard(pTo));
   }
 
   private void addEdge(Edge pEdge) {
     if (presentEdges.add(key(pEdge.from(), pEdge.to()))) {
-      outgoing.get(pEdge.from()).add(pEdge);
+      outgoing.get(pEdge.from().id()).add(pEdge);
     }
   }
 
-  private boolean hasEdge(int pFrom, int pTo) {
+  private boolean hasEdge(MemoryEvent pFrom, MemoryEvent pTo) {
     return presentEdges.contains(key(pFrom, pTo));
   }
 
-  private long key(int pFrom, int pTo) {
-    return (long) pFrom * eventCount + pTo;
+  private long key(MemoryEvent pFrom, MemoryEvent pTo) {
+    return (long) pFrom.id() * eventCount + pTo.id();
+  }
+
+  /** Whether {@code pTo} is reachable from {@code pFrom} by a non-empty path. */
+  private boolean isReachable(MemoryEvent pFrom, MemoryEvent pTo) {
+    return reachable[pFrom.id()].get(pTo.id());
   }
 
   private void computeReachability() {
     reachable = new BitSet[eventCount];
     for (int start = 0; start < eventCount; start++) {
       BitSet visited = new BitSet(eventCount);
-      Deque<Integer> worklist = new ArrayDeque<>();
+      Deque<MemoryEvent> worklist = new ArrayDeque<>();
       for (Edge edge : outgoing.get(start)) {
-        if (!visited.get(edge.to())) {
-          visited.set(edge.to());
+        if (!visited.get(edge.to().id())) {
+          visited.set(edge.to().id());
           worklist.push(edge.to());
         }
       }
       while (!worklist.isEmpty()) {
-        int node = worklist.pop();
-        for (Edge edge : outgoing.get(node)) {
-          if (!visited.get(edge.to())) {
-            visited.set(edge.to());
+        MemoryEvent node = worklist.pop();
+        for (Edge edge : outgoing.get(node.id())) {
+          if (!visited.get(edge.to().id())) {
+            visited.set(edge.to().id());
             worklist.push(edge.to());
           }
         }
@@ -269,43 +270,43 @@ final class ConsistencyChecker {
    * Conjunction of the reasons of the edges of one path from pFrom to pTo (there must be one).
    * Reasons of derived edges already contain the reasons of the paths they were derived from.
    */
-  private ImmutableList<BooleanFormula> pathReasons(int pFrom, int pTo) {
+  private ImmutableList<BooleanFormula> pathReasons(MemoryEvent pFrom, MemoryEvent pTo) {
     return reasonsOf(path(pFrom, pTo));
   }
 
   /** The edges of one path from pFrom to pTo (there must be one). */
-  private ImmutableList<Edge> path(int pFrom, int pTo) {
+  private ImmutableList<Edge> path(MemoryEvent pFrom, MemoryEvent pTo) {
     Edge[] parent = new Edge[eventCount];
-    Deque<Integer> worklist = new ArrayDeque<>();
+    Deque<MemoryEvent> worklist = new ArrayDeque<>();
     BitSet visited = new BitSet(eventCount);
-    for (Edge edge : outgoing.get(pFrom)) {
-      if (!visited.get(edge.to())) {
-        visited.set(edge.to());
-        parent[edge.to()] = edge;
+    for (Edge edge : outgoing.get(pFrom.id())) {
+      if (!visited.get(edge.to().id())) {
+        visited.set(edge.to().id());
+        parent[edge.to().id()] = edge;
         worklist.add(edge.to());
       }
     }
     while (!worklist.isEmpty()) {
-      int node = worklist.poll();
-      if (node == pTo) {
+      MemoryEvent node = worklist.poll();
+      if (node.id() == pTo.id()) {
         break;
       }
-      for (Edge edge : outgoing.get(node)) {
-        if (!visited.get(edge.to())) {
-          visited.set(edge.to());
-          parent[edge.to()] = edge;
+      for (Edge edge : outgoing.get(node.id())) {
+        if (!visited.get(edge.to().id())) {
+          visited.set(edge.to().id());
+          parent[edge.to().id()] = edge;
           worklist.add(edge.to());
         }
       }
     }
 
     List<Edge> edges = new ArrayList<>();
-    int node = pTo;
+    MemoryEvent node = pTo;
     do {
-      Edge edge = parent[node];
+      Edge edge = parent[node.id()];
       edges.add(edge);
       node = edge.from();
-    } while (node != pFrom);
+    } while (node.id() != pFrom.id());
     return ImmutableList.copyOf(edges).reverse();
   }
 

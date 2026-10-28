@@ -185,10 +185,6 @@ final class OcEncoder {
     return crossPoEdges;
   }
 
-  BooleanFormula getFullGuard(int pEventId) {
-    return fullGuards.get(registry.getEvent(pEventId));
-  }
-
   BooleanFormula getFullGuard(MemoryEvent pEvent) {
     return fullGuards.get(pEvent);
   }
