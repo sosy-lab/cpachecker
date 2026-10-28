@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState.LoopHeadVisit;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -247,7 +248,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       TerminationToReachState terminationState,
       PartitionedRelationFormula iterationFormula,
       CFANode location)
-      throws InterruptedException {
+      throws CPATransferException, InterruptedException {
     ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
         ImmutableSet.builder();
     for (PartitionedRelationFormula transitionPredicate :
