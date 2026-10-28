@@ -309,7 +309,7 @@ public class InvariantExchangeFormatTransformer {
           case FunctionContractEntry functionContractEntry ->
               functionContracts.add(functionContractEntry);
           case InvariantEntry entryWithLocation -> {
-            InvariantEntry invariantEntry = completeLocation(entryWithLocation);
+            InvariantEntry invariantEntry = addFunctionToLocationIfNoneExists(entryWithLocation);
             if (invariantEntry.getLocation().getFunction() == null) {
               throw new InvalidYAMLWitnessException(
                   "Invariant without a function in its location: " + invariantEntry);
@@ -333,9 +333,9 @@ public class InvariantExchangeFormatTransformer {
    * where the witness omits them, which the format allows. For a loop invariant, they are those of
    * the loop statement at the line, otherwise those of the first statement at the line.
    */
-  private InvariantEntry completeLocation(InvariantEntry pInvariantEntry) {
+  private InvariantEntry addFunctionToLocationIfNoneExists(InvariantEntry pInvariantEntry) {
     LocationRecord location = pInvariantEntry.getLocation();
-    if (location.getColumn().isPresent() && location.getFunction() != null) {
+    if (location.getFunction() != null) {
       return pInvariantEntry;
     }
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
@@ -367,7 +367,7 @@ public class InvariantExchangeFormatTransformer {
         new LocationRecord(
             location.getFileName(),
             location.getLine(),
-            location.getColumn().orElse(statement.orElseThrow().location().getStartColumnInLine()),
+            location.getColumn().isPresent() ? location.getColumn().orElseThrow() : null,
             function));
   }
 
