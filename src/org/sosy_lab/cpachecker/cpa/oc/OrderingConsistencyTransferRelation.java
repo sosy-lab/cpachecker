@@ -1742,7 +1742,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     ImmutableMap<CFANode, Integer> loopCounts = pState.getLoopCounts();
     if (pNextNode.isLoopStart()) {
       int count = loopCounts.getOrDefault(pNextNode, 0) + 1;
-      if (count > cpa.getMaxLoopIterations()) {
+      if (count > registry.getLoopBound()) {
         registry.markTruncated();
         // the thread has not terminated on this path, so it can never be joined here
         int primary = pLastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : pLastEventIds.getFirst();

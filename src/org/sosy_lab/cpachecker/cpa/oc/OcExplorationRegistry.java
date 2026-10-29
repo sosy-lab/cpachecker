@@ -65,24 +65,29 @@ public final class OcExplorationRegistry {
   private final Deque<OrderingConsistencyState> pendingThreadRoots = new ArrayDeque<>();
   private @Nullable Formula zeroOffsetTerm;
   private final SetMultimap<Integer, Integer> poPredecessors = LinkedHashMultimap.create();
+  private final int loopBound;
   private int nextCssaIndex;
   private boolean truncated = false;
 
-  public OcExplorationRegistry() {
-    this(0);
+  /**
+   * Creates the registry of one exploration round that unrolls every loop at most {@code
+   * pLoopBound} times, and starts the fresh-name counter at {@code pStartCssaIndex} instead of
+   * zero. Iterative deepening (see {@code OrderingConsistencyCPA#resetExploration}) throws away the
+   * registry every round and starts a new one, but keeps solving in the very same, persistent
+   * solver context. If the counter restarted at zero every round, two different rounds could mint
+   * the identical fresh name (same prefix, same counter value) for accesses of different types; the
+   * solver rejects redeclaring a symbol at a different sort under the same name. Carrying the
+   * counter forward (see the caller) keeps every name minted over the whole analysis run globally
+   * unique.
+   */
+  public OcExplorationRegistry(int pLoopBound, int pStartCssaIndex) {
+    loopBound = pLoopBound;
+    nextCssaIndex = pStartCssaIndex;
   }
 
-  /**
-   * Starts the fresh-name counter at {@code pStartCssaIndex} instead of zero. Iterative deepening
-   * (see {@code OrderingConsistencyCPA#resetExploration}) throws away the registry every round and
-   * starts a new one, but keeps solving in the very same, persistent solver context. If the counter
-   * restarted at zero every round, two different rounds could mint the identical fresh name (same
-   * prefix, same counter value) for accesses of different types; the solver rejects redeclaring a
-   * symbol at a different sort under the same name. Carrying the counter forward (see the caller)
-   * keeps every name minted over the whole analysis run globally unique.
-   */
-  public OcExplorationRegistry(int pStartCssaIndex) {
-    nextCssaIndex = pStartCssaIndex;
+  /** How often this round's exploration unrolls each loop at most. */
+  int getLoopBound() {
+    return loopBound;
   }
 
   /** Mints a globally fresh qualified name for a single access to the given global variable. */
@@ -92,7 +97,7 @@ public final class OcExplorationRegistry {
 
   /**
    * The next unused fresh-name counter value; carried into the following round's registry so names
-   * stay unique across iterative-deepening rounds (see {@link #OcExplorationRegistry(int)}).
+   * stay unique across iterative-deepening rounds (see {@link #OcExplorationRegistry(int, int)}).
    */
   public int getNextCssaIndex() {
     return nextCssaIndex;

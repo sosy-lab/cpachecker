@@ -55,15 +55,13 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   @Option(secure = true, description = "calls to these functions are the reachability targets")
   private Set<String> errorFunctions = ImmutableSet.of("reach_error");
 
-  // per exploration round, set by the algorithm's iterative deepening via resetExploration
-  private int maxLoopIterations = 5;
-
   private final CFA cfa;
   private final ImmutableSet<String> addressedVariables;
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
-  // all data of one exploration round; replaced, never cleared, by resetExploration
-  private OcExplorationRegistry registry = new OcExplorationRegistry();
+  // all data of one exploration round, including its loop bound; replaced, never cleared, by
+  // resetExploration, which the algorithm calls before every round
+  private OcExplorationRegistry registry = new OcExplorationRegistry(0, 0);
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
   private final OrderingConsistencyTransferRelation transferRelation;
@@ -201,11 +199,10 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
    * fresh-name counter is carried over into the new registry: the solver (and its formula manager)
    * lives across all rounds, so restarting the counter at zero could mint a name already used, at a
    * different type, by an earlier round (see {@link OcExplorationRegistry#OcExplorationRegistry
-   * (int)}).
+   * (int, int)}).
    */
   public void resetExploration(int pLoopBound) {
-    maxLoopIterations = pLoopBound;
-    registry = new OcExplorationRegistry(registry.getNextCssaIndex());
+    registry = new OcExplorationRegistry(pLoopBound, registry.getNextCssaIndex());
     initialState = null;
     transferRelation.setRegistry(registry);
   }
@@ -237,10 +234,6 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
 
   CallstackCPA getCallstackCPA() {
     return callstackCPA;
-  }
-
-  int getMaxLoopIterations() {
-    return maxLoopIterations;
   }
 
   Set<String> getErrorFunctions() {
