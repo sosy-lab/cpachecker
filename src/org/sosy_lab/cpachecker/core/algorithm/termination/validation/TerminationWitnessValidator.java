@@ -113,6 +113,9 @@ public class TerminationWitnessValidator implements Algorithm {
   private static final DummyTargetState DUMMY_TARGET_STATE =
       DummyTargetState.withSimpleTargetInformation("termination");
 
+  // The SSA index of variables that are not assigned yet in a path formula
+  private static final int INITIAL_SSA_INDEX = 1;
+
   private final Path witnessPath;
   private final CFA cfa;
   private final LogManager logger;
@@ -632,7 +635,7 @@ public class TerminationWitnessValidator implements Algorithm {
       currentToPrevious.put(entry.getValue().getQualifiedName(), entry.getKey().getQualifiedName());
     }
 
-    // R(s,u): the loop formula starts with the initial SSA index 1
+    // R(s,u): the loop formula starts with the initial SSA index
     PathFormula step =
         constructPathFormulaForLoop(
             pLoop, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
@@ -644,7 +647,9 @@ public class TerminationWitnessValidator implements Algorithm {
       OptionalInt index = nameAndIndex.getSecond();
       FormulaType<Formula> type = fmgr.getFormulaType(variable.getValue());
       Formula renamed;
-      if (index.isPresent() && index.orElseThrow() == 1 && currentToPrevious.containsKey(name)) {
+      if (index.isPresent()
+          && index.orElseThrow() == INITIAL_SSA_INDEX
+          && currentToPrevious.containsKey(name)) {
         renamed =
             fmgr.makeVariable(
                 type, currentToPrevious.get(name), PrevStateIndices.INDEX_FIRST.getIndex());
@@ -669,7 +674,7 @@ public class TerminationWitnessValidator implements Algorithm {
             currentToPrevious.containsKey(name)
                 ? fmgr.makeVariable(
                     type, currentToPrevious.get(name), PrevStateIndices.INDEX_FIRST.getIndex())
-                : fmgr.makeVariable(type, name + START_STATE_SUFFIX, 1));
+                : fmgr.makeVariable(type, name + START_STATE_SUFFIX, INITIAL_SSA_INDEX));
       }
       constraint =
           bfmgr.and(
@@ -682,7 +687,8 @@ public class TerminationWitnessValidator implements Algorithm {
   /**
    * Instantiates the (uninstantiated) transition invariant T(s,t) such that s is the state given by
    * the previous variables with the index {@link PrevStateIndices#INDEX_FIRST} and t is the state
-   * given by the SSA map. Variables that are not in the SSA map have the initial SSA index 1.
+   * given by the SSA map. Variables that are not in the SSA map have the {@link
+   * #INITIAL_SSA_INDEX}.
    */
   private BooleanFormula instantiateTransitionInvariant(
       BooleanFormula pTransitionInvariant,
@@ -749,7 +755,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
   /**
    * Instantiates the given (uninstantiated) formulas such that they describe the state given by the
-   * SSA map. Variables that are not in the SSA map have the initial SSA index 1.
+   * SSA map. Variables that are not in the SSA map have the {@link #INITIAL_SSA_INDEX}.
    */
   private BooleanFormula instantiateAtStateOf(
       ImmutableList<BooleanFormula> pFormulas, SSAMap pSsa) {
@@ -889,7 +895,7 @@ public class TerminationWitnessValidator implements Algorithm {
     SSAMap.SSAMapBuilder entryBuilder = pPath.getSsa().builder();
     for (String variable : assignedVariables) {
       if (entryBuilder.getIndex(variable) < 0) {
-        entryBuilder.setIndex(variable, allEdges.getSsa().getType(variable), 1);
+        entryBuilder.setIndex(variable, allEdges.getSsa().getType(variable), INITIAL_SSA_INDEX);
       }
     }
     SSAMap entrySsa = entryBuilder.build();
@@ -971,9 +977,9 @@ public class TerminationWitnessValidator implements Algorithm {
         });
   }
 
-  /** Variables that do not occur in a path formula yet have the initial SSA index 1. */
+  /** Variables that do not occur in a path formula yet have the {@link #INITIAL_SSA_INDEX}. */
   private static int getIndexOrInitial(SSAMap pSsa, String pVariable) {
-    return pSsa.containsVariable(pVariable) ? pSsa.getIndex(pVariable) : 1;
+    return pSsa.containsVariable(pVariable) ? pSsa.getIndex(pVariable) : INITIAL_SSA_INDEX;
   }
 
   /**
