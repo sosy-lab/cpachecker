@@ -131,7 +131,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
   // The invariants from the witness, which are used to summarize nested loops. They are set in
   // run().
-  private Set<ExpressionTreeLocationInvariant> witnessInvariants = ImmutableSet.of();
+  private ImmutableSet<ExpressionTreeLocationInvariant> witnessInvariants = ImmutableSet.of();
   private ImmutableMap<Loop, BooleanFormula> transitionInvariantsOfLoops = ImmutableMap.of();
   private final Set<String> functionsOnCallStack = new HashSet<>();
   private ImmutableListMultimap<Loop, BooleanFormula> supportingInvariantsOfLoops =
@@ -208,7 +208,7 @@ public class TerminationWitnessValidator implements Algorithm {
         mapTransitionInvariantsToLoops(loops, invariants);
     ImmutableListMultimap<LoopStructure.Loop, BooleanFormula> loopsToSupportingInvariants =
         mapSupportingInvariantsToLoops(loops, invariants);
-    witnessInvariants = invariants;
+    witnessInvariants = ImmutableSet.copyOf(invariants);
     transitionInvariantsOfLoops = loopsToTransitionInvariants;
     supportingInvariantsOfLoops = loopsToSupportingInvariants;
 
