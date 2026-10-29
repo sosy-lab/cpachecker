@@ -8,43 +8,27 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonCreator.Mode;
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.google.common.base.Splitter;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+@JsonPropertyOrder({
+  DssFunctionPointerEntryPayload.POINTER_VARIABLE,
+  DssFunctionPointerEntryPayload.KIND,
+  DssFunctionPointerEntryPayload.FUNCTION_NAME
+})
 public record DssFunctionPointerEntryPayload(
-    String pointerVariable, TargetKind kind, @Nullable String functionName) {
+    @JsonProperty(POINTER_VARIABLE) String pointerVariable,
+    @JsonProperty(KIND) TargetKind kind,
+    @JsonProperty(FUNCTION_NAME) @Nullable String functionName) {
+  public static final String POINTER_VARIABLE = "pointerVariable";
+  public static final String KIND = "kind";
+  public static final String FUNCTION_NAME = "functionName";
 
   public enum TargetKind {
     INVALID,
     NULL,
     UNKNOWN,
     NAMED
-  }
-
-  @JsonValue
-  public String serialize() {
-    return switch (kind) {
-      case INVALID -> "I:" + pointerVariable;
-      case NULL -> "0:" + pointerVariable;
-      case UNKNOWN -> "U:" + pointerVariable;
-      case NAMED -> "N:" + pointerVariable + ":" + functionName;
-    };
-  }
-
-  @JsonCreator(mode = Mode.DELEGATING)
-  public static DssFunctionPointerEntryPayload deserialize(String pSerialized) {
-    List<String> parts = Splitter.on(":").limit(3).splitToList(pSerialized);
-    assert parts.size() >= 2;
-    return switch (parts.getFirst()) {
-      case "I" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.INVALID, null);
-      case "0" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.NULL, null);
-      case "U" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.UNKNOWN, null);
-      case "N" -> new DssFunctionPointerEntryPayload(parts.get(1), TargetKind.NAMED, parts.get(2));
-      default -> throw new AssertionError("Unknown FunctionPointerState");
-    };
   }
 }

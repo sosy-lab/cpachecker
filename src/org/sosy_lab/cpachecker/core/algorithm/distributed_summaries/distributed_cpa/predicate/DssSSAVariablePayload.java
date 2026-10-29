@@ -8,20 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-public record DssSSAVariablePayload(int index, String serializedType) {
-  public String serialize() {
-    return index + " " + serializedType;
-  }
-
-  public static DssSSAVariablePayload deserialize(String pS) {
-    List<String> parts = Splitter.on(" ").limit(2).splitToList(pS);
-    Preconditions.checkArgument(
-        parts.size() == 2 && !parts.getLast().isBlank(),
-        "Serialized SSA Variable must have index and type");
-    return new DssSSAVariablePayload(Integer.parseInt(parts.getFirst()), parts.getLast());
-  }
+@JsonPropertyOrder({DssSSAVariablePayload.INDEX, DssSSAVariablePayload.SERIALIZED_TYPE})
+public record DssSSAVariablePayload(
+    @JsonProperty(INDEX) int index, @JsonProperty(SERIALIZED_TYPE) String serializedType) {
+  public static final String INDEX = "index";
+  public static final String SERIALIZED_TYPE = "serializedType";
 }
