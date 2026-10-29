@@ -112,7 +112,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public int hashCode() {
-    return Objects.hash(annotations);
+    return Objects.hashCode(annotations);
   }
 
   @Override

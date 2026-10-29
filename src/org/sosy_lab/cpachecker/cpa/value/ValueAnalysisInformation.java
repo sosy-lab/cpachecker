@@ -48,7 +48,7 @@ public final class ValueAnalysisInformation {
 
   @Override
   public int hashCode() {
-    return Objects.hash(assignments);
+    return Objects.hashCode(assignments);
   }
 
   @Override

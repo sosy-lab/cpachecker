@@ -1,0 +1,18 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2011-2021 The SV-Benchmarks Community
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '1.0'
+
+# Simplified from the SV-COMP/LDV benchmark:
+# 32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--ata--pata_netcell.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.i
+input_files: 'pata_netcell_ldv_mutex.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: true

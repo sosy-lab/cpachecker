@@ -27,6 +27,7 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   /** Keys defining the statistics that are collected for a single DSS analysis worker. */
   public enum StatisticsKey {
+    INITIALIZED_ANALYSES("number of initialized block analyses", false),
     SERIALIZATION_COUNT("number of serialized states", false),
     DESERIALIZATION_COUNT("number of deserialized states", false),
     PROCEED_COUNT("number of proceeded states", false),
@@ -101,8 +102,25 @@ public class DssSingleWorkerStatistics implements Statistics {
   private final StatInt serializedStatesSize =
       new StatInt(StatKind.SUM, StatisticsKey.SERIALIZED_STATES_SIZE.getLabel());
 
+  private final boolean collectAnalysisStatistics;
+  private String analysisStatistics = "";
+
   public DssSingleWorkerStatistics(String pBlockId) {
+    this(pBlockId, false);
+  }
+
+  DssSingleWorkerStatistics(String pBlockId, boolean pCollectAnalysisStatistics) {
     blockId = pBlockId;
+    collectAnalysisStatistics = pCollectAnalysisStatistics;
+  }
+
+  public boolean shouldCollectAnalysisStatistics() {
+    return collectAnalysisStatistics;
+  }
+
+  /** A snapshot taken by the owning worker before its CPA and solver are closed. */
+  public void setAnalysisStatistics(String pAnalysisStatistics) {
+    analysisStatistics = pAnalysisStatistics;
   }
 
   public DssThreadCpuTimer getSerializationTimer() {
@@ -179,6 +197,7 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   public long getValue(StatisticsKey key) {
     return switch (key) {
+      case INITIALIZED_ANALYSES -> dcpaStatistics == null ? 0 : 1;
       case SERIALIZATION_COUNT ->
           dcpaStatistics != null ? dcpaStatistics.getSerializationCount().getUpdateCount() : 0;
       case DESERIALIZATION_COUNT ->
@@ -257,6 +276,7 @@ public class DssSingleWorkerStatistics implements Statistics {
         .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString())
         .put(StatisticsKey.REMOVE_COVERED_TIME.getLabel(), formatNanos(removeCoveredTime.nanos()))
         .put(StatisticsKey.BUSY_CPU_TIME.getLabel(), formatNanos(busyCpuTime.nanos()));
+    out.print(analysisStatistics);
   }
 
   static String formatNanos(long nanos) {

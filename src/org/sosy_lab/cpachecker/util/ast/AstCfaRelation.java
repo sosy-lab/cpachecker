@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 
 /** Contains information relating the CFA to the AST of the program. */
 public final class AstCfaRelation {
@@ -69,8 +70,14 @@ public final class AstCfaRelation {
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
+  // As in the input program: without the variables that go out of scope at a node and without the
+  // ones hidden by an inner declaration with the same name.
   private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
   private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  // All declared ones, as recorded by the CFA builder, which gives a node the scope in which it was
+  // created, e.g., the node after a for loop still has the variable of the loop.
+  private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToDeclaredLocalVariables;
+  private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToDeclaredParameters;
   private final ImmutableSet<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
@@ -80,6 +87,8 @@ public final class AstCfaRelation {
       ImmutableSet<StatementElement> pStatementElements,
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToDeclaredLocalVariables,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToDeclaredParameters,
       ImmutableSet<AVariableDeclaration> pGlobalVariables,
       ImmutableSortedSet<FileLocation> pExpressionLocations) {
     ifElements = pIfElements;
@@ -88,6 +97,8 @@ public final class AstCfaRelation {
     statementElements = pStatementElements;
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
+    cfaNodeToDeclaredLocalVariables = pCfaNodeToDeclaredLocalVariables;
+    cfaNodeToDeclaredParameters = pCfaNodeToDeclaredParameters;
     globalVariables = pGlobalVariables;
     expressionLocations = pExpressionLocations;
   }
@@ -195,14 +206,25 @@ public final class AstCfaRelation {
    * @return the node that starts the iteration statement at the given line and column if it could
    *     be uniquely determined
    */
-  public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
+  public Optional<CFANode> getNodeForIterationStatementLocation(
+      int line, int column, LoopStructure pLoopStructure) {
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().location().getStartingLineInOrigin() == line
           && structure.getCompleteElement().location().getStartColumnInLine() == column) {
-        return structure.getLoopHead();
+        return structure.getLoopHead(pLoopStructure);
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns the nodes at which loop invariants hold, i.e., the nodes given by {@link
+   * IterationElement#getLoopHead} for all iteration statements.
+   */
+  public ImmutableSet<CFANode> getLoopInvariantNodes(LoopStructure pLoopStructure) {
+    return FluentIterable.from(iterationStructures)
+        .transformAndConcat(loop -> loop.getLoopHead(pLoopStructure).stream().toList())
+        .toSet();
   }
 
   /**
@@ -401,7 +423,8 @@ public final class AstCfaRelation {
 
   /**
    * This method returns all variables and parameters in scope at the given node. It includes global
-   * variables, local variables and parameters.
+   * variables, local variables and parameters. As in the input program, it excludes the variables
+   * that go out of scope at the node and the ones hidden by another declaration with the same name.
    *
    * <p>Whenever this is not possible, it returns an empty Optional instead. This usually happens
    * when some information was not passed/tracked correctly from the frontend and is likely a bug in
@@ -422,11 +445,51 @@ public final class AstCfaRelation {
       return Optional.empty();
     }
 
+    Set<AVariableDeclaration> localVariables =
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode));
+    Set<AParameterDeclaration> parameters =
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode));
+    ImmutableSet<String> localNames =
+        FluentIterable.concat(localVariables, parameters)
+            .transform(AbstractSimpleDeclaration::getOrigName)
+            .toSet();
     return Optional.of(
         FluentIterable.concat(
-            Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
-            Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
-            globalVariables));
+            localVariables,
+            parameters,
+            // A local variable hides a global one with the same name, and a static local variable
+            // is also among the global variables
+            FluentIterable.from(globalVariables)
+                .filter(global -> !localNames.contains(global.getOrigName()))));
+  }
+
+  /**
+   * Returns the name in the input program of the variable that CPAchecker calls {@code pName} at
+   * the given node, e.g., {@code i} for the variable {@code i__1}, which CPAchecker renamed because
+   * another variable {@code i} exists in the same function. Returns {@code pName} if no variable
+   * with this name is in scope.
+   *
+   * <p>TODO: This information should be collected during parsing. Currently, this is only a simple
+   * heuristic that looks for a variable with this name among the variables in scope.
+   */
+  public String getNameInInputProgram(CFANode pNode, String pName) {
+    return getVariablesAndParametersInScope(pNode)
+        .flatMap(
+            variables ->
+                variables.firstMatch(variable -> variable.getName().equals(pName)).toJavaUtil())
+        .map(AbstractSimpleDeclaration::getOrigName)
+        .orElse(pName);
+  }
+
+  /**
+   * Returns the node before the given statement in the given function, i.e., not a node in a
+   * function that the statement calls.
+   */
+  public Optional<CFANode> getNodeBeforeStatement(ASTElement pStatement, String pFunction) {
+    return pStatement.edges().stream()
+        .map(CFAEdge::getPredecessor)
+        .filter(node -> node.getFunctionName().equals(pFunction))
+        .findFirst();
   }
 
   /**
@@ -489,6 +552,23 @@ public final class AstCfaRelation {
     }
   }
 
+  /**
+   * Returns the location of the statement given by {@link #getStatementFileLocationForNode} if the
+   * execution of this statement starts at the given node, e.g., not for a node inside a conditional
+   * expression of the statement.
+   */
+  public Optional<FileLocation> getStatementStartingAtNode(CFANode pNode) {
+    return getStatementFileLocationForNode(pNode)
+        .filter(
+            location -> {
+              ASTElement statement =
+                  startingLocationToTightestStatement.get(
+                      new StartingLocation(
+                          location.getStartColumnInLine(), location.getStartingLineInOrigin()));
+              return statement != null && statement.startNodes().contains(pNode);
+            });
+  }
+
   public Optional<ImmutableSet<AVariableDeclaration>> getGlobalVariables() {
     if (globalVariables == null) {
       return Optional.empty();
@@ -509,5 +589,30 @@ public final class AstCfaRelation {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pCfaNode)));
+  }
+
+  /**
+   * Returns the local variables declared in the blocks around the node, as recorded by the CFA
+   * builder. Unlike {@link #getVariablesAndParametersInScope}, they include the ones that go out of
+   * scope at the node and the ones hidden by another declaration with the same name.
+   */
+  public ImmutableSet<AVariableDeclaration> getDeclaredLocalVariablesByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToDeclaredLocalVariables.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(
+        Objects.requireNonNull(cfaNodeToDeclaredLocalVariables.get(pCfaNode)));
+  }
+
+  /**
+   * Returns the parameters of the function of the node, as recorded by the CFA builder. Unlike
+   * {@link #getVariablesAndParametersInScope}, they include the ones that go out of scope at the
+   * node and the ones hidden by a local variable with the same name.
+   */
+  public ImmutableSet<AParameterDeclaration> getDeclaredParametersByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToDeclaredParameters.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToDeclaredParameters.get(pCfaNode)));
   }
 }

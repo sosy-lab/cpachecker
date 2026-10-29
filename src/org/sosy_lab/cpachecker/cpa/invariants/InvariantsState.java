@@ -1267,8 +1267,10 @@ public class InvariantsState
     return getFormulaApproximation(
         pFunctionScope,
         isInvalidVarFormulaApproximation,
-        varName ->
-            useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(varName) : varName);
+        varName -> {
+          String name = pAstCfaRelation.getNameInInputProgram(pLocation, varName);
+          return useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name;
+        });
   }
 
   @Override

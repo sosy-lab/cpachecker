@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 public class ArgToSvLibCorrectnessWitnessExport {
   private final SvLibCfaMetadata svLibMetadata;
 
+  private final ImmutableSet<CFANode> loopHeads;
+
   @SuppressWarnings("unused")
   private final LogManager logger;
 
@@ -55,6 +57,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
         pCFA.getMetadata().getSvLibCfaMetadata().isPresent(),
         "SV-LIB metadata must be present in CFA in order to export a SV-LIB witness.");
     svLibMetadata = pCFA.getMetadata().getSvLibCfaMetadata().orElseThrow();
+    loopHeads = pCFA.getAllLoopHeads().orElse(ImmutableSet.of());
     logger = pLogger;
   }
 
@@ -148,7 +151,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState) {
     CollectedARGStates relevantStates =
-        new RootExplorationArgStateCollector().getRelevantStates(pRootState);
+        new RootExplorationArgStateCollector(loopHeads).getRelevantStates(pRootState);
 
     ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();
 
