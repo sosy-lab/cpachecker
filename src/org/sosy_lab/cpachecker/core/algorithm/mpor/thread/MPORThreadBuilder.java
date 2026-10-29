@@ -250,17 +250,6 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         // Exclude CFunctionReturnEdges in the search, their successors may be in other threads.
         // The original, same-thread successor is included due to the CFunctionSummaryEdge.
         if (!(cfaEdge instanceof CFunctionReturnEdge)) {
-          // Update the call context, if a function call is encountered.
-          if (cfaEdge instanceof CFunctionCallEdge) {
-            Optional<CFAEdgeForThread> callContextEdge =
-                Optional.ofNullable(
-                    Iterables.getOnlyElement(
-                        threadEdges.entries().stream()
-                            .filter(entry -> entry.getValue().equals(cfaEdge))
-                            .map(Map.Entry::getKey)
-                            .toList()));
-            callContext = new SeqCallContext(callContextEdge);
-          }
           buildThreadCfaVariables(
               pThreadId,
               pVisitedCfaNodes,
@@ -270,7 +259,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               updateSuccessorNode(
                   pThreadId, pCurrentNode, cfaEdge, callContext, pVisitedInitRoutines),
               updateBlockTypes(cfaEdge, callContext, pBlockTypes),
-              callContext,
+              updateCallContext(cfaEdge, callContext, threadEdges),
               pStartRoutineCall);
         }
       }
@@ -386,6 +375,25 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     }
 
     return ImmutableTable.copyOf(blockTypes);
+  }
+
+  private SeqCallContext updateCallContext(
+      CFAEdge pCfaEdge,
+      SeqCallContext pPreviousCallContext,
+      ImmutableMultimap<CFAEdgeForThread, CFAEdge> pThreadEdges) {
+
+    // Update the call context, if a function call is encountered.
+    if (pCfaEdge instanceof CFunctionCallEdge) {
+      Optional<CFAEdgeForThread> callContextEdge =
+          Optional.ofNullable(
+              Iterables.getOnlyElement(
+                  pThreadEdges.entries().stream()
+                      .filter(entry -> entry.getValue().equals(pCfaEdge))
+                      .map(Map.Entry::getKey)
+                      .toList()));
+      return new SeqCallContext(callContextEdge);
+    }
+    return pPreviousCallContext;
   }
 
   /**
