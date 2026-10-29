@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -49,11 +50,13 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
   }
 
   private Multimap<LocationInstance, AbstractionPredicate> parseLocationInstances(
-      ImmutableMap<DssLocationInstancePayload, ImmutableSet<String>> pLocalInstances) {
+      ImmutableList<DssLocationInstancePredicatesPayload> pLocalInstances) {
     ImmutableListMultimap.Builder<LocationInstance, AbstractionPredicate> locationInstances =
         ImmutableListMultimap.builder();
     pLocalInstances.forEach(
-        (locationInstancePayload, serializedPredicates) -> {
+        entry -> {
+          DssLocationInstancePayload locationInstancePayload = entry.locationInstance();
+          ImmutableSet<String> serializedPredicates = ImmutableSet.copyOf(entry.predicates());
           LocationInstance locationInstance =
               new LocationInstance(
                   nodeMapping.apply(locationInstancePayload.nodeId()),

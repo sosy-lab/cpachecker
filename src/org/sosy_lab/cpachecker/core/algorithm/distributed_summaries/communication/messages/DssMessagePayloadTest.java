@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DssFunctionPointerStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssLocationInstancePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssLocationInstancePredicatesPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicatePrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicateStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssSSAVariablePayload;
@@ -181,7 +182,9 @@ public class DssMessagePayloadTest {
             "x == 0", ImmutableMap.of("x", new DssSSAVariablePayload(3, "int")), "pts-1", "x == 0");
     DssPredicatePrecisionPayload predicatePrecisionPayload =
         new DssPredicatePrecisionPayload(
-            ImmutableMap.of(new DssLocationInstancePayload(42, 1), ImmutableSet.of("x == 0")),
+            ImmutableList.of(
+                new DssLocationInstancePredicatesPayload(
+                    new DssLocationInstancePayload(42, 1), ImmutableList.of("x == 0"))),
             ImmutableMap.of(42, ImmutableSet.of("x == 1")),
             ImmutableMap.of("main", ImmutableSet.of("x == 2")),
             ImmutableSet.of("x == 3"));
@@ -281,7 +284,9 @@ public class DssMessagePayloadTest {
             "x == 0", ImmutableMap.of("x", new DssSSAVariablePayload(3, "int")), "pts-1", "x == 0");
     DssPredicatePrecisionPayload originalPredicatePrecisionPayload =
         new DssPredicatePrecisionPayload(
-            ImmutableMap.of(new DssLocationInstancePayload(42, 1), ImmutableSet.of("x == 0")),
+            ImmutableList.of(
+                new DssLocationInstancePredicatesPayload(
+                    new DssLocationInstancePayload(42, 1), ImmutableList.of("x == 0"))),
             ImmutableMap.of(42, ImmutableSet.of("x == 1")),
             ImmutableMap.of("main", ImmutableSet.of("x == 2")),
             ImmutableSet.of("x == 3"));

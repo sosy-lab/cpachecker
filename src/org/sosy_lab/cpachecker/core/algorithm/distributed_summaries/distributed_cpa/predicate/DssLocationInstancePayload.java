@@ -8,27 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonCreator.Mode;
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-public record DssLocationInstancePayload(int nodeId, int instance) {
-  @JsonValue
-  public String serialize() {
-    return nodeId + "," + instance;
-  }
-
-  @JsonCreator(mode = Mode.DELEGATING)
-  public static DssLocationInstancePayload deserialize(String pS) {
-    List<String> parts = Splitter.on(',').splitToList(pS);
-    Preconditions.checkArgument(
-        parts.size() == 2 && !parts.getLast().isBlank(),
-        "Both a nodeId and an instance must be provided");
-
-    return new DssLocationInstancePayload(
-        Integer.parseInt(parts.getFirst()), Integer.parseInt(parts.getLast()));
-  }
+@JsonPropertyOrder({DssLocationInstancePayload.NODE_ID, DssLocationInstancePayload.INSTANCE})
+public record DssLocationInstancePayload(
+    @JsonProperty(NODE_ID) int nodeId, @JsonProperty(INSTANCE) int instance) {
+  public static final String NODE_ID = "nodeId";
+  public static final String INSTANCE = "instance";
 }
