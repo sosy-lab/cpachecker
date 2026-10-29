@@ -71,6 +71,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -190,16 +191,27 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final MachineModel machineModel;
 
+  private final CFA cfa;
+  // The scope of the input program. The analysis may work on a copy of its CFA
+  // (analysis.algorithm.copyCFA).
+  private final CProgramScope programScope;
+
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, 0, pCFA);
+    this(pConfig, pLogger, 0, pCFA, pCFA);
   }
 
   public TerminationStatistics(
-      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
+      Configuration pConfig,
+      LogManager pLogger,
+      int pTotalNumberOfLoops,
+      CFA pCFA,
+      CFA pOriginalCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
+    cfa = checkNotNull(pCFA);
+    programScope = new CProgramScope(checkNotNull(pOriginalCfa), pLogger);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
 
@@ -521,7 +533,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
               entries.add(
                   TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                      supportingInvariant, loopHead, incomingLoopEdge));
+                      supportingInvariant,
+                      loopHead,
+                      incomingLoopEdge,
+                      cfa.getAstCfaRelation(),
+                      programScope));
             }
           }
         }
@@ -531,7 +547,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                 TerminationArgumentsToWitnessUtils.collectArgumentsForNestedLoops(
                     loop, pTerminationArguments.keySet(), pTerminationArguments),
                 loopHead,
-                incomingLoopEdge));
+                incomingLoopEdge,
+                cfa.getAstCfaRelation(),
+                programScope));
       }
     }
     return entries.build();

@@ -174,9 +174,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
-        if (scope.lookupVariable(variable).getType() instanceof CSimpleType) {
-          nondetVerifierCall =
-              "__VERIFIER_nondet_" + scope.lookupVariable(variable).getType() + "();";
+        CSimpleDeclaration declaration =
+            scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
+        if (declaration.getType() instanceof CSimpleType) {
+          nondetVerifierCall = "__VERIFIER_nondet_" + declaration.getType() + "();";
         } else {
           throw new CPAException(
               "We currently do not support nondeterministic initialization of complex types.");
@@ -243,7 +244,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(
-                scope.lookupVariable(variable).toString());
+                scope.lookupVariable(variableName).toString());
         if (alreadyDeclaredVars.add(variableName)) {
           builder.add(varDeclaration);
         }
@@ -274,7 +275,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
       varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
-              scope.lookupVariable(variable).toString());
+              scope.lookupVariable(variableName).toString());
       if (alreadyDeclaredVars.add(variableName)) {
         builder.add(varDeclaration);
       }
