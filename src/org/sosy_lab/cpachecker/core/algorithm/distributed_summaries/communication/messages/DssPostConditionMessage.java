@@ -9,12 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
 import java.util.Map;
 
 public class DssPostConditionMessage extends DssMessage {
 
   DssPostConditionMessage(String pSenderId, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.POST_CONDITION, pContent);
+  }
+
+  DssPostConditionMessage(
+      String pSenderId, ImmutableMap<String, String> pContent, Instant pTimestamp) {
+    super(pSenderId, DssMessageType.POST_CONDITION, pContent, pTimestamp);
   }
 
   @Override

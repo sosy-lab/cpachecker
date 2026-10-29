@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownManager;
@@ -399,9 +398,8 @@ public final class DssBlockAnalysis {
   }
 
   /**
-   * Removes duplicates from the given states and precisions, i.e., the returned list contains
-   * exactly one representative of every class of {@link StateAndPrecision} whose states are equal
-   * according to {@link CoverageOperator#areStatesEqual}.
+   * Removes duplicates from {@code pStatesAndPrecisions} that are equal. Equality used to compare
+   * states is decided by {@link #violationConditionEquality}.
    *
    * <p>Only the states decide whether two entries are duplicates. The precision of a discarded
    * entry is lost, so the caller has to combine the precisions beforehand (see {@link
@@ -411,56 +409,35 @@ public final class DssBlockAnalysis {
    * @return The first entry of every class of equal states, in the order of {@code
    *     pStatesAndPrecisions}.
    */
-  ImmutableList<StateAndPrecision> deduplicateStatesAndPrecisions(
+  ImmutableList<StateAndPrecision> deduplicateViolationConditions(
       Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
       throws CPAException, InterruptedException {
-    return deduplicate(pStatesAndPrecisions, StateAndPrecision::state);
+    return deduplicate(pStatesAndPrecisions, violationConditionEquality());
   }
 
   /**
-   * Removes all elements whose state is equal to the state of an earlier element, according to
-   * {@link CoverageOperator#areStatesEqual}.
+   * Removes all elements whose state relates to an earlier element's state via {@code pEquality}.
    *
    * <p>Equal states are at the same program point and, thus, have the same program-point hash. The
    * elements are therefore grouped by that hash first, and only elements within the same group are
    * compared with the (potentially expensive) coverage operator.
    *
    * @param pElements The elements to deduplicate.
-   * @param pStateOf Extracts the state that identifies an element.
+   * @param pEquality The equality that decides whether two states are duplicates.
    * @return The first element of every class of equal states, in the order of {@code pElements}.
    */
-  private <T> ImmutableList<T> deduplicate(
-      Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf)
+  private ImmutableList<StateAndPrecision> deduplicate(
+      Iterable<@NonNull StateAndPrecision> pElements, CoverageRelation pEquality)
       throws CPAException, InterruptedException {
-    return deduplicate(pElements, pStateOf, false);
-  }
-
-  private <T> ImmutableList<T> deduplicate(
-      Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf, boolean pSyntactically)
-      throws CPAException, InterruptedException {
-    CoverageOperator coverage = dcpa.getCoverageOperator();
-    ListMultimap<Object, AbstractState> representativesPerProgramPoint = ArrayListMultimap.create();
-    ImmutableList.Builder<T> deduplicated = ImmutableList.builder();
+    ListMultimap<Object, StateAndPrecision> keptPerProgramPoint = ArrayListMultimap.create();
+    ImmutableList.Builder<StateAndPrecision> deduplicated = ImmutableList.builder();
     try {
       workerStats.getCoverageTimer().start();
-      for (T element : pElements) {
-        AbstractState state = pStateOf.apply(element);
-        List<AbstractState> representatives =
-            representativesPerProgramPoint.get(dcpa.computeProgramPointId(state));
-        boolean isDuplicate = false;
-        for (AbstractState representative : representatives) {
-          workerStats.getCoverageCounter().inc();
-          if (state == representative
-              || (pSyntactically
-                  ? coverage.areStatesSyntacticallyEqual(state, representative)
-                  : coverage.areStatesEqual(state, representative))) {
-            isDuplicate = true;
-            break;
-          }
-        }
-        if (!isDuplicate) {
-          // ArrayListMultimap#get returns a view that writes through to the multimap.
-          representatives.add(state);
+      for (StateAndPrecision element : pElements) {
+        List<StateAndPrecision> candidates =
+            keptPerProgramPoint.get(dcpa.computeProgramPointId(element.state()));
+        if (!isCoveredByAny(element, candidates, pEquality)) {
+          candidates.add(element);
           deduplicated.add(element);
         }
       }
@@ -468,6 +445,65 @@ public final class DssBlockAnalysis {
       workerStats.getCoverageTimer().stop();
     }
     return deduplicated.build();
+  }
+
+  /**
+   * Removes all states that are subsumed by another state of the list.
+   *
+   * @param pStatesAndPrecisions The states and precisions to reduce.
+   * @return The uncovered states in the order of {@code pStatesAndPrecisions}.
+   */
+  ImmutableList<StateAndPrecision> removeCoveredStatesAndPrecisions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    ListMultimap<Object, StateAndPrecision> uncoveredStatesPerProgramPoint =
+        ArrayListMultimap.create();
+    List<StateAndPrecision> uncovered = new ArrayList<>();
+    workerStats.getRemoveCoveredTimer().start();
+    try {
+      workerStats.getCoverageTimer().start();
+      for (StateAndPrecision element : pStatesAndPrecisions) {
+        List<StateAndPrecision> candidates =
+            uncoveredStatesPerProgramPoint.get(dcpa.computeProgramPointId(element.state()));
+        if (isCoveredByAny(element, candidates, dcpa.getCoverageOperator()::isSubsumed)) {
+          continue;
+        }
+        List<StateAndPrecision> coveredByElement = subsumes(element, candidates);
+        candidates.removeAll(coveredByElement);
+        candidates.add(element);
+        uncovered.removeAll(coveredByElement);
+        uncovered.add(element);
+      }
+    } finally {
+      workerStats.getCoverageTimer().stop();
+      workerStats.getRemoveCoveredTimer().stop();
+    }
+    return ImmutableList.copyOf(uncovered);
+  }
+
+  /** Whether {@code pElement} holds {@code pRelation} for any of the {@code pCandidates}. */
+  private boolean isCoveredByAny(
+      StateAndPrecision pElement, List<StateAndPrecision> pCandidates, CoverageRelation pRelation)
+      throws CPAException, InterruptedException {
+    for (StateAndPrecision candidate : pCandidates) {
+      if (covered(pRelation, pElement.state(), candidate.state())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** The states and precisions that {@code pElement} subsumes from {@code pCandidates}. */
+  private List<StateAndPrecision> subsumes(
+      StateAndPrecision pElement, List<StateAndPrecision> pCandidates)
+      throws CPAException, InterruptedException {
+    List<StateAndPrecision> covered = new ArrayList<>();
+    for (StateAndPrecision candidate : pCandidates) {
+      if (covered(dcpa.getCoverageOperator()::isSubsumed, candidate.state(), pElement.state())) {
+        covered.add(candidate);
+      }
+    }
+    return covered;
   }
 
   /**
@@ -486,7 +522,7 @@ public final class DssBlockAnalysis {
       Collection<@NonNull StateAndPrecision> pStates1,
       Collection<@NonNull StateAndPrecision> pStates2)
       throws CPAException, InterruptedException {
-    return statesEqual(pStates1, pStates2, false);
+    return statesEqual(pStates1, pStates2, dcpa.getCoverageOperator()::areStatesEqual);
   }
 
   /**
@@ -498,25 +534,14 @@ public final class DssBlockAnalysis {
       Collection<@NonNull StateAndPrecision> pStates1,
       Collection<@NonNull StateAndPrecision> pStates2)
       throws CPAException, InterruptedException {
-    return statesEqual(pStates1, pStates2, options.useSyntacticViolationConditionEquality());
-  }
-
-  /** Like {@link #deduplicateStatesAndPrecisions} for violation conditions. */
-  ImmutableList<StateAndPrecision> deduplicateViolationConditions(
-      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
-      throws CPAException, InterruptedException {
-    return deduplicate(
-        pStatesAndPrecisions,
-        StateAndPrecision::state,
-        options.useSyntacticViolationConditionEquality());
+    return statesEqual(pStates1, pStates2, violationConditionEquality());
   }
 
   private boolean statesEqual(
       Collection<@NonNull StateAndPrecision> pStates1,
       Collection<@NonNull StateAndPrecision> pStates2,
-      boolean pSyntactically)
+      CoverageRelation pEquality)
       throws CPAException, InterruptedException {
-    CoverageOperator coverage = dcpa.getCoverageOperator();
     ImmutableList<StateAndPrecision> states2 = ImmutableList.copyOf(pStates2);
     boolean[] matchedInStates2 = new boolean[states2.size()];
     for (StateAndPrecision state1 : pStates1) {
@@ -527,9 +552,7 @@ public final class DssBlockAnalysis {
           // candidate. The comparison itself can cost a solver query, so skip it.
           continue;
         }
-        if (pSyntactically
-            ? coverage.areStatesSyntacticallyEqual(state1.state(), states2.get(i).state())
-            : coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
+        if (covered(pEquality, state1.state(), states2.get(i).state())) {
           matched = true;
           matchedInStates2[i] = true;
         }
@@ -544,6 +567,34 @@ public final class DssBlockAnalysis {
       }
     }
     return true;
+  }
+
+  /**
+   * Checks {@code pA} == {@code pB}. If false returns result of applying {@code pRelation} to
+   * {@code pA} and {@code pB}.
+   */
+  private boolean covered(CoverageRelation pRelation, AbstractState pA, AbstractState pB)
+      throws CPAException, InterruptedException {
+    if (pA == pB) {
+      return true;
+    }
+    workerStats.getCoverageCounter().inc();
+    return pRelation.test(pA, pB);
+  }
+
+  /**
+   * The equality used to compare violation conditions, per {@code
+   * useSyntacticViolationConditionEquality}.
+   */
+  private CoverageRelation violationConditionEquality() {
+    return options.useSyntacticViolationConditionEquality()
+        ? dcpa.getCoverageOperator()::areStatesSyntacticallyEqual
+        : dcpa.getCoverageOperator()::areStatesEqual;
+  }
+
+  @FunctionalInterface
+  private interface CoverageRelation {
+    boolean test(AbstractState pA, AbstractState pB) throws CPAException, InterruptedException;
   }
 
   /**
@@ -621,7 +672,7 @@ public final class DssBlockAnalysis {
   ImmutableList<StateAndPrecision> combineSummaries(Collection<StateAndPrecision> pSummaries)
       throws CPAException, InterruptedException {
     if (!options.combineStates()) {
-      return deduplicateStatesAndPrecisions(pSummaries);
+      return removeCoveredStatesAndPrecisions(pSummaries);
     }
     ImmutableListMultimap<Object, StateAndPrecision> groups =
         Multimaps.index(pSummaries, sap -> dcpa.computeProgramPointId(sap.state()));
@@ -643,7 +694,7 @@ public final class DssBlockAnalysis {
                     .combine(
                         transformedImmutableListCopy(summaries, StateAndPrecision::precision))));
       } else {
-        result.addAll(deduplicateStatesAndPrecisions(summaries));
+        result.addAll(removeCoveredStatesAndPrecisions(summaries));
       }
     }
     return result.build();
@@ -780,30 +831,36 @@ public final class DssBlockAnalysis {
    */
   ImmutableMap<String, String> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
-    ContentBuilder serializedContent = ContentBuilder.builder();
-    serializedContent.put(
-        DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
-        Integer.toString(pStatesAndPrecisions.size()));
-    int totalStateSize = 0;
-    for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
-      serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
-      StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
-      ImmutableMap.Builder<String, String> contentBuilder =
-          ImmutableMap.<String, String>builder()
-              .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()));
-      if (options.sharePrecision()) {
-        contentBuilder.putAll(
-            dcpa.getSerializePrecisionOperator().serializePrecision(stateAndPrecision.precision()));
+    workerStats.getSerializationTimer().start();
+    try {
+      ContentBuilder serializedContent = ContentBuilder.builder();
+      serializedContent.put(
+          DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
+          Integer.toString(pStatesAndPrecisions.size()));
+      int totalStateSize = 0;
+      for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
+        serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
+        StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
+        ImmutableMap.Builder<String, String> contentBuilder =
+            ImmutableMap.<String, String>builder()
+                .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()));
+        if (options.sharePrecision()) {
+          contentBuilder.putAll(
+              dcpa.getSerializePrecisionOperator()
+                  .serializePrecision(stateAndPrecision.precision()));
+        }
+        ImmutableMap<String, String> content = contentBuilder.buildOrThrow();
+        for (Entry<String, String> contents : content.entrySet()) {
+          serializedContent.put(contents.getKey(), contents.getValue());
+          totalStateSize += contents.getKey().length() + contents.getValue().length();
+        }
+        serializedContent.popLevel();
       }
-      ImmutableMap<String, String> content = contentBuilder.buildOrThrow();
-      for (Entry<String, String> contents : content.entrySet()) {
-        serializedContent.put(contents.getKey(), contents.getValue());
-        totalStateSize += contents.getKey().length() + contents.getValue().length();
-      }
-      serializedContent.popLevel();
+      workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
+      return serializedContent.build();
+    } finally {
+      workerStats.getSerializationTimer().stop();
     }
-    workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
-    return serializedContent.build();
   }
 
   /**
@@ -856,22 +913,27 @@ public final class DssBlockAnalysis {
     if (optionalNumberOfStates.isEmpty()) {
       return ImmutableList.of();
     }
-    int numStates = optionalNumberOfStates.orElseThrow();
-    ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
-        ImmutableList.builderWithExpectedSize(numStates);
-    for (int i = 0; i < numStates; i++) {
-      DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
-      AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
-      if (pMessage.getType() == DssMessageType.POST_CONDITION) {
-        state = dcpa.reset(state);
+    workerStats.getDeserializationTimer().start();
+    try {
+      int numStates = optionalNumberOfStates.orElseThrow();
+      ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
+          ImmutableList.builderWithExpectedSize(numStates);
+      for (int i = 0; i < numStates; i++) {
+        DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
+        AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
+        if (pMessage.getType() == DssMessageType.POST_CONDITION) {
+          state = dcpa.reset(state);
+        }
+        Precision precision =
+            options.sharePrecision()
+                ? dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage)
+                : makeStartPrecision();
+        statesAndPrecisions.add(new StateAndPrecision(state, precision));
       }
-      Precision precision =
-          options.sharePrecision()
-              ? dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage)
-              : makeStartPrecision();
-      statesAndPrecisions.add(new StateAndPrecision(state, precision));
+      return statesAndPrecisions.build();
+    } finally {
+      workerStats.getDeserializationTimer().stop();
     }
-    return statesAndPrecisions.build();
   }
 
   private void disableCallstackIfAvailable(boolean ignoreCallstack) {

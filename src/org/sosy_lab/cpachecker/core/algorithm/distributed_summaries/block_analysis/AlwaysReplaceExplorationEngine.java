@@ -110,7 +110,20 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
               true);
       rounds.add(topExploration);
     }
-    return AnalysisResult.merge(rounds);
+    return merge(rounds);
+  }
+
+  /** Merges the rounds, then removes postconditions covered by another postcondition. */
+  private AnalysisResult merge(Collection<AnalysisResult> pRounds)
+      throws CPAException, InterruptedException {
+    AnalysisResult merged = AnalysisResult.merge(pRounds);
+    if (merged.summaries().isEmpty()) {
+      return merged;
+    }
+    return new AnalysisResult(
+        analysis.removeCoveredStatesAndPrecisions(merged.summaries()),
+        merged.violationConditions(),
+        merged.blockEndUnreachable());
   }
 
   /**
