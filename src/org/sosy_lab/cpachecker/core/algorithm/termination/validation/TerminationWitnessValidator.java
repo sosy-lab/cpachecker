@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -787,7 +786,8 @@ public class TerminationWitnessValidator implements Algorithm {
       Loop pLoop, SSAMap pContextSSAMap, PointerTargetSet pContextPointerSet)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths =
-        collectAllThePaths(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), pLoop.getLoopHeads());
+        collectAllThePaths(
+            getInnerLoopEdgesWithSummaryEdges(pLoop), pLoop.getLoopHeads(), pLoop.getLoopHeads());
     ImmutableSet<Loop> nestedLoops =
         FluentIterable.from(cfa.getLoopStructure().orElseThrow().getAllLoops())
             .filter(
@@ -860,12 +860,7 @@ public class TerminationWitnessValidator implements Algorithm {
       throws CPATransferException, InterruptedException {
     // Collect the variables assigned in the nested loop: an edge assigns a variable iff the SSA
     // index of the variable increases. The formula for all edges makes all variables known first.
-    List<CFAEdge> steps = new ArrayList<>(pNestedLoop.getInnerLoopEdges());
-    for (CFANode node : pNestedLoop.getLoopNodes()) {
-      if (node.getLeavingSummaryEdge() != null) {
-        steps.add(node.getLeavingSummaryEdge());
-      }
-    }
+    ImmutableSet<CFAEdge> steps = getInnerLoopEdgesWithSummaryEdges(pNestedLoop);
     PathFormula allEdges = pPath;
     for (CFAEdge edge : steps) {
       allEdges = makeStep(allEdges, edge);
@@ -985,31 +980,29 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
+   * Returns the inner edges of the loop, where the calls of functions in the loop are given by
+   * their summary edges.
+   */
+  private static ImmutableSet<CFAEdge> getInnerLoopEdgesWithSummaryEdges(Loop pLoop) {
+    return FluentIterable.from(pLoop.getLoopNodes())
+        .transformAndConcat(CFANode::getAllLeavingEdges)
+        .filter(edge -> pLoop.getLoopNodes().contains(edge.getSuccessor()))
+        .toSet();
+  }
+
+  /**
    * Collects all paths from a start node to an end node that consist of the given edges. A call of
-   * a function is represented by its summary edge. Paths that end in a node without successors,
-   * e.g., after abort(), are omitted, since they do not reach an end node.
+   * a function is represented by its summary edge, which has to be among the given edges. Paths
+   * that end in a node without successors, e.g., after abort(), are omitted, since they do not
+   * reach an end node.
    *
    * @throws UnsupportedLoopException if a path ends in another node
    */
   private List<List<CFAEdge>> collectAllThePaths(
       ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pStartNodes, Set<CFANode> pEndNodes)
       throws UnsupportedLoopException {
-    Set<CFAEdge> edges = new LinkedHashSet<>(pEdges);
-    List<CFANode> waitlist = new ArrayList<>(pStartNodes);
-    for (CFAEdge edge : pEdges) {
-      waitlist.add(edge.getPredecessor());
-      waitlist.add(edge.getSuccessor());
-    }
-    // A call may directly follow another call, i.e., its node is reached only by a summary edge
-    while (!waitlist.isEmpty()) {
-      FunctionSummaryEdge summaryEdge = waitlist.removeLast().getLeavingSummaryEdge();
-      if (summaryEdge != null && edges.add(summaryEdge)) {
-        waitlist.add(summaryEdge.getSuccessor());
-      }
-    }
-
     List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
-    for (CFAEdge edge : edges) {
+    for (CFAEdge edge : pEdges) {
       if (pStartNodes.contains(edge.getPredecessor())) {
         listOfAllPaths.add(new ArrayList<>());
         listOfAllPaths.getLast().add(edge);
@@ -1025,7 +1018,7 @@ public class TerminationWitnessValidator implements Algorithm {
         // be extended forever, since only the end nodes end a path. The edges of the nested loops
         // are overapproximated when the formula for the paths is constructed.
         List<CFAEdge> succEdges =
-            edges.stream()
+            pEdges.stream()
                 .filter(
                     e ->
                         e.getPredecessor().equals(lastEdge.getSuccessor())
@@ -1053,7 +1046,7 @@ public class TerminationWitnessValidator implements Algorithm {
       CFANode last = path.getLast().getSuccessor();
       if (pEndNodes.contains(last)) {
         completePaths.add(path);
-      } else if (last.getNumLeavingEdges() > 0 || last.getLeavingSummaryEdge() != null) {
+      } else if (!last.getAllLeavingEdges().isEmpty()) {
         throw new UnsupportedLoopException("A path ends unexpectedly in " + last);
       }
     }
