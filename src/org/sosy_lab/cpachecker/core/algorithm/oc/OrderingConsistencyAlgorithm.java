@@ -488,6 +488,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * separate parentless roots. A spawned thread has no CFA edge from its creator, so it is not a
    * control-flow successor; making it a root keeps the reached set's ARG a clean forest (one tree
    * per thread instance) and schedules the root for exploration in the next pass of the drain loop.
+   *
+   * <p>Because of this, the ARG of the reached set has multiple roots. Components that assume a
+   * single ARG root must not be used on it. For example, predicate-abstraction refinement computes
+   * the refinement only from the first root and would therefore underapproximate, ignoring the
+   * other roots (see <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/572#note_4077764506">MR
+   * 572 discussion</a>). This analysis never refines on the ARG: its refinement ({@link
+   * EncodingMode#REFINEMENT}) works on the SMT encoding of the events only.
    */
   private void seedThreadRoots(ReachedSet pReachedSet) throws InterruptedException {
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
