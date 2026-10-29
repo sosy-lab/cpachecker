@@ -130,7 +130,8 @@ public class DssDecompositionOptions {
                   true);
           case INLINING_DECOMPOSITION ->
               new MergeBlockNodesDecomposition(
-                  new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd), debugMode),
+                  new InliningDecomposition(
+                      new LinearBlockNodeDecomposition(isBlockEnd), debugMode),
                   2,
                   largestHorizontalMerge,
                   Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
