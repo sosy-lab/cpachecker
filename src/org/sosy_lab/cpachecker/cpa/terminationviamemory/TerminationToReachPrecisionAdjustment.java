@@ -647,7 +647,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       String name = variable.getKey();
       if (name.endsWith(CURR2_KEYWORD) && !iterationVariables.contains(name)) {
         String unchangedVariable =
-            name.substring(0, name.length() - CURR2_KEYWORD.length()) + CURR_KEYWORD;
+            TransitionInvariantUtils.removeKeyWordAfterTransInv(name) + CURR_KEYWORD;
         frameCondition =
             bfmgr.and(
                 frameCondition,
