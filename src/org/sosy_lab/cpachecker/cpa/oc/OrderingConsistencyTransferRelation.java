@@ -18,7 +18,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -125,10 +124,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
    */
   private final ImmutableList<CVariableDeclaration> threadLocalGlobals;
 
-  private final Set<String> registeredBases = new HashSet<>();
-  private final Set<String> aggregateInitEmitted = new HashSet<>();
   private OcExplorationRegistry registry;
-  private @Nullable Formula zeroOffsetTerm;
 
   OrderingConsistencyTransferRelation(
       OrderingConsistencyCPA pCpa, ShutdownNotifier pShutdownNotifier) {
@@ -142,12 +138,12 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     threadLocalGlobals = ThreadFunctions.threadLocalGlobals(pCpa.getCfa());
   }
 
-  /** Starts collecting into a fresh registry (one iterative-deepening round). */
-  void resetRegistry(OcExplorationRegistry pRegistry) {
+  /**
+   * Starts collecting into a fresh registry (one iterative-deepening round); all per-round data
+   * lives in the registry, so nothing of an earlier round is carried over.
+   */
+  void setRegistry(OcExplorationRegistry pRegistry) {
     registry = pRegistry;
-    registeredBases.clear();
-    aggregateInitEmitted.clear();
-    zeroOffsetTerm = null;
   }
 
   /**
@@ -476,7 +472,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       // the created thread is not a control-flow successor of its spawner (no CFA edge connects
       // them); queue its root so the algorithm seeds it as a separate parentless root of the
       // exploration forest, keeping the reached set's ARG one tree per thread instance
-      cpa.addPendingThreadRoot(
+      registry.addPendingThreadRoot(
           new OrderingConsistencyState(
               instance.getId(),
               locationAt(entry),
@@ -525,9 +521,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pEdge);
     Formula argTerm = resolve(resolution, argName, argType, pEdge);
     Formula baseTerm = resolve(resolution, baseName, baseType, pEdge);
-    if (registeredBases.add(baseName)) {
-      registry.addAddressBase(baseTerm, objectSizeBytes(pArgTarget.getType()));
-    }
+    registry.addAddressBase(baseName, baseTerm, objectSizeBytes(pArgTarget.getType()));
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(argTerm, baseTerm)));
     return rootFormula;
@@ -1208,10 +1202,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       if (!resolution.getSsa().containsVariable(base.name())) {
         resolution = indexSymbol(resolution, base.name(), base.type(), pEdge);
       }
-      if (registeredBases.add(base.name())) {
-        registry.addAddressBase(
-            resolve(resolution, base.name(), base.type(), pEdge), pointeeSizeBytes(base.type()));
-      }
+      registry.addAddressBase(
+          base.name(),
+          resolve(resolution, base.name(), base.type(), pEdge),
+          pointeeSizeBytes(base.type()));
     }
 
     ImmutableList<Integer> predecessors = pState.getLastEventIds();
@@ -1231,7 +1225,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     Map<String, Formula> aggregateReadValueByRegion = new HashMap<>();
 
     for (CVariableDeclaration aggregate : pRenamer.aggregateDecls) {
-      if (!aggregateInitEmitted.add(aggregate.getQualifiedName())) {
+      if (!registry.markAggregateInitialized(aggregate.getQualifiedName())) {
         continue;
       }
       String baseName = baseNameFor(aggregate, pState.getInstanceId());
@@ -1240,9 +1234,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         resolution = indexSymbol(resolution, baseName, baseType, pEdge);
       }
       Formula baseTerm = resolve(resolution, baseName, baseType, pEdge);
-      if (registeredBases.add(baseName)) {
-        registry.addAddressBase(baseTerm, objectSizeBytes(aggregate.getType()));
-      }
+      registry.addAddressBase(baseName, baseTerm, objectSizeBytes(aggregate.getType()));
       for (AggregateCell cell : aggregateInitCells(aggregate, pEdge)) {
         String initName = registry.freshCssaName("__oc_agginit");
         resolution = indexSymbol(resolution, initName, cell.type(), pEdge);
@@ -1341,9 +1333,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
           resolution = indexSymbol(resolution, baseName, baseType, pEdge);
         }
         Formula baseTerm = resolve(resolution, baseName, baseType, pEdge);
-        if (registeredBases.add(baseName)) {
-          registry.addAddressBase(baseTerm, objectSizeBytes(decl.getType()));
-        }
+        registry.addAddressBase(baseName, baseTerm, objectSizeBytes(decl.getType()));
         long fillSize = objectSizeBytes(decl.getType());
         // a whole-object access of an _Atomic-qualified aggregate is itself atomic
         boolean atomicObject = decl.getType().getCanonicalType().isAtomic();
@@ -1581,7 +1571,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     Formula baseTerm = resolve(resolution, baseName, lhsType, pEdge);
     // a heap allocation's size is not statically known (it may be an array of the pointee type),
     // so reserve a whole default-sized range to keep it disjoint from every other object
-    registry.addAddressBase(baseTerm, DEFAULT_OBJECT_SIZE);
+    registry.addAddressBase(baseName, baseTerm, DEFAULT_OBJECT_SIZE);
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(lhsTerm, baseTerm)));
 
@@ -2107,8 +2097,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     if (pAccess.offsetExpr == null) {
       // offset-free accesses share one constant zero term instead of minting a symbol each
+      Formula zeroOffsetTerm = registry.getZeroOffsetTerm();
       if (zeroOffsetTerm == null) {
         zeroOffsetTerm = evaluateInt(longLiteral(0), pResolution, pEdge);
+        registry.setZeroOffsetTerm(zeroOffsetTerm);
       }
       return zeroOffsetTerm;
     }

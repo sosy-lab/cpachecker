@@ -14,7 +14,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -55,6 +57,13 @@ public final class OcExplorationRegistry {
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
   private final List<AddressBase> addressBases = new ArrayList<>();
+  private final Set<String> addressBaseNames = new HashSet<>();
+  private final Set<String> initializedAggregates = new HashSet<>();
+  // roots of newly created thread instances, discovered during exploration; the algorithm seeds
+  // them into the reached set as separate parentless roots (the exploration is a forest, one tree
+  // per thread instance) rather than chaining each thread under its spawner
+  private final Deque<OrderingConsistencyState> pendingThreadRoots = new ArrayDeque<>();
+  private @Nullable Formula zeroOffsetTerm;
   private final SetMultimap<Integer, Integer> poPredecessors = LinkedHashMultimap.create();
   private int nextCssaIndex;
   private boolean truncated = false;
@@ -290,10 +299,13 @@ public final class OcExplorationRegistry {
   /**
    * Registers the solver term of one allocation base (the address of an address-taken variable or
    * of one heap allocation) together with the byte size of the object it heads, so the encoder can
-   * place it in an address range disjoint from every other object.
+   * place it in an address range disjoint from every other object. A base already registered under
+   * the same name is ignored.
    */
-  public void addAddressBase(Formula pBase, long pSize) {
-    addressBases.add(new AddressBase(pBase, pSize));
+  public void addAddressBase(String pName, Formula pBase, long pSize) {
+    if (addressBaseNames.add(pName)) {
+      addressBases.add(new AddressBase(pBase, pSize));
+    }
   }
 
   public ImmutableList<AddressBase> getAddressBases() {
@@ -342,6 +354,33 @@ public final class OcExplorationRegistry {
 
   public ImmutableList<BooleanFormula> getPathConstraints() {
     return ImmutableList.copyOf(pathConstraints);
+  }
+
+  /**
+   * Records that the initial contents of the given aggregate are emitted; returns {@code false} if
+   * they already were.
+   */
+  boolean markAggregateInitialized(String pQualifiedName) {
+    return initializedAggregates.add(pQualifiedName);
+  }
+
+  /** The shared zero offset term of this round's offset-free accesses, if already created. */
+  @Nullable Formula getZeroOffsetTerm() {
+    return zeroOffsetTerm;
+  }
+
+  void setZeroOffsetTerm(Formula pZeroOffsetTerm) {
+    zeroOffsetTerm = pZeroOffsetTerm;
+  }
+
+  /** Records the root of a freshly created thread instance for the algorithm to seed as a root. */
+  void addPendingThreadRoot(OrderingConsistencyState pRoot) {
+    pendingThreadRoots.add(pRoot);
+  }
+
+  /** Removes and returns the next discovered thread root, or {@code null} if none remain. */
+  public @Nullable OrderingConsistencyState pollPendingThreadRoot() {
+    return pendingThreadRoots.poll();
   }
 
   /** Marks that some path was cut at the loop bound, making safety verdicts unsound. */

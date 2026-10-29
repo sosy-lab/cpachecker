@@ -14,8 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -64,11 +62,8 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   private final ImmutableSet<String> addressedVariables;
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
+  // all data of one exploration round; replaced, never cleared, by resetExploration
   private OcExplorationRegistry registry = new OcExplorationRegistry();
-  // roots of newly created thread instances, discovered during exploration; the algorithm seeds
-  // them into the reached set as separate parentless roots (the exploration is a forest, one tree
-  // per thread instance) rather than chaining each thread under its spawner
-  private final Deque<OrderingConsistencyState> pendingThreadRoots = new ArrayDeque<>();
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
   private final OrderingConsistencyTransferRelation transferRelation;
@@ -200,18 +195,9 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
     return registry;
   }
 
-  /** Records the root of a freshly created thread instance for the algorithm to seed as a root. */
-  void addPendingThreadRoot(OrderingConsistencyState pRoot) {
-    pendingThreadRoots.add(pRoot);
-  }
-
-  /** Removes and returns the next discovered thread root, or {@code null} if none remain. */
-  public OrderingConsistencyState pollPendingThreadRoot() {
-    return pendingThreadRoots.poll();
-  }
-
   /**
-   * Discards all exploration results and prepares a fresh round with the given loop bound. The
+   * Discards all exploration results and prepares a fresh round with the given loop bound: all
+   * per-round data lives in the registry, which is replaced by a new one rather than cleared. The
    * fresh-name counter is carried over into the new registry: the solver (and its formula manager)
    * lives across all rounds, so restarting the counter at zero could mint a name already used, at a
    * different type, by an earlier round (see {@link OcExplorationRegistry#OcExplorationRegistry
@@ -220,9 +206,8 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   public void resetExploration(int pLoopBound) {
     maxLoopIterations = pLoopBound;
     registry = new OcExplorationRegistry(registry.getNextCssaIndex());
-    pendingThreadRoots.clear();
     initialState = null;
-    transferRelation.resetRegistry(registry);
+    transferRelation.setRegistry(registry);
   }
 
   CFA getCfa() {

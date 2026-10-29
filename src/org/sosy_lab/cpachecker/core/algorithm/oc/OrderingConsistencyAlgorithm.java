@@ -500,7 +500,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   private void seedThreadRoots(ReachedSet pReachedSet) throws InterruptedException {
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
     OrderingConsistencyState root;
-    while ((root = ocCpa.pollPendingThreadRoot()) != null) {
+    while ((root = ocCpa.getRegistry().pollPendingThreadRoot()) != null) {
       CFANode location = root.getLocationNode();
       pReachedSet.add(new ARGState(root, null), topCpa.getInitialPrecision(location, partition));
     }
