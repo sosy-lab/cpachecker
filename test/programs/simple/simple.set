@@ -29,3 +29,4 @@ verifier-nondet-memory-sanity/*.yml
 termination-nested/*.yml
 mathFunctions/*.yml
 memset/*.yml
+scanf/*.yml

@@ -5943,6 +5943,15 @@ testcase.compress = false
 # Do not output values for variables that are not initialized when declared
 testcase.excludeInitialization = false
 
+# once a test case is generated for a test goal (internally) continue
+# execution of test case from test goal to detect collaterally covered test
+# goals
+testcase.execution = false
+
+# Limit for cpu time used for the continued execution of a test case (use
+# seconds or specify a unit; -1 for infinite)
+testcase.execution.limit.cpu = -1ns
+
 # export test harness to file as code
 testcase.file = no default value
 
@@ -5985,6 +5994,9 @@ testcase.randomInputSeed = 0
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# whether to stop or continue analysis once a test target is hit
+testcase.stopAtTarget = true
 
 # CFA edge if only a specific edge should be considered, e.g., in
 # counterexample check
