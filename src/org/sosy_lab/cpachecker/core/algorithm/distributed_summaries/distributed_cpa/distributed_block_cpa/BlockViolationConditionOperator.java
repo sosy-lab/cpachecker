@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssARGPathGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.MergeableViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,7 +22,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -42,7 +40,7 @@ public class BlockViolationConditionOperator
 
   @Override
   public DecisionGraph initialCondition(ARGState pTarget, Optional<ARGState> pPreviousCondition) {
-    return DecisionGraph.EMPTY;
+    return initialWitness(pPreviousCondition);
   }
 
   @Override
@@ -58,26 +56,24 @@ public class BlockViolationConditionOperator
   @Override
   public Optional<AbstractState> finish(
       ARGPath pPath, Optional<ARGState> pPreviousCondition, DecisionGraph pCondition) {
-    SegmentedPaths previous = previousWitness(pPreviousCondition);
-    // A single path keeps its compact representation as the list of its decisions.
-    SegmentedPaths witness =
-        pPath instanceof DssARGPathGraph
-            ? previous.addGraphToFront(pCondition)
-            : previous.addEdgesToFront(pPath.getFullPath());
-    return Optional.of(finish(pPath.getFirstState(), pPreviousCondition, witness));
+    return Optional.of(finish(pPath.getFirstState(), pPreviousCondition, pCondition));
   }
 
-  private SegmentedPaths previousWitness(Optional<ARGState> previous) {
+  /**
+   * The witness a violation condition starts with at the end of the block: the witness of the
+   * condition it was derived from, or no restriction if the violation lies in this block.
+   */
+  private DecisionGraph initialWitness(Optional<ARGState> previous) {
     return previous
         .map(
             state ->
                 Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
                     .getWitness())
-        .orElse(SegmentedPaths.EMPTY);
+        .orElse(DecisionGraph.UNRESTRICTED);
   }
 
   private AbstractState finish(
-      ARGState root, Optional<ARGState> pPreviousCondition, SegmentedPaths currentWitness) {
+      ARGState root, Optional<ARGState> pPreviousCondition, DecisionGraph currentWitness) {
     BlockState topMost =
         Objects.requireNonNull(AbstractStates.extractStateByType(root, BlockState.class));
 

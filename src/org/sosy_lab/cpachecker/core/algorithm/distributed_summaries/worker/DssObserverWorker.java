@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -46,7 +46,7 @@ public class DssObserverWorker extends DssWorker {
   private final ShutdownNotifier shutdownNotifier;
   private boolean shutdown;
   private Optional<Result> finalResult;
-  private Optional<SegmentedPaths> violationWitness;
+  private Optional<DecisionGraph> violationWitness;
   private Optional<String> errorMessage;
 
   private int witnessMessagesReceived;

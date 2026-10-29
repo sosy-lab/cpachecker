@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class DssMessageFactory {
 
@@ -100,7 +100,7 @@ public class DssMessageFactory {
   }
 
   public DssWitnessMessage createDssViolationWitnessMessage(
-      String pSenderId, SegmentedPaths violationWitness) {
+      String pSenderId, DecisionGraph violationWitness) {
     return new DssWitnessMessage(
         pSenderId,
         ImmutableMap.<String, String>builder()
