@@ -13,6 +13,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import java.util.Optional;
 
+/**
+ * Jackson payload for one distributed-CPA abstract state.
+ *
+ * <p>When introducing a new state payload, create a dedicated payload record containing all
+ * information required to reconstruct the state, implement {@link #getComponentKey()} with a stable
+ * serialized component key, and register the payload in {@link DssStatePayloadModule}.
+ */
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessagePayload.TYPE)
 public interface DssStatePayload {
   String STATES = "states";
