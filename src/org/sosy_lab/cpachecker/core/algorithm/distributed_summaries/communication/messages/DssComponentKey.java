@@ -21,6 +21,12 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 
+/**
+ * Stable serialized identifier for a distributed-CPA state or precision component.
+ *
+ * <p>The serialized names are part of the JSON format and should only be changed together with all
+ * readers, writers, tests, and tools that consume the format.
+ */
 public enum DssComponentKey {
   BLOCK_STATE(BlockState.class, "blockState"),
   CALLSTACK_STATE(CallstackState.class, "callstackState"),

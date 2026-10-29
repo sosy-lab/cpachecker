@@ -10,6 +10,19 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import java.time.Instant;
 
+/**
+ * A distributed-summaries message exchanged between workers.
+ *
+ * <p>When introducing a new message type, add:
+ *
+ * <ul>
+ *   <li>a dedicated {@link DssMessage} implementation;
+ *   <li>a matching {@link DssMessagePayload};
+ *   <li>the corresponding payload subtype registration in {@link DssMessagePayloadModule};
+ *   <li>conversion logic in {@link DssMessageCodec};
+ *   <li>construction logic in {@link DssMessageFactory}.
+ * </ul>
+ */
 public sealed interface DssMessage
     permits DssExceptionMessage,
         DssMessageWithStates,

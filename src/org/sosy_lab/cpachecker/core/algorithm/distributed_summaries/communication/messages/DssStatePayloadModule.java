@@ -20,6 +20,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicatePrecisionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicateStatePayload;
 
+/**
+ * Jackson subtype registry for state and precision payloads.
+ *
+ * <p>Every concrete state or precision payload must be registered here. The registered names are
+ * part of the wire format and must remain independent of the implementing Java class names.
+ */
 public final class DssStatePayloadModule extends SimpleModule {
   public static final String NO_PRECISION = "noPrecision";
   @Serial private static final long serialVersionUID = -4429488243946317868L;

@@ -12,6 +12,12 @@ import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.Serial;
 
+/**
+ * Jackson subtype registry for message payloads.
+ *
+ * <p>Every concrete {@link DssMessagePayload} must be registered here with the stable serialized
+ * type name used in the JSON {@code type} property.
+ */
 public class DssMessagePayloadModule extends SimpleModule {
 
   @Serial private static final long serialVersionUID = 433268480834651101L;
