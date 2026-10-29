@@ -120,7 +120,8 @@ final class TransformableArray {
             valueName,
             valueName,
             valueQualifiedName,
-            null);
+            null,
+            arrayDeclaration.hasThreadLocalStorage());
 
     return new CDeclarationEdge(
         pArrayDeclarationEdge.getRawStatement(),
@@ -150,7 +151,8 @@ final class TransformableArray {
             indexName,
             indexName,
             indexQualifiedName,
-            null);
+            null,
+            arrayDeclaration.hasThreadLocalStorage());
 
     return new CDeclarationEdge(
         pArrayDeclarationEdge.getRawStatement(),

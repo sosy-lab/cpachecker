@@ -16,6 +16,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -40,6 +41,10 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
@@ -49,6 +54,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntr
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class InvariantExchangeFormatTransformer {
 
@@ -127,9 +133,13 @@ public class InvariantExchangeFormatTransformer {
     // The fresh variables are not declared in the CFA, so they are added to the scope
     Scope scope =
         switch (cfa.getLanguage()) {
-          case C ->
-              new CProgramScope(cfa, logger)
-                  .withAdditionalDeclarations(previousValueVariables.keySet());
+          case C -> {
+            CProgramScope programScope = new CProgramScope(cfa, logger);
+            yield variablesInScope(pInvariantEntry)
+                .map(programScope::withVariablesInScope)
+                .orElse(programScope)
+                .withAdditionalDeclarations(previousValueVariables.keySet());
+          }
           default -> DummyScope.getInstance();
         };
 
@@ -137,6 +147,47 @@ public class InvariantExchangeFormatTransformer {
         pInvariantEntry,
         createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope),
         previousValueVariables);
+  }
+
+  /**
+   * The variables of the input program in scope where the invariant holds, if they are known. Their
+   * names in the input program are distinct, although CPAchecker renamed some of them, e.g., to
+   * {@code i} and {@code i__1}.
+   */
+  private Optional<ImmutableSet<CSimpleDeclaration>> variablesInScope(
+      InvariantEntry pInvariantEntry) {
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+    int line = pInvariantEntry.getLocation().getLine();
+    OptionalInt column = pInvariantEntry.getLocation().getColumn();
+    String function = pInvariantEntry.getLocation().getFunction();
+    Optional<CFANode> node;
+    if (InvariantRecordType.fromKeyword(pInvariantEntry.getType())
+            == InvariantRecordType.LOOP_INVARIANT
+        || InvariantRecordType.fromKeyword(pInvariantEntry.getType())
+            == InvariantRecordType.TRANSITION_LOOP_INVARIANT) {
+      // A node at the start of the loop body has the variables of the loop in scope
+      node =
+          astCfaRelation
+              .getIterationStructureFollowingColumnAtTheSameLine(column, line)
+              .flatMap(
+                  loop -> {
+                    try {
+                      return loop.getNodesBetweenConditionAndBody().stream()
+                          // Not a node in a function called at the start of the body
+                          .filter(candidate -> candidate.getFunctionName().equals(function))
+                          .findFirst();
+                    } catch (BoundaryNodesComputationFailed e) {
+                      return Optional.empty();
+                    }
+                  });
+    } else {
+      node =
+          astCfaRelation
+              .getTightestStatementForStarting(line, column)
+              .flatMap(statement -> astCfaRelation.getNodeBeforeStatement(statement, function));
+    }
+    return node.flatMap(astCfaRelation::getVariablesAndParametersInScope)
+        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
   }
 
   /**
@@ -215,7 +266,8 @@ public class InvariantExchangeFormatTransformer {
               prevVariable,
               // The scope is not relevant as these variables are not in the original program
               locationNode.getFunctionName() + "::" + prevVariable,
-              null);
+              null,
+              /* pHasThreadLocalStorage= */ false);
       mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }
     return mapPrevToCurr.buildOrThrow();
@@ -257,7 +309,8 @@ public class InvariantExchangeFormatTransformer {
         switch (entryElement) {
           case FunctionContractEntry functionContractEntry ->
               functionContracts.add(functionContractEntry);
-          case InvariantEntry invariantEntry -> {
+          case InvariantEntry entryWithLocation -> {
+            InvariantEntry invariantEntry = addFunctionToLocationIfNoneExists(entryWithLocation);
             if (invariantEntry.getLocation().getFunction() == null) {
               throw new InvalidYAMLWitnessException(
                   "Invariant without a function in its location: " + invariantEntry);
@@ -274,6 +327,49 @@ public class InvariantExchangeFormatTransformer {
     }
 
     return new ParsedInvariantSet(invariants.build(), functionContracts.build());
+  }
+
+  /**
+   * Returns the invariant with the column and the function of its location taken from the program
+   * where the witness omits them, which the format allows. For a loop invariant, they are those of
+   * the loop statement at the line, otherwise those of the first statement at the line.
+   */
+  private InvariantEntry addFunctionToLocationIfNoneExists(InvariantEntry pInvariantEntry) {
+    LocationRecord location = pInvariantEntry.getLocation();
+    if (location.getFunction() != null) {
+      return pInvariantEntry;
+    }
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+    InvariantRecordType type = InvariantRecordType.fromKeyword(pInvariantEntry.getType());
+    Optional<ASTElement> statement =
+        type == InvariantRecordType.LOOP_INVARIANT
+                || type == InvariantRecordType.TRANSITION_LOOP_INVARIANT
+            ? astCfaRelation
+                .getIterationStructureFollowingColumnAtTheSameLine(
+                    location.getColumn(), location.getLine())
+                .map(IterationElement::getCompleteElement)
+            : astCfaRelation.getTightestStatementForStarting(
+                location.getLine(), location.getColumn());
+    if (statement.isEmpty()) {
+      return pInvariantEntry;
+    }
+    String function = location.getFunction();
+    if (function == null) {
+      function =
+          statement.orElseThrow().edges().stream()
+              .map(edge -> edge.getPredecessor().getFunctionName())
+              .findFirst()
+              .orElse(null);
+    }
+    return new InvariantEntry(
+        pInvariantEntry.getValue(),
+        pInvariantEntry.getType(),
+        pInvariantEntry.getFormat(),
+        new LocationRecord(
+            location.getFileName(),
+            location.getLine(),
+            location.getColumn().isPresent() ? location.getColumn().orElseThrow() : null,
+            function));
   }
 
   /**

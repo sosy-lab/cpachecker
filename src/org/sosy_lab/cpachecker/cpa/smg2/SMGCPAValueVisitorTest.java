@@ -2022,7 +2022,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName + typeToTest,
-              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
 
       CUnaryExpression amperVar = wrapInAmper(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -2667,7 +2668,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
 
       CUnaryExpression sizeOfVar = wrapInSizeof(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -3140,7 +3142,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
+            CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY),
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression structVarExpr = new CIdExpression(FileLocation.DUMMY, declararation);
 
@@ -3214,7 +3217,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
     } else {
       declararation =
           new CVariableDeclaration(
@@ -3225,7 +3229,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(MACHINE_MODEL, elaboratedType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, elaboratedType, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
     }
 
     return new CIdExpression(FileLocation.DUMMY, declararation);
@@ -3576,7 +3581,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
     return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, idExpr, subscriptAccess);
@@ -3615,7 +3621,8 @@ public class SMGCPAValueVisitorTest {
             arrayVariableName + "NotQual",
             arrayVariableName + "NotQual",
             arrayVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration indexDeclararation =
@@ -3627,7 +3634,8 @@ public class SMGCPAValueVisitorTest {
             indexVariableName + "NotQual",
             indexVariableName + "NotQual",
             indexVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, arrayDeclararation);
     CIdExpression indexVarExpr = new CIdExpression(FileLocation.DUMMY, indexDeclararation);
@@ -3661,7 +3669,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
     return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, idExpr, subscriptAccess);
@@ -3691,7 +3700,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararationIndex =
@@ -3703,7 +3713,8 @@ public class SMGCPAValueVisitorTest {
             indexVariableName + "NotQual",
             indexVariableName + "NotQual",
             indexVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, arrayDeclararation);
     CIdExpression indexExpr = new CIdExpression(FileLocation.DUMMY, declararationIndex);
@@ -3740,7 +3751,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, idDeclararation);
     if (arrayIndiceInt == 0) {
@@ -3854,7 +3866,8 @@ public class SMGCPAValueVisitorTest {
             outerVariableName + "NotQual",
             outerVariableName + "NotQual",
             outerVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
     CPointerExpression pointerToArray =
@@ -3990,7 +4003,8 @@ public class SMGCPAValueVisitorTest {
             indexVariableName,
             indexVariableName,
             indexVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
     return new CIdExpression(FileLocation.DUMMY, declararationIndex);
   }
 

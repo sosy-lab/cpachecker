@@ -869,7 +869,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                 varName,
                 varName,
                 varName,
-                null));
+                null,
+                /* pHasThreadLocalStorage= */ false));
     return new CBinaryExpression(
         FileLocation.DUMMY, type, type, idexpr, litExpr, BinaryOperator.EQUALS);
   }

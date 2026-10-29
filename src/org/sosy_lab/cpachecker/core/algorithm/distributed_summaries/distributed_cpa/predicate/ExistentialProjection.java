@@ -51,9 +51,11 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
  *       rule is not applied to variables that occur in a disjunctive conjunct: substituting into it
  *       would copy it once per disjunct of the enclosing formula instead of sharing it.
  *   <li><b>Independent parts:</b> the conjuncts are grouped into components that share existential
- *       variables. A component without any other variable is independent of the rest, so it can be
+ *       symbols. A component without any other symbol is independent of the rest, so it can be
  *       replaced by {@code true} if it is satisfiable. All such components are checked with a
- *       single query, because they share no variable with each other either.
+ *       single query, because they share no symbol with each other either. Symbols are variables
+ *       and uninterpreted functions: a conjunct like {@code f(0) = 5} has no variable, but still
+ *       constrains a function {@code f} that the rest of the program shares.
  * </ol>
  *
  * <p>Existential quantification distributes over disjunction, so a top-level disjunction is
@@ -79,7 +81,12 @@ final class ExistentialProjection {
   private record Definition(
       int conjunct, String name, Formula variable, Formula term, Set<String> termVariables) {}
 
-  private record Conjunct(BooleanFormula formula, Set<String> variables, boolean isDisjunction) {}
+  /**
+   * A top-level conjunct.
+   *
+   * @param symbols the names of the variables and uninterpreted functions in the conjunct
+   */
+  private record Conjunct(BooleanFormula formula, Set<String> symbols, boolean isDisjunction) {}
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -87,12 +94,12 @@ final class ExistentialProjection {
   private final boolean nested;
 
   /**
-   * The variables of the conjuncts seen during the current call of {@link #project(BooleanFormula,
+   * The symbols of the conjuncts seen during the current call of {@link #project(BooleanFormula,
    * Predicate)}. The disjuncts of a violation condition share the condition of the successor, and
    * the rules are applied until nothing changes, so the same conjuncts are split off again and
    * again; walking each of them anew took most of the time spent on violation conditions.
    */
-  private final Map<BooleanFormula, ImmutableSet<String>> conjunctVariables = new HashMap<>();
+  private final Map<BooleanFormula, ImmutableSet<String>> conjunctSymbols = new HashMap<>();
 
   ExistentialProjection(Solver pSolver) {
     this(pSolver, false);
@@ -133,7 +140,7 @@ final class ExistentialProjection {
     try {
       return project(pFormula, pIsExistential, new int[] {2000});
     } finally {
-      conjunctVariables.clear();
+      conjunctSymbols.clear();
     }
   }
 
@@ -198,7 +205,7 @@ final class ExistentialProjection {
       }
       Map<String, Integer> occurrences = new HashMap<>();
       for (Conjunct conjunct : conjuncts) {
-        conjunct.variables().forEach(name -> occurrences.merge(name, 1, Integer::sum));
+        conjunct.symbols().forEach(name -> occurrences.merge(name, 1, Integer::sum));
       }
       List<BooleanFormula> smaller = new ArrayList<>();
       for (Conjunct conjunct : conjuncts) {
@@ -243,8 +250,8 @@ final class ExistentialProjection {
         pConjuncts.add(
             new Conjunct(
                 conjunct,
-                conjunctVariables.computeIfAbsent(
-                    conjunct, c -> ImmutableSet.copyOf(fmgr.extractVariableNames(c))),
+                conjunctSymbols.computeIfAbsent(
+                    conjunct, c -> ImmutableSet.copyOf(fmgr.extractFunctionNames(c))),
                 bfmgr.toDisjunctionArgs(conjunct, false).size() > 1));
       }
     }
@@ -271,7 +278,7 @@ final class ExistentialProjection {
     Set<String> inDisjunctions = new HashSet<>();
     for (Conjunct conjunct : pConjuncts) {
       if (conjunct.isDisjunction()) {
-        inDisjunctions.addAll(conjunct.variables());
+        inDisjunctions.addAll(conjunct.symbols());
       }
     }
     Predicate<String> isEliminable =
@@ -280,7 +287,7 @@ final class ExistentialProjection {
     Map<String, Definition> definitions = new LinkedHashMap<>();
     for (int i = 0; i < pConjuncts.size(); i++) {
       Conjunct conjunct = pConjuncts.get(i);
-      if (conjunct.variables().stream().noneMatch(isEliminable)) {
+      if (conjunct.symbols().stream().noneMatch(isEliminable)) {
         continue;
       }
       Definition definition =
@@ -335,7 +342,7 @@ final class ExistentialProjection {
       if (usedConjuncts.contains(i)) {
         continue;
       }
-      if (conjunct.variables().stream().anyMatch(resolvedNames::contains)) {
+      if (conjunct.symbols().stream().anyMatch(resolvedNames::contains)) {
         affected.add(conjunct.formula());
       } else {
         result.add(conjunct);
@@ -427,8 +434,8 @@ final class ExistentialProjection {
   }
 
   /**
-   * The conjuncts of all components that contain existential variables only, where two conjuncts
-   * are in the same component if they share an existential variable.
+   * The conjuncts of all components that contain existential symbols only, where two conjuncts are
+   * in the same component if they share an existential symbol.
    */
   private static ImmutableList<Conjunct> independentConjuncts(
       List<Conjunct> pConjuncts, Predicate<String> pIsExistential) {
@@ -438,9 +445,9 @@ final class ExistentialProjection {
     }
     Map<String, Integer> firstOccurrence = new HashMap<>();
     for (int i = 0; i < pConjuncts.size(); i++) {
-      for (String variable : pConjuncts.get(i).variables()) {
-        if (pIsExistential.test(variable)) {
-          Integer other = firstOccurrence.putIfAbsent(variable, i);
+      for (String symbol : pConjuncts.get(i).symbols()) {
+        if (pIsExistential.test(symbol)) {
+          Integer other = firstOccurrence.putIfAbsent(symbol, i);
           if (other != null) {
             parent[find(parent, i)] = find(parent, other);
           }
@@ -449,7 +456,7 @@ final class ExistentialProjection {
     }
     boolean[] dependent = new boolean[pConjuncts.size()];
     for (int i = 0; i < pConjuncts.size(); i++) {
-      if (!pConjuncts.get(i).variables().stream().allMatch(pIsExistential)) {
+      if (!pConjuncts.get(i).symbols().stream().allMatch(pIsExistential)) {
         dependent[find(parent, i)] = true;
       }
     }

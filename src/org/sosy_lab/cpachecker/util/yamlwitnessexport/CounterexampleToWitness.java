@@ -16,6 +16,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -31,7 +32,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -601,9 +607,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
   /**
    * Joins the assumptions that hold after executing the edge of one step of a counterexample into a
-   * single constraint.
+   * single constraint over the names of the input program. Assumptions over variables that are not
+   * in scope at the node after the edge are dropped.
    */
-  static String buildAssumptionConstraint(FluentIterable<CExpression> pAssumptions) {
+  protected String buildAssumptionConstraint(
+      FluentIterable<CExpression> pAssumptions, CFANode pNodeAfterEdge) {
     FluentIterable<CExpression> assumptions = FluentIterable.from(pAssumptions.toList());
     // We should not export any assumptions which contains a restriction on the value where a
     // pointer points to in memory, since this may change or not even be valid. CPAchecker tracks
@@ -617,6 +625,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         new ComparesPointerWithNonPointer();
     assumptions = assumptions.filter(stmt -> !stmt.accept(comparesPointerWithNonPointerVisitor));
 
+    // If the variables in scope are unknown, the assumptions over variables are dropped
+    ImmutableSet<AbstractSimpleDeclaration> variablesInScope =
+        getASTStructure()
+            .getVariablesAndParametersInScope(pNodeAfterEdge)
+            .map(FluentIterable::toSet)
+            .orElse(ImmutableSet.of());
+    assumptions =
+        assumptions.filter(assumption -> mentionsOnlyVariablesIn(assumption, variablesInScope));
+
     // Conjunct all assumptions for the edge into one assumption. One such case is
     // ../sv-benchmarks/c/seq-mthreaded/pals_STARTPALS_Triplicated.1.ufo.BOUNDED-10.pals.c where
     // on line 406 the assumptions are `next_state == 0`, `tmp == 0`, `tmp__0 == 0` and
@@ -627,10 +644,24 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       return "1";
     }
     return assumptions
-        .transform(CExpression::toParenthesizedASTString)
+        .transform(
+            assumption ->
+                assumption.toParenthesizedASTString(AAstNodeRepresentation.ORIGINAL_NAMES))
         // Remove any temporary variables created by CPAchecker
         .filter(s -> !s.contains(CPACHECKER_TMP_NAME))
         .join(Joiner.on(" && "));
+  }
+
+  /** Whether all variables and parameters in the expression are among the given declarations. */
+  private static boolean mentionsOnlyVariablesIn(
+      CExpression pExpression, Set<AbstractSimpleDeclaration> pDeclarations) {
+    return CFAUtils.getIdExpressionsOfExpression(pExpression)
+        .transform(AIdExpression::getDeclaration)
+        .filter(
+            declaration ->
+                declaration instanceof AVariableDeclaration
+                    || declaration instanceof AParameterDeclaration)
+        .allMatch(pDeclarations::contains);
   }
 
   /** Returns the assumptions of a counterexample, filtered to {@link CExpression}s. */
@@ -658,47 +689,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
         CFAEdge edge = edgeWithAssumptions.getCFAEdge();
-        FluentIterable<CExpression> assumptions =
-            FluentIterable.from(edgeWithAssumptions.getExpStmts())
-                .transform(AExpressionStatement::getExpression)
-                // Violation witnesses are currently only defined for C programs i.e. CExpressions
-                // to make the following code simpler, we do the filtering as early as possible
-                .filter(CExpression.class);
-
-        // We should not export any assumptions which contains a restriction on the value where a
-        // pointer points to in memory, since this may change or not even be valid. CPAchecker
-        // tracks
-        // this information internally, but it is meaningless to the user. This is a heuristic to
-        // avoid
-        // exporting this information.
-        //
-        // One example of such a case happens in:
-        // sv-benchmarks/c/termination-recursive-malloc/rec_malloc_ex6.i
-        // where the assumption `p1 == 8LL` is present, where p1 is a pointer.
-        ComparesPointerWithNonPointer comparesPointerWithNonPointerVisitor =
-            new ComparesPointerWithNonPointer();
-        assumptions =
-            assumptions.filter(stmt -> !stmt.accept(comparesPointerWithNonPointerVisitor));
-
-        // Conjunct all assumptions for the edge into one assumption. One such case is
-        // ../sv-benchmarks/c/seq-mthreaded/pals_STARTPALS_Triplicated.1.ufo.BOUNDED-10.pals.c where
-        // on line 406 the assumptions are `next_state == 0`, `tmp == 0`, `tmp__0 == 0` and
-        // `gate3Failed == 1`
-        String statement;
-        if (assumptions.isEmpty()) {
-          // We need to export this waypoint in order to avoid errors caused by passing another
-          // waypoint at the same location either too early or too late.
-          statement = "1";
-        } else {
-          statement =
-              assumptions
-                  .transform(CExpression::toParenthesizedASTString)
-                  // Remove any temporary variables created by CPAchecker
-                  .filter(s -> !s.contains(CPACHECKER_TMP_NAME))
-                  .join(Joiner.on(" && "));
-        }
-
-        edgeToAssumptionsBuilder.put(edge, statement);
+        edgeToAssumptionsBuilder.put(
+            edge,
+            buildAssumptionConstraint(getAssumptions(edgeWithAssumptions), edge.getSuccessor()));
         pEdgeToCurrentExpressionIndex.put(edge, 0);
       }
     }
@@ -748,7 +741,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // which it is valid
     // The index of the step in `pSteps` from which each segment was created
     ImmutableList.Builder<Integer> segmentEdgeIndices = ImmutableList.builder();
-    for (int i = 0; i < pSteps.size(); i++) {
+    // The target waypoint describes the violating step, so a waypoint for it, e.g., a branching
+    // waypoint for a condition containing the violation, could only be passed after the target.
+    int violatingStepIndex = pSteps.lastIndexOf(violatingStep(pSteps));
+    for (int i = 0; i < violatingStepIndex; i++) {
       WitnessPathStep step = pSteps.get(i);
       List<WaypointRecord> waypoints =
           buildWaypoints(
@@ -983,7 +979,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
         edgeToAssumptionsBuilder.put(
             edgeWithAssumptions.getCFAEdge(),
-            buildAssumptionConstraint(getAssumptions(edgeWithAssumptions)));
+            buildAssumptionConstraint(
+                getAssumptions(edgeWithAssumptions),
+                edgeWithAssumptions.getCFAEdge().getSuccessor()));
       }
     }
 

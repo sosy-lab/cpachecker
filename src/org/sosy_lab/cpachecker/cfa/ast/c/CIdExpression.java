@@ -67,7 +67,7 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
   @Override
   public int hashCode() {
     if (getDeclaration() != null) {
-      return Objects.hash(getDeclaration().getQualifiedName());
+      return Objects.hashCode(getDeclaration().getQualifiedName());
     }
     return 0;
   }

@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -27,7 +30,68 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
 
   private String CONCURRENCY_TEST_DIR_PATH = "test/programs/witness-v2-validation/concurrency";
 
+  private String UNREACH_CALL_TEST_DIR_PATH = "test/programs/witness-v2-validation/unreach-call";
+
+  private String TERMINATION_TEST_DIR_PATH = "test/programs/witness-v2-validation/termination";
+
+  private String PROGRAMS_PATH = "test/programs/simple/witness_validation";
+
   private String SPECIFICATION_PATH = "config/properties/";
+
+  /** The overflow happens in the condition of an if statement, before its branch is taken. */
+  @Test(timeout = 9000)
+  public void validate_overflow_in_condition_roundtrip() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "overflow-in-condition.c");
+    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  /** The name {@code data} in the assumption refers to the inner of two variables. */
+  @Test(timeout = 3000)
+  public void validate_assumption_with_shadowed_variable() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-violation.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "shadowed-variable-violation.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The exported assumption names the inner of two variables as in the input program. */
+  @Test(timeout = 9000)
+  public void validate_shadowed_variable_roundtrip() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-violation.c");
+    Path witnessFilePath =
+        WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+            inputFilePath, Result.FALSE, specificationFilePath);
+    assertThat(Files.readString(witnessFilePath)).contains("\"(data == 5)\"");
+  }
+
+  /** The name {@code data} in the assumptions of the lasso refers to the inner of two variables. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_assumption_with_shadowed_variable() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH, "shadowed-variable-nontermination-inner.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The assumptions of the lasso hold only for the outer variable, so the witness is rejected. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_assumption_on_outer_shadowed_variable() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH, "shadowed-variable-nontermination-outer.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
 
   @Test(timeout = 3000)
   public void validate_unreach_call_concurrency() throws Exception {
@@ -81,7 +145,7 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
    * The avoid waypoint of the witness points to a thread creation that has already been passed when
    * its segment is entered, so it can never be matched and the witness still has to be confirmed.
    */
-  @Test(timeout = 3000)
+  @Test(timeout = 9000)
   public void validate_data_race_witness_avoiding_a_passed_thread_creation() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");

@@ -259,7 +259,8 @@ public class CFADeclarationMover {
             varDecl.getName(),
             varDecl.getOrigName(),
             varDecl.getQualifiedName(),
-            null);
+            null,
+            varDecl.hasThreadLocalStorage());
     CDeclarationEdge newEdge =
         new CDeclarationEdge(
             edge.getRawStatement(), edge.getFileLocation(), pred, succ, declWithoutInitializer);
