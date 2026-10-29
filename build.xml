@@ -68,6 +68,7 @@ SPDX-License-Identifier: Apache-2.0
     <import file="build/build-spotbugs.xml"/>
     <import file="build/build-configuration-checks.xml"/>
     <import file="build/build-integration-tests.xml"/>
+    <import file="build/build-schema.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     <property name="verifiercloud.version"
@@ -163,10 +164,6 @@ SPDX-License-Identifier: Apache-2.0
         </antcall>
     </target>
 
-    <target name="generate-dss-schema"
-            description="Generate the distributed-summaries JSON schema">
-        <echo message="Hello World!"/>
-    </target>
 
     <!-- Auxiliary targets -->
 
