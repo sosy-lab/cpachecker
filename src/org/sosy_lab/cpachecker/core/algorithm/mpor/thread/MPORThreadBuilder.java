@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
@@ -26,12 +27,15 @@ import com.google.common.collect.Table;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -48,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -220,7 +225,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     // The block types for the leaving edges are the same as in this node.
     ImmutableMultimap<CFAEdgeForThread, CFAEdge> threadEdges =
-        buildThreadEdgesFromCfaEdges(pThreadId, pCurrentNode, callContext);
+        buildThreadEdgesFromCfaEdges(pThreadId, pCurrentNode, callContext, pVisitedInitRoutines);
     pThreadEdges.putAll(threadEdges.entries());
     List<CFAEdgeForThread> edgeList = new ArrayList<>(threadEdges.keySet());
 
@@ -256,8 +261,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               pVisitedInitRoutines,
               pThreadNodes,
               pThreadEdges,
-              updateSuccessorNode(
-                  pThreadId, pCurrentNode, cfaEdge, callContext, pVisitedInitRoutines),
+              updateSuccessorNode(pCurrentNode, cfaEdge),
               updateBlockTypes(cfaEdge, callContext, pBlockTypes),
               updateCallContext(cfaEdge, callContext, threadEdges),
               pStartRoutineCall);
@@ -266,12 +270,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     }
   }
 
-  private CFANode updateSuccessorNode(
-      int pThreadId,
-      CFANode pPreviousCfaNode,
-      CFAEdge pCfaEdge,
-      SeqCallContext pCallContext,
-      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines)
+  private CFANode updateSuccessorNode(CFANode pPreviousCfaNode, CFAEdge pCfaEdge)
       throws UnsupportedCodeException {
 
     if (PthreadUtil.isCallToPthreadFunction(pCfaEdge, PthreadFunctionType.PTHREAD_ONCE)) {
@@ -308,17 +307,19 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               routineCall,
               functionSummaryEdge);
 
-      CFAEdgeForThread functionSummaryThreadEdge =
-          new CFAEdgeForThread(pThreadId, functionSummaryEdge, pCallContext);
-      CFAEdgeForThread functionCallThreadEdge =
-          new CFAEdgeForThread(pThreadId, functionCallEdge, pCallContext);
-      pVisitedInitRoutines.put(
-          new SeqCallContext(Optional.of(functionCallThreadEdge)), functionSummaryThreadEdge);
-
       // It is important that the CFunctionCallEdge is added before the CFunctionSummaryEdge,
       // otherwise the init_routine is not included in the CFA.
       injectedNode.addLeavingEdge(functionCallEdge);
       injectedNode.addLeavingEdge(functionSummaryEdge);
+
+      CFAEdge edgeWithUpdatedSuccessor =
+          new CStatementEdge(
+              pCfaEdge.getRawStatement(),
+              ((CStatementEdge) pCfaEdge).getStatement(),
+              pCfaEdge.getFileLocation(),
+              pCfaEdge.getPredecessor(),
+              injectedNode);
+      injectedNode.addEnteringEdge(edgeWithUpdatedSuccessor);
 
       return injectedNode;
     }
@@ -446,16 +447,65 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   // (Private) Helpers =============================================================================
 
   private ImmutableListMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
-      int pThreadId, CFANode pCfaNode, SeqCallContext pCallContext) {
+      int pThreadId,
+      CFANode pCfaNode,
+      SeqCallContext pCallContext,
+      Map<SeqCallContext, CFAEdgeForThread> pVisitedInitRoutines)
+      throws UnsupportedCodeException {
 
     // use ImmutableMap to retain insertion order
-    ImmutableListMultimap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges =
+    ImmutableListMultimap.Builder<CFAEdgeForThread, CFAEdge> threadEdgesBuilder =
         ImmutableListMultimap.builder();
-
     for (CFAEdge edge : pCfaNode.getAllLeavingEdges()) {
-      rThreadEdges.put(new CFAEdgeForThread(pThreadId, edge, pCallContext), edge);
+      threadEdgesBuilder.put(new CFAEdgeForThread(pThreadId, edge, pCallContext), edge);
     }
-    return rThreadEdges.build();
+    ImmutableListMultimap<CFAEdgeForThread, CFAEdge> rThreadEdges = threadEdgesBuilder.build();
+
+    if (pCfaNode.getAllEnteringEdges().size() == 1) {
+      // Only check if there are exactly 2 edges, otherwise the pthread_once call itself is
+      // checked, not the injected init_routine calls.
+      if (rThreadEdges.size() == 2) {
+        CFAEdge enteringEdge = Iterables.getOnlyElement(pCfaNode.getAllEnteringEdges());
+
+        if (PthreadUtil.isCallToPthreadFunction(enteringEdge, PthreadFunctionType.PTHREAD_ONCE)) {
+          Iterator<Entry<CFAEdgeForThread, CFAEdge>> iterator = rThreadEdges.entries().iterator();
+          CFAEdgeForThread firstEdge = iterator.next().getKey();
+          CFAEdgeForThread secondEdge = iterator.next().getKey();
+
+          if (firstEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
+            // Extract the CFunctionDeclaration of the init_routine.
+            CFunctionCall pthreadOnceCall =
+                PthreadUtil.tryGetFunctionCallFromCfaEdge(enteringEdge).orElseThrow();
+            CExpression initRoutineExpression =
+                PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
+                    pthreadOnceCall, PthreadObjectType.START_ROUTINE);
+            CIdExpression initRoutineId =
+                (CIdExpression) MPORUtil.getOperandFromUnaryExpression(initRoutineExpression);
+            CFunctionDeclaration initRoutineDeclaration =
+                (CFunctionDeclaration) initRoutineId.getDeclaration();
+            CFunctionDeclaration functionCallDeclaration =
+                functionCallEdge.getFunctionCallExpression().getDeclaration();
+
+            // Only add visited init_routines if the CFunctionDeclaration matches, otherwise
+            // non-related function calls may be tracked as calls to the init_routine.
+            if (functionCallDeclaration.equals(initRoutineDeclaration)) {
+              checkState(secondEdge.cfaEdge instanceof CFunctionSummaryEdge);
+              CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) secondEdge.cfaEdge;
+              checkState(
+                  functionSummaryEdge
+                      .getFunctionEntry()
+                      .getFunctionDefinition()
+                      .equals(initRoutineDeclaration));
+
+              // Add the injected function calls to the visited init_routines.
+              pVisitedInitRoutines.put(new SeqCallContext(Optional.of(firstEdge)), secondEdge);
+            }
+          }
+        }
+      }
+    }
+
+    return rThreadEdges;
   }
 
   private FunctionEntryNode getStartRoutineFunctionEntryNode(
