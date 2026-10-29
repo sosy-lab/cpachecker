@@ -10,7 +10,13 @@
 
 <project name="schema" basedir=".">
     <target name="generate-dss-schema"
+            depends="build-project"
             description="Generate the distributed-summaries JSON schema">
-        <echo message="Hello World!"/>
+        <java
+            classname="org.sosy_lab.cpachecker.tools.schema.HelloWorld"
+            fork="true"
+            failonerror="true">
+            <classpath refid="classpath"/>
+        </java>
     </target>
 </project>
