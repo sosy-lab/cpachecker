@@ -315,8 +315,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       pVisitedInitRoutines.put(
           new SeqCallContext(Optional.of(functionCallThreadEdge)), functionSummaryThreadEdge);
 
-      injectedNode.addLeavingEdge(functionSummaryEdge);
+      // It is important that the CFunctionCallEdge is added before the CFunctionSummaryEdge,
+      // otherwise the init_routine is not included in the CFA.
       injectedNode.addLeavingEdge(functionCallEdge);
+      injectedNode.addLeavingEdge(functionSummaryEdge);
 
       return injectedNode;
     }
