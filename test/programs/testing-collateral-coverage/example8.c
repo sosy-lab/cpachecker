@@ -7,22 +7,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern unsigned __VERIFIER_nondet_uint();
-int main() {
-  int y = __VERIFIER_nondet_uint();
-  int x = 0;
-  int z = 0;
 
-  if (y == 1) {
+int main() 
+{
+  int y = __VERIFIER_nondet_uint();
+  int x;
+
+  if (y == 1) 
+  {
     x = 1;
   } else {
-    z = 1;
+    x = 0;
   }
-    x = 10 / (x - z);
-    if (x > 0) {
-      x = x - 1;
-    } else {
-      x = x + 1;
-    }
-    return x;
+  y=x-1;
+  if (y>=0) 
+  {
+    x = x-1;
+  }
+  return x;
 }
-
