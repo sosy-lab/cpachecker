@@ -177,7 +177,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      CFA pOriginalCfa,
       ReachedSetFactory pReachedSetFactory,
       AggregatedReachedSetManager pAggregatedReachedSetManager,
       Algorithm pSafetyAlgorithm,
@@ -211,8 +210,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(
-            pConfig, logger, loopStructure.getAllLoops().size(), cfa, pOriginalCfa);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 

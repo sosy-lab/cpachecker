@@ -750,7 +750,6 @@ public class CoreComponentsFactory {
                 logger,
                 shutdownNotifier,
                 cfa,
-                oldCfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
                 algorithm,

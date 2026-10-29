@@ -192,26 +192,21 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final MachineModel machineModel;
 
   private final CFA cfa;
-  // The scope of the input program. The analysis may work on a copy of its CFA
-  // (analysis.algorithm.copyCFA).
+  // The scope of the input program, which is created before the analysis adds edges to the CFA
   private final CProgramScope programScope;
 
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, 0, pCFA, pCFA);
+    this(pConfig, pLogger, 0, pCFA);
   }
 
   public TerminationStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      int pTotalNumberOfLoops,
-      CFA pCFA,
-      CFA pOriginalCfa)
+      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCFA);
-    programScope = new CProgramScope(checkNotNull(pOriginalCfa), pLogger);
+    programScope = new CProgramScope(cfa, pLogger);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
 
