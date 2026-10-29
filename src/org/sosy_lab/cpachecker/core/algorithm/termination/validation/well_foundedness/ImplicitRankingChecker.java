@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -176,8 +177,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         String nondetVerifierCall;
         CSimpleDeclaration declaration =
             scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
-        if (declaration.getType() instanceof CSimpleType) {
-          nondetVerifierCall = "__VERIFIER_nondet_" + declaration.getType() + "();";
+        if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
+          nondetVerifierCall = VerifierNondetFunctions.getFunctionName(simpleType) + "();";
         } else {
           throw new CPAException(
               "We currently do not support nondeterministic initialization of complex types.");
