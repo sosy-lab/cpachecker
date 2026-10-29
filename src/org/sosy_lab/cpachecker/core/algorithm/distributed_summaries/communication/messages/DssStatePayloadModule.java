@@ -25,7 +25,7 @@ public final class DssStatePayloadModule extends SimpleModule {
   @Serial private static final long serialVersionUID = -4429488243946317868L;
 
   public DssStatePayloadModule() {
-    super("DssPayloadModule");
+    super("DssStatePayloadModule");
 
     registerSubtypes(
         new NamedType(

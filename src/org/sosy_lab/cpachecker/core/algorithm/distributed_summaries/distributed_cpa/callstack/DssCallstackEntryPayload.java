@@ -8,24 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonCreator.Mode;
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-public record DssCallstackEntryPayload(int nodeId, String function) {
-  @JsonValue
-  public String serialize() {
-    return nodeId + "." + function;
-  }
-
-  @JsonCreator(mode = Mode.DELEGATING)
-  public static DssCallstackEntryPayload deserialize(String serialized) {
-    List<String> parts = Splitter.on(".").limit(2).splitToList(serialized);
-    Preconditions.checkArgument(parts.size() == 2);
-
-    return new DssCallstackEntryPayload(Integer.parseInt(parts.getFirst()), parts.getLast());
-  }
+@JsonPropertyOrder({DssCallstackEntryPayload.NODE_ID, DssCallstackEntryPayload.FUNCTION})
+public record DssCallstackEntryPayload(
+    @JsonProperty(NODE_ID) int nodeId, @JsonProperty(FUNCTION) String function) {
+  public static final String NODE_ID = "nodeId";
+  public static final String FUNCTION = "function";
 }
