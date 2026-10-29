@@ -11,25 +11,36 @@ package org.sosy_lab.cpachecker.cpa.pathrestriction;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /** An immutable acyclic automaton of decision-edge sequences, with shared suffixes. */
 public final class DecisionGraph {
   private record Arc(String edge, Node next) {}
 
+  /**
+   * Nodes are compared by identity. Structural equality would rehash a shared suffix once for every
+   * path leading to it, so this must not become a record.
+   */
   private static final class Node {
     private final ImmutableList<Arc> arcs;
     private final int length;
@@ -42,42 +53,62 @@ public final class DecisionGraph {
   }
 
   private static final Node END = new Node(ImmutableList.of());
-  public static final DecisionGraph EMPTY = new DecisionGraph(END);
+
+  /** The graph that permits every path, e.g., for a violation inside the current block. */
+  public static final DecisionGraph UNRESTRICTED = new DecisionGraph(END);
+
   private final Node root;
-  private @Nullable String encoding;
+  @LazyInit private @Nullable String encoding;
 
   private DecisionGraph(Node pRoot) {
     root = pRoot;
   }
 
-  public int size() {
+  /** The number of decisions on the longest path through this graph. */
+  public int maxDecisions() {
     return root.length;
   }
 
-  public static DecisionGraph fromPaths(Collection<? extends List<String>> paths) {
-    List<DecisionGraph> choices = new ArrayList<>();
-    for (List<String> path : paths) {
-      Node root = END;
-      for (String edge : path.reversed()) {
-        root = new Node(ImmutableList.of(new Arc(edge, root)));
-      }
-      choices.add(new DecisionGraph(root));
-    }
-    return choices.isEmpty() ? EMPTY : union(choices);
+  /** The label of {@code edge} in a graph, which identifies it by its endpoints. */
+  private static String edgeToString(CFAEdge edge) {
+    return "N" + edge.getPredecessor().getNodeNumber() + "N" + edge.getSuccessor().getNodeNumber();
   }
 
+  /** Whether another relevant edge leaves the predecessor of {@code edge}. */
+  private static boolean isDecisionEdge(CFAEdge edge) {
+    return relevantEdge(edge)
+        && edge.getPredecessor().getAllLeavingEdges().filter(DecisionGraph::relevantEdge).size()
+            > 1;
+  }
+
+  private static boolean relevantEdge(CFAEdge e) {
+    return !(e instanceof BlankEdge || e instanceof FunctionSummaryEdge);
+  }
+
+  /**
+   * Returns a graph that first takes the decision edges among {@code edges} and then continues like
+   * this graph. Edges where no other edge could have been taken are not stored.
+   */
   public DecisionGraph prepend(List<CFAEdge> edges) {
     Node result = root;
     for (CFAEdge edge : edges.reversed()) {
-      if (SegmentedPaths.isDecisionEdge(edge)) {
-        result = new Node(ImmutableList.of(new Arc(SegmentedPaths.edgeToString(edge), result)));
+      if (isDecisionEdge(edge)) {
+        result = new Node(ImmutableList.of(new Arc(edgeToString(edge), result)));
       }
     }
     return new DecisionGraph(result);
   }
 
+  /**
+   * Returns a graph that permits exactly the paths permitted by any of {@code choices}.
+   *
+   * @throws IllegalArgumentException if {@code choices} is empty
+   */
   public static DecisionGraph union(Collection<DecisionGraph> choices) {
     Preconditions.checkArgument(!choices.isEmpty());
+    if (choices.size() == 1) {
+      return Iterables.getOnlyElement(choices);
+    }
     Set<Node> roots = new LinkedHashSet<>();
     choices.forEach(graph -> roots.add(graph.root));
     return roots.size() == 1
@@ -85,18 +116,22 @@ public final class DecisionGraph {
         : new DecisionGraph(new Node(roots.stream().map(n -> new Arc("", n)).toList()));
   }
 
-  public DecisionGraph then(DecisionGraph suffix) {
-    return new DecisionGraph(copy(root, suffix.root, ImmutableMap.of()));
-  }
-
-  public DecisionGraph transformEdges(Map<String, String> replacements) {
-    return new DecisionGraph(copy(root, END, replacements));
+  /**
+   * Returns a graph where every edge that is a key in {@code oldToNew} is replaced by its
+   * corresponding value. Edges that do not appear as a key in {@code oldToNew} are left unchanged.
+   */
+  public DecisionGraph transformEdges(Map<CFAEdge, CFAEdge> oldToNew) {
+    Map<String, String> replacements = new HashMap<>(oldToNew.size());
+    for (Map.Entry<CFAEdge, CFAEdge> entry : oldToNew.entrySet()) {
+      replacements.put(edgeToString(entry.getKey()), edgeToString(entry.getValue()));
+    }
+    return new DecisionGraph(copy(root, replacements));
   }
 
   private static List<Node> postorder(Node root) {
-    record Visit(Node node, java.util.Iterator<Arc> remaining) {}
+    record Visit(Node node, Iterator<Arc> remaining) {}
     List<Node> result = new ArrayList<>();
-    Set<Node> finished = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+    Set<Node> finished = Collections.newSetFromMap(new IdentityHashMap<>());
     finished.add(END);
     Deque<Visit> waiting = new ArrayDeque<>();
     waiting.push(new Visit(root, root.arcs.iterator()));
@@ -118,9 +153,10 @@ public final class DecisionGraph {
     return result;
   }
 
-  private static Node copy(Node node, Node end, Map<String, String> replacements) {
+  /** Copies the graph below {@code node}, relabeling its arcs according to {@code replacements}. */
+  private static Node copy(Node node, Map<String, String> replacements) {
     IdentityHashMap<Node, Node> memo = new IdentityHashMap<>();
-    memo.put(END, end);
+    memo.put(END, END);
     for (Node current : postorder(node)) {
       memo.put(
           current,
@@ -130,17 +166,33 @@ public final class DecisionGraph {
                       a ->
                           new Arc(
                               replacements.getOrDefault(a.edge, a.edge),
-                              java.util.Objects.requireNonNull(memo.get(a.next))))
+                              Objects.requireNonNull(memo.get(a.next))))
                   .toList()));
     }
-    return java.util.Objects.requireNonNull(memo.get(node));
+    return Objects.requireNonNull(memo.get(node));
   }
 
-  /** Positions after epsilon closure. A terminal position permits the remainder of the CFA. */
-  public static final class Cursor implements AbstractState {
-    private final ImmutableSet<Node> positions;
+  /**
+   * The nodes of a {@link DecisionGraph} that the decisions taken so far lead to, after following
+   * all epsilon arcs. A position at the end of the graph permits the remainder of the CFA. As the
+   * state of {@link PathRestrictionCPA}, it restricts an analysis to the paths of the graph.
+   */
+  public static final class PathPosition implements AbstractState {
 
-    private Cursor(Collection<Node> nodes) {
+    /**
+     * The initial state of a {@link PathRestrictionCPA} whose paths have not been set yet. It must
+     * never be advanced: an analysis that explores from it would silently ignore the paths.
+     */
+    static final PathPosition UNINITIALIZED = new PathPosition();
+
+    /** {@code null} only for {@link #UNINITIALIZED}. */
+    private final @Nullable ImmutableSet<Node> positions;
+
+    private PathPosition() {
+      positions = null;
+    }
+
+    private PathPosition(Collection<Node> nodes) {
       Set<Node> closed = new LinkedHashSet<>();
       Set<Node> visited = new LinkedHashSet<>();
       Deque<Node> waiting = new ArrayDeque<>(nodes);
@@ -157,68 +209,109 @@ public final class DecisionGraph {
       positions = ImmutableSet.copyOf(closed);
     }
 
-    public boolean isEmpty() {
-      return positions.isEmpty();
+    private ImmutableSet<Node> positions() {
+      Preconditions.checkState(
+          positions != null,
+          "Uninitialized paths, PathRestrictionCPA.getInitialState needs to be called after"
+              + " PathRestrictionCPA.init");
+      return positions;
     }
 
-    public Cursor advance(CFAEdge edge) {
-      if (positions.contains(END) || !SegmentedPaths.isDecisionEdge(edge)) {
+    /** Whether no path of the graph is compatible with the decisions taken so far. */
+    public boolean isEmpty() {
+      return positions().isEmpty();
+    }
+
+    /** The position after taking {@code edge}, which {@link #isEmpty} if the graph forbids it. */
+    public PathPosition advance(CFAEdge edge) {
+      ImmutableSet<Node> current = positions();
+      if (current.contains(END) || !isDecisionEdge(edge)) {
         return this;
       }
-      String token = SegmentedPaths.edgeToString(edge);
+      String token = edgeToString(edge);
       List<Node> next = new ArrayList<>();
-      for (Node node : positions) {
+      for (Node node : current) {
         node.arcs.stream().filter(a -> a.edge.equals(token)).forEach(a -> next.add(a.next));
       }
-      return new Cursor(next);
+      return new PathPosition(next);
     }
 
     @Override
     public boolean equals(Object other) {
-      return other instanceof Cursor cursor && positions.equals(cursor.positions);
+      return other instanceof PathPosition position
+          && Objects.equals(positions, position.positions);
     }
 
     @Override
     public int hashCode() {
-      return positions.hashCode();
+      return Objects.hashCode(positions);
+    }
+
+    @Override
+    public String toString() {
+      if (positions == null) {
+        return "Uninitialized path restriction";
+      }
+      return positions.contains(END)
+          ? "Reached end of path"
+          : "At " + positions.size() + " position(s) of the path";
     }
   }
 
-  public Cursor cursor() {
-    return new Cursor(ImmutableList.of(root));
+  /** The position before any decision has been taken. */
+  public PathPosition start() {
+    return new PathPosition(ImmutableList.of(root));
   }
 
+  /**
+   * Encodes this graph as {@code D/<node>/<node>...}, listing every node once, successors first.
+   * Each node is a comma-separated list of arcs {@code <index of target>:<edge label>}, where index
+   * 0 is the end of the graph and an empty label is an epsilon arc. The last node is the root.
+   */
   public String serialize() {
-    if (encoding == null) {
+    // Read the unsynchronized field only once, see LazyInit.
+    String result = encoding;
+    if (result == null) {
       IdentityHashMap<Node, Integer> ids = new IdentityHashMap<>();
       ids.put(END, 0);
       List<String> nodes = new ArrayList<>();
       nodes.add("D");
-      for (Node current : postorder(root)) {
-        List<String> arcs = new ArrayList<>();
-        for (Arc arc : current.arcs) {
-          arcs.add(ids.get(arc.next) + ":" + arc.edge);
-        }
-        ids.put(current, nodes.size());
-        nodes.add(String.join(",", arcs));
-      }
-      encoding = String.join("/", nodes);
+      encode(root, ids, nodes);
+      result = String.join("/", nodes);
+      encoding = result;
     }
-    return encoding;
+    return result;
   }
 
+  private static void encode(Node node, IdentityHashMap<Node, Integer> ids, List<String> nodes) {
+    for (Node current : postorder(node)) {
+      List<String> arcs = new ArrayList<>();
+      for (Arc arc : current.arcs) {
+        arcs.add(ids.get(arc.next) + ":" + arc.edge);
+      }
+      ids.put(current, nodes.size());
+      nodes.add(String.join(",", arcs));
+    }
+  }
+
+  /** The inverse of {@link #serialize()}. */
   public static DecisionGraph deserialize(String value) {
     List<String> nodes = Splitter.on('/').splitToList(value);
-    Preconditions.checkArgument(nodes.getFirst().equals("D"));
+    Preconditions.checkArgument(
+        nodes.getFirst().equals("D"), "Not a serialized DecisionGraph: %s", value);
     List<Node> built = new ArrayList<>();
     built.add(END);
     for (int i = 1; i < nodes.size(); i++) {
       List<Arc> arcs = new ArrayList<>();
       for (String arc : Splitter.on(',').split(nodes.get(i))) {
         int colon = arc.indexOf(':');
-        Preconditions.checkArgument(colon > 0);
+        Preconditions.checkArgument(colon > 0, "Malformed arc %s in %s", arc, value);
         int target = Integer.parseInt(arc.substring(0, colon));
-        Preconditions.checkArgument(target >= 0 && target < i);
+        Preconditions.checkArgument(
+            target >= 0 && target < i,
+            "Arc %s does not point to an earlier node in %s",
+            arc,
+            value);
         arcs.add(new Arc(arc.substring(colon + 1), built.get(target)));
       }
       built.add(new Node(arcs));
@@ -226,6 +319,12 @@ public final class DecisionGraph {
     return new DecisionGraph(built.getLast());
   }
 
+  /**
+   * Whether both graphs have the same structure, i.e., the same {@link #serialize() serialization}.
+   * Graphs built the same way are equal, but graphs that permit the same paths need not be: a union
+   * of the same choices in a different order, for example, is not equal. A result of {@code false}
+   * therefore does not mean that the graphs permit different paths.
+   */
   @Override
   public boolean equals(Object other) {
     return other instanceof DecisionGraph graph && serialize().equals(graph.serialize());
@@ -234,5 +333,10 @@ public final class DecisionGraph {
   @Override
   public int hashCode() {
     return serialize().hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return serialize();
   }
 }

@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph.PathPosition;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.PathRestrictionCPA;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -190,7 +190,7 @@ public class DssGraphViolationConditionTest {
     }
   }
 
-  private static boolean accepts(SegmentedPaths witness, CFA cfa, List<CFAEdge> path)
+  private static boolean accepts(DecisionGraph witness, CFA cfa, List<CFAEdge> path)
       throws Exception {
     PathRestrictionCPA cpa = (PathRestrictionCPA) PathRestrictionCPA.factory().createInstance();
     cpa.init(witness);
@@ -217,15 +217,11 @@ public class DssGraphViolationConditionTest {
     assertThat(paths).hasSize(4);
     // Keep only two correlated choices; the two mixed paths must stay excluded.
     List<ImmutableList<CFAEdge>> selected = ImmutableList.of(paths.getFirst(), paths.getLast());
-    SegmentedPaths explicit =
-        SegmentedPaths.merge(selected.stream().map(SegmentedPaths.EMPTY::addEdgesToFront).toList());
-    SegmentedPaths graph =
-        SegmentedPaths.EMPTY.addGraphToFront(
-            DecisionGraph.union(selected.stream().map(DecisionGraph.EMPTY::prepend).toList()));
-    SegmentedPaths roundTrip = SegmentedPaths.deserialize(graph.serialize());
+    DecisionGraph graph =
+        DecisionGraph.union(selected.stream().map(DecisionGraph.UNRESTRICTED::prepend).toList());
+    DecisionGraph roundTrip = DecisionGraph.deserialize(graph.serialize());
     assertThat(roundTrip).isEqualTo(graph);
     for (ImmutableList<CFAEdge> path : paths) {
-      assertThat(accepts(explicit, cfa, path)).isEqualTo(selected.contains(path));
       assertThat(accepts(roundTrip, cfa, path)).isEqualTo(selected.contains(path));
     }
     CFAEdge first =
@@ -233,10 +229,17 @@ public class DssGraphViolationConditionTest {
     CFAEdge second =
         selected.getLast().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
     ImmutableMap<CFAEdge, CFAEdge> replacements = ImmutableMap.of(first, second, second, first);
-    SegmentedPaths mappedGraph = roundTrip.transformEdges(replacements);
-    SegmentedPaths mappedExplicit = explicit.transformEdges(replacements);
+    DecisionGraph mapped = roundTrip.transformEdges(replacements);
+    DecisionGraph expected =
+        DecisionGraph.union(
+            selected.stream()
+                .map(
+                    path ->
+                        DecisionGraph.UNRESTRICTED.prepend(
+                            path.stream().map(e -> replacements.getOrDefault(e, e)).toList()))
+                .toList());
     for (ImmutableList<CFAEdge> path : paths) {
-      assertThat(accepts(mappedGraph, cfa, path)).isEqualTo(accepts(mappedExplicit, cfa, path));
+      assertThat(accepts(mapped, cfa, path)).isEqualTo(accepts(expected, cfa, path));
     }
   }
 
@@ -249,19 +252,19 @@ public class DssGraphViolationConditionTest {
         paths.getFirst().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
     CFAEdge second =
         paths.getLast().stream().filter(AssumeEdge.class::isInstance).findFirst().orElseThrow();
-    DecisionGraph graph = DecisionGraph.EMPTY;
+    DecisionGraph graph = DecisionGraph.UNRESTRICTED;
     for (int i = 0; i < 30; i++) {
       graph =
           DecisionGraph.union(
               ImmutableList.of(
                   graph.prepend(ImmutableList.of(first)), graph.prepend(ImmutableList.of(second))));
     }
-    assertThat(graph.size()).isEqualTo(30);
+    assertThat(graph.maxDecisions()).isEqualTo(30);
     assertThat(graph.serialize().length()).isLessThan(10_000);
-    DecisionGraph.Cursor cursor = DecisionGraph.deserialize(graph.serialize()).cursor();
+    PathPosition position = DecisionGraph.deserialize(graph.serialize()).start();
     for (int i = 0; i < 30; i++) {
-      cursor = cursor.advance(i % 2 == 0 ? first : second);
-      assertThat(cursor.isEmpty()).isFalse();
+      position = position.advance(i % 2 == 0 ? first : second);
+      assertThat(position.isEmpty()).isFalse();
     }
   }
 }
