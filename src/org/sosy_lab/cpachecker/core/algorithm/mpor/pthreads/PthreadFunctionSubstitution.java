@@ -22,13 +22,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -177,6 +183,71 @@ public class PthreadFunctionSubstitution {
         PthreadObjectSubstitutions.MUTEX_LOCKED_MEMBER_DECLARATION.getName(),
         mutexFieldReference,
         false);
+  }
+
+  // pthread_once_t
+
+  public static ImmutableList<CCompoundStatementElement> buildOnceLockFunctionStatements(
+      ImmutableList<CExpression> pExpressions,
+      SubstituteEdge pSubstituteEdge,
+      CLeftHandSide pPcLeftHandSide,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList<CFAEdgeForThread> successorLeavingEdges =
+        pSubstituteEdge.getThreadEdge().getSuccessor().leavingEdges();
+    checkArgument(successorLeavingEdges.size() == 2);
+
+    CFAEdgeForThread functionCallEdge = successorLeavingEdges.getFirst();
+    CFAEdgeForThread functionSummaryEdge = successorLeavingEdges.getLast();
+    checkArgument(functionCallEdge.cfaEdge instanceof CFunctionCallEdge);
+    checkArgument(functionSummaryEdge.cfaEdge instanceof CFunctionSummaryEdge);
+
+    CExpressionAssignmentStatement callPcAssignment =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            pPcLeftHandSide,
+            SeqExpressionBuilder.buildIntegerLiteralExpression(functionCallEdge.getSuccessor().pc));
+    CExpressionAssignmentStatement summaryPcAssignment =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            pPcLeftHandSide,
+            SeqExpressionBuilder.buildIntegerLiteralExpression(
+                functionSummaryEdge.getSuccessor().pc));
+
+    // pthread_once_t status:
+    // 0 -> not taken yet
+    // 1 -> taken
+    // 2 -> finished
+    CIdExpression onceExpression =
+        (CIdExpression)
+            pExpressions.get(
+                PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
+                    PthreadObjectType.PTHREAD_ONCE_T));
+    CBinaryExpression onceEquals0 =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            onceExpression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+
+    CExpressionAssignmentStatement once1Assignment =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, onceExpression, CIntegerLiteralExpression.ONE);
+
+    CBinaryExpression onceNotEquals1Expression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            onceExpression, CIntegerLiteralExpression.ONE, BinaryOperator.NOT_EQUALS);
+    CExportStatement onceNotEquals1Assumption =
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+            new CExpressionWrapper(onceNotEquals1Expression));
+
+    CIfStatement ifStatement =
+        new CIfStatement(
+            new CExpressionWrapper(onceEquals0),
+            new CCompoundStatement(
+                new CStatementWrapper(once1Assignment), new CStatementWrapper(callPcAssignment)),
+            new CCompoundStatement(
+                onceNotEquals1Assumption, new CStatementWrapper(summaryPcAssignment)));
+
+    return ImmutableList.of(ifStatement);
   }
 
   // pthread_cond_t

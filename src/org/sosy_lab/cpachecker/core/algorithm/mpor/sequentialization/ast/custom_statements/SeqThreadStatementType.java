@@ -35,6 +35,7 @@ public enum SeqThreadStatementType {
   LOCAL_VARIABLE_DECLARATION(true, false),
   MUTEX_LOCK(true, true),
   MUTEX_UNLOCK(true, false),
+  ONCE_LOCK(true, true),
   PARAMETER_ASSIGNMENT(true, false),
   RW_LOCK_RD_LOCK(true, true),
   RW_LOCK_UNLOCK(true, false),

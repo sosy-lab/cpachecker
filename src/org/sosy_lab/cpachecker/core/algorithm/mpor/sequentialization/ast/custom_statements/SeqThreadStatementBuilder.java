@@ -393,6 +393,7 @@ public record SeqThreadStatementBuilder(
           buildMutexStatement(SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, pTargetPc);
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexStatement(SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, pTargetPc);
+      case PTHREAD_ONCE -> buildOnceLockStatement(pSubstituteEdge, pTargetPc);
       case PTHREAD_RWLOCK_RDLOCK ->
           buildRwLockStatement(SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, pTargetPc);
       case PTHREAD_RWLOCK_UNLOCK ->
@@ -594,6 +595,18 @@ public record SeqThreadStatementBuilder(
         data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
+  private SeqThreadStatement buildOnceLockStatement(SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnrecognizedCodeException {
+
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(
+            SeqThreadStatementType.ONCE_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
+    return SeqThreadStatement.of(
+        data,
+        pTargetPc,
+        buildThreadSyncStatements(SeqThreadStatementType.ONCE_LOCK, pSubstituteEdge));
+  }
+
   private SeqThreadStatement buildRwLockStatement(
       SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnrecognizedCodeException {
@@ -660,6 +673,9 @@ public record SeqThreadStatementBuilder(
       case MUTEX_UNLOCK ->
           PthreadFunctionSubstitution.buildMutexUnlockFunctionStatements(
               Iterables.getOnlyElement(expressions));
+      case ONCE_LOCK ->
+          PthreadFunctionSubstitution.buildOnceLockFunctionStatements(
+              expressions, pSubstituteEdge, pcLeftHandSide, binaryExpressionBuilder);
       case RW_LOCK_RD_LOCK ->
           PthreadFunctionSubstitution.buildRwLockRdLockFunctionStatements(
               Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
