@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 public class DssTestUtils {
 
   /** Configuration of the whole Distributed Summary Synthesis algorithm. */
-  public static final String DSS_CONFIGURATION_FILE = "config/dss.properties";
+  public static final String DSS_CONFIGURATION_FILE =
+      "config/distributed-summary-synthesis/dss-base.properties";
 
   /** Configuration of the forward analysis that a single DSS block worker runs. */
   public static final String DSS_FORWARD_CONFIGURATION_FILE =

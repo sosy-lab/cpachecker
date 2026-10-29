@@ -117,7 +117,8 @@ public class SingleWorkerDssExecutor implements DssExecutor {
       final String outputFileNamePrefix = dssMessage.getType().name();
       final String outputFileName = outputFileNamePrefix + messageCount + ".json";
       Path outputPath = outputMessages.resolve(outputFileName);
-      JSON.writeJSONString(dssMessage.asJson(), outputPath);
+      JSON.writeJSONString(
+          dssMessage.asJsonWithIdentifier(0, options.compressMessages()), outputPath);
       messageCount++;
     }
   }

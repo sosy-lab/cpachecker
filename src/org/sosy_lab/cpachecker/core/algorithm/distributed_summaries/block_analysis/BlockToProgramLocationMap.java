@@ -83,8 +83,9 @@ public class BlockToProgramLocationMap {
     return entriesPerKey.keySet().stream()
         .anyMatch(
             p ->
-                (isEmpty(p) && !unreachablePredecessors.contains(p))
-                    || getStatesForKey(p).stream()
+                isEmpty(p)
+                    ? !unreachablePredecessors.contains(p)
+                    : getStatesForKey(p).stream()
                         .allMatch(
                             s ->
                                 DistributedCallstackCPA.canBeTopState(
