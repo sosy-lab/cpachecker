@@ -69,6 +69,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.NestedLoopSummarizer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -1087,27 +1089,13 @@ public class TerminationWitnessValidator implements Algorithm {
       FunctionExitNode exit = entry.getExitNode().orElseThrow();
 
       // The edges of the called function, calls in it are represented by their summary edges
-      Set<CFAEdge> edges = new LinkedHashSet<>();
-      Set<CFANode> visited = new HashSet<>();
-      List<CFANode> waitlist = new ArrayList<>(ImmutableList.of(entry));
-      while (!waitlist.isEmpty()) {
-        CFANode node = waitlist.removeLast();
-        if (!visited.add(node) || node.equals(exit)) {
-          continue;
-        }
-        for (CFAEdge edge : node.getLeavingEdges()) {
-          if (!(edge instanceof FunctionCallEdge)) {
-            edges.add(edge);
-            waitlist.add(edge.getSuccessor());
-          }
-        }
-        if (node.getLeavingSummaryEdge() != null) {
-          waitlist.add(node.getLeavingSummaryEdge().getSuccessor());
-        }
-      }
+      EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
+      CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(entry, edgeCollector);
       List<List<CFAEdge>> paths =
           collectAllThePaths(
-              ImmutableSet.copyOf(edges), ImmutableSet.of(entry), ImmutableSet.of(exit));
+              ImmutableSet.copyOf(edgeCollector.getVisitedEdges()),
+              ImmutableSet.of(entry),
+              ImmutableSet.of(exit));
       if (paths.isEmpty()) {
         return result.withFormula(bfmgr.makeFalse());
       }
