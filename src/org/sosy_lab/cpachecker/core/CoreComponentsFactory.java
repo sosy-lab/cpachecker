@@ -765,8 +765,7 @@ public class CoreComponentsFactory {
                 config,
                 logger,
                 shutdownNotifier,
-                specification.getPathToSpecificationAutomata().keySet(),
-                specification);
+                specification.getPathToSpecificationAutomata().keySet());
       }
 
       if (checkCounterexamples) {

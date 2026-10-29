@@ -5831,6 +5831,12 @@ termination.useCexImpreciseHeuristic = false
 # space is detected.
 termination.validation.checkWithInfiniteSpace = false
 
+# configuration of the termination analysis that proves the well-foundedness
+# of the transition invariants by proving the termination of an
+# overapproximating program, its resource limits apply to each transition
+# invariant
+termination.validation.wellFoundednessConfig = "config/components/correctnessWitnessValidation-termination--wellFoundedness.properties"
+
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
 

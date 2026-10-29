@@ -97,7 +97,6 @@ public class TerminationWitnessValidator implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
-  private final Specification specification;
   // The scope and the checker are created in run(), since the scope has to contain the
   // declarations of the __PREV variables from the witness
   private Scope scope;
@@ -109,8 +108,7 @@ public class TerminationWitnessValidator implements Algorithm {
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final ImmutableSet<Path> pWitnessPath,
-      final Specification pSpecification)
+      final ImmutableSet<Path> pWitnessPath)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
@@ -121,7 +119,6 @@ public class TerminationWitnessValidator implements Algorithm {
       throw new InvalidConfigurationException(
           "The validation of termination witnesses does not support other language than C.");
     }
-    specification = pSpecification;
 
     @SuppressWarnings("resource")
     PredicateCPA predCpa =
@@ -162,9 +159,12 @@ public class TerminationWitnessValidator implements Algorithm {
         new CProgramScope(cfa, logger)
             .withAdditionalDeclarations(collectPrevVariableDeclarations(invariants));
     if (checkWithInfiniteSpace) {
-      wellFoundednessChecker =
-          new ImplicitRankingChecker(
-              fmgr, bfmgr, logger, config, shutdownNotifier, specification, scope, cfa);
+      try {
+        wellFoundednessChecker =
+            new ImplicitRankingChecker(fmgr, bfmgr, logger, config, shutdownNotifier, scope, cfa);
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Invalid configuration of the well-foundedness check", e);
+      }
     } else {
       wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
     }
