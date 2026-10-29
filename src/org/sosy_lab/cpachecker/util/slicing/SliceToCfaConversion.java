@@ -384,7 +384,8 @@ final class SliceToCfaConversion {
             pVariableDeclaration.getName(),
             pVariableDeclaration.getOrigName(),
             pVariableDeclaration.getQualifiedName(),
-            null);
+            null,
+            pVariableDeclaration.hasThreadLocalStorage());
       }
     }
 
@@ -438,7 +439,8 @@ final class SliceToCfaConversion {
                     irrelevantValueVariableName,
                     irrelevantValueVariableName,
                     irrelevantValueVariableName,
-                    null);
+                    null,
+                    /* pHasThreadLocalStorage= */ false);
 
             var irrelevantValueExpression =
                 new CIdExpression(argument.getFileLocation(), irrelevantValueVariableDeclaration);

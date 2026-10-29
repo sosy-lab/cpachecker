@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 /**
  * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
@@ -190,12 +190,12 @@ public abstract class DssMessage {
             this));
   }
 
-  public final SegmentedPaths getViolationPath() {
+  public final DecisionGraph getViolationPath() {
     checkArgument(
         getWitnessType() == DssWitnessMessage.WitnessType.VIOLATION,
         "Cannot get violation path for witness type: %s",
         type);
-    return SegmentedPaths.deserialize(
+    return DecisionGraph.deserialize(
         Preconditions.checkNotNull(
             content.get(DssWitnessMessage.DSS_MESSAGE_VIOLATION_PATH_KEY),
             "No violation path present in witness message: %s",
@@ -271,11 +271,12 @@ public abstract class DssMessage {
    * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
    *     messages produced in one run of DSS should have the same identifier. This simplifies the
    *     separation of old and new messages after the analysis, especially, .
+   * @param pCompress whether to dictionary-encode repeated content
    * @return JSON representation of the message.
    */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
-      int pIdentifier) {
+      int pIdentifier, boolean pCompress) {
     ImmutableMap.Builder<String, String> header =
         ImmutableMap.<String, String>builder()
             .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
@@ -287,12 +288,12 @@ public abstract class DssMessage {
             .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier));
     return ImmutableMap.<String, ImmutableMap<String, String>>builder()
         .put(DSS_MESSAGE_HEADER_ID, header.buildOrThrow())
-        .put(DSS_MESSAGE_CONTENT_ID, content)
+        .put(DSS_MESSAGE_CONTENT_ID, pCompress ? MessageContentDictionary.encode(content) : content)
         .buildOrThrow();
   }
 
   public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
-    return asJsonWithIdentifier(0);
+    return asJsonWithIdentifier(0, true);
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {
@@ -312,6 +313,8 @@ public abstract class DssMessage {
     ImmutableMap<String, String> content =
         Objects.requireNonNull(
             pJson.get(DSS_MESSAGE_CONTENT_ID), "Message JSON does not contain content: " + pJson);
+
+    content = MessageContentDictionary.decode(content);
 
     String senderId = header.get(DSS_MESSAGE_HEADER_SENDER_ID_KEY);
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));

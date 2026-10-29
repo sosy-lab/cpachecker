@@ -193,7 +193,8 @@ public class SequentializationBuilder {
               pVariableDeclaration.getName(),
               pVariableDeclaration.getOrigName(),
               pVariableDeclaration.getQualifiedName(),
-              pVariableDeclaration.getInitializer());
+              pVariableDeclaration.getInitializer(),
+              pVariableDeclaration.hasThreadLocalStorage());
       return tryBuildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
     }
     // otherwise, for non-const variables
@@ -306,7 +307,8 @@ public class SequentializationBuilder {
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
-        pVariableDeclaration.getInitializer());
+        pVariableDeclaration.getInitializer(),
+        pVariableDeclaration.hasThreadLocalStorage());
   }
 
   // Function Declarations and Definitions =========================================================

@@ -532,48 +532,51 @@ public class CustomInstruction {
       final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ci instanceof CExpressionAssignmentStatement ciStmt
-        && aci instanceof CExpressionAssignmentStatement aciStmt) {
-      // left side => output variables
-      Map<String, String> currentCiVarToAciVar = new HashMap<>();
-      ciStmt
-          .getLeftHandSide()
-          .accept(
-              new StructureExtendedComparisonVisitor(
-                  aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-      outVariables.addAll(currentCiVarToAciVar.values());
+    switch (ci) {
+      case CExpressionAssignmentStatement ciStmt
+          when aci instanceof CExpressionAssignmentStatement aciStmt -> {
+        // left side => output variables
+        Map<String, String> currentCiVarToAciVar = new HashMap<>();
+        ciStmt
+            .getLeftHandSide()
+            .accept(
+                new StructureExtendedComparisonVisitor(
+                    aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
+        outVariables.addAll(currentCiVarToAciVar.values());
 
-      // right side: just proof it
-      ciStmt
-          .getRightHandSide()
-          .accept(
-              new StructureExtendedComparisonVisitor(
-                  aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-    } else if (ci instanceof CExpressionStatement ciStmt
-        && aci instanceof CExpressionStatement aciStmt) {
-      ciStmt
-          .getExpression()
-          .accept(new StructureComparisonVisitor(aciStmt.getExpression(), ciVarToAciVar));
-    } else if (ci instanceof CFunctionCallAssignmentStatement ciStmt
-        && aci instanceof CFunctionCallAssignmentStatement aciStmt) {
-      // left side => output variables
-      Map<String, String> currentCiVarToAciVar = new HashMap<>();
-      ciStmt
-          .getLeftHandSide()
-          .accept(
-              new StructureExtendedComparisonVisitor(
-                  aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-      outVariables.addAll(currentCiVarToAciVar.values());
+        // right side: just proof it
+        ciStmt
+            .getRightHandSide()
+            .accept(
+                new StructureExtendedComparisonVisitor(
+                    aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
+      }
+      case CExpressionStatement ciStmt when aci instanceof CExpressionStatement aciStmt ->
+          ciStmt
+              .getExpression()
+              .accept(new StructureComparisonVisitor(aciStmt.getExpression(), ciVarToAciVar));
+      case CFunctionCallAssignmentStatement ciStmt
+          when aci instanceof CFunctionCallAssignmentStatement aciStmt -> {
+        // left side => output variables
+        Map<String, String> currentCiVarToAciVar = new HashMap<>();
+        ciStmt
+            .getLeftHandSide()
+            .accept(
+                new StructureExtendedComparisonVisitor(
+                    aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
+        outVariables.addAll(currentCiVarToAciVar.values());
 
-      compareFunctionCallExpressions(
-          ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
-    } else if (ci instanceof CFunctionCallStatement ciStmt
-        && aci instanceof CFunctionCallStatement aciStmt) {
-      compareFunctionCallExpressions(
-          ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
-    } else {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "The types of the CStatement " + ci + " and " + aci + " are different!");
+        compareFunctionCallExpressions(
+            ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
+      }
+      case CFunctionCallStatement ciStmt when aci instanceof CFunctionCallStatement aciStmt ->
+          compareFunctionCallExpressions(
+              ciStmt.getFunctionCallExpression(),
+              aciStmt.getFunctionCallExpression(),
+              ciVarToAciVar);
+      default ->
+          throw new AppliedCustomInstructionParsingFailedException(
+              "The types of the CStatement " + ci + " and " + aci + " are different!");
     }
   }
 
@@ -607,65 +610,67 @@ public class CustomInstruction {
     CDeclaration ciDec = ciEdge.getDeclaration();
     CDeclaration aciDec = aciEdge.getDeclaration();
 
-    if (ciDec instanceof CVariableDeclaration ciVarDec
-        && aciDec instanceof CVariableDeclaration aciVarDec) {
-      if (!ciVarDec.getCStorageClass().equals(aciVarDec.getCStorageClass())) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "The CVariableDeclaration of ci "
-                + ciVarDec
-                + " and aci "
-                + aciVarDec
-                + " have different StorageClasses.");
-      }
-      if (!ciVarDec.getType().equals(aciVarDec.getType())) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "The CVariableDeclaration of ci "
-                + ciVarDec
-                + " and aci "
-                + aciVarDec
-                + " have different declaration types!");
-      }
-      if (ciVarToAciVar.containsKey(ciVarDec.getQualifiedName())
-          && !ciVarToAciVar.get(ciVarDec.getQualifiedName()).equals(aciVarDec.getQualifiedName())) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "The mapping is not clear. The map contains "
-                + ciVarDec.getQualifiedName()
-                + " with the value "
-                + ciVarToAciVar.get(ciVarDec.getQualifiedName())
-                + ", which is different to "
-                + aciVarDec.getQualifiedName()
-                + ".");
-      }
-
-      compareInitializer(
-          ciVarDec.getInitializer(), aciVarDec.getInitializer(), ciVarToAciVar, outVariables);
-      if (ciVarDec.getInitializer() != null) {
-        if (ciVarDec.getInitializer() instanceof CInitializerExpression
-            || ciVarDec.getInitializer() instanceof CInitializerList) {
-          outVariables.add(aciVarDec.getQualifiedName());
-        } else {
+    switch (ciDec) {
+      case CVariableDeclaration ciVarDec when aciDec instanceof CVariableDeclaration aciVarDec -> {
+        if (!ciVarDec.getCStorageClass().equals(aciVarDec.getCStorageClass())) {
           throw new AppliedCustomInstructionParsingFailedException(
-              "Unsupported initializer: " + ciVarDec.getInitializer());
+              "The CVariableDeclaration of ci "
+                  + ciVarDec
+                  + " and aci "
+                  + aciVarDec
+                  + " have different StorageClasses.");
         }
+        if (!ciVarDec.getType().equals(aciVarDec.getType())) {
+          throw new AppliedCustomInstructionParsingFailedException(
+              "The CVariableDeclaration of ci "
+                  + ciVarDec
+                  + " and aci "
+                  + aciVarDec
+                  + " have different declaration types!");
+        }
+        if (ciVarToAciVar.containsKey(ciVarDec.getQualifiedName())
+            && !ciVarToAciVar
+                .get(ciVarDec.getQualifiedName())
+                .equals(aciVarDec.getQualifiedName())) {
+          throw new AppliedCustomInstructionParsingFailedException(
+              "The mapping is not clear. The map contains "
+                  + ciVarDec.getQualifiedName()
+                  + " with the value "
+                  + ciVarToAciVar.get(ciVarDec.getQualifiedName())
+                  + ", which is different to "
+                  + aciVarDec.getQualifiedName()
+                  + ".");
+        }
+
+        compareInitializer(
+            ciVarDec.getInitializer(), aciVarDec.getInitializer(), ciVarToAciVar, outVariables);
+        if (ciVarDec.getInitializer() != null) {
+          if (ciVarDec.getInitializer() instanceof CInitializerExpression
+              || ciVarDec.getInitializer() instanceof CInitializerList) {
+            outVariables.add(aciVarDec.getQualifiedName());
+          } else {
+            throw new AppliedCustomInstructionParsingFailedException(
+                "Unsupported initializer: " + ciVarDec.getInitializer());
+          }
+        }
+        ciVarToAciVar.put(ciVarDec.getQualifiedName(), aciVarDec.getQualifiedName());
       }
-      ciVarToAciVar.put(ciVarDec.getQualifiedName(), aciVarDec.getQualifiedName());
-    } else if (ciDec instanceof CComplexTypeDeclaration
-        && aciDec instanceof CComplexTypeDeclaration) {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "The code contains a CComplexTypeDeclaration, which is unsupported.");
-    } else if (ciDec instanceof CTypeDefDeclaration && aciDec instanceof CTypeDefDeclaration) {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "The code contains a CTypeDefDeclaration, which is unsupported.");
-    } else if (ciDec instanceof CFunctionDeclaration && aciDec instanceof CFunctionDeclaration) {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "The code contains a CFunctionDeclaration, which is unsupported.");
-    } else {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "The declaration of the CDeclarationEdge ci "
-              + ciDec
-              + " and aci "
-              + aciDec
-              + " have different classes.");
+      case CComplexTypeDeclaration unused when aciDec instanceof CComplexTypeDeclaration ->
+          throw new AppliedCustomInstructionParsingFailedException(
+              "The code contains a CComplexTypeDeclaration, which is unsupported.");
+      case CTypeDefDeclaration unused when aciDec instanceof CTypeDefDeclaration ->
+          throw new AppliedCustomInstructionParsingFailedException(
+              "The code contains a CTypeDefDeclaration, which is unsupported.");
+      case CFunctionDeclaration unused when aciDec instanceof CFunctionDeclaration ->
+          throw new AppliedCustomInstructionParsingFailedException(
+              "The code contains a CFunctionDeclaration, which is unsupported.");
+      default ->
+          throw new AppliedCustomInstructionParsingFailedException(
+              "The declaration of the CDeclarationEdge ci "
+                  + ciDec
+                  + " and aci "
+                  + aciDec
+                  + " have different classes.");
     }
   }
 
@@ -851,58 +856,60 @@ public class CustomInstruction {
     @Override
     public Void visit(final CIdExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (aciExp instanceof CIdExpression aciIdExp) {
-        if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
-          throw new AppliedCustomInstructionParsingFailedException(
-              "The expression type of the IdExpression of ci "
-                  + ciExp
-                  + " ("
-                  + ciExp.getExpressionType()
-                  + ") is not equal to the one of the aci "
-                  + aciIdExp
-                  + " ("
-                  + aciIdExp.getExpressionType()
-                  + ").");
+      switch (aciExp) {
+        case CIdExpression aciIdExp -> {
+          if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
+            throw new AppliedCustomInstructionParsingFailedException(
+                "The expression type of the IdExpression of ci "
+                    + ciExp
+                    + " ("
+                    + ciExp.getExpressionType()
+                    + ") is not equal to the one of the aci "
+                    + aciIdExp
+                    + " ("
+                    + aciIdExp.getExpressionType()
+                    + ").");
+          }
+          if (ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())
+              && !ciVarToAciVar
+                  .get(ciExp.getDeclaration().getQualifiedName())
+                  .equals(aciIdExp.getDeclaration().getQualifiedName())) {
+            throw new AppliedCustomInstructionParsingFailedException(
+                "The mapping is not clear. The map contains "
+                    + ciExp.getDeclaration().getQualifiedName()
+                    + " with the value "
+                    + ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName())
+                    + ", which is different to "
+                    + aciIdExp.getDeclaration().getQualifiedName()
+                    + ".");
+          } else {
+            computeMapping(
+                ciExp.getDeclaration().getQualifiedName(),
+                aciIdExp.getDeclaration().getQualifiedName());
+          }
         }
-        if (ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())
-            && !ciVarToAciVar
-                .get(ciExp.getDeclaration().getQualifiedName())
-                .equals(aciIdExp.getDeclaration().getQualifiedName())) {
-          throw new AppliedCustomInstructionParsingFailedException(
-              "The mapping is not clear. The map contains "
-                  + ciExp.getDeclaration().getQualifiedName()
-                  + " with the value "
-                  + ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName())
-                  + ", which is different to "
-                  + aciIdExp.getDeclaration().getQualifiedName()
-                  + ".");
-        } else {
-          computeMapping(
-              ciExp.getDeclaration().getQualifiedName(),
-              aciIdExp.getDeclaration().getQualifiedName());
-        }
-      } else if (aciExp instanceof CCharLiteralExpression) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "The code contains a CCharLiteralExpression, which is unsupported.");
-      } else if (aciExp instanceof CStringLiteralExpression) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "The code contains a CStringLiteralExpression, which is unsupported.");
-      } else if (aciExp instanceof CImaginaryLiteralExpression) {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "The code contains a CImaginaryLiteralExpression, which is unsupported.");
-      } else if (aciExp instanceof CIntegerLiteralExpression) {
-        compareSimpleTypes(
-            ciExp,
-            ((CIntegerLiteralExpression) aciExp).getValue(),
-            (CSimpleType) aciExp.getExpressionType());
-      } else if (aciExp instanceof CFloatLiteralExpression) {
-        compareSimpleTypes(
-            ciExp,
-            ((CFloatLiteralExpression) aciExp).getValue(),
-            (CSimpleType) aciExp.getExpressionType());
-      } else {
-        throw new AppliedCustomInstructionParsingFailedException(
-            "The aci expression " + aciExp + " is not a CSimpleType.");
+        case CCharLiteralExpression unused ->
+            throw new AppliedCustomInstructionParsingFailedException(
+                "The code contains a CCharLiteralExpression, which is unsupported.");
+        case CStringLiteralExpression unused ->
+            throw new AppliedCustomInstructionParsingFailedException(
+                "The code contains a CStringLiteralExpression, which is unsupported.");
+        case CImaginaryLiteralExpression unused ->
+            throw new AppliedCustomInstructionParsingFailedException(
+                "The code contains a CImaginaryLiteralExpression, which is unsupported.");
+        case CIntegerLiteralExpression unused ->
+            compareSimpleTypes(
+                ciExp,
+                ((CIntegerLiteralExpression) aciExp).getValue(),
+                (CSimpleType) aciExp.getExpressionType());
+        case CFloatLiteralExpression unused ->
+            compareSimpleTypes(
+                ciExp,
+                ((CFloatLiteralExpression) aciExp).getValue(),
+                (CSimpleType) aciExp.getExpressionType());
+        default ->
+            throw new AppliedCustomInstructionParsingFailedException(
+                "The aci expression " + aciExp + " is not a CSimpleType.");
       }
       return null;
     }

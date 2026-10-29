@@ -124,8 +124,9 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     SEQUENTIAL
   }
 
-  // Cache is static because it is shared between different instances of DistributedSummarySynthesis
-  private static final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
+  // Decomposition and instrumentation depend on this analysis configuration. A later restart
+  // may use the same CFA with different boundaries, so it must not reuse this cache.
+  private final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
 
   public DistributedSummarySynthesis(
       Configuration pConfig,
@@ -142,6 +143,14 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
+    DssAnalysisOptions analysisOptions = new DssAnalysisOptions(configuration);
+    if (analysisOptions.isDebugModeEnabled() && analysisOptions.compressMessages()) {
+      // contrib/worker-visualization reads the message logs of debug mode, but cannot decode them.
+      logger.log(
+          Level.WARNING,
+          "Debug mode writes dictionary-encoded messages, which the worker visualization cannot"
+              + " display. Set distributedSummaries.compressMessages=false to inspect them.");
+    }
     initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;
     executor = getExecutor(pSpecification);

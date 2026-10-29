@@ -51,4 +51,9 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/no-data-race.prp</propertyfile>
   </tasks>
 
+  <tasks name="cpachecker-tests.termination">
+    <include>../programs/witness-v2-validation/*/*.witness-validation.yml</include>
+    <propertyfile>../config/properties/termination.prp</propertyfile>
+  </tasks>
+
 </benchmark>

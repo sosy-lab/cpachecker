@@ -119,7 +119,8 @@ public class SingleWorkerDssExecutor implements DssExecutor {
       final String outputFileNamePrefix = dssMessage.getType().name();
       final String outputFileName = outputFileNamePrefix + messageCount + ".json";
       Path outputPath = outputMessages.resolve(outputFileName);
-      JSON.writeJSONString(dssMessage.asJson(), outputPath);
+      JSON.writeJSONString(
+          dssMessage.asJsonWithIdentifier(0, options.compressMessages()), outputPath);
       messageCount++;
     }
   }
@@ -175,14 +176,16 @@ public class SingleWorkerDssExecutor implements DssExecutor {
         OldAndNewMessages preparedBatches =
             prepareOldAndNewMessages(knownConditions, newConditions);
 
-        List<DssMessage> oldMessages = new ArrayList<>(preparedBatches.oldMessages());
-        oldMessages.sort(Comparator.comparing(DssMessage::getTimestamp));
+        ImmutableList<DssMessage> oldMessages =
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(DssMessage::getTimestamp), preparedBatches.oldMessages());
         for (DssMessage message : oldMessages) {
           actor.storeMessage(message);
         }
 
-        List<DssMessage> newMessages = new ArrayList<>(preparedBatches.newMessages());
-        newMessages.sort(Comparator.comparing(DssMessage::getTimestamp));
+        ImmutableList<DssMessage> newMessages =
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(DssMessage::getTimestamp), preparedBatches.newMessages());
         DssMessageBroadcaster broadcaster = actor.getConnection().getBroadcaster();
         for (DssMessage message : newMessages) {
           broadcaster.broadcastToIds(message, ImmutableSet.of(actor.getBlockId()));

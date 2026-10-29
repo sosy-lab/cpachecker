@@ -138,46 +138,53 @@ public class MemoryLocationExtractingVisitor
     CType type = expression.getExpressionType();
     Set<MemoryLocation> potentialLocations = new HashSet<>();
 
-    if (pExpression instanceof CIdExpression var) {
-      String varName = var.getName();
-      boolean isLocal = false;
-      if (var.getDeclaration() != null) {
-        CSimpleDeclaration decl = var.getDeclaration();
-        if (!((decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal())
-            || decl instanceof CEnumerator)) {
-          isLocal = true;
+    switch (pExpression) {
+      case CIdExpression var -> {
+        String varName = var.getName();
+        boolean isLocal = false;
+        if (var.getDeclaration() != null) {
+          CSimpleDeclaration decl = var.getDeclaration();
+          if (!((decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal())
+              || decl instanceof CEnumerator)) {
+            isLocal = true;
+          }
+        }
+        if (isLocal) {
+          potentialLocations.add(MemoryLocation.forLocalVariable(functionName, varName));
+        } else {
+          potentialLocations.add(MemoryLocation.parseExtendedQualifiedName(varName));
         }
       }
-      if (isLocal) {
-        potentialLocations.add(MemoryLocation.forLocalVariable(functionName, varName));
-      } else {
-        potentialLocations.add(MemoryLocation.parseExtendedQualifiedName(varName));
-      }
-    } else if (pExpression instanceof CFieldReference fieldRef) {
-      String varName = fieldRef.getFieldName();
-      CExpression owner = fieldRef.getFieldOwner();
-      if (fieldRef.isPointerDereference()) {
-        return new OverapproximatingMemoryLocation(type);
-      } else {
-        OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
-        if (ownerLocation.isAmbiguous()) {
+      case CFieldReference fieldRef -> {
+        String varName = fieldRef.getFieldName();
+        CExpression owner = fieldRef.getFieldOwner();
+        if (fieldRef.isPointerDereference()) {
           return new OverapproximatingMemoryLocation(type);
         } else {
-          varName = ownerLocation.getMemoryLocations().iterator().next() + "." + varName;
-          potentialLocations.add(MemoryLocation.fromQualifiedName(varName));
+          OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
+          if (ownerLocation.isAmbiguous()) {
+            return new OverapproximatingMemoryLocation(type);
+          } else {
+            varName = ownerLocation.getMemoryLocations().iterator().next() + "." + varName;
+            potentialLocations.add(MemoryLocation.fromQualifiedName(varName));
+          }
         }
       }
-    } else if (pExpression instanceof CArraySubscriptExpression) {
-      return new OverapproximatingMemoryLocation(type);
-    } else if (pExpression instanceof CPointerExpression pointerExpression) {
-      if (pointerExpression.getOperand() instanceof CIdExpression cIdExpression) {
-        type = cIdExpression.getDeclaration().getType();
+      case CArraySubscriptExpression unused -> {
+        return new OverapproximatingMemoryLocation(type);
       }
-      return new OverapproximatingMemoryLocation(type);
-    } else if (pExpression instanceof CCastExpression cast) {
-      return getMemoryLocation(cast.getOperand());
-    } else {
-      potentialLocations.add(MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
+      case CPointerExpression pointerExpression -> {
+        if (pointerExpression.getOperand() instanceof CIdExpression cIdExpression) {
+          type = cIdExpression.getDeclaration().getType();
+        }
+        return new OverapproximatingMemoryLocation(type);
+      }
+      case CCastExpression cast -> {
+        return getMemoryLocation(cast.getOperand());
+      }
+      default ->
+          potentialLocations.add(
+              MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
     }
     if (type instanceof CPointerType) {
       return new OverapproximatingMemoryLocation(type);

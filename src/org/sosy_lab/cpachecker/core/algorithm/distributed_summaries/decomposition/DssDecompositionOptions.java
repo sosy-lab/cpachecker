@@ -84,6 +84,11 @@ public class DssDecompositionOptions {
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path importDecomposition = null;
 
+  @Option(
+      secure = true,
+      description = "Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.")
+  private boolean mergeBranchBoundaries = false;
+
   private final BlockOperator blockOperator;
   private final boolean debugMode;
 
@@ -91,7 +96,10 @@ public class DssDecompositionOptions {
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     blockOperator = new BlockOperator();
-    pConfiguration.inject(blockOperator);
+    // Decomposition boundaries need not also be abstraction points in witness replay.
+    // The prefixed configuration falls back to the existing unprefixed options.
+    Configuration.copyWithNewPrefix(pConfiguration, "distributedSummaries.decomposition")
+        .inject(blockOperator);
     try {
       blockOperator.setCFA(pCFA);
     } catch (CPAException e) {
@@ -109,26 +117,28 @@ public class DssDecompositionOptions {
       return new ImportDecomposition(importData);
     }
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
-    return switch (decompositionType) {
-      case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
-      case MERGE_DECOMPOSITION ->
-          new MergeBlockNodesDecomposition(
-              new LinearBlockNodeDecomposition(isBlockEnd),
-              2,
-              largestHorizontalMerge,
-              Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-              allowSingleBlockDecompositionWhenMerging,
-              true);
-      case INLINING_DECOMPOSITION ->
-          new MergeBlockNodesDecomposition(
-              new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd), debugMode),
-              2,
-              largestHorizontalMerge,
-              Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-              allowSingleBlockDecompositionWhenMerging,
-              true);
-      case NO_DECOMPOSITION -> new SingleBlockDecomposition();
-    };
+    DssBlockDecomposition result =
+        switch (decompositionType) {
+          case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
+          case MERGE_DECOMPOSITION ->
+              new MergeBlockNodesDecomposition(
+                  new LinearBlockNodeDecomposition(isBlockEnd),
+                  2,
+                  largestHorizontalMerge,
+                  Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+                  allowSingleBlockDecompositionWhenMerging,
+                  true);
+          case INLINING_DECOMPOSITION ->
+              new MergeBlockNodesDecomposition(
+                  new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd), debugMode),
+                  2,
+                  largestHorizontalMerge,
+                  Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+                  allowSingleBlockDecompositionWhenMerging,
+                  true);
+          case NO_DECOMPOSITION -> new SingleBlockDecomposition();
+        };
+    return mergeBranchBoundaries ? new BranchBoundaryMergeDecomposition(result) : result;
   }
 
   public Path getBlockCFAFile() {
