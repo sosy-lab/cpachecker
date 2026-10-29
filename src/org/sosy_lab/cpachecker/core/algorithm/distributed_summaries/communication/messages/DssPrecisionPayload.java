@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DssCompositePrecisionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicatePrecisionPayload;
 
 /**
  * Jackson payload for a distributed-CPA precision.
@@ -23,6 +26,16 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
  * subtype registry for both state and precision payloads.
  */
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessagePayload.TYPE)
+@JsonSubTypes({
+  @JsonSubTypes.Type(
+      value = DssPredicatePrecisionPayload.class,
+      name = DssComponentKey.SerializedNames.PREDICATE_PRECISION),
+  @JsonSubTypes.Type(
+      value = DssCompositePrecisionPayload.class,
+      name = DssComponentKey.SerializedNames.COMPOSITE_PRECISION),
+  @JsonSubTypes.Type(
+      value = DssNoPrecisionPayload.class, name = DssComponentKey.SerializedNames.NO_PRECISION)
+})
 public interface DssPrecisionPayload {
   DssComponentKey getComponentKey();
 }

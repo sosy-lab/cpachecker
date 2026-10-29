@@ -25,20 +25,20 @@ SPDX-License-Identifier: Apache-2.0
         <conf name="test"/>
 
         <!-- Dependencies needed for running source-code auto-formatter. -->
-        <conf name="format-source" />
+        <conf name="format-source"/>
 
         <!-- Dependencies needed for benchmarking. -->
-        <conf name="benchmark" />
+        <conf name="benchmark"/>
 
         <!-- Dependencies needed for running SpotBugs. -->
-        <conf name="spotbugs" />
+        <conf name="spotbugs"/>
 
         <!-- Dependencies needed for running CheckStyle. -->
-        <conf name="checkstyle" />
+        <conf name="checkstyle"/>
 
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
-        <conf name="contrib" />
+        <conf name="contrib"/>
     </configurations>
 
     <dependencies>
@@ -55,9 +55,9 @@ SPDX-License-Identifier: Apache-2.0
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.10"
                     conf="runtime->runtime; contrib->sources">
-          <!-- Exclude large binary library because LLVM frontend is disabled.
-               We keep llvm-j such that our code still compiles. -->
-          <exclude org="org.sosy_lab" module="llvm-lib-9"/>
+            <!-- Exclude large binary library because LLVM frontend is disabled.
+                 We keep llvm-j such that our code still compiles. -->
+            <exclude org="org.sosy_lab" module="llvm-lib-9"/>
         </dependency>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
@@ -140,33 +140,43 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <!-- Synchronize version with REFASTER_VERSION in ../.gitlab-ci.yml! -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.50.0" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.50.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.50.0"
+                    conf="build->default"/>
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.50.0"
+                    conf="build->default; contrib->sources"/>
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
-        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.10" conf="build->default" />
+        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.10" conf="build->default"/>
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.38" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.38"
+                    conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.36.1" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.36.1"
+                    conf="format-source->default"/>
 
         <!-- SpotBugs -->
-        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.10.4" conf="spotbugs->default"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.10.4"
+                    conf="spotbugs->default"/>
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
-        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.10.4" conf="runtime->default; contrib->sources"/>
-        <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.10.4"
+                    conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2"
+                    conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.1" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="14.1.0" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.1"
+                    conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="14.1.0"
+                    conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
-        <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
+        <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}"
+                    conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
@@ -177,37 +187,50 @@ SPDX-License-Identifier: Apache-2.0
              or just add the additional dependency 'javasmt-yices2':
              <dependency org="org.sosy_lab" name="javasmt-yices2" rev="5.0.1-1258-gdad634a69" conf="runtime->runtime; contrib->sources"/>
         -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="6.0.0" conf="runtime->runtime-without-gpl; contrib->sources">
-          <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
-          <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
-          <exclude org="org.sosy_lab" module="javasmt-solver-mathsat"/>
-          <exclude org="org.sosy_lab" module="javasmt-solver-z3"/>
+        <dependency org="org.sosy_lab" name="java-smt" rev="6.0.0"
+                    conf="runtime->runtime-without-gpl; contrib->sources">
+            <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
+            <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
+            <exclude org="org.sosy_lab" module="javasmt-solver-mathsat"/>
+            <exclude org="org.sosy_lab" module="javasmt-solver-z3"/>
         </dependency>
         <!-- MathSAT5 beyond 5.6.11 requires system dependencies equivalent of Ubuntu 24.04/Debian 13 or greater.
              We use version 5.6.11 as an intermediate step to give users and our systems some time to upgrade
              before switching to newer MathSAT5 versions.
         -->
-        <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.6.11" conf="runtime->solver-mathsat" />
+        <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.6.11"
+                    conf="runtime->solver-mathsat"/>
 
         <!-- Z3 starting from 4.13.X requires system dependencies equivalent of Ubuntu 24.04/Debian 13 or greater.
              We use version 4.12.5 (JavaSMT release 5.0.1) as an intermediate step to give users and
              our systems some time to upgrade before switching to newer Z3 versions.
         -->
-        <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="4.12.5" conf="runtime->solver-z3" />
+        <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="4.12.5"
+                    conf="runtime->solver-z3"/>
 
 
         <!-- YAML parser -->
-        <dependency org="com.fasterxml.jackson.dataformat" name="jackson-dataformat-yaml" rev="2.12.3" conf="runtime->default"/>
+        <dependency org="com.fasterxml.jackson.dataformat" name="jackson-dataformat-yaml"
+                    rev="2.12.3" conf="runtime->default"/>
+
+        <!-- JSON schema generator -->
+        <dependency org="com.github.victools" name="jsonschema-generator" rev="4.38.0"
+                    conf="runtime->default"/>
+        <dependency org="com.github.victools" name="jsonschema-module-jackson" rev="4.38.0"
+                    conf="runtime->default"/>
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2022-10-13-r05bfb7ad3d" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker"
+                    rev="2022-10-13-r05bfb7ad3d" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Batik library for creating svg-images -->
-        <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
+        <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12"
+                    conf="runtime->default; contrib->sources">
             <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>
         </dependency>
-        <dependency org="org.apache.xmlgraphics" name="batik-dom" rev="1.12" conf="runtime->default; contrib->sources">
+        <dependency org="org.apache.xmlgraphics" name="batik-dom" rev="1.12"
+                    conf="runtime->default; contrib->sources">
             <exclude org="xml-apis" module="xml-apis-ext"/>
             <exclude org="xml-apis" module="xml-apis"/>
             <exclude org="xalan" module="xalan"/>

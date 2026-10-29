@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
  * part of the wire format and must remain independent of the implementing Java class names.
  */
 public final class DssStatePayloadModule extends SimpleModule {
-  public static final String NO_PRECISION = "noPrecision";
   @Serial private static final long serialVersionUID = -4429488243946317868L;
 
   public DssStatePayloadModule() {
@@ -52,6 +51,7 @@ public final class DssStatePayloadModule extends SimpleModule {
         new NamedType(
             DssCompositePrecisionPayload.class,
             DssComponentKey.COMPOSITE_PRECISION.getSerializedName()),
-        new NamedType(DssNoPrecisionPayload.class, NO_PRECISION));
+        new NamedType(
+            DssNoPrecisionPayload.class, DssComponentKey.NO_PRECISION.getSerializedName()));
   }
 }
