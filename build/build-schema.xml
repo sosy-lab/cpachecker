@@ -13,7 +13,7 @@
             depends="build-project"
             description="Generate the distributed-summaries JSON schema">
         <java
-            classname="org.sosy_lab.cpachecker.tools.schema.HelloWorld"
+            classname="org.sosy_lab.cpachecker.tools.schema.DssSchemaGenerator"
             fork="true"
             failonerror="true">
             <classpath refid="classpath"/>

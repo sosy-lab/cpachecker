@@ -28,15 +28,29 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
  * readers, writers, tests, and tools that consume the format.
  */
 public enum DssComponentKey {
-  BLOCK_STATE(BlockState.class, "blockState"),
-  CALLSTACK_STATE(CallstackState.class, "callstackState"),
-  FUNCTION_POINTER_STATE(FunctionPointerState.class, "functionPointerState"),
-  LOCATION_STATE(LocationState.class, "locationState"),
-  PREDICATE_STATE(PredicateAbstractState.class, "predicateState"),
-  COMPOSITE_STATE(CompositeState.class, "compositeState"),
-  PREDICATE_PRECISION(PredicatePrecision.class, "predicatePrecision"),
-  COMPOSITE_PRECISION(CompositePrecision.class, "compositePrecision"),
-  NO_PRECISION(DssNoPrecisionPayload.class, "noPrecision");
+  BLOCK_STATE(BlockState.class, SerializedNames.BLOCK_STATE),
+  CALLSTACK_STATE(CallstackState.class, SerializedNames.CALLSTACK_STATE),
+  FUNCTION_POINTER_STATE(FunctionPointerState.class, SerializedNames.FUNCTION_POINTER_STATE),
+  LOCATION_STATE(LocationState.class, SerializedNames.LOCATION_STATE),
+  PREDICATE_STATE(PredicateAbstractState.class, SerializedNames.PREDICATE_STATE),
+  COMPOSITE_STATE(CompositeState.class, SerializedNames.COMPOSITE_STATE),
+  PREDICATE_PRECISION(PredicatePrecision.class, SerializedNames.PREDICATE_PRECISION),
+  COMPOSITE_PRECISION(CompositePrecision.class, SerializedNames.COMPOSITE_PRECISION),
+  NO_PRECISION(DssNoPrecisionPayload.class, SerializedNames.NO_PRECISION);
+
+  public static final class SerializedNames {
+    public static final String BLOCK_STATE = "blockState";
+    public static final String CALLSTACK_STATE = "callstackState";
+    public static final String FUNCTION_POINTER_STATE = "functionPointerState";
+    public static final String LOCATION_STATE = "locationState";
+    public static final String PREDICATE_STATE = "predicateState";
+    public static final String COMPOSITE_STATE = "compositeState";
+    public static final String PREDICATE_PRECISION = "predicatePrecision";
+    public static final String COMPOSITE_PRECISION = "compositePrecision";
+    public static final String NO_PRECISION = "noPrecision";
+
+    private SerializedNames() {}
+  }
 
   private static final ImmutableMap<Class<?>, DssComponentKey> BY_CLASS =
       Arrays.stream(values())

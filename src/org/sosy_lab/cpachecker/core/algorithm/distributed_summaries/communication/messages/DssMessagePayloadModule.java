@@ -26,11 +26,11 @@ public class DssMessagePayloadModule extends SimpleModule {
     super("DssMessagePayloadModule");
 
     registerSubtypes(
-        new NamedType(DssPostConditionPayload.class, "postCondition"),
-        new NamedType(DssViolationConditionPayload.class, "violationCondition"),
-        new NamedType(DssResultPayload.class, "result"),
-        new NamedType(DssExceptionPayload.class, "exception"),
-        new NamedType(DssViolationWitnessPayload.class, "violationWitness"),
-        new NamedType(DssCorrectnessWitnessPayload.class, "correctnessWitness"));
+        new NamedType(DssPostConditionPayload.class, DssMessagePayload.POST_CONDITION),
+        new NamedType(DssViolationConditionPayload.class, DssMessagePayload.VIOLATION_CONDITION),
+        new NamedType(DssResultPayload.class, DssMessagePayload.RESULT),
+        new NamedType(DssExceptionPayload.class, DssMessagePayload.EXCEPTION),
+        new NamedType(DssViolationWitnessPayload.class, DssMessagePayload.VIOLATION_WITNESS),
+        new NamedType(DssCorrectnessWitnessPayload.class, DssMessagePayload.CORRECTNESS_WITNESS));
   }
 }
