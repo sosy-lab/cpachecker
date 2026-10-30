@@ -44,7 +44,7 @@ public final class SeqThreadStatementUtil {
     for (SubstituteEdge substituteEdge : pStatement.data().getSubstituteEdges()) {
       CFAEdgeForThread threadEdge = substituteEdge.getThreadEdge();
       // use the predecessor, since we require information about this statement
-      if (threadEdge.getPredecessor().blockTypes.contains(BlockType.ATOMIC)) {
+      if (threadEdge.getPredecessor().blockTypes.containsValue(BlockType.ATOMIC)) {
         return true;
       }
     }

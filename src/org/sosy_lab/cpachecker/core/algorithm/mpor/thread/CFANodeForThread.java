@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -53,7 +53,7 @@ public class CFANodeForThread {
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
   private final List<CFAEdgeForThread> leavingEdges;
 
-  public final ImmutableSet<BlockType> blockTypes;
+  public final ImmutableMap<SeqCallContext, BlockType> blockTypes;
 
   CFANodeForThread(
       int pThreadId,
@@ -61,7 +61,7 @@ public class CFANodeForThread {
       int pPc,
       SeqCallContext pCallContext,
       List<CFAEdgeForThread> pLeavingEdges,
-      ImmutableSet<BlockType> pBlockTypes) {
+      ImmutableMap<SeqCallContext, BlockType> pBlockTypes) {
 
     id = getNewId();
     threadId = pThreadId;

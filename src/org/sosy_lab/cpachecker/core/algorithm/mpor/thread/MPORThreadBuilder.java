@@ -14,16 +14,13 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Table;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -175,7 +172,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         threadEdges,
         pEntryNode,
         // at start, there is never any block
-        ImmutableTable.of(),
+        ImmutableMap.of(),
         // at start, use an empty call context
         SeqCallContext.EMPTY,
         pStartRoutineCall);
@@ -208,7 +205,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       ImmutableList.Builder<CFANodeForThread> pThreadNodes,
       ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> pThreadEdges,
       CFANode pCurrentNode,
-      ImmutableTable<SeqCallContext, BlockType, CFunctionCall> pBlockTypes,
+      ImmutableMap<SeqCallContext, BlockType> pBlockTypes,
       SeqCallContext pCallContext,
       final Optional<CFAEdgeForThread> pStartRoutineCall)
       throws UnsupportedCodeException {
@@ -241,16 +238,11 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               callContext,
               edgeList,
               // Thread exits are never in any block.
-              ImmutableSet.of()));
+              ImmutableMap.of()));
     } else {
       pThreadNodes.add(
           new CFANodeForThread(
-              pThreadId,
-              pCurrentNode,
-              currentPc++,
-              callContext,
-              edgeList,
-              pBlockTypes.columnKeySet()));
+              pThreadId, pCurrentNode, currentPc++, callContext, edgeList, pBlockTypes));
       for (CFAEdge cfaEdge : threadEdges.values()) {
         // Exclude CFunctionReturnEdges in the search, their successors may be in other threads.
         // The original, same-thread successor is included due to the CFunctionSummaryEdge.
@@ -274,25 +266,22 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
   /**
    * Updates the {@link BlockType}s so that they are still valid after the given {@link CFAEdge} is
-   * executed. Returns the table mapping call contexts and block types to the {@link CFunctionCall}
-   * that triggered the block. Since the {@link CFunctionCall} may be injected and not present in
-   * the input program, the {@link SeqCallContext} and {@link CFunctionCall} may differ.
+   * executed. Returns the map of call contexts (that triggered the block) to block types.
    */
-  private ImmutableTable<SeqCallContext, BlockType, CFunctionCall> updateBlockTypes(
+  private ImmutableMap<SeqCallContext, BlockType> updateBlockTypes(
       CFAEdge pCfaEdge,
       SeqCallContext pCallContext,
-      ImmutableTable<SeqCallContext, BlockType, CFunctionCall> pCurrentBlockTypes)
-      throws UnsupportedCodeException {
+      ImmutableMap<SeqCallContext, BlockType> pCurrentBlockTypes) {
 
-    // Use a mutable table so that elements can be removed.
-    Table<SeqCallContext, BlockType, CFunctionCall> blockTypes =
-        HashBasedTable.create(pCurrentBlockTypes);
+    // Use a mutable map so that elements can be removed.
+    Map<SeqCallContext, BlockType> rBlockTypes = new HashMap<>(pCurrentBlockTypes);
 
-    if (blockTypes.contains(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE)) {
+    if (rBlockTypes.containsKey(pCallContext)
+        && rBlockTypes.get(pCallContext).equals(BlockType.PTHREAD_ONCE_ROUTINE)) {
+      CFunctionCallEdge callContextEdge =
+          (CFunctionCallEdge) pCallContext.cfaEdgeForThread().orElseThrow().cfaEdge;
       CFunctionDeclaration initRoutineDeclaration =
-          Objects.requireNonNull(blockTypes.get(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE))
-              .getFunctionCallExpression()
-              .getDeclaration();
+          callContextEdge.getFunctionCallExpression().getDeclaration();
 
       // The pthread_once init_routine is left only if the successor is inside the init_routine
       // and if it is a FunctionExitNode. This excludes inner functions called inside init_routine.
@@ -300,7 +289,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
           && pCfaEdge.getSuccessor() instanceof FunctionExitNode
           // Since the init_routine call was not present in the input, there are no leaving edges.
           && pCfaEdge.getSuccessor().getLeavingEdges().isEmpty()) {
-        blockTypes.remove(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE);
+        rBlockTypes.remove(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE);
       }
     }
 
@@ -308,10 +297,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     if (functionCall.isPresent()) {
       CFunctionCall call = functionCall.orElseThrow();
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
-        blockTypes.put(pCallContext, BlockType.ATOMIC, call);
+        rBlockTypes.put(pCallContext, BlockType.ATOMIC);
       }
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_END)) {
-        blockTypes.remove(pCallContext, BlockType.ATOMIC);
+        rBlockTypes.remove(pCallContext, BlockType.ATOMIC);
       }
     }
 
@@ -321,17 +310,11 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       CFAEdge predecessorEdge =
           Iterables.getOnlyElement(pCfaEdge.getPredecessor().getAllEnteringEdges());
       if (PthreadUtil.isCallToPthreadFunction(predecessorEdge, PthreadFunctionType.PTHREAD_ONCE)) {
-        CFunctionCall predecessorFunctionCall =
-            PthreadUtil.tryGetFunctionCallFromCfaEdge(predecessorEdge).orElseThrow();
-        CFunctionDeclaration initRoutineDeclaration =
-            PthreadUtil.extractStartRoutineDeclaration(predecessorFunctionCall);
-        CFunctionCall initRoutineCall =
-            PthreadUtil.createStartRoutineFunctionCall(initRoutineDeclaration, Optional.empty());
-        blockTypes.put(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE, initRoutineCall);
+        rBlockTypes.put(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE);
       }
     }
 
-    return ImmutableTable.copyOf(blockTypes);
+    return ImmutableMap.copyOf(rBlockTypes);
   }
 
   private SeqCallContext updateCallContext(
