@@ -79,28 +79,6 @@ public class CFANodeForThread {
     blockTypes = pBlockTypes;
   }
 
-  private CFANodeForThread(
-      int pId,
-      int pThreadId,
-      CFANode pCfaNode,
-      int pPc,
-      SeqCallContext pCallContext,
-      List<CFAEdgeForThread> pEnteringEdges,
-      List<CFAEdgeForThread> pLeavingEdges,
-      ImmutableMap<SeqCallContext, BlockType> pBlockTypes) {
-
-    checkNumLeavingEdges(pCfaNode, pLeavingEdges);
-
-    id = pId;
-    threadId = pThreadId;
-    cfaNode = pCfaNode;
-    pc = pPc;
-    callContext = pCallContext;
-    enteringEdges = pEnteringEdges;
-    leavingEdges = pLeavingEdges;
-    blockTypes = pBlockTypes;
-  }
-
   private static void checkNumLeavingEdges(CFANode pCfaNode, List<CFAEdgeForThread> pLeavingEdges) {
     checkArgument(pLeavingEdges.size() <= 3 || pCfaNode instanceof FunctionExitNode);
   }
