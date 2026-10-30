@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -114,11 +115,27 @@ public class TransitionInvariantUtils {
             .collect(ImmutableSet.toImmutableSet()));
   }
 
-  public static String transformFormulaToStringWithTrivialReplacement(
+  public static String transformFormulaToStringWithReplacement(
       BooleanFormula pFormula,
       BooleanFormulaManagerView bfmgr,
       FormulaManagerView fmgr,
       Scope pScope)
+      throws CPAException {
+    return transformFormulaToStringWithReplacement(
+        pFormula, bfmgr, fmgr, pScope, Function.identity());
+  }
+
+  /**
+   * Transforms the formula to a C expression like {@link
+   * #transformFormulaToStringWithReplacement(BooleanFormula, BooleanFormulaManagerView,
+   * FormulaManagerView, Scope)}, where the variables get the names given by the function.
+   */
+  public static String transformFormulaToStringWithReplacement(
+      BooleanFormula pFormula,
+      BooleanFormulaManagerView bfmgr,
+      FormulaManagerView fmgr,
+      Scope pScope,
+      Function<String, String> pVariableNames)
       throws CPAException {
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
     try {
@@ -132,7 +149,8 @@ public class TransitionInvariantUtils {
       } else if (bfmgr.isFalse(formula)) {
         return "0";
       }
-      return converter.formulaToCExpression(formula);
+      return converter.formulaToCExpression(
+          fmgr.renameFreeVariablesAndUFs(formula, pVariableNames));
     } catch (SolverException | InterruptedException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }
@@ -176,9 +194,12 @@ public class TransitionInvariantUtils {
       if (currIndex < 0 && !isPrevVariable(var, pMapPrevToCurrVars)) {
         continue;
       }
+      // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
+      // renamed it, but the scope knows it only as main::i or i__1. The name without the
+      // function is unique, since the scope has only the variables in scope at the loop.
       builder.setIndex(
           var,
-          scope.lookupVariable(var).getType(),
+          scope.lookupVariable(removeFunctionFromVarsName(var)).getType(),
           isPrevVariable(var, pMapPrevToCurrVars) ? prevIndex : currIndex);
     }
     return builder.build();
@@ -206,7 +227,7 @@ public class TransitionInvariantUtils {
     for (Map.Entry<String, Formula> entry : prevMapNamesToVars.entrySet()) {
       String prevVarPure =
           removeFunctionFromVarsName(
-              fmgr.extractVariables(fmgr.uninstantiate(entry.getValue())).keySet().stream()
+              fmgr.extractVariableNames(fmgr.uninstantiate(entry.getValue())).stream()
                   .findAny()
                   .orElseThrow());
       String prevVar = entry.getKey();
@@ -217,7 +238,7 @@ public class TransitionInvariantUtils {
         for (Map.Entry<String, Formula> entry2 : currMapNamesToVars.entrySet()) {
           String currVarPure =
               removeFunctionFromVarsName(
-                  fmgr.extractVariables(fmgr.uninstantiate(entry2.getValue())).keySet().stream()
+                  fmgr.extractVariableNames(fmgr.uninstantiate(entry2.getValue())).stream()
                       .findAny()
                       .orElseThrow());
           if (currVarName.equals(currVarPure)) {
