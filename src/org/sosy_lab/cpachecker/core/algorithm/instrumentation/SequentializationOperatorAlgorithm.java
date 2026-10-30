@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -263,8 +265,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
   /*
    * This method computes line number depending on the pattern. For example, if the pattern is
-   * [!cond], then we want to add the edge only after the real statement in the program. Further, if
-   * the line number could not be parsed and the source state of the transition is annotated with
+   * !cond, then the edge has the line number of the condition, but we want to add the operation
+   * at the first statement after the negated branch (e.g., after the loop) for both orders. Further,
+   * if the line number could not be parsed and the source state of the transition is annotated with
    * INIT then the intended line number is 0. Moreover, if the order is BEFORE, we want to include
    * the edge one line before the real operation and similarly for AFTER.
    */
@@ -298,15 +301,22 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       } else {
         functionName = pTransition.getPattern().getFunctionName();
       }
-      if (pTransition.getPattern().toString().equals("[!cond]")) {
-        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
+      // The line after the negated branch is already the line at which the operation has to be
+      // inserted, so it must not be moved by the order AFTER.
+      Integer lineAfterBranch = null;
+      if (pTransition.getPattern().toString().equals("!cond")) {
+        lineAfterBranch = getLineAfterBranch(pEdge.getSuccessor());
       }
-      fileLocation = fileLocation.replaceFirst("line ", "");
-      fileLocation =
-          Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
-      location = Integer.parseInt(fileLocation);
-      if (pTransition.getOrderAsString().equals("AFTER")) {
-        location += 1;
+      if (lineAfterBranch != null) {
+        location = lineAfterBranch;
+      } else {
+        fileLocation = fileLocation.replaceFirst("line ", "");
+        fileLocation =
+            Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
+        location = Integer.parseInt(fileLocation);
+        if (pTransition.getOrderAsString().equals("AFTER")) {
+          location += 1;
+        }
       }
       return pTransition.getOrderAsString().equals("SAME_LINE")
           ? location + "|||S|||" + functionName + "|||"
@@ -315,6 +325,30 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       logger.logException(Level.SEVERE, e, "The line number is not Integer !");
     }
     return "";
+  }
+
+  /*
+   * Computes the line at which an operation has to be inserted so that it is executed right after
+   * the branch that leads to pNode. This is the line of the first following edge with a real
+   * location, e.g., the first statement after a loop. Edges without a real location, e.g., the
+   * default return of a function, are skipped. If no such edge exists, the operation is inserted
+   * before the closing brace of the function. Returns null if the line cannot be determined.
+   */
+  private @Nullable Integer getLineAfterBranch(CFANode pNode) {
+    CFANode node = pNode;
+    Set<CFANode> visited = new HashSet<>();
+    while (node.getNumLeavingEdges() > 0 && visited.add(node)) {
+      CFAEdge edge = node.getLeavingEdge(0);
+      if (edge.getFileLocation().isRealLocation()) {
+        return edge.getFileLocation().getStartingLineInOrigin();
+      }
+      node = edge.getSuccessor();
+    }
+    if (node instanceof FunctionExitNode exitNode
+        && exitNode.getEntryNode().getFileLocation().isRealLocation()) {
+      return exitNode.getEntryNode().getFileLocation().getEndingLineInOrigin();
+    }
+    return null;
   }
 
   private void writeAllInformationIntoOutputFile(List<String> newEdges) {
