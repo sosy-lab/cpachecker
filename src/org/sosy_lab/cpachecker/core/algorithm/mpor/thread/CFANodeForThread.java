@@ -12,9 +12,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class CFANodeForThread {
@@ -50,6 +52,8 @@ public class CFANodeForThread {
 
   public final SeqCallContext callContext;
 
+  private final List<CFAEdgeForThread> enteringEdges;
+
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
   private final List<CFAEdgeForThread> leavingEdges;
 
@@ -63,13 +67,43 @@ public class CFANodeForThread {
       List<CFAEdgeForThread> pLeavingEdges,
       ImmutableMap<SeqCallContext, BlockType> pBlockTypes) {
 
+    checkNumLeavingEdges(pCfaNode, ImmutableList.copyOf(pLeavingEdges));
+
     id = getNewId();
     threadId = pThreadId;
     cfaNode = pCfaNode;
     pc = pPc;
     callContext = pCallContext;
+    enteringEdges = new ArrayList<>();
     leavingEdges = pLeavingEdges;
     blockTypes = pBlockTypes;
+  }
+
+  private CFANodeForThread(
+      int pId,
+      int pThreadId,
+      CFANode pCfaNode,
+      int pPc,
+      SeqCallContext pCallContext,
+      ImmutableList<CFAEdgeForThread> pEnteringEdges,
+      ImmutableList<CFAEdgeForThread> pLeavingEdges,
+      ImmutableMap<SeqCallContext, BlockType> pBlockTypes) {
+
+    checkNumLeavingEdges(pCfaNode, pLeavingEdges);
+
+    id = pId;
+    threadId = pThreadId;
+    cfaNode = pCfaNode;
+    pc = pPc;
+    callContext = pCallContext;
+    enteringEdges = pEnteringEdges;
+    leavingEdges = pLeavingEdges;
+    blockTypes = pBlockTypes;
+  }
+
+  private static void checkNumLeavingEdges(
+      CFANode pCfaNode, ImmutableList<CFAEdgeForThread> pLeavingEdges) {
+    checkArgument(pLeavingEdges.size() <= 3 || pCfaNode instanceof FunctionExitNode);
   }
 
   public CFAEdgeForThread firstLeavingEdge() {
@@ -94,8 +128,21 @@ public class CFANodeForThread {
     leavingEdges.remove(pThreadEdge);
   }
 
+  void addEnteringEdge(CFAEdgeForThread pEnteringEdge) {
+    checkArgument(pEnteringEdge.getSuccessor().equals(this));
+    enteringEdges.add(pEnteringEdge);
+  }
+
   CFANodeForThread withLeavingEdges(ImmutableList<CFAEdgeForThread> pLeavingEdges) {
-    return new CFANodeForThread(threadId, cfaNode, pc, callContext, pLeavingEdges, blockTypes);
+    return new CFANodeForThread(
+        id,
+        threadId,
+        cfaNode,
+        pc,
+        callContext,
+        ImmutableList.copyOf(enteringEdges),
+        pLeavingEdges,
+        blockTypes);
   }
 
   @Override

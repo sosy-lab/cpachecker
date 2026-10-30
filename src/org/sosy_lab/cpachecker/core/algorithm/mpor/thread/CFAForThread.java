@@ -79,6 +79,8 @@ public class CFAForThread {
     threadNodes = ImmutableList.copyOf(finalNodes);
     threadEdges = ImmutableList.copyOf(finalEdges);
 
+    initEnteringEdges(threadEdges, threadNodes);
+
     nextFreePc = MPORThreadUtil.getHighestPc(threadNodes) + 1;
   }
 
@@ -201,6 +203,18 @@ public class CFAForThread {
               }
             }
           }
+        }
+      }
+    }
+  }
+
+  private static void initEnteringEdges(
+      ImmutableList<CFAEdgeForThread> pThreadEdges, ImmutableList<CFANodeForThread> pThreadNodes) {
+
+    for (CFANodeForThread threadNode : pThreadNodes) {
+      for (CFAEdgeForThread threadEdge : pThreadEdges) {
+        if (threadEdge.getSuccessor().equals(threadNode)) {
+          threadNode.addEnteringEdge(threadEdge);
         }
       }
     }
