@@ -175,6 +175,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
+        // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
+        // renamed it, but the scope knows it only as main::i or i__1. The name without the
+        // function is unique, since the scope has only the variables in scope at the loop.
         CSimpleDeclaration declaration =
             scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
         if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
