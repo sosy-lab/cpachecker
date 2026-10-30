@@ -500,6 +500,7 @@ public record SeqThreadStatementClauseBuilder(
     SeqThreadStatementBlock block =
         new SeqThreadStatementBlock(
             pThread.id(), pLabelPc, isLoopHead, pStatements, pNextThreadLabel);
-    return new SeqThreadStatementClause(options, block);
+    return new SeqThreadStatementClause(
+        options, block.withRequiredInstrumentation(substituteEdges));
   }
 }

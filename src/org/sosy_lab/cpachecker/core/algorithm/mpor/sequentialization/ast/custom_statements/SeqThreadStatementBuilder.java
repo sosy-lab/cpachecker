@@ -622,9 +622,10 @@ public record SeqThreadStatementBuilder(
   private ImmutableList<SeqThreadStatement> buildOnceLockStatements(
       SubstituteEdge pSubstituteEdge, int pTargetPc) throws UnrecognizedCodeException {
 
-    ImmutableList<CExpression> expressions = getUpdatedParameterExpressions(pSubstituteEdge);
+    ImmutableList<CExpression> expressions =
+        getUpdatedParameterExpressions(pSubstituteEdge.cfaEdge);
     CExpression onceIfExpression =
-        PthreadFunctionSubstitution.buildOnceIfExpression(expressions, binaryExpressionBuilder);
+        PthreadFunctionSubstitution.buildOnceLockIfExpression(expressions, binaryExpressionBuilder);
 
     SeqThreadStatementDataWithIfExpression data =
         new SeqThreadStatementDataWithIfExpression(
@@ -648,14 +649,14 @@ public record SeqThreadStatementBuilder(
             data,
             // the then branch enters the init_routine, so use the given target pc
             pTargetPc,
-            ImmutableList.of(PthreadFunctionSubstitution.buildOnceThenStatement(expressions)));
+            ImmutableList.of(PthreadFunctionSubstitution.buildOnceLockThenStatement(expressions)));
     SeqThreadStatement elseStatement =
         SeqThreadStatement.of(
             data,
             // the else branch skips the init_routine, so use the CFunctionSummaryEdge target pc
             functionSummaryEdge.getSuccessor().pc,
             ImmutableList.of(
-                PthreadFunctionSubstitution.buildOnceElseStatement(
+                PthreadFunctionSubstitution.buildOnceLockElseStatement(
                     expressions, binaryExpressionBuilder)));
     return ImmutableList.of(thenStatement, elseStatement);
   }
@@ -683,7 +684,8 @@ public record SeqThreadStatementBuilder(
       SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
       throws UnrecognizedCodeException {
 
-    ImmutableList<CExpression> expressions = getUpdatedParameterExpressions(pSubstituteEdge);
+    ImmutableList<CExpression> expressions =
+        getUpdatedParameterExpressions(pSubstituteEdge.cfaEdge);
 
     return switch (pStatementType) {
       case BARRIER_INIT ->
@@ -723,14 +725,11 @@ public record SeqThreadStatementBuilder(
     };
   }
 
-  private static ImmutableList<CExpression> getUpdatedParameterExpressions(
-      SubstituteEdge pSubstituteEdge) {
-
-    CFunctionCall functionCall =
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
-
+  static ImmutableList<CExpression> getUpdatedParameterExpressions(CFAEdge pCfaEdge) {
+    CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(pCfaEdge).orElseThrow();
     ImmutableList<CExpression> rExpressions =
         functionCall.getFunctionCallExpression().getParameterExpressions();
+
     if (!isAnyPointer(rExpressions)) {
       ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
       for (CExpression expression : rExpressions) {

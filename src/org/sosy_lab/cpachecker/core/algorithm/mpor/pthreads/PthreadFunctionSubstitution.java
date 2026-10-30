@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -182,11 +183,20 @@ public class PthreadFunctionSubstitution {
   // pthread_once_t
 
   // semantics:
-  // 0 -> not taken yet
-  // 1 -> taken
-  // 2 -> finished
+  // 0 -> free (not locked yet by any thread)
+  // 1 -> locked
+  // 2 -> unlocked
 
-  public static CExpression buildOnceIfExpression(
+  private static final CIntegerLiteralExpression ONCE_FREE_EXPRESSION =
+      CIntegerLiteralExpression.ZERO;
+
+  private static final CIntegerLiteralExpression ONCE_LOCKED_EXPRESSION =
+      CIntegerLiteralExpression.ONE;
+
+  private static final CIntegerLiteralExpression ONCE_UNLOCKED_EXPRESSION =
+      SeqExpressionBuilder.buildIntegerLiteralExpression(2);
+
+  public static CExpression buildOnceLockIfExpression(
       ImmutableList<CExpression> pExpressions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -196,10 +206,10 @@ public class PthreadFunctionSubstitution {
                 PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
                     PthreadObjectType.PTHREAD_ONCE_T));
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        onceExpression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+        onceExpression, ONCE_FREE_EXPRESSION, BinaryOperator.EQUALS);
   }
 
-  public static CCompoundStatementElement buildOnceThenStatement(
+  public static CCompoundStatementElement buildOnceLockThenStatement(
       ImmutableList<CExpression> pExpressions) {
     CIdExpression onceExpression =
         (CIdExpression)
@@ -208,10 +218,10 @@ public class PthreadFunctionSubstitution {
                     PthreadObjectType.PTHREAD_ONCE_T));
     return new CStatementWrapper(
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, onceExpression, CIntegerLiteralExpression.ONE));
+            FileLocation.DUMMY, onceExpression, ONCE_LOCKED_EXPRESSION));
   }
 
-  public static CCompoundStatementElement buildOnceElseStatement(
+  public static CCompoundStatementElement buildOnceLockElseStatement(
       ImmutableList<CExpression> pExpressions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -225,6 +235,17 @@ public class PthreadFunctionSubstitution {
             onceExpression, CIntegerLiteralExpression.ONE, BinaryOperator.NOT_EQUALS);
     return SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
         new CExpressionWrapper(onceNotEquals1Expression));
+  }
+
+  public static CExportStatement buildOnceUnlockStatement(ImmutableList<CExpression> pExpressions) {
+    CIdExpression onceExpression =
+        (CIdExpression)
+            pExpressions.get(
+                PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
+                    PthreadObjectType.PTHREAD_ONCE_T));
+    return new CStatementWrapper(
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, onceExpression, ONCE_UNLOCKED_EXPRESSION));
   }
 
   // pthread_cond_t
