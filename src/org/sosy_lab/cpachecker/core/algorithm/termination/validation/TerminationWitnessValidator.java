@@ -350,17 +350,19 @@ public class TerminationWitnessValidator implements Algorithm {
       Path validationConfigPath =
           Classes.getCodeLocation(TerminationWitnessValidator.class)
               .resolveSibling("config/witnessValidation.properties");
+      // The configuration requires the program files, although the given CFA is analyzed
       Configuration generationConfig =
           CPAMain.createConfiguration(
-                  new String[] {
-                    "--witness",
-                    witnessPath.toString(),
-                    "--spec",
-                    invariantsSpecPath.toString(),
-                    "--config",
-                    validationConfigPath.toString(),
-                    "--no-output-files",
-                  })
+                  FluentIterable.of(
+                          "--witness",
+                          witnessPath.toString(),
+                          "--spec",
+                          invariantsSpecPath.toString(),
+                          "--config",
+                          validationConfigPath.toString(),
+                          "--no-output-files")
+                      .append(FluentIterable.from(cfa.getFileNames()).transform(Path::toString))
+                      .toArray(String.class))
               .configuration();
       Specification invariantSpec =
           Specification.fromFiles(
@@ -783,6 +785,9 @@ public class TerminationWitnessValidator implements Algorithm {
    * formulas of all paths from a loop head back to a loop head.
    *
    * <p>The loops nested in the given loop are summarized, see {@link #summarizeNestedLoop}.
+   *
+   * @throws UnsupportedLoopException if a nested loop is entered at or left from a node that is not
+   *     its loop head
    */
   private PathFormula constructPathFormulaForLoop(
       Loop pLoop, SSAMap pContextSSAMap, PointerTargetSet pContextPointerSet)
@@ -820,8 +825,24 @@ public class TerminationWitnessValidator implements Algorithm {
             && summarizedLoop.orElseThrow().getInnerLoopEdges().contains(edge)) {
           continue;
         }
+        // The summary ends in a loop head of the nested loop, so the nested loop has to be left
+        // from a loop head. Otherwise, the part of the last iteration before leaving the nested
+        // loop, e.g., before a break, would be missing.
+        if (summarizedLoop.isPresent()
+            && !summarizedLoop.orElseThrow().getLoopHeads().contains(edge.getPredecessor())) {
+          throw new UnsupportedLoopException(
+              "A nested loop is left from " + edge.getPredecessor() + ", which is not a loop head");
+        }
         summarizedLoop = getOutermostLoopWithEdge(pNestedLoops, edge);
         if (summarizedLoop.isPresent()) {
+          // The summary starts in a loop head of the nested loop, so the nested loop has to be
+          // entered at a loop head
+          if (!summarizedLoop.orElseThrow().getLoopHeads().contains(edge.getPredecessor())) {
+            throw new UnsupportedLoopException(
+                "A nested loop is entered at "
+                    + edge.getPredecessor()
+                    + ", which is not a loop head");
+          }
           anotherPath = summarizeNestedLoop(anotherPath, summarizedLoop.orElseThrow());
         } else {
           anotherPath = makeStep(anotherPath, edge);
@@ -846,17 +867,25 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * Extends the given path formula, which ends at a head of the given nested loop, by a summary of
-   * arbitrarily many iterations of the nested loop. The variables that are assigned in the nested
-   * loop get new SSA indices, and their values after the loop are constrained by
+   * Extends the given path formula, which ends at a loop head of the given nested loop, by a
+   * summary of arbitrarily many iterations of the nested loop, after which the nested loop is left
+   * from a loop head. The variables that are assigned in the nested loop get new SSA indices, and
+   * their values after the loop are constrained by
    *
-   * <p>s_exit = s_entry ∨ T(s_entry, s_exit) ∨ ¬I(s_entry),
+   * <p>(s_exit = s_entry ∧ I(s_entry)) ∨ (T(s_entry, s_exit) ∧ I(s_exit)),
    *
    * <p>where T is the transition invariant and I are the supporting invariants of the nested loop
-   * from the witness. The transition invariant is used before it is validated, which is sound
-   * because the validation only succeeds if the transition invariants of all loops are validated,
-   * and the transition invariant of the nested loop is validated with respect to its supporting
-   * invariants only.
+   * from the witness. Without a transition invariant, T is true. Assigned symbols that are not
+   * variables, e.g., functions encoding the heap, are havocked.
+   *
+   * <p>The summary includes all executions of the nested loop from reachable states. The supporting
+   * invariants are checked before, so I holds in every reachable state at a loop head of the nested
+   * loop, in particular in s_entry and s_exit. The transition invariant is used before it is
+   * validated, which is sound because the validation only succeeds if the transition invariants of
+   * all loops are validated, and the transition invariant of the nested loop is validated for the
+   * states satisfying I. Executions from unreachable states may be excluded, which is sound because
+   * only the executions from reachable states have to satisfy the transition invariant of the outer
+   * loop.
    */
   private PathFormula summarizeNestedLoop(PathFormula pPath, Loop pNestedLoop)
       throws CPATransferException, InterruptedException {
@@ -929,25 +958,20 @@ public class TerminationWitnessValidator implements Algorithm {
               fmgr.makeEqual(exit, fmgr.makeVariable(type, variable, entrySsa.getIndex(variable))));
     }
 
-    if (transitionInvariant == null) {
-      // Without a transition invariant, the assigned variables are havocked
-      return pPath.withContext(exitSsa, allEdges.getPointerTargetSet());
-    }
-
-    // T(s_entry, s_exit)
-    BooleanFormula summary =
-        bfmgr.or(
-            identity,
-            nestedLoopSummarizer.instantiateTransitionInvariant(
+    // T(s_entry, s_exit), which is true without a transition invariant
+    BooleanFormula transitionStep =
+        transitionInvariant == null
+            ? bfmgr.makeTrue()
+            : nestedLoopSummarizer.instantiateTransitionInvariant(
                 toTerminationToSafetyNaming(transitionInvariant, mapPrevToCurrVars),
                 exits.buildOrThrow(),
-                entrySsa));
+                entrySsa);
 
-    // ¬I(s_entry), the transition invariant is only valid for states satisfying I
-    if (!supportingInvariants.isEmpty()) {
-      summary =
-          bfmgr.or(summary, bfmgr.not(fmgr.instantiate(bfmgr.and(supportingInvariants), entrySsa)));
-    }
+    // (s_exit = s_entry ∧ I(s_entry)) ∨ (T(s_entry, s_exit) ∧ I(s_exit))
+    BooleanFormula summary =
+        bfmgr.or(
+            bfmgr.and(identity, instantiateAtStateOf(supportingInvariants, entrySsa)),
+            bfmgr.and(transitionStep, instantiateAtStateOf(supportingInvariants, exitSsa)));
 
     // The summary is already instantiated, so it is conjoined directly
     return pPath
