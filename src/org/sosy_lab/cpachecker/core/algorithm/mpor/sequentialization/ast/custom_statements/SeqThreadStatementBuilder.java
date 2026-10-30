@@ -136,7 +136,7 @@ public record SeqThreadStatementBuilder(
       if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
         if (substituteEdges.containsKey(threadEdge)) {
           SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
-          rStatements.add(buildStatementFromThreadEdge(threadEdge, substitute));
+          rStatements.addAll(buildStatementFromThreadEdge(threadEdge, substitute));
         }
       }
     }
@@ -145,7 +145,7 @@ public record SeqThreadStatementBuilder(
 
   // Statement build methods =======================================================================
 
-  private SeqThreadStatement buildStatementFromThreadEdge(
+  private ImmutableList<SeqThreadStatement> buildStatementFromThreadEdge(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
       throws UnrecognizedCodeException {
 
@@ -154,32 +154,39 @@ public record SeqThreadStatementBuilder(
     CFANode successor = pThreadEdge.getSuccessor().getCfaNode();
 
     if (resultsInBlankStatement(pSubstituteEdge, successor)) {
-      return buildGhostOnlyStatement(
-          thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, targetPc);
+      return ImmutableList.of(
+          buildGhostOnlyStatement(
+              thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, targetPc));
     }
 
     return switch (pSubstituteEdge.cfaEdge) {
       case BlankEdge blankEdge ->
-          buildWhileTrueLoopHeadStatement(blankEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(buildWhileTrueLoopHeadStatement(blankEdge, pSubstituteEdge, targetPc));
 
-      case CAssumeEdge assumeEdge -> buildAssumeStatement(assumeEdge, pSubstituteEdge, targetPc);
+      case CAssumeEdge assumeEdge ->
+          ImmutableList.of(buildAssumeStatement(assumeEdge, pSubstituteEdge, targetPc));
 
       case CDeclarationEdge declarationEdge ->
           // "leftover" declarations should be local variables with an initializer
-          buildLocalVariableDeclarationStatement(
-              (CVariableDeclaration) declarationEdge.getDeclaration(), pSubstituteEdge, targetPc);
+          ImmutableList.of(
+              buildLocalVariableDeclarationStatement(
+                  (CVariableDeclaration) declarationEdge.getDeclaration(),
+                  pSubstituteEdge,
+                  targetPc));
 
       case CFunctionCallEdge functionCallEdge ->
-          buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(
+              buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc));
 
       case CReturnStatementEdge ignore ->
-          buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(
+              buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc));
 
       case CFAEdge edge when PthreadUtil.isExplicitlyHandledPthreadFunction(edge) ->
           buildStatementFromPthreadFunction(pThreadEdge, pSubstituteEdge, targetPc);
 
       case CStatementEdge statementEdge ->
-          buildDefaultStatement(statementEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(buildDefaultStatement(statementEdge, pSubstituteEdge, targetPc));
 
       default ->
           throw new AssertionError("Unhandled CFAEdge type: " + cfaEdge.getClass().getSimpleName());
@@ -366,7 +373,7 @@ public record SeqThreadStatementBuilder(
         thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, pTargetPc);
   }
 
-  private SeqThreadStatement buildStatementFromPthreadFunction(
+  private ImmutableList<SeqThreadStatement> buildStatementFromPthreadFunction(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnrecognizedCodeException {
 
@@ -376,34 +383,51 @@ public record SeqThreadStatementBuilder(
 
     return switch (functionType) {
       case PTHREAD_BARRIER_INIT ->
-          buildBarrierStatement(SeqThreadStatementType.BARRIER_INIT, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildBarrierStatement(
+                  SeqThreadStatementType.BARRIER_INIT, pSubstituteEdge, pTargetPc));
       case PTHREAD_BARRIER_WAIT ->
           throw new AssertionError(
               "pthread_barrier_wait is handled separately, it requires two clauses");
       case PTHREAD_COND_SIGNAL ->
-          buildCondStatement(SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildCondStatement(SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, pTargetPc));
       case PTHREAD_COND_WAIT ->
           throw new AssertionError(
               "pthread_cond_wait is handled separately, it requires two clauses");
-      case PTHREAD_CREATE -> buildThreadCreationStatement(pThreadEdge, pSubstituteEdge, pTargetPc);
-      case PTHREAD_EXIT -> buildThreadExitStatement(pThreadEdge, pSubstituteEdge, pTargetPc);
+      case PTHREAD_CREATE ->
+          ImmutableList.of(buildThreadCreationStatement(pThreadEdge, pSubstituteEdge, pTargetPc));
+      case PTHREAD_EXIT ->
+          ImmutableList.of(buildThreadExitStatement(pThreadEdge, pSubstituteEdge, pTargetPc));
       case PTHREAD_JOIN ->
-          buildThreadJoinStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildThreadJoinStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc));
       case PTHREAD_MUTEX_LOCK ->
-          buildMutexStatement(SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildMutexStatement(SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, pTargetPc));
       case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexStatement(SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, pTargetPc);
-      case PTHREAD_ONCE -> buildOnceLockStatement(pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildMutexStatement(SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, pTargetPc));
+      case PTHREAD_ONCE -> buildOnceLockStatements(pSubstituteEdge, pTargetPc);
       case PTHREAD_RWLOCK_RDLOCK ->
-          buildRwLockStatement(SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildRwLockStatement(
+                  SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, pTargetPc));
       case PTHREAD_RWLOCK_UNLOCK ->
-          buildRwLockStatement(SeqThreadStatementType.RW_LOCK_UNLOCK, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildRwLockStatement(
+                  SeqThreadStatementType.RW_LOCK_UNLOCK, pSubstituteEdge, pTargetPc));
       case PTHREAD_RWLOCK_WRLOCK ->
-          buildRwLockStatement(SeqThreadStatementType.RW_LOCK_WR_LOCK, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildRwLockStatement(
+                  SeqThreadStatementType.RW_LOCK_WR_LOCK, pSubstituteEdge, pTargetPc));
       case VERIFIER_ATOMIC_BEGIN ->
-          buildAtomicStatement(SeqThreadStatementType.ATOMIC_BEGIN, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildAtomicStatement(
+                  SeqThreadStatementType.ATOMIC_BEGIN, pSubstituteEdge, pTargetPc));
       case VERIFIER_ATOMIC_END ->
-          buildAtomicStatement(SeqThreadStatementType.ATOMIC_END, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildAtomicStatement(SeqThreadStatementType.ATOMIC_END, pSubstituteEdge, pTargetPc));
       default ->
           throw new AssertionError(
               "The following pthread function from the input program was not rejected, but it"
@@ -595,16 +619,34 @@ public record SeqThreadStatementBuilder(
         data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
-  private SeqThreadStatement buildOnceLockStatement(SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnrecognizedCodeException {
+  private ImmutableList<SeqThreadStatement> buildOnceLockStatements(
+      SubstituteEdge pSubstituteEdge, int pTargetPc) throws UnrecognizedCodeException {
 
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.ONCE_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
-    return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        buildThreadSyncStatements(SeqThreadStatementType.ONCE_LOCK, pSubstituteEdge));
+    ImmutableList<CExpression> expressions = getUpdatedParameterExpressions(pSubstituteEdge);
+    CExpression onceIfExpression =
+        PthreadFunctionSubstitution.buildOnceIfExpression(expressions, binaryExpressionBuilder);
+
+    SeqThreadStatementDataWithIfExpression data =
+        new SeqThreadStatementDataWithIfExpression(
+            SeqThreadStatementType.ONCE_LOCK,
+            ImmutableSet.of(pSubstituteEdge),
+            thread.id(),
+            pcLeftHandSide,
+            onceIfExpression);
+
+    SeqThreadStatement thenStatement =
+        SeqThreadStatement.of(
+            data,
+            pTargetPc,
+            ImmutableList.of(PthreadFunctionSubstitution.buildOnceThenStatement(expressions)));
+    SeqThreadStatement elseStatement =
+        SeqThreadStatement.of(
+            data,
+            pTargetPc,
+            ImmutableList.of(
+                PthreadFunctionSubstitution.buildOnceElseStatement(
+                    expressions, binaryExpressionBuilder)));
+    return ImmutableList.of(thenStatement, elseStatement);
   }
 
   private SeqThreadStatement buildRwLockStatement(
@@ -630,26 +672,7 @@ public record SeqThreadStatementBuilder(
       SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
       throws UnrecognizedCodeException {
 
-    CFunctionCall functionCall =
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
-
-    ImmutableList<CExpression> expressions =
-        functionCall.getFunctionCallExpression().getParameterExpressions();
-    if (!isAnyPointer(expressions)) {
-      ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
-      for (CExpression expression : expressions) {
-        if (expression instanceof CUnaryExpression unaryExpression
-            && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-          // from unary amper expressions such as "&mutex", only "mutex" is used
-          nonPointerExpressions.add(unaryExpression.getOperand());
-        } else {
-          // all other expressions such as "(void*)0" or literals "capacity" are added unchanged,
-          // regardless of whether they are actually used s.t. the parameter list has the same size
-          nonPointerExpressions.add(expression);
-        }
-      }
-      expressions = nonPointerExpressions.build();
-    }
+    ImmutableList<CExpression> expressions = getUpdatedParameterExpressions(pSubstituteEdge);
 
     return switch (pStatementType) {
       case BARRIER_INIT ->
@@ -673,9 +696,6 @@ public record SeqThreadStatementBuilder(
       case MUTEX_UNLOCK ->
           PthreadFunctionSubstitution.buildMutexUnlockFunctionStatements(
               Iterables.getOnlyElement(expressions));
-      case ONCE_LOCK ->
-          PthreadFunctionSubstitution.buildOnceLockFunctionStatements(
-              expressions, pSubstituteEdge, pcLeftHandSide, binaryExpressionBuilder);
       case RW_LOCK_RD_LOCK ->
           PthreadFunctionSubstitution.buildRwLockRdLockFunctionStatements(
               Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
@@ -690,6 +710,33 @@ public record SeqThreadStatementBuilder(
               "Cannot build inlined statements for the following SeqThreadStatementType: "
                   + pStatementType);
     };
+  }
+
+  private static ImmutableList<CExpression> getUpdatedParameterExpressions(
+      SubstituteEdge pSubstituteEdge) {
+
+    CFunctionCall functionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
+
+    ImmutableList<CExpression> rExpressions =
+        functionCall.getFunctionCallExpression().getParameterExpressions();
+    if (!isAnyPointer(rExpressions)) {
+      ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
+      for (CExpression expression : rExpressions) {
+        if (expression instanceof CUnaryExpression unaryExpression
+            && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+          // from unary amper expressions such as "&mutex", only "mutex" is used
+          nonPointerExpressions.add(unaryExpression.getOperand());
+        } else {
+          // all other expressions such as "(void*)0" or literals "capacity" are added unchanged,
+          // regardless of whether they are actually used s.t. the parameter list has the same size
+          nonPointerExpressions.add(expression);
+        }
+      }
+      rExpressions = nonPointerExpressions.build();
+    }
+
+    return rExpressions;
   }
 
   // Helpers

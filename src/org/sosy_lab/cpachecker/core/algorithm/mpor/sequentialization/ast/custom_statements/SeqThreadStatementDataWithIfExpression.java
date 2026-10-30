@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 
 /**
  * A special case for a {@link SeqThreadStatementData} with a {@link CExportExpression} used in an
- * {@link CIfStatement} to represent {@link CAssumeEdge}s from the input {@link CFA}.
+ * {@link CIfStatement}.
  */
 public final class SeqThreadStatementDataWithIfExpression extends SeqThreadStatementData {
 
@@ -38,8 +37,8 @@ public final class SeqThreadStatementDataWithIfExpression extends SeqThreadState
    * @param pPcLeftHandSide The {@link CLeftHandSide} of the thread simulation that executes the
    *     underlying statement. The {@link CLeftHandSide} is written to when updating the pc, e.g.
    *     {@code pc0 = 42;}.
-   * @param pIfExpression The {@link CExpression} used in a {@link CAssumeEdge}, can only be present
-   *     if this data instance is tied to {@link SeqThreadStatementType#ASSUME}
+   * @param pIfExpression The {@link CExpression} used in a {@link CIfStatement}, e.g. {@code if
+   *     (expression) { ... }}.
    */
   public SeqThreadStatementDataWithIfExpression(
       SeqThreadStatementType pType,
@@ -50,7 +49,8 @@ public final class SeqThreadStatementDataWithIfExpression extends SeqThreadState
 
     super(pType, pSubstituteEdges, pThreadId, pPcLeftHandSide);
     checkArgument(
-        pType.equals(SeqThreadStatementType.ASSUME), "pType must be SeqThreadStatementType.ASSUME");
+        pType.in(SeqThreadStatementType.ASSUME, SeqThreadStatementType.ONCE_LOCK),
+        "pType must be ASSUME or ONCE_LOCK");
     ifExpression = pIfExpression;
   }
 
