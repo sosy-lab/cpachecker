@@ -119,7 +119,7 @@ public class TerminationToReachValidationPrecisionAdjustment
             invariantFormula = invariant.getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula());
           }
         } catch (CPATransferException e) {
-          logger.log(Level.WARNING, e);
+          logger.logUserException(Level.WARNING, e, "It was not possible to parse the invariant.");
           invariantFormula = bfmgr.makeTrue();
         }
         candidateTransitionInvariant = bfmgr.and(candidateTransitionInvariant, invariantFormula);

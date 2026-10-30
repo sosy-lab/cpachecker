@@ -53,7 +53,8 @@ public final class CParameterDeclaration extends AParameterDeclaration
         getName(),
         getOrigName(),
         getQualifiedName(),
-        null);
+        null,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   @Override

@@ -538,7 +538,8 @@ public record MPORSubstitutionBuilder(
         pName,
         pName,
         pName,
-        pOriginal.getInitializer());
+        pOriginal.getInitializer(),
+        pOriginal.hasThreadLocalStorage());
   }
 
   /**
@@ -557,7 +558,8 @@ public record MPORSubstitutionBuilder(
         pOriginal.getName(),
         pOriginal.getOrigName(),
         pOriginal.getQualifiedName(),
-        pInitializerExpression);
+        pInitializerExpression,
+        pOriginal.hasThreadLocalStorage());
   }
 
   /**
@@ -577,6 +579,7 @@ public record MPORSubstitutionBuilder(
         pName,
         pOriginal.getOrigName(),
         pOriginal.getQualifiedName(),
-        pInitializerExpression);
+        pInitializerExpression,
+        /* pHasThreadLocalStorage= */ false);
   }
 }
