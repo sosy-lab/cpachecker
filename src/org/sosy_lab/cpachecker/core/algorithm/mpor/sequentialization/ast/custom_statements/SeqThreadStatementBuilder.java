@@ -634,15 +634,26 @@ public record SeqThreadStatementBuilder(
             pcLeftHandSide,
             onceIfExpression);
 
+    ImmutableList<CFAEdgeForThread> successorLeavingEdges =
+        pSubstituteEdge.getThreadEdge().getSuccessor().leavingEdges();
+    checkArgument(successorLeavingEdges.size() == 2);
+
+    CFAEdgeForThread functionCallEdge = successorLeavingEdges.getFirst();
+    CFAEdgeForThread functionSummaryEdge = successorLeavingEdges.getLast();
+    checkArgument(functionCallEdge.cfaEdge instanceof CFunctionCallEdge);
+    checkArgument(functionSummaryEdge.cfaEdge instanceof CFunctionSummaryEdge);
+
     SeqThreadStatement thenStatement =
         SeqThreadStatement.of(
             data,
+            // the then branch enters the init_routine, so use the given target pc
             pTargetPc,
             ImmutableList.of(PthreadFunctionSubstitution.buildOnceThenStatement(expressions)));
     SeqThreadStatement elseStatement =
         SeqThreadStatement.of(
             data,
-            pTargetPc,
+            // the else branch skips the init_routine, so use the CFunctionSummaryEdge target pc
+            functionSummaryEdge.getSuccessor().pc,
             ImmutableList.of(
                 PthreadFunctionSubstitution.buildOnceElseStatement(
                     expressions, binaryExpressionBuilder)));
