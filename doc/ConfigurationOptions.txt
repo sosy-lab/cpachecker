@@ -5892,6 +5892,11 @@ termination.useCexImpreciseHeuristic = false
 # space is detected.
 termination.validation.checkWithInfiniteSpace = false
 
+# maximal k for the k-induction that checks whether a disjunctively
+# well-founded candidate is a transition invariant, i.e., R^+ => T. If -1,
+# the k-induction is unbounded.
+termination.validation.maxInductionDepth = -1
+
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
 
