@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableCollection;
@@ -42,6 +43,7 @@ import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -118,10 +120,15 @@ public final class LoopStructure {
 
     private ImmutableSortedSet<CFANode> nodes;
 
-    // the following sets are computed lazily by calling {@link #computeSets()}
-    private ImmutableSet<CFAEdge> innerLoopEdges;
-    private ImmutableSet<CFAEdge> incomingEdges;
-    private ImmutableSet<CFAEdge> outgoingEdges;
+    private record EdgeSets(
+        ImmutableSet<CFAEdge> innerLoopEdges,
+        ImmutableSet<CFAEdge> incomingEdges,
+        ImmutableSet<CFAEdge> outgoingEdges) {}
+
+    // Computed lazily, because the CFA is still modified after the loops are found
+    // (CFASecondPassBuilder replaces function calls). The memoizing supplier is thread-safe,
+    // because several analyses may share the CFA in parallel.
+    private Supplier<EdgeSets> edgeSets = Suppliers.memoize(this::computeSets);
 
     // computed lazily by calling {@link #getModifiedVariables()}
     private @Nullable ImmutableSet<CVariableDeclaration> modifiedVariables;
@@ -139,14 +146,7 @@ public final class LoopStructure {
       return new Loop(pLoopHeads, pNodes);
     }
 
-    // The sets are computed lazily, possibly by several analyses that share the CFA in parallel
-    private synchronized void computeSets() {
-      if (innerLoopEdges != null) {
-        assert incomingEdges != null;
-        assert outgoingEdges != null;
-        return;
-      }
-
+    private EdgeSets computeSets() {
       SequencedSet<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
       SequencedSet<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
@@ -155,7 +155,8 @@ public final class LoopStructure {
         n.getLeavingEdges().copyInto(newOutgoingEdges);
       }
 
-      innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
+      ImmutableSet<CFAEdge> innerLoopEdges =
+          Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
       newIncomingEdges.removeAll(innerLoopEdges);
       newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
       newOutgoingEdges.removeAll(innerLoopEdges);
@@ -163,16 +164,16 @@ public final class LoopStructure {
 
       assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
 
-      incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
-      outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
+      return new EdgeSets(
+          innerLoopEdges,
+          ImmutableSet.copyOf(newIncomingEdges),
+          ImmutableSet.copyOf(newOutgoingEdges));
     }
 
     private void addNodes(Loop l) {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(nodes).addAll(l.nodes).build();
 
-      innerLoopEdges = null;
-      incomingEdges = null;
-      outgoingEdges = null;
+      edgeSets = Suppliers.memoize(this::computeSets);
       modifiedVariables = null;
     }
 
@@ -190,11 +191,8 @@ public final class LoopStructure {
      * {@link Loop}).
      */
     public boolean isOuterLoopOf(Loop other) {
-      computeSets();
-      other.computeSets();
-
-      return innerLoopEdges.containsAll(other.incomingEdges)
-          && innerLoopEdges.containsAll(other.outgoingEdges);
+      return getInnerLoopEdges().containsAll(other.getIncomingEdges())
+          && getInnerLoopEdges().containsAll(other.getOutgoingEdges());
     }
 
     /**
@@ -214,8 +212,7 @@ public final class LoopStructure {
      * @return a non-empty set of CFA edges
      */
     public ImmutableSet<CFAEdge> getInnerLoopEdges() {
-      computeSets();
-      return innerLoopEdges;
+      return edgeSets.get().innerLoopEdges();
     }
 
     /**
@@ -336,8 +333,7 @@ public final class LoopStructure {
      * @return a non-empty set of CFA edges
      */
     public ImmutableSet<CFAEdge> getIncomingEdges() {
-      computeSets();
-      return incomingEdges;
+      return edgeSets.get().incomingEdges();
     }
 
     /**
@@ -348,21 +344,19 @@ public final class LoopStructure {
      * @return a possibly empty (if the loop does never terminate) set of CFA edges
      */
     public ImmutableSet<CFAEdge> getOutgoingEdges() {
-      computeSets();
-      return outgoingEdges;
+      return edgeSets.get().outgoingEdges();
     }
 
     @Override
     public String toString() {
-      computeSets();
       return "Loop with heads "
           + loopHeads
           + "\n"
           + "  incoming: "
-          + incomingEdges
+          + getIncomingEdges()
           + "\n"
           + "  outgoing: "
-          + outgoingEdges
+          + getOutgoingEdges()
           + "\n"
           + "  nodes:    "
           + nodes
