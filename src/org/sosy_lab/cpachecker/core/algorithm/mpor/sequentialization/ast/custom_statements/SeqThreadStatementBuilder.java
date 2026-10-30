@@ -136,7 +136,7 @@ public record SeqThreadStatementBuilder(
       if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
         if (substituteEdges.containsKey(threadEdge)) {
           SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
-          rStatements.addAll(buildStatementFromThreadEdge(threadEdge, substitute));
+          rStatements.addAll(buildStatementsFromThreadEdge(threadEdge, substitute));
         }
       }
     }
@@ -145,7 +145,7 @@ public record SeqThreadStatementBuilder(
 
   // Statement build methods =======================================================================
 
-  private ImmutableList<SeqThreadStatement> buildStatementFromThreadEdge(
+  private ImmutableList<SeqThreadStatement> buildStatementsFromThreadEdge(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
       throws UnrecognizedCodeException {
 

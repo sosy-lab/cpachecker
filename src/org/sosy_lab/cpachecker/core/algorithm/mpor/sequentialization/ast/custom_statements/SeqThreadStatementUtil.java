@@ -84,7 +84,7 @@ public final class SeqThreadStatementUtil {
       ImmutableList<SeqInstrumentation> pInstrumentation) {
 
     for (SeqInstrumentation instrumentation : pInstrumentation) {
-      if (instrumentation.type().equals(SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION)) {
+      if (instrumentation.type().equals(SeqInstrumentationType.EXECUTE_UNTIL_CONFLICT_REDUCTION)) {
         if (instrumentation.statement() instanceof CGotoStatement) {
           return true;
         }
@@ -251,7 +251,7 @@ public final class SeqThreadStatementUtil {
     // first add partial order reduction statements, since if they abort, the rest is not needed
     leftOver.addAll(
         getInstrumentationByType(
-            pInstrumentation, SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION));
+            pInstrumentation, SeqInstrumentationType.EXECUTE_UNTIL_CONFLICT_REDUCTION));
     // bit vector updates are placed at the end, i.e. where pc etc. updates are
     leftOver.addAll(
         getInstrumentationByType(pInstrumentation, SeqInstrumentationType.THREAD_SYNC_UPDATE));

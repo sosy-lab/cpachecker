@@ -18,7 +18,7 @@ public enum SeqInstrumentationType {
   PROGRAM_COUNTER_UPDATE(false, false),
   THREAD_COUNT_UPDATE(false, false),
   THREAD_SYNC_UPDATE(true, false),
-  UNTIL_CONFLICT_REDUCTION(true, false);
+  EXECUTE_UNTIL_CONFLICT_REDUCTION(true, false);
 
   /**
    * Whether this statement type can be pruned from its owning {@link SeqThreadStatement} if it

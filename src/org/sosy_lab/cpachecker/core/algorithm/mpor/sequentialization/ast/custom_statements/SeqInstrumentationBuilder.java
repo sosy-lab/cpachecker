@@ -106,12 +106,12 @@ public class SeqInstrumentationBuilder {
         SeqInstrumentationType.THREAD_SYNC_UPDATE, new CStatementWrapper(syncUpdate));
   }
 
-  public static SeqInstrumentation buildUntilConflictReductionStatement(
+  public static SeqInstrumentation buildExecuteUntilConflictReductionStatement(
       NondeterminismSource pNondeterminismSource,
       Optional<CExportExpression> pBitVectorEvaluationExpression,
       CLabelStatement pTargetGoto) {
 
-    SeqInstrumentationType type = SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION;
+    SeqInstrumentationType type = SeqInstrumentationType.EXECUTE_UNTIL_CONFLICT_REDUCTION;
     // no evaluation due to no global accesses -> just goto
     if (pBitVectorEvaluationExpression.isEmpty()) {
       return new SeqInstrumentation(type, new CGotoStatement(pTargetGoto));
