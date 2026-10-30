@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -102,7 +101,7 @@ public class TerminationWitnessValidator implements Algorithm {
   private CProgramScope programScope;
   // The scope and the checker for the loop whose transition invariant is checked, see
   // useScopeOfLoop
-  private Scope scope;
+  private CProgramScope loopScope;
   private WellFoundednessChecker wellFoundednessChecker;
 
   public TerminationWitnessValidator(
@@ -325,7 +324,7 @@ public class TerminationWitnessValidator implements Algorithm {
   private void useScopeOfLoop(
       Loop pLoop, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
-    scope =
+    loopScope =
         cfa.getAstCfaRelation()
             .getVariablesAndParametersInScope(loopHead)
             .map(
@@ -337,9 +336,9 @@ public class TerminationWitnessValidator implements Algorithm {
     if (checkWithInfiniteSpace) {
       wellFoundednessChecker =
           new ImplicitRankingChecker(
-              fmgr, bfmgr, logger, config, shutdownNotifier, specification, scope, cfa);
+              fmgr, bfmgr, logger, config, shutdownNotifier, specification, loopScope, cfa);
     } else {
-      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
+      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, loopScope);
     }
   }
 
@@ -471,7 +470,7 @@ public class TerminationWitnessValidator implements Algorithm {
                 PrevStateIndices.INDEX_FIRST,
                 CurrStateIndices.INDEX_LATEST,
                 fmgr,
-                scope,
+                loopScope,
                 pMapPrevToCurrVars),
             MapsDifference.ignoreMapsDifference());
     SSAMap oneStepSSAMap =
@@ -480,7 +479,7 @@ public class TerminationWitnessValidator implements Algorithm {
             PrevStateIndices.INDEX_FIRST,
             CurrStateIndices.INDEX_MIDDLE,
             fmgr,
-            scope,
+            loopScope,
             pMapPrevToCurrVars);
 
     pCandidateInvariant = fmgr.instantiate(pCandidateInvariant, fullSSAMap);
@@ -550,7 +549,7 @@ public class TerminationWitnessValidator implements Algorithm {
                 PrevStateIndices.INDEX_FIRST,
                 CurrStateIndices.INDEX_MIDDLE,
                 fmgr,
-                scope,
+                loopScope,
                 pMapPrevToCurrVars));
 
     BooleanFormula secondStep =
@@ -563,7 +562,7 @@ public class TerminationWitnessValidator implements Algorithm {
                     PrevStateIndices.INDEX_FIRST,
                     CurrStateIndices.INDEX_LATEST,
                     fmgr,
-                    scope,
+                    loopScope,
                     pMapPrevToCurrVars),
                 MapsDifference.ignoreMapsDifference()));
     boolean isTransitionInvariant;
@@ -608,7 +607,7 @@ public class TerminationWitnessValidator implements Algorithm {
                       PrevStateIndices.INDEX_FIRST,
                       CurrStateIndices.INDEX_MIDDLE,
                       fmgr,
-                      scope,
+                      loopScope,
                       pMapPrevToCurrVars)));
     }
     for (int i = 1; i < k; i++) {
