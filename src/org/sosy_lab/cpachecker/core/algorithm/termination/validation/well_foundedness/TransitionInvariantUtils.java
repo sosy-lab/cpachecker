@@ -115,22 +115,22 @@ public class TransitionInvariantUtils {
             .collect(ImmutableSet.toImmutableSet()));
   }
 
-  public static String transformFormulaToStringWithTrivialReplacement(
+  public static String transformFormulaToStringWithReplacement(
       BooleanFormula pFormula,
       BooleanFormulaManagerView bfmgr,
       FormulaManagerView fmgr,
       Scope pScope)
       throws CPAException {
-    return transformFormulaToStringWithTrivialReplacement(
+    return transformFormulaToStringWithReplacement(
         pFormula, bfmgr, fmgr, pScope, Function.identity());
   }
 
   /**
    * Transforms the formula to a C expression like {@link
-   * #transformFormulaToStringWithTrivialReplacement(BooleanFormula, BooleanFormulaManagerView,
+   * #transformFormulaToStringWithReplacement(BooleanFormula, BooleanFormulaManagerView,
    * FormulaManagerView, Scope)}, where the variables get the names given by the function.
    */
-  public static String transformFormulaToStringWithTrivialReplacement(
+  public static String transformFormulaToStringWithReplacement(
       BooleanFormula pFormula,
       BooleanFormulaManagerView bfmgr,
       FormulaManagerView fmgr,

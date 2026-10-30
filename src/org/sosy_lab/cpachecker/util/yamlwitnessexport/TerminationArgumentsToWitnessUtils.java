@@ -346,7 +346,7 @@ public class TerminationArgumentsToWitnessUtils {
         // and wrapping the previous variables into \\at(x, AnyPrev)
         try {
           transitionInvariantAsC =
-              TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+              TransitionInvariantUtils.transformFormulaToStringWithReplacement(
                       wrappedFormula.getFormula(),
                       bfmgr,
                       fmgr,

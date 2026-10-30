@@ -221,7 +221,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       throws CPAException {
     String varDeclaration;
     String loopCondition =
-        TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+        TransitionInvariantUtils.transformFormulaToStringWithReplacement(
             pFormula, bfmgr, fmgr, scope);
     String exitCondition =
         cfa
@@ -242,7 +242,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       loopCondition =
           loopCondition
               + " && "
-              + TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+              + TransitionInvariantUtils.transformFormulaToStringWithReplacement(
                   invariant, bfmgr, fmgr, scope);
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
