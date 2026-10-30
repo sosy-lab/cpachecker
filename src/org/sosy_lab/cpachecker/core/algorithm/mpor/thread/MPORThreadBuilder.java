@@ -255,6 +255,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         // Exclude CFunctionReturnEdges in the search, their successors may be in other threads.
         // The original, same-thread successor is included due to the CFunctionSummaryEdge.
         if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+          SeqCallContext updatedCallContext = updateCallContext(cfaEdge, callContext, threadEdges);
           buildThreadCfaVariables(
               pThreadId,
               pVisitedCfaNodes,
@@ -262,8 +263,9 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               pThreadNodes,
               pThreadEdges,
               cfaEdge.getSuccessor(),
-              updateBlockTypes(cfaEdge, callContext, pBlockTypes),
-              updateCallContext(cfaEdge, callContext, threadEdges),
+              // Important: this function requires the updated call context.
+              updateBlockTypes(cfaEdge, updatedCallContext, pBlockTypes),
+              updatedCallContext,
               pStartRoutineCall);
         }
       }
@@ -292,9 +294,9 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               .getFunctionCallExpression()
               .getDeclaration();
 
-      // The pthread_once init_routine is left only if the predecessor equals the declaration.
-      // This excludes inner functions called inside init_routine from triggering the condition.
-      if (pCfaEdge.getPredecessor().getFunction().equals(initRoutineDeclaration)
+      // The pthread_once init_routine is left only if the successor is inside the init_routine
+      // and if it is a FunctionExitNode. This excludes inner functions called inside init_routine.
+      if (pCfaEdge.getSuccessor().getFunction().equals(initRoutineDeclaration)
           && pCfaEdge.getSuccessor() instanceof FunctionExitNode
           // Since the init_routine call was not present in the input, there are no leaving edges.
           && pCfaEdge.getSuccessor().getLeavingEdges().isEmpty()) {
@@ -303,7 +305,6 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     }
 
     Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(pCfaEdge);
-
     if (functionCall.isPresent()) {
       CFunctionCall call = functionCall.orElseThrow();
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
@@ -312,9 +313,18 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.VERIFIER_ATOMIC_END)) {
         blockTypes.remove(pCallContext, BlockType.ATOMIC);
       }
-      if (PthreadUtil.isCallToPthreadFunction(call, PthreadFunctionType.PTHREAD_ONCE)) {
+    }
+
+    // If this CFAEdge enters the init_routine via a CFunctionCallEdge, mark the pthread_once block.
+    if (pCfaEdge instanceof CFunctionCallEdge
+        && pCfaEdge.getPredecessor().getAllEnteringEdges().size() == 1) {
+      CFAEdge predecessorEdge =
+          Iterables.getOnlyElement(pCfaEdge.getPredecessor().getAllEnteringEdges());
+      if (PthreadUtil.isCallToPthreadFunction(predecessorEdge, PthreadFunctionType.PTHREAD_ONCE)) {
+        CFunctionCall predecessorFunctionCall =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(predecessorEdge).orElseThrow();
         CFunctionDeclaration initRoutineDeclaration =
-            PthreadUtil.extractStartRoutineDeclaration(call);
+            PthreadUtil.extractStartRoutineDeclaration(predecessorFunctionCall);
         CFunctionCall initRoutineCall =
             PthreadUtil.createStartRoutineFunctionCall(initRoutineDeclaration, Optional.empty());
         blockTypes.put(pCallContext, BlockType.PTHREAD_ONCE_ROUTINE, initRoutineCall);
