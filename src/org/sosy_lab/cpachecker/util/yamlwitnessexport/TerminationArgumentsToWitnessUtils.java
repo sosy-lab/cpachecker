@@ -67,7 +67,7 @@ public class TerminationArgumentsToWitnessUtils {
    * program refers to the variable in scope, as in the invariants of a witness, and the names of
    * the variables in CPAchecker without the function are distinct, e.g., i__1.
    */
-  private static Scope getScopeAtNode(
+  public static CProgramScope getScopeAtNode(
       CProgramScope pProgramScope, CFANode pNode, AstCfaRelation pAstCfaRelation) {
     return pAstCfaRelation
         .getVariablesAndParametersInScope(pNode)

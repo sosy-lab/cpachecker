@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
@@ -157,6 +158,16 @@ public class InvariantExchangeFormatTransformer {
    */
   private Optional<ImmutableSet<CSimpleDeclaration>> variablesInScope(
       InvariantEntry pInvariantEntry) {
+    return nodeOfInvariant(pInvariantEntry)
+        .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
+        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
+  }
+
+  /**
+   * The node where the invariant holds, at which the variables of the invariant are in scope, if it
+   * is known. It belongs to the function of the invariant location.
+   */
+  private Optional<CFANode> nodeOfInvariant(InvariantEntry pInvariantEntry) {
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
     int line = pInvariantEntry.getLocation().getLine();
     OptionalInt column = pInvariantEntry.getLocation().getColumn();
@@ -187,8 +198,7 @@ public class InvariantExchangeFormatTransformer {
               .getTightestStatementForStarting(line, column)
               .flatMap(statement -> astCfaRelation.getNodeBeforeStatement(statement, function));
     }
-    return node.flatMap(astCfaRelation::getVariablesAndParametersInScope)
-        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
+    return node;
   }
 
   /**
@@ -243,11 +253,13 @@ public class InvariantExchangeFormatTransformer {
             pInvariantEntry.getLocation().getFunction(), locationNode.getFunctionName());
     // As in the invariant, a name refers to the variable in scope, e.g., x to x__1
     CProgramScope programScope = new CProgramScope(cfa, logger);
-    Scope scope =
-        variablesInScope(pInvariantEntry)
-            .map(programScope::withVariablesInScope)
-            .orElse(programScope)
-            .withFunctionScope(functionName);
+    CProgramScope scope =
+        nodeOfInvariant(pInvariantEntry)
+            .map(
+                node ->
+                    TerminationArgumentsToWitnessUtils.getScopeAtNode(
+                        programScope, node, cfa.getAstCfaRelation()))
+            .orElseGet(() -> programScope.withFunctionScope(functionName));
     Set<String> alreadyDeclaredVariables = new HashSet<>();
 
     while (matcher.find()) {
