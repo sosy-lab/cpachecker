@@ -267,8 +267,8 @@ public final class DssDebugUtils {
       if (!blockState.getHistory().path().isEmpty()) {
         parts.add("hist=" + render(blockState.getHistory()));
       }
-      if (blockState.getWitness().size() > 0) {
-        parts.add("wit=" + blockState.getWitness().size());
+      if (blockState.getWitness().maxDecisions() > 0) {
+        parts.add("witDecisions=" + blockState.getWitness().maxDecisions());
       }
       if (!blockState.getViolationConditions().isEmpty()) {
         parts.add("vcs=" + blockState.getViolationConditions().size());
@@ -627,9 +627,7 @@ public final class DssDebugUtils {
    * {@link BlockState} is expanded into block, history and witness.
    */
   public static String describe(DssMessage pMessage) {
-    ImmutableMap<String, ImmutableMap<String, String>> json = pMessage.asJson();
-    ImmutableMap<String, String> content =
-        Objects.requireNonNullElse(json.get(DssMessage.DSS_MESSAGE_CONTENT_ID), ImmutableMap.of());
+    ImmutableMap<String, String> content = contentOf(pMessage);
 
     // Entries that do not belong to a specific state (states, status, result, ...).
     Map<String, String> meta = new LinkedHashMap<>();
@@ -701,8 +699,8 @@ public final class DssDebugUtils {
           + parsed.serializedBlockState()
           + " history="
           + render(parsed.history())
-          + " witnessSegments="
-          + parsed.witness().size();
+          + " witnessDecisions="
+          + parsed.witness().maxDecisions();
     } catch (RuntimeException e) {
       return "<unparsable: " + e + ">";
     }
