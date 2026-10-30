@@ -240,7 +240,7 @@ public record SeqThreadStatementClauseBuilder(
       if (PthreadUtil.isCallToPthreadFunction(
           firstThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_BARRIER_WAIT)) {
         ImmutableList<SeqThreadStatementClause> barrierWaitClauses =
-            buildBarrierInitClauses(
+            buildBarrierWaitClauses(
                 pThread,
                 nextThreadLabel,
                 Objects.requireNonNull(substituteEdges.get(firstThreadEdge)),
@@ -420,7 +420,7 @@ public record SeqThreadStatementClauseBuilder(
    * waiters and the assumption that the count was reached, forcing us two create two {@link
    * SeqThreadStatement} from a single {@link CFAEdgeForThread}.
    */
-  private ImmutableList<SeqThreadStatementClause> buildBarrierInitClauses(
+  private ImmutableList<SeqThreadStatementClause> buildBarrierWaitClauses(
       MPORThread pThread,
       Optional<CLabelStatement> pNextThreadLabel,
       SubstituteEdge pSubstituteEdge,
