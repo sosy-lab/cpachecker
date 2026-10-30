@@ -194,6 +194,9 @@ public class TransitionInvariantUtils {
       if (currIndex < 0 && !isPrevVariable(var, pMapPrevToCurrVars)) {
         continue;
       }
+      // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
+      // renamed it, but the scope knows it only as main::i or i__1. The name without the
+      // function is unique, since the scope has only the variables in scope at the loop.
       builder.setIndex(
           var,
           scope.lookupVariable(removeFunctionFromVarsName(var)).getType(),
