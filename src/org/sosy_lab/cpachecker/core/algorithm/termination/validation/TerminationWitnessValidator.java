@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -85,6 +84,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -130,9 +130,11 @@ public class TerminationWitnessValidator implements Algorithm {
   private final Solver solver;
   private final Specification specification;
   private final NestedLoopSummarizer nestedLoopSummarizer;
-  // The scope and the checker are created in run(), since the scope has to contain the
-  // declarations of the __PREV variables from the witness
-  private Scope scope;
+  // The scope of the program, which is created in run()
+  private CProgramScope programScope;
+  // The scope and the checker for the loop whose transition invariant is checked, see
+  // useScopeOfLoop
+  private CProgramScope loopScope;
   private WellFoundednessChecker wellFoundednessChecker;
 
   // The invariants from the witness, which are used to summarize nested loops. They are set in
@@ -199,16 +201,7 @@ public class TerminationWitnessValidator implements Algorithm {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
 
-    scope =
-        new CProgramScope(cfa, logger)
-            .withAdditionalDeclarations(collectPrevVariableDeclarations(invariants));
-    if (checkWithInfiniteSpace) {
-      wellFoundednessChecker =
-          new ImplicitRankingChecker(
-              fmgr, bfmgr, logger, config, shutdownNotifier, specification, scope, cfa);
-    } else {
-      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
-    }
+    programScope = new CProgramScope(cfa, logger);
 
     ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(loops, invariants);
@@ -259,6 +252,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
           joinPrevDeclarationMapsForLoop(loop, invariants);
+      useScopeOfLoop(loop, mapPrevVarsToCurrVars);
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
 
@@ -392,13 +386,25 @@ public class TerminationWitnessValidator implements Algorithm {
     }
   }
 
-  /** Collects the declarations of the __PREV variables of all transition invariants. */
-  private static ImmutableSet<CSimpleDeclaration> collectPrevVariableDeclarations(
-      Set<ExpressionTreeLocationInvariant> invariants) {
-    return FluentIterable.from(invariants)
-        .filter(ExpressionTreeLocationTransitionInvariant.class)
-        .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().keySet())
-        .toSet();
+  /**
+   * Sets the scope and the well-foundedness checker for the given loop. The scope has the variables
+   * in scope at the loop head, whose names without the function are distinct, also for variables
+   * that CPAchecker renamed, e.g., to i__1, and the __PREV variables of the loop.
+   */
+  private void useScopeOfLoop(
+      Loop pLoop, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+    CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
+    loopScope =
+        TerminationArgumentsToWitnessUtils.getScopeAtNode(
+                programScope, loopHead, cfa.getAstCfaRelation())
+            .withAdditionalDeclarations(pMapPrevToCurrVars.keySet());
+    if (checkWithInfiniteSpace) {
+      wellFoundednessChecker =
+          new ImplicitRankingChecker(
+              fmgr, bfmgr, logger, config, shutdownNotifier, specification, loopScope, cfa);
+    } else {
+      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, loopScope);
+    }
   }
 
   private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinPrevDeclarationMapsForLoop(
@@ -521,7 +527,7 @@ public class TerminationWitnessValidator implements Algorithm {
                 PrevStateIndices.INDEX_FIRST,
                 CurrStateIndices.INDEX_LATEST,
                 fmgr,
-                scope,
+                loopScope,
                 pMapPrevToCurrVars),
             MapsDifference.ignoreMapsDifference());
     SSAMap oneStepSSAMap =
@@ -530,7 +536,7 @@ public class TerminationWitnessValidator implements Algorithm {
             PrevStateIndices.INDEX_FIRST,
             CurrStateIndices.INDEX_MIDDLE,
             fmgr,
-            scope,
+            loopScope,
             pMapPrevToCurrVars);
 
     pCandidateInvariant = fmgr.instantiate(pCandidateInvariant, fullSSAMap);

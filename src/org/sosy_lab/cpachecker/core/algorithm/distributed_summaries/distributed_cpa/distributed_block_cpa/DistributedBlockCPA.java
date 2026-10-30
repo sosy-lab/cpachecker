@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -39,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class DistributedBlockCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -74,7 +73,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
                 BlockStateType.INITIAL,
                 ImmutableList.of(),
                 BlockGraphPath.of(),
-                SegmentedPaths.EMPTY);
+                DecisionGraph.UNRESTRICTED);
 
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode);
@@ -84,8 +83,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     coverageOperator = new BlockStateCoverageOperator();
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
-    combinePreconditionsOperator =
-        new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
+    combinePreconditionsOperator = new BlockStateCombinePreconditionsOperator();
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     combineViolationConditionsOperator = new BlockStateCombineViolationConditionOperator();
   }

@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimaps;
+import java.util.Collection;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
@@ -91,10 +92,10 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       for (Object programPoint : programPointToState.keySet()) {
         ImmutableList<@NonNull StateAndPrecision> statesAtLocation =
             programPointToState.get(programPoint);
-        if (!analysis.statesEqual(
-            statesAtLocation,
-            preconditions.getStatesAndPrecisionsForKeyAndId(
-                pReceived.getSenderId(), programPoint))) {
+        Collection<StateAndPrecision> stored =
+            preconditions.getStatesAndPrecisionsForKeyAndId(pReceived.getSenderId(), programPoint);
+        if (!analysis.statesEqual(statesAtLocation, stored)
+            || !analysis.precisionsCoveredBy(statesAtLocation, stored)) {
           preconditions.overwriteStatesForKey(
               pReceived.getSenderId(), programPoint, statesAtLocation);
           stop = false;
