@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -325,13 +326,8 @@ public class TerminationWitnessValidator implements Algorithm {
       Loop pLoop, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
     loopScope =
-        cfa.getAstCfaRelation()
-            .getVariablesAndParametersInScope(loopHead)
-            .map(
-                variables ->
-                    programScope.withVariablesInScope(
-                        variables.filter(CSimpleDeclaration.class).toSet()))
-            .orElse(programScope)
+        TerminationArgumentsToWitnessUtils.getScopeAtNode(
+                programScope, loopHead, cfa.getAstCfaRelation())
             .withAdditionalDeclarations(pMapPrevToCurrVars.keySet());
     if (checkWithInfiniteSpace) {
       wellFoundednessChecker =
