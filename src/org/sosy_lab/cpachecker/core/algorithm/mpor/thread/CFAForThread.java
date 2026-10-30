@@ -70,6 +70,7 @@ public class CFAForThread {
 
     initPredecessors(pInitialNodes);
     initSuccessors(pInitialEdges, pInitialNodes);
+    // this step must be performed after handling both predecessors and successors
     handleFunctionReturnEdges(pThreadId, pInitialNodes, pInitialEdges, pVisitedInitRoutines);
     // this step must be performed after handling FunctionReturnEdges
     initEnteringEdges(pInitialEdges, pInitialNodes);
