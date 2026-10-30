@@ -1032,7 +1032,7 @@ public class TerminationWitnessValidator implements Algorithm {
    * @throws UnsupportedLoopException if a path ends in another node
    */
   private ImmutableList<ImmutableList<CFAEdge>> collectAllThePaths(
-      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pStartNodes, Set<CFANode> pEndNodes)
+      Set<CFAEdge> pEdges, Set<CFANode> pStartNodes, Set<CFANode> pEndNodes)
       throws UnsupportedLoopException {
     ImmutableList.Builder<ImmutableList<CFAEdge>> completePaths = ImmutableList.builder();
     for (ImmutableList<CFAEdge> path : CFAUtils.getMaximalPaths(pEdges, pStartNodes, pEndNodes)) {
