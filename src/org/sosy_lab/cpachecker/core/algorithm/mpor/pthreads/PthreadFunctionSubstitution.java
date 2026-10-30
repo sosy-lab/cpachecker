@@ -98,7 +98,8 @@ public class PthreadFunctionSubstitution {
             PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
             PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
             PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
-            new CInitializerExpression(FileLocation.DUMMY, barrierCountFieldReference));
+            new CInitializerExpression(FileLocation.DUMMY, barrierCountFieldReference),
+            /* pHasThreadLocalStorage= */ false);
     CVariableDeclaration barrierNumWaitersDeclaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
@@ -108,7 +109,8 @@ public class PthreadFunctionSubstitution {
             PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
             PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
             PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
-            new CInitializerExpression(FileLocation.DUMMY, barrierNumWaitersFieldReference));
+            new CInitializerExpression(FileLocation.DUMMY, barrierNumWaitersFieldReference),
+            /* pHasThreadLocalStorage= */ false);
 
     CBinaryExpression equalsExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
@@ -427,7 +429,8 @@ public class PthreadFunctionSubstitution {
             pFieldReference.getFieldName(),
             pFieldReference.getFieldName(),
             pFieldReference.getFieldName(),
-            new CInitializerExpression(FileLocation.DUMMY, pFieldReference));
+            new CInitializerExpression(FileLocation.DUMMY, pFieldReference),
+            /* pHasThreadLocalStorage= */ false);
     CIdExpression idExpression =
         new CIdExpression(
             FileLocation.DUMMY,
