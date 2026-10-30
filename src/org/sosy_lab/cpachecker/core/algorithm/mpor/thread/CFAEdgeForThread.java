@@ -51,7 +51,7 @@ public class CFAEdgeForThread {
     return predecessor;
   }
 
-  protected void setPredecessor(CFANodeForThread pPredecessor) {
+  void setPredecessor(CFANodeForThread pPredecessor) {
     checkNotNull(pPredecessor);
     checkArgument(predecessor == null, "predecessor set already");
     predecessor = pPredecessor;
@@ -62,7 +62,7 @@ public class CFAEdgeForThread {
     return successor;
   }
 
-  protected void setSuccessor(CFANodeForThread pSuccessor) {
+  void setSuccessor(CFANodeForThread pSuccessor) {
     checkNotNull(pSuccessor);
     checkArgument(successor == null, "successor set already");
     successor = pSuccessor;

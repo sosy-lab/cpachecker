@@ -136,10 +136,9 @@ public class CFANodeForThread {
     enteringEdges.add(pEnteringEdge);
   }
 
-  /** Returns a copy of this {@link CFANodeForThread} and replaces all leaving edges. */
-  CFANodeForThread withLeavingEdges(ImmutableList<CFAEdgeForThread> pLeavingEdges) {
-    return new CFANodeForThread(
-        id, threadId, cfaNode, pc, callContext, enteringEdges, pLeavingEdges, blockTypes);
+  void addLeavingEdge(CFAEdgeForThread pLeavingEdge) {
+    checkArgument(pLeavingEdge.getPredecessor().equals(this));
+    leavingEdges.add(pLeavingEdge);
   }
 
   @Override
