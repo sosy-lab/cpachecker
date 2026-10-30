@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.1"
+    uuid: "7ceabc7d-a368-49bc-b232-07d6daa7a18d"
+    creation_time: "2026-10-30T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/loop-with-call-in-body-nontermination.c"
+      input_file_hashes:
+        "../../simple/witness_validation/loop-with-call-in-body-nontermination.c": "e76874e42a5b38a45c55355d1cceba7720abb9228c390e8fd82403f6b95acb9e"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_transition_invariant"
+        location:
+          file_name: "../../simple/witness_validation/loop-with-call-in-body-nontermination.c"
+          line: 19
+          column: 3
+          function: "main"
+        value: "(x < \\at(x, AnyPrev)) && (\\at(x, AnyPrev) > 0)"
+        format: "ext_c_expression"
