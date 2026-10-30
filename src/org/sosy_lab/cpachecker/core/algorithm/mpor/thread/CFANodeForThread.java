@@ -67,7 +67,7 @@ public class CFANodeForThread {
       List<CFAEdgeForThread> pLeavingEdges,
       ImmutableMap<SeqCallContext, BlockType> pBlockTypes) {
 
-    checkNumLeavingEdges(pCfaNode, ImmutableList.copyOf(pLeavingEdges));
+    checkNumLeavingEdges(pCfaNode, pLeavingEdges);
 
     id = getNewId();
     threadId = pThreadId;
@@ -85,8 +85,8 @@ public class CFANodeForThread {
       CFANode pCfaNode,
       int pPc,
       SeqCallContext pCallContext,
-      ImmutableList<CFAEdgeForThread> pEnteringEdges,
-      ImmutableList<CFAEdgeForThread> pLeavingEdges,
+      List<CFAEdgeForThread> pEnteringEdges,
+      List<CFAEdgeForThread> pLeavingEdges,
       ImmutableMap<SeqCallContext, BlockType> pBlockTypes) {
 
     checkNumLeavingEdges(pCfaNode, pLeavingEdges);
@@ -101,14 +101,17 @@ public class CFANodeForThread {
     blockTypes = pBlockTypes;
   }
 
-  private static void checkNumLeavingEdges(
-      CFANode pCfaNode, ImmutableList<CFAEdgeForThread> pLeavingEdges) {
+  private static void checkNumLeavingEdges(CFANode pCfaNode, List<CFAEdgeForThread> pLeavingEdges) {
     checkArgument(pLeavingEdges.size() <= 3 || pCfaNode instanceof FunctionExitNode);
   }
 
   public CFAEdgeForThread firstLeavingEdge() {
     checkArgument(!leavingEdges.isEmpty(), "cannot get first leaving edge, list is empty");
     return leavingEdges.getFirst();
+  }
+
+  public ImmutableList<CFAEdgeForThread> enteringEdges() {
+    return ImmutableList.copyOf(enteringEdges);
   }
 
   public ImmutableList<CFAEdgeForThread> leavingEdges() {
@@ -133,16 +136,10 @@ public class CFANodeForThread {
     enteringEdges.add(pEnteringEdge);
   }
 
+  /** Returns a copy of this {@link CFANodeForThread} and replaces all leaving edges. */
   CFANodeForThread withLeavingEdges(ImmutableList<CFAEdgeForThread> pLeavingEdges) {
     return new CFANodeForThread(
-        id,
-        threadId,
-        cfaNode,
-        pc,
-        callContext,
-        ImmutableList.copyOf(enteringEdges),
-        pLeavingEdges,
-        blockTypes);
+        id, threadId, cfaNode, pc, callContext, enteringEdges, pLeavingEdges, blockTypes);
   }
 
   @Override

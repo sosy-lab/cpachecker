@@ -79,6 +79,7 @@ public class CFAForThread {
     threadNodes = ImmutableList.copyOf(finalNodes);
     threadEdges = ImmutableList.copyOf(finalEdges);
 
+    // this step must be performed after handling FunctionReturnEdges
     initEnteringEdges(threadEdges, threadNodes);
 
     nextFreePc = MPORThreadUtil.getHighestPc(threadNodes) + 1;
