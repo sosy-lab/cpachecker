@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -792,7 +793,7 @@ public class TerminationWitnessValidator implements Algorithm {
   private PathFormula constructPathFormulaForLoop(
       Loop pLoop, SSAMap pContextSSAMap, PointerTargetSet pContextPointerSet)
       throws CPATransferException, InterruptedException {
-    List<List<CFAEdge>> listOfAllPaths =
+    ImmutableList<ImmutableList<CFAEdge>> listOfAllPaths =
         collectAllThePaths(
             getInnerLoopEdgesWithSummaryEdges(pLoop), pLoop.getLoopHeads(), pLoop.getLoopHeads());
     ImmutableSet<Loop> nestedLoops =
@@ -809,7 +810,7 @@ public class TerminationWitnessValidator implements Algorithm {
       SSAMap pContextSSAMap,
       PointerTargetSet pContextPointerTargetSet,
       ImmutableSet<Loop> pNestedLoops,
-      List<List<CFAEdge>> listOfAllPaths)
+      ImmutableList<ImmutableList<CFAEdge>> listOfAllPaths)
       throws CPATransferException, InterruptedException {
     PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
     formulaForLoop = formulaForLoop.withContext(pContextSSAMap, pContextPointerTargetSet);
@@ -1021,58 +1022,20 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * Collects all paths from a start node to an end node that consist of the given edges. A call of
-   * a function is represented by its summary edge, which has to be among the given edges. Paths
-   * that end in a node without successors, e.g., after abort(), are omitted, since they do not
-   * reach an end node.
+   * Collects all paths from a start node to an end node that consist of the given edges, see {@link
+   * CFAUtils#getMaximalPaths}. A call of a function is represented by its summary edge, which has
+   * to be among the given edges. Since an edge is taken at most once on a path, a path through a
+   * nested loop ends; the edges of the nested loops are overapproximated when the formula for the
+   * paths is constructed. Paths that end in a node without successors, e.g., after abort(), are
+   * omitted, since they do not reach an end node.
    *
    * @throws UnsupportedLoopException if a path ends in another node
    */
-  private List<List<CFAEdge>> collectAllThePaths(
+  private ImmutableList<ImmutableList<CFAEdge>> collectAllThePaths(
       ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pStartNodes, Set<CFANode> pEndNodes)
       throws UnsupportedLoopException {
-    List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
-    for (CFAEdge edge : pEdges) {
-      if (pStartNodes.contains(edge.getPredecessor())) {
-        listOfAllPaths.add(new ArrayList<>());
-        listOfAllPaths.getLast().add(edge);
-      }
-    }
-    boolean updated = true;
-    while (updated) {
-      updated = false;
-      List<List<CFAEdge>> newPaths = new ArrayList<>();
-      for (List<CFAEdge> path : listOfAllPaths) {
-        CFAEdge lastEdge = path.getLast();
-        // An edge is taken at most once on a path. Otherwise, a path through a nested loop would
-        // be extended forever, since only the end nodes end a path. The edges of the nested loops
-        // are overapproximated when the formula for the paths is constructed.
-        List<CFAEdge> succEdges =
-            pEdges.stream()
-                .filter(
-                    e ->
-                        e.getPredecessor().equals(lastEdge.getSuccessor())
-                            && !pEndNodes.contains(e.getPredecessor())
-                            && !path.contains(e))
-                .toList();
-        if (!succEdges.isEmpty()) {
-          if (succEdges.size() > 1) {
-            for (int i = 1; i < succEdges.size(); i++) {
-              newPaths.add(new ArrayList<>(path));
-              newPaths.getLast().add(succEdges.get(i));
-            }
-          }
-          updated = true;
-          path.add(succEdges.getFirst());
-        }
-      }
-      if (!newPaths.isEmpty()) {
-        listOfAllPaths.addAll(newPaths);
-      }
-    }
-
-    List<List<CFAEdge>> completePaths = new ArrayList<>();
-    for (List<CFAEdge> path : listOfAllPaths) {
+    ImmutableList.Builder<ImmutableList<CFAEdge>> completePaths = ImmutableList.builder();
+    for (ImmutableList<CFAEdge> path : CFAUtils.getMaximalPaths(pEdges, pStartNodes, pEndNodes)) {
       CFANode last = path.getLast().getSuccessor();
       if (pEndNodes.contains(last)) {
         completePaths.add(path);
@@ -1080,7 +1043,7 @@ public class TerminationWitnessValidator implements Algorithm {
         throw new UnsupportedLoopException("A path ends unexpectedly in " + last);
       }
     }
-    return completePaths;
+    return completePaths.build();
   }
 
   /**
@@ -1114,7 +1077,7 @@ public class TerminationWitnessValidator implements Algorithm {
       // The edges of the called function, calls in it are represented by their summary edges
       EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(entry, edgeCollector);
-      List<List<CFAEdge>> paths =
+      ImmutableList<ImmutableList<CFAEdge>> paths =
           collectAllThePaths(
               ImmutableSet.copyOf(edgeCollector.getVisitedEdges()),
               ImmutableSet.of(entry),
