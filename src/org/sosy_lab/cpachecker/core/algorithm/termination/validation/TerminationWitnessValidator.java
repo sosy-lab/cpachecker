@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -631,10 +630,12 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
       throws CPATransferException, InterruptedException {
-    Map<String, String> currentToPrevious = new HashMap<>();
+    ImmutableMap.Builder<String, String> currentToPreviousBuilder = ImmutableMap.builder();
     for (Map.Entry<CSimpleDeclaration, CSimpleDeclaration> entry : pMapPrevToCurrVars.entrySet()) {
-      currentToPrevious.put(entry.getValue().getQualifiedName(), entry.getKey().getQualifiedName());
+      currentToPreviousBuilder.put(
+          entry.getValue().getQualifiedName(), entry.getKey().getQualifiedName());
     }
+    ImmutableMap<String, String> currentToPrevious = currentToPreviousBuilder.buildKeepingLast();
 
     // R(s,u): the loop formula starts with the initial SSA index
     PathFormula step =
@@ -866,21 +867,25 @@ public class TerminationWitnessValidator implements Algorithm {
       allEdges = makeStep(allEdges, edge);
     }
     Map<String, Formula> instantiatedVariables = fmgr.extractVariables(allEdges.getFormula());
-    Map<String, Formula> uninstantiatedVariables = new HashMap<>();
+    ImmutableMap.Builder<String, Formula> uninstantiatedVariablesBuilder = ImmutableMap.builder();
     for (Map.Entry<String, Formula> variable : instantiatedVariables.entrySet()) {
-      uninstantiatedVariables.put(
+      uninstantiatedVariablesBuilder.put(
           FormulaManagerView.parseName(variable.getKey()).getFirst(),
           fmgr.uninstantiate(variable.getValue()));
     }
-    Set<String> assignedVariables = new HashSet<>();
+    // A variable occurs with several SSA indices, which all have the same uninstantiated formula
+    ImmutableMap<String, Formula> uninstantiatedVariables =
+        uninstantiatedVariablesBuilder.buildKeepingLast();
+    ImmutableSet.Builder<String> assignedVariablesBuilder = ImmutableSet.builder();
     for (CFAEdge edge : steps) {
       PathFormula oneEdge = makeStep(pfmgr.makeEmptyPathFormulaWithContextFrom(allEdges), edge);
       for (String variable : oneEdge.getSsa().allVariables()) {
         if (oneEdge.getSsa().getIndex(variable) > allEdges.getSsa().getIndex(variable)) {
-          assignedVariables.add(variable);
+          assignedVariablesBuilder.add(variable);
         }
       }
     }
+    ImmutableSet<String> assignedVariables = assignedVariablesBuilder.build();
 
     BooleanFormula transitionInvariant = transitionInvariantsOfLoops.get(pNestedLoop);
     ImmutableList<BooleanFormula> supportingInvariants =
