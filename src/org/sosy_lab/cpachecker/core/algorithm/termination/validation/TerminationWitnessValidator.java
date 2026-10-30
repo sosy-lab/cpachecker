@@ -106,9 +106,10 @@ public class TerminationWitnessValidator implements Algorithm {
       secure = true,
       description =
           "maximal k for the k-induction that checks whether a disjunctively well-founded"
-              + " candidate is a transition invariant, i.e., R^+ => T")
-  @IntegerOption(min = 1)
-  private int maxInductionDepth = 5;
+              + " candidate is a transition invariant, i.e., R^+ => T. If -1, the k-induction is"
+              + " unbounded.")
+  @IntegerOption(min = -1)
+  private int maxInductionDepth = -1;
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
       DummyTargetState.withSimpleTargetInformation("termination");
@@ -296,7 +297,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       // Do k-inductivity checks for k > 1
       for (int k = 1; true; k++) {
-        if (k > maxInductionDepth) {
+        if (maxInductionDepth != -1 && k > maxInductionDepth) {
           logger.logf(
               Level.INFO,
               "The transition invariant of the loop could not be proven with k-induction up to k ="
