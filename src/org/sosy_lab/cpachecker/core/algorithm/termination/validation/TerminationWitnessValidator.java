@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -814,6 +815,9 @@ public class TerminationWitnessValidator implements Algorithm {
       throws CPATransferException, InterruptedException {
     PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
     formulaForLoop = formulaForLoop.withContext(pContextSSAMap, pContextPointerTargetSet);
+    // The edges of the nested loops as on the paths, i.e., calls are given by their summary edges
+    ImmutableMap<Loop, ImmutableSet<CFAEdge>> nestedLoopEdges =
+        Maps.toMap(pNestedLoops, TerminationWitnessValidator::getInnerLoopEdgesWithSummaryEdges);
 
     boolean initialized = false;
     for (List<CFAEdge> path : listOfAllPaths) {
@@ -823,7 +827,7 @@ public class TerminationWitnessValidator implements Algorithm {
       Optional<Loop> summarizedLoop = Optional.empty();
       for (CFAEdge edge : path) {
         if (summarizedLoop.isPresent()
-            && summarizedLoop.orElseThrow().getInnerLoopEdges().contains(edge)) {
+            && nestedLoopEdges.get(summarizedLoop.orElseThrow()).contains(edge)) {
           continue;
         }
         // The summary ends in a loop head of the nested loop, so the nested loop has to be left
@@ -834,7 +838,7 @@ public class TerminationWitnessValidator implements Algorithm {
           throw new UnsupportedLoopException(
               "A nested loop is left from " + edge.getPredecessor() + ", which is not a loop head");
         }
-        summarizedLoop = getOutermostLoopWithEdge(pNestedLoops, edge);
+        summarizedLoop = getOutermostLoopWithEdge(nestedLoopEdges, edge);
         if (summarizedLoop.isPresent()) {
           // The summary starts in a loop head of the nested loop, so the nested loop has to be
           // entered at a loop head
@@ -859,19 +863,23 @@ public class TerminationWitnessValidator implements Algorithm {
     return formulaForLoop;
   }
 
-  /** Returns the outermost of the given loops that contains the given edge, if there is one. */
-  private static Optional<Loop> getOutermostLoopWithEdge(ImmutableSet<Loop> pLoops, CFAEdge pEdge) {
-    return FluentIterable.from(pLoops)
-        .filter(loop -> loop.getInnerLoopEdges().contains(pEdge))
-        .stream()
+  /**
+   * Returns the outermost of the given loops whose edges contain the given edge, if there is one.
+   */
+  private static Optional<Loop> getOutermostLoopWithEdge(
+      ImmutableMap<Loop, ImmutableSet<CFAEdge>> pLoopEdges, CFAEdge pEdge) {
+    return pLoopEdges.entrySet().stream()
+        .filter(loopAndEdges -> loopAndEdges.getValue().contains(pEdge))
+        .map(Map.Entry::getKey)
         .max(Comparator.comparingInt(loop -> loop.getLoopNodes().size()));
   }
 
   /**
    * Extends the given path formula, which ends at a loop head of the given nested loop, by a
    * summary of arbitrarily many iterations of the nested loop, after which the nested loop is left
-   * from a loop head. The variables that are assigned in the nested loop get new SSA indices, and
-   * their values after the loop are constrained by
+   * from a loop head. The nested loop is inside the loop whose formula is constructed, either
+   * directly or in a function called from it. The variables that are assigned in the nested loop
+   * get new SSA indices, and their values after the loop are constrained by
    *
    * <p>(s_exit = s_entry ∧ I(s_entry)) ∨ (T(s_entry, s_exit) ∧ I(s_exit)),
    *
@@ -884,9 +892,11 @@ public class TerminationWitnessValidator implements Algorithm {
    * loop, in particular in s_entry and s_exit. The transition invariant is used before it is
    * validated, which is sound because the validation only succeeds if the transition invariants of
    * all loops are validated, and the transition invariant of the nested loop is validated for the
-   * states satisfying I. Executions from unreachable states may be excluded, which is sound because
-   * only the executions from reachable states have to satisfy the transition invariant of the outer
-   * loop.
+   * states satisfying I. The formula of the nested loop does not depend on the transition invariant
+   * of the outer loop, since recursive functions are not supported. Both T and I hold in every
+   * calling context, since they are invariants of the loop head. Executions from unreachable states
+   * may be excluded, which is sound because only the executions from reachable states have to
+   * satisfy the transition invariant of the outer loop.
    */
   private PathFormula summarizeNestedLoop(PathFormula pPath, Loop pNestedLoop)
       throws CPATransferException, InterruptedException {
@@ -1048,18 +1058,17 @@ public class TerminationWitnessValidator implements Algorithm {
 
   /**
    * Extends the path formula by a call of a function: the function call edge, all paths through the
-   * called function, and the matching function return edge.
+   * called function, and the matching function return edge. The loops of the called function are
+   * summarized, see {@link #summarizeNestedLoop}.
    *
-   * @throws UnsupportedLoopException if the called function contains a loop or is recursive
+   * @throws UnsupportedLoopException if the called function is recursive
    */
   private PathFormula makeFunctionCall(PathFormula pPath, FunctionSummaryEdge pSummaryEdge)
       throws CPATransferException, InterruptedException {
     FunctionEntryNode entry = pSummaryEdge.getFunctionEntry();
     String function = entry.getFunctionName();
-    if (!cfa.getLoopStructure().orElseThrow().getLoopsForFunction(function).isEmpty()
-        || !functionsOnCallStack.add(function)) {
-      throw new UnsupportedLoopException(
-          "The function " + function + " contains a loop or is recursive");
+    if (!functionsOnCallStack.add(function)) {
+      throw new UnsupportedLoopException("The function " + function + " is recursive");
     }
     try {
       PathFormula result = pPath;
@@ -1087,7 +1096,11 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       PathFormula body =
           constructFormulaForPaths(
-              result.getSsa(), result.getPointerTargetSet(), ImmutableSet.of(), paths);
+              result.getSsa(),
+              result.getPointerTargetSet(),
+              ImmutableSet.copyOf(
+                  cfa.getLoopStructure().orElseThrow().getLoopsForFunction(function)),
+              paths);
       result = pfmgr.makeConjunction(ImmutableList.of(result, body));
 
       for (CFAEdge edge : exit.getLeavingReturnEdges()) {
