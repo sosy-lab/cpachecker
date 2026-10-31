@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -34,7 +34,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
       value = DssCompositePrecisionPayload.class,
       name = DssComponentKey.SerializedNames.COMPOSITE_PRECISION),
   @JsonSubTypes.Type(
-      value = DssNoPrecisionPayload.class, name = DssComponentKey.SerializedNames.NO_PRECISION)
+      value = DssNoPrecisionPayload.class,
+      name = DssComponentKey.SerializedNames.NO_PRECISION)
 })
 public interface DssPrecisionPayload {
   DssComponentKey getComponentKey();

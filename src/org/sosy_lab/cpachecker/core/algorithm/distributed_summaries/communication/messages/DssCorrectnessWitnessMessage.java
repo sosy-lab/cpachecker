@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.time.Instant;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssCorrectnessWitnessPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssHeaderPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssStateAndPrecisionPayload;
 
 public final class DssCorrectnessWitnessMessage implements DssWitnessMessage, DssMessageWithStates {
   private final String senderId;

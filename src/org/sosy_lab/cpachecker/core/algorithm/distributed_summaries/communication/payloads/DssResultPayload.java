@@ -6,21 +6,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
-@JsonPropertyOrder({DssHeaderPayload.HEADER, DssViolationWitnessPayload.VIOLATION_PATH})
-public record DssViolationWitnessPayload(
+@JsonPropertyOrder({DssHeaderPayload.HEADER, DssResultPayload.RESULT})
+public record DssResultPayload(
     @JsonProperty(value = DssHeaderPayload.HEADER, required = true) DssHeaderPayload header,
-    @JsonProperty(value = VIOLATION_PATH, required = true) String violationPath)
+    @JsonProperty(value = RESULT, required = true) Result result)
     implements DssMessagePayload {
-  public static final String WITNESS_TYPE = "witnessType";
-  public static final String VIOLATION_PATH = "violationPath";
+
+  public static final String RESULT = "result";
 
   @Override
   public DssMessagePayload withNewHeader(DssHeaderPayload pNewHeader) {
-    return new DssViolationWitnessPayload(pNewHeader, violationPath);
+    return new DssResultPayload(pNewHeader, result);
   }
 }

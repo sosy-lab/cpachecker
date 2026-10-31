@@ -18,9 +18,9 @@ import com.github.victools.jsonschema.module.jackson.JacksonModule;
 import com.github.victools.jsonschema.module.jackson.JacksonOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessagePayloadModule;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayloadModule;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayloadModule;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssStatePayloadModule;
 
 public final class DssSchemaGenerator {
   private DssSchemaGenerator() {}

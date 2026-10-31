@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
       value = DssLocationStatePayload.class,
       name = DssComponentKey.SerializedNames.LOCATION_STATE),
   @JsonSubTypes.Type(
-      value = DssBlockStatePayload.class, name = DssComponentKey.SerializedNames.BLOCK_STATE),
+      value = DssBlockStatePayload.class,
+      name = DssComponentKey.SerializedNames.BLOCK_STATE),
   @JsonSubTypes.Type(
       value = DssCallstackStatePayload.class,
       name = DssComponentKey.SerializedNames.CALLSTACK_STATE),
