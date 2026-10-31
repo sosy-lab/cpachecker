@@ -81,6 +81,8 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
   private boolean waitingForLabel = false;
 
   private final ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> nodeToTagReferences;
+  private final ImmutableSetMultimap.Builder<SvLibTagReference, SvLibTagProperty>
+      tagReferenceToAnnotations;
   private final ImmutableMap<String, CFANode> labelsToNodes;
   private final ImmutableSet.Builder<CFANode> allNodesCollector;
   private final ImmutableSetMultimap<String, SvLibTagProperty> tagReferencesToAnnotations;
@@ -94,6 +96,7 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
       FunctionExitNode pFunctionExitNode,
       ImmutableSetMultimap.Builder<CFANode, SvLibTagProperty> pNodeToTagAnnotations,
       ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> pNodeToTagReferences,
+      ImmutableSetMultimap.Builder<SvLibTagReference, SvLibTagProperty> pTagReferenceToAnnotations,
       ImmutableMap<String, CFANode> pLabelsToNodes,
       ImmutableSet.Builder<CFANode> pAllNodesCollector,
       ImmutableSetMultimap<String, SvLibTagProperty> pTagReferencesToAnnotations,
@@ -104,6 +107,7 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
     functionExitNode = pFunctionExitNode;
     nodeToTagAnnotations = pNodeToTagAnnotations;
     nodeToTagReferences = pNodeToTagReferences;
+    tagReferenceToAnnotations = pTagReferenceToAnnotations;
     labelsToNodes = pLabelsToNodes;
     allNodesCollector = pAllNodesCollector;
     tagReferencesToAnnotations = pTagReferencesToAnnotations;
@@ -130,6 +134,8 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
       ImmutableSet<SvLibTagProperty> properties = tagReferencesToAnnotations.get(ref.getTagName());
       nodeToTagAnnotations.putAll(pStartNode, properties);
       nodeToTagReferences.put(pStartNode, ref);
+      tagReferenceToAnnotations.putAll(ref, pStatement.getTagAttributes());
+      tagReferenceToAnnotations.putAll(ref, properties);
     }
   }
 

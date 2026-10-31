@@ -87,10 +87,15 @@ public class CounterexampleToSvLibWitnessExport {
       violatedTags = setOfPropertiesAtLeastOneViolated;
     }
 
-    Set<SvLibTagReference> tagReferences = svLibMetadata.tagReferences().get(nodeWithViolatedTag);
+    // Several statements can start at the node, and only the tags of the one with the violated
+    // property name it.
+    List<SvLibTagReference> tagReferences =
+        svLibMetadata.tagReferences().get(nodeWithViolatedTag).stream()
+            .filter(tagRef -> svLibMetadata.tagReferenceAnnotations().containsKey(tagRef))
+            .toList();
     if (tagReferences.size() == 1) {
       // If we know exactly which tag was violated, include it in the property.
-      SvLibTagReference tagRef = tagReferences.iterator().next();
+      SvLibTagReference tagRef = tagReferences.getFirst();
       return new SvLibIncorrectTagProperty(tagRef.getFileLocation(), tagRef, violatedTags);
     } else if (tagReferences.isEmpty()) {
       // Otherwise, just return the violated tags without a specific reference.

@@ -111,6 +111,8 @@ class SvLibCfaBuilder {
       new ImmutableSetMultimap.Builder<>();
   private final ImmutableSetMultimap.Builder<String, SvLibTagProperty> tagReferencesToAnnotations =
       ImmutableSetMultimap.builder();
+  private final ImmutableSetMultimap.Builder<SvLibTagReference, SvLibTagProperty>
+      tagReferenceToAnnotations = ImmutableSetMultimap.builder();
   private final ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> nodesToTagReferences =
       ImmutableSetMultimap.builder();
 
@@ -232,6 +234,7 @@ class SvLibCfaBuilder {
             functionExitNode,
             nodeToTagAnnotations,
             nodesToTagReferences,
+            tagReferenceToAnnotations,
             labelToNodesBuilder.buildOrThrow(),
             allNodesCollector,
             tagReferencesToAnnotations.build(),
@@ -471,11 +474,11 @@ class SvLibCfaBuilder {
             SvLibTagReference tagReference = entry.getValue();
             if (tagReference.getTagName().equals(tagName)) {
               for (SvLibTagProperty tagProperty : tagProperties) {
-                nodeToTagAnnotations.put(
-                    node,
+                SvLibTagProperty instantiatedProperty =
                     instantiateTagProperty(
-                        Objects.requireNonNull(tagReferenceToScope.get(tagReference)),
-                        tagProperty));
+                        Objects.requireNonNull(tagReferenceToScope.get(tagReference)), tagProperty);
+                nodeToTagAnnotations.put(node, instantiatedProperty);
+                tagReferenceToAnnotations.put(tagReference, instantiatedProperty);
               }
             }
           }
@@ -582,7 +585,8 @@ class SvLibCfaBuilder {
             nodesToActualProcedureDefinitionEnd.buildOrThrow(),
             nodesToActualHavocStatementEnd.buildOrThrow(),
             nodeToTagAnnotations.build(),
-            nodesToTagReferences.build()));
+            nodesToTagReferences.build(),
+            tagReferenceToAnnotations.build()));
   }
 
   private record ProcedureDefinition(
