@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -114,7 +115,17 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
             logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
 
             if (updatedState instanceof AcslState acslState) {
-              updatedState = acslState.withAddedInvariant(cfaEdge.getSuccessor(), init);
+              ImmutableList<CFANode> exitNodes =
+                  getExitNodes(cfa.getLoopStructure().get(), init.loopHead());
+              if (exitNodes.isEmpty()) {
+                updatedState = acslState.withAddedInvariant(init.loopHead(), init);
+                logger.log(
+                    Level.WARNING,
+                    "Cound not determine the node(s) after the loop, storing invariant for loop"
+                        + " head instead!");
+              } else {
+                updatedState = acslState.withAddedInvariant(exitNodes, init);
+              }
             }
           }
         }
@@ -141,5 +152,19 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return false;
+  }
+
+  private static ImmutableList<CFANode> getExitNodes(
+      LoopStructure loopStructure, CFANode loopHead) {
+    ImmutableList<Loop> loops = ImmutableList.copyOf(loopStructure.getLoopsForLoopHead(loopHead));
+    ImmutableList.Builder<CFANode> exitNodes = ImmutableList.builder();
+
+    for (Loop l : loops) {
+      for (CFAEdge e : l.getOutgoingEdges()) {
+        exitNodes.add(e.getSuccessor());
+      }
+    }
+
+    return exitNodes.build();
   }
 }
