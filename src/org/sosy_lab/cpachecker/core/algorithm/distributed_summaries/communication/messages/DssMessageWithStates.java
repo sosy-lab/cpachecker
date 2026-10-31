@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssStateAndPrecisionPayload;
 
+/** Messages containing state information */
 public sealed interface DssMessageWithStates extends DssMessage
     permits DssConditionMessage, DssCorrectnessWitnessMessage {
   ImmutableList<DssStateAndPrecisionPayload> getStates();
