@@ -115,16 +115,20 @@ public record SeqThreadStatementClauseBuilder(
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
             : noBackwardGoto;
 
-    // if enabled, apply partial order reduction and reduce number of clauses
-    PartialOrderReducer partialOrderReducer =
-        new PartialOrderReducer(
-            options, consecutiveLabels, ghostElements, machineModel, pointerAliasingMap, utils);
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
-        partialOrderReducer.reduceClauses();
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> finalClauses;
+    // if the input program is concurrent, apply the partial order reduction options
+    if (allThreads.size() > 1) {
+      PartialOrderReducer partialOrderReducer =
+          new PartialOrderReducer(
+              options, consecutiveLabels, ghostElements, machineModel, pointerAliasingMap, utils);
+      finalClauses = partialOrderReducer.reduceClauses();
+    } else {
+      finalClauses = consecutiveLabels;
+    }
 
     // validate clauses based on pOptions
-    SequentializationValidator.tryValidateClauses(options, reducedClauses);
-    return reducedClauses;
+    SequentializationValidator.tryValidateClauses(options, finalClauses);
+    return finalClauses;
   }
 
   /** Maps threads to the case clauses they potentially execute. */

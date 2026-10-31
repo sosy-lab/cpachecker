@@ -156,6 +156,10 @@ public class SequentializationFields {
             : Optional.empty();
   }
 
+  public boolean isInputProgramConcurrent() {
+    return threads.size() > 1;
+  }
+
   /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */
   private static void resetStaticFields() {
     MPORThreadBuilder.resetThreadId();

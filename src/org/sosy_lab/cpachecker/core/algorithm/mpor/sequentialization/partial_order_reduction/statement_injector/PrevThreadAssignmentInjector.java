@@ -44,7 +44,7 @@ public record PrevThreadAssignmentInjector(
       // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
       SeqThreadStatementClause targetClause = Objects.requireNonNull(labelClauseMap.get(targetPc));
 
-      if (options.abortCommutingContextSwitches()) {
+      if (options.abortCommutingContextSwitches() && numThreads > 1) {
         // For sync locations, set prev_thread to NUM_THREADS. This is necessary when
         // abortCommutingContextSwitches (ACS) is enabled, otherwise the analysis is unsound.
         //

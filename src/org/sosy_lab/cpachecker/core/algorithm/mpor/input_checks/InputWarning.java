@@ -22,7 +22,7 @@ public class InputWarning {
 
   enum InputWarningMessage {
     NOT_CONCURRENT(
-        "MPOR expects concurrent C program with at least one pthread_create or pthread_once call."
+        "MPOR expects a concurrent C program with at least one pthread_create call."
             + " The program is sequentialized regardless.");
 
     final String message;
