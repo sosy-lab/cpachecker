@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
@@ -19,4 +21,7 @@ public interface AcslReportingState extends AbstractState {
 
   /** Returns an Acsl predicate over-approximating the state. */
   AcslPredicate getAcslPredicate();
+
+  /** Returns an Acsl predicate valid at a certain node of the CFA */
+  AcslPredicate getAcslPredicate(CFANode pNode, FileLocation pLoc);
 }
