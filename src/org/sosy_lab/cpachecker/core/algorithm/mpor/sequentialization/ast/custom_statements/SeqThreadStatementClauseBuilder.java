@@ -469,7 +469,7 @@ public record SeqThreadStatementClauseBuilder(
     // step 1: reuse pthread_mutex_unlock statements for pthread_cond_wait
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqThreadStatement mutexUnlockStatement =
-        pStatementBuilder.buildMutexStatement(
+        pStatementBuilder.buildCondStatement(
             SeqThreadStatementType.COND_WAIT_UNLOCK, pSubstituteEdge, nextFreePc);
     rClauses.add(
         buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
