@@ -234,12 +234,7 @@ final class ConcurrentPathChecker extends PathChecker {
                 variable, formula.getSsa().getType(variable), formula.getSsa().getIndex(variable));
           }
         }
-        stacks.put(
-            threadId,
-            ImmutableList.<Frame>builder()
-                .add(new Frame(call, locals.build()))
-                .addAll(stack)
-                .build());
+        stacks.put(threadId, elementAndList(new Frame(call, locals.build()), stack));
       } else if (edge instanceof FunctionReturnEdge returning) {
         if (stack.isEmpty()) {
           throw new CPATransferException("Concurrent function return has no matching call");
