@@ -668,7 +668,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
             pDecl.getName(),
             pDecl.getOrigName(),
             ThreadFunctions.perThreadName(threadId, pDecl.getQualifiedName()),
-            null);
+            null,
+            pDecl.hasThreadLocalStorage());
     CIdExpression lhs =
         new CIdExpression(pDecl.getFileLocation(), pDecl.getType(), pDecl.getName(), childCopy);
     return new CStatementEdge(

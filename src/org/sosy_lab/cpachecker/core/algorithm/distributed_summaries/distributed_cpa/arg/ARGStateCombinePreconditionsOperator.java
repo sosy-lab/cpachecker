@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.Optional;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
@@ -25,6 +28,17 @@ public class ARGStateCombinePreconditionsOperator implements CombinePrecondition
 
   public ARGStateCombinePreconditionsOperator(DistributedConfigurableProgramAnalysis pWrappedCpa) {
     wrappedCpa = pWrappedCpa;
+  }
+
+  @Override
+  public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
+      throws CPAException, InterruptedException {
+    ImmutableList<AbstractState> wrappedStates =
+        transformedImmutableListCopy(states, s -> ((ARGState) s).getWrappedState());
+    return wrappedCpa
+        .getCombineOperator()
+        .combineIfPossible(wrappedStates)
+        .map(s -> new ARGState(s, null));
   }
 
   @Override

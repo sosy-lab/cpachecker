@@ -58,7 +58,8 @@ public class MutexStateTest {
         name,
         qualifiedName,
         qualifiedName,
-        /* pInitializer= */ null);
+        /* pInitializer= */ null,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   private static MutexHandle handle(String qualifiedName) {

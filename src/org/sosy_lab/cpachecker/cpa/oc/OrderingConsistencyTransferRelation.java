@@ -1471,7 +1471,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     // global id would instead be renamed to an unpredictable fresh name by the global renamer)
     CVariableDeclaration declaration =
         new CVariableDeclaration(
-            FileLocation.DUMMY, false, CStorageClass.AUTO, pointerType, name, name, name, null);
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            pointerType,
+            name,
+            name,
+            name,
+            null,
+            /* pHasThreadLocalStorage= */ false);
     CIdExpression freshId = new CIdExpression(FileLocation.DUMMY, pointerType, name, declaration);
     CBinaryExpression binding =
         new CBinaryExpression(
@@ -2161,7 +2169,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private static CIdExpression syntheticIdExpression(String pName, CType pType) {
     CVariableDeclaration declaration =
         new CVariableDeclaration(
-            FileLocation.DUMMY, true, CStorageClass.AUTO, pType, pName, pName, pName, null);
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            pType,
+            pName,
+            pName,
+            pName,
+            null,
+            /* pHasThreadLocalStorage= */ false);
     return new CIdExpression(FileLocation.DUMMY, pType, pName, declaration);
   }
 }

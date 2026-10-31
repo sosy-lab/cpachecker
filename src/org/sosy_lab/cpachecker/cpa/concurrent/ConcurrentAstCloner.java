@@ -107,7 +107,8 @@ class ConcurrentAstCloner extends CAstCloner {
           decl.getName(),
           decl.getOrigName(),
           globalRenamer.freshName(decl, pIsWrite),
-          null);
+          null,
+          decl.hasThreadLocalStorage());
     } else if (decl.isGlobal() && !decl.hasThreadLocalStorage()) {
       return decl; // no renamer: non-thread-local globals keep their original name
     } else {
@@ -119,7 +120,8 @@ class ConcurrentAstCloner extends CAstCloner {
           decl.getName(),
           decl.getOrigName(),
           changeQualifiedName(decl),
-          null);
+          null,
+          decl.hasThreadLocalStorage());
     }
   }
 

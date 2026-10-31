@@ -910,7 +910,8 @@ public final class ValueAnalysisState
                     newVariableName,
                     newVariableName,
                     memoryLocation.getExtendedQualifiedName(),
-                    null);
+                    null,
+                    /* pHasThreadLocalStorage= */ false);
             CExpression var = new CIdExpression(loc, decl);
             Optional<CExpression> constraint = buildConstraint(var, cType, num);
             if (constraint.isPresent()) {

@@ -159,7 +159,8 @@ public abstract class CAstCloner extends AbstractTransformingCAstNodeVisitor<NoE
         decl.getName(),
         decl.getOrigName(),
         changeQualifiedName(decl),
-        null);
+        null,
+        decl.hasThreadLocalStorage());
   }
 
   /** Returns the declaration to attach to a copied {@link CIdExpression} that is not a function. */

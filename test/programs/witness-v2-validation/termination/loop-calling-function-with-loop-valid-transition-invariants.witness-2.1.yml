@@ -1,0 +1,42 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.1"
+    uuid: "f50adce3-357d-42f4-bbc5-89cfcaac1745"
+    creation_time: "2026-10-30T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/loop-calling-function-with-loop.c"
+      input_file_hashes:
+        "../../simple/witness_validation/loop-calling-function-with-loop.c": "d57c3de5bffdf047efdd8ce316fbd7a2386814848f402f842a9f403e0e7cc4a4"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_transition_invariant"
+        location:
+          file_name: "../../simple/witness_validation/loop-calling-function-with-loop.c"
+          line: 23
+          column: 3
+          function: "main"
+        value: "(x < \\at(x, AnyPrev)) && (\\at(x, AnyPrev) > 0)"
+        format: "ext_c_expression"
+    - invariant:
+        type: "loop_transition_invariant"
+        location:
+          file_name: "../../simple/witness_validation/loop-calling-function-with-loop.c"
+          line: 15
+          column: 3
+          function: "count"
+        value: "(i > \\at(i, AnyPrev)) && (\\at(i, AnyPrev) < \\at(n, AnyPrev)) && (n == \\at(n, AnyPrev))"
+        format: "ext_c_expression"

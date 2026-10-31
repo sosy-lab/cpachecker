@@ -88,7 +88,8 @@ public class FunctionPointerTransferRelationTest {
           "stdlib_allocator",
           "stdlib_allocator",
           "stdlib_allocator",
-          new CInitializerList(FileLocation.DUMMY, ImmutableList.of(initializer)));
+          new CInitializerList(FileLocation.DUMMY, ImmutableList.of(initializer)),
+          /* pHasThreadLocalStorage= */ false);
 
   private final CIdExpression libAllocator =
       new CIdExpression(FileLocation.DUMMY, struct, "stdlib_allocator", voidPointerDecl);
