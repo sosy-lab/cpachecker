@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -202,19 +203,19 @@ public class PthreadFunctionSubstitution {
       ImmutableList<CExpression> pExpressions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CIdExpression onceExpression =
-        (CIdExpression)
-            pExpressions.get(
-                PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
-                    PthreadObjectType.PTHREAD_ONCE_T));
+    CExpression onceExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(PthreadObjectType.PTHREAD_ONCE_T));
     return pBinaryExpressionBuilder.buildBinaryExpression(
         onceExpression, ONCE_FREE_EXPRESSION, BinaryOperator.EQUALS);
   }
 
   public static CCompoundStatementElement buildOnceLockThenStatement(
       ImmutableList<CExpression> pExpressions) {
-    CIdExpression onceExpression =
-        (CIdExpression)
+
+    // cast to CLeftHandSide, since the once expression can be a CIdExpression, CFieldReference, ...
+    CLeftHandSide onceExpression =
+        (CLeftHandSide)
             pExpressions.get(
                 PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
                     PthreadObjectType.PTHREAD_ONCE_T));
@@ -227,11 +228,9 @@ public class PthreadFunctionSubstitution {
       ImmutableList<CExpression> pExpressions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CIdExpression onceExpression =
-        (CIdExpression)
-            pExpressions.get(
-                PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
-                    PthreadObjectType.PTHREAD_ONCE_T));
+    CExpression onceExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(PthreadObjectType.PTHREAD_ONCE_T));
     CBinaryExpression onceNotEquals1Expression =
         pBinaryExpressionBuilder.buildBinaryExpression(
             onceExpression, CIntegerLiteralExpression.ONE, BinaryOperator.NOT_EQUALS);
@@ -240,8 +239,9 @@ public class PthreadFunctionSubstitution {
   }
 
   public static CExportStatement buildOnceUnlockStatement(ImmutableList<CExpression> pExpressions) {
-    CIdExpression onceExpression =
-        (CIdExpression)
+    // cast to CLeftHandSide, since the once expression can be a CIdExpression, CFieldReference, ...
+    CLeftHandSide onceExpression =
+        (CLeftHandSide)
             pExpressions.get(
                 PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
                     PthreadObjectType.PTHREAD_ONCE_T));
