@@ -69,6 +69,17 @@ typedef union
   long int __align;
 } pthread_mutex_t;
 typedef int pthread_once_t;
+typedef union
+{
+  char __size[20];
+  long int __align;
+} pthread_barrier_t;
+typedef union
+{
+  char __size[4];
+  int __align;
+} pthread_barrierattr_t;
+
 
 extern int pthread_create (pthread_t *__restrict __newthread,
       const pthread_attr_t *__restrict __attr,
@@ -87,6 +98,12 @@ extern int pthread_mutex_unlock (pthread_mutex_t *__mutex)
      __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
 extern int pthread_once (pthread_once_t *__once_control,
     void (*__init_routine) (void)) __attribute__ ((__nonnull__ (1, 2)));
+extern int pthread_barrier_init (pthread_barrier_t *__restrict __barrier,
+     const pthread_barrierattr_t *__restrict
+     __attr, unsigned int __count)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int pthread_barrier_wait (pthread_barrier_t *__barrier)
+     __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
 
 enum
 {
@@ -126,6 +143,8 @@ PQUEUE struct_with_mutex_implicit = { 0, { { 0, 0, 0, PTHREAD_MUTEX_TIMED_NP, 0,
 PQUEUE_PTR struct_with_mutex_ptr;
 PQUEUE_PTR yet_another_struct_with_mutex_ptr;
 pthread_once_t once_there_was_a_way = 0;
+pthread_barrier_t barrier;
+pthread_barrier_t barrier_variable;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 int assume(int cond);
 void abort();
@@ -232,6 +251,13 @@ int main() {
 
     pthread_once_t to_get_back_home;
     pthread_once(&to_get_back_home, do_something);
+
+    int cap = 1;
+    pthread_barrier_init(&barrier, (void *)0, 1);
+    pthread_barrier_init(&barrier_variable, (void *)0, cap);
+
+    pthread_barrier_wait(&barrier);
+    pthread_barrier_wait(&barrier_variable);
 
     pthread_mutex_init(&mutexA, (void *) 0);
     pthread_mutex_init(&mutexB, (void *) 0);
