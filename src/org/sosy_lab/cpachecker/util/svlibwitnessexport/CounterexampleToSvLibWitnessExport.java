@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
@@ -56,7 +57,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
+import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
+import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 
 public class CounterexampleToSvLibWitnessExport {
   @SuppressWarnings("unused")
@@ -110,12 +112,13 @@ public class CounterexampleToSvLibWitnessExport {
   }
 
   private Optional<SvLibConstantTerm> getValue(
-      ConcreteState pState, String pVarName, @Nullable String pProcedureName, SvLibType pType) {
-    // Variable declarations can only be global
-    IDExpression idExpr = new IDExpression(pVarName, pProcedureName);
-    if (pState.hasValueForLeftHandSide(idExpr)) {
+      ConcreteState pState, String pQualifiedName, SvLibType pType) {
+    // The concrete state knows the variable by the name of the formulas
+    String formulaName = cleanVariableNameForJavaSMT(pQualifiedName);
+    LeftHandSide variable = AssignmentToPathAllocator.createLeftHandSide(formulaName);
+    if (pState.hasValueForLeftHandSide(variable)) {
       // Transform the value into a SvLibConstantTerm
-      Object value = pState.getVariableValue(idExpr);
+      Object value = pState.getVariableValue(variable);
       return Optional.of(SvLibConstantTerm.of(value, pType));
     }
 
@@ -133,8 +136,7 @@ public class CounterexampleToSvLibWitnessExport {
       Optional<SvLibConstantTerm> assignedValue =
           getValue(
               pConcreteState,
-              paramDecl.toASTString(),
-              pProcedureDeclaration.getName(),
+              paramDecl.toSimpleDeclaration().getQualifiedName(),
               paramDecl.getType());
 
       SvLibIdTerm idTerm = new SvLibIdTerm(paramDecl.toSimpleDeclaration(), FileLocation.DUMMY);
@@ -153,7 +155,7 @@ public class CounterexampleToSvLibWitnessExport {
     for (SvLibSimpleParsingDeclaration varTerm : pStatement.getVariables()) {
       Optional<SvLibConstantTerm> assignedValue =
           getValue(
-              pConcreteState, varTerm.toASTString(), varTerm.getProcedureName(), varTerm.getType());
+              pConcreteState, varTerm.toSimpleDeclaration().getQualifiedName(), varTerm.getType());
 
       SvLibIdTerm idTerm = new SvLibIdTerm(varTerm.toSimpleDeclaration(), FileLocation.DUMMY);
       if (assignedValue.isPresent()) {
@@ -171,7 +173,7 @@ public class CounterexampleToSvLibWitnessExport {
 
     SvLibVariableDeclaration pVarDecl = (SvLibVariableDeclaration) pDeclaration;
     Optional<SvLibConstantTerm> assignedValue =
-        getValue(pConcreteState, pVarDecl.getName(), null, pVarDecl.getType());
+        getValue(pConcreteState, pVarDecl.getQualifiedName(), pVarDecl.getType());
 
     if (assignedValue.isPresent()) {
       return Optional.of(
