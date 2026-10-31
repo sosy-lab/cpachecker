@@ -12,6 +12,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssCorrectnessWitnessPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssExceptionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssHeaderPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssPostConditionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssResultPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssViolationConditionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssViolationWitnessPayload;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 public final class DssMessageCodec {

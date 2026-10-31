@@ -6,12 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
 /**
  * Jackson payload representing the wire format of a {@link DssMessage}.
@@ -20,20 +21,26 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
  * explicit property names, required and optional fields, and the conversion between the wire
  * representation and the Java message object.
  *
- * <p>When adding a payload subtype, register it in {@link DssMessagePayloadModule} with an
- * explicit serialized type name. Java class and field names must not determine the wire format.
+ * <p>When adding a payload subtype, register it in {@link DssMessagePayloadModule} with an explicit
+ * serialized type name. Java class and field names must not determine the wire format. Also add it
+ * to the {@code @JsonSubTypes} annotation below.
  */
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessagePayload.TYPE)
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = DssPostConditionPayload.class, name = DssMessagePayload.POST_CONDITION),
   @JsonSubTypes.Type(
-      value = DssViolationConditionPayload.class, name = DssMessagePayload.VIOLATION_CONDITION),
+      value = DssPostConditionPayload.class,
+      name = DssMessagePayload.POST_CONDITION),
+  @JsonSubTypes.Type(
+      value = DssViolationConditionPayload.class,
+      name = DssMessagePayload.VIOLATION_CONDITION),
   @JsonSubTypes.Type(value = DssResultPayload.class, name = DssMessagePayload.RESULT),
   @JsonSubTypes.Type(value = DssExceptionPayload.class, name = DssMessagePayload.EXCEPTION),
   @JsonSubTypes.Type(
-      value = DssViolationWitnessPayload.class, name = DssMessagePayload.VIOLATION_WITNESS),
+      value = DssViolationWitnessPayload.class,
+      name = DssMessagePayload.VIOLATION_WITNESS),
   @JsonSubTypes.Type(
-      value = DssCorrectnessWitnessPayload.class, name = DssMessagePayload.CORRECTNESS_WITNESS)
+      value = DssCorrectnessWitnessPayload.class,
+      name = DssMessagePayload.CORRECTNESS_WITNESS)
 })
 public sealed interface DssMessagePayload
     permits DssPostConditionPayload,

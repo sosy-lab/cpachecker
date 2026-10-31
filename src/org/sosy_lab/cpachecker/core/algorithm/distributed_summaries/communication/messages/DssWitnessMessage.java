@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssViolationWitnessPayload;
+
 /**
  * Message sent by analysis workers carrying witness information: either the ARG states of all
  * preconditions after a TRUE result ({@link WitnessType#CORRECTNESS}), or the violation path after

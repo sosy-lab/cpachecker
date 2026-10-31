@@ -12,6 +12,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayloadModule;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssStatePayloadModule;
 
 public final class DssMessageJsonUtils {
   private static final ObjectMapper OBJECT_MAPPER =

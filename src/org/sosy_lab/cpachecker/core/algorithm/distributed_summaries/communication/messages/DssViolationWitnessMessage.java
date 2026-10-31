@@ -10,6 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.base.Preconditions;
 import java.time.Instant;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssHeaderPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssViolationWitnessPayload;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 public final class DssViolationWitnessMessage implements DssWitnessMessage {

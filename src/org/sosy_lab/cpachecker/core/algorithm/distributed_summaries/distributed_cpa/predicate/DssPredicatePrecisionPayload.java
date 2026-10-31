@@ -18,8 +18,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentPrecisionPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssComponentKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssComponentPrecisionPayload;
 
 @JsonPropertyOrder({
   DssPredicatePrecisionPayload.LOCATION_INSTANCES,
@@ -42,7 +42,8 @@ public record DssPredicatePrecisionPayload(
 
   @JsonCreator
   DssPredicatePrecisionPayload(
-      @JsonProperty(LOCATION_INSTANCES) List<DssLocationInstancePredicatesPayload> pLocationInstances,
+      @JsonProperty(LOCATION_INSTANCES)
+          List<DssLocationInstancePredicatesPayload> pLocationInstances,
       @JsonProperty(LOCAL_PREDICATES) Map<Integer, Set<String>> pLocalPredicates,
       @JsonProperty(FUNCTION_PREDICATES) Map<String, Set<String>> pFunctionPredicates,
       @JsonProperty(GLOBAL_PREDICATES) Set<String> pGlobalPredicates) {
