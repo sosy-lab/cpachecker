@@ -53,8 +53,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 /** Encodes ARG choices explicitly and replays the selected schedule with per-thread call stacks. */
 final class ConcurrentPathChecker extends PathChecker {
-  private record Context(
-      PathFormula formula, ImmutableMap<Integer, ImmutableList<SSAMap>> stacks) {}
+  private record Frame(FunctionCallEdge call, SSAMap locals) {}
+
+  private record Context(PathFormula formula, ImmutableMap<Integer, ImmutableList<Frame>> stacks) {}
 
   private record Choice(ARGState parent, BooleanFormula selector) {}
 
@@ -216,15 +217,15 @@ final class ConcurrentPathChecker extends PathChecker {
     ConcurrentState after =
         checkNotNull(AbstractStates.extractStateByType(child, ConcurrentState.class));
     PathFormula formula = previous.formula();
-    Map<Integer, ImmutableList<SSAMap>> stacks = new HashMap<>(previous.stacks());
+    Map<Integer, ImmutableList<Frame>> stacks = new HashMap<>(previous.stacks());
     List<CFAEdge> edges = parent.getEdgesToChild(child);
     if (edges.isEmpty()) {
       throw new CPATransferException("Concurrent ARG transition has no CFA edges");
     }
     for (CFAEdge edge : edges) {
       int pid = edge.getPredecessor().getCloneThreadId().orElseThrow();
-      ImmutableList<SSAMap> stack = stacks.getOrDefault(pid, ImmutableList.of());
-      if (edge instanceof FunctionCallEdge) {
+      ImmutableList<Frame> stack = stacks.getOrDefault(pid, ImmutableList.of());
+      if (edge instanceof FunctionCallEdge call) {
         SSAMap.SSAMapBuilder locals = SSAMap.emptySSAMap().builder();
         for (String variable : formula.getSsa().allVariables()) {
           if (isThreadLocal(variable, pid)) {
@@ -232,17 +233,27 @@ final class ConcurrentPathChecker extends PathChecker {
                 variable, formula.getSsa().getType(variable), formula.getSsa().getIndex(variable));
           }
         }
-        stacks.put(pid, ImmutableList.<SSAMap>builder().add(locals.build()).addAll(stack).build());
+        stacks.put(
+            pid,
+            ImmutableList.<Frame>builder()
+                .add(new Frame(call, locals.build()))
+                .addAll(stack)
+                .build());
       } else if (edge instanceof FunctionReturnEdge returning) {
         if (stack.isEmpty()) {
           throw new CPATransferException("Concurrent function return has no matching call");
+        }
+        Frame frame = stack.getFirst();
+        if (!frame.call().getPredecessor().equals(returning.getCallNode())
+            || !frame.call().getSuccessor().equals(returning.getFunctionEntry())) {
+          throw new CPATransferException("Concurrent function return does not match its call site");
         }
         SSAMap current = formula.getSsa();
         formula =
             BAMBlockFormulaStrategy.rebuildStateAfterFunctionCall(
                 formula,
                 formulas.makeEmptyPathFormulaWithContext(
-                    stack.getFirst(), formula.getPointerTargetSet()),
+                    frame.locals(), formula.getPointerTargetSet()),
                 returning.getPredecessor());
         SSAMap.SSAMapBuilder restored = formula.getSsa().builder();
         // A return must not restore another thread's local variables.

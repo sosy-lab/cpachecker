@@ -279,7 +279,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
     if (mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
     }
-    return new ConcurrentMergeOperator(getWrappedCpa());
+    return new ConcurrentMergeOperator(getWrappedCpa(), threadSpecificCPA);
   }
 
   @Override
