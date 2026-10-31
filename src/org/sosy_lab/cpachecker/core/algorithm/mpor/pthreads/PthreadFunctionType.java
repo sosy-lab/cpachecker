@@ -21,6 +21,11 @@ import java.util.Optional;
 public enum PthreadFunctionType {
 
   // Note that all indices start at 0.
+  PTHREAD_BARRIER_DESTROY(
+      "pthread_barrier_destroy",
+      true,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_BARRIER_T, 0)),
   PTHREAD_BARRIER_INIT(
       "pthread_barrier_init",
       true,
