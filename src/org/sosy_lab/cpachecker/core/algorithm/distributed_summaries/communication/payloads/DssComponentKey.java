@@ -28,26 +28,26 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
  * readers, writers, tests, and tools that consume the format.
  */
 public enum DssComponentKey {
-  BLOCK_STATE(BlockState.class, SerializedNames.BLOCK_STATE),
-  CALLSTACK_STATE(CallstackState.class, SerializedNames.CALLSTACK_STATE),
-  FUNCTION_POINTER_STATE(FunctionPointerState.class, SerializedNames.FUNCTION_POINTER_STATE),
-  LOCATION_STATE(LocationState.class, SerializedNames.LOCATION_STATE),
-  PREDICATE_STATE(PredicateAbstractState.class, SerializedNames.PREDICATE_STATE),
-  COMPOSITE_STATE(CompositeState.class, SerializedNames.COMPOSITE_STATE),
-  PREDICATE_PRECISION(PredicatePrecision.class, SerializedNames.PREDICATE_PRECISION),
-  COMPOSITE_PRECISION(CompositePrecision.class, SerializedNames.COMPOSITE_PRECISION),
-  NO_PRECISION(DssNoPrecisionPayload.class, SerializedNames.NO_PRECISION);
+  BLOCK_STATE(BlockState.class, SerializedNames.BLOCK_STATE_KEY),
+  CALLSTACK_STATE(CallstackState.class, SerializedNames.CALLSTACK_STATE_KEY),
+  FUNCTION_POINTER_STATE(FunctionPointerState.class, SerializedNames.FUNCTION_POINTER_STATE_KEY),
+  LOCATION_STATE(LocationState.class, SerializedNames.LOCATION_STATE_KEY),
+  PREDICATE_STATE(PredicateAbstractState.class, SerializedNames.PREDICATE_STATE_KEY),
+  COMPOSITE_STATE(CompositeState.class, SerializedNames.COMPOSITE_STATE_KEY),
+  PREDICATE_PRECISION(PredicatePrecision.class, SerializedNames.PREDICATE_PRECISION_KEY),
+  COMPOSITE_PRECISION(CompositePrecision.class, SerializedNames.COMPOSITE_PRECISION_KEY),
+  NO_PRECISION(DssNoPrecisionPayload.class, SerializedNames.NO_PRECISION_KEY);
 
   public static final class SerializedNames {
-    public static final String BLOCK_STATE = "blockState";
-    public static final String CALLSTACK_STATE = "callstackState";
-    public static final String FUNCTION_POINTER_STATE = "functionPointerState";
-    public static final String LOCATION_STATE = "locationState";
-    public static final String PREDICATE_STATE = "predicateState";
-    public static final String COMPOSITE_STATE = "compositeState";
-    public static final String PREDICATE_PRECISION = "predicatePrecision";
-    public static final String COMPOSITE_PRECISION = "compositePrecision";
-    public static final String NO_PRECISION = "noPrecision";
+    public static final String BLOCK_STATE_KEY = "blockState";
+    public static final String CALLSTACK_STATE_KEY = "callstackState";
+    public static final String FUNCTION_POINTER_STATE_KEY = "functionPointerState";
+    public static final String LOCATION_STATE_KEY = "locationState";
+    public static final String PREDICATE_STATE_KEY = "predicateState";
+    public static final String COMPOSITE_STATE_KEY = "compositeState";
+    public static final String PREDICATE_PRECISION_KEY = "predicatePrecision";
+    public static final String COMPOSITE_PRECISION_KEY = "compositePrecision";
+    public static final String NO_PRECISION_KEY = "noPrecision";
 
     private SerializedNames() {}
   }
