@@ -264,8 +264,8 @@ class SvLibCfaBuilder {
         Sets.difference(allNodesCollector.build(), nodeCollectingCFAVisitor.getVisitedNodes())) {
       for (CFAEdge leavingEdge : unreachableNode.getLeavingEdges().toSet()) {
         if (nodeCollectingCFAVisitor.getVisitedNodes().contains(leavingEdge.getSuccessor())) {
-          logger.log(
-              Level.WARNING,
+          logger.logf(
+              Level.FINE,
               "Removing edge from unreachable node %s to reachable node %s",
               leavingEdge.getPredecessor(),
               leavingEdge.getSuccessor());
