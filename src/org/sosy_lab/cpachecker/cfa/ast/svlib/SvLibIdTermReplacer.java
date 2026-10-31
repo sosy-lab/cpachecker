@@ -114,4 +114,10 @@ public abstract class SvLibIdTermReplacer
       throws NoException {
     return pSvLibRoundingModeConstantTerm;
   }
+
+  @Override
+  public SvLibRelationalTerm accept(SvLibArrayConstantTerm pSvLibArrayConstantTerm)
+      throws NoException {
+    return pSvLibArrayConstantTerm;
+  }
 }

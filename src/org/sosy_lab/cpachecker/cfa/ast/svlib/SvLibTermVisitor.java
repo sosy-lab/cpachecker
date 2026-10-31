@@ -32,4 +32,6 @@ public interface SvLibTermVisitor<R, X extends Exception> {
   R accept(SvLibFloatingPointConstantTerm pSvLibFloatingPointConstantTerm) throws X;
 
   R accept(SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm) throws X;
+
+  R accept(SvLibArrayConstantTerm pSvLibArrayConstantTerm) throws X;
 }

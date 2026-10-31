@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibArrayConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
@@ -1179,6 +1180,12 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> accept(
         SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibArrayConstantTerm pSvLibArrayConstantTerm)
+        throws NoException {
       return ImmutableList.of();
     }
 

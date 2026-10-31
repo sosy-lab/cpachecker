@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 public sealed interface SvLibConstantTerm extends SvLibTerm
-    permits SvLibBitVectorConstantTerm,
+    permits SvLibArrayConstantTerm,
+        SvLibBitVectorConstantTerm,
         SvLibBooleanConstantTerm,
         SvLibFloatingPointConstantTerm,
         SvLibIntegerConstantTerm,

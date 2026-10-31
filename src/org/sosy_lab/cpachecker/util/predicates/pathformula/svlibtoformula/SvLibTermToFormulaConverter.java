@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibIndexedSymbol;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibArrayConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
@@ -132,6 +133,11 @@ public class SvLibTermToFormulaConverter {
       case SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm ->
           fmgr.getFloatingPointFormulaManager()
               .makeRoundingMode(pSvLibRoundingModeConstantTerm.getValue());
+      // Only the values of a witness are arrays, a program cannot write them
+      case SvLibArrayConstantTerm pSvLibArrayConstantTerm ->
+          throw new UnsupportedOperationException(
+              "Array values are not supported in formulas: "
+                  + pSvLibArrayConstantTerm.toASTString());
     };
   }
 
