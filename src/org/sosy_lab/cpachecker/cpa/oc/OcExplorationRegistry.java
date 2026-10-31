@@ -35,6 +35,10 @@ import org.sosy_lab.java_smt.api.Formula;
  * Mutable side store of the ordering-consistency exploration. The transfer relation appends events,
  * thread instances, and guarded path constraints while the CPA algorithm expands the per-thread
  * trees; the ordering-consistency algorithm reads everything afterwards for the SMT encoding.
+ *
+ * <p>Only the ordering-consistency classes ({@code cpa.oc} and {@code core.algorithm.oc}) may use
+ * this class. Its events and address terms are meaningful only together with the registry of the
+ * same exploration round, so other parts of CPAchecker must not depend on it.
  */
 public final class OcExplorationRegistry {
 
@@ -313,14 +317,17 @@ public final class OcExplorationRegistry {
     }
   }
 
+  /** The address bases registered in this round, in registration order. */
   public ImmutableList<AddressBase> getAddressBases() {
     return ImmutableList.copyOf(addressBases);
   }
 
+  /** The event with the given id, or {@code null} if there is none. */
   public MemoryEvent getEvent(int pId) {
     return events.get(pId);
   }
 
+  /** All events of this round, in creation order. */
   public ImmutableList<MemoryEvent> getEvents() {
     return ImmutableList.copyOf(events.values());
   }
@@ -330,10 +337,12 @@ public final class OcExplorationRegistry {
     return Optional.ofNullable(instancesByKey.get(pKey));
   }
 
+  /** The thread instance with the given id, or {@code null} if there is none. */
   public ThreadInstance getInstance(int pId) {
     return instances.get(pId);
   }
 
+  /** All thread instances of this round, in creation order. */
   public ImmutableList<ThreadInstance> getInstances() {
     return ImmutableList.copyOf(instances.values());
   }
@@ -357,6 +366,7 @@ public final class OcExplorationRegistry {
     pathConstraints.add(pConstraint);
   }
 
+  /** The guarded path constraints recorded in this round, in recording order. */
   public ImmutableList<BooleanFormula> getPathConstraints() {
     return ImmutableList.copyOf(pathConstraints);
   }
@@ -393,6 +403,7 @@ public final class OcExplorationRegistry {
     truncated = true;
   }
 
+  /** Whether some path was cut at the loop bound (see {@link #markTruncated}). */
   public boolean isTruncated() {
     return truncated;
   }

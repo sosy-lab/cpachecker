@@ -18,16 +18,19 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -264,5 +267,40 @@ public class BuiltinIoFunctions {
       throw new UnsupportedCodeException(
           "Currently, only fscanf with a single parameter of the form &id is supported.", pEdge, e);
     }
+  }
+
+  /**
+   * Whether the edge is a call of fscanf whose return value is discarded, as in {@code
+   * fscanf(...);}.
+   */
+  public static boolean isStandaloneFscanfCall(CFAEdge pEdge) {
+    return pEdge instanceof CStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof CFunctionCallStatement call
+        && call.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof CIdExpression functionName
+        && matchesFscanf(functionName.getName());
+  }
+
+  /**
+   * Returns the edge with a standalone fscanf call replaced by the nondet assignment that models
+   * it, or the edge itself if it is not a standalone fscanf call.
+   *
+   * @throws CPATransferException if the fscanf call cannot be modelled
+   */
+  public static CFAEdge rewriteFscanfCall(CFAEdge pEdge) throws CPATransferException {
+    if (!isStandaloneFscanfCall(pEdge)) {
+      return pEdge;
+    }
+
+    CStatementEdge statementEdge = (CStatementEdge) pEdge;
+    CFunctionCallStatement call = (CFunctionCallStatement) statementEdge.getStatement();
+    CFunctionCallAssignmentStatement assignment =
+        createNondetCallModellingFscanf(call.getFunctionCallExpression(), pEdge);
+    return new CStatementEdge(
+        pEdge.getRawStatement(),
+        assignment,
+        pEdge.getFileLocation(),
+        pEdge.getPredecessor(),
+        pEdge.getSuccessor());
   }
 }

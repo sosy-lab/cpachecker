@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.oc;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -170,6 +172,9 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
         pathFormulaManager.makeOr(
             s1.getPathFormula().withFormula(s1.getGuard()),
             s2.getPathFormula().withFormula(s2.getGuard()));
+    Verify.verify(
+        merged.getPointerTargetSet().equals(PointerTargetSet.emptyPointerTargetSet()),
+        "OC runs without pointer aliasing, so the merged pointer-target set must stay empty");
     registry.addPathConstraint(bfmgr.implication(mergedGuard, merged.getFormula()));
 
     ImmutableList<Integer> lastEvents =
