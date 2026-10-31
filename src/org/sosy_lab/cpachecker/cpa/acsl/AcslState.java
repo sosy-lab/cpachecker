@@ -8,9 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -24,16 +29,19 @@ public class AcslState implements AcslReportingState {
   private final ImmutableSetMultimap<CFANode, AcslInvariantProvider> invariants;
   private final Solver solver;
   private final CToFormulaConverterWithPointerAliasing converter;
+  private final CProgramScope scope;
 
   public AcslState(
       LogManager pLogger,
       Solver pSolver,
       CToFormulaConverterWithPointerAliasing pConverter,
-      ImmutableSetMultimap<CFANode, AcslInvariantProvider> pInvariants) {
+      ImmutableSetMultimap<CFANode, AcslInvariantProvider> pInvariants,
+      CProgramScope pScope) {
     this.logger = pLogger;
     this.solver = pSolver;
     this.invariants = pInvariants;
     this.converter = pConverter;
+    this.scope = pScope;
   }
 
   protected ImmutableSetMultimap<CFANode, AcslInvariantProvider> getInvariants() {
@@ -89,9 +97,16 @@ public class AcslState implements AcslReportingState {
 
   @Override
   public AcslPredicate getAcslPredicate() {
-    // TODO: combine the predicates in acslInvariants? Also this interface is probably not what I
-    // will need, change it
+    // TODO
     return null;
+  }
+
+  @Override
+  public AcslPredicate getAcslPredicate(CFANode pNode, FileLocation pLoc) {
+    return invariants.get(pNode).stream()
+        .map(provider -> provider.toInvariant(scope, pLoc, logger))
+        .reduce((p1, p2) -> new AcslBinaryPredicate(pLoc, p1, p2, AcslBinaryPredicateOperator.AND))
+        .orElse(null);
   }
 
   public AbstractState withAddedInvariant(CFANode pNode, AcslInvariantProvider pInit) {
@@ -101,6 +116,18 @@ public class AcslState implements AcslReportingState {
             .put(pNode, pInit)
             .build();
 
-    return new AcslState(logger, solver, converter, newInvariants);
+    return new AcslState(logger, solver, converter, newInvariants, scope);
+  }
+
+  public AbstractState withAddedInvariant(
+      ImmutableList<CFANode> pNodes, AcslInvariantProvider pInit) {
+    ImmutableSetMultimap.Builder<CFANode, AcslInvariantProvider> builder =
+        ImmutableSetMultimap.<CFANode, AcslInvariantProvider>builder().putAll(invariants);
+    for (CFANode n : pNodes) {
+      builder.put(n, pInit);
+    }
+
+    ImmutableSetMultimap<CFANode, AcslInvariantProvider> newInvariants = builder.build();
+    return new AcslState(logger, solver, converter, newInvariants, scope);
   }
 }
