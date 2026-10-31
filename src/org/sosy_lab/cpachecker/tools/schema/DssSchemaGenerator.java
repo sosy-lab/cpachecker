@@ -26,7 +26,7 @@ public final class DssSchemaGenerator {
   private DssSchemaGenerator() {}
 
   public static void main(String[] args) throws Exception {
-    Path output = Path.of(args.length > 0 ? args[0] : "output/dss-message-schema.json");
+    Path output = Path.of(args.length > 0 ? args[0] : "output/dss-schema/dss-message-schema.json");
 
     if (output.getParent() != null) {
       Files.createDirectories(output.getParent());
@@ -48,7 +48,5 @@ public final class DssSchemaGenerator {
 
     JsonNode schema = generator.generateSchema(DssMessagePayload.class);
     mapper.writerWithDefaultPrettyPrinter().writeValue(output.toFile(), schema);
-
-    System.out.println("Generated schema: " + output);
   }
 }
