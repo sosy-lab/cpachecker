@@ -15,6 +15,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -86,6 +87,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     // TODO return to this when I have thought more about how my abstract states should look
-    return new AcslState(logger, solver, converter, ImmutableSetMultimap.of());
+    return new AcslState(
+        logger, solver, converter, ImmutableSetMultimap.of(), new CProgramScope(cfa, logger));
   }
 }
