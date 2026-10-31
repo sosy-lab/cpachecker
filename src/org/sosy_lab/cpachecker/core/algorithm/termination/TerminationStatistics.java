@@ -71,6 +71,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -190,6 +191,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final MachineModel machineModel;
 
+  private final CFA cfa;
+  // The scope of the input program, which is created before the analysis adds edges to the CFA
+  private final CProgramScope programScope;
+
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     this(pConfig, pLogger, 0, pCFA);
@@ -200,6 +205,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       throws InvalidConfigurationException {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
+    cfa = checkNotNull(pCFA);
+    programScope = new CProgramScope(cfa, pLogger);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
 
@@ -521,7 +528,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
               entries.add(
                   TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                      supportingInvariant, loopHead, incomingLoopEdge));
+                      supportingInvariant,
+                      loopHead,
+                      incomingLoopEdge,
+                      cfa.getAstCfaRelation(),
+                      programScope));
             }
           }
         }
@@ -531,7 +542,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                 TerminationArgumentsToWitnessUtils.collectArgumentsForNestedLoops(
                     loop, pTerminationArguments.keySet(), pTerminationArguments),
                 loopHead,
-                incomingLoopEdge));
+                incomingLoopEdge,
+                cfa.getAstCfaRelation(),
+                programScope));
       }
     }
     return entries.build();

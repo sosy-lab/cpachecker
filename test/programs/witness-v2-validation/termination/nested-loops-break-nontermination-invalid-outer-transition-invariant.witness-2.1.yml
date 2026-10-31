@@ -1,0 +1,42 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.1"
+    uuid: "cd211424-0edd-4ccf-8ad6-d3acce3f4fd1"
+    creation_time: "2026-10-30T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/nested-loops-break-nontermination.c"
+      input_file_hashes:
+        "../../simple/witness_validation/nested-loops-break-nontermination.c": "90fb4f37b74c7eded1c217f2fd1b75f6fff196d62174d06112cb30aeeb66aead"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_transition_invariant"
+        location:
+          file_name: "../../simple/witness_validation/nested-loops-break-nontermination.c"
+          line: 17
+          column: 3
+          function: "main"
+        value: "(n < \\at(n, AnyPrev)) && (\\at(n, AnyPrev) > 0)"
+        format: "ext_c_expression"
+    - invariant:
+        type: "loop_transition_invariant"
+        location:
+          file_name: "../../simple/witness_validation/nested-loops-break-nontermination.c"
+          line: 19
+          column: 5
+          function: "main"
+        value: "(x > \\at(x, AnyPrev)) && (\\at(x, AnyPrev) < 10)"
+        format: "ext_c_expression"

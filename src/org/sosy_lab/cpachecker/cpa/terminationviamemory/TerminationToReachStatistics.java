@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -42,7 +41,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private NonterminationCounterexampleToWitness nonterminationWitnessExporter;
-  private Scope scope;
+  private CProgramScope scope;
 
   public TerminationToReachStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCFA, ConfigurableProgramAnalysis pCPA)
