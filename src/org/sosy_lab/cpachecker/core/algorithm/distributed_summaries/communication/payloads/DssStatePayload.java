@@ -32,22 +32,22 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 @JsonSubTypes({
   @JsonSubTypes.Type(
       value = DssLocationStatePayload.class,
-      name = DssComponentKey.SerializedNames.LOCATION_STATE),
+      name = DssComponentKey.SerializedNames.LOCATION_STATE_KEY),
   @JsonSubTypes.Type(
       value = DssBlockStatePayload.class,
-      name = DssComponentKey.SerializedNames.BLOCK_STATE),
+      name = DssComponentKey.SerializedNames.BLOCK_STATE_KEY),
   @JsonSubTypes.Type(
       value = DssCallstackStatePayload.class,
-      name = DssComponentKey.SerializedNames.CALLSTACK_STATE),
+      name = DssComponentKey.SerializedNames.CALLSTACK_STATE_KEY),
   @JsonSubTypes.Type(
       value = DssFunctionPointerStatePayload.class,
-      name = DssComponentKey.SerializedNames.FUNCTION_POINTER_STATE),
+      name = DssComponentKey.SerializedNames.FUNCTION_POINTER_STATE_KEY),
   @JsonSubTypes.Type(
       value = DssPredicateStatePayload.class,
-      name = DssComponentKey.SerializedNames.PREDICATE_STATE),
+      name = DssComponentKey.SerializedNames.PREDICATE_STATE_KEY),
   @JsonSubTypes.Type(
       value = DssCompositeStatePayload.class,
-      name = DssComponentKey.SerializedNames.COMPOSITE_STATE)
+      name = DssComponentKey.SerializedNames.COMPOSITE_STATE_KEY)
 })
 public interface DssStatePayload {
   String STATES = "states";

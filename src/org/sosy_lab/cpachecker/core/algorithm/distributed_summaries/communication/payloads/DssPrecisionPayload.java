@@ -30,13 +30,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 @JsonSubTypes({
   @JsonSubTypes.Type(
       value = DssPredicatePrecisionPayload.class,
-      name = DssComponentKey.SerializedNames.PREDICATE_PRECISION),
+      name = DssComponentKey.SerializedNames.PREDICATE_PRECISION_KEY),
   @JsonSubTypes.Type(
       value = DssCompositePrecisionPayload.class,
-      name = DssComponentKey.SerializedNames.COMPOSITE_PRECISION),
+      name = DssComponentKey.SerializedNames.COMPOSITE_PRECISION_KEY),
   @JsonSubTypes.Type(
       value = DssNoPrecisionPayload.class,
-      name = DssComponentKey.SerializedNames.NO_PRECISION)
+      name = DssComponentKey.SerializedNames.NO_PRECISION_KEY)
 })
 public interface DssPrecisionPayload {
   DssComponentKey getComponentKey();
