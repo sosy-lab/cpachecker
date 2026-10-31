@@ -68,6 +68,8 @@ typedef union
   char __size[24];
   long int __align;
 } pthread_mutex_t;
+typedef int pthread_once_t;
+
 extern int pthread_create (pthread_t *__restrict __newthread,
       const pthread_attr_t *__restrict __attr,
       void *(*__start_routine) (void *),
@@ -83,6 +85,8 @@ extern int pthread_mutex_lock (pthread_mutex_t *__mutex)
      __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
 extern int pthread_mutex_unlock (pthread_mutex_t *__mutex)
      __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
+extern int pthread_once (pthread_once_t *__once_control,
+    void (*__init_routine) (void)) __attribute__ ((__nonnull__ (1, 2)));
 
 enum
 {
@@ -121,16 +125,17 @@ PQUEUE struct_with_mutex_explicit = { .inner_mutex = { { 0, 0, 0, PTHREAD_MUTEX_
 PQUEUE struct_with_mutex_implicit = { 0, { { 0, 0, 0, PTHREAD_MUTEX_TIMED_NP, 0, { { 0, 0 } } } } };
 PQUEUE_PTR struct_with_mutex_ptr;
 PQUEUE_PTR yet_another_struct_with_mutex_ptr;
+pthread_once_t once_there_was_a_way = 0;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 int assume(int cond);
 void abort();
 int printk(const char *arg0, ...) {
-  return __VERIFIER_nondet_int();
+    return __VERIFIER_nondet_int();
 }
 int assume(int cond) {
-  if (cond == 0) {
-    abort();
-  }
+    if (cond == 0) {
+        abort();
+    }
 }
 void *task1(void *arg) {
     int hello = 42;
@@ -196,12 +201,22 @@ void pass_struct_ptr_again(PQUEUE * a_struct_ptr_again) {
     pthread_mutex_unlock(a_struct_ptr_again->inner_mutex);
 }
 int * return_pointer() {
-   int* return_value = malloc(sizeof(int));
-   return return_value;
+    int* return_value = malloc(sizeof(int));
+    return return_value;
 }
 static void thread_create_call_context() {
     pthread_t another;
     pthread_create(&another, (void *)0, task1, (void *)0);
+}
+void do_nothing() {
+    // do nothing
+}
+void do_something() {
+    int do_something_local = 3;
+    do_something_local++;
+    if (do_something_local == 5) {
+      do_something_local = 4;
+    }
 }
 const int global_const = 0;
 int main() {
@@ -212,6 +227,11 @@ int main() {
     x = 0;
     local_increment(x);
     int local_non_const = 3;
+
+    pthread_once(&once_there_was_a_way, do_nothing);
+
+    pthread_once_t to_get_back_home;
+    pthread_once(&to_get_back_home, do_something);
 
     pthread_mutex_init(&mutexA, (void *) 0);
     pthread_mutex_init(&mutexB, (void *) 0);
