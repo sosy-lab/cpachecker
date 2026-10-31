@@ -8,19 +8,35 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Map.Entry;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 class ConcurrentMergeOperator implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
+  private final StopOperator threadSpecificStop;
+  private final Precision threadSpecificUnitPrecision;
 
-  ConcurrentMergeOperator(ConfigurableProgramAnalysis pWrappedCpa) {
+  ConcurrentMergeOperator(
+      ConfigurableProgramAnalysis pWrappedCpa, ConfigurableProgramAnalysis pThreadSpecificCpa) {
     wrappedMerge = pWrappedCpa.getMergeOperator();
+    threadSpecificStop = pThreadSpecificCpa.getStopOperator();
+    try {
+      threadSpecificUnitPrecision =
+          pThreadSpecificCpa.getInitialPrecision(
+              CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
+    } catch (InterruptedException e) {
+      throw new IllegalArgumentException(
+          "Could not get initial precision for thread-specific CPA", e);
+    }
   }
 
   @Override
@@ -44,7 +60,8 @@ class ConcurrentMergeOperator implements MergeOperator {
     return state2;
   }
 
-  private boolean canMerge(ConcurrentState c1, ConcurrentState c2) {
+  private boolean canMerge(ConcurrentState c1, ConcurrentState c2)
+      throws CPAException, InterruptedException {
     if (!c1.liveThreadIds.equals(c2.liveThreadIds)) {
       return false;
     }
@@ -61,6 +78,15 @@ class ConcurrentMergeOperator implements MergeOperator {
         return false;
       }
       if (!thisThreadState.getLocationNode().equals(otherThreadState.getLocationNode())) {
+        return false;
+      }
+      AbstractState wrapped1 = thisThreadState.getWrappedState();
+      AbstractState wrapped2 = otherThreadState.getWrappedState();
+      if (wrapped1 != wrapped2
+          && (!threadSpecificStop.stop(
+                  wrapped1, ImmutableList.of(wrapped2), threadSpecificUnitPrecision)
+              || !threadSpecificStop.stop(
+                  wrapped2, ImmutableList.of(wrapped1), threadSpecificUnitPrecision))) {
         return false;
       }
     }

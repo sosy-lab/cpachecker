@@ -34,6 +34,29 @@ public class ConcurrentPredicateRefinerIntegrationTest {
   @Rule public TemporaryFolder temporary = new TemporaryFolder();
 
   @Test
+  public void keepsDifferentCallSitesSeparate() throws Exception {
+    try (CPAcheckerResult result =
+        run(
+            """
+            extern int __VERIFIER_nondet_int(void);
+            extern void abort(void);
+            void assume(int condition) {
+              if (!condition) { abort(); }
+            }
+            int main(void) {
+              int x = __VERIFIER_nondet_int();
+              assume(x == 0);
+              assume(x != 0);
+              ERROR: return 0;
+            }
+            """,
+            "cpa.predicate.satCheck",
+            "1")) {
+      assertThat(result.getResult()).isEqualTo(CPAcheckerResult.Result.TRUE);
+    }
+  }
+
+  @Test
   public void reconstructsTheScheduleThatReadsBetweenWrites() throws Exception {
     try (CPAcheckerResult result =
         run(
