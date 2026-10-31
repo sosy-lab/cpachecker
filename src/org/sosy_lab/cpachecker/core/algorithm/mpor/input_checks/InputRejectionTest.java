@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -20,7 +20,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -84,12 +84,6 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/duplicate-struct-member-names.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
-  }
-
-  @Test
-  public void testRejectNotParallel() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.NOT_CONCURRENT);
   }
 
   @Test

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**

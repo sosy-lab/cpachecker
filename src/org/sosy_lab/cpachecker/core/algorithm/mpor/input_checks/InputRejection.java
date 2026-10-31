@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -59,9 +59,6 @@ public class InputRejection {
   enum InputRejectionMessage {
     FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
     LANGUAGE_NOT_C("MPOR only supports language C.", false),
-    NOT_CONCURRENT(
-        "MPOR expects concurrent C program with at least one pthread_create or pthread_once call.",
-        false),
     DUPLICATE_STRUCT_MEMBER_NAMES(
         "MPOR does not support non unique nested struct member names in line ", true),
     FIELD_MEMBER_NOT_FOUND(
@@ -117,7 +114,6 @@ public class InputRejection {
   /** Handles input program rejections and throws a {@link UnsupportedCodeException} accordingly. */
   public static void handleRejections(CFA pInputCfa) throws UnsupportedCodeException {
     checkLanguageC(pInputCfa);
-    checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
     checkFunctionPointerInInitializer(pInputCfa);
     checkDuplicateStructMemberNames(pInputCfa);
@@ -140,25 +136,6 @@ public class InputRejection {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
       throw new UnsupportedCodeException(InputRejectionMessage.LANGUAGE_NOT_C.message, null);
-    }
-  }
-
-  private static void checkIsParallelProgram(CFA pInputCfa) throws UnsupportedCodeException {
-    boolean isParallel = false;
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadFunction(
-                functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)
-            || PthreadUtil.isCallToPthreadFunction(
-                functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_ONCE)) {
-          isParallel = true;
-          break;
-        }
-      }
-    }
-    if (!isParallel) {
-      throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
     }
   }
 
