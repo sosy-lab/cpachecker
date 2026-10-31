@@ -25,7 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
  *
  * <p>When introducing a new state payload, create a dedicated payload record containing all
  * information required to reconstruct the state, implement {@link #getComponentKey()} with a stable
- * serialized component key, and register the payload in {@link DssStatePayloadModule}.
+ * serialized component key, and register the payload in {@link DssStatePayloadModule}. Also add the
+ * payload to the {@code @JsonSubTypes} annotation below.
  */
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessagePayload.TYPE)
 @JsonSubTypes({

@@ -8,5 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+/** Interface for Condition messages */
 public sealed interface DssConditionMessage extends DssMessageWithStatus, DssMessageWithStates
     permits DssViolationConditionMessage, DssPostConditionMessage {}

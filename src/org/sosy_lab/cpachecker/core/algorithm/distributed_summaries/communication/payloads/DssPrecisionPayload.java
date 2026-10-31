@@ -23,7 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
  * DssNoPrecisionPayload#INSTANCE} instead of {@code null}.
  *
  * <p>Concrete precision payloads must be registered in {@link DssStatePayloadModule}, which is the
- * subtype registry for both state and precision payloads.
+ * subtype registry for both state and precision payloads. Also register the payload to the
+ * {@code @JsonSubTypes} annotation below.
  */
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = DssMessagePayload.TYPE)
 @JsonSubTypes({

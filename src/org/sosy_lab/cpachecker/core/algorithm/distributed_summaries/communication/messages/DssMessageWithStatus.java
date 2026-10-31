@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
+/** Messages containing algorithm-status information */
 public sealed interface DssMessageWithStatus extends DssMessage permits DssConditionMessage {
   AlgorithmStatus getAlgorithmStatus();
 }
