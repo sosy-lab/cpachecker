@@ -474,9 +474,8 @@ public final class AstCfaRelation {
    */
   public String getNameInInputProgram(CFANode pNode, String pName) {
     return getVariablesAndParametersInScope(pNode)
-        .flatMap(
-            variables ->
-                variables.firstMatch(variable -> variable.getName().equals(pName)).toJavaUtil())
+        .flatMap(variables ->
+            variables.firstMatch(variable -> variable.getName().equals(pName)).toJavaUtil())
         .map(AbstractSimpleDeclaration::getOrigName)
         .orElse(pName);
   }
@@ -559,14 +558,13 @@ public final class AstCfaRelation {
    */
   public Optional<FileLocation> getStatementStartingAtNode(CFANode pNode) {
     return getStatementFileLocationForNode(pNode)
-        .filter(
-            location -> {
-              ASTElement statement =
-                  startingLocationToTightestStatement.get(
-                      new StartingLocation(
-                          location.getStartColumnInLine(), location.getStartingLineInOrigin()));
-              return statement != null && statement.startNodes().contains(pNode);
-            });
+        .filter(location -> {
+          ASTElement statement =
+              startingLocationToTightestStatement.get(
+                  new StartingLocation(
+                      location.getStartColumnInLine(), location.getStartingLineInOrigin()));
+          return statement != null && statement.startNodes().contains(pNode);
+        });
   }
 
   public Optional<ImmutableSet<AVariableDeclaration>> getGlobalVariables() {

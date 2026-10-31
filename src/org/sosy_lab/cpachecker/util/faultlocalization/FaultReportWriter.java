@@ -112,17 +112,16 @@ public class FaultReportWriter {
       html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
       distinctRelevantStatements.entrySet().stream()
           .sorted(Map.Entry.comparingByKey())
-          .forEach(
-              e ->
-                  html.append(
-                      "<li>"
-                          + "<span class=\"line-number\">"
-                          + e.getKey()
-                          + "</span>"
-                          + "<span class=\"line-content\">"
-                          + e.getValue()
-                          + "</span>"
-                          + "</li>"));
+          .forEach(e ->
+              html.append(
+                  "<li>"
+                      + "<span class=\"line-number\">"
+                      + e.getKey()
+                      + "</span>"
+                      + "<span class=\"line-content\">"
+                      + e.getValue()
+                      + "</span>"
+                      + "</li>"));
       html.append("</ul>\n");
     } else {
       header = "Additional Information";

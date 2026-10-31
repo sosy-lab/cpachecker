@@ -206,10 +206,9 @@ public class SMGCPAMaterializer {
               .getObjectsPointingToZeroPlusAbstraction(pListSeg)
               .isEmpty()
           || currentState.getMemoryModel().getSmg().getPTEdgeMapping().values().stream()
-              .anyMatch(
-                  pte ->
-                      pte.pointsTo().equals(pListSeg)
-                          && !pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER));
+              .anyMatch(pte ->
+                  pte.pointsTo().equals(pListSeg)
+                      && !pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER));
 
       currentState =
           currentState.copyAndReplaceMemoryModel(

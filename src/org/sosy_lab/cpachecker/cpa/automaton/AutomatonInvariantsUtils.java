@@ -42,13 +42,12 @@ public enum AutomatonInvariantsUtils {
       aut.getStates().stream()
           .map(AutomatonInternalState::getTransitions)
           .flatMap(Collection::stream)
-          .forEach(
-              x -> {
-                ExpressionTree<AExpression> exprTree = x.getCandidateInvariants();
-                if (!exprTree.equals(ExpressionTrees.getTrue())) {
-                  automatonStatesWithInvariants.add(x.getFollowState());
-                }
-              });
+          .forEach(x -> {
+            ExpressionTree<AExpression> exprTree = x.getCandidateInvariants();
+            if (!exprTree.equals(ExpressionTrees.getTrue())) {
+              automatonStatesWithInvariants.add(x.getFollowState());
+            }
+          });
     }
 
     // remove all internal automaton states in case they are represented in the reached set:

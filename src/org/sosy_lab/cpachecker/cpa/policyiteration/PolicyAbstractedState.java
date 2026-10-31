@@ -237,13 +237,11 @@ public final class PolicyAbstractedState extends PolicyState
       FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
     Collection<BooleanFormula> filteredConstraints =
         manager.abstractStateToConstraints(pManager, this, false).stream()
-            .filter(
-                constraint ->
-                    pManager.extractVariableNames(constraint).stream()
-                        .allMatch(
-                            name ->
-                                !name.contains("::")
-                                    || name.startsWith(pFunctionScope.getFunctionName() + "::")))
+            .filter(constraint ->
+                pManager.extractVariableNames(constraint).stream()
+                    .allMatch(name ->
+                        !name.contains("::")
+                            || name.startsWith(pFunctionScope.getFunctionName() + "::")))
             .toList();
     if (filteredConstraints.isEmpty()) {
       return pManager.getBooleanFormulaManager().makeTrue();

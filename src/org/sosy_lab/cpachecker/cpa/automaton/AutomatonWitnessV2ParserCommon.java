@@ -206,10 +206,9 @@ class AutomatonWitnessV2ParserCommon {
               CProgramScope programScope = new CProgramScope(cfa, logger);
               yield pNode
                   .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
-                  .map(
-                      variables ->
-                          programScope.withVariablesInScope(
-                              variables.filter(CSimpleDeclaration.class).toList()))
+                  .map(variables ->
+                      programScope.withVariablesInScope(
+                          variables.filter(CSimpleDeclaration.class).toList()))
                   .orElse(programScope);
             }
             default -> DummyScope.getInstance();

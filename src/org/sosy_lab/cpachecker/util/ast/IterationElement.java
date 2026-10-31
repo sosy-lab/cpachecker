@@ -122,10 +122,9 @@ public final class IterationElement extends BranchingElement {
       // invariant holds there and not at the loop head
       heads =
           FluentIterable.from(nodesBefore(boundaryNodes.toSet(), ImmutableSet.of()))
-              .filter(
-                  node ->
-                      pLoopStructure.getAllLoops().stream()
-                          .anyMatch(loop -> loop.getLoopNodes().contains(node)))
+              .filter(node ->
+                  pLoopStructure.getAllLoops().stream()
+                      .anyMatch(loop -> loop.getLoopNodes().contains(node)))
               .toSet();
     } else {
       Set<CFANode> loopHeads = pLoopStructure.getAllLoopHeads();

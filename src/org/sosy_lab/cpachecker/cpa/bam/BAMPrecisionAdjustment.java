@@ -73,10 +73,8 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
     if (bamPccManager != null && bamPccManager.isPCCEnabled()) {
       result =
-          result.map(
-              t ->
-                  t.withAbstractState(
-                      bamPccManager.attachAdditionalInfoToCallNode(t.abstractState())));
+          result.map(t ->
+              t.withAbstractState(bamPccManager.attachAdditionalInfoToCallNode(t.abstractState())));
     }
 
     AbstractState newState = result.orElseThrow().abstractState();

@@ -334,12 +334,11 @@ public record MPORSubstitutionBuilder(
           MPORThread createdThread =
               MPORThreadUtil.getThreadByObject(threads, Optional.of(pthreadT));
           tryBuildStartRoutineArgSubstitute(functionCall, pthreadT, createdThread)
-              .ifPresent(
-                  entry ->
-                      rArgSubstitutes.put(
-                          new SeqCallContext(Optional.of(threadEdge)),
-                          entry.getKey(),
-                          entry.getValue()));
+              .ifPresent(entry ->
+                  rArgSubstitutes.put(
+                      new SeqCallContext(Optional.of(threadEdge)),
+                      entry.getKey(),
+                      entry.getValue()));
         }
       }
     }

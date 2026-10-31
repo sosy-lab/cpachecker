@@ -296,9 +296,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         cfa.getMetadata().getAstCfaRelation().getGlobalVariables().orElseThrow();
 
     return FluentIterable.from(globalVars).anyMatch(globalVar -> globalVar.equals(variable))
-        && variablesInScope.anyMatch(
-            localVar ->
-                !localVar.equals(variable) && localVar.getName().equals(variable.getName()));
+        && variablesInScope.anyMatch(localVar ->
+            !localVar.equals(variable) && localVar.getName().equals(variable.getName()));
   }
 
   /**

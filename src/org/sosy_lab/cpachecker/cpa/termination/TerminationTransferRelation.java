@@ -367,10 +367,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     for (TerminationState state : pStates) {
       transferRelation.getAbstractSuccessors(state.getWrappedState(), pPrecision).stream()
           .map(state::withWrappedState)
-          .filter(
-              s ->
-                  s.isPartOfStem()
-                      || !terminationInformation.isloopLeavingLocation(extractLocation(s)))
+          .filter(s ->
+              s.isPartOfStem() || !terminationInformation.isloopLeavingLocation(extractLocation(s)))
           .forEach(resultingSuccessors::add);
     }
 

@@ -241,13 +241,12 @@ public final class BMCHelper {
     }
     LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
     return from(loopStructure.getAllLoops())
-        .transformAndConcat(
-            pLoop -> {
-              if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
-                return ImmutableSet.of();
-              }
-              return pLoop.getLoopHeads();
-            })
+        .transformAndConcat(pLoop -> {
+          if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
+            return ImmutableSet.of();
+          }
+          return pLoop.getLoopHeads();
+        })
         .toSet();
   }
 
@@ -259,21 +258,20 @@ public final class BMCHelper {
           String.format("Minimum (%d) not lower than maximum (%d)", pMinIt, pMaxIt));
     }
     return FluentIterable.from(pStates)
-        .filter(
-            state -> {
-              if (state == null) {
-                return false;
-              }
-              LoopIterationReportingState ls =
-                  AbstractStates.extractStateByType(state, LoopIterationReportingState.class);
-              if (ls == null) {
-                return false;
-              }
-              int minIt = convertIteration(pMinIt, state, pLoopHeads);
-              int maxIt = convertIteration(pMaxIt, state, pLoopHeads);
-              int actualIt = ls.getDeepestIteration();
-              return minIt <= actualIt && actualIt <= maxIt;
-            });
+        .filter(state -> {
+          if (state == null) {
+            return false;
+          }
+          LoopIterationReportingState ls =
+              AbstractStates.extractStateByType(state, LoopIterationReportingState.class);
+          if (ls == null) {
+            return false;
+          }
+          int minIt = convertIteration(pMinIt, state, pLoopHeads);
+          int maxIt = convertIteration(pMaxIt, state, pLoopHeads);
+          int actualIt = ls.getDeepestIteration();
+          return minIt <= actualIt && actualIt <= maxIt;
+        });
   }
 
   public static FluentIterable<AbstractState> filterIterationsUpTo(
@@ -391,15 +389,14 @@ public final class BMCHelper {
   static FluentIterable<AbstractState> filterBmcChecked(
       Iterable<AbstractState> pStates, Set<Object> pCheckedKeys) {
     return FluentIterable.from(pStates)
-        .filter(
-            pArg0 -> {
-              if (pArg0 == null) {
-                return false;
-              }
-              LoopIterationReportingState ls =
-                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
-              return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
-            });
+        .filter(pArg0 -> {
+          if (pArg0 == null) {
+            return false;
+          }
+          LoopIterationReportingState ls =
+              AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
+          return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
+        });
   }
 
   /**

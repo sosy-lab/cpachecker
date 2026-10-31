@@ -268,14 +268,13 @@ class EclipseJavaParser implements Parser {
     return Files.walk(mainDirectory, FileVisitOption.FOLLOW_LINKS)
         .filter(Files::isRegularFile)
         .filter(file -> file.toString().endsWith(JAVA_SOURCE_FILE_EXTENSION))
-        .filter(
-            file -> {
-              if (Files.isReadable(file)) {
-                return true;
-              }
-              logger.log(Level.WARNING, "No permission to read java file %s.", file);
-              return false;
-            });
+        .filter(file -> {
+          if (Files.isReadable(file)) {
+            return true;
+          }
+          logger.log(Level.WARNING, "No permission to read java file %s.", file);
+          return false;
+        });
   }
 
   @Override

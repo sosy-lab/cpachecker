@@ -524,16 +524,14 @@ public class SymbolicProgramConfiguration {
     // (the first leads to failure most of the time, the second might, but is always cheap)
     boolean prio =
         hves1.stream()
-            .anyMatch(
-                hve1 ->
-                    hves2.stream()
-                        .anyMatch(
-                            hve2 ->
-                                hve1.getOffset().equals(hve2.getOffset())
-                                    && hve1.getSizeInBits().equals(hve2.getSizeInBits())
-                                    && ((hve1.hasValue().isZero() ^ hve2.hasValue().isZero())
-                                        || (!thisSPC.getSmg().isPointer(hve1.hasValue())
-                                            && !otherSPC.getSmg().isPointer(hve2.hasValue())))));
+            .anyMatch(hve1 ->
+                hves2.stream()
+                    .anyMatch(hve2 ->
+                        hve1.getOffset().equals(hve2.getOffset())
+                            && hve1.getSizeInBits().equals(hve2.getSizeInBits())
+                            && ((hve1.hasValue().isZero() ^ hve2.hasValue().isZero())
+                                || (!thisSPC.getSmg().isPointer(hve1.hasValue())
+                                    && !otherSPC.getSmg().isPointer(hve2.hasValue())))));
     if (prio) {
       mergePrioQueue.addFirst(
           SMGObjectMergeTriple.of(
@@ -2440,10 +2438,9 @@ public class SymbolicProgramConfiguration {
       }
       ImmutableList<SMGHasValueEdge> allEqualEdgesIn2 =
           hves2.stream()
-              .filter(
-                  h2 ->
-                      h2.getOffset().equals(h1.getOffset())
-                          && h2.getSizeInBits().equals(h1.getSizeInBits()))
+              .filter(h2 ->
+                  h2.getOffset().equals(h1.getOffset())
+                      && h2.getSizeInBits().equals(h1.getSizeInBits()))
               .collect(ImmutableList.toImmutableList());
       if (allEqualEdgesIn2.size() > 1) {
         throw new SMGException("Error when merging.");
@@ -2467,10 +2464,9 @@ public class SymbolicProgramConfiguration {
       }
       ImmutableList<SMGHasValueEdge> allEqualEdgesIn1 =
           hves1.stream()
-              .filter(
-                  h1 ->
-                      h1.getOffset().equals(h2.getOffset())
-                          && h1.getSizeInBits().equals(h2.getSizeInBits()))
+              .filter(h1 ->
+                  h1.getOffset().equals(h2.getOffset())
+                      && h1.getSizeInBits().equals(h2.getSizeInBits()))
               .collect(ImmutableList.toImmutableList());
       if (allEqualEdgesIn1.size() > 1) {
         throw new SMGException("Error when merging.");

@@ -542,10 +542,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     // Remove all variables that are in the scope of the returning function
     result =
-        result.clearAll(
-            pMemoryLocation ->
-                pMemoryLocation.isOnFunctionStack()
-                    && pMemoryLocation.getFunctionName().equals(calledFunctionName));
+        result.clearAll(pMemoryLocation ->
+            pMemoryLocation.isOnFunctionStack()
+                && pMemoryLocation.getFunctionName().equals(calledFunctionName));
 
     return result;
   }
@@ -639,10 +638,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
             final String end = location.getExtendedQualifiedName().substring(lastIndexOfSep + 1);
             Iterable<? extends MemoryLocation> targets =
                 FluentIterable.from(result.getEnvironment().keySet())
-                    .filter(
-                        pVar ->
-                            pVar.getIdentifier().endsWith("." + end)
-                                || pVar.getIdentifier().endsWith("->" + end));
+                    .filter(pVar ->
+                        pVar.getIdentifier().endsWith("." + end)
+                            || pVar.getIdentifier().endsWith("->" + end));
             if (moreThanOneLocation || hasMoreThanNElements(targets, 1)) {
               for (MemoryLocation variableName : targets) {
                 Type type = result.getType(variableName);

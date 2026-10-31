@@ -16,10 +16,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class BranchBasedWeightedWaitlist extends WeightedRandomWaitlist {
 
   private static final Comparator<AbstractState> BRANCHING_DEPTH_COMPARATOR =
-      Comparator.comparingInt(
-          s ->
-              AbstractStates.extractStateByType(s, AssumeEdgesInPathConditionState.class)
-                  .getPathLength());
+      Comparator.comparingInt(s ->
+          AbstractStates.extractStateByType(s, AssumeEdgesInPathConditionState.class)
+              .getPathLength());
 
   public BranchBasedWeightedWaitlist(
       WaitlistFactory pFactory, WeightedRandomWaitlist.WaitlistOptions pConfig) {

@@ -89,17 +89,16 @@ public class Trace extends ForwardingList<TraceAtom> {
           .getSolver()
           .getFormulaManager()
           .extractVariables(traceAtom.formula)
-          .forEach(
-              (name, variable) -> {
-                Pair<String, OptionalInt> pair = FormulaManagerView.parseName(name);
-                if (Objects.requireNonNull(pair.getSecond()).isPresent()
-                    && traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())) != null) {
-                  minIndexMap.merge(pair.getFirst(), pair.getSecond().orElseThrow(), Integer::min);
-                  typeMap.put(
-                      pair.getFirst(),
-                      (CType) traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
-                }
-              });
+          .forEach((name, variable) -> {
+            Pair<String, OptionalInt> pair = FormulaManagerView.parseName(name);
+            if (Objects.requireNonNull(pair.getSecond()).isPresent()
+                && traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())) != null) {
+              minIndexMap.merge(pair.getFirst(), pair.getSecond().orElseThrow(), Integer::min);
+              typeMap.put(
+                  pair.getFirst(),
+                  (CType) traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
+            }
+          });
     }
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     for (Entry<String, Integer> variableIndexEntry : minIndexMap.entrySet()) {

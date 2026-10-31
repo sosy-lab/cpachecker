@@ -126,20 +126,18 @@ public record ExecutionGraph(
 
   public String toDOTLabel() {
     final var rPrint = ImmutableMap.<String, Set<String>>builder();
-    revisitableReads.forEach(
-        (pS, pMemoryEvents) ->
-            rPrint.put(
-                pS,
-                transformedImmutableSetCopy(
-                    pMemoryEvents, pMemoryEvent -> pMemoryEvent.var().getQualifiedName())));
+    revisitableReads.forEach((pS, pMemoryEvents) ->
+        rPrint.put(
+            pS,
+            transformedImmutableSetCopy(
+                pMemoryEvents, pMemoryEvent -> pMemoryEvent.var().getQualifiedName())));
     final var moPrint = ImmutableMap.<String, List<String>>builder();
-    mo.forEach(
-        (pS, pMemoryEvents) ->
-            moPrint.put(
-                pS,
-                pMemoryEvents.stream()
-                    .map((MemoryEvent pMemoryEvent) -> pMemoryEvent.var().getQualifiedName())
-                    .toList()));
+    mo.forEach((pS, pMemoryEvents) ->
+        moPrint.put(
+            pS,
+            pMemoryEvents.stream()
+                .map((MemoryEvent pMemoryEvent) -> pMemoryEvent.var().getQualifiedName())
+                .toList()));
     final var rfPrint = ImmutableMap.<String, String>builder();
     pendingRf.forEach(
         (e1, e2) -> rfPrint.put(e1.var().getQualifiedName(), e2.var().getQualifiedName()));

@@ -86,15 +86,14 @@ public class IntervalReportWriter extends FaultReportWriter {
       html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
       distinctRelevantStatements.entrySet().stream()
           .sorted(Map.Entry.comparingByKey())
-          .forEach(
-              e ->
-                  html.append("<li><span class=\"line-number\">")
-                      .append(e.getKey())
-                      .append("</span>")
-                      .append("<span class=\"line-content\">")
-                      .append(e.getValue())
-                      .append("</span>")
-                      .append("</li>"));
+          .forEach(e ->
+              html.append("<li><span class=\"line-number\">")
+                  .append(e.getKey())
+                  .append("</span>")
+                  .append("<span class=\"line-content\">")
+                  .append(e.getValue())
+                  .append("</span>")
+                  .append("</li>"));
       html.append("</ul>\n");
     } else {
       header = "Additional Information for:<br>" + header;

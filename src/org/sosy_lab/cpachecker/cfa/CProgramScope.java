@@ -89,19 +89,18 @@ public class CProgramScope implements Scope {
   private static Iterable<CSimpleDeclaration> toCSimpleDeclarations(CFANode pNode) {
     return pNode
         .getLeavingEdges()
-        .transformAndConcat(
-            pEdge -> {
-              if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
-                return Collections.singleton(dcl);
-              }
+        .transformAndConcat(pEdge -> {
+          if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+            CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
+            return Collections.singleton(dcl);
+          }
 
-              if (pNode instanceof FunctionEntryNode entryNode) {
-                return from(entryNode.getFunctionParameters()).filter(CSimpleDeclaration.class);
-              }
+          if (pNode instanceof FunctionEntryNode entryNode) {
+            return from(entryNode.getFunctionParameters()).filter(CSimpleDeclaration.class);
+          }
 
-              return ImmutableSet.of();
-            });
+          return ImmutableSet.of();
+        });
   }
 
   private static boolean hasName(CSimpleDeclaration pDeclaration) {
@@ -715,16 +714,14 @@ public class CProgramScope implements Scope {
             .transformAndConcat(CFANode::getLeavingEdges)
             .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
             .filter(CAstNode.class)
-            .filter(
-                astNode ->
-                    astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration)
-            .filter(
-                astNode -> {
-                  if (astNode instanceof CIdExpression cIdExpression) {
-                    return cIdExpression.getDeclaration() != null;
-                  }
-                  return true;
-                });
+            .filter(astNode ->
+                astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration)
+            .filter(astNode -> {
+              if (astNode instanceof CIdExpression cIdExpression) {
+                return cIdExpression.getDeclaration() != null;
+              }
+              return true;
+            });
 
     return varUses.stream()
         .collect(

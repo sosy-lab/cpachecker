@@ -126,10 +126,9 @@ public class BuiltinIoFunctions {
       String formatString, CType pVariableType, CFAEdge pEdge) throws UnsupportedCodeException {
     CType expectedType =
         BuiltinIoFunctions.getTypeFromScanfFormatSpecifier(formatString)
-            .orElseThrow(
-                () ->
-                    new UnsupportedCodeException(
-                        "format specifier " + formatString + " not supported.", pEdge));
+            .orElseThrow(() ->
+                new UnsupportedCodeException(
+                    "format specifier " + formatString + " not supported.", pEdge));
 
     return pVariableType.getCanonicalType().equals(expectedType.getCanonicalType());
   }
@@ -158,10 +157,8 @@ public class BuiltinIoFunctions {
     CExpression format = pParameters.get(1);
     String formatString =
         checkFscanfFormatString(format)
-            .orElseThrow(
-                () ->
-                    new UnsupportedCodeException(
-                        "Format string of fscanf is not supported", pEdge, e));
+            .orElseThrow(() ->
+                new UnsupportedCodeException("Format string of fscanf is not supported", pEdge, e));
 
     return new ValidatedFScanFParameter(formatString, pParameters.get(2));
   }

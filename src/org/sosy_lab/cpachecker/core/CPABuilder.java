@@ -158,16 +158,14 @@ public class CPABuilder {
       // but is currently implemented as is for backwards compatibility.
       CPAConfig insertionPoint =
           allCpaConfigs // has depth-first post-order!
-              .firstMatch(
-                  cpa ->
-                      !cpa.children.isEmpty()
-                          || (cpa.child == null && cpa.alias.equals("CompositeCPA")))
+              .firstMatch(cpa ->
+                  !cpa.children.isEmpty()
+                      || (cpa.child == null && cpa.alias.equals("CompositeCPA")))
               .toJavaUtil()
-              .orElseThrow(
-                  () ->
-                      new InvalidConfigurationException(
-                          "Option specification gave specification automata, but no CompositeCPA"
-                              + " was used"));
+              .orElseThrow(() ->
+                  new InvalidConfigurationException(
+                      "Option specification gave specification automata, but no CompositeCPA"
+                          + " was used"));
 
       if (insertionPoint.children.isEmpty()) { // implies cpa.cpaClass == CompositeCPA.class
         // If a specification was given, but no CPAs, insert a LocationCPA.

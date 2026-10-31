@@ -482,11 +482,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    */
   static boolean introducesThread(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
     return threadCreationCall(pEdge)
-        .map(
-            call ->
-                pAstCfaRelation
-                    .getColumnOfFunctionCallParenthesis(call.getFunctionCallExpression())
-                    .isPresent())
+        .map(call ->
+            pAstCfaRelation
+                .getColumnOfFunctionCallParenthesis(call.getFunctionCallExpression())
+                .isPresent())
         .orElse(false);
   }
 
@@ -644,9 +643,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       return "1";
     }
     return assumptions
-        .transform(
-            assumption ->
-                assumption.toParenthesizedASTString(AAstNodeRepresentation.ORIGINAL_NAMES))
+        .transform(assumption ->
+            assumption.toParenthesizedASTString(AAstNodeRepresentation.ORIGINAL_NAMES))
         // Remove any temporary variables created by CPAchecker
         .filter(s -> !s.contains(CPACHECKER_TMP_NAME))
         .join(Joiner.on(" && "));
@@ -657,10 +655,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       CExpression pExpression, Set<AbstractSimpleDeclaration> pDeclarations) {
     return CFAUtils.getIdExpressionsOfExpression(pExpression)
         .transform(AIdExpression::getDeclaration)
-        .filter(
-            declaration ->
-                declaration instanceof AVariableDeclaration
-                    || declaration instanceof AParameterDeclaration)
+        .filter(declaration ->
+            declaration instanceof AVariableDeclaration
+                || declaration instanceof AParameterDeclaration)
         .allMatch(pDeclarations::contains);
   }
 
@@ -792,17 +789,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             FluentIterable.from(pSteps)
                 .filter(step -> !(step.edge() instanceof BlankEdge))
                 .filter(edge -> !(edge.edge() instanceof CFunctionReturnEdge))
-                .filter(
-                    edge ->
-                        !(edge.edge() instanceof CReturnStatementEdge pStatementReturnEdge
-                                && (pStatementReturnEdge.getExpression().isEmpty()
-                                    || hasNoVariables(
-                                        pStatementReturnEdge.getExpression().orElseThrow(),
-                                        pStatementReturnEdge.getPredecessor())))
-                            && !(edge.edge() instanceof CStatementEdge pStatementEdge
-                                && hasNoVariables(
-                                    pStatementEdge.getStatement(),
-                                    pStatementEdge.getPredecessor())))
+                .filter(edge ->
+                    !(edge.edge() instanceof CReturnStatementEdge pStatementReturnEdge
+                            && (pStatementReturnEdge.getExpression().isEmpty()
+                                || hasNoVariables(
+                                    pStatementReturnEdge.getExpression().orElseThrow(),
+                                    pStatementReturnEdge.getPredecessor())))
+                        && !(edge.edge() instanceof CStatementEdge pStatementEdge
+                            && hasNoVariables(
+                                pStatementEdge.getStatement(), pStatementEdge.getPredecessor())))
                 .toList();
 
         WitnessPathStep lastEdgeOnThread = edgesWithoutBlankEdges.getLast();

@@ -1344,10 +1344,8 @@ public class SMG {
   public SMG copyAndRemoveAllEdgesFrom(SMGObject object, BigInteger startingFromOffsetInBits) {
     return copyAndRemoveHVEdges(
         hasValueEdges.getOrDefault(object, PersistentSet.of()).stream()
-            .filter(
-                hve ->
-                    hve.getSizeInBits().add(hve.getOffset()).compareTo(startingFromOffsetInBits)
-                        > 0)
+            .filter(hve ->
+                hve.getSizeInBits().add(hve.getOffset()).compareTo(startingFromOffsetInBits) > 0)
             .collect(ImmutableList.toImmutableList()),
         object);
   }
@@ -1357,10 +1355,9 @@ public class SMG {
     BigInteger sizePlusOffsetInBits = offsetInBits.add(sizeInBits);
     return copyAndRemoveHVEdges(
         hasValueEdges.getOrDefault(object, PersistentSet.of()).stream()
-            .filter(
-                hve ->
-                    !(sizePlusOffsetInBits.compareTo(hve.getOffset()) < 0
-                        || hve.getSizeInBits().add(hve.getOffset()).compareTo(offsetInBits) < 0))
+            .filter(hve ->
+                !(sizePlusOffsetInBits.compareTo(hve.getOffset()) < 0
+                    || hve.getSizeInBits().add(hve.getOffset()).compareTo(offsetInBits) < 0))
             .collect(ImmutableList.toImmutableList()),
         object);
   }
@@ -1554,11 +1551,10 @@ public class SMG {
     // if this is done in a sinle edge, or multiple, or that the edges exceed the field entered.
     // They must be in the objects boundries however.
     return hasValueEdges.get(smgObject).stream()
-        .filter(
-            n ->
-                n.hasValue().isZero()
-                    && offsetPlusSize.compareTo(n.getOffset()) >= 0
-                    && offset.compareTo(n.getOffset().add(n.getSizeInBits())) <= 0)
+        .filter(n ->
+            n.hasValue().isZero()
+                && offsetPlusSize.compareTo(n.getOffset()) >= 0
+                && offset.compareTo(n.getOffset().add(n.getSizeInBits())) <= 0)
         .collect(
             ImmutableSortedMap.toImmutableSortedMap(
                 SMGHasValueEdge::getOffset, SMGHasValueEdge::getSizeInBits, BigInteger::max));
@@ -1716,24 +1712,23 @@ public class SMG {
    */
   public boolean hasOverlappingEdge(SMGHasValueEdge pHValueEdge, SMGObject pObject) {
     return getEdges(pObject).stream()
-        .anyMatch(
-            other -> {
-              BigInteger otherStart = other.getOffset();
-              BigInteger otherEnd = otherStart.add(other.getSizeInBits());
-              BigInteger pStart = pHValueEdge.getOffset();
-              BigInteger pEnd = pStart.add(pHValueEdge.getSizeInBits());
+        .anyMatch(other -> {
+          BigInteger otherStart = other.getOffset();
+          BigInteger otherEnd = otherStart.add(other.getSizeInBits());
+          BigInteger pStart = pHValueEdge.getOffset();
+          BigInteger pEnd = pStart.add(pHValueEdge.getSizeInBits());
 
-              // pStart greater
-              if (pStart.compareTo(otherStart) > 0) {
-                return pStart.compareTo(otherEnd) < 0;
-              }
-              // pStart less
-              if (pStart.compareTo(otherStart) < 0) {
-                return pEnd.compareTo(otherStart) > 0;
-              }
+          // pStart greater
+          if (pStart.compareTo(otherStart) > 0) {
+            return pStart.compareTo(otherEnd) < 0;
+          }
+          // pStart less
+          if (pStart.compareTo(otherStart) < 0) {
+            return pEnd.compareTo(otherStart) > 0;
+          }
 
-              return true;
-            });
+          return true;
+        });
   }
 
   /**
@@ -1747,13 +1742,12 @@ public class SMG {
   public Optional<SMGValue> findAddressForEdge(
       SMGObject targetObject, BigInteger pOffset, SMGTargetSpecifier pTargetSpecifier) {
     return pointsToEdges.entrySet().stream()
-        .filter(
-            entry -> {
-              SMGPointsToEdge edge = entry.getValue();
-              return edge.getOffset().equals(new NumericValue(pOffset))
-                  && edge.targetSpecifier().equals(pTargetSpecifier)
-                  && edge.pointsTo().equals(targetObject);
-            })
+        .filter(entry -> {
+          SMGPointsToEdge edge = entry.getValue();
+          return edge.getOffset().equals(new NumericValue(pOffset))
+              && edge.targetSpecifier().equals(pTargetSpecifier)
+              && edge.pointsTo().equals(targetObject);
+        })
         .findAny()
         .map(Entry::getKey);
   }
@@ -2692,12 +2686,11 @@ public class SMG {
             for (SMGObject source : ptrSources) {
               if (source instanceof SMGSinglyLinkedListSegment sllSource) {
                 if (hasValueEdges.get(source).stream()
-                        .anyMatch(
-                            h ->
-                                h.hasValue().equals(ptr)
-                                    && !h.getOffset().equals(sllSource.getNextOffset())
-                                    && (!(sllSource instanceof SMGDoublyLinkedListSegment dllSource)
-                                        || !h.getOffset().equals(dllSource.getPrevOffset())))
+                        .anyMatch(h ->
+                            h.hasValue().equals(ptr)
+                                && !h.getOffset().equals(sllSource.getNextOffset())
+                                && (!(sllSource instanceof SMGDoublyLinkedListSegment dllSource)
+                                    || !h.getOffset().equals(dllSource.getPrevOffset())))
                     && !sllTarget.equals(sllSource)
                     && sllSource.getNestingLevel() >= sllTarget.getNestingLevel()) {
                   assert pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER);

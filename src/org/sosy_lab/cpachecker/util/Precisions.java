@@ -68,11 +68,10 @@ public class Precisions {
    */
   public static FluentIterable<Precision> asIterable(final Precision prec) {
     return FluentIterable.from(
-        Traverser.forTree(
-                (Precision precision) ->
-                    (precision instanceof WrapperPrecision wrapperPrecision)
-                        ? wrapperPrecision.getWrappedPrecisions()
-                        : ImmutableList.of())
+        Traverser.forTree((Precision precision) ->
+                (precision instanceof WrapperPrecision wrapperPrecision)
+                    ? wrapperPrecision.getWrappedPrecisions()
+                    : ImmutableList.of())
             .depthFirstPreOrder(prec));
   }
 

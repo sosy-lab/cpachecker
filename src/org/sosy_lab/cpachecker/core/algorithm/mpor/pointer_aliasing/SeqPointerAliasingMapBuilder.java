@@ -84,11 +84,10 @@ public record SeqPointerAliasingMapBuilder(
 
     ImmutableSet<SeqMemoryLocation> pointerDereferences =
         substituteEdges.stream()
-            .flatMap(
-                substituteEdge ->
-                    substituteEdge
-                        .getPointerDereferencesByAccessType(SeqMemoryAccessType.ACCESS)
-                        .stream())
+            .flatMap(substituteEdge ->
+                substituteEdge
+                    .getPointerDereferencesByAccessType(SeqMemoryAccessType.ACCESS)
+                    .stream())
             .collect(ImmutableSet.toImmutableSet());
     // Dereference all pointers once to find the memory locations the pointers point to. This is
     // useful e.g. when a pointer points to a memory location that is a member of a struct. If the
@@ -107,11 +106,10 @@ public record SeqPointerAliasingMapBuilder(
             // add memory locations that are accessed directly in the edges
             .addAll(
                 substituteEdges.stream()
-                    .flatMap(
-                        substituteEdge ->
-                            substituteEdge
-                                .getMemoryLocationsByAccessType(SeqMemoryAccessType.ACCESS)
-                                .stream())
+                    .flatMap(substituteEdge ->
+                        substituteEdge
+                            .getMemoryLocationsByAccessType(SeqMemoryAccessType.ACCESS)
+                            .stream())
                     .collect(ImmutableSet.toImmutableSet()))
             .addAll(
                 pointerAssignments.stream()

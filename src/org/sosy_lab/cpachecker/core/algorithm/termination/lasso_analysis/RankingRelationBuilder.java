@@ -211,9 +211,8 @@ public class RankingRelationBuilder {
     BooleanFormula formula = fmgr.getBooleanFormulaManager().or(componentFormulas);
     CExpression expression =
         componentExpressions.stream()
-            .reduce(
-                (op1, op2) ->
-                    cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BITWISE_OR))
+            .reduce((op1, op2) ->
+                cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BITWISE_OR))
             .orElseThrow();
 
     return new RankingRelation(expression, formula, cExpressionBuilder, fmgr);

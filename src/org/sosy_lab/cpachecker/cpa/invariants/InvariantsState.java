@@ -1255,14 +1255,11 @@ public class InvariantsState
         pFormula ->
             pFormula instanceof Variable
                 && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
-                    || !variablesInScope.anyMatch(
-                        variableDeclaration ->
-                            variableDeclaration
-                                .getQualifiedName()
-                                .equals(
-                                    ((Variable<?>) pFormula)
-                                        .getMemoryLocation()
-                                        .getQualifiedName())));
+                    || !variablesInScope.anyMatch(variableDeclaration ->
+                        variableDeclaration
+                            .getQualifiedName()
+                            .equals(
+                                ((Variable<?>) pFormula).getMemoryLocation().getQualifiedName())));
 
     return getFormulaApproximation(
         pFunctionScope,

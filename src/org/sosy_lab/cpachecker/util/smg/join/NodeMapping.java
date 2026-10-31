@@ -298,16 +298,13 @@ public class NodeMapping {
     } else {
       boolean strictMatch =
           innerMap1.entrySet().stream()
-              .anyMatch(
-                  e ->
-                      innerMap2.entrySet().contains(e)
-                          && (allowZeroMapping || !e.getValue().isZero()));
+              .anyMatch(e ->
+                  innerMap2.entrySet().contains(e) && (allowZeroMapping || !e.getValue().isZero()));
       boolean looseMatch =
           innerMap1.entrySet().stream()
-              .anyMatch(
-                  e ->
-                      innerMap2.containsValue(e.getValue())
-                          && (allowZeroMapping || !e.getValue().isZero()));
+              .anyMatch(e ->
+                  innerMap2.containsValue(e.getValue())
+                      && (allowZeroMapping || !e.getValue().isZero()));
 
       return strictMatch || looseMatch;
     }
@@ -346,10 +343,9 @@ public class NodeMapping {
             if (valueMapping.getValue().size() > 1) {
               SMGObject alreadyCheckedObj = spc.getSmg().getPTEdge(v).orElseThrow().pointsTo();
               assert valueMapping.getValue().entrySet().stream()
-                  .allMatch(
-                      e ->
-                          alreadyCheckedObj.equals(
-                              spc.getSmg().getPTEdge(e.getValue()).orElseThrow().pointsTo()));
+                  .allMatch(e ->
+                      alreadyCheckedObj.equals(
+                          spc.getSmg().getPTEdge(e.getValue()).orElseThrow().pointsTo()));
               break;
             }
           }

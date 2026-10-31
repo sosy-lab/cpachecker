@@ -71,10 +71,8 @@ public class TerminationArgumentsToWitnessUtils {
       CProgramScope pProgramScope, CFANode pNode, AstCfaRelation pAstCfaRelation) {
     return pAstCfaRelation
         .getVariablesAndParametersInScope(pNode)
-        .map(
-            variables ->
-                pProgramScope.withVariablesInScope(
-                    variables.filter(CSimpleDeclaration.class).toSet()))
+        .map(variables ->
+            pProgramScope.withVariablesInScope(variables.filter(CSimpleDeclaration.class).toSet()))
         .orElse(pProgramScope)
         .withFunctionScope(pNode.getFunctionName());
   }
@@ -326,11 +324,10 @@ public class TerminationArgumentsToWitnessUtils {
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
     for (AbstractState state :
         pReached.stream()
-            .filter(
-                state ->
-                    !AbstractStates.extractStateByType(state, TerminationToReachState.class)
-                        .getTransitionInvariants()
-                        .isEmpty())
+            .filter(state ->
+                !AbstractStates.extractStateByType(state, TerminationToReachState.class)
+                    .getTransitionInvariants()
+                    .isEmpty())
             .collect(ImmutableSet.toImmutableSet())) {
       TerminationToReachState terminationState =
           AbstractStates.extractStateByType(state, TerminationToReachState.class);

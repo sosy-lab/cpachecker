@@ -199,15 +199,14 @@ public class NestedLoopSummarizer {
       Set<String> pEndsInSummary,
       String pSummary) {
     ImmutableMap.Builder<String, Formula> exits = ImmutableMap.builder();
-    pModifiedVariables.forEach(
-        (variable, type) -> {
-          int endIndex = getIndex(pEnd, variable);
-          exits.put(
-              variable,
-              getIndex(pEntry, variable) == endIndex && pEndsInSummary.add(variable)
-                  ? fmgr.makeVariable(type, variable, endIndex + 1)
-                  : fmgr.makeVariable(type, getExitName(variable, pSummary)));
-        });
+    pModifiedVariables.forEach((variable, type) -> {
+      int endIndex = getIndex(pEnd, variable);
+      exits.put(
+          variable,
+          getIndex(pEntry, variable) == endIndex && pEndsInSummary.add(variable)
+              ? fmgr.makeVariable(type, variable, endIndex + 1)
+              : fmgr.makeVariable(type, getExitName(variable, pSummary)));
+    });
     return exits.buildOrThrow();
   }
 
@@ -268,9 +267,8 @@ public class NestedLoopSummarizer {
       Set<String> pModifiedProgramVariables,
       String pSummary) {
     Map<Formula, Formula> entryToExit = new HashMap<>();
-    pExits.forEach(
-        (variable, exit) ->
-            entryToExit.put(makeEntryVariable(variable, fmgr.getFormulaType(exit), pEntry), exit));
+    pExits.forEach((variable, exit) ->
+        entryToExit.put(makeEntryVariable(variable, fmgr.getFormulaType(exit), pEntry), exit));
     // The substitution covers only variables, so UFs, e.g., of a heap without SMT arrays, are
     // renamed
     return fmgr.renameFreeVariablesAndUFs(

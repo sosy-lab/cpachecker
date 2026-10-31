@@ -127,56 +127,53 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
       final var nextStates =
           nextLocs.stream()
-              .flatMap(
-                  nextLoc ->
-                      nextStacks.stream()
-                          .flatMap(
-                              nextStack -> {
-                                var base =
-                                    old.updateThread(
-                                        old.nextActiveThread(),
-                                        (LocationState) nextLoc,
-                                        (CallstackState) nextStack,
-                                        firstCanExecute(
-                                            ImmutableMap
-                                                .<Integer, Pair<LocationState, CallstackState>>
-                                                    builder()
-                                                .putAll(old.threads())
-                                                .put(
-                                                    old.nextActiveThread(),
-                                                    Pair.of(
-                                                        (LocationState) nextLoc,
-                                                        (CallstackState) nextStack))
-                                                .buildKeepingLast()),
-                                        HappensBeforeEdgeTools.nextCssaCounters(
-                                            cfaEdge, old.nextActiveThread(), old.cssaCounters()));
-                                final var accesses =
-                                    HappensBeforeEdgeTools.getAccesses(
-                                        cfaEdge, old.nextActiveThread(), old.cssaCounters());
-                                final var writes = accesses.getFirstNotNull();
-                                final var reads = accesses.getSecondNotNull();
+              .flatMap(nextLoc ->
+                  nextStacks.stream()
+                      .flatMap(nextStack -> {
+                        var base =
+                            old.updateThread(
+                                old.nextActiveThread(),
+                                (LocationState) nextLoc,
+                                (CallstackState) nextStack,
+                                firstCanExecute(
+                                    ImmutableMap
+                                        .<Integer, Pair<LocationState, CallstackState>>builder()
+                                        .putAll(old.threads())
+                                        .put(
+                                            old.nextActiveThread(),
+                                            Pair.of(
+                                                (LocationState) nextLoc,
+                                                (CallstackState) nextStack))
+                                        .buildKeepingLast()),
+                                HappensBeforeEdgeTools.nextCssaCounters(
+                                    cfaEdge, old.nextActiveThread(), old.cssaCounters()));
+                        final var accesses =
+                            HappensBeforeEdgeTools.getAccesses(
+                                cfaEdge, old.nextActiveThread(), old.cssaCounters());
+                        final var writes = accesses.getFirstNotNull();
+                        final var reads = accesses.getSecondNotNull();
 
-                                var ret = ImmutableSet.of(base);
-                                for (CVariableDeclaration write : writes) {
-                                  var newStates = ImmutableSet.<HappensBeforeState>builder();
-                                  for (HappensBeforeState happensBeforeState : ret) {
-                                    newStates.addAll(
-                                        happensBeforeState.addWrite(old.nextActiveThread(), write));
-                                  }
-                                  ret = newStates.build();
-                                }
+                        var ret = ImmutableSet.of(base);
+                        for (CVariableDeclaration write : writes) {
+                          var newStates = ImmutableSet.<HappensBeforeState>builder();
+                          for (HappensBeforeState happensBeforeState : ret) {
+                            newStates.addAll(
+                                happensBeforeState.addWrite(old.nextActiveThread(), write));
+                          }
+                          ret = newStates.build();
+                        }
 
-                                for (CVariableDeclaration it : reads) {
+                        for (CVariableDeclaration it : reads) {
 
-                                  var newStates = ImmutableSet.<HappensBeforeState>builder();
-                                  for (HappensBeforeState happensBeforeState : ret) {
-                                    newStates.addAll(
-                                        happensBeforeState.addRead(old.nextActiveThread(), it));
-                                  }
-                                  ret = newStates.build();
-                                }
-                                return ret.stream();
-                              }));
+                          var newStates = ImmutableSet.<HappensBeforeState>builder();
+                          for (HappensBeforeState happensBeforeState : ret) {
+                            newStates.addAll(
+                                happensBeforeState.addRead(old.nextActiveThread(), it));
+                          }
+                          ret = newStates.build();
+                        }
+                        return ret.stream();
+                      }));
 
       return nextStates.toList();
     } else {

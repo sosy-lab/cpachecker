@@ -94,11 +94,10 @@ public abstract class Preprocessor {
       if (executor.errorOutputCount > 0) {
         logger.log(
             Level.WARNING,
-            MoreStrings.lazyString(
-                () ->
-                    getCapitalizedName()
-                        + " returned successfully, but printed warnings/errors. Please check the"
-                        + " log above!"));
+            MoreStrings.lazyString(() ->
+                getCapitalizedName()
+                    + " returned successfully, but printed warnings/errors. Please check the"
+                    + " log above!"));
       }
 
       if (executor.buffer == null) {

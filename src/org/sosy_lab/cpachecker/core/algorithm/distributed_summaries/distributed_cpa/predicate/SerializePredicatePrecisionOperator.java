@@ -76,11 +76,10 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
     Multimap<String, String> locationInstancePredicates = LinkedHashMultimap.create();
     predicatePrecision
         .getLocationInstancePredicates()
-        .forEach(
-            (l, p) ->
-                locationInstancePredicates.put(
-                    nodeToId.get(l.getLocation()) + "," + l.getInstance(),
-                    serializeAbstractionPredicate(p)));
+        .forEach((l, p) ->
+            locationInstancePredicates.put(
+                nodeToId.get(l.getLocation()) + "," + l.getInstance(),
+                serializeAbstractionPredicate(p)));
     for (String key : locationInstancePredicates.keySet()) {
       contentBuilder.put(key, Joiner.on(" , ").join(locationInstancePredicates.get(key)));
     }
@@ -90,10 +89,9 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
     Multimap<String, String> localPredicates = LinkedHashMultimap.create();
     predicatePrecision
         .getLocalPredicates()
-        .forEach(
-            (l, p) ->
-                localPredicates.put(
-                    Integer.toString(nodeToId.get(l)), serializeAbstractionPredicate(p)));
+        .forEach((l, p) ->
+            localPredicates.put(
+                Integer.toString(nodeToId.get(l)), serializeAbstractionPredicate(p)));
     for (String key : localPredicates.keySet()) {
       contentBuilder.put(key, Joiner.on(" , ").join(localPredicates.get(key)));
     }

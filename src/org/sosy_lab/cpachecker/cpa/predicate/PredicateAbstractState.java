@@ -198,13 +198,12 @@ public abstract sealed class PredicateAbstractState
           name ->
               (!name.contains(FUNCTION_DELIMITER)
                       || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
-                  && variablesInScope.anyMatch(
-                      var ->
-                          // For local variables
-                          (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
-                                  .equals(name)
-                              // For global variables
-                              || var.getName().equals(name))
+                  && variablesInScope.anyMatch(var ->
+                      // For local variables
+                      (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
+                              .equals(name)
+                          // For global variables
+                          || var.getName().equals(name))
                   && !name.contains("__CPAchecker_"),
           name -> {
             String nameInProgram = pAstCfaRelation.getNameInInputProgram(pLocation, name);

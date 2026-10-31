@@ -81,15 +81,13 @@ public class BlockToProgramLocationMap {
 
   public boolean isAnyPredecessorTrulyEmpty() {
     return entriesPerKey.keySet().stream()
-        .anyMatch(
-            p ->
-                isEmpty(p)
-                    ? !unreachablePredecessors.contains(p)
-                    : getStatesForKey(p).stream()
-                        .allMatch(
-                            s ->
-                                DistributedCallstackCPA.canBeTopState(
-                                    AbstractStates.extractStateByType(s, CallstackState.class))));
+        .anyMatch(p ->
+            isEmpty(p)
+                ? !unreachablePredecessors.contains(p)
+                : getStatesForKey(p).stream()
+                    .allMatch(s ->
+                        DistributedCallstackCPA.canBeTopState(
+                            AbstractStates.extractStateByType(s, CallstackState.class))));
   }
 
   public boolean isEmpty() {
@@ -180,10 +178,9 @@ public class BlockToProgramLocationMap {
       return;
     }
     if (pReceived.stream()
-        .anyMatch(
-            sap ->
-                DistributedCallstackCPA.canBeTopState(
-                    AbstractStates.extractStateByType(sap.state(), CallstackState.class)))) {
+        .anyMatch(sap ->
+            DistributedCallstackCPA.canBeTopState(
+                AbstractStates.extractStateByType(sap.state(), CallstackState.class)))) {
       // if the old and the new have ignored callstack,
       // keep everything as is for the coverage check.
       return;

@@ -655,10 +655,9 @@ public class CFACreator {
         break;
       }
     }
-    return mainMethodKey.orElseThrow(
-        () ->
-            new InvalidConfigurationException(
-                "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
+    return mainMethodKey.orElseThrow(() ->
+        new InvalidConfigurationException(
+            "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
   }
 
   private ImmutableCFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
@@ -957,21 +956,19 @@ public class CFACreator {
 
       mainMethodValues =
           nodesWithCorrectClassPath.stream()
-              .filter(
-                  v ->
-                      ((JMethodDeclaration) v.getFunctionDefinition())
-                          .getSimpleName()
-                          .equals(mainMethodName))
+              .filter(v ->
+                  ((JMethodDeclaration) v.getFunctionDefinition())
+                      .getSimpleName()
+                      .equals(mainMethodName))
               .collect(ImmutableSet.toImmutableSet());
     }
 
     if (mainMethodValues.size() >= 2) {
       StringBuilder exceptionMessage = new StringBuilder();
-      mainMethodValues.forEach(
-          k ->
-              exceptionMessage
-                  .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
-                  .append("\n"));
+      mainMethodValues.forEach(k ->
+          exceptionMessage
+              .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
+              .append("\n"));
 
       throw new InvalidConfigurationException(
           "Two or more matching functions for \""
@@ -987,12 +984,11 @@ public class CFACreator {
   private static Set<FunctionEntryNode> getCfaNodesOfClass(
       Map<String, FunctionEntryNode> cfas, String classPath) {
     return cfas.values().stream()
-        .filter(
-            v ->
-                ((JMethodDeclaration) v.getFunctionDefinition())
-                    .getDeclaringClass()
-                    .getName()
-                    .equals(classPath))
+        .filter(v ->
+            ((JMethodDeclaration) v.getFunctionDefinition())
+                .getDeclaringClass()
+                .getName()
+                .equals(classPath))
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -1306,12 +1302,11 @@ public class CFACreator {
           declarationAtNode
               .orElseThrow()
               .filter(Predicates.notNull())
-              .transform(
-                  declaration ->
-                      declaration.getType() instanceof CSimpleType pCSimpleType
-                          ? new AVariableDeclarationExchange(
-                              declaration.getOrigName(), pCSimpleType.getType())
-                          : null)
+              .transform(declaration ->
+                  declaration.getType() instanceof CSimpleType pCSimpleType
+                      ? new AVariableDeclarationExchange(
+                          declaration.getOrigName(), pCSimpleType.getType())
+                      : null)
               .toSet();
 
       // create a new map if it does not exist

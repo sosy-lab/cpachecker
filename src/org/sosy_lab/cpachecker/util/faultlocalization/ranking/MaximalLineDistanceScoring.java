@@ -31,11 +31,10 @@ public class MaximalLineDistanceScoring implements FaultScoring {
   public RankInfo scoreFault(Fault fault) {
     int max =
         fault.stream()
-            .mapToInt(
-                fc ->
-                    Math.abs(
-                        fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()
-                            - errorLocation))
+            .mapToInt(fc ->
+                Math.abs(
+                    fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()
+                        - errorLocation))
             .max()
             .orElse(0);
     return FaultInfo.rankInfo("This line is " + max + " line(s) away from the error location", max);

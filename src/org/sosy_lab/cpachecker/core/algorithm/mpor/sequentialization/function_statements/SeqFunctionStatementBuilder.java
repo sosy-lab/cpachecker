@@ -259,12 +259,11 @@ public record SeqFunctionStatementBuilder(
     pThread
         .cfa()
         .threadEdges
-        .forEach(
-            e ->
-                checkState(
-                    substituteEdges.containsKey(e),
-                    "Edge %s missing from substitute map",
-                    e.cfaEdge.getCode()));
+        .forEach(e ->
+            checkState(
+                substituteEdges.containsKey(e),
+                "Edge %s missing from substitute map",
+                e.cfaEdge.getCode()));
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       // consider only threadEdges with callContext, CReturnStatementEdges always have call contexts
       if (threadEdge.callContext.cfaEdgeForThread().isPresent()) {

@@ -123,33 +123,27 @@ public class SlicingAbstractionsIntegrationTest {
 
     FluentIterable<Object[]> secondIterable =
         FluentIterable.from(Lists.cartesianProduct(files, slabConfigs))
-            .transform(
-                x -> {
-                  Object[] result = new Object[4];
-                  result[0] = x.getFirst();
-                  result[1] = x.get(1);
-                  result[2] = new HashMap<String, String>();
-                  result[3] =
-                      ((String) result[1])
-                          .replace("predicateAnalysis-", "")
-                          .replace(".properties", "");
-                  return result;
-                });
+            .transform(x -> {
+              Object[] result = new Object[4];
+              result[0] = x.getFirst();
+              result[1] = x.get(1);
+              result[2] = new HashMap<String, String>();
+              result[3] =
+                  ((String) result[1]).replace("predicateAnalysis-", "").replace(".properties", "");
+              return result;
+            });
 
     FluentIterable<Object[]> thirdIterable =
         FluentIterable.from(Lists.cartesianProduct(overflowFiles, overflowConfigs))
-            .transform(
-                x -> {
-                  Object[] result = new Object[4];
-                  result[0] = x.getFirst();
-                  result[1] = x.get(1);
-                  result[2] = new HashMap<String, String>();
-                  result[3] =
-                      ((String) result[1])
-                          .replace("predicateAnalysis-", "")
-                          .replace(".properties", "");
-                  return result;
-                });
+            .transform(x -> {
+              Object[] result = new Object[4];
+              result[0] = x.getFirst();
+              result[1] = x.get(1);
+              result[2] = new HashMap<String, String>();
+              result[3] =
+                  ((String) result[1]).replace("predicateAnalysis-", "").replace(".properties", "");
+              return result;
+            });
 
     return firstIterable.append(secondIterable).append(thirdIterable).toList();
   }

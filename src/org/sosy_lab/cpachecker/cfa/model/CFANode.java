@@ -386,10 +386,9 @@ public sealed class CFANode implements Comparable<CFANode>
     }
     outOfScopeVariables.addAll(
         pOutOfScopeVariables.stream()
-            .filter(
-                decl ->
-                    !(decl instanceof CVariableDeclaration cVariableDeclaration)
-                        || !cVariableDeclaration.isGlobal())
+            .filter(decl ->
+                !(decl instanceof CVariableDeclaration cVariableDeclaration)
+                    || !cVariableDeclaration.isGlobal())
             .collect(ImmutableSet.toImmutableSet()));
   }
 

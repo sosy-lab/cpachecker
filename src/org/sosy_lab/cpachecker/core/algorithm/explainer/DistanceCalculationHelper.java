@@ -242,12 +242,11 @@ public class DistanceCalculationHelper {
       ImmutableList<ARGState> children) {
     // create a new path for every new children
     IntStream.range(1, children.size())
-        .forEach(
-            j -> {
-              List<ARGState> anotherPath = new ArrayList<>(nodeWaitList.get(numberOfCurrentPath));
-              anotherPath.add(children.get(j));
-              nodeWaitList.add(anotherPath);
-            });
+        .forEach(j -> {
+          List<ARGState> anotherPath = new ArrayList<>(nodeWaitList.get(numberOfCurrentPath));
+          anotherPath.add(children.get(j));
+          nodeWaitList.add(anotherPath);
+        });
     nodeWaitList.get(numberOfCurrentPath).add(children.getFirst());
   }
 }

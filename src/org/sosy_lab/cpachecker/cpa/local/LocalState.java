@@ -190,10 +190,9 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
     LocalState joinState = this.clone(joinedPreviousState);
 
     Sets.union(DataInfo.keySet(), pState2.DataInfo.keySet())
-        .forEach(
-            id ->
-                joinState.putIntoDataInfo(
-                    id, DataType.max(DataInfo.get(id), pState2.DataInfo.get(id))));
+        .forEach(id ->
+            joinState.putIntoDataInfo(
+                id, DataType.max(DataInfo.get(id), pState2.DataInfo.get(id))));
 
     return joinState;
   }

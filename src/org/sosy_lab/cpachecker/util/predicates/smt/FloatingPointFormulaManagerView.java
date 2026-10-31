@@ -149,19 +149,18 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       return manager.fromIeeeBitvector(pNumber, pTargetType);
     } else {
       return getBitvectorIntermediateIfNecessary(pNumber)
-          .map(
-              it ->
-                  // we don't use bitvectors but have found an integer --> consider this as an
-                  // unsigned integer
-                  // representing a bitvector
-                  // useFloatForFloats() is required here, because if it's not the case, then the
-                  // actual manager
-                  // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not
-                  // accept actual
-                  // bitvectors, only wrapped integers. In those cases, we fall back to the
-                  // approximation in the
-                  // else branch of this decision.
-                  manager.fromIeeeBitvector(it, pTargetType))
+          .map(it ->
+              // we don't use bitvectors but have found an integer --> consider this as an
+              // unsigned integer
+              // representing a bitvector
+              // useFloatForFloats() is required here, because if it's not the case, then the
+              // actual manager
+              // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not
+              // accept actual
+              // bitvectors, only wrapped integers. In those cases, we fall back to the
+              // approximation in the
+              // else branch of this decision.
+              manager.fromIeeeBitvector(it, pTargetType))
           .orElse(
               ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
                   pNumber, pTargetType, this, functionManager));

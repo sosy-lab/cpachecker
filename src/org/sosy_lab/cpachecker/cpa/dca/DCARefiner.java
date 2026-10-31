@@ -622,20 +622,19 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   private Object lazyPrintItpToTransitionMapping(
       ARGPath pPath, List<BooleanFormula> pInterpolants) {
-    return MoreStrings.lazyString(
-        () ->
-            Streams.zip(
-                    pPath.getStatePairs().stream(),
-                    pInterpolants.stream(),
-                    (statePair, itp) ->
-                        String.format(
-                            "%d:%s -> %d:%s : %s",
-                            statePair.getFirstNotNull().getStateId(),
-                            AbstractStates.extractLocation(statePair.getFirstNotNull()),
-                            statePair.getSecondNotNull().getStateId(),
-                            AbstractStates.extractLocation(statePair.getSecondNotNull()),
-                            itp))
-                .collect(Collectors.joining("\n")));
+    return MoreStrings.lazyString(() ->
+        Streams.zip(
+                pPath.getStatePairs().stream(),
+                pInterpolants.stream(),
+                (statePair, itp) ->
+                    String.format(
+                        "%d:%s -> %d:%s : %s",
+                        statePair.getFirstNotNull().getStateId(),
+                        AbstractStates.extractLocation(statePair.getFirstNotNull()),
+                        statePair.getSecondNotNull().getStateId(),
+                        AbstractStates.extractLocation(statePair.getSecondNotNull()),
+                        itp))
+            .collect(Collectors.joining("\n")));
   }
 
   private void reinitializeReachedSet() throws InterruptedException {
@@ -656,11 +655,10 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
   }
 
   private Object lazyPrintNodes(Collection<ARGState> pArgStates) {
-    return MoreStrings.lazyString(
-        () ->
-            FluentIterable.from(pArgStates)
-                .transform(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
-                .toString());
+    return MoreStrings.lazyString(() ->
+        FluentIterable.from(pArgStates)
+            .transform(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
+            .toString());
   }
 
   @Override

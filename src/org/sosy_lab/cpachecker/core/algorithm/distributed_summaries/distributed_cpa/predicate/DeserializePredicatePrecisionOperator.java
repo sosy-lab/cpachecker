@@ -74,19 +74,17 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     Map<String, String> locationInstanceMap = contentReader.getContent();
     ImmutableListMultimap.Builder<LocationInstance, AbstractionPredicate> locationInstances =
         ImmutableListMultimap.builder();
-    locationInstanceMap.forEach(
-        (nodeNumberAndLocationInstance, serializedPredicates) -> {
-          List<String> splitNodeNumberAndLocationInstance =
-              Splitter.on(",").splitToList(nodeNumberAndLocationInstance);
-          LocationInstance locationInstance =
-              new LocationInstance(
-                  nodeMapping.apply(
-                      Integer.parseInt(splitNodeNumberAndLocationInstance.getFirst())),
-                  Integer.parseInt(splitNodeNumberAndLocationInstance.get(1)));
-          for (String precision : PREDICATE_SPLITTER.split(serializedPredicates)) {
-            locationInstances.put(locationInstance, parsedPredicates.getUnchecked(precision));
-          }
-        });
+    locationInstanceMap.forEach((nodeNumberAndLocationInstance, serializedPredicates) -> {
+      List<String> splitNodeNumberAndLocationInstance =
+          Splitter.on(",").splitToList(nodeNumberAndLocationInstance);
+      LocationInstance locationInstance =
+          new LocationInstance(
+              nodeMapping.apply(Integer.parseInt(splitNodeNumberAndLocationInstance.getFirst())),
+              Integer.parseInt(splitNodeNumberAndLocationInstance.get(1)));
+      for (String precision : PREDICATE_SPLITTER.split(serializedPredicates)) {
+        locationInstances.put(locationInstance, parsedPredicates.getUnchecked(precision));
+      }
+    });
     contentReader.popLevel();
     return locationInstances.build();
   }
@@ -97,14 +95,13 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     Map<String, String> localPredicatesMap = contentReader.getContent();
     ImmutableListMultimap.Builder<CFANode, AbstractionPredicate> localPredicates =
         ImmutableListMultimap.builder();
-    localPredicatesMap.forEach(
-        (location, serializedPrecisions) -> {
-          for (String precision : PREDICATE_SPLITTER.split(serializedPrecisions)) {
-            localPredicates.put(
-                Objects.requireNonNull(nodeMapping.apply(Integer.parseInt(location))),
-                parsedPredicates.getUnchecked(precision));
-          }
-        });
+    localPredicatesMap.forEach((location, serializedPrecisions) -> {
+      for (String precision : PREDICATE_SPLITTER.split(serializedPrecisions)) {
+        localPredicates.put(
+            Objects.requireNonNull(nodeMapping.apply(Integer.parseInt(location))),
+            parsedPredicates.getUnchecked(precision));
+      }
+    });
     contentReader.popLevel();
     return localPredicates.build();
   }
@@ -116,12 +113,11 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     ImmutableListMultimap.Builder<String, AbstractionPredicate> functionPredicates =
         ImmutableListMultimap.builder();
     Map<String, String> functionPredicatesMap = contentReader.getContent();
-    functionPredicatesMap.forEach(
-        (function, serializedPredicates) -> {
-          for (String predicate : PREDICATE_SPLITTER.split(serializedPredicates)) {
-            functionPredicates.put(function, parsedPredicates.getUnchecked(predicate));
-          }
-        });
+    functionPredicatesMap.forEach((function, serializedPredicates) -> {
+      for (String predicate : PREDICATE_SPLITTER.split(serializedPredicates)) {
+        functionPredicates.put(function, parsedPredicates.getUnchecked(predicate));
+      }
+    });
     contentReader.popLevel();
     return functionPredicates.build();
   }

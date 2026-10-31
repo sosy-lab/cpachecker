@@ -355,28 +355,27 @@ public class SequentializedCounterexampleToWitness extends CounterexampleToWitne
     // 'Variable used in lambda expression should be final or effectively final'
     boolean[] isTranslatable = {true};
     SubstitutingCAstNodeVisitor visitor =
-        new SubstitutingCAstNodeVisitor(
-            astNode -> {
-              if (!(astNode instanceof CIdExpression idExpression)) {
-                return null;
-              }
-              CSimpleDeclaration declaration = idExpression.getDeclaration();
-              if (declaration == null) {
-                isTranslatable[0] = false;
-                return null;
-              }
-              if (declaration instanceof CEnumerator) {
-                // enum constants of the input program are used unchanged
-                return idExpression;
-              }
-              Optional<CSimpleDeclaration> original =
-                  mapping.getOriginalDeclarationBySubstitute(declaration);
-              if (original.isEmpty()) {
-                isTranslatable[0] = false;
-                return null;
-              }
-              return new CIdExpression(idExpression.getFileLocation(), original.orElseThrow());
-            });
+        new SubstitutingCAstNodeVisitor(astNode -> {
+          if (!(astNode instanceof CIdExpression idExpression)) {
+            return null;
+          }
+          CSimpleDeclaration declaration = idExpression.getDeclaration();
+          if (declaration == null) {
+            isTranslatable[0] = false;
+            return null;
+          }
+          if (declaration instanceof CEnumerator) {
+            // enum constants of the input program are used unchanged
+            return idExpression;
+          }
+          Optional<CSimpleDeclaration> original =
+              mapping.getOriginalDeclarationBySubstitute(declaration);
+          if (original.isEmpty()) {
+            isTranslatable[0] = false;
+            return null;
+          }
+          return new CIdExpression(idExpression.getFileLocation(), original.orElseThrow());
+        });
 
     CAstNode translated = pExpression.accept(visitor);
     if (!isTranslatable[0] || !(translated instanceof CExpression translatedExpression)) {

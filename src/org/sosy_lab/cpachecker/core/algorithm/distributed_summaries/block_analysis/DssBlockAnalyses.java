@@ -37,10 +37,9 @@ public final class DssBlockAnalyses {
 
   private static List<AbstractState> extractBlockStatesAtGhostLocation(ReachedSet pAbstractStates) {
     return FluentIterable.from(pAbstractStates)
-        .filter(
-            a ->
-                AbstractStates.extractStateByType(a, BlockState.class).getType()
-                    == BlockStateType.ABSTRACTION)
+        .filter(a ->
+            AbstractStates.extractStateByType(a, BlockState.class).getType()
+                == BlockStateType.ABSTRACTION)
         .toList();
   }
 
@@ -132,9 +131,8 @@ public final class DssBlockAnalyses {
       ReachedSet pReachedSet) {
     ImmutableSet<? extends @NonNull AbstractState> processedViolationConditions =
         FluentIterable.from(pStatesAtGhostLocation)
-            .transformAndConcat(
-                a ->
-                    AbstractStates.extractStateByType(a, BlockState.class).getViolationConditions())
+            .transformAndConcat(a ->
+                AbstractStates.extractStateByType(a, BlockState.class).getViolationConditions())
             .toSet();
     ImmutableList.Builder<AbstractState> remainingBuilder = ImmutableList.builder();
     for (AbstractState violationCondition : pBlockState.getViolationConditions()) {

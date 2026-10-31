@@ -87,12 +87,11 @@ public class DssDefaultQueueTest {
                 .factory())) {
       for (int sender = 0; sender < senders; sender++) {
         String senderId = "sender-" + sender;
-        executor.execute(
-            () -> {
-              for (int i = 0; i < messagesPerSender; i++) {
-                queue.offer(postCondition(senderId + ":" + i));
-              }
-            });
+        executor.execute(() -> {
+          for (int i = 0; i < messagesPerSender; i++) {
+            queue.offer(postCondition(senderId + ":" + i));
+          }
+        });
       }
       // this thread is the worker of the queue
       for (int received = 0; received < senders * messagesPerSender; received++) {
@@ -124,25 +123,23 @@ public class DssDefaultQueueTest {
             Thread.ofPlatform()
                 .name(DssDefaultQueueTest.class.getSimpleName() + "-", 0)
                 .factory())) {
-      executor.execute(
-          () -> {
-            try {
-              receiver.offer(sender.take());
-              sender.take();
-            } catch (InterruptedException e) {
-              // expected once the test is done
-            }
-          });
-      executor.execute(
-          () -> {
-            try {
-              receiver.take();
-              received.set(true);
-              receiver.take();
-            } catch (InterruptedException e) {
-              // expected once the test is done
-            }
-          });
+      executor.execute(() -> {
+        try {
+          receiver.offer(sender.take());
+          sender.take();
+        } catch (InterruptedException e) {
+          // expected once the test is done
+        }
+      });
+      executor.execute(() -> {
+        try {
+          receiver.take();
+          received.set(true);
+          receiver.take();
+        } catch (InterruptedException e) {
+          // expected once the test is done
+        }
+      });
 
       workCounter.awaitNoWorkLeft();
       assertThat(received.get()).isTrue();

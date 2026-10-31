@@ -482,10 +482,9 @@ class CExpressionVisitorWithPointerAliasing
             final long fieldOffset =
                 typeHandler
                     .getOffset(compositeType, fieldName)
-                    .orElseThrow(
-                        () ->
-                            new UnrecognizedCodeException(
-                                "Taking address of bit fields is not allowed", e));
+                    .orElseThrow(() ->
+                        new UnrecognizedCodeException(
+                            "Taking address of bit fields is not allowed", e));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset);
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
             addressHandler.addEqualBaseAddressConstraint(base, addressExpression.getAddress());

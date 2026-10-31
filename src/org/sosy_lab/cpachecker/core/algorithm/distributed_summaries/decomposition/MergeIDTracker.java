@@ -54,16 +54,15 @@ public class MergeIDTracker {
 
   ImmutableSet<BlockNode> mapBlockNodeEdges(Iterable<BlockNode> nodes) {
     return FluentIterable.from(nodes)
-        .transform(
-            node ->
-                new BlockNode(
-                    node.getId(),
-                    node.getInitialLocation(),
-                    node.getFinalLocation(),
-                    node.getNodes(),
-                    node.getEdges(),
-                    transformedImmutableSetCopy(node.getPredecessorIds(), this::resolve),
-                    transformedImmutableSetCopy(node.getSuccessorIds(), this::resolve)))
+        .transform(node ->
+            new BlockNode(
+                node.getId(),
+                node.getInitialLocation(),
+                node.getFinalLocation(),
+                node.getNodes(),
+                node.getEdges(),
+                transformedImmutableSetCopy(node.getPredecessorIds(), this::resolve),
+                transformedImmutableSetCopy(node.getSuccessorIds(), this::resolve)))
         .toSet();
   }
 }

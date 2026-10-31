@@ -37,10 +37,9 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
         CacheBuilder.newBuilder()
             .maximumSize(1024)
             .build(
-                CacheLoader.from(
-                    path ->
-                        PredicateOperatorUtil.normalizeForComparison(
-                            path, solver.getFormulaManager())));
+                CacheLoader.from(path ->
+                    PredicateOperatorUtil.normalizeForComparison(
+                        path, solver.getFormulaManager())));
   }
 
   /**

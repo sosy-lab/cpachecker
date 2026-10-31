@@ -683,9 +683,8 @@ public class ConfigurationFileChecks {
             .map(LogRecord::getMessage)
             .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches())
-            .filter(
-                s ->
-                    MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
+            .filter(s ->
+                MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
 
     if (isUnmaintainedConfig()) {
       result = result.filter(s -> !UNMAINTAINED_CPA_WARNING.matcher(s).matches());

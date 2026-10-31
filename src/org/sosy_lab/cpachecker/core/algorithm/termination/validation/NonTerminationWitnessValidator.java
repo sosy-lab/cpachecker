@@ -618,11 +618,10 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       for (AbstractState stateWithoutSucc :
           from(reached)
-              .filter(
-                  (AbstractState state) -> {
-                    ARGState argState = (ARGState) state;
-                    return !argState.isCovered() && argState.getChildren().isEmpty();
-                  })) {
+              .filter((AbstractState state) -> {
+                ARGState argState = (ARGState) state;
+                return !argState.isCovered() && argState.getChildren().isEmpty();
+              })) {
         shutdown.shutdownIfNecessary();
 
         for (AbstractState compState : AbstractStates.asIterable(stateWithoutSucc)) {

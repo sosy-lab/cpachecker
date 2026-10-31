@@ -268,12 +268,11 @@ public final class DynamicMemoryHandler {
       pts.addTemporaryDeferredAllocation(
           conv.options.getSuccessfulZallocFunctionName().equals(functionName),
           Optional.ofNullable(size)
-              .map(
-                  s ->
-                      new CIntegerLiteralExpression(
-                          parameter.getFileLocation(),
-                          parameter.getExpressionType(),
-                          BigInteger.valueOf(s))),
+              .map(s ->
+                  new CIntegerLiteralExpression(
+                      parameter.getFileLocation(),
+                      parameter.getExpressionType(),
+                      BigInteger.valueOf(s))),
           newBase);
       address = conv.makeConstant(newBase.formulaEncoding(), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
@@ -667,15 +666,14 @@ public final class DynamicMemoryHandler {
                 // We can defer the allocation and start tracking the variable in the LHS
                 final Optional<PointerBase> lhsPointer =
                     lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
-                lhsPointer.ifPresent(
-                    s -> {
-                      pts.removeDeferredAllocationPointer(s)
-                          .forEach(d -> handleDeferredAllocationPointerRemoval(s));
-                      pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
-                      // And not the RHS, it was a dummy, not a code pointer approximation
-                      pts.removeDeferredAllocationPointer(variable)
-                          .forEach(d -> handleDeferredAllocationPointerRemoval(variable));
-                    });
+                lhsPointer.ifPresent(s -> {
+                  pts.removeDeferredAllocationPointer(s)
+                      .forEach(d -> handleDeferredAllocationPointerRemoval(s));
+                  pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
+                  // And not the RHS, it was a dummy, not a code pointer approximation
+                  pts.removeDeferredAllocationPointer(variable)
+                      .forEach(d -> handleDeferredAllocationPointerRemoval(variable));
+                });
                 if (!lhsPointer.isPresent()) {
                   conv.logger.logfOnce(
                       Level.WARNING,

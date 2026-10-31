@@ -271,11 +271,10 @@ class CFABuilder {
 
       en.getExitNode()
           .filter(exitNode -> exitNode.getNumEnteringEdges() == 0)
-          .ifPresent(
-              unreachableExitNode -> {
-                cfaNodes.remove(funcName, unreachableExitNode);
-                en.removeExitNode();
-              });
+          .ifPresent(unreachableExitNode -> {
+            cfaNodes.remove(funcName, unreachableExitNode);
+            en.removeExitNode();
+          });
 
       functions.put(funcName, en);
 

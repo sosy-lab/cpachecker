@@ -1847,10 +1847,9 @@ public class ValueAnalysisTransferRelation
         String sideEffectsMsg = "";
 
         if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
-            .anyMatch(
-                p ->
-                    p.getExpressionType().getCanonicalType() instanceof CPointerType
-                        || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
+            .anyMatch(p ->
+                p.getExpressionType().getCanonicalType() instanceof CPointerType
+                    || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
           // It is UNSOUND to ignore these (in case of side effects)!!!!
           // It might be that the variable of the side effect is already overapproximated though.
           sideEffectsMsg =

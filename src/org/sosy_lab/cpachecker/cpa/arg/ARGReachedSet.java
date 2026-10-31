@@ -376,14 +376,13 @@ public class ARGReachedSet {
       Precision pNewPrecision, Predicate<? super Precision> pPrecisionType) {
     IdentityHashMap<Precision, Precision> precisionUpdateCache = new IdentityHashMap<>();
 
-    mReached.forEach(
-        (s, oldPrecision) -> {
-          Precision newPrecision =
-              precisionUpdateCache.computeIfAbsent(
-                  oldPrecision, oldPrec -> adaptPrecision(oldPrec, pNewPrecision, pPrecisionType));
+    mReached.forEach((s, oldPrecision) -> {
+      Precision newPrecision =
+          precisionUpdateCache.computeIfAbsent(
+              oldPrecision, oldPrec -> adaptPrecision(oldPrec, pNewPrecision, pPrecisionType));
 
-          mReached.updatePrecision(s, newPrecision);
-        });
+      mReached.updatePrecision(s, newPrecision);
+    });
   }
 
   /**

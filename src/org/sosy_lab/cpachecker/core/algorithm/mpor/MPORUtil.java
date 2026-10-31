@@ -45,10 +45,8 @@ public final class MPORUtil {
 
     // do not use the CFunctionDeclaration since it may be null if the function is not declared
     return pAllFunctions.entrySet().stream()
-        .anyMatch(
-            f ->
-                f.getKey()
-                    .equals(pFunctionCallExpression.getFunctionNameExpression().toASTString()));
+        .anyMatch(f ->
+            f.getKey().equals(pFunctionCallExpression.getFunctionNameExpression().toASTString()));
   }
 
   /**

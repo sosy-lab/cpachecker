@@ -153,10 +153,9 @@ public class SingleWorkerDssExecutor implements DssExecutor {
         blockGraph.getNodes().stream()
             .filter(b -> b.getId().equals(spawnWorkerForId))
             .findAny()
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "No block with id '" + spawnWorkerForId + "' found in the block graph."));
+            .orElseThrow(() ->
+                new IllegalArgumentException(
+                    "No block with id '" + spawnWorkerForId + "' found in the block graph."));
     try (DssActors actors =
         new DssWorkerBuilder(
                 cfa,

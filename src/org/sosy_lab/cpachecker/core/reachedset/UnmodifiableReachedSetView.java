@@ -104,9 +104,8 @@ public class UnmodifiableReachedSetView implements UnmodifiableReachedSet {
   @Override
   public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
     checkNotNull(pAction);
-    underlying.forEach(
-        (state, precision) ->
-            pAction.accept(mapStateFunction.apply(state), mapPrecisionFunction.apply(precision)));
+    underlying.forEach((state, precision) ->
+        pAction.accept(mapStateFunction.apply(state), mapPrecisionFunction.apply(precision)));
   }
 
   @Override

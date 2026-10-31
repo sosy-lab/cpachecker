@@ -115,9 +115,8 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
         ImmutableMap.builder();
 
     from(binderFunctions)
-        .forEach(
-            name ->
-                binderFunctionInfoBuilder.put(name, new BinderFunctionInfo(name, config, logger)));
+        .forEach(name ->
+            binderFunctionInfoBuilder.put(name, new BinderFunctionInfo(name, config, logger)));
 
     BinderFunctionInfo dummy = new BinderFunctionInfo();
     from(writeAccessFunctions).forEach(name -> binderFunctionInfoBuilder.put(name, dummy));

@@ -615,14 +615,12 @@ class KInductionProver implements AutoCloseable {
         CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
       if (component instanceof TargetLocationCandidateInvariant) {
         Iterable<AbstractState> candidateAssertionStates =
-            states.filter(
-                s -> {
-                  ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
-                  return !argState.isTarget()
-                      && (argState.getChildren().isEmpty()
-                          || from(AbstractStates.extractLocations(s))
-                              .anyMatch(loopHeads::contains));
-                });
+            states.filter(s -> {
+              ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
+              return !argState.isTarget()
+                  && (argState.getChildren().isEmpty()
+                      || from(AbstractStates.extractLocations(s)).anyMatch(loopHeads::contains));
+            });
         assertions.add(createFormulaFor(candidateAssertionStates, bfmgr));
       } else {
         Iterable<AbstractState> candidateAssertionStates =
@@ -756,12 +754,11 @@ class KInductionProver implements AutoCloseable {
             AbstractStates.extractStateByType(loopHeadState, PredicateAbstractState.class);
         SSAMap ssaMap = pas.getPathFormula().getSsa();
         Supplier<Map<String, Formula>> variableFormulas =
-            Suppliers.memoize(
-                () -> {
-                  VariableMapper variableMapper = new VariableMapper();
-                  fmgr.visitRecursively(pas.getPathFormula().getFormula(), variableMapper);
-                  return variableMapper.variableFormulas;
-                });
+            Suppliers.memoize(() -> {
+              VariableMapper variableMapper = new VariableMapper();
+              fmgr.visitRecursively(pas.getPathFormula().getFormula(), variableMapper);
+              return variableMapper.variableFormulas;
+            });
 
         PersistentMap<String, ModelValue> model = PathCopyingPersistentTreeMap.of();
         final List<BooleanFormula> input = new ArrayList<>();

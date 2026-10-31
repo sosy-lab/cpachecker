@@ -412,10 +412,9 @@ public class TerminationWitnessValidator implements Algorithm {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> builder = ImmutableMap.builder();
 
     FluentIterable.from(invariants)
-        .filter(
-            invariant ->
-                invariant instanceof ExpressionTreeLocationTransitionInvariant
-                    && isTheInvariantLocationInLoop(pLoop, invariant.getLocation()))
+        .filter(invariant ->
+            invariant instanceof ExpressionTreeLocationTransitionInvariant
+                && isTheInvariantLocationInLoop(pLoop, invariant.getLocation()))
         .transform(ExpressionTreeLocationTransitionInvariant.class::cast)
         .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().entrySet())
         .forEach(e -> builder.put(e.getKey(), e.getValue()));
@@ -805,9 +804,8 @@ public class TerminationWitnessValidator implements Algorithm {
             getInnerLoopEdgesWithSummaryEdges(pLoop), pLoop.getLoopHeads(), pLoop.getLoopHeads());
     ImmutableSet<Loop> nestedLoops =
         FluentIterable.from(cfa.getLoopStructure().orElseThrow().getAllLoops())
-            .filter(
-                loop ->
-                    !loop.equals(pLoop) && pLoop.getLoopNodes().containsAll(loop.getLoopHeads()))
+            .filter(loop ->
+                !loop.equals(pLoop) && pLoop.getLoopNodes().containsAll(loop.getLoopHeads()))
             .toSet();
     return constructFormulaForPaths(
         pContextSSAMap, pContextPointerSet, nestedLoops, listOfAllPaths);

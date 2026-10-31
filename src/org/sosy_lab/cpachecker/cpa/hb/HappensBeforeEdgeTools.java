@@ -100,16 +100,15 @@ final class HappensBeforeEdgeTools {
   static CFAEdge createAssume(CFANode node, ExecutionGraph pG) {
     final var exprs = new ArrayList<CExpression>();
     pG.pendingRf()
-        .forEach(
-            (r, w) ->
-                exprs.add(
-                    new CBinaryExpression(
-                        node.getFunction().getFileLocation(),
-                        CNumericTypes.UNSIGNED_INT,
-                        CNumericTypes.UNSIGNED_INT,
-                        new CIdExpression(w.var().getFileLocation(), w.var()),
-                        new CIdExpression(r.var().getFileLocation(), r.var()),
-                        BinaryOperator.EQUALS)));
+        .forEach((r, w) ->
+            exprs.add(
+                new CBinaryExpression(
+                    node.getFunction().getFileLocation(),
+                    CNumericTypes.UNSIGNED_INT,
+                    CNumericTypes.UNSIGNED_INT,
+                    new CIdExpression(w.var().getFileLocation(), w.var()),
+                    new CIdExpression(r.var().getFileLocation(), r.var()),
+                    BinaryOperator.EQUALS)));
     final var expr =
         exprs.stream()
             .reduce(

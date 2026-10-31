@@ -332,11 +332,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     FluentIterable<FunctionEntryNode> functionEntryNodes =
         FluentIterable.from(cfa.getAllFunctions().values())
-            .filter(
-                functionEntryNode ->
-                    Objects.requireNonNull(functionEntryNode)
-                        .getFunctionDefinition()
-                        .equals(pStartRoutineDeclaration));
+            .filter(functionEntryNode ->
+                Objects.requireNonNull(functionEntryNode)
+                    .getFunctionDefinition()
+                    .equals(pStartRoutineDeclaration));
     if (functionEntryNodes.isEmpty()) {
       throw new UnsupportedCodeException(
           "Could not find a FunctionEntryNode for start_routine "

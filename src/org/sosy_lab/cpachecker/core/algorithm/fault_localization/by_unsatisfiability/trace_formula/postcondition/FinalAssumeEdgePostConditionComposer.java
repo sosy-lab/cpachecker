@@ -66,13 +66,12 @@ public class FinalAssumeEdgePostConditionComposer implements PostConditionCompos
       CFAEdge currentEdge = pCounterexample.get(i);
       if (currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
         List<CFAEdge> postConditionEdges = ImmutableList.of(currentEdge);
-        postConditionEdges.forEach(
-            edge ->
-                context
-                    .getLogger()
-                    .log(
-                        Level.FINEST,
-                        "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
+        postConditionEdges.forEach(edge ->
+            context
+                .getLogger()
+                .log(
+                    Level.FINEST,
+                    "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
         return new PostCondition(
             postConditionEdges,
             irrelevant.reversed(),

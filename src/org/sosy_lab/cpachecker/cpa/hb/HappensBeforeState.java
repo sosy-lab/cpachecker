@@ -97,10 +97,9 @@ record HappensBeforeState(
   @Override
   public String toDOTLabel() {
     final var threadsPrint = ImmutableMap.<Integer, CFANode>builder();
-    threads.forEach(
-        (pInteger, pLocationStateCallstackStatePair) ->
-            threadsPrint.put(
-                pInteger, pLocationStateCallstackStatePair.getFirstNotNull().getLocationNode()));
+    threads.forEach((pInteger, pLocationStateCallstackStatePair) ->
+        threadsPrint.put(
+            pInteger, pLocationStateCallstackStatePair.getFirstNotNull().getLocationNode()));
     return "%s\\nnext: %s\\nExecGraph: %s".formatted(threads, nextActiveThread, g.toDOTLabel());
   }
 
@@ -120,17 +119,16 @@ record HappensBeforeState(
             .put(thread, newMemEvent)
             .buildKeepingLast();
     return g.addRead(newMemEvent).stream()
-        .map(
-            it ->
-                new HappensBeforeState(
-                    threads,
-                    cssaCounters,
-                    prevActiveThread,
-                    nextActiveThread,
-                    eid + 1,
-                    newLastEvent,
-                    g,
-                    it))
+        .map(it ->
+            new HappensBeforeState(
+                threads,
+                cssaCounters,
+                prevActiveThread,
+                nextActiveThread,
+                eid + 1,
+                newLastEvent,
+                g,
+                it))
         .toList();
   }
 
@@ -143,17 +141,16 @@ record HappensBeforeState(
             .put(thread, newMemEvent)
             .buildKeepingLast();
     return g.addWrite(newMemEvent).stream()
-        .map(
-            it ->
-                new HappensBeforeState(
-                    threads,
-                    cssaCounters,
-                    prevActiveThread,
-                    nextActiveThread,
-                    eid + 1,
-                    newLastEvent,
-                    g,
-                    it))
+        .map(it ->
+            new HappensBeforeState(
+                threads,
+                cssaCounters,
+                prevActiveThread,
+                nextActiveThread,
+                eid + 1,
+                newLastEvent,
+                g,
+                it))
         .toList();
   }
 

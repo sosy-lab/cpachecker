@@ -57,9 +57,8 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
   public String toASTString() {
     return "(define-funs-rec (("
         + from(functionDeclarations)
-            .transform(
-                pFunctionDeclaration ->
-                    pFunctionDeclaration.getName() + pFunctionDeclaration.getType().toASTString())
+            .transform(pFunctionDeclaration ->
+                pFunctionDeclaration.getName() + pFunctionDeclaration.getType().toASTString())
             .join(Joiner.on(") ("))
         + ")) ("
         + from(bodies).transform(SvLibTerm::toASTString).join(Joiner.on(") ("))

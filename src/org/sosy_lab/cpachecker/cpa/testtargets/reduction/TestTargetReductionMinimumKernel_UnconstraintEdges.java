@@ -106,12 +106,11 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
     for (CFAEdgeNode domTreeEntry : pDomTree) {
       pDomTree
           .getParent(domTreeEntry)
-          .ifPresent(
-              parent -> {
-                if (!isPostDomTree || !pPathsWithInputs.contains(Pair.of(domTreeEntry, parent))) {
-                  nonLeaves.add(parent);
-                }
-              });
+          .ifPresent(parent -> {
+            if (!isPostDomTree || !pPathsWithInputs.contains(Pair.of(domTreeEntry, parent))) {
+              nonLeaves.add(parent);
+            }
+          });
     }
 
     // targets not reachable from entry/exit not part of the dominator tree
@@ -132,11 +131,8 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
         ldSet.addAll(
             Sets.intersection(
                 FluentIterable.from(pReverseDomTree.getAncestors(domTreeEntry))
-                    .filter(
-                        ancestor ->
-                            !pPathsWithInputs
-                                .orElseThrow()
-                                .contains(Pair.of(domTreeEntry, ancestor)))
+                    .filter(ancestor ->
+                        !pPathsWithInputs.orElseThrow().contains(Pair.of(domTreeEntry, ancestor)))
                     .toSet(),
                 pLeaves));
 

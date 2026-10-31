@@ -240,19 +240,18 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         || !pReached.getWaitlist().contains(pReached.getFirstState())) {
       pReached.getWaitlist().stream()
           .filter((AbstractState state) -> !((ARGState) state).getChildren().isEmpty())
-          .forEach(
-              (AbstractState state) -> {
-                ARGState argState = (ARGState) state;
-                List<ARGState> removedChildren = new ArrayList<>(2);
-                for (ARGState child : argState.getChildren()) {
-                  if (!pReached.contains(child)) {
-                    removedChildren.add(child);
-                  }
-                }
-                for (ARGState child : removedChildren) {
-                  child.removeFromARG();
-                }
-              });
+          .forEach((AbstractState state) -> {
+            ARGState argState = (ARGState) state;
+            List<ARGState> removedChildren = new ArrayList<>(2);
+            for (ARGState child : argState.getChildren()) {
+              if (!pReached.contains(child)) {
+                removedChildren.add(child);
+              }
+            }
+            for (ARGState child : removedChildren) {
+              child.removeFromARG();
+            }
+          });
     }
 
     try {

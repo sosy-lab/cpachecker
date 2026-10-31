@@ -268,12 +268,11 @@ public class ValueDeterminationManager {
         stateMap.put(locId, toProcess);
         toProcess.getAbstraction().values().stream()
             .filter(b -> !b.getDependencies().isEmpty())
-            .forEach(
-                b -> {
-                  PolicyAbstractedState pred = b.getPredecessor();
-                  queue.add(pred);
-                  backwDepsEdges.put(pred.getLocationID(), locId);
-                });
+            .forEach(b -> {
+              PolicyAbstractedState pred = b.getPredecessor();
+              queue.add(pred);
+              backwDepsEdges.put(pred.getLocationID(), locId);
+            });
       }
     }
   }

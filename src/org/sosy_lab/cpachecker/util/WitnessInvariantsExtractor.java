@@ -262,11 +262,10 @@ public class WitnessInvariantsExtractor {
       if (invariant.isLoopInvariant()) {
         node =
             cfa.getLoopStructure()
-                .flatMap(
-                    loopStructure ->
-                        cfa.getAstCfaRelation()
-                            .getNodeForIterationStatementLocation(
-                                invariant.getLine(), invariant.getColumn(), loopStructure));
+                .flatMap(loopStructure ->
+                    cfa.getAstCfaRelation()
+                        .getNodeForIterationStatementLocation(
+                            invariant.getLine(), invariant.getColumn(), loopStructure));
       } else {
         node =
             cfa.getAstCfaRelation()
