@@ -9,15 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class MemoryAccess {
 
@@ -27,7 +26,7 @@ class MemoryAccess {
   private final ImmutableSet<String> locks;
   private final CFAEdge edge;
   private final int accessEpoch;
-  // Whether a variable used to compute the address was changed after the access
+  // Whether a location read to compute the address may have changed after the access
   private final boolean addressMayHaveChanged;
 
   MemoryAccess(
@@ -57,10 +56,11 @@ class MemoryAccess {
     addressMayHaveChanged = pAddressMayHaveChanged;
   }
 
-  /** Returns this access, marked if its address depends on one of the given changed variables. */
-  MemoryAccess withChangedVariables(Set<MemoryLocation> pChangedVariables) {
+  /** Returns this access, marked if the given writes may change a location read for its address. */
+  MemoryAccess withWrites(Set<OverapproximatingMemoryLocation> pWrites) {
     if (addressMayHaveChanged
-        || Collections.disjoint(memoryLocation.getAddressVariables(), pChangedVariables)) {
+        || !Iterables.any(
+            memoryLocation.getAddressReads(), read -> Iterables.any(pWrites, read::mayOverlap))) {
       return this;
     }
     return new MemoryAccess(threadId, memoryLocation, isWrite, locks, edge, accessEpoch, true);

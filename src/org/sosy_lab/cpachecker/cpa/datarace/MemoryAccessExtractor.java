@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -88,21 +89,14 @@ public class MemoryAccessExtractor {
         ADeclaration declaration = declarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
           CInitializer initializer = variableDeclaration.getInitializer();
-          CType type = variableDeclaration.getType();
-          MemoryLocation location =
-              MemoryLocation.fromQualifiedName(variableDeclaration.getQualifiedName());
-          OverapproximatingMemoryLocation declaredVariable =
-              new OverapproximatingMemoryLocation(
-                  ImmutableSet.of(location),
-                  type,
-                  false,
-                  true,
-                  type.getCanonicalType() instanceof CArrayType
-                      || addressedVariables.contains(variableDeclaration.getQualifiedName()),
-                  new CIdExpression(variableDeclaration.getFileLocation(), variableDeclaration));
           newAccessBuilder.add(
               new MemoryAccess(
-                  activeThread, declaredVariable, initializer != null, locks, edge, epoch));
+                  activeThread,
+                  getDeclaredLocation(variableDeclaration),
+                  initializer != null,
+                  locks,
+                  edge,
+                  epoch));
           if (initializer != null) {
             readLocationBuilder.addAll(getInvolvedVariableTypes(initializer, declarationEdge));
           }
@@ -213,38 +207,51 @@ public class MemoryAccessExtractor {
   }
 
   /**
-   * Returns the variables that the given edge may change. The address of an access that depends on
-   * them may differ after the edge.
+   * Returns the locations that the given edge may write, including declared variables and
+   * parameters. The address of an access that depends on them may differ after the edge.
    */
-  Set<MemoryLocation> getChangedVariables(CFAEdge pEdge) {
+  Set<OverapproximatingMemoryLocation> getWrittenLocations(CFAEdge pEdge) {
     return switch (pEdge) {
       case ADeclarationEdge declarationEdge
           when declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration ->
-          ImmutableSet.of(MemoryLocation.fromQualifiedName(declaration.getQualifiedName()));
+          ImmutableSet.of(getDeclaredLocation(declaration));
       case FunctionCallEdge functionCallEdge ->
-          transformedImmutableSetCopy(
-              functionCallEdge.getSuccessor().getFunctionParameters(),
-              parameter -> MemoryLocation.fromQualifiedName(parameter.getQualifiedName()));
+          FluentIterable.from(functionCallEdge.getSuccessor().getFunctionParameters())
+              .filter(CParameterDeclaration.class)
+              .transform(this::getDeclaredLocation)
+              .toSet();
       case FunctionReturnEdge functionReturnEdge
           when functionReturnEdge.getSummaryEdge().getExpression()
               instanceof AFunctionCallAssignmentStatement assignment ->
-          getPreciseLocations(assignment.getLeftHandSide(), pEdge);
+          getWrittenLocation(assignment.getLeftHandSide(), pEdge);
       case AStatementEdge statementEdge
           when statementEdge.getStatement() instanceof AAssignment assignment ->
-          getPreciseLocations(assignment.getLeftHandSide(), pEdge);
+          getWrittenLocation(assignment.getLeftHandSide(), pEdge);
       default -> ImmutableSet.of();
     };
   }
 
-  private Set<MemoryLocation> getPreciseLocations(AExpression pLvalue, CFAEdge pEdge) {
+  private Set<OverapproximatingMemoryLocation> getWrittenLocation(
+      AExpression pLvalue, CFAEdge pEdge) {
     if (!(pLvalue instanceof CExpression lvalue)) {
       return ImmutableSet.of();
     }
-    OverapproximatingMemoryLocation location =
+    return ImmutableSet.of(
         new MemoryLocationExtractingVisitor(
                 pEdge.getSuccessor().getFunctionName(), addressedVariables)
-            .getMemoryLocation(lvalue);
-    return location.isPrecise() ? location.getMemoryLocations() : ImmutableSet.of();
+            .getMemoryLocation(lvalue));
+  }
+
+  private OverapproximatingMemoryLocation getDeclaredLocation(CSimpleDeclaration pDeclaration) {
+    CType type = pDeclaration.getType();
+    return new OverapproximatingMemoryLocation(
+        ImmutableSet.of(MemoryLocation.fromQualifiedName(pDeclaration.getQualifiedName())),
+        type,
+        false,
+        true,
+        type.getCanonicalType() instanceof CArrayType
+            || addressedVariables.contains(pDeclaration.getQualifiedName()),
+        new CIdExpression(pDeclaration.getFileLocation(), pDeclaration));
   }
 
   /**

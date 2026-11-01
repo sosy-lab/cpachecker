@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
@@ -134,12 +133,13 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Collect new accesses
-    Set<MemoryLocation> changedVariables = memoryAccessExtractor.getChangedVariables(cfaEdge);
+    Set<OverapproximatingMemoryLocation> writtenLocations =
+        memoryAccessExtractor.getWrittenLocations(cfaEdge);
     Set<MemoryAccess> newMemoryAccesses =
         transformedImmutableSetCopy(
             memoryAccessExtractor.getNewAccesses(
                 threadInfo.get(activeThread), cfaEdge, activeThreadLocks),
-            access -> access.withChangedVariables(changedVariables));
+            access -> access.withWrites(writtenLocations));
 
     // Update tracked memory accesses
     ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
@@ -150,7 +150,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         // Therefore, we do not need to track it any longer.
         continue;
       }
-      memoryAccessBuilder.add(access.withChangedVariables(changedVariables));
+      memoryAccessBuilder.add(access.withWrites(writtenLocations));
 
       for (MemoryAccess newAccess : newMemoryAccesses) {
         if (!access.mightAccessSameLocationAs(newAccess)) {

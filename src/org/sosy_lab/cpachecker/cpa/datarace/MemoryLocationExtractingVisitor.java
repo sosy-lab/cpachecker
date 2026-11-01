@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -203,11 +204,12 @@ public class MemoryLocationExtractingVisitor
         String varName = fieldRef.getFieldName();
         CExpression owner = fieldRef.getFieldOwner();
         if (fieldRef.isPointerDereference()) {
-          return new OverapproximatingMemoryLocation(fieldRef, getAddressVariables(fieldRef));
+          return new OverapproximatingMemoryLocation(fieldRef, getAddressReads(fieldRef), null);
         } else {
           OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
           if (ownerLocation.isAmbiguous()) {
-            return new OverapproximatingMemoryLocation(fieldRef, getAddressVariables(fieldRef));
+            return new OverapproximatingMemoryLocation(
+                fieldRef, getAddressReads(fieldRef), ownerLocation.getEnclosingArray());
           } else {
             varName = ownerLocation.getMemoryLocations().iterator().next() + "." + varName;
             potentialLocations.add(MemoryLocation.fromQualifiedName(varName));
@@ -216,11 +218,12 @@ public class MemoryLocationExtractingVisitor
         }
       }
       case CArraySubscriptExpression subscript -> {
-        return new OverapproximatingMemoryLocation(subscript, getAddressVariables(subscript));
+        return new OverapproximatingMemoryLocation(
+            subscript, getAddressReads(subscript), getEnclosingArray(subscript));
       }
       case CPointerExpression pointerExpression -> {
         return new OverapproximatingMemoryLocation(
-            pointerExpression, getAddressVariables(pointerExpression));
+            pointerExpression, getAddressReads(pointerExpression), null);
       }
       case CCastExpression cast -> {
         return getMemoryLocation(cast.getOperand());
@@ -234,11 +237,16 @@ public class MemoryLocationExtractingVisitor
         potentialLocations, type, potentialLocations.size() > 1, true, mayBePointedTo, expression);
   }
 
-  /** Returns the variables read to compute the address of the given lvalue. */
-  private Set<MemoryLocation> getAddressVariables(CExpression pLvalue) {
-    return FluentIterable.from(getAddressReads(pLvalue))
-        .filter(OverapproximatingMemoryLocation::isPrecise)
-        .transformAndConcat(OverapproximatingMemoryLocation::getMemoryLocations)
-        .toSet();
+  /** Returns the declared array that contains the given element, if known. */
+  private @Nullable MemoryLocation getEnclosingArray(CArraySubscriptExpression pSubscript) {
+    CExpression array = pSubscript.getArrayExpression();
+    if (!(array.getExpressionType().getCanonicalType() instanceof CArrayType)) {
+      return null;
+    }
+    OverapproximatingMemoryLocation arrayLocation = getMemoryLocation(array);
+    if (arrayLocation.isPrecise() && !arrayLocation.isAmbiguous()) {
+      return Iterables.getOnlyElement(arrayLocation.getMemoryLocations());
+    }
+    return arrayLocation.getEnclosingArray();
   }
 }
