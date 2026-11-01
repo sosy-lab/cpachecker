@@ -18,11 +18,11 @@ import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -48,17 +48,22 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning.InputWarningMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
@@ -85,7 +90,7 @@ public record SeqThreadStatementBuilder(
     SeqThreadSyncFlags threadSyncFlags,
     CLeftHandSide pcLeftHandSide,
     SeqProgramCounterVariables pcVariables,
-    CBinaryExpressionBuilder binaryExpressionBuilder) {
+    SequentializationUtils utils) {
 
   private static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
 
@@ -263,13 +268,34 @@ public record SeqThreadStatementBuilder(
     CIdExpression idExpression =
         new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
 
-    // if there is no initializer, then just create an expression statement e.g. 'x;'.
+    // if there is no initializer, then add a nondet assignment e.g. 'x = __VERIFIER_nondet_int;'.
     // preserving this statement and not removing it is useful so that loop heads are preserved.
     if (pVariableDeclaration.getInitializer() == null) {
-      CExpressionStatement expressionStatement =
-          new CExpressionStatement(pVariableDeclaration.getFileLocation(), idExpression);
-      return SeqThreadStatement.of(
-          data, pTargetPc, ImmutableList.of(new CStatementWrapper(expressionStatement)));
+      CType variableType = pVariableDeclaration.getType();
+      Optional<CFunctionCallExpression> nondetFunctionCallExpression =
+          VerifierNondetFunctionType.tryBuildFunctionCallExpressionByType(variableType);
+
+      if (nondetFunctionCallExpression.isPresent()) {
+        CFunctionCallAssignmentStatement functionCallAssignmentStatement =
+            new CFunctionCallAssignmentStatement(
+                pVariableDeclaration.getFileLocation(),
+                idExpression,
+                nondetFunctionCallExpression.orElseThrow());
+        return SeqThreadStatement.of(
+            data,
+            pTargetPc,
+            ImmutableList.of(new CStatementWrapper(functionCallAssignmentStatement)));
+
+      } else {
+        InputWarning.logWarningWithSuffix(
+            InputWarningMessage.UNHANDLED_NONDET_TYPE,
+            variableType.toASTString(""),
+            utils.logger());
+        CExpressionStatement expressionStatement =
+            new CExpressionStatement(pVariableDeclaration.getFileLocation(), idExpression);
+        return SeqThreadStatement.of(
+            data, pTargetPc, ImmutableList.of(new CStatementWrapper(expressionStatement)));
+      }
     }
 
     if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
@@ -625,7 +651,8 @@ public record SeqThreadStatementBuilder(
     ImmutableList<CExpression> expressions =
         getUpdatedParameterExpressions(pSubstituteEdge.cfaEdge);
     CExpression onceIfExpression =
-        PthreadFunctionSubstitution.buildOnceLockIfExpression(expressions, binaryExpressionBuilder);
+        PthreadFunctionSubstitution.buildOnceLockIfExpression(
+            expressions, utils.binaryExpressionBuilder());
 
     SeqThreadStatementDataWithIfExpression data =
         new SeqThreadStatementDataWithIfExpression(
@@ -657,7 +684,7 @@ public record SeqThreadStatementBuilder(
             functionSummaryEdge.getSuccessor().pc,
             ImmutableList.of(
                 PthreadFunctionSubstitution.buildOnceLockElseStatement(
-                    expressions, binaryExpressionBuilder)));
+                    expressions, utils.binaryExpressionBuilder())));
     return ImmutableList.of(thenStatement, elseStatement);
   }
 
@@ -692,10 +719,10 @@ public record SeqThreadStatementBuilder(
           PthreadFunctionSubstitution.buildBarrierInitFunctionStatements(expressions);
       case BARRIER_WAIT_INCREMENT ->
           PthreadFunctionSubstitution.buildBarrierIncrementFunctionStatements(
-              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
       case BARRIER_WAIT_ASSUMPTION ->
           PthreadFunctionSubstitution.buildBarrierAssumptionFunctionStatements(
-              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
       case COND_SIGNAL ->
           PthreadFunctionSubstitution.buildCondSignalFunctionStatements(
               Iterables.getOnlyElement(expressions));
@@ -711,10 +738,10 @@ public record SeqThreadStatementBuilder(
               Iterables.getOnlyElement(expressions));
       case RW_LOCK_RD_LOCK ->
           PthreadFunctionSubstitution.buildRwLockRdLockFunctionStatements(
-              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
       case RW_LOCK_UNLOCK ->
           PthreadFunctionSubstitution.buildRwLockUnlockFunctionStatements(
-              Iterables.getOnlyElement(expressions), binaryExpressionBuilder);
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
       case RW_LOCK_WR_LOCK ->
           PthreadFunctionSubstitution.buildRwLockWrLockFunctionStatements(
               Iterables.getOnlyElement(expressions));

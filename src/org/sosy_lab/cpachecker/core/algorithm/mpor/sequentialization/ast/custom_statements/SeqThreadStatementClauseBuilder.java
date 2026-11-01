@@ -198,7 +198,7 @@ public record SeqThreadStatementClauseBuilder(
             ghostElements.threadSyncFlags(),
             ghostElements.programCounterVariables().getPcLeftHandSide(pThread.id()),
             ghostElements.programCounterVariables(),
-            utils.binaryExpressionBuilder());
+            utils);
     for (CFANodeForThread threadNode : pThread.cfa().threadNodes) {
       if (pVisitedNodes.add(threadNode)) {
         rClauses.addAll(buildClausesFromThreadNode(pThread, threadNode, statementBuilder));

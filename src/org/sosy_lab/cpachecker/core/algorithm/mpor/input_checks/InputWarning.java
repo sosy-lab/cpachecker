@@ -20,10 +20,12 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputWarning {
 
-  enum InputWarningMessage {
+  public enum InputWarningMessage {
     NOT_CONCURRENT(
         "MPOR expects a concurrent C program with at least one pthread_create call."
-            + " The program is sequentialized regardless.");
+            + " The program is sequentialized regardless."),
+    UNHANDLED_NONDET_TYPE(
+        "MPOR could not find __VERIFIER_nondet function for the following CType: ");
 
     final String message;
 
@@ -34,6 +36,11 @@ public class InputWarning {
 
   public static void handleWarnings(CFA pInputCfa, LogManager pLogger) {
     checkIsParallelProgram(pInputCfa, pLogger);
+  }
+
+  public static void logWarningWithSuffix(
+      InputWarningMessage pMessage, String pSuffix, LogManager pLogger) {
+    pLogger.log(Level.WARNING, String.format("%s%s", pMessage.message, pSuffix));
   }
 
   private static void checkIsParallelProgram(CFA pInputCfa, LogManager pLogger) {
@@ -49,7 +56,7 @@ public class InputWarning {
       }
     }
     if (!isParallel) {
-      pLogger.log(Level.WARNING, InputWarningMessage.NOT_CONCURRENT);
+      pLogger.log(Level.WARNING, InputWarningMessage.NOT_CONCURRENT.message);
     }
   }
 }

@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -34,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning.InputWarningMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -162,11 +163,8 @@ public record SeqFunctionStatementBuilder(
                 FileLocation.DUMMY, argSubstitute, nondetFunctionCallExpression.orElseThrow());
         rAssignments.add(new SeqMainFunctionArgAssignment(assignment));
       } else {
-        logger.log(
-            Level.WARNING,
-            "Could not find __VERIFIER_nondet function "
-                + "for the following main function argument type: "
-                + argType.toASTString(""));
+        InputWarning.logWarningWithSuffix(
+            InputWarningMessage.UNHANDLED_NONDET_TYPE, argType.toASTString(""), logger);
       }
     }
     return rAssignments.build();
