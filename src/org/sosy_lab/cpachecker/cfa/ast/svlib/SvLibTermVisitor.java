@@ -26,4 +26,10 @@ public interface SvLibTermVisitor<R, X extends Exception> {
   R accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm) throws X;
 
   R accept(SvLibRealConstantTerm pSvLibRealConstantTerm) throws X;
+
+  R accept(SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm) throws X;
+
+  R accept(SvLibFloatingPointConstantTerm pSvLibFloatingPointConstantTerm) throws X;
+
+  R accept(SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm) throws X;
 }

@@ -96,4 +96,22 @@ public abstract class SvLibIdTermReplacer
       throws NoException {
     return pSvLibRealConstantTerm;
   }
+
+  @Override
+  public SvLibRelationalTerm accept(SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm)
+      throws NoException {
+    return pSvLibBitVectorConstantTerm;
+  }
+
+  @Override
+  public SvLibRelationalTerm accept(SvLibFloatingPointConstantTerm pSvLibFloatingPointConstantTerm)
+      throws NoException {
+    return pSvLibFloatingPointConstantTerm;
+  }
+
+  @Override
+  public SvLibRelationalTerm accept(SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm)
+      throws NoException {
+    return pSvLibRoundingModeConstantTerm;
+  }
 }
