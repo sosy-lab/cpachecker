@@ -28,8 +28,9 @@ public class InputWarning {
   public static void logWarningWithFileLocationAndCode(
       InputMessage pMessage, FileLocation pFileLocation, String pCode, LogManager pLogger) {
 
-    pLogger.logf(
-        Level.WARNING, pMessage.formatMessage(), pFileLocation.getStartingLineInOrigin(), pCode);
+    String formatMessage =
+        String.format(pMessage.formatMessage(), pFileLocation.getStartingLineInOrigin(), pCode);
+    pLogger.log(Level.WARNING, formatMessage);
   }
 
   private static void checkIsParallelProgram(CFA pInputCfa, LogManager pLogger) {
