@@ -21,8 +21,22 @@ import java.util.Optional;
 public enum PthreadFunctionType {
 
   // Note that all indices start at 0.
-  PTHREAD_BARRIER_INIT("pthread_barrier_init", false, false),
-  PTHREAD_BARRIER_WAIT("pthread_barrier_wait", false, false),
+  PTHREAD_BARRIER_DESTROY(
+      "pthread_barrier_destroy",
+      true,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_BARRIER_T, 0)),
+  PTHREAD_BARRIER_INIT(
+      "pthread_barrier_init",
+      true,
+      true,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_BARRIER_T, 0),
+      new PthreadParameterInfo(PthreadObjectType.COUNT, 2)),
+  PTHREAD_BARRIER_WAIT(
+      "pthread_barrier_wait",
+      true,
+      true,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_BARRIER_T, 0)),
   PTHREAD_CANCEL(
       "pthread_cancel",
       false,
@@ -101,7 +115,12 @@ public enum PthreadFunctionType {
       true,
       true,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
-  PTHREAD_ONCE("pthread_once", false, false),
+  PTHREAD_ONCE(
+      "pthread_once",
+      true,
+      true,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_ONCE_T, 0),
+      new PthreadParameterInfo(PthreadObjectType.START_ROUTINE, 1)),
   PTHREAD_RWLOCK_RDLOCK(
       "pthread_rwlock_rdlock",
       true,

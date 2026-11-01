@@ -9,13 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -24,20 +22,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
@@ -49,114 +43,129 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public class PthreadFunctionSubstitution {
 
-  public static ImmutableList<CCompoundStatementElement> buildInlinedFunctionStatements(
-      CFAEdge pOriginalCfaEdge,
-      ImmutableList<CExpression> pParameterExpressions,
-      PthreadFunctionType pFunctionType,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+  // pthread_barrier_t
+
+  public static ImmutableList<CCompoundStatementElement> buildBarrierInitFunctionStatements(
+      ImmutableList<CExpression> pExpressions) {
+
+    CExpression barrierExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_BARRIER_INIT.getParameterIndex(
+                PthreadObjectType.PTHREAD_BARRIER_T));
+    CExpression countExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_BARRIER_INIT.getParameterIndex(PthreadObjectType.COUNT));
+
+    CFieldReference barrierCountFieldReference =
+        buildBarrierFieldReference(
+            barrierExpression, PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION);
+    return ImmutableList.of(
+        new CStatementWrapper(
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY, barrierCountFieldReference, countExpression)));
+  }
+
+  public static ImmutableList<CCompoundStatementElement> buildBarrierIncrementFunctionStatements(
+      CExpression pBarrierExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList<CExpression> expressions;
-    if (isAnyPointer(pParameterExpressions)) {
-      expressions = pParameterExpressions;
-    } else {
-      ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
-      for (CExpression expression : pParameterExpressions) {
-        if (expression instanceof CUnaryExpression unaryExpression
-            && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-          nonPointerExpressions.add(unaryExpression.getOperand());
-        } else {
-          throw new UnsupportedCodeException(
-              "Expected CUnaryExpression with UnaryOperator.AMPER as parameter expression but got ",
-              pOriginalCfaEdge);
-        }
-      }
-      expressions = nonPointerExpressions.build();
-    }
-
-    return switch (pFunctionType) {
-      case PTHREAD_COND_SIGNAL ->
-          buildCondSignalFunctionStatements(Iterables.getOnlyElement(expressions));
-      case PTHREAD_COND_WAIT -> buildCondWaitFunctionStatements(expressions);
-      case PTHREAD_MUTEX_LOCK ->
-          buildMutexLockFunctionStatements(Iterables.getOnlyElement(expressions));
-      case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexUnlockFunctionStatements(Iterables.getOnlyElement(expressions));
-      case PTHREAD_RWLOCK_RDLOCK ->
-          buildRwLockRdLockFunctionStatements(
-              Iterables.getOnlyElement(expressions), pBinaryExpressionBuilder);
-      case PTHREAD_RWLOCK_UNLOCK ->
-          buildRwLockUnlockFunctionStatements(
-              Iterables.getOnlyElement(expressions), pBinaryExpressionBuilder);
-      case PTHREAD_RWLOCK_WRLOCK ->
-          buildRwLockWrLockFunctionStatements(Iterables.getOnlyElement(expressions));
-      default ->
-          throw new IllegalArgumentException(
-              "Cannot build inlined function call statements for the following pFunctionType: "
-                  + pFunctionType);
-    };
+    CFieldReference barrierNumWaitersFieldReference =
+        buildBarrierFieldReference(
+            pBarrierExpression, PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION);
+    return buildIncrementOrDecrementFromFieldReference(
+        barrierNumWaitersFieldReference, pBinaryExpressionBuilder, BinaryOperator.PLUS);
   }
 
-  private static boolean isAnyPointer(ImmutableList<CExpression> pExpressions) {
-    for (CExpression expression : pExpressions) {
-      ImmutableSet<CSimpleDeclaration> declarations =
-          SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true);
-      checkState(!declarations.isEmpty());
-      // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
-      if (declarations.size() > 1) {
-        return true;
-      }
-      CSimpleDeclaration declaration = Iterables.getOnlyElement(declarations);
-      if (declaration.getType().getCanonicalType() instanceof CPointerType) {
-        return true;
-      }
-    }
-    return false;
-  }
+  public static ImmutableList<CCompoundStatementElement> buildBarrierAssumptionFunctionStatements(
+      CExpression pBarrierExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-  private static ImmutableList<CCompoundStatementElement>
-      buildIncrementOrDecrementFromFieldReference(
-          CFieldReference pFieldReference,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder,
-          BinaryOperator pBinaryOperator)
-          throws UnrecognizedCodeException {
+    CFieldReference barrierCountFieldReference =
+        buildBarrierFieldReference(
+            pBarrierExpression, PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION);
+    CFieldReference barrierNumWaitersFieldReference =
+        buildBarrierFieldReference(
+            pBarrierExpression, PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION);
 
-    checkArgument(
-        pBinaryOperator.equals(BinaryOperator.PLUS)
-            || pBinaryOperator.equals(BinaryOperator.MINUS));
-
-    CVariableDeclaration variableDeclaration =
+    // Equality checks on composite types are not allowed, e.g., "(A.member) == (B.member)"
+    // so instead local variables are declared that are primitive and hold the values.
+    // The declarations are inside compound statements, so they do not collide with other names.
+    CVariableDeclaration barrierCountDeclaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
             false,
             CStorageClass.AUTO,
-            // use unsigned int by default, if the RHS is an unsigned char it is converted anyway
-            CNumericTypes.UNSIGNED_INT,
-            pFieldReference.getFieldName(),
-            pFieldReference.getFieldName(),
-            pFieldReference.getFieldName(),
-            new CInitializerExpression(FileLocation.DUMMY, pFieldReference),
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getType(),
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_COUNT_MEMBER_DECLARATION.getName(),
+            new CInitializerExpression(FileLocation.DUMMY, barrierCountFieldReference),
             /* pHasThreadLocalStorage= */ false);
-    CIdExpression idExpression =
-        new CIdExpression(
+    CVariableDeclaration barrierNumWaitersDeclaration =
+        new CVariableDeclaration(
             FileLocation.DUMMY,
-            variableDeclaration.getType(),
-            variableDeclaration.getName(),
-            variableDeclaration);
+            false,
+            CStorageClass.AUTO,
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getType(),
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.BARRIER_NUM_WAITERS_MEMBER_DECLARATION.getName(),
+            new CInitializerExpression(FileLocation.DUMMY, barrierNumWaitersFieldReference),
+            /* pHasThreadLocalStorage= */ false);
 
-    CExpressionAssignmentStatement incrementOrDecrementStatement =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            pFieldReference,
-            pBinaryExpressionBuilder.buildBinaryExpression(
-                idExpression, CIntegerLiteralExpression.ONE, pBinaryOperator));
+    CBinaryExpression equalsExpression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            new CIdExpression(FileLocation.DUMMY, barrierCountDeclaration),
+            new CIdExpression(FileLocation.DUMMY, barrierNumWaitersDeclaration),
+            BinaryOperator.EQUALS);
+    CCompoundStatementElement countEqualsNumWaitersAssumption =
+        new CStatementWrapper(
+            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(equalsExpression));
 
     return ImmutableList.of(
-        new CVariableDeclarationWrapper(variableDeclaration),
-        new CStatementWrapper(incrementOrDecrementStatement));
+        new CVariableDeclarationWrapper(barrierCountDeclaration),
+        new CVariableDeclarationWrapper(barrierNumWaitersDeclaration),
+        countEqualsNumWaitersAssumption);
+  }
+
+  private static CFieldReference buildBarrierFieldReference(
+      CExpression pBarrierExpression, CCompositeTypeMemberDeclaration pMemberDeclaration) {
+    return new CFieldReference(
+        FileLocation.DUMMY,
+        PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE,
+        pMemberDeclaration.getName(),
+        pBarrierExpression,
+        pBarrierExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
   }
 
   // pthread_mutex_t
+
+  public static ImmutableList<CCompoundStatementElement> buildMutexLockFunctionStatements(
+      CExpression pMutexExpression) {
+
+    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+    CCompoundStatementElement mutexLockAssumption =
+        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+            new CLogicalNotExpression(new CExpressionWrapper(mutexFieldReference)));
+    return ImmutableList.of(mutexLockAssumption, buildMutexLockAssignment(pMutexExpression));
+  }
+
+  private static CCompoundStatementElement buildMutexLockAssignment(CExpression pMutexExpression) {
+    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+    return new CStatementWrapper(
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ONE));
+  }
+
+  public static ImmutableList<CCompoundStatementElement> buildMutexUnlockFunctionStatements(
+      CExpression pMutexExpression) {
+
+    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+    return ImmutableList.of(
+        new CStatementWrapper(
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ZERO)));
+  }
 
   private static CFieldReference buildMutexFieldReference(CExpression pMutexExpression) {
     CFieldReference mutexFieldReference =
@@ -174,36 +183,76 @@ public class PthreadFunctionSubstitution {
         false);
   }
 
-  private static ImmutableList<CCompoundStatementElement> buildMutexLockFunctionStatements(
-      CExpression pMutexExpression) {
+  // pthread_once_t
 
-    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
-    CCompoundStatementElement mutexLockAssumption =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-            new CLogicalNotExpression(new CExpressionWrapper(mutexFieldReference)));
-    return ImmutableList.of(mutexLockAssumption, buildMutexLockAssignment(pMutexExpression));
+  // semantics:
+  // 0 -> free (not locked yet by any thread)
+  // 1 -> locked
+  // 2 -> unlocked
+
+  private static final CIntegerLiteralExpression ONCE_FREE_EXPRESSION =
+      CIntegerLiteralExpression.ZERO;
+
+  private static final CIntegerLiteralExpression ONCE_LOCKED_EXPRESSION =
+      CIntegerLiteralExpression.ONE;
+
+  private static final CIntegerLiteralExpression ONCE_UNLOCKED_EXPRESSION =
+      SeqExpressionBuilder.buildIntegerLiteralExpression(2);
+
+  public static CExpression buildOnceLockIfExpression(
+      ImmutableList<CExpression> pExpressions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CExpression onceExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(PthreadObjectType.PTHREAD_ONCE_T));
+    return pBinaryExpressionBuilder.buildBinaryExpression(
+        onceExpression, ONCE_FREE_EXPRESSION, BinaryOperator.EQUALS);
   }
 
-  private static CCompoundStatementElement buildMutexLockAssignment(CExpression pMutexExpression) {
-    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+  public static CCompoundStatementElement buildOnceLockThenStatement(
+      ImmutableList<CExpression> pExpressions) {
+
+    // cast to CLeftHandSide, since the once expression can be a CIdExpression, CFieldReference, ...
+    CLeftHandSide onceExpression =
+        (CLeftHandSide)
+            pExpressions.get(
+                PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
+                    PthreadObjectType.PTHREAD_ONCE_T));
     return new CStatementWrapper(
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ONE));
+            FileLocation.DUMMY, onceExpression, ONCE_LOCKED_EXPRESSION));
   }
 
-  private static ImmutableList<CCompoundStatementElement> buildMutexUnlockFunctionStatements(
-      CExpression pMutexExpression) {
+  public static CCompoundStatementElement buildOnceLockElseStatement(
+      ImmutableList<CExpression> pExpressions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
-    return ImmutableList.of(
-        new CStatementWrapper(
-            new CExpressionAssignmentStatement(
-                FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ZERO)));
+    CExpression onceExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(PthreadObjectType.PTHREAD_ONCE_T));
+    CBinaryExpression onceNotEquals1Expression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            onceExpression, CIntegerLiteralExpression.ONE, BinaryOperator.NOT_EQUALS);
+    return SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+        new CExpressionWrapper(onceNotEquals1Expression));
+  }
+
+  public static CExportStatement buildOnceUnlockStatement(ImmutableList<CExpression> pExpressions) {
+    // cast to CLeftHandSide, since the once expression can be a CIdExpression, CFieldReference, ...
+    CLeftHandSide onceExpression =
+        (CLeftHandSide)
+            pExpressions.get(
+                PthreadFunctionType.PTHREAD_ONCE.getParameterIndex(
+                    PthreadObjectType.PTHREAD_ONCE_T));
+    return new CStatementWrapper(
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, onceExpression, ONCE_UNLOCKED_EXPRESSION));
   }
 
   // pthread_cond_t
 
-  private static ImmutableList<CCompoundStatementElement> buildCondSignalFunctionStatements(
+  public static ImmutableList<CCompoundStatementElement> buildCondSignalFunctionStatements(
       CExpression pCondExpression) {
 
     CFieldReference condFieldReference = buildCondFieldReference(pCondExpression);
@@ -214,7 +263,18 @@ public class PthreadFunctionSubstitution {
     return ImmutableList.of(condAssignment);
   }
 
-  private static ImmutableList<CCompoundStatementElement> buildCondWaitFunctionStatements(
+  public static ImmutableList<CCompoundStatementElement> buildCondWaitUnlockFunctionStatements(
+      ImmutableList<CExpression> pExpressions) {
+
+    checkArgument(pExpressions.size() == 2);
+    CExpression mutexExpression =
+        pExpressions.get(
+            PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
+                PthreadObjectType.PTHREAD_MUTEX_T));
+    return buildMutexUnlockFunctionStatements(mutexExpression);
+  }
+
+  public static ImmutableList<CCompoundStatementElement> buildCondWaitLockFunctionStatements(
       ImmutableList<CExpression> pExpressions) {
 
     checkArgument(pExpressions.size() == 2);
@@ -261,7 +321,7 @@ public class PthreadFunctionSubstitution {
 
   // pthread_rwlock_t
 
-  private static ImmutableList<CCompoundStatementElement> buildRwLockRdLockFunctionStatements(
+  public static ImmutableList<CCompoundStatementElement> buildRwLockRdLockFunctionStatements(
       CExpression pRwLockExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -278,7 +338,7 @@ public class PthreadFunctionSubstitution {
             numWritersFieldReference, pBinaryExpressionBuilder, BinaryOperator.PLUS));
   }
 
-  private static ImmutableList<CCompoundStatementElement> buildRwLockUnlockFunctionStatements(
+  public static ImmutableList<CCompoundStatementElement> buildRwLockUnlockFunctionStatements(
       CExpression pRwLockExpression, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -305,7 +365,7 @@ public class PthreadFunctionSubstitution {
     return ImmutableList.of(ifStatement);
   }
 
-  private static ImmutableList<CCompoundStatementElement> buildRwLockWrLockFunctionStatements(
+  public static ImmutableList<CCompoundStatementElement> buildRwLockWrLockFunctionStatements(
       CExpression pRwLockExpression) {
 
     CFieldReference numReadersFieldReference =
@@ -344,5 +404,49 @@ public class PthreadFunctionSubstitution {
         pMemberDeclaration.getName(),
         rwLockFieldReference,
         false);
+  }
+
+  // Helper
+
+  private static ImmutableList<CCompoundStatementElement>
+      buildIncrementOrDecrementFromFieldReference(
+          CFieldReference pFieldReference,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder,
+          BinaryOperator pBinaryOperator)
+          throws UnrecognizedCodeException {
+
+    checkArgument(
+        pBinaryOperator.equals(BinaryOperator.PLUS)
+            || pBinaryOperator.equals(BinaryOperator.MINUS));
+
+    CVariableDeclaration variableDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            // use unsigned int by default, if the RHS is an unsigned char it is converted anyway
+            CNumericTypes.UNSIGNED_INT,
+            pFieldReference.getFieldName(),
+            pFieldReference.getFieldName(),
+            pFieldReference.getFieldName(),
+            new CInitializerExpression(FileLocation.DUMMY, pFieldReference),
+            /* pHasThreadLocalStorage= */ false);
+    CIdExpression idExpression =
+        new CIdExpression(
+            FileLocation.DUMMY,
+            variableDeclaration.getType(),
+            variableDeclaration.getName(),
+            variableDeclaration);
+
+    CExpressionAssignmentStatement incrementOrDecrementStatement =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            pFieldReference,
+            pBinaryExpressionBuilder.buildBinaryExpression(
+                idExpression, CIntegerLiteralExpression.ONE, pBinaryOperator));
+
+    return ImmutableList.of(
+        new CVariableDeclarationWrapper(variableDeclaration),
+        new CStatementWrapper(incrementOrDecrementStatement));
   }
 }
