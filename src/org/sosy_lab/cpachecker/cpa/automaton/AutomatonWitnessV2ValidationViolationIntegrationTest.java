@@ -10,16 +10,12 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.FluentIterable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 /**
  * Integration tests for the violation of witness validation for witness files in version 2.*
