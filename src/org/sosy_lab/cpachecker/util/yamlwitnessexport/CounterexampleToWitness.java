@@ -236,7 +236,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             .getLocationNode()
             .equals(pEdge.getSuccessor())) {
 
-          return Optional.of(threadId);
+          return Optional.of(threadingState.getProgramThread(threadId));
         }
       }
       return Optional.empty();
@@ -453,14 +453,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         && pStatementEdge.getStatement() instanceof CFunctionCall pFunctionCallStatement
         && isCallTo(pFunctionCallStatement.getFunctionCallExpression(), "pthread_create")) {
 
-      FileLocation functionCallLocation = pFunctionCallStatement.getFileLocation();
-      OptionalInt columnOfCall =
-          pAstCFARelation.getColumnOfFunctionCallParenthesis(
+      Optional<FileLocation> parenthesis =
+          pAstCFARelation.getClosingParenthesisOfFunctionCall(
               pFunctionCallStatement.getFunctionCallExpression());
-      if (columnOfCall.isEmpty()) {
+      if (parenthesis.isEmpty()) {
         logger.log(
             Level.FINEST,
-            "Could not compute the column of the thread creation for the edge:",
+            "Could not compute the location of the thread creation for the edge:",
             pEdge);
         return ImmutableList.of();
       }
@@ -481,11 +480,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
               WaypointType.FUNCTION_ENTER,
               WaypointAction.FOLLOW,
               null,
-              new LocationRecord(
-                  functionCallLocation.getFileName().toString(),
-                  functionCallLocation.getStartingLineInOrigin(),
-                  columnOfCall.orElseThrow(),
-                  pStatementEdge.getPredecessor().getFunctionName()),
+              LocationRecord.createLocationRecordAtStart(
+                  parenthesis.orElseThrow(), pStatementEdge.getPredecessor().getFunctionName()),
               OptionalInt.empty());
 
       return ImmutableList.of(
@@ -539,7 +535,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         .map(
             call ->
                 pAstCfaRelation
-                    .getColumnOfFunctionCallParenthesis(call.getFunctionCallExpression())
+                    .getClosingParenthesisOfFunctionCall(call.getFunctionCallExpression())
                     .isPresent())
         .orElse(false);
   }

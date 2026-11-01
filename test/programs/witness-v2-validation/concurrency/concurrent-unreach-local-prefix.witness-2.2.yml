@@ -34,7 +34,7 @@
             location:
               file_name: "./concurrent-unreach-local-prefix.c"
               line: 46
-              column: 17
+              column: 35
               function: "main"
     - segment:
         - waypoint:
