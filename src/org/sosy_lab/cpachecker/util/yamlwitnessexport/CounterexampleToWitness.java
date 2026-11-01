@@ -239,7 +239,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           .getLocationNode()
           .equals(pEdge.getSuccessor())) {
 
-        return Optional.of(threadId);
+        return Optional.of(threadingState.getProgramThread(threadId));
       }
     }
 

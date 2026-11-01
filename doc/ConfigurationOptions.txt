@@ -2083,6 +2083,8 @@ cpa.callstack.traverseBackwards = false
 # Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {
           "pthread_create",
+          "pthread_once",
+          "pthread_barrier_wait",
           "pthread_key_create",
           "_longjmp",
           "longjmp",
