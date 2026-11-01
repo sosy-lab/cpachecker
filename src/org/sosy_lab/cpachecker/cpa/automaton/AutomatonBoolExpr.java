@@ -1656,6 +1656,56 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /**
+   * Checks whether the thread that takes the current edge has the given witness thread id.
+   *
+   * <p>If the CFA was cloned per thread (see {@link CFANode#getCloneThreadId()}), the edge itself
+   * names the thread that takes it, and its clone thread id is compared directly. Otherwise, the
+   * thread is only known to the analysis, so the check is delegated to the other CPAs' states
+   * (e.g., the ThreadingCPA) like {@link ALLCPAQuery} does with the query {@code
+   * AutomatonWitnessViolationV2Parser#THREAD_ID_QUERY}. In particular, if no state answers the
+   * query, the result is unknown and not false.
+   */
+  static final class CheckCurrentThreadId implements AutomatonBoolExpr {
+    private final int threadId;
+    private final ALLCPAQuery fallbackQuery;
+
+    CheckCurrentThreadId(int pThreadId) {
+      threadId = pThreadId;
+      fallbackQuery =
+          new ALLCPAQuery(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY + pThreadId);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      OptionalInt cloneThreadId = edge.getSuccessor().getCloneThreadId();
+      if (cloneThreadId.isEmpty()) {
+        cloneThreadId = edge.getPredecessor().getCloneThreadId();
+      }
+      if (cloneThreadId.isPresent()) {
+        return cloneThreadId.orElseThrow() == threadId ? CONST_TRUE : CONST_FALSE;
+      }
+      return fallbackQuery.eval(pArgs);
+    }
+
+    @Override
+    public String toString() {
+      return "CHECK_CURRENT_THREAD_ID(" + threadId + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return Integer.hashCode(threadId) * 31;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCurrentThreadId other && threadId == other.threadId;
+    }
+  }
+
+  /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
    */

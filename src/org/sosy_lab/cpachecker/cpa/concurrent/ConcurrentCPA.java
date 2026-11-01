@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,9 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.CompositePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.ConfigurablePrecisionVariableManager;
 import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.PredicatePrecisionVariableManager;
@@ -108,15 +104,6 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
       description = "Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR")
   private String partialOrderReductionAlgorithm = "SPOR";
 
-  @Option(
-      secure = true,
-      description =
-          "Let specification automata see the original CFA edge instead of the per-thread clone."
-              + " Needed to validate a witness whose waypoints were resolved against the unmodified"
-              + " CFA; during verification it would hide the thread identity that the"
-              + " counterexample check replays.")
-  private boolean matchAutomataOnOriginalEdges = false;
-
   private final ConcurrentTransferRelation transferRelation;
   private final ConfigurableProgramAnalysis threadSpecificCPA;
   private final PrecisionAdjustment precisionAdjustment;
@@ -143,7 +130,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
         };
     transferRelation =
         new ConcurrentTransferRelation(
-            matchAutomataOnOriginalEdges ? withOriginalEdgesForAutomata(pCpa, pConfig, pCfa) : pCpa,
+            pCpa,
             threadSpecificCPA,
             pConfig,
             pCfa,
@@ -177,43 +164,6 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
                           r.precision(), Predicates.instanceOf(r.precision().getClass())),
                       r.action()));
         };
-  }
-
-  /**
-   * A copy of {@code pCpa} with every specification automaton behind an {@link OriginalEdgeCPA}.
-   * Only the transfer relation uses it; the CPA tree itself stays as the builder made it.
-   *
-   * <p>Why this is needed: the concurrent transfer relation steps over per-thread clones of the CFA
-   * nodes and edges, whereas a witness automaton matches against the nodes of the unmodified CFA,
-   * where the waypoints were resolved; no clone is ever identical to those. {@link OriginalEdgeCPA}
-   * therefore hands the automaton {@code edge.getOriginal()}. Which thread took the step is part of
-   * the transition but not of the CFA edge, so it is passed on through a synthetic state that
-   * answers the automaton's {@code checkCurrentThreadId==N} query. Only used if {@code
-   * matchAutomataOnOriginalEdges} is set.
-   */
-  private static ConfigurableProgramAnalysis withOriginalEdgesForAutomata(
-      ConfigurableProgramAnalysis pCpa, Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
-    if (!(pCpa instanceof WrapperCPA wrapper)) {
-      return pCpa;
-    }
-    ImmutableList<ConfigurableProgramAnalysis> children =
-        ImmutableList.copyOf(wrapper.getWrappedCPAs());
-    if (children.stream().noneMatch(ControlAutomatonCPA.class::isInstance)) {
-      return pCpa;
-    }
-    ImmutableList<ConfigurableProgramAnalysis> rewrapped =
-        Collections3.transformedImmutableListCopy(
-            children,
-            child ->
-                child instanceof ControlAutomatonCPA
-                    ? (ConfigurableProgramAnalysis) new OriginalEdgeCPA(child)
-                    : child);
-    return CompositeCPA.factory()
-        .setConfiguration(pConfig)
-        .setChildren(rewrapped)
-        .set(pCfa, CFA.class)
-        .createInstance();
   }
 
   @Override

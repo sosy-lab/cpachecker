@@ -2127,12 +2127,6 @@ cpa.concurrent.abstractionAware = false
 # in aMultiEdge, so that all concurrent thread interleavings are explored.
 cpa.concurrent.aggregateBasicBlocks = false
 
-# Let specification automata see the original CFA edge instead of the
-# per-thread clone. Needed to validate a witness whose waypoints were
-# resolved against the unmodified CFA; during verification it would hide the
-# thread identity that the counterexample check replays.
-cpa.concurrent.matchAutomataOnOriginalEdges = false
-
 # Merge operator: SEP never merges states; JOIN delegates to the wrapped
 # merge operator when thread states are compatible.
 cpa.concurrent.merge = "SEP"
