@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractARGToCorrectnessWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ConcurrentARGToCorrectnessWitness;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -298,9 +299,15 @@ public class ARGStatistics implements Statistics {
             transformation.createARGToCorrectnessWitness(
                 config, pCFA, pSpecification, pLogger, argStatesCollector);
       } else {
+        // the concurrency analyses that need a specialized exporter, see there
+        Optional<AbstractARGToCorrectnessWitness> concurrentWitnessWriter =
+            ConcurrentARGToCorrectnessWitness.createIfNeeded(
+                config, pCFA, pSpecification, pLogger, pCpa);
         argToWitnessWriter =
-            new ARGToCorrectnessWitnessV2(
-                config, pCFA, pSpecification, pLogger, argStatesCollector);
+            concurrentWitnessWriter.isPresent()
+                ? concurrentWitnessWriter.orElseThrow()
+                : new ARGToCorrectnessWitnessV2(
+                    config, pCFA, pSpecification, pLogger, argStatesCollector);
       }
     } else {
       argToWitnessWriter = null;
