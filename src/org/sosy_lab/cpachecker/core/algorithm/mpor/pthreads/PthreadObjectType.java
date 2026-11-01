@@ -22,7 +22,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public enum PthreadObjectType {
-  PTHREAD_BARRIER_T("pthread_barrier_t", false, ImmutableSet.of()),
+  COUNT("", true, ImmutableSet.of()),
+  PTHREAD_BARRIER_T(
+      "pthread_barrier_t",
+      true,
+      ImmutableSet.of(
+          PthreadObjectSubstitutions.BARRIER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE,
+          PthreadObjectSubstitutions.BARRIER_TYPEDEF_TYPE)),
   PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", false, ImmutableSet.of()),
   PTHREAD_COND_T(
       "pthread_cond_t",
@@ -40,7 +47,9 @@ public enum PthreadObjectType {
           PthreadObjectSubstitutions.MUTEX_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
           PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE)),
-  PTHREAD_ONCE_T("pthread_once_t", false, ImmutableSet.of()),
+  PTHREAD_ONCE_T(
+      "pthread_once_t", true, ImmutableSet.of(PthreadObjectSubstitutions.ONCE_TYPEDEF_TYPE)),
+  PTHREAD_ONCE_INITIALIZER("PTHREAD_ONCE_INIT", false, ImmutableSet.of()),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
       true,
@@ -141,6 +150,39 @@ public enum PthreadObjectType {
 
     private static final CCompositeTypeMemberDeclaration DUMMY_I_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_i");
+
+    // pthread_barrier_t
+
+    private static final String BARRIER_NAME = "pthread_barrier_t";
+
+    private static final String BARRIER_SUBSTITUTION_NAME =
+        Sequentialization.MPOR_PREFIX + BARRIER_NAME;
+
+    static final CCompositeTypeMemberDeclaration BARRIER_NUM_WAITERS_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_INT, "NUM_WAITERS");
+
+    static final CCompositeTypeMemberDeclaration BARRIER_COUNT_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_INT, "COUNT");
+
+    private static final CCompositeType BARRIER_COMPOSITE_TYPE =
+        new CCompositeType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.of(
+                BARRIER_COUNT_MEMBER_DECLARATION, BARRIER_NUM_WAITERS_MEMBER_DECLARATION),
+            BARRIER_SUBSTITUTION_NAME,
+            BARRIER_SUBSTITUTION_NAME);
+
+    static final CElaboratedType BARRIER_ELABORATED_TYPE =
+        new CElaboratedType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            BARRIER_SUBSTITUTION_NAME,
+            BARRIER_SUBSTITUTION_NAME,
+            BARRIER_COMPOSITE_TYPE);
+
+    private static final CTypedefType BARRIER_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, BARRIER_NAME, BARRIER_ELABORATED_TYPE);
 
     // pthread_mutex_t
 
@@ -366,6 +408,13 @@ public enum PthreadObjectType {
 
     private static final CTypedefType COND_TYPEDEF_TYPE =
         new CTypedefType(CTypeQualifiers.NONE, COND_NAME, COND_ELABORATED_TYPE);
+
+    // pthread_once_t
+
+    private static final String ONCE_NAME = "pthread_once_t";
+
+    private static final CTypedefType ONCE_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, ONCE_NAME, CNumericTypes.UNSIGNED_INT);
 
     // pthread_rwlock_t
 

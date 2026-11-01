@@ -49,7 +49,8 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization.SequentializationResult;
@@ -340,6 +341,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   private SequentializationResult sequentializeAndExportProgram()
       throws UnrecognizedCodeException, InterruptedException {
 
+    InputWarning.handleWarnings(cfa, logger);
     InputRejection.handleRejections(cfa);
     SequentializationResult rResult = Sequentialization.tryBuildProgram(options, cfa, utils);
     handleExport(rResult.program(), cfa.getFileNames());

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -56,67 +56,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
 
-  enum InputRejectionMessage {
-    FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
-    LANGUAGE_NOT_C("MPOR only supports language C", false),
-    NOT_CONCURRENT(
-        "MPOR expects concurrent C program with at least one pthread_create call", false),
-    DUPLICATE_STRUCT_MEMBER_NAMES(
-        "MPOR does not support non unique nested struct member names in line ", true),
-    FIELD_MEMBER_NOT_FOUND(
-        "MPOR cannot determine the memory location of the following struct member because it is"
-            + " not part of the CType of the accessed variable: ",
-        false),
-    MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER(
-        "MPOR does not support multiple declarations in the owner expression of field references in"
-            + " line ",
-        true),
-    POINTER_ASSIGNMENT_TO_NON_POINTER(
-        "MPOR does not support the assignment to the following non-pointer: ", false),
-    POINTER_DEREFERENCE_OF_NON_POINTER(
-        "MPOR does not support the dereference of the following non-pointer: ", false),
-    POINTER_DEREFERENCE_TYPE_MISMATCH(
-        "MPOR does not support the following pointer dereference, its type is not compatible with"
-            + " the type of the memory location it points to: ",
-        false),
-    POINTER_WRITE_BINARY_EXPRESSION(
-        "MPOR does not support binary expressions as assignments to pointers in line ", true),
-    POINTER_WRITE(
-        "allowPointerWrites is disabled, but the input program contains a pointer write in line ",
-        true),
-    PTHREAD_CREATE_LOOP(
-        "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    PTHREAD_FUNCTION_RETURN_VALUE(
-        "MPOR does not support pthread method return value assignments in line ", true),
-    PTHREAD_OBJECT_ARRAY(
-        "MPOR does not support the following array of pthread objects or array of structs with"
-            + " inner pthread objects in line ",
-        true),
-    RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
-    UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true);
-
-    final String message;
-
-    final boolean containsLineAndCode;
-
-    InputRejectionMessage(String pMessage, boolean pContainsLineAndCode) {
-      message = pMessage;
-      containsLineAndCode = pContainsLineAndCode;
-    }
-
-    public String formatMessage() {
-      if (containsLineAndCode) {
-        return message + "%s: %s";
-      } else {
-        return message;
-      }
-    }
-  }
-
   /** Handles input program rejections and throws a {@link UnsupportedCodeException} accordingly. */
   public static void handleRejections(CFA pInputCfa) throws UnsupportedCodeException {
     checkLanguageC(pInputCfa);
-    checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
     checkFunctionPointerInInitializer(pInputCfa);
     checkDuplicateStructMemberNames(pInputCfa);
@@ -127,7 +69,7 @@ public class InputRejection {
     checkRecursiveFunctions(pInputCfa);
   }
 
-  private static void rejectCfaEdge(CFAEdge pCfaEdge, InputRejectionMessage pMessage)
+  private static void rejectCfaEdge(CFAEdge pCfaEdge, InputMessage pMessage)
       throws UnsupportedCodeException {
 
     throw new UnsupportedCodeException(
@@ -138,24 +80,7 @@ public class InputRejection {
   private static void checkLanguageC(CFA pInputCfa) throws UnsupportedCodeException {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      throw new UnsupportedCodeException(InputRejectionMessage.LANGUAGE_NOT_C.message, null);
-    }
-  }
-
-  private static void checkIsParallelProgram(CFA pInputCfa) throws UnsupportedCodeException {
-    boolean isParallel = false;
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadFunction(
-            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)) {
-          isParallel = true;
-          break;
-        }
-      }
-    }
-    if (!isParallel) {
-      throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
+      throw new UnsupportedCodeException(InputMessage.LANGUAGE_NOT_C.message, null);
     }
   }
 
@@ -172,7 +97,7 @@ public class InputRejection {
           Set<String> memberNames = new HashSet<>();
           for (CCompositeTypeMemberDeclaration memberDeclaration : memberDeclarations) {
             if (!memberNames.add(memberDeclaration.getName())) {
-              rejectCfaEdge(declarationEdge, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
+              rejectCfaEdge(declarationEdge, InputMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
             }
           }
         }
@@ -187,7 +112,7 @@ public class InputRejection {
           Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
           if (functionCall.isPresent()) {
             if (PthreadUtil.isCallToPthreadFunction(functionCall.orElseThrow(), functionType)) {
-              rejectCfaEdge(cfaEdge, InputRejectionMessage.UNSUPPORTED_FUNCTION);
+              rejectCfaEdge(cfaEdge, InputMessage.UNSUPPORTED_FUNCTION);
             }
           }
         }
@@ -223,8 +148,7 @@ public class InputRejection {
             SeqPointerAliasingUtil.getAllTypesInType(pointerType, ImmutableSet.of());
         if (innerPointerTypes.stream().anyMatch(t -> t instanceof CFunctionType)) {
           throw new UnsupportedCodeException(
-              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message
-                  + pRightHandSide.toASTString(),
+              InputMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
               null);
         }
       }
@@ -252,7 +176,7 @@ public class InputRejection {
     if (fieldOwnerDeclarations.size() > 1) {
       throw new UnsupportedCodeException(
           String.format(
-              InputRejectionMessage.MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER.formatMessage(),
+              InputMessage.MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER.formatMessage(),
               pFieldReference.getFileLocation().getStartingLineInOrigin(),
               pFieldReference.toASTString()),
           null);
@@ -266,7 +190,7 @@ public class InputRejection {
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
         throw new UnsupportedCodeException(
             String.format(
-                InputRejectionMessage.RECURSIVE_FUNCTION.formatMessage(),
+                InputMessage.RECURSIVE_FUNCTION.formatMessage(),
                 entry.getFunction().getFileLocation().getStartingLineInOrigin(),
                 entry.getFunctionName()),
             null);
@@ -285,7 +209,7 @@ public class InputRejection {
         if (PthreadUtil.isCallToPthreadFunction(
             functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)) {
           if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_CREATE_LOOP);
+            rejectCfaEdge(cfaEdge, InputMessage.PTHREAD_CREATE_LOOP);
           }
         }
       }
@@ -300,7 +224,7 @@ public class InputRejection {
       if (functionCall.isPresent()) {
         if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
           if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
+            rejectCfaEdge(cfaEdge, InputMessage.PTHREAD_FUNCTION_RETURN_VALUE);
           }
         }
       }
@@ -318,7 +242,7 @@ public class InputRejection {
               for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
                 if (!pthreadObjectType.isArraySupported()) {
                   if (nestedType.toString().strip().equals(pthreadObjectType.getName())) {
-                    rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
+                    rejectCfaEdge(cfaEdge, InputMessage.PTHREAD_OBJECT_ARRAY);
                   }
                 }
               }
@@ -340,8 +264,7 @@ public class InputRejection {
     if (pFieldMember.isEmpty()) {
       throw new UnsupportedCodeException(
           String.format(
-              "%s%s in %s",
-              InputRejectionMessage.FIELD_MEMBER_NOT_FOUND.message, pFieldName, pType),
+              "%s%s in %s", InputMessage.FIELD_MEMBER_NOT_FOUND.message, pFieldName, pType),
           null);
     }
   }
@@ -356,8 +279,7 @@ public class InputRejection {
             || !isPointerOrArrayOfPointersType(
                 pLeftHandSide.fieldMember().orElseThrow().getType()))) {
       throw new UnsupportedCodeException(
-          InputRejectionMessage.POINTER_ASSIGNMENT_TO_NON_POINTER.message + describe(pLeftHandSide),
-          null);
+          InputMessage.POINTER_ASSIGNMENT_TO_NON_POINTER.message + describe(pLeftHandSide), null);
     }
   }
 
@@ -374,8 +296,7 @@ public class InputRejection {
         && (pPointerDereference.fieldMember().isEmpty()
             || !isPointerOrArrayType(pPointerDereference.fieldMember().orElseThrow().getType()))) {
       throw new UnsupportedCodeException(
-          InputRejectionMessage.POINTER_DEREFERENCE_OF_NON_POINTER.message
-              + describe(pPointerDereference),
+          InputMessage.POINTER_DEREFERENCE_OF_NON_POINTER.message + describe(pPointerDereference),
           null);
     }
 
@@ -393,7 +314,7 @@ public class InputRejection {
       throw new UnsupportedCodeException(
           String.format(
               "%s%s (%s) -> %s (%s)",
-              InputRejectionMessage.POINTER_DEREFERENCE_TYPE_MISMATCH.message,
+              InputMessage.POINTER_DEREFERENCE_TYPE_MISMATCH.message,
               describe(pPointerDereference),
               dereferenceType,
               describe(pTargetMemoryLocation),
@@ -449,7 +370,7 @@ public class InputRejection {
         if (pWrittenVariable.getExpressionType() instanceof CPointerType) {
           throw new UnsupportedCodeException(
               String.format(
-                  InputRejectionMessage.POINTER_WRITE.formatMessage(),
+                  InputMessage.POINTER_WRITE.formatMessage(),
                   pWrittenVariable.getFileLocation().getStartingLineInOrigin(),
                   pWrittenVariable.toASTString()),
               null);
@@ -465,7 +386,7 @@ public class InputRejection {
       if (expression.accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
             String.format(
-                InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
+                InputMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
                 pRightHandSide.getFileLocation().getStartingLineInOrigin(),
                 pRightHandSide.toASTString()),
             null);
