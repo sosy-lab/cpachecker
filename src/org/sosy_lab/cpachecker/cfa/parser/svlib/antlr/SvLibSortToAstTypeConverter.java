@@ -8,10 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
+import com.google.common.base.Verify;
+import java.math.BigInteger;
 import java.nio.file.Path;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.IdentifierContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ParametricSortContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SimpleSortContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
@@ -26,13 +31,44 @@ public class SvLibSortToAstTypeConverter extends AbstractAntlrToAstConverter<SvL
   }
 
   @Override
+  public SvLibType visitIdentifier(IdentifierContext pContext) {
+    if (pContext.GRW_Underscore() == null) {
+      return scope.getTypeForName(nameOf(pContext));
+    }
+
+    String symbol = nameOf(pContext.symbol());
+    if (symbol.equals("BitVec")) {
+      Verify.verify(pContext.index().size() == 1, "BitVec should have exactly one index");
+      BigInteger bitvectorSize = new BigInteger(pContext.index(0).getText());
+      // In case the parsed int does not fit into an integer we want to crash explicitly
+      return new SvLibSmtLibBitVectorType(bitvectorSize.intValueExact());
+    }
+
+    if (symbol.equals("FloatingPoint")) {
+      Verify.verify(
+          pContext.index().size() == 2,
+          "FloatingPoint should have exactly two indices, the sizes of the exponent and of the"
+              + " significand");
+      BigInteger exponentSize = new BigInteger(pContext.index(0).getText());
+      BigInteger significandSize = new BigInteger(pContext.index(1).getText());
+      // In case a parsed int does not fit into an integer we want to crash explicitly
+      return new SvLibSmtLibFloatingPointType(
+          exponentSize.intValueExact(), significandSize.intValueExact());
+    }
+
+    throw new UnsupportedOperationException(
+        "Underscore sorts apart from bitvectors and floating point numbers are not yet"
+            + " implemented");
+  }
+
+  @Override
   public SvLibType visitSimpleSort(SimpleSortContext pContext) {
-    return scope.getTypeForName(nameOf(pContext.identifier()));
+    return visit(pContext.identifier());
   }
 
   @Override
   public SvLibType visitParametricSort(ParametricSortContext pContext) {
-    if (pContext.sort().size() == 2 && pContext.identifier().getText().equals("Array")) {
+    if (pContext.sort().size() == 2 && nameOf(pContext.identifier()).equals("Array")) {
       SvLibSmtLibType indexType = (SvLibSmtLibType) visit(pContext.sort(0));
       SvLibSmtLibType elementType = (SvLibSmtLibType) visit(pContext.sort(1));
       return new SvLibSmtLibArrayType(indexType, elementType);
