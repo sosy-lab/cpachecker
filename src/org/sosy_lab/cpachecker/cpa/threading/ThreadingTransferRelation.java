@@ -919,13 +919,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
     if (literal instanceof CIntegerLiteralExpression integerLiteral) {
       BigInteger value = integerLiteral.getValue();
-      boolean releasable =
-          value.signum() > 0
-              && value.bitLength() < Integer.SIZE
-              && (maxNumberOfThreads == -1 || value.intValueExact() <= maxNumberOfThreads);
-      Barrier barrier =
-          new Barrier(
-              releasable ? value.intValueExact() : Barrier.NEVER_RELEASED, ImmutableSet.of());
+      if (value.signum() <= 0
+          || value.bitLength() >= Integer.SIZE
+          || (maxNumberOfThreads != -1 && value.intValueExact() > maxNumberOfThreads)) {
+        throw new UnsupportedCodeException(
+            "pthread_barrier_init with a count of 0 or above the limit of threads", cfaEdge);
+      }
+      Barrier barrier = new Barrier(value.intValueExact(), ImmutableSet.of());
       return transform(results, ts -> ts.setBarrierAndCopy(barrierId, barrier));
     }
     if (maxNumberOfThreads == -1) {
