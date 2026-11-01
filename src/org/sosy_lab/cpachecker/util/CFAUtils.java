@@ -123,6 +123,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibNotRecurringTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRecurringTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -1228,6 +1230,16 @@ public class CFAUtils {
     public Iterable<? extends AAstNode> accept(SvLibRequiresTag pSvLibRequiresTag)
         throws NoException {
       return ImmutableList.of(pSvLibRequiresTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibRecurringTag pSvLibRecurringTag) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibNotRecurringTag pSvLibNotRecurringTag) {
+      return ImmutableList.of();
     }
 
     @Override
