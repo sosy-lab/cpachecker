@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunComm
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibGetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProceduresRecDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
@@ -84,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionComma
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
@@ -384,6 +387,33 @@ class SvLibCfaBuilder {
           functionToProcedureDeclaration.put(
               procedureDeclaration.toSimpleDeclaration(), procedureDeclaration);
         }
+        case SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand -> {
+          List<ProcedureDefinition> procedureDefinitions =
+              Streams.zip(
+                      proceduresRecDefinitionCommand.getProcedureDeclarations().stream(),
+                      proceduresRecDefinitionCommand.getBodies().stream(),
+                      ProcedureDefinition::new)
+                  .toList();
+
+          for (ProcedureDefinition procedureDefinition : procedureDefinitions) {
+            SvLibProcedureDeclaration procedureDeclaration =
+                procedureDefinition.procedureDeclaration;
+            SvLibStatement body = procedureDefinition.body;
+
+            SvLibProcedureDefinitionCommand dummyProcedureDefinitionCommand =
+                new SvLibProcedureDefinitionCommand(FileLocation.DUMMY, procedureDeclaration, body);
+
+            Pair<FunctionEntryNode, Set<CFANode>> functionDefinitionParseResult =
+                parseProcedureDefinition(dummyProcedureDefinitionCommand);
+
+            String functionName = procedureDeclaration.getName();
+            functions.put(functionName, functionDefinitionParseResult.getFirstNotNull());
+            cfaNodes.putAll(functionName, functionDefinitionParseResult.getSecondNotNull());
+
+            functionToProcedureDeclaration.put(
+                procedureDeclaration.toSimpleDeclaration(), procedureDeclaration);
+          }
+        }
         case SvLibVerifyCallCommand pVerifyCallCommand -> {
           // In theory the idea behind SV-LIB is to have an interactive shell with the ability to
           // talk
@@ -549,5 +579,13 @@ class SvLibCfaBuilder {
             nodesToActualHavocStatementEnd.buildOrThrow(),
             nodeToTagAnnotations.build(),
             nodesToTagReferences.build()));
+  }
+
+  private record ProcedureDefinition(
+      SvLibProcedureDeclaration procedureDeclaration, SvLibStatement body) {
+    private ProcedureDefinition {
+      Objects.requireNonNull(procedureDeclaration);
+      Objects.requireNonNull(body);
+    }
   }
 }

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
@@ -46,7 +46,7 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
   }
 
   @Override
-  public @Nullable String getProcedureName() {
+  public @NonNull String getProcedureName() {
     return name;
   }
 
@@ -57,14 +57,10 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
 
   @Override
   public SvLibFunctionDeclaration toSimpleDeclaration() {
-    return new SvLibFunctionDeclaration(
-        fileLocation,
-        new SvLibFunctionType(inputTypes, returnType),
-        name,
-        name,
-        // No parameters, since it is a mathematical function
-        // TODO: Fix this design decision later
-        null);
+    throw new UnsupportedOperationException(
+        "Cannot transform a definition "
+            + "(which does not contain parameters) into a simple "
+            + "declaration requiring them. Look into using `SvLibSmtFunctionDefinition`.");
   }
 
   @Override
