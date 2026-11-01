@@ -218,13 +218,23 @@ public class SmtLibTheoryDeclarations {
   }
 
   /** Real stuff */
-  public static SvLibFunctionDeclaration REAL_FLOOR =
+  /** The floor of a real, which SMT-LIB calls {@code to_int}. */
+  public static SvLibFunctionDeclaration REAL_TO_INT =
       new SvLibFunctionDeclaration(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.REAL), SvLibSmtLibPredefinedType.INT),
-          "floor",
-          "floor",
+          "to_int",
+          "to_int",
+          ImmutableList.of());
+
+  public static SvLibFunctionDeclaration INT_TO_REAL =
+      new SvLibFunctionDeclaration(
+          FileLocation.DUMMY,
+          new SvLibFunctionType(
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT), SvLibSmtLibPredefinedType.REAL),
+          "to_real",
+          "to_real",
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration REAL_MINUS =
