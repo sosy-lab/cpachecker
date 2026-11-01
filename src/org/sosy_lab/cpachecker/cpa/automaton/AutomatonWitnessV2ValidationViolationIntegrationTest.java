@@ -10,12 +10,16 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.FluentIterable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 /**
  * Integration tests for the violation of witness validation for witness files in version 2.*
@@ -162,6 +166,17 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach.c");
     WitnessV2ValidationTestUtils.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  /** The thread creation spans two lines, so its closing parenthesis is on the second one. */
+  @Test(timeout = 3000)
+  public void validate_function_enter_of_call_spanning_lines() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-multiline-call.c");
+    Path witnessFilePath =
+        Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-multiline-call.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
   @Test(timeout = 3000)
