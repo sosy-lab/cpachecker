@@ -278,9 +278,11 @@ public class ARGStatistics implements Statistics {
       exportARG = false;
     }
 
+    // Version 1 (GraphML) witness export
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
+      // Version 2 (YAML) witness export (automatically uses correct v2 subversions; e.g. v2.1)
       argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
     } else {
       argToWitnessWriter = null;
