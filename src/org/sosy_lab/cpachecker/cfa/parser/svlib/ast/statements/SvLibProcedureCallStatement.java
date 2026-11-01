@@ -16,6 +16,7 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -66,7 +67,7 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
   @Override
   public String toASTStringWithoutTags() {
     return "(call "
-        + procedureDeclaration.getName()
+        + SmtLibSymbols.quoteIfNeeded(procedureDeclaration.getName())
         + " ("
         + from(arguments).transform(AAstNode::toASTString).join(Joiner.on(" "))
         + ") ("

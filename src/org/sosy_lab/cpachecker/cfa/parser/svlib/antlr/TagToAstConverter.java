@@ -48,7 +48,7 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   @Override
   public SvLibTagAttribute visitTagAttribute(TagAttributeContext pContext) {
     SvLibTagReference tagReference =
-        new SvLibTagReference(pContext.symbol().getText(), fileLocationFromContext(pContext));
+        new SvLibTagReference(nameOf(pContext.symbol()), fileLocationFromContext(pContext));
     tagReferenceToScopeBuilder.put(tagReference, scope.copy());
     return tagReference;
   }

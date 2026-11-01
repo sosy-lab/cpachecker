@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
@@ -47,7 +48,7 @@ public final class SmtLibDefineFunCommand implements SmtLibCommand, SvLibCommand
   @Override
   public String toASTString() {
     return "(define-fun "
-        + functionDeclaration.getName()
+        + SmtLibSymbols.quoteIfNeeded(functionDeclaration.getName())
         + functionDeclaration.getType().toASTString()
         + " "
         + body.toASTString()

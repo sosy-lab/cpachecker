@@ -47,7 +47,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
   @Override
   public SvLibTerm visitQualIdentifierTerm(QualIdentifierTermContext ctx) {
-    String identifier = ctx.qual_identifer().getText();
+    String identifier = nameOf(ctx.qual_identifer());
     FileLocation fileLocation = fileLocationFromContext(ctx);
 
     // We handle the case that it is a pre-defined constant like true or false
@@ -181,7 +181,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     return new SvLibSymbolApplicationTerm(
         new SvLibIdTerm(
             getVariableDeclarationForSymbol(
-                functionSymbolContext.getText(), scope.getLogics(), arguments),
+                nameOf(functionSymbolContext), scope.getLogics(), arguments),
             fileLocationFromContext(functionSymbolContext)),
         arguments,
         fileLocationFromContext(ctx));

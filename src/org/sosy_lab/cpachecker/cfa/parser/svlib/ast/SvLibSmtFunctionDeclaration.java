@@ -13,6 +13,7 @@ import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -78,7 +79,7 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
 
   @Override
   public String toASTString() {
-    return getType().toASTString(getName());
+    return getType().toASTString(SmtLibSymbols.quoteIfNeeded(getName()));
   }
 
   @Override

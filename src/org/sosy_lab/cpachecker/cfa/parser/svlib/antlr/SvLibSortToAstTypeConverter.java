@@ -27,7 +27,7 @@ public class SvLibSortToAstTypeConverter extends AbstractAntlrToAstConverter<SvL
 
   @Override
   public SvLibType visitSimpleSort(SimpleSortContext pContext) {
-    return scope.getTypeForName(pContext.identifier().getText());
+    return scope.getTypeForName(nameOf(pContext.identifier()));
   }
 
   @Override

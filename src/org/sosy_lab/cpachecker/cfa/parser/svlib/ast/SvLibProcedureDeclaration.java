@@ -17,6 +17,7 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibProcedureType;
@@ -83,7 +84,7 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
 
   @Override
   public String toASTString() {
-    return name
+    return SmtLibSymbols.quoteIfNeeded(name)
         + variablesToString(parameters)
         + " "
         + variablesToString(returnValues)
@@ -99,7 +100,11 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
           + Joiner.on(") (")
               .join(
                   variableList.stream()
-                      .map(var -> var.getName() + " " + var.getType().toASTString())
+                      .map(
+                          var ->
+                              SmtLibSymbols.quoteIfNeeded(var.getName())
+                                  + " "
+                                  + var.getType().toASTString())
                       .toList())
           + "))";
     }
