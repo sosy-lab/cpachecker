@@ -154,10 +154,10 @@ public class SMGCPAExpressionEvaluator {
    * symbolic predicates using an SMT solver should the correct option be set (i.e. symbolic
    * execution).
    *
-   * @param accessType {@link CType} accessed in the memory object.
+   * @param accessSizeInBits access size in bits that needs to be valid. Access is checked from accessOffsetInBits up to, but excluding the last bit of, accessOffsetInBits + accessSizeInBits. This is equal to access to a memory region of a type with a size equal to accessSizeInBits starting at the offset specified.
+   * @param accessOffsetInBits offset of the access in the memory object.
    * @param memoryObjAccessed {@link SMGObject} accessed. Needs to be known to the SMG in the given
    *     state.
-   * @param accessOffsetInBits offset of the access in the memory object.
    * @param initialState {@link SMGState} holding the SMG and solver information to be used.
    * @param cfaEdge {@link CFAEdge} used to derive this access from. Used for debugging/error
    *     information.
@@ -168,9 +168,9 @@ public class SMGCPAExpressionEvaluator {
    * @throws CPATransferException for critical solver or type errors.
    */
   public BooleanAndSMGState checkMemoryAccess(
-      CType accessType,
-      SMGObject memoryObjAccessed,
       Value accessOffsetInBits,
+      Value accessSizeInBits,
+      SMGObject memoryObjAccessed,
       final SMGState initialState,
       CFAEdge cfaEdge)
       throws CPATransferException {
@@ -179,7 +179,6 @@ public class SMGCPAExpressionEvaluator {
       return new BooleanAndSMGState(false, initialState);
     }
 
-    Value accessSizeInBits = getBitSizeof(initialState, accessType, cfaEdge);
     Value objSize = memoryObjAccessed.getSize();
     if (accessOffsetInBits instanceof NumericValue numAccessOffsetInBits
         && objSize instanceof NumericValue numObjSize
