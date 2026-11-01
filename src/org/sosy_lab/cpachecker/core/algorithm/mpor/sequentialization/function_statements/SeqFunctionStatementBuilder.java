@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning.InputWarningMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -163,8 +163,11 @@ public record SeqFunctionStatementBuilder(
                 FileLocation.DUMMY, argSubstitute, nondetFunctionCallExpression.orElseThrow());
         rAssignments.add(new SeqMainFunctionArgAssignment(assignment));
       } else {
-        InputWarning.logWarningWithSuffix(
-            InputWarningMessage.UNHANDLED_NONDET_TYPE, argType.toASTString(""), logger);
+        InputWarning.logWarningWithFileLocationAndCode(
+            InputMessage.UNHANDLED_NONDET_TYPE,
+            parameterDeclaration.getFileLocation(),
+            parameterDeclaration.getType().toASTString(""),
+            logger);
       }
     }
     return rAssignments.build();

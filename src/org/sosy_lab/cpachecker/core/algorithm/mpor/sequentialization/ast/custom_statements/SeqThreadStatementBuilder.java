@@ -52,8 +52,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning.InputWarningMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
@@ -287,8 +287,9 @@ public record SeqThreadStatementBuilder(
             ImmutableList.of(new CStatementWrapper(functionCallAssignmentStatement)));
 
       } else {
-        InputWarning.logWarningWithSuffix(
-            InputWarningMessage.UNHANDLED_NONDET_TYPE,
+        InputWarning.logWarningWithFileLocationAndCode(
+            InputMessage.UNHANDLED_NONDET_TYPE,
+            pVariableDeclaration.getFileLocation(),
             variableType.toASTString(""),
             utils.logger());
         CExpressionStatement expressionStatement =

@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -35,8 +34,7 @@ public class InputRejectionTest {
    * Tests if {@link InputRejection#handleRejections(CFA)} throws a {@link UnsupportedCodeException}
    * when invoked with the program in {@code pInputFilePath}.
    */
-  private void testExpectedRejection(Path pInputFilePath, InputRejectionMessage pExpected)
-      throws Exception {
+  private void testExpectedRejection(Path pInputFilePath, InputMessage pExpected) throws Exception {
 
     CFA inputCfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
@@ -52,10 +50,7 @@ public class InputRejectionTest {
    * pInputFilePath}.
    */
   private void testExpectedRejectionWhenBuildingProgram(
-      MPOROptions pOptions,
-      Configuration pConfig,
-      Path pInputFilePath,
-      InputRejectionMessage pExpected)
+      MPOROptions pOptions, Configuration pConfig, Path pInputFilePath, InputMessage pExpected)
       throws InvalidConfigurationException, ParserException, IOException, InterruptedException {
 
     CFA cfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
@@ -83,7 +78,7 @@ public class InputRejectionTest {
   public void testRejectDuplicateStructMemberNames() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/duplicate-struct-member-names.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
+    testExpectedRejection(inputFilePath, InputMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
   }
 
   @Test
@@ -91,38 +86,38 @@ public class InputRejectionTest {
     // this program uses pthread_getspecific
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/unsupported-function-pthread_key_create.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.UNSUPPORTED_FUNCTION);
+    testExpectedRejection(inputFilePath, InputMessage.UNSUPPORTED_FUNCTION);
   }
 
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread_t-array.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
+    testExpectedRejection(inputFilePath, InputMessage.PTHREAD_OBJECT_ARRAY);
   }
 
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/pthread-function-return-value.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
+    testExpectedRejection(inputFilePath, InputMessage.PTHREAD_FUNCTION_RETURN_VALUE);
   }
 
   @Test
   public void testRejectPthreadCreateLoop() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread-create-loop.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_CREATE_LOOP);
+    testExpectedRejection(inputFilePath, InputMessage.PTHREAD_CREATE_LOOP);
   }
 
   @Test
   public void testRejectDirectRecursion() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/direct-recursion.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.RECURSIVE_FUNCTION);
+    testExpectedRejection(inputFilePath, InputMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectIndirectRecursion() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/indirect-recursion.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.RECURSIVE_FUNCTION);
+    testExpectedRejection(inputFilePath, InputMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
@@ -133,7 +128,7 @@ public class InputRejectionTest {
         MPOROptions.getDefaultTestInstance(),
         TestUtils.configurationForTest().build(),
         inputFilePath,
-        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
+        InputMessage.FUNCTION_POINTER_ASSIGNMENT);
   }
 
   @Test
@@ -144,7 +139,7 @@ public class InputRejectionTest {
         MPOROptions.getDefaultTestInstance(),
         TestUtils.configurationForTest().build(),
         inputFilePath,
-        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
+        InputMessage.FUNCTION_POINTER_ASSIGNMENT);
   }
 
   @Test
@@ -157,7 +152,7 @@ public class InputRejectionTest {
             .build();
     MPOROptions customOptions = new MPOROptions(config);
     testExpectedRejectionWhenBuildingProgram(
-        customOptions, config, inputFilePath, InputRejectionMessage.POINTER_WRITE);
+        customOptions, config, inputFilePath, InputMessage.POINTER_WRITE);
   }
 
   @Test
@@ -168,6 +163,6 @@ public class InputRejectionTest {
         MPOROptions.getDefaultTestInstance(),
         TestUtils.configurationForTest().build(),
         inputFilePath,
-        InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION);
+        InputMessage.POINTER_WRITE_BINARY_EXPRESSION);
   }
 }

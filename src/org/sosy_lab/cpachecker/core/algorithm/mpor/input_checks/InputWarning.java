@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -20,27 +21,16 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputWarning {
 
-  public enum InputWarningMessage {
-    NOT_CONCURRENT(
-        "MPOR expects a concurrent C program with at least one pthread_create call."
-            + " The program is sequentialized regardless."),
-    UNHANDLED_NONDET_TYPE(
-        "MPOR could not find __VERIFIER_nondet function for the following CType: ");
-
-    final String message;
-
-    InputWarningMessage(String pMessage) {
-      message = pMessage;
-    }
-  }
-
   public static void handleWarnings(CFA pInputCfa, LogManager pLogger) {
     checkIsParallelProgram(pInputCfa, pLogger);
   }
 
-  public static void logWarningWithSuffix(
-      InputWarningMessage pMessage, String pSuffix, LogManager pLogger) {
-    pLogger.log(Level.WARNING, String.format("%s%s", pMessage.message, pSuffix));
+  public static void logWarningWithFileLocationAndCode(
+      InputMessage pMessage, FileLocation pFileLocation, String pCode, LogManager pLogger) {
+
+    pLogger.log(
+        Level.WARNING,
+        String.format(pMessage.formatMessage(), pFileLocation.getStartingLineInOrigin(), pCode));
   }
 
   private static void checkIsParallelProgram(CFA pInputCfa, LogManager pLogger) {
@@ -56,7 +46,7 @@ public class InputWarning {
       }
     }
     if (!isParallel) {
-      pLogger.log(Level.WARNING, InputWarningMessage.NOT_CONCURRENT.message);
+      pLogger.log(Level.WARNING, InputMessage.NOT_CONCURRENT.message);
     }
   }
 }
