@@ -38,6 +38,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -981,6 +982,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final Collection<ThreadingState> results,
       final CFAEdge cfaEdge)
       throws UnsupportedCodeException {
+    if (statement instanceof AFunctionCallAssignmentStatement) {
+      // only one of the released threads gets PTHREAD_BARRIER_SERIAL_THREAD
+      throw new UnsupportedCodeException("pthread_barrier_wait with a used result", cfaEdge);
+    }
     List<? extends AExpression> params =
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
     String barrierId = extractGlobalObjectId(params.get(0), cfaEdge);
