@@ -476,7 +476,7 @@ public final class AstCfaRelation {
     for (ASTElement statement :
         startingLocationToTightestStatement
             .headMap(new StartingLocation(pColumn, pLine), true)
-            .descendingMap()
+            .reversed()
             .values()) {
       // The end column is exclusive
       FileLocation location = statement.location();
