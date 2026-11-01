@@ -94,8 +94,9 @@ class MemoryAccess {
     return memoryLocation.isAmbiguous() || !memoryLocation.isPrecise();
   }
 
-  boolean mayBePointedTo() {
-    return memoryLocation.mayBePointedTo();
+  /** Checks whether the locations of the two accesses may overlap, regardless of their types. */
+  boolean mayOverlap(MemoryAccess other) {
+    return memoryLocation.mayOverlap(other.memoryLocation);
   }
 
   CType getType() {

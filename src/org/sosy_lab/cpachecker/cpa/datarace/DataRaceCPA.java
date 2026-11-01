@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DataRaceCPA extends AbstractCPA {
 
@@ -33,6 +35,7 @@ public class DataRaceCPA extends AbstractCPA {
 
   private final MachineModel machineModel;
   private final Set<String> addressedVariables;
+  private final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerTargets;
   private final CBinaryExpressionBuilder expressionBuilder;
 
   private DataRaceCPA(CFA pCfa, LogManager pLogger) throws InvalidConfigurationException {
@@ -51,11 +54,13 @@ public class DataRaceCPA extends AbstractCPA {
                     new InvalidConfigurationException(
                         "DataRaceCPA needs the variable classification of the CFA"))
             .getAddressedVariables();
+    pointerTargets = PointerTargets.compute(pCfa, addressedVariables);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new DataRaceTransferRelation(machineModel, addressedVariables, expressionBuilder);
+    return new DataRaceTransferRelation(
+        machineModel, addressedVariables, pointerTargets, expressionBuilder);
   }
 
   @Override

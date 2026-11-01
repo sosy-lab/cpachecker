@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -48,9 +50,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class MemoryAccessExtractor {
 
   private final Set<String> addressedVariables;
+  private final SetMultimap<MemoryLocation, MemoryLocation> pointerTargets;
 
-  MemoryAccessExtractor(Set<String> pAddressedVariables) {
+  MemoryAccessExtractor(
+      Set<String> pAddressedVariables,
+      SetMultimap<MemoryLocation, MemoryLocation> pPointerTargets) {
     addressedVariables = pAddressedVariables;
+    pointerTargets = pPointerTargets;
   }
 
   // These functions need special handling that is not currently provided by the DataRaceCPA.
@@ -236,10 +242,7 @@ public class MemoryAccessExtractor {
     if (!(pLvalue instanceof CExpression lvalue)) {
       return ImmutableSet.of();
     }
-    return ImmutableSet.of(
-        new MemoryLocationExtractingVisitor(
-                pEdge.getSuccessor().getFunctionName(), addressedVariables)
-            .getMemoryLocation(lvalue));
+    return ImmutableSet.of(newVisitor(pEdge).getMemoryLocation(lvalue));
   }
 
   private OverapproximatingMemoryLocation getDeclaredLocation(CSimpleDeclaration pDeclaration) {
@@ -267,9 +270,7 @@ public class MemoryAccessExtractor {
       return ImmutableSet.of();
     }
 
-    MemoryLocationExtractingVisitor visitor =
-        new MemoryLocationExtractingVisitor(
-            pEdge.getSuccessor().getFunctionName(), addressedVariables);
+    MemoryLocationExtractingVisitor visitor = newVisitor(pEdge);
     return expression.accept(visitor);
   }
 
@@ -301,12 +302,18 @@ public class MemoryAccessExtractor {
       Set<OverapproximatingMemoryLocation> pWrites,
       Set<OverapproximatingMemoryLocation> pReads) {
     if (pLeftHandSide instanceof CExpression leftHandSide) {
-      MemoryLocationExtractingVisitor visitor =
-          new MemoryLocationExtractingVisitor(
-              pEdge.getSuccessor().getFunctionName(), addressedVariables);
+      MemoryLocationExtractingVisitor visitor = newVisitor(pEdge);
       pWrites.add(visitor.getMemoryLocation(leftHandSide));
       pReads.addAll(visitor.getAddressReads(leftHandSide));
     }
+  }
+
+  private MemoryLocationExtractingVisitor newVisitor(CFAEdge pEdge) {
+    // The expressions of a function call belong to the caller
+    CFANode node =
+        pEdge instanceof FunctionCallEdge ? pEdge.getPredecessor() : pEdge.getSuccessor();
+    return new MemoryLocationExtractingVisitor(
+        node.getFunctionName(), addressedVariables, pointerTargets);
   }
 
   /**

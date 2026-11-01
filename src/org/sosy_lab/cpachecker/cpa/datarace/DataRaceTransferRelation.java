@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
@@ -65,9 +67,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   DataRaceTransferRelation(
       MachineModel pMachineModel,
       Set<String> pAddressedVariables,
+      SetMultimap<MemoryLocation, MemoryLocation> pPointerTargets,
       CBinaryExpressionBuilder pExpressionBuilder) {
     machineModel = pMachineModel;
-    memoryAccessExtractor = new MemoryAccessExtractor(pAddressedVariables);
+    memoryAccessExtractor = new MemoryAccessExtractor(pAddressedVariables, pPointerTargets);
     expressionBuilder = pExpressionBuilder;
   }
 
@@ -397,12 +400,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
   /**
    * Checks whether two accesses, of which at least one is through a pointer, may overlap. A
-   * variable whose address is never taken can not be accessed through a pointer. By the
-   * strict-aliasing rule, scalars of different sizes do not overlap unless one of them is a
-   * character.
+   * variable whose address is never taken can not be accessed through a pointer, and an access
+   * through a pointer stays within the variables that it may point into. By the strict-aliasing
+   * rule, scalars of different sizes do not overlap unless one of them is a character.
    */
   private boolean mayOverlap(MemoryAccess pAccess1, MemoryAccess pAccess2) {
-    if (!pAccess1.mayBePointedTo() || !pAccess2.mayBePointedTo()) {
+    if (!pAccess1.mayOverlap(pAccess2)) {
       return false;
     }
     CType type1 = pAccess1.getType();

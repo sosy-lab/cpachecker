@@ -10,15 +10,14 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class OverapproximatingMemoryLocation {
 
-  // A set of potential memory locations,
-  // this is not guaranteed to include all potential locations if isPrecise is false
+  // The potential memory locations if isPrecise is true, otherwise the variables that may contain
+  // the location (empty if unknown)
   private final ImmutableSet<MemoryLocation> memoryLocations;
   private final CType type;
   private final boolean isAmbiguous;
@@ -29,26 +28,23 @@ public class OverapproximatingMemoryLocation {
   private final CExpression expression;
   // The locations read to compute the address of an imprecise location
   private final ImmutableSet<OverapproximatingMemoryLocation> addressReads;
-  // The declared array that contains an imprecise location, if known
-  private final @Nullable MemoryLocation enclosingArray;
 
   /**
    * Create an {@link OverapproximatingMemoryLocation} for the given lvalue that may represent any
-   * memory location of its type, or any element of the given array.
+   * memory location of its type within the given variables, or anywhere if they are empty.
    */
   public OverapproximatingMemoryLocation(
       CExpression pExpression,
       Set<OverapproximatingMemoryLocation> pAddressReads,
-      @Nullable MemoryLocation pEnclosingArray) {
+      Set<MemoryLocation> pContainingVariables) {
     this(
-        ImmutableSet.of(),
+        pContainingVariables,
         pExpression.getExpressionType(),
         true,
         false,
         true,
         pExpression,
-        pAddressReads,
-        pEnclosingArray);
+        pAddressReads);
   }
 
   public OverapproximatingMemoryLocation(
@@ -65,8 +61,7 @@ public class OverapproximatingMemoryLocation {
         pIsPrecise,
         pMayBePointedTo,
         pExpression,
-        ImmutableSet.of(),
-        null);
+        ImmutableSet.of());
   }
 
   private OverapproximatingMemoryLocation(
@@ -76,8 +71,7 @@ public class OverapproximatingMemoryLocation {
       boolean pIsPrecise,
       boolean pMayBePointedTo,
       CExpression pExpression,
-      Set<OverapproximatingMemoryLocation> pAddressReads,
-      @Nullable MemoryLocation pEnclosingArray) {
+      Set<OverapproximatingMemoryLocation> pAddressReads) {
     memoryLocations = ImmutableSet.copyOf(pMemoryLocations);
     type = pType;
     isAmbiguous = pIsAmbiguous;
@@ -85,7 +79,6 @@ public class OverapproximatingMemoryLocation {
     mayBePointedTo = pMayBePointedTo;
     expression = pExpression;
     addressReads = ImmutableSet.copyOf(pAddressReads);
-    enclosingArray = pEnclosingArray;
   }
 
   public Set<MemoryLocation> getMemoryLocations() {
@@ -116,10 +109,6 @@ public class OverapproximatingMemoryLocation {
     return addressReads;
   }
 
-  public @Nullable MemoryLocation getEnclosingArray() {
-    return enclosingArray;
-  }
-
   /**
    * Checks whether this location may overlap the given one, regardless of their types. Only a
    * location that may be pointed to can overlap an imprecise one.
@@ -128,27 +117,17 @@ public class OverapproximatingMemoryLocation {
     if (!(isPrecise && pOther.isPrecise) && !(mayBePointedTo && pOther.mayBePointedTo)) {
       return false;
     }
-    Set<MemoryLocation> region = getRegion();
-    Set<MemoryLocation> otherRegion = pOther.getRegion();
-    if (region.isEmpty() || otherRegion.isEmpty()) {
+    if (memoryLocations.isEmpty() || pOther.memoryLocations.isEmpty()) {
       return true;
     }
-    for (MemoryLocation location : region) {
-      for (MemoryLocation otherLocation : otherRegion) {
+    for (MemoryLocation location : memoryLocations) {
+      for (MemoryLocation otherLocation : pOther.memoryLocations) {
         if (contains(location, otherLocation) || contains(otherLocation, location)) {
           return true;
         }
       }
     }
     return false;
-  }
-
-  /** Returns the variables or fields that contain this location, or nothing if it is unknown. */
-  private Set<MemoryLocation> getRegion() {
-    if (isPrecise) {
-      return memoryLocations;
-    }
-    return enclosingArray == null ? ImmutableSet.of() : ImmutableSet.of(enclosingArray);
   }
 
   private static boolean contains(MemoryLocation pOuter, MemoryLocation pInner) {
