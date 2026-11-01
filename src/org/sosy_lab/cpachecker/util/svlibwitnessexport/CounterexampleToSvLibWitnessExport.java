@@ -303,6 +303,10 @@ public class CounterexampleToSvLibWitnessExport {
         SvLibProcedureDeclaration procedureDeclaration =
             svLibMetadata.functionToProcedureDeclaration().get(functionDeclaration);
         entryCall = new SvLibTraceEntryProcedure(procedureDeclaration, pCallEdge.getFileLocation());
+        // Without outputs and locals, the body starts at the entry node, which this call reaches
+        if (svLibMetadata.nodesToActualProcedureDefinitionEnd().containsKey(edge.getSuccessor())) {
+          stepsBuilder.add(setLocalVariablesForFunctionCall(concreteState, procedureDeclaration));
+        }
       } else if (inGlobalDeclarationPhase) {
         // Handle all the global declarations
         checkState(
