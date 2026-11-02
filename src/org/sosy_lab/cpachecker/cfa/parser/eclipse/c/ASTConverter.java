@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -337,13 +338,19 @@ class ASTConverter {
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
       Sideassignments pSideAssignmentStack,
-      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences,
+      Set<FileLocation> pUnhandledThreadLocalOccurrences) {
     options = pOptions;
     scope = pScope;
     logger = pLogger;
     typeConverter =
         new ASTTypeConverter(
-            scope, this, pStaticVariablePrefix, pParseContext, pUnhandledAtomicOccurrences);
+            scope,
+            this,
+            pStaticVariablePrefix,
+            pParseContext,
+            pUnhandledAtomicOccurrences,
+            pUnhandledThreadLocalOccurrences);
     literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
     operatorConverter = new ASTOperatorConverter(pParseContext);
     parseContext = pParseContext;
@@ -873,7 +880,8 @@ class ASTConverter {
             name,
             name,
             scope.createScopedNameOf(name),
-            initializer);
+            initializer,
+            /* pHasThreadLocalStorage= */ false);
 
     scope.registerDeclaration(decl);
     sideAssignmentStack.addPreSideAssignment(decl);
@@ -1955,6 +1963,7 @@ class ASTConverter {
 
   public CFunctionDeclaration convert(final IASTFunctionDefinition f) {
     Pair<CStorageClass, ? extends CType> specifier = convert(f.getDeclSpecifier());
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(f.getDeclSpecifier(), f);
 
     CStorageClass cStorageClass = specifier.getFirst();
     if (!(cStorageClass == CStorageClass.AUTO
@@ -2005,6 +2014,10 @@ class ASTConverter {
 
     IASTDeclarator[] declarators = d.getDeclarators();
     List<CDeclaration> result = new ArrayList<>();
+
+    if (hasThreadLocalStorage && (declarators == null || declarators.length == 0)) {
+      throw parseContext.parseError("_Thread_local in declaration without declarator", d);
+    }
 
     if (type instanceof CCompositeType || type instanceof CEnumType) {
       // struct, union, or enum declaration
@@ -2097,6 +2110,9 @@ class ASTConverter {
         if (initializer != null) {
           throw parseContext.parseError("Typedef with initializer", d);
         }
+        if (hasThreadLocalStorage) {
+          throw parseContext.parseError("Typedef with _Thread_local", d);
+        }
 
         name = scope.getFileSpecificTypeName(name);
         return new CTypeDefDeclaration(
@@ -2112,6 +2128,9 @@ class ASTConverter {
       if (innerType instanceof CFunctionType functionType) {
         if (initializer != null) {
           throw parseContext.parseError("Function definition with initializer", d);
+        }
+        if (hasThreadLocalStorage) {
+          throw parseContext.parseError("Function declaration with _Thread_local", d);
         }
 
         // Note that this silently ignores const and volatile qualifiers
@@ -2147,6 +2166,11 @@ class ASTConverter {
       }
       if (cStorageClass != CStorageClass.EXTERN && innerType instanceof CVoidType) {
         throw parseContext.parseError("Variable cannot have type void", d);
+      }
+
+      if (hasThreadLocalStorage && !isGlobal && cStorageClass == CStorageClass.AUTO) {
+        // C11 §6.7.1 (3)
+        throw parseContext.parseError("_Thread_local at block scope requires static or extern", d);
       }
 
       String origName = name;
@@ -2219,6 +2243,7 @@ class ASTConverter {
     }
 
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(sd.getDeclSpecifier(), d);
     // TODO: add knowledge about sd.DeclSpecifier.alignmentSpecifiers
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class inside composite type", d);
@@ -3272,6 +3297,7 @@ class ASTConverter {
 
   private CParameterDeclaration convert(IASTParameterDeclaration p) {
     Pair<CStorageClass, ? extends CType> specifier = convert(p.getDeclSpecifier());
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(p.getDeclSpecifier(), p);
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class for parameters", p);
     }
@@ -3302,6 +3328,7 @@ class ASTConverter {
 
   CType convert(IASTTypeId t) {
     Pair<CStorageClass, ? extends CType> specifier = convert(t.getDeclSpecifier());
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(t.getDeclSpecifier(), t);
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class for type ids", t);
     }

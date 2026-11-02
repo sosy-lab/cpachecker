@@ -12,11 +12,25 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread.BlockType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
@@ -137,6 +151,39 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
         threadId, labelNumber, isLoopHead, pStatements, nextThreadLabel);
   }
 
+  /**
+   * Injects the required {@link SeqInstrumentation} into the {@link SeqThreadStatement} of this
+   * {@link SeqThreadStatementBlock}. The required instrumentation does not depend on any {@link
+   * MPOROptions}, so it is always injected. This can be concurrency semantics that is not
+   * explicitly present in the input program but still has to be modeled in every output program.
+   */
+  public SeqThreadStatementBlock withRequiredInstrumentation(
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
+
+    Optional<CFAEdgeForThread> pthreadOnceEdge = tryGetExitedPthreadOnceEdge();
+
+    if (pthreadOnceEdge.isPresent()) {
+      SubstituteEdge substituteEdge =
+          Objects.requireNonNull(pSubstituteEdges.get(pthreadOnceEdge.orElseThrow()));
+      CExportStatement onceFinishedAssignment =
+          PthreadFunctionSubstitution.buildOnceUnlockStatement(
+              SeqThreadStatementBuilder.getUpdatedParameterExpressions(substituteEdge.cfaEdge));
+      SeqInstrumentation instrumentation =
+          new SeqInstrumentation(SeqInstrumentationType.ONCE_UNLOCK, onceFinishedAssignment);
+      SeqThreadStatement instrumentedStatement =
+          Iterables.getOnlyElement(statements)
+              .withInstrumentation(ImmutableList.of(instrumentation));
+      return new SeqThreadStatementBlock(
+          threadId,
+          labelNumber,
+          isLoopHead,
+          ImmutableList.of(instrumentedStatement),
+          nextThreadLabel);
+    }
+
+    return this;
+  }
+
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */
   public boolean startsAtomicBlock() {
     return getFirstStatement().data().getType().equals(SeqThreadStatementType.ATOMIC_BEGIN);
@@ -148,5 +195,48 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
    */
   public boolean startsInAtomicBlock() {
     return SeqThreadStatementUtil.startsInAtomicBlock(getFirstStatement());
+  }
+
+  /**
+   * Returns the {@link CFAEdgeForThread} that calls {@link PthreadFunctionType#PTHREAD_ONCE} if
+   * this block exits the {@code init_routine} specified in the call, or {@link Optional#empty()}
+   * otherwise.
+   */
+  private Optional<CFAEdgeForThread> tryGetExitedPthreadOnceEdge() {
+    if (statements.size() != 1) {
+      return Optional.empty();
+    }
+
+    SeqThreadStatement statement = statements.getFirst();
+    if (statement.data().getSubstituteEdges().size() != 1) {
+      return Optional.empty();
+    }
+
+    CFAEdgeForThread threadEdge =
+        Iterables.getOnlyElement(statement.data().getSubstituteEdges()).getThreadEdge();
+    if (threadEdge.getSuccessor().leavingEdges().size() != 1) {
+      return Optional.empty();
+    }
+
+    CFAEdgeForThread successorThreadEdge = threadEdge.getSuccessor().leavingEdges().getFirst();
+    ImmutableMap<SeqCallContext, BlockType> blockTypes = threadEdge.getSuccessor().blockTypes;
+
+    // The block types have to change on function exit if this exits a pthread_once init_routine.
+    if (!(successorThreadEdge.getSuccessor().getCfaNode() instanceof FunctionExitNode)
+        || !blockTypes.containsKey(threadEdge.callContext)
+        || !BlockType.PTHREAD_ONCE_ROUTINE.equals(blockTypes.get(threadEdge.callContext))
+        || successorThreadEdge.getSuccessor().blockTypes.containsKey(threadEdge.callContext)) {
+      return Optional.empty();
+    }
+
+    CFANodeForThread returnNode =
+        successorThreadEdge.getSuccessor().leavingEdges().getFirst().getSuccessor();
+    // There are exactly two entering edges: CFunctionSummaryEdge and FunctionReturnEdge.
+    checkArgument(returnNode.enteringEdges().size() == 2);
+    CFAEdgeForThread functionSummaryEdge = returnNode.enteringEdges().getFirst();
+    checkArgument(functionSummaryEdge.cfaEdge instanceof CFunctionSummaryEdge);
+
+    return Optional.of(
+        Iterables.getOnlyElement(functionSummaryEdge.getPredecessor().enteringEdges()));
   }
 }

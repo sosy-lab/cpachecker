@@ -79,7 +79,7 @@ record ExecuteUntilConflictInjector(
             machineModel,
             pointerAliasingMap,
             utils);
-    return SeqInstrumentationBuilder.buildUntilConflictReductionStatement(
+    return SeqInstrumentationBuilder.buildExecuteUntilConflictReductionStatement(
         options.nondeterminismSource(), evaluationExpression, pTargetBlock.buildLabelStatement());
   }
 

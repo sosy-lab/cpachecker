@@ -360,7 +360,8 @@ class FunctionCloner implements CFAVisitor {
                 decl.getName(),
                 decl.getOrigName(),
                 changeQualifiedName(decl.getQualifiedName()),
-                null);
+                null,
+                decl.hasThreadLocalStorage());
         // cache the declaration, then clone the initializer and add it.
         // this is needed for the following code: int x = x;
         astCache.put(ast, newDecl);

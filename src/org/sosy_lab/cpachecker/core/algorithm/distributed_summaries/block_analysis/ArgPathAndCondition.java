@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
@@ -24,19 +25,28 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 final class ArgPathAndCondition {
 
   private final ARGPath path;
+  private final Precision precision;
   private final @Nullable ARGState condition;
 
-  // Precomputed once because ARGPath/ARGState are immutable and computing the id iterates the
-  // full path; caching avoids recomputation on every hashCode/equals call.
-  private final String id;
+  // Freeze the path identity because refinements may later mutate its ARG.
+  private final Object id;
+  private final int hash;
 
-  ArgPathAndCondition(ARGPath pPath, @Nullable ARGState pCondition) {
+  ArgPathAndCondition(ARGPath pPath, @Nullable ARGState pCondition, Precision pPrecision) {
     path = pPath;
+    precision = pPrecision;
     condition = pCondition;
     id =
-        FluentIterable.from(pPath.getFullPath())
-            .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
-            .join(Joiner.on(", "));
+        pPath instanceof DssARGPathGraph graph
+            ? graph.graphId()
+            : FluentIterable.from(pPath.getFullPath())
+                .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
+                .join(Joiner.on(", "));
+    hash = Objects.hash(id, condition, path.getFirstState());
+  }
+
+  Precision precision() {
+    return precision;
   }
 
   ARGPath path() {
@@ -51,7 +61,7 @@ final class ArgPathAndCondition {
   public int hashCode() {
     // ARGState inherits equals/hashCode from Object, so hashing the condition directly is
     // consistent with the identity comparison performed in equals(Object).
-    return Objects.hash(id, condition);
+    return hash;
   }
 
   @Override

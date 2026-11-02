@@ -517,7 +517,8 @@ public class LoopUnroller implements StatisticsProvider {
               name,
               cDeclaration.getOrigName(),
               qualifiedNameOfLocal(pFunction, name),
-              null));
+              null,
+              cDeclaration.hasThreadLocalStorage()));
     }
 
     ImmutableMap<ASimpleDeclaration, AVariableDeclaration> renamedVariables =

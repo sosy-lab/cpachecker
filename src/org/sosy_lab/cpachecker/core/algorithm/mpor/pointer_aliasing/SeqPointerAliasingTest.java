@@ -62,7 +62,8 @@ public class SeqPointerAliasingTest {
           "global_ptr_A",
           "global_ptr_A",
           "global_ptr_A",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration GLOBAL_POINTER_B_DECLARATION =
       new CVariableDeclaration(
@@ -73,7 +74,8 @@ public class SeqPointerAliasingTest {
           "global_ptr_B",
           "global_ptr_B",
           "global_ptr_B",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration LOCAL_POINTER_C_DECLARATION =
       new CVariableDeclaration(
@@ -84,7 +86,8 @@ public class SeqPointerAliasingTest {
           "local_ptr_C",
           "local_ptr_C",
           "local_ptr_C",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration LOCAL_POINTER_D_DECLARATION =
       new CVariableDeclaration(
@@ -95,7 +98,8 @@ public class SeqPointerAliasingTest {
           "local_ptr_D",
           "local_ptr_D",
           "local_ptr_D",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration GLOBAL_X_DECLARATION =
       new CVariableDeclaration(
@@ -106,7 +110,8 @@ public class SeqPointerAliasingTest {
           "global_X",
           "global_X",
           "global_X",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration GLOBAL_Y_DECLARATION =
       new CVariableDeclaration(
@@ -117,7 +122,8 @@ public class SeqPointerAliasingTest {
           "global_Y",
           "global_Y",
           "global_Y",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration LOCAL_Z_DECLARATION =
       new CVariableDeclaration(
@@ -128,7 +134,8 @@ public class SeqPointerAliasingTest {
           "local_Z",
           "local_Z",
           "local_Z",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   // CIdExpression
 

@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -343,18 +344,33 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision)
       throws UnrecognizedCodeException {
 
+    InvariantsState state = pElement;
     if (pEdge.getStatement() instanceof CFunctionCall cFunctionCall) {
-      CExpression fn = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+      CFunctionCallExpression functionCallExpression = cFunctionCall.getFunctionCallExpression();
+      CExpression fn = functionCallExpression.getFunctionNameExpression();
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
         }
+        if (BuiltinIoFunctions.matchesFscanf(func)) {
+          // fscanf writes an unknown value through its receiving parameter
+          CExpression receiver =
+              BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExpression, pEdge)
+                  .getLeftHandSide();
+          state =
+              handleAssignment(
+                  state,
+                  pEdge,
+                  receiver,
+                  allPossibleValues(receiver.getExpressionType()),
+                  pPrecision);
+        }
       }
     }
 
     if (pEdge.getStatement() instanceof CAssignment assignment) {
-      ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
+      ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, state);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
       NumeralFormula<CompoundInterval> value =
@@ -372,11 +388,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                   typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
         }
       }
-      value = handlePotentialOverflow(pElement, value, leftHandSide.getExpressionType());
-      return handleAssignment(pElement, pEdge, leftHandSide, value, pPrecision);
+      value = handlePotentialOverflow(state, value, leftHandSide.getExpressionType());
+      return handleAssignment(state, pEdge, leftHandSide, value, pPrecision);
     }
 
-    return pElement;
+    return state;
   }
 
   private InvariantsState handleAssignment(

@@ -16,11 +16,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AssertCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AttributeContext;
@@ -29,10 +31,14 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Decl
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareFunCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareSortCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareVarContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineFunCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineProcContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineProcsRecContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Function_defContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.GetWitnessContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.OptionContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ProcDeclarationArgumentsContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ProcDeclarationContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SetInfoCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SetLogicCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SetOptionCommandContext;
@@ -43,7 +49,9 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclara
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAssertCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
@@ -52,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunComm
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibGetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProceduresRecDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionCommand;
@@ -101,7 +110,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
   @Override
   public SvLibCommand visitDeclareVar(DeclareVarContext ctx) {
-    String variableName = ctx.symbol().getText();
+    String variableName = nameOf(ctx.symbol());
 
     SvLibType variableType = sortToAstTypeConverter.visit(ctx.sort());
     SvLibParsingVariableDeclaration variableDeclaration =
@@ -112,7 +121,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             variableType,
             variableName,
             variableName,
-            variableName);
+            null);
 
     scope.addVariable(variableDeclaration);
 
@@ -121,7 +130,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
   @Override
   public SvLibCommand visitDeclareConstCommand(DeclareConstCommandContext ctx) {
-    String variableName = ctx.cmd_declareConst().symbol().getText();
+    String variableName = nameOf(ctx.cmd_declareConst().symbol());
 
     SvLibType variableType = sortToAstTypeConverter.visit(ctx.cmd_declareConst().sort());
     SvLibParsingVariableDeclaration variableDeclaration =
@@ -132,7 +141,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             variableType,
             variableName,
             variableName,
-            variableName);
+            null);
 
     scope.addVariable(variableDeclaration);
 
@@ -150,7 +159,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
           new SvLibParsingParameterDeclaration(
               fileLocationFromContext(parameter, sort),
               sortToAstTypeConverter.visit(sort),
-              parameter.getText(),
+              nameOf(parameter),
               pProcedureName));
     }
 
@@ -158,8 +167,53 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
   }
 
   @Override
+  public SvLibCommand visitDefineFunCommand(DefineFunCommandContext ctx) {
+    Function_defContext functionDefContext = ctx.cmd_defineFun().function_def();
+    String functionName = nameOf(functionDefContext.symbol());
+    SvLibSmtFunctionDefinition functionDeclaration =
+        new SvLibSmtFunctionDefinition(
+            fileLocationFromContext(ctx),
+            functionName,
+            FluentIterable.from(functionDefContext.sorted_var())
+                .transform(sortedVarContext -> Objects.requireNonNull(sortedVarContext).sort())
+                .transform(sortToAstTypeConverter::visit)
+                .toList(),
+            sortToAstTypeConverter.visit(functionDefContext.sort()),
+            transformedImmutableListCopy(
+                functionDefContext.sorted_var(),
+                sortedVarContext ->
+                    new SvLibParsingParameterDeclaration(
+                        fileLocationFromContext(Objects.requireNonNull(sortedVarContext).symbol()),
+                        sortToAstTypeConverter.visit(sortedVarContext.sort()),
+                        nameOf(sortedVarContext.symbol()),
+                        functionName)));
+
+    scope.addVariable(
+        new SvLibParsingVariableDeclaration(
+            fileLocationFromContext(ctx),
+            true,
+            false,
+            functionDeclaration.getType(),
+            functionName,
+            functionName,
+            null));
+
+    // The parameters of the function have to be in the scope while its body is converted, because
+    // the body refers to them.
+    scope.enterProcedure(functionDeclaration.getParameters());
+    SvLibTerm body;
+    try {
+      body = termConverter.visit(functionDefContext.term());
+    } finally {
+      scope.leaveProcedure();
+    }
+
+    return new SmtLibDefineFunCommand(functionDeclaration, body, fileLocationFromContext(ctx));
+  }
+
+  @Override
   public SvLibCommand visitDefineProc(DefineProcContext ctx) {
-    String procedureName = ctx.symbol().getText();
+    String procedureName = nameOf(ctx.symbol());
     List<SvLibParsingParameterDeclaration> inputParameter =
         createParameterDeclarations(ctx.procDeclarationArguments(0), procedureName);
     List<SvLibParsingParameterDeclaration> outputParameter =
@@ -191,9 +245,58 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
   }
 
   @Override
+  public SvLibCommand visitDefineProcsRec(DefineProcsRecContext ctx) {
+    ImmutableList.Builder<SvLibProcedureDeclaration> procedureDeclarationsCollector =
+        ImmutableList.builder();
+    ImmutableList.Builder<SvLibStatement> bodiesCollector = ImmutableList.builder();
+
+    for (ProcDeclarationContext declaration : ctx.procDeclaration()) {
+      String procedureName = nameOf(declaration.symbol());
+      List<SvLibParsingParameterDeclaration> inputParameter =
+          createParameterDeclarations(declaration.procDeclarationArguments(0), procedureName);
+      List<SvLibParsingParameterDeclaration> outputParameter =
+          createParameterDeclarations(declaration.procDeclarationArguments(1), procedureName);
+      List<SvLibParsingParameterDeclaration> localVariables =
+          createParameterDeclarations(declaration.procDeclarationArguments(2), procedureName);
+
+      SvLibProcedureDeclaration procedureDeclaration =
+          new SvLibProcedureDeclaration(
+              fileLocationFromContext(declaration),
+              procedureName,
+              inputParameter,
+              outputParameter,
+              localVariables);
+
+      procedureDeclarationsCollector.add(procedureDeclaration);
+      scope.addProcedureDeclaration(procedureDeclaration);
+    }
+
+    ImmutableList<SvLibProcedureDeclaration> collectedProcedureDeclarations =
+        procedureDeclarationsCollector.build();
+
+    for (int i = 0; i < ctx.statement().size(); i++) {
+      SvLibProcedureDeclaration currentProcedure = collectedProcedureDeclarations.get(i);
+      scope.enterProcedure(
+          FluentIterable.from(currentProcedure.getParameters())
+              .append(currentProcedure.getReturnValues())
+              .append(currentProcedure.getLocalVariables())
+              .stream()
+              .toList());
+
+      SvLibStatement body = statementConverter.visit(ctx.statement(i));
+      bodiesCollector.add(body);
+
+      scope.leaveProcedure();
+    }
+
+    return new SvLibProceduresRecDefinitionCommand(
+        fileLocationFromContext(ctx), collectedProcedureDeclarations, bodiesCollector.build());
+  }
+
+  @Override
   public SvLibCommand visitVerifyCall(VerifyCallContext pContext) {
     SvLibProcedureDeclaration procedureDeclaration =
-        scope.getProcedureDeclaration(pContext.symbol().getText());
+        scope.getProcedureDeclaration(nameOf(pContext.symbol()));
     List<SvLibTerm> terms = transformedImmutableListCopy(pContext.term(), termConverter::visit);
 
     return new SvLibVerifyCallCommand(
@@ -202,12 +305,13 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
   @Override
   public SvLibCommand visitAnnotateTag(AnnotateTagContext pContext) {
+    AnnotateTagCommandContext annotateTag = pContext.annotateTagCommand();
     List<SvLibTagProperty> tags =
-        FluentIterable.from(pContext.attributeSvLib())
+        FluentIterable.from(annotateTag.attributeSvLib())
             .transform(attribute -> tagToAstConverter.visit(attribute))
             .filter(SvLibTagProperty.class)
             .toList();
-    String tagName = pContext.symbol().getText();
+    String tagName = nameOf(annotateTag.symbol());
     return new SvLibAnnotateTagCommand(tagName, tags, fileLocationFromContext(pContext));
   }
 
@@ -235,7 +339,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
   @Override
   public SvLibCommand visitDeclareSortCommand(DeclareSortCommandContext pContext) {
     SymbolContext symbolContext = pContext.cmd_declareSort().symbol();
-    String sortName = symbolContext.getText();
+    String sortName = nameOf(symbolContext);
     int arity = Integer.parseInt(pContext.cmd_declareSort().numeral().getText());
     SvLibSortDeclaration sortDeclaration =
         new SvLibSortDeclaration(
@@ -255,17 +359,19 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
   @Override
   public SvLibCommand visitDeclareFunCommand(DeclareFunCommandContext pContext) {
     Cmd_declareFunContext functionDecContext = pContext.cmd_declareFun();
-    String functionName = functionDecContext.symbol().getText();
+    String functionName = nameOf(functionDecContext.symbol());
     List<SvLibType> allTypes =
         transformedImmutableListCopy(
             functionDecContext.sort(), sort -> sortToAstTypeConverter.visit(sort));
     SvLibType returnType = allTypes.getLast();
     List<SvLibType> parameterTypes = allTypes.subList(0, allTypes.size() - 1);
 
-    return new SvLibDeclareFunCommand(
+    SvLibSmtFunctionDeclaration functionDeclaration =
         new SvLibSmtFunctionDeclaration(
-            fileLocationFromContext(functionDecContext), functionName, parameterTypes, returnType),
-        fileLocationFromContext(pContext));
+            fileLocationFromContext(functionDecContext), functionName, parameterTypes, returnType);
+    // The declaration has to be in the scope, so that applications of the function can be resolved.
+    scope.addFunctionDeclaration(functionDeclaration);
+    return new SvLibDeclareFunCommand(functionDeclaration, fileLocationFromContext(pContext));
   }
 
   @Override
