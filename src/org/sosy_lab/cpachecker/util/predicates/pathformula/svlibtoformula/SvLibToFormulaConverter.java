@@ -301,18 +301,6 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     return fmgr.getQuantifiedFormulaManager().forall(parameters, definition);
   }
 
-  /**
-   * Is a function with the given name declared but not defined in the script, i.e. is it an
-   * uninterpreted function?
-   */
-  boolean isUninterpretedFunction(String pName) {
-    return smtLibCommands.stream()
-        .anyMatch(
-            command ->
-                command instanceof SvLibDeclareFunCommand declareFunCommand
-                    && declareFunCommand.getFunctionDeclaration().getName().equals(pName));
-  }
-
   /** Create an application of the uninterpreted function with the given name. */
   Formula makeUninterpretedFunctionApplication(
       String pName, FormulaType<?> pReturnType, List<Formula> pArguments) {

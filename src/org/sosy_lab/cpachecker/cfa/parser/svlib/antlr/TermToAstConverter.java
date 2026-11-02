@@ -382,12 +382,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           pSymbol,
           pArguments.size(),
           declaration.getType().getParameters().size());
-      return new SvLibFunctionDeclaration(
-          declaration.getFileLocation(),
-          declaration.getType(),
-          pSymbol,
-          pSymbol,
-          ImmutableList.of());
+      return SvLibFunctionDeclaration.uninterpretedFunction(
+          declaration.getFileLocation(), declaration.getType(), pSymbol);
     }
 
     // Match Integer Arithmetic logic

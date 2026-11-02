@@ -161,8 +161,9 @@ public class SvLibTermToFormulaConverter {
     // A declared function is uninterpreted, so nothing is known about it. This has to be checked
     // before the theories, because such a function can have the same argument types as an operator
     // of a theory.
-    if (pConverter.isUninterpretedFunction(
-        pSvLibGeneralSymbolApplicationTerm.getSymbol().getName())) {
+    if (pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration()
+            instanceof SvLibFunctionDeclaration functionDeclaration
+        && functionDeclaration.isUninterpreted()) {
       return pConverter.makeUninterpretedFunctionApplication(
           pSvLibGeneralSymbolApplicationTerm.getSymbol().getName(),
           ((SvLibSmtLibType) pSvLibGeneralSymbolApplicationTerm.getExpressionType())
