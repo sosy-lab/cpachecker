@@ -24,10 +24,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType.PthreadObjectSubstitutions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
@@ -141,43 +144,67 @@ public class PthreadFunctionSubstitution {
   // pthread_mutex_t
 
   public static ImmutableList<CCompoundStatementElement> buildMutexLockFunctionStatements(
-      CExpression pMutexExpression) {
+      CExpression pMutexExpression, MachineModel pMachineModel) {
 
-    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression, pMachineModel);
     CCompoundStatementElement mutexLockAssumption =
         SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
             new CLogicalNotExpression(new CExpressionWrapper(mutexFieldReference)));
-    return ImmutableList.of(mutexLockAssumption, buildMutexLockAssignment(pMutexExpression));
+    return ImmutableList.of(
+        mutexLockAssumption, buildMutexLockAssignment(pMutexExpression, pMachineModel));
   }
 
-  private static CCompoundStatementElement buildMutexLockAssignment(CExpression pMutexExpression) {
-    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+  private static CCompoundStatementElement buildMutexLockAssignment(
+      CExpression pMutexExpression, MachineModel pMachineModel) {
+    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression, pMachineModel);
     return new CStatementWrapper(
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ONE));
   }
 
   public static ImmutableList<CCompoundStatementElement> buildMutexUnlockFunctionStatements(
-      CExpression pMutexExpression) {
+      CExpression pMutexExpression, MachineModel pMachineModel) {
 
-    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression);
+    CFieldReference mutexFieldReference = buildMutexFieldReference(pMutexExpression, pMachineModel);
     return ImmutableList.of(
         new CStatementWrapper(
             new CExpressionAssignmentStatement(
                 FileLocation.DUMMY, mutexFieldReference, CIntegerLiteralExpression.ZERO)));
   }
 
-  private static CFieldReference buildMutexFieldReference(CExpression pMutexExpression) {
+  private static CFieldReference buildMutexFieldReference(
+      CExpression pMutexExpression, MachineModel pMachineModel) {
+
+    checkArgument(InputRejection.SUPPORTED_MACHINE_MODELS.contains(pMachineModel));
+
+    CElaboratedType innerElaboratedType;
+    CElaboratedType outerElaboratedType;
+    CCompositeTypeMemberDeclaration memberDeclaration;
+
+    switch (pMachineModel) {
+      case LINUX32 -> {
+        innerElaboratedType = PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_ELABORATED_TYPE;
+        outerElaboratedType = PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_ELABORATED_TYPE;
+        memberDeclaration = PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_MEMBER_DECLARATION;
+      }
+      case LINUX64 -> {
+        innerElaboratedType = PthreadObjectSubstitutions.LP64_MUTEX_INNER_LIST_ELABORATED_TYPE;
+        outerElaboratedType = PthreadObjectSubstitutions.LP64_MUTEX_INNER_LIST_ELABORATED_TYPE;
+        memberDeclaration = PthreadObjectSubstitutions.LP64_MUTEX_INNER_LIST_MEMBER_DECLARATION;
+      }
+      default -> throw new AssertionError("Unhandled machine model " + pMachineModel);
+    }
+
     CFieldReference mutexFieldReference =
         new CFieldReference(
             FileLocation.DUMMY,
-            PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_ELABORATED_TYPE,
-            PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_MEMBER_DECLARATION.getName(),
+            innerElaboratedType,
+            memberDeclaration.getName(),
             pMutexExpression,
             pMutexExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
     return new CFieldReference(
         FileLocation.DUMMY,
-        PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_ELABORATED_TYPE,
+        outerElaboratedType,
         PthreadObjectSubstitutions.MUTEX_LOCKED_MEMBER_DECLARATION.getName(),
         mutexFieldReference,
         false);
@@ -264,18 +291,18 @@ public class PthreadFunctionSubstitution {
   }
 
   public static ImmutableList<CCompoundStatementElement> buildCondWaitUnlockFunctionStatements(
-      ImmutableList<CExpression> pExpressions) {
+      ImmutableList<CExpression> pExpressions, MachineModel pMachineModel) {
 
     checkArgument(pExpressions.size() == 2);
     CExpression mutexExpression =
         pExpressions.get(
             PthreadFunctionType.PTHREAD_COND_WAIT.getParameterIndex(
                 PthreadObjectType.PTHREAD_MUTEX_T));
-    return buildMutexUnlockFunctionStatements(mutexExpression);
+    return buildMutexUnlockFunctionStatements(mutexExpression, pMachineModel);
   }
 
   public static ImmutableList<CCompoundStatementElement> buildCondWaitLockFunctionStatements(
-      ImmutableList<CExpression> pExpressions) {
+      ImmutableList<CExpression> pExpressions, MachineModel pMachineModel) {
 
     checkArgument(pExpressions.size() == 2);
 
@@ -300,7 +327,7 @@ public class PthreadFunctionSubstitution {
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(condFieldReference)),
         condAssignment,
         // on return, the mutex is locked and owned by the calling thread
-        buildMutexLockAssignment(mutexExpression));
+        buildMutexLockAssignment(mutexExpression, pMachineModel));
   }
 
   private static CFieldReference buildCondFieldReference(CExpression pCondExpression) {

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -82,6 +83,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 public record SeqThreadStatementBuilder(
     MPOROptions options,
+    MachineModel machineModel,
     MPORThread thread,
     ImmutableList<MPORThread> allThreads,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
@@ -728,15 +730,17 @@ public record SeqThreadStatementBuilder(
           PthreadFunctionSubstitution.buildCondSignalFunctionStatements(
               Iterables.getOnlyElement(expressions));
       case COND_WAIT_UNLOCK ->
-          PthreadFunctionSubstitution.buildCondWaitUnlockFunctionStatements(expressions);
+          PthreadFunctionSubstitution.buildCondWaitUnlockFunctionStatements(
+              expressions, machineModel);
       case COND_WAIT_LOCK ->
-          PthreadFunctionSubstitution.buildCondWaitLockFunctionStatements(expressions);
+          PthreadFunctionSubstitution.buildCondWaitLockFunctionStatements(
+              expressions, machineModel);
       case MUTEX_LOCK ->
           PthreadFunctionSubstitution.buildMutexLockFunctionStatements(
-              Iterables.getOnlyElement(expressions));
+              Iterables.getOnlyElement(expressions), machineModel);
       case MUTEX_UNLOCK ->
           PthreadFunctionSubstitution.buildMutexUnlockFunctionStatements(
-              Iterables.getOnlyElement(expressions));
+              Iterables.getOnlyElement(expressions), machineModel);
       case RW_LOCK_RD_LOCK ->
           PthreadFunctionSubstitution.buildRwLockRdLockFunctionStatements(
               Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());

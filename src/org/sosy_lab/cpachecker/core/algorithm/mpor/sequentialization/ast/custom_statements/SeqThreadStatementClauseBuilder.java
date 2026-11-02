@@ -190,6 +190,7 @@ public record SeqThreadStatementClauseBuilder(
     SeqThreadStatementBuilder statementBuilder =
         new SeqThreadStatementBuilder(
             options,
+            machineModel,
             pThread,
             allThreads,
             substituteEdges,
