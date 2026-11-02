@@ -429,12 +429,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_MULTIPLICATION;
         }
-      }
-    }
-
-    // Match Non-Linear Integer Arithmetic logic
-    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsNonLinearIntegerArithmetic)) {
-      switch (pSymbol) {
+        // LIA allows them only with a numeral as divisor, which we do not check either
         case "mod" -> {
           Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_MOD;

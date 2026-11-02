@@ -59,10 +59,6 @@ public final class SmtLibLogic implements Serializable {
           Theory.LINEAR_INTEGER_REAL_ARITHMETIC,
           Theory.NON_LINEAR_INTEGER_REAL_ARITHMETIC);
 
-  private static final ImmutableSet<Theory> NON_LINEAR_INTEGER_ARITHMETIC =
-      Sets.immutableEnumSet(
-          Theory.NON_LINEAR_INTEGER_ARITHMETIC, Theory.NON_LINEAR_INTEGER_REAL_ARITHMETIC);
-
   private final String name;
   private final ImmutableSet<Theory> theories;
 
@@ -96,10 +92,6 @@ public final class SmtLibLogic implements Serializable {
 
   public boolean containsIntegerArithmetic() {
     return !Sets.intersection(theories, INTEGER_ARITHMETIC).isEmpty();
-  }
-
-  public boolean containsNonLinearIntegerArithmetic() {
-    return !Sets.intersection(theories, NON_LINEAR_INTEGER_ARITHMETIC).isEmpty();
   }
 
   public boolean containsBitvectorOperations() {

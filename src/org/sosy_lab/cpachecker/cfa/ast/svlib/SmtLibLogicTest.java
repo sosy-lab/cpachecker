@@ -15,40 +15,38 @@ import org.junit.Test;
 
 public class SmtLibLogicTest {
 
-  private static void assertTheories(
-      String pLogic, boolean pIntegers, boolean pNonLinearIntegers, boolean pBitvectors) {
+  private static void assertTheories(String pLogic, boolean pIntegers, boolean pBitvectors) {
     SmtLibLogic logic = SmtLibLogic.fromString(pLogic);
     assertThat(logic.toString()).isEqualTo(pLogic);
     assertThat(logic.containsIntegerArithmetic()).isEqualTo(pIntegers);
-    assertThat(logic.containsNonLinearIntegerArithmetic()).isEqualTo(pNonLinearIntegers);
     assertThat(logic.containsBitvectorOperations()).isEqualTo(pBitvectors);
   }
 
   @Test
   public void logicsOfTheTranslatedTasks() {
-    assertTheories("ALL", true, true, true);
-    assertTheories("LIA", true, false, false);
-    assertTheories("QF_LIA", true, false, false);
-    assertTheories("QF_NIA", true, true, false);
-    assertTheories("QF_ALIA", true, false, false);
-    assertTheories("QF_ANIA", true, true, false);
-    assertTheories("QF_UFLIA", true, false, false);
-    assertTheories("QF_BV", false, false, true);
-    assertTheories("QF_ABV", false, false, true);
-    assertTheories("QF_BVFP", false, false, true);
-    assertTheories("QF_ABVFP", false, false, true);
-    assertTheories("QF_UFBVLIA", true, false, true);
-    assertTheories("QF_AUFBVLIA", true, false, true);
-    assertTheories("UFBVFPDTNIRA", true, true, true);
-    assertTheories("AUFBVFPDTNIRA", true, true, true);
+    assertTheories("ALL", true, true);
+    assertTheories("LIA", true, false);
+    assertTheories("QF_LIA", true, false);
+    assertTheories("QF_NIA", true, false);
+    assertTheories("QF_ALIA", true, false);
+    assertTheories("QF_ANIA", true, false);
+    assertTheories("QF_UFLIA", true, false);
+    assertTheories("QF_BV", false, true);
+    assertTheories("QF_ABV", false, true);
+    assertTheories("QF_BVFP", false, true);
+    assertTheories("QF_ABVFP", false, true);
+    assertTheories("QF_UFBVLIA", true, true);
+    assertTheories("QF_AUFBVLIA", true, true);
+    assertTheories("UFBVFPDTNIRA", true, true);
+    assertTheories("AUFBVFPDTNIRA", true, true);
   }
 
   @Test
   public void otherLogics() {
-    assertTheories("QF_AX", false, false, false);
-    assertTheories("QF_IDL", true, false, false);
-    assertTheories("QF_LRA", false, false, false);
-    assertTheories("QF_SLIA", true, false, false);
+    assertTheories("QF_AX", false, false);
+    assertTheories("QF_IDL", true, false);
+    assertTheories("QF_LRA", false, false);
+    assertTheories("QF_SLIA", true, false);
   }
 
   @Test
