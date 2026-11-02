@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -55,6 +56,9 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
+
+  public static ImmutableSet<MachineModel> SUPPORTED_MACHINE_MODELS =
+      ImmutableSet.of(MachineModel.LINUX32, MachineModel.LINUX64);
 
   /** Handles input program rejections and throws a {@link UnsupportedCodeException} accordingly. */
   public static void handleRejections(CFA pInputCfa) throws UnsupportedCodeException {
@@ -87,12 +91,9 @@ public class InputRejection {
   }
 
   private static void checkUnsupportedMachineModels(CFA pInputCfa) throws UnsupportedCodeException {
-    switch (pInputCfa.getMachineModel()) {
-      case LINUX32, LINUX64 -> {}
-      case ARM, ARM64 ->
-          throw new UnsupportedCodeException(
-              InputMessage.UNSUPPORTED_MACHINE_MODEL.formatMessage(pInputCfa.getMachineModel()),
-              null);
+    if (!SUPPORTED_MACHINE_MODELS.contains(pInputCfa.getMachineModel())) {
+      throw new UnsupportedCodeException(
+          InputMessage.UNSUPPORTED_MACHINE_MODEL.formatMessage(pInputCfa.getMachineModel()), null);
     }
   }
 

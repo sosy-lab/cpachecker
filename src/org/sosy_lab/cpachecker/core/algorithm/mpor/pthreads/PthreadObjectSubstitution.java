@@ -15,6 +15,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -34,9 +35,11 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class PthreadObjectSubstitution {
 
-  public static CIdExpression substitutePthreadObjectType(CIdExpression pIdExpression) {
+  public static CIdExpression substitutePthreadObjectType(
+      CIdExpression pIdExpression, MachineModel pMachineModel) {
     CType typeSubstitute =
-        substitutePthreadObjectTypes(pIdExpression.getExpressionType(), ImmutableSet.of());
+        substitutePthreadObjectTypes(
+            pIdExpression.getExpressionType(), ImmutableSet.of(), pMachineModel);
 
     CVariableDeclaration variableDeclaration =
         (CVariableDeclaration) pIdExpression.getDeclaration();
@@ -68,13 +71,13 @@ public class PthreadObjectSubstitution {
    * but only {@link CElaboratedType} so that the {@link CCompositeType} is not redeclared.
    */
   public static CType substitutePthreadObjectTypes(
-      CType pType, ImmutableSet<Class<? extends CType>> pClasses) {
+      CType pType, ImmutableSet<Class<? extends CType>> pClasses, MachineModel pMachineModel) {
 
     CType substituted = pType;
     // replace all pthread object types, which is necessary for structs that contain multiple
     // pthread object types
     for (PthreadObjectType pObjectType : PthreadObjectType.values()) {
-      for (CType substituteType : pObjectType.getSubstituteTypes()) {
+      for (CType substituteType : pObjectType.getSubstituteTypes().get(pMachineModel)) {
         if (pClasses.isEmpty() || pClasses.stream().anyMatch(c -> c.isInstance(substituteType))) {
           CTypeSubstitutionVisitor substitutionVisitor =
               new CTypeSubstitutionVisitor(

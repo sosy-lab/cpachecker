@@ -8,65 +8,105 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Arrays;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public enum PthreadObjectType {
-  COUNT("", true, ImmutableSet.of()),
+  COUNT("", true, ImmutableSetMultimap.of()),
   PTHREAD_BARRIER_T(
       "pthread_barrier_t",
       true,
-      ImmutableSet.of(
-          PthreadObjectSubstitutions.BARRIER_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.BARRIER_TYPEDEF_TYPE)),
+      ImmutableSetMultimap.<MachineModel, CType>builder()
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.BARRIER_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.BARRIER_TYPEDEF_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.BARRIER_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.BARRIER_TYPEDEF_TYPE)
+          .build()),
   PTHREAD_COND_T(
       "pthread_cond_t",
       true,
-      ImmutableSet.of(
-          PthreadObjectSubstitutions.COND_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.COND_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.COND_TYPEDEF_TYPE)),
-  PTHREAD_KEY_T("pthread_key_t", false, ImmutableSet.of()),
+      ImmutableSetMultimap.<MachineModel, CType>builder()
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.COND_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.COND_ELABORATED_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.COND_TYPEDEF_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.COND_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.COND_ELABORATED_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.COND_TYPEDEF_TYPE)
+          .build()),
+  PTHREAD_KEY_T("pthread_key_t", false, ImmutableSetMultimap.of()),
   PTHREAD_MUTEX_T(
       "pthread_mutex_t",
       true,
-      ImmutableSet.of(
-          PthreadObjectSubstitutions.MUTEX_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE)),
+      ImmutableSetMultimap.<MachineModel, CType>builder()
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.ILP32_MUTEX_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.ILP32_MUTEX_ELABORATED_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.ILP32_MUTEX_TYPEDEF_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.LP64_MUTEX_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.LP64_MUTEX_ELABORATED_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.LP64_MUTEX_TYPEDEF_TYPE)
+          .build()),
   PTHREAD_ONCE_T(
-      "pthread_once_t", true, ImmutableSet.of(PthreadObjectSubstitutions.ONCE_TYPEDEF_TYPE)),
+      "pthread_once_t",
+      true,
+      ImmutableSetMultimap.<MachineModel, CType>builder()
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.ONCE_TYPEDEF_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.ONCE_TYPEDEF_TYPE)
+          .build()),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
       true,
-      ImmutableSet.of(
-          PthreadObjectSubstitutions.RWLOCK_COMPOSITE_TYPE,
-          PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.RWLOCK_TYPEDEF_TYPE)),
-  PTHREAD_T("pthread_t", false, ImmutableSet.of()),
-  RETURN_VALUE("", true, ImmutableSet.of()),
-  START_ROUTINE("", true, ImmutableSet.of()),
-  START_ROUTINE_ARGUMENT("", true, ImmutableSet.of());
+      ImmutableSetMultimap.<MachineModel, CType>builder()
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.RWLOCK_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE)
+          .put(MachineModel.LINUX32, PthreadObjectSubstitutions.RWLOCK_TYPEDEF_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.RWLOCK_COMPOSITE_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE)
+          .put(MachineModel.LINUX64, PthreadObjectSubstitutions.RWLOCK_TYPEDEF_TYPE)
+          .build()),
+  PTHREAD_T("pthread_t", false, ImmutableSetMultimap.of()),
+  RETURN_VALUE("", true, ImmutableSetMultimap.of()),
+  START_ROUTINE("", true, ImmutableSetMultimap.of()),
+  START_ROUTINE_ARGUMENT("", true, ImmutableSetMultimap.of());
 
   private final String name;
 
   private final boolean isArraySupported;
 
+  /**
+   * The substitute types used in the sequentialization. The substitutes depend on the underlying
+   * {@link MachineModel}.
+   */
   @SuppressWarnings("Immutable")
-  private final ImmutableSet<CType> substituteTypes;
+  private final ImmutableSetMultimap<MachineModel, CType> substituteTypes;
 
-  PthreadObjectType(String pName, boolean pIsArraySupported, ImmutableSet<CType> pSubstituteTypes) {
+  PthreadObjectType(
+      String pName,
+      boolean pIsArraySupported,
+      ImmutableSetMultimap<MachineModel, CType> pSubstituteTypes) {
+
+    if (!pSubstituteTypes.isEmpty()) {
+      InputRejection.SUPPORTED_MACHINE_MODELS.forEach(
+          m -> checkArgument(pSubstituteTypes.containsKey(m)));
+    }
+
     name = pName;
     isArraySupported = pIsArraySupported;
     substituteTypes = pSubstituteTypes;
@@ -80,7 +120,7 @@ public enum PthreadObjectType {
     return isArraySupported;
   }
 
-  public ImmutableSet<CType> getSubstituteTypes() {
+  public ImmutableSetMultimap<MachineModel, CType> getSubstituteTypes() {
     return substituteTypes;
   }
 
@@ -148,7 +188,15 @@ public enum PthreadObjectType {
     private static final CCompositeTypeMemberDeclaration DUMMY_I_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_i");
 
+    private static final CCompositeTypeMemberDeclaration DUMMY_A_POINTER_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CPointerType.POINTER_TO_CHAR, "dummy_a_ptr");
+
+    private static final CCompositeTypeMemberDeclaration DUMMY_B_POINTER_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CPointerType.POINTER_TO_CHAR, "dummy_b_ptr");
+
     // pthread_barrier_t
+
+    // pthread_barrier_t is the same for both ILP32 and LP64 machine models.
 
     private static final String BARRIER_NAME = "pthread_barrier_t";
 
@@ -200,7 +248,10 @@ public enum PthreadObjectType {
     static final CCompositeTypeMemberDeclaration MUTEX_LOCKED_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "LOCKED");
 
-    private static final CCompositeType MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE =
+    // ILP32
+    // pthread_mutex_t m = { { 0, 0, 0, 0, 0, { { 0, 0 } } } };
+
+    private static final CCompositeType ILP32_MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
@@ -209,23 +260,24 @@ public enum PthreadObjectType {
             MUTEX_INNER_INNER_INNER_LIST_SUBSTITUTION_NAME);
 
     private static final CCompositeTypeMemberDeclaration
-        MUTEX_INNER_INNER_INNER_LIST_MEMBER_DECLARATION =
+        ILP32_MUTEX_INNER_INNER_INNER_LIST_MEMBER_DECLARATION =
             new CCompositeTypeMemberDeclaration(
-                MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_INNER_LIST_NAME);
+                ILP32_MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_INNER_LIST_NAME);
 
-    private static final CCompositeType MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE =
+    private static final CCompositeType ILP32_MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
-            ImmutableList.of(MUTEX_INNER_INNER_INNER_LIST_MEMBER_DECLARATION),
+            ImmutableList.of(ILP32_MUTEX_INNER_INNER_INNER_LIST_MEMBER_DECLARATION),
             MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME,
             MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME);
 
-    private static final CCompositeTypeMemberDeclaration MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(
-            MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_LIST_NAME);
+    private static final CCompositeTypeMemberDeclaration
+        ILP32_MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION =
+            new CCompositeTypeMemberDeclaration(
+                ILP32_MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_LIST_NAME);
 
-    private static final CCompositeType MUTEX_INNER_LIST_COMPOSITE_TYPE =
+    private static final CCompositeType ILP32_MUTEX_INNER_LIST_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
@@ -235,41 +287,106 @@ public enum PthreadObjectType {
                 DUMMY_B_MEMBER_DECLARATION,
                 DUMMY_C_MEMBER_DECLARATION,
                 DUMMY_D_MEMBER_DECLARATION,
-                MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION),
+                ILP32_MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION),
             MUTEX_INNER_LIST_SUBSTITUTION_NAME,
             MUTEX_INNER_LIST_SUBSTITUTION_NAME);
 
-    static final CElaboratedType MUTEX_INNER_LIST_ELABORATED_TYPE =
+    static final CElaboratedType ILP32_MUTEX_INNER_LIST_ELABORATED_TYPE =
         new CElaboratedType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
             MUTEX_INNER_LIST_SUBSTITUTION_NAME,
             MUTEX_INNER_LIST_SUBSTITUTION_NAME,
-            MUTEX_INNER_LIST_COMPOSITE_TYPE);
+            ILP32_MUTEX_INNER_LIST_COMPOSITE_TYPE);
 
-    static final CCompositeTypeMemberDeclaration MUTEX_INNER_LIST_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(MUTEX_INNER_LIST_COMPOSITE_TYPE, INNER_LIST_NAME);
+    static final CCompositeTypeMemberDeclaration ILP32_MUTEX_INNER_LIST_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(ILP32_MUTEX_INNER_LIST_COMPOSITE_TYPE, INNER_LIST_NAME);
 
-    private static final CCompositeType MUTEX_COMPOSITE_TYPE =
+    private static final CCompositeType ILP32_MUTEX_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
-            ImmutableList.of(MUTEX_INNER_LIST_MEMBER_DECLARATION),
+            ImmutableList.of(ILP32_MUTEX_INNER_LIST_MEMBER_DECLARATION),
             MUTEX_SUBSTITUTION_NAME,
             MUTEX_SUBSTITUTION_NAME);
 
-    static final CElaboratedType MUTEX_ELABORATED_TYPE =
+    static final CElaboratedType ILP32_MUTEX_ELABORATED_TYPE =
         new CElaboratedType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
             MUTEX_SUBSTITUTION_NAME,
             MUTEX_SUBSTITUTION_NAME,
-            MUTEX_COMPOSITE_TYPE);
+            ILP32_MUTEX_COMPOSITE_TYPE);
 
-    private static final CTypedefType MUTEX_TYPEDEF_TYPE =
-        new CTypedefType(CTypeQualifiers.NONE, MUTEX_NAME, MUTEX_ELABORATED_TYPE);
+    private static final CTypedefType ILP32_MUTEX_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, MUTEX_NAME, ILP32_MUTEX_ELABORATED_TYPE);
+
+    // LP64
+    // pthread_mutex_t m = { { 0, 0, 0, 0, 0, 0, 0, { (void*)0, (void*)0 } } };
+
+    private static final CCompositeType LP64_MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE =
+        new CCompositeType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.of(
+                DUMMY_A_POINTER_MEMBER_DECLARATION, DUMMY_B_POINTER_MEMBER_DECLARATION),
+            MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME,
+            MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME);
+
+    private static final CCompositeTypeMemberDeclaration
+        LP64_MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION =
+            new CCompositeTypeMemberDeclaration(
+                LP64_MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_LIST_NAME);
+
+    private static final CCompositeType LP64_MUTEX_INNER_LIST_COMPOSITE_TYPE =
+        new CCompositeType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.of(
+                MUTEX_LOCKED_MEMBER_DECLARATION,
+                DUMMY_A_MEMBER_DECLARATION,
+                DUMMY_B_MEMBER_DECLARATION,
+                DUMMY_C_MEMBER_DECLARATION,
+                DUMMY_D_MEMBER_DECLARATION,
+                DUMMY_E_MEMBER_DECLARATION,
+                DUMMY_F_MEMBER_DECLARATION,
+                LP64_MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION),
+            MUTEX_INNER_LIST_SUBSTITUTION_NAME,
+            MUTEX_INNER_LIST_SUBSTITUTION_NAME);
+
+    static final CElaboratedType LP64_MUTEX_INNER_LIST_ELABORATED_TYPE =
+        new CElaboratedType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            MUTEX_INNER_LIST_SUBSTITUTION_NAME,
+            MUTEX_INNER_LIST_SUBSTITUTION_NAME,
+            LP64_MUTEX_INNER_LIST_COMPOSITE_TYPE);
+
+    static final CCompositeTypeMemberDeclaration LP64_MUTEX_INNER_LIST_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(LP64_MUTEX_INNER_LIST_COMPOSITE_TYPE, INNER_LIST_NAME);
+
+    private static final CCompositeType LP64_MUTEX_COMPOSITE_TYPE =
+        new CCompositeType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.of(LP64_MUTEX_INNER_LIST_MEMBER_DECLARATION),
+            MUTEX_SUBSTITUTION_NAME,
+            MUTEX_SUBSTITUTION_NAME);
+
+    static final CElaboratedType LP64_MUTEX_ELABORATED_TYPE =
+        new CElaboratedType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            MUTEX_SUBSTITUTION_NAME,
+            MUTEX_SUBSTITUTION_NAME,
+            LP64_MUTEX_COMPOSITE_TYPE);
+
+    private static final CTypedefType LP64_MUTEX_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, MUTEX_NAME, LP64_MUTEX_ELABORATED_TYPE);
 
     // pthread_cond_t
+
+    // pthread_cond_t is the same for both ILP32 and LP64 machine models.
 
     private static final String COND_NAME = "pthread_cond_t";
 
@@ -408,12 +525,16 @@ public enum PthreadObjectType {
 
     // pthread_once_t
 
+    // pthread_rwlock_t is the same for both ILP32 and LP64 machine models.
+
     private static final String ONCE_NAME = "pthread_once_t";
 
     private static final CTypedefType ONCE_TYPEDEF_TYPE =
         new CTypedefType(CTypeQualifiers.NONE, ONCE_NAME, CNumericTypes.UNSIGNED_INT);
 
     // pthread_rwlock_t
+
+    // pthread_rwlock_t is the same for both ILP32 and LP64 machine models.
 
     private static final String RWLOCK_NAME = "pthread_rwlock_t";
 

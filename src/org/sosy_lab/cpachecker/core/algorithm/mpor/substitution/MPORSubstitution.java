@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
@@ -57,6 +58,8 @@ public class MPORSubstitution {
   private final boolean isDummy;
 
   private final MPOROptions options;
+
+  private final MachineModel machineModel;
 
   private final MPORThread thread;
 
@@ -93,6 +96,7 @@ public class MPORSubstitution {
   MPORSubstitution(
       boolean pIsDummy,
       MPOROptions pOptions,
+      MachineModel pMachineModel,
       MPORThread pThread,
       ImmutableList<Entry<CVariableDeclaration, CIdExpression>> pGlobalVariableSubstitutes,
       ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
@@ -106,6 +110,7 @@ public class MPORSubstitution {
 
     isDummy = pIsDummy;
     options = pOptions;
+    machineModel = pMachineModel;
     thread = pThread;
     globalVariableSubstitutes = pGlobalVariableSubstitutes;
     localVariableSubstitutes = pLocalVariableDeclarationSubstitutes;
@@ -207,7 +212,7 @@ public class MPORSubstitution {
               new CArraySubscriptExpression(
                   arraySubscript.getFileLocation(),
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      arraySubscript.getExpressionType(), ImmutableSet.of()),
+                      arraySubscript.getExpressionType(), ImmutableSet.of(), machineModel),
                   arraySubstitute,
                   subscriptSubstitute);
           MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
@@ -233,7 +238,7 @@ public class MPORSubstitution {
               new CFieldReference(
                   fieldReference.getFileLocation(),
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      fieldReference.getExpressionType(), ImmutableSet.of()),
+                      fieldReference.getExpressionType(), ImmutableSet.of(), machineModel),
                   fieldReference.getFieldName(),
                   fieldOwnerSubstitute,
                   fieldReference.isPointerDereference());
@@ -246,7 +251,7 @@ public class MPORSubstitution {
         return new CUnaryExpression(
             unary.getFileLocation(),
             PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                unary.getExpressionType(), ImmutableSet.of()),
+                unary.getExpressionType(), ImmutableSet.of(), machineModel),
             substitute(
                 unary.getOperand(),
                 pCallContext,
@@ -263,7 +268,7 @@ public class MPORSubstitution {
             new CPointerExpression(
                 pointer.getFileLocation(),
                 PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                    pointer.getExpressionType(), ImmutableSet.of()),
+                    pointer.getExpressionType(), ImmutableSet.of(), machineModel),
                 substitute(
                     pointer.getOperand(),
                     pCallContext,
@@ -280,7 +285,7 @@ public class MPORSubstitution {
         return new CCastExpression(
             cast.getFileLocation(),
             PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                cast.getExpressionType(), ImmutableSet.of()),
+                cast.getExpressionType(), ImmutableSet.of(), machineModel),
             substitute(
                 cast.getOperand(),
                 pCallContext,
@@ -469,7 +474,8 @@ public class MPORSubstitution {
                   "pSimpleDeclaration must be variable or parameter declaration, got: "
                       + pSimpleDeclaration.toASTString());
         };
-    return PthreadObjectSubstitution.substitutePthreadObjectType(idExpressionSubstitute);
+    return PthreadObjectSubstitution.substitutePthreadObjectType(
+        idExpressionSubstitute, machineModel);
   }
 
   // CParameterDeclaration substitutes =============================================================

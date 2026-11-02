@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record MPORSubstitutionBuilder(
     MPOROptions options,
+    MachineModel machineModel,
     ImmutableList<AVariableDeclaration> globalVariableDeclarations,
     ImmutableList<MPORThread> threads,
     SequentializationUtils utils) {
@@ -87,6 +89,7 @@ public record MPORSubstitutionBuilder(
           new MPORSubstitution(
               false,
               options,
+              machineModel,
               thread,
               globalVariableSubstitutes,
               localVariableSubstitutes,
@@ -113,6 +116,7 @@ public record MPORSubstitutionBuilder(
         new MPORSubstitution(
             true,
             options,
+            machineModel,
             pThread,
             dummyGlobalSubstitutes,
             ImmutableTable.of(),
@@ -409,6 +413,7 @@ public record MPORSubstitutionBuilder(
         new MPORSubstitution(
             true,
             options,
+            machineModel,
             pThread,
             pGlobalSubstitutes,
             dummySubstitutes,

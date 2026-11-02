@@ -104,7 +104,8 @@ public class SequentializationFields {
     allGlobalVariableDeclarations = CFAUtils.getGlobalVariableDeclarations(pInputCfa);
 
     MPORSubstitutionBuilder substitutionBuilder =
-        new MPORSubstitutionBuilder(pOptions, allGlobalVariableDeclarations, threads, pUtils);
+        new MPORSubstitutionBuilder(
+            pOptions, pInputCfa.getMachineModel(), allGlobalVariableDeclarations, threads, pUtils);
     substitutions = substitutionBuilder.buildSubstitutions();
     mainSubstitution =
         substitutions.stream().filter(s -> s.getThread().isMain()).findAny().orElseThrow();

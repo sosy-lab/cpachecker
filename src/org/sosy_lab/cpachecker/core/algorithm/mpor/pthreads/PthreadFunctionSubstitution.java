@@ -171,13 +171,13 @@ public class PthreadFunctionSubstitution {
     CFieldReference mutexFieldReference =
         new CFieldReference(
             FileLocation.DUMMY,
-            PthreadObjectSubstitutions.MUTEX_INNER_LIST_ELABORATED_TYPE,
-            PthreadObjectSubstitutions.MUTEX_INNER_LIST_MEMBER_DECLARATION.getName(),
+            PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_ELABORATED_TYPE,
+            PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_MEMBER_DECLARATION.getName(),
             pMutexExpression,
             pMutexExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
     return new CFieldReference(
         FileLocation.DUMMY,
-        PthreadObjectSubstitutions.MUTEX_INNER_LIST_ELABORATED_TYPE,
+        PthreadObjectSubstitutions.ILP32_MUTEX_INNER_LIST_ELABORATED_TYPE,
         PthreadObjectSubstitutions.MUTEX_LOCKED_MEMBER_DECLARATION.getName(),
         mutexFieldReference,
         false);
