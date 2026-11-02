@@ -5901,8 +5901,7 @@ termination.validation.maxInductionDepth = -1
 
 # configuration of the termination analysis that proves the well-foundedness
 # of the transition invariants by proving the termination of an
-# overapproximating program, its resource limits apply to each transition
-# invariant
+# overapproximating program
 termination.validation.wellFoundednessConfig = no default value
 
 # deprecated name for termination.violation.witness.graphml

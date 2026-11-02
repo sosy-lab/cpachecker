@@ -26,9 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -67,7 +65,6 @@ import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -80,7 +77,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       description =
           "configuration of the termination analysis that proves the well-foundedness of the"
               + " transition invariants by proving the termination of an overapproximating"
-              + " program, its resource limits apply to each transition invariant")
+              + " program")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path wellFoundednessConfig = null;
 
@@ -170,51 +167,35 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       CFA overapproximatingCFA = cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
       CFANode mainEntryNode = overapproximatingCFA.getMainFunction();
 
-      // The termination analysis may not terminate, so it gets the limits of its configuration
-      Configuration checkConfig =
-          Configuration.builder().loadFromFile(wellFoundednessConfig).build();
-      ShutdownManager checkShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-      ResourceLimitChecker limitChecker =
-          ResourceLimitChecker.fromConfiguration(checkConfig, logger, checkShutdownManager);
-      limitChecker.start();
-      try {
-        // CPA
-        CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(
-                checkConfig,
-                logger,
-                checkShutdownManager.getNotifier(),
-                AggregatedReachedSets.empty(),
-                overapproximatingCFA);
-        // Only the termination of the generated program is checked, the witness does not belong
-        // to the generated program
-        Specification terminationSpecification =
-            Specification.alwaysSatisfied()
-                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION));
-        ConfigurableProgramAnalysis terminationCpa =
-            coreComponents.createCPA(terminationSpecification);
-        // Reached Set
-        ReachedSet reachedSet =
-            coreComponents.createInitializedReachedSet(terminationCpa, mainEntryNode);
+      // CPA
+      CoreComponentsFactory coreComponents =
+          new CoreComponentsFactory(
+              Configuration.builder().loadFromFile(wellFoundednessConfig).build(),
+              logger,
+              shutdownNotifier,
+              AggregatedReachedSets.empty(),
+              overapproximatingCFA);
+      // Only the termination of the generated program is checked, the witness does not belong
+      // to the generated program
+      Specification terminationSpecification =
+          Specification.alwaysSatisfied()
+              .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION));
+      ConfigurableProgramAnalysis terminationCpa =
+          coreComponents.createCPA(terminationSpecification);
+      // Reached Set
+      ReachedSet reachedSet =
+          coreComponents.createInitializedReachedSet(terminationCpa, mainEntryNode);
 
-        // Running the algorithm
-        Algorithm terminationAlgorithm =
-            coreComponents.createAlgorithm(terminationCpa, terminationSpecification);
-        AlgorithmStatus status = terminationAlgorithm.run(reachedSet);
-        checkShutdownManager.getNotifier().shutdownIfNecessary();
+      // Running the algorithm
+      Algorithm terminationAlgorithm =
+          coreComponents.createAlgorithm(terminationCpa, terminationSpecification);
+      AlgorithmStatus status = terminationAlgorithm.run(reachedSet);
+      shutdownNotifier.shutdownIfNecessary();
 
-        // The formula is only well-founded if the termination of the program is proven, i.e., if
-        // there is no non-terminating loop and the analysis is sound
-        if (reachedSet.wasTargetReached() || !status.isSound()) {
-          return false;
-        }
-      } catch (InterruptedException e) {
-        // Only the limits of the check stop the check without stopping the validation
-        shutdownNotifier.shutdownIfNecessary();
-        logger.log(Level.FINE, "Proving the well-foundedness reached a resource limit.");
+      // The formula is only well-founded if the termination of the program is proven, i.e., if
+      // there is no non-terminating loop and the analysis is sound
+      if (reachedSet.wasTargetReached() || !status.isSound()) {
         return false;
-      } finally {
-        limitChecker.cancel();
       }
     } catch (InvalidConfigurationException | IOException | ParserException e) {
       throw new CPAException(
