@@ -23,8 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  */
 final class OverflowCheckEdge extends BlankEdge {
 
-  private static final long serialVersionUID = 1L;
-
   private final CFAEdge checkedEdge;
 
   OverflowCheckEdge(CFAEdge pCheckedEdge) {
