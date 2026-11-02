@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -57,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -684,21 +687,27 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(params.get(0) instanceof CUnaryExpression cUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
-    CExpression operand = cUnaryExpression.getOperand();
-    if (operand instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      CExpression subscriptExpression = cArraySubscriptExpression.getSubscriptExpression();
-      if (!(subscriptExpression instanceof ALiteralExpression)) {
-        throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
-      }
+    // The lock id is the text of the mutex, so it must always denote the same mutex
+    if (!hasFixedAddress(cUnaryExpression.getOperand())) {
+      throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
     }
-    //  CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-    //  if (!(expr0 instanceof CIdExpression)) {
-    //    throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-    //  }
-    //  String lockId = ((CIdExpression) expr0).getName();
-
     String lockId = cUnaryExpression.getOperand().toString();
     return lockId;
+  }
+
+  private static boolean hasFixedAddress(CExpression pExpression) {
+    return switch (pExpression) {
+      case CIdExpression id ->
+          id.getDeclaration() instanceof CVariableDeclaration variable && variable.isGlobal();
+      case CFieldReference field ->
+          !field.isPointerDereference() && hasFixedAddress(field.getFieldOwner());
+      case CArraySubscriptExpression element ->
+          element.getSubscriptExpression() instanceof ALiteralExpression
+              && element.getArrayExpression().getExpressionType().getCanonicalType()
+                  instanceof CArrayType
+              && hasFixedAddress(element.getArrayExpression());
+      default -> false;
+    };
   }
 
   /** Tracks whether the mutex attribute has the type PTHREAD_MUTEX_RECURSIVE. */
