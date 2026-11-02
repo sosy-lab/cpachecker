@@ -102,7 +102,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibArrayConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
@@ -111,6 +114,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
@@ -119,6 +123,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibNotRecurringTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRecurringTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -1169,6 +1175,24 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(
+        SvLibFloatingPointConstantTerm pSvLibFloatingPointConstantTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibArrayConstantTerm pSvLibArrayConstantTerm)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
         SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
         throws NoException {
       return pSvLibSymbolApplicationRelationalTerm.getTerms();
@@ -1187,6 +1211,12 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
     public Iterable<? extends AAstNode> accept(SvLibTagReference pSvLibTagReference) {
       return ImmutableList.of();
     }
@@ -1200,6 +1230,16 @@ public class CFAUtils {
     public Iterable<? extends AAstNode> accept(SvLibRequiresTag pSvLibRequiresTag)
         throws NoException {
       return ImmutableList.of(pSvLibRequiresTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibRecurringTag pSvLibRecurringTag) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibNotRecurringTag pSvLibNotRecurringTag) {
+      return ImmutableList.of();
     }
 
     @Override

@@ -9,22 +9,34 @@
 package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibArrayConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -50,13 +62,24 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceEntryProcedu
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceSetGlobalVariable;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceStep;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibViolatedProperty;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
+import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
+import org.sosy_lab.cpachecker.core.counterexample.Memory;
+import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
+import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public class CounterexampleToSvLibWitnessExport {
   @SuppressWarnings("unused")
@@ -87,10 +110,15 @@ public class CounterexampleToSvLibWitnessExport {
       violatedTags = setOfPropertiesAtLeastOneViolated;
     }
 
-    Set<SvLibTagReference> tagReferences = svLibMetadata.tagReferences().get(nodeWithViolatedTag);
+    // Several statements can start at the node, and only the tags of the one with the violated
+    // property name it.
+    List<SvLibTagReference> tagReferences =
+        svLibMetadata.tagReferences().get(nodeWithViolatedTag).stream()
+            .filter(tagRef -> svLibMetadata.tagReferenceAnnotations().containsKey(tagRef))
+            .toList();
     if (tagReferences.size() == 1) {
       // If we know exactly which tag was violated, include it in the property.
-      SvLibTagReference tagRef = tagReferences.iterator().next();
+      SvLibTagReference tagRef = tagReferences.getFirst();
       return new SvLibIncorrectTagProperty(tagRef.getFileLocation(), tagRef, violatedTags);
     } else if (tagReferences.isEmpty()) {
       // Otherwise, just return the violated tags without a specific reference.
@@ -105,16 +133,73 @@ public class CounterexampleToSvLibWitnessExport {
   }
 
   private Optional<SvLibConstantTerm> getValue(
-      ConcreteState pState, String pVarName, @Nullable String pProcedureName, SvLibType pType) {
-    // Variable declarations can only be global
-    IDExpression idExpr = new IDExpression(pVarName, pProcedureName);
-    if (pState.hasValueForLeftHandSide(idExpr)) {
+      ConcreteState pState, String pQualifiedName, SvLibType pType) {
+    // The concrete state knows the variable by the name of the formulas
+    String formulaName = cleanVariableNameForJavaSMT(pQualifiedName);
+    if (pType instanceof SvLibSmtLibArrayType arrayType) {
+      // The elements of an array are the values of the memory with its name
+      Map<Address, Object> elements =
+          pState.getMemory(formulaName).map(Memory::getValues).orElse(ImmutableMap.of());
+      return Optional.of(arrayValue(arrayType, elements));
+    }
+    LeftHandSide variable = AssignmentToPathAllocator.createLeftHandSide(formulaName);
+    if (pState.hasValueForLeftHandSide(variable)) {
       // Transform the value into a SvLibConstantTerm
-      Object value = pState.getVariableValue(idExpr);
+      Object value = pState.getVariableValue(variable);
       return Optional.of(SvLibConstantTerm.of(value, pType));
     }
 
     return Optional.empty();
+  }
+
+  /**
+   * The array with the given elements, the solver did not need the value of any other index, so
+   * they have an arbitrary one.
+   */
+  private static SvLibArrayConstantTerm arrayValue(
+      SvLibSmtLibArrayType pType, Map<Address, Object> pElements) {
+    ImmutableMap.Builder<SvLibConstantTerm, SvLibConstantTerm> elements = ImmutableMap.builder();
+    for (Entry<Address, Object> element : pElements.entrySet()) {
+      Verify.verify(
+          element.getKey().isConcrete(), "Expected a concrete index of %s", element.getKey());
+      elements.put(
+          SvLibConstantTerm.of(element.getKey().getAddressValue(), pType.getKeysType()),
+          SvLibConstantTerm.of(element.getValue(), pType.getValuesType()));
+    }
+    return new SvLibArrayConstantTerm(
+        pType,
+        arbitraryValue(pType.getValuesType()),
+        elements.buildKeepingLast(),
+        FileLocation.DUMMY);
+  }
+
+  /** A value of the given type, for where any value will do. */
+  private static SvLibConstantTerm arbitraryValue(SvLibType pType) {
+    return switch (pType) {
+      case SvLibSmtLibPredefinedType predefinedType ->
+          switch (predefinedType) {
+            case INT -> new SvLibIntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY);
+            case BOOL -> new SvLibBooleanConstantTerm(false, FileLocation.DUMMY);
+            case REAL -> new SvLibRealConstantTerm(Rational.ZERO, FileLocation.DUMMY);
+            case ROUNDING_MODE ->
+                new SvLibRoundingModeConstantTerm(
+                    FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN, FileLocation.DUMMY);
+            case STRING -> throw new UnsupportedOperationException("No value of type String");
+          };
+      case SvLibSmtLibBitVectorType bitVectorType ->
+          new SvLibBitVectorConstantTerm(
+              BigInteger.ZERO, bitVectorType.getSize(), FileLocation.DUMMY);
+      case SvLibSmtLibFloatingPointType floatingPointType ->
+          new SvLibFloatingPointConstantTerm(
+              FloatingPointNumber.of(
+                  Sign.POSITIVE,
+                  BigInteger.ZERO,
+                  BigInteger.ZERO,
+                  (FloatingPointType) floatingPointType.toFormulaType()),
+              FileLocation.DUMMY);
+      case SvLibSmtLibArrayType arrayType -> arrayValue(arrayType, ImmutableMap.of());
+      default -> throw new UnsupportedOperationException("No value of type " + pType);
+    };
   }
 
   private SvLibInitProcVariablesStep setLocalVariablesForFunctionCall(
@@ -128,8 +213,7 @@ public class CounterexampleToSvLibWitnessExport {
       Optional<SvLibConstantTerm> assignedValue =
           getValue(
               pConcreteState,
-              paramDecl.toASTString(),
-              pProcedureDeclaration.getName(),
+              paramDecl.toSimpleDeclaration().getQualifiedName(),
               paramDecl.getType());
 
       SvLibIdTerm idTerm = new SvLibIdTerm(paramDecl.toSimpleDeclaration(), FileLocation.DUMMY);
@@ -148,7 +232,7 @@ public class CounterexampleToSvLibWitnessExport {
     for (SvLibSimpleParsingDeclaration varTerm : pStatement.getVariables()) {
       Optional<SvLibConstantTerm> assignedValue =
           getValue(
-              pConcreteState, varTerm.toASTString(), varTerm.getProcedureName(), varTerm.getType());
+              pConcreteState, varTerm.toSimpleDeclaration().getQualifiedName(), varTerm.getType());
 
       SvLibIdTerm idTerm = new SvLibIdTerm(varTerm.toSimpleDeclaration(), FileLocation.DUMMY);
       if (assignedValue.isPresent()) {
@@ -166,7 +250,7 @@ public class CounterexampleToSvLibWitnessExport {
 
     SvLibVariableDeclaration pVarDecl = (SvLibVariableDeclaration) pDeclaration;
     Optional<SvLibConstantTerm> assignedValue =
-        getValue(pConcreteState, pVarDecl.getName(), null, pVarDecl.getType());
+        getValue(pConcreteState, pVarDecl.getQualifiedName(), pVarDecl.getType());
 
     if (assignedValue.isPresent()) {
       return Optional.of(
@@ -219,6 +303,10 @@ public class CounterexampleToSvLibWitnessExport {
         SvLibProcedureDeclaration procedureDeclaration =
             svLibMetadata.functionToProcedureDeclaration().get(functionDeclaration);
         entryCall = new SvLibTraceEntryProcedure(procedureDeclaration, pCallEdge.getFileLocation());
+        // Without outputs and locals, the body starts at the entry node, which this call reaches
+        if (svLibMetadata.nodesToActualProcedureDefinitionEnd().containsKey(edge.getSuccessor())) {
+          stepsBuilder.add(setLocalVariablesForFunctionCall(concreteState, procedureDeclaration));
+        }
       } else if (inGlobalDeclarationPhase) {
         // Handle all the global declarations
         checkState(

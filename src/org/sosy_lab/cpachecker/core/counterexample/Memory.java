@@ -59,6 +59,11 @@ public class Memory {
     return values.get(address);
   }
 
+  /** The values of all addresses at which the memory holds one. */
+  public Map<Address, Object> getValues() {
+    return values;
+  }
+
   @Override
   public String toString() {
     return "Memory name=" + name + " ,  values=" + values;

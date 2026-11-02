@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibCustomType implements SvLibSmtLibType {
@@ -53,7 +54,7 @@ public final class SvLibCustomType implements SvLibSmtLibType {
 
   @Override
   public String toASTString() {
-    return type;
+    return SmtLibSymbols.quoteIfNeeded(type);
   }
 
   @Override
@@ -63,6 +64,6 @@ public final class SvLibCustomType implements SvLibSmtLibType {
 
   @Override
   public String toASTString(String declarator) {
-    return type + " " + declarator;
+    return SmtLibSymbols.quoteIfNeeded(type) + " " + declarator;
   }
 }
