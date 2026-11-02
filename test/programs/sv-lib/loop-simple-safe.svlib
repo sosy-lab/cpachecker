@@ -6,7 +6,7 @@
 ;
 ; SPDX-License-Identifier: Apache-2.0
 
-(set-logic LIA)
+(set-logic UFLIA)
 (set-option :witness-output-channel "./output/witness.svlib")
 (set-option :produce-correctness-witnesses true)
 (set-option :produce-violation-witnesses true)

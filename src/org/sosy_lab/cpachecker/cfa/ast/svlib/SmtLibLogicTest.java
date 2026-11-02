@@ -11,42 +11,52 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser;
 
 public class SmtLibLogicTest {
 
-  private static void assertTheories(String pLogic, boolean pIntegers, boolean pBitvectors) {
+  /**
+   * Checks the theories of the given logic: Int (integer arithmetic), BV (bitvectors), FP (floating
+   * point numbers), A (arrays) and UF (functions with parameters).
+   */
+  private static void assertTheories(String pLogic, String... pTheories) {
+    ImmutableSet<String> theories = ImmutableSet.copyOf(pTheories);
     SmtLibLogic logic = SmtLibLogic.fromString(pLogic);
     assertThat(logic.toString()).isEqualTo(pLogic);
-    assertThat(logic.containsIntegerArithmetic()).isEqualTo(pIntegers);
-    assertThat(logic.containsBitvectorOperations()).isEqualTo(pBitvectors);
+    assertThat(logic.containsIntegerArithmetic()).isEqualTo(theories.contains("Int"));
+    assertThat(logic.containsBitvectorOperations()).isEqualTo(theories.contains("BV"));
+    assertThat(logic.containsFloatingPointOperations()).isEqualTo(theories.contains("FP"));
+    assertThat(logic.containsArrayOperations()).isEqualTo(theories.contains("A"));
+    assertThat(logic.containsUninterpretedFunctions()).isEqualTo(theories.contains("UF"));
   }
 
   @Test
   public void logicsOfTheTranslatedTasks() {
-    assertTheories("ALL", true, true);
-    assertTheories("LIA", true, false);
-    assertTheories("QF_LIA", true, false);
-    assertTheories("QF_NIA", true, false);
-    assertTheories("QF_ALIA", true, false);
-    assertTheories("QF_ANIA", true, false);
-    assertTheories("QF_UFLIA", true, false);
-    assertTheories("QF_BV", false, true);
-    assertTheories("QF_ABV", false, true);
-    assertTheories("QF_BVFP", false, true);
-    assertTheories("QF_ABVFP", false, true);
-    assertTheories("QF_UFBVLIA", true, true);
-    assertTheories("QF_AUFBVLIA", true, true);
-    assertTheories("UFBVFPDTNIRA", true, true);
-    assertTheories("AUFBVFPDTNIRA", true, true);
+    assertTheories("ALL", "Int", "BV", "FP", "A", "UF");
+    assertTheories("LIA", "Int");
+    assertTheories("QF_LIA", "Int");
+    assertTheories("QF_NIA", "Int");
+    assertTheories("QF_ALIA", "Int", "A");
+    assertTheories("QF_ANIA", "Int", "A");
+    assertTheories("QF_UFLIA", "Int", "UF");
+    assertTheories("QF_BV", "BV");
+    assertTheories("QF_ABV", "BV", "A");
+    assertTheories("QF_BVFP", "BV", "FP");
+    assertTheories("QF_ABVFP", "BV", "FP", "A");
+    assertTheories("QF_UFBVLIA", "Int", "BV", "UF");
+    assertTheories("QF_AUFBVLIA", "Int", "BV", "A", "UF");
+    assertTheories("UFBVFPDTNIRA", "Int", "BV", "FP", "UF");
+    assertTheories("AUFBVFPDTNIRA", "Int", "BV", "FP", "A", "UF");
   }
 
   @Test
   public void otherLogics() {
-    assertTheories("QF_AX", false, false);
-    assertTheories("QF_IDL", true, false);
-    assertTheories("QF_LRA", false, false);
-    assertTheories("QF_SLIA", true, false);
+    assertTheories("QF_AX", "A");
+    assertTheories("QF_IDL", "Int");
+    assertTheories("QF_LRA");
+    assertTheories("QF_SLIA", "Int");
   }
 
   @Test
@@ -55,5 +65,49 @@ public class SmtLibLogicTest {
     assertThrows(IllegalArgumentException.class, () -> SmtLibLogic.fromString("QF_XYZ"));
     assertThrows(IllegalArgumentException.class, () -> SmtLibLogic.fromString("QF_LIAX"));
     assertThrows(IllegalArgumentException.class, () -> SmtLibLogic.fromString("all"));
+  }
+
+  private static String scriptWithCheck(String pLogic, String pDeclarations, String pTerm) {
+    return """
+    (set-logic %s)
+    %s
+    (define-proc main ((x Int)) () ()
+      (! (sequence) :tag check :check-true %s))
+    (declare-var y Int)
+    (verify-call main (y))
+    """
+        .formatted(pLogic, pDeclarations, pTerm);
+  }
+
+  @Test
+  public void termsOfTheLogicAreAccepted() throws Exception {
+    SvLibToAstParser.parseScript(scriptWithCheck("QF_ABV", "", "(= #b01 (_ bv1 2))"));
+    SvLibToAstParser.parseScript(
+        scriptWithCheck("QF_BVFP", "", "(fp.isNaN ((_ to_fp 8 24) RNE #x00000000))"));
+    SvLibToAstParser.parseScript(
+        scriptWithCheck("QF_ALIA", "", "(= 0 (select ((as const (Array Int Int)) 0) x))"));
+    SvLibToAstParser.parseScript(
+        scriptWithCheck("QF_UFLIA", "(declare-fun f (Int) Int)", "(= (f x) x)"));
+    // A function of define-fun needs no uninterpreted functions
+    SvLibToAstParser.parseScript(
+        scriptWithCheck("QF_LIA", "(define-fun g ((a Int)) Int a)", "(= (g x) x)"));
+  }
+
+  private static void assertRejected(String pScript) {
+    assertThrows(IllegalArgumentException.class, () -> SvLibToAstParser.parseScript(pScript));
+  }
+
+  @Test
+  public void termsOutsideOfTheLogicAreRejected() {
+    assertRejected(scriptWithCheck("QF_LIA", "", "(= #b01 #b01)"));
+    assertRejected(scriptWithCheck("QF_BV", "", "(fp.isNaN ((_ to_fp 8 24) RNE #x00000000))"));
+    assertRejected(
+        scriptWithCheck("QF_LIA", "", "(= 0 (select ((as const (Array Int Int)) 0) x))"));
+    assertRejected(scriptWithCheck("QF_LIA", "(declare-fun f (Int) Int)", "(= (f x) x)"));
+  }
+
+  @Test
+  public void namesOfTheoriesOutsideOfTheLogicAreSymbols() throws Exception {
+    SvLibToAstParser.parseScript(scriptWithCheck("QF_LIA", "(declare-const RNE Int)", "(= RNE x)"));
   }
 }

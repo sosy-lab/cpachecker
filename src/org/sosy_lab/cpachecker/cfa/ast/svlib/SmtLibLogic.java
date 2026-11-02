@@ -98,6 +98,19 @@ public final class SmtLibLogic implements Serializable {
     return theories.contains(Theory.BITVECTORS);
   }
 
+  public boolean containsFloatingPointOperations() {
+    return theories.contains(Theory.FLOATING_POINT_NUMBERS);
+  }
+
+  public boolean containsArrayOperations() {
+    return theories.contains(Theory.ARRAYS) || theories.contains(Theory.ARRAYS_WITH_EXTENSIONALITY);
+  }
+
+  /** Does the logic allow functions with parameters of `declare-fun`? */
+  public boolean containsUninterpretedFunctions() {
+    return theories.contains(Theory.UNINTERPRETED_FUNCTIONS);
+  }
+
   @Override
   public String toString() {
     return name;

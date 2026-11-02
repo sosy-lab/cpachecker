@@ -457,7 +457,7 @@ public class SvLibParserTest {
     SvLibScript expectedOutput =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("UFLIA"), FileLocation.DUMMY),
                 new SvLibSetOptionCommand(
                     ":witness-output-channel", "./output/witness.svlib", FileLocation.DUMMY),
                 new SvLibSetOptionCommand(
