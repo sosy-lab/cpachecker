@@ -587,4 +587,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     throw new UnsupportedOperationException();
   }
+
+  // TODO find a better solution than exposing this
+  @Override
+  public LanguageToSmtConverter<? extends Type> getConverter() {
+    return converter;
+  }
 }

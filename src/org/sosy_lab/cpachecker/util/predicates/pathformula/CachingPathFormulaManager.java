@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -255,5 +256,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormulaBuilder createNewPathFormulaBuilder() {
     return delegate.createNewPathFormulaBuilder();
+  }
+
+  // TODO find a better solution than exposing this
+  @Override
+  public LanguageToSmtConverter<? extends Type> getConverter() {
+    return delegate.getConverter();
   }
 }
