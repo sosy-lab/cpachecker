@@ -34,7 +34,7 @@
             location:
               file_name: "./concurrent-data-race-local-prefix.c"
               line: 42
-              column: 17
+              column: 35
               function: "main"
     - segment:
         - waypoint:

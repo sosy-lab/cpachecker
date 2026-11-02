@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -41,10 +42,13 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
@@ -52,6 +56,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntr
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class InvariantExchangeFormatTransformer {
 
@@ -153,6 +158,16 @@ public class InvariantExchangeFormatTransformer {
    */
   private Optional<ImmutableSet<CSimpleDeclaration>> variablesInScope(
       InvariantEntry pInvariantEntry) {
+    return nodeOfInvariant(pInvariantEntry)
+        .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
+        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
+  }
+
+  /**
+   * The node where the invariant holds, at which the variables of the invariant are in scope, if it
+   * is known. It belongs to the function of the invariant location.
+   */
+  private Optional<CFANode> nodeOfInvariant(InvariantEntry pInvariantEntry) {
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
     int line = pInvariantEntry.getLocation().getLine();
     OptionalInt column = pInvariantEntry.getLocation().getColumn();
@@ -183,8 +198,7 @@ public class InvariantExchangeFormatTransformer {
               .getTightestStatementForStarting(line, column)
               .flatMap(statement -> astCfaRelation.getNodeBeforeStatement(statement, function));
     }
-    return node.flatMap(astCfaRelation::getVariablesAndParametersInScope)
-        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
+    return node;
   }
 
   /**
@@ -226,7 +240,26 @@ public class InvariantExchangeFormatTransformer {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
 
-    Scope scope = new CProgramScope(cfa, logger);
+    CFANode locationNode =
+        cfa.getAstCfaRelation()
+            .getNodeForStatementLocation(
+                pInvariantEntry.getLocation().getLine(),
+                pInvariantEntry.getLocation().getColumn().orElseThrow())
+            .orElseThrow();
+    // The node may belong to a function called in the statement, so the function of the invariant
+    // location is preferred
+    String functionName =
+        Objects.requireNonNullElse(
+            pInvariantEntry.getLocation().getFunction(), locationNode.getFunctionName());
+    // As in the invariant, a name refers to the variable in scope, e.g., x to x__1
+    CProgramScope programScope = new CProgramScope(cfa, logger);
+    CProgramScope scope =
+        nodeOfInvariant(pInvariantEntry)
+            .map(
+                node ->
+                    TerminationArgumentsToWitnessUtils.getScopeAtNode(
+                        programScope, node, cfa.getAstCfaRelation()))
+            .orElseGet(() -> programScope.withFunctionScope(functionName));
     Set<String> alreadyDeclaredVariables = new HashSet<>();
 
     while (matcher.find()) {
@@ -240,12 +273,6 @@ public class InvariantExchangeFormatTransformer {
       }
       alreadyDeclaredVariables.add(prevVariable);
       CDeclaration prevDeclaration;
-      CFANode locationNode =
-          cfa.getAstCfaRelation()
-              .getNodeForStatementLocation(
-                  pInvariantEntry.getLocation().getLine(),
-                  pInvariantEntry.getLocation().getColumn().orElseThrow())
-              .orElseThrow();
       if (currDeclaration == null) {
         currDeclaration =
             (CVariableDeclaration)
@@ -262,8 +289,9 @@ public class InvariantExchangeFormatTransformer {
               prevVariable,
               prevVariable,
               // The scope is not relevant as these variables are not in the original program
-              locationNode.getFunctionName() + "::" + prevVariable,
-              null);
+              functionName + "::" + prevVariable,
+              null,
+              /* pHasThreadLocalStorage= */ false);
       mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }
     return mapPrevToCurr.buildOrThrow();
@@ -305,7 +333,8 @@ public class InvariantExchangeFormatTransformer {
         switch (entryElement) {
           case FunctionContractEntry functionContractEntry ->
               functionContracts.add(functionContractEntry);
-          case InvariantEntry invariantEntry -> {
+          case InvariantEntry entryWithLocation -> {
+            InvariantEntry invariantEntry = addFunctionToLocationIfNoneExists(entryWithLocation);
             if (invariantEntry.getLocation().getFunction() == null) {
               throw new InvalidYAMLWitnessException(
                   "Invariant without a function in its location: " + invariantEntry);
@@ -322,6 +351,49 @@ public class InvariantExchangeFormatTransformer {
     }
 
     return new ParsedInvariantSet(invariants.build(), functionContracts.build());
+  }
+
+  /**
+   * Returns the invariant with the column and the function of its location taken from the program
+   * where the witness omits them, which the format allows. For a loop invariant, they are those of
+   * the loop statement at the line, otherwise those of the first statement at the line.
+   */
+  private InvariantEntry addFunctionToLocationIfNoneExists(InvariantEntry pInvariantEntry) {
+    LocationRecord location = pInvariantEntry.getLocation();
+    if (location.getFunction() != null) {
+      return pInvariantEntry;
+    }
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+    InvariantRecordType type = InvariantRecordType.fromKeyword(pInvariantEntry.getType());
+    Optional<ASTElement> statement =
+        type == InvariantRecordType.LOOP_INVARIANT
+                || type == InvariantRecordType.TRANSITION_LOOP_INVARIANT
+            ? astCfaRelation
+                .getIterationStructureFollowingColumnAtTheSameLine(
+                    location.getColumn(), location.getLine())
+                .map(IterationElement::getCompleteElement)
+            : astCfaRelation.getTightestStatementForStarting(
+                location.getLine(), location.getColumn());
+    if (statement.isEmpty()) {
+      return pInvariantEntry;
+    }
+    String function = location.getFunction();
+    if (function == null) {
+      function =
+          statement.orElseThrow().edges().stream()
+              .map(edge -> edge.getPredecessor().getFunctionName())
+              .findFirst()
+              .orElse(null);
+    }
+    return new InvariantEntry(
+        pInvariantEntry.getValue(),
+        pInvariantEntry.getType(),
+        pInvariantEntry.getFormat(),
+        new LocationRecord(
+            location.getFileName(),
+            location.getLine(),
+            location.getColumn().isPresent() ? location.getColumn().orElseThrow() : null,
+            function));
   }
 
   /**

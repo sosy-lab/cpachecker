@@ -21,15 +21,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
 /** Contains information relating the CFA to the AST of the program. */
@@ -394,31 +395,110 @@ public final class AstCfaRelation {
   }
 
   /**
-   * Returns the column of the opening parenthesis of a function call, which is the location by
-   * which witnesses identify function calls.
-   *
-   * <p>This is only possible for calls whose function name is given by an identifier, i.e. not for
-   * calls through function pointers. It also assumes that no whitespace separates the function name
-   * from the parenthesis, since we do not track the parenthesis itself. See <a
-   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1687">work item 1687</a>.
+   * Returns the location of the closing parenthesis after the arguments of a function call, which
+   * is the location by which witnesses identify function calls.
    *
    * @param pCall the call whose parenthesis we are looking for
-   * @return the column of the parenthesis, or nothing if it cannot be computed
+   * @return the location of the parenthesis, or nothing if the call has no location in the program
    */
-  public OptionalInt getColumnOfFunctionCallParenthesis(AFunctionCallExpression pCall) {
-    if (!(pCall.getFunctionNameExpression() instanceof AIdExpression functionName)) {
-      return OptionalInt.empty();
+  public Optional<FileLocation> getClosingParenthesisOfFunctionCall(AFunctionCallExpression pCall) {
+    FileLocation call = pCall.getFileLocation();
+    if (!call.isRealLocation()) {
+      return Optional.empty();
     }
 
-    FileLocation location = functionName.getFileLocation();
-    if (!location.isRealLocation()) {
-      return OptionalInt.empty();
+    // A call ends with its closing parenthesis, and the end column is exclusive
+    return Optional.of(
+        new FileLocation(
+            call.getFileName(),
+            call.getNiceFileName(),
+            call.getNodeOffset() + call.getNodeLength() - 1,
+            1,
+            call.getEndingLineNumber(),
+            call.getEndingLineNumber(),
+            call.getEndColumnInLine() - 1,
+            call.getEndColumnInLine(),
+            call.getEndingLineInOrigin(),
+            call.getEndingLineInOrigin(),
+            call.isOffsetRelatedToOrigin()));
+  }
+
+  /**
+   * Returns the edges of the function calls whose closing parenthesis after the arguments is at the
+   * given location, see {@link #getClosingParenthesisOfFunctionCall}. These are {@link
+   * FunctionCallEdge}s and {@link AStatementEdge}s containing a function call.
+   *
+   * @param pLine the line of the parenthesis
+   * @param pColumn the column of the parenthesis. If it is empty, the calls whose parenthesis is on
+   *     the given line are returned.
+   * @return the edges of the calls, which are empty if there is no such call
+   */
+  public ImmutableSet<CFAEdge> getEdgesOfCallsWithClosingParenthesisAt(
+      int pLine, OptionalInt pColumn) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
     }
 
-    // The name in the source is the original one, since renamings happen only inside CPAchecker
-    return OptionalInt.of(
-        location.getStartColumnInLine()
-            + functionName.toASTString(AAstNodeRepresentation.ORIGINAL_NAMES).length());
+    // A call belongs to the tightest statement containing its parenthesis
+    ImmutableSet.Builder<ASTElement> statements = ImmutableSet.builder();
+    if (pColumn.isPresent()) {
+      getTightestStatementContaining(pLine, pColumn.orElseThrow()).ifPresent(statements::add);
+    } else {
+      statements.addAll(
+          startingLocationToTightestStatement
+              .subMap(
+                  new StartingLocation(Integer.MIN_VALUE, pLine),
+                  true,
+                  new StartingLocation(Integer.MAX_VALUE, pLine),
+                  true)
+              .values());
+      getTightestStatementContaining(pLine, 1).ifPresent(statements::add);
+    }
+
+    return FluentIterable.from(statements.build())
+        .transformAndConcat(ASTElement::edges)
+        .filter(
+            edge ->
+                getCalledFunction(edge)
+                    .flatMap(this::getClosingParenthesisOfFunctionCall)
+                    .filter(
+                        parenthesis ->
+                            parenthesis.getStartingLineInOrigin() == pLine
+                                && (pColumn.isEmpty()
+                                    || parenthesis.getStartColumnInLine() == pColumn.orElseThrow()))
+                    .isPresent())
+        .toSet();
+  }
+
+  /** Returns the tightest statement that contains the given line and column. */
+  private Optional<ASTElement> getTightestStatementContaining(int pLine, int pColumn) {
+    // Of the statements containing the location, the tightest one starts last
+    for (ASTElement statement :
+        startingLocationToTightestStatement
+            .headMap(new StartingLocation(pColumn, pLine), true)
+            .reversed()
+            .values()) {
+      // The end column is exclusive
+      FileLocation location = statement.location();
+      if (pLine < location.getEndingLineInOrigin()
+          || (pLine == location.getEndingLineInOrigin()
+              && pColumn < location.getEndColumnInLine())) {
+        return Optional.of(statement);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /** Returns the function called by the given edge, if it is a function call at all. */
+  private static Optional<AFunctionCallExpression> getCalledFunction(CFAEdge pEdge) {
+    return switch (pEdge) {
+      case FunctionCallEdge functionCallEdge ->
+          Optional.of(functionCallEdge.getFunctionCallExpression());
+      case AStatementEdge statementEdge
+          when statementEdge.getStatement() instanceof AFunctionCall functionCall ->
+          Optional.of(functionCall.getFunctionCallExpression());
+      default -> Optional.empty();
+    };
   }
 
   /**

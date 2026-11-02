@@ -294,7 +294,8 @@ public class ARGToCorrectnessWitnessV2 extends AbstractARGToCorrectnessWitness {
                   "\\result",
                   "\\result",
                   node.getFunctionName() + "::\\result",
-                  null));
+                  null,
+                  /* pHasThreadLocalStorage= */ false));
     } else {
       // Currently, we do not export witnesses for other programming languages than C, therefore
       // everything else is currently not supported.

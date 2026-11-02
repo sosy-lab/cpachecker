@@ -342,7 +342,8 @@ final class HappensBeforeEdgeTools {
                 decl.getName(),
                 decl.getOrigName(),
                 changeQualifiedName(decl, decl.isGlobal()),
-                null);
+                null,
+                decl.hasThreadLocalStorage());
         if (decl.isGlobal()) {
           final var list = isLhs ? writeAccesses : readAccesses;
           list.add(decl);

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.Map;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -19,7 +20,8 @@ import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class BlockGraphTest {
-  private static final String CONFIGURATION_FILE_MERGE_DECOMPOSITION = "config/dss.properties";
+  private static final String CONFIGURATION_FILE_MERGE_DECOMPOSITION =
+      "config/distributed-summary-synthesis/dss-base.properties";
   private static final String PROGRAM = "doc/examples/example.c";
 
   /**
@@ -38,8 +40,10 @@ public class BlockGraphTest {
     BlockGraph blockGraphFromOriginalCfa = generateBlockGraph(originalCFA);
     BlockGraph blockGraphFromShiftedCfa = generateBlockGraph(shiftedCFA);
 
-    var exportedBlockGraphFromOriginalCfa = blockGraphFromOriginalCfa.getExportData(originalCFA);
-    var exportedBlockGraphFromShiftedCfa = blockGraphFromShiftedCfa.getExportData(shiftedCFA);
+    Map<String, Map<String, Object>> exportedBlockGraphFromOriginalCfa =
+        blockGraphFromOriginalCfa.getExportData(originalCFA);
+    Map<String, Map<String, Object>> exportedBlockGraphFromShiftedCfa =
+        blockGraphFromShiftedCfa.getExportData(shiftedCFA);
 
     assertThat(exportedBlockGraphFromOriginalCfa).isEqualTo(exportedBlockGraphFromShiftedCfa);
   }

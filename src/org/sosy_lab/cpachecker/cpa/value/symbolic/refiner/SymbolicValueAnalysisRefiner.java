@@ -432,7 +432,8 @@ public class SymbolicValueAnalysisRefiner
             varName,
             varName,
             varName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
     CIdExpression idExpression =
         new CIdExpression(FileLocation.DUMMY, pType, varName, idDeclaration);
     return idExpression;

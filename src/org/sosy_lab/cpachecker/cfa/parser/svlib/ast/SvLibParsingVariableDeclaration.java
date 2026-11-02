@@ -12,6 +12,7 @@ import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -66,7 +67,7 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
 
   @Override
   public String toASTString() {
-    return origName;
+    return SmtLibSymbols.quoteIfNeeded(origName);
   }
 
   @Override

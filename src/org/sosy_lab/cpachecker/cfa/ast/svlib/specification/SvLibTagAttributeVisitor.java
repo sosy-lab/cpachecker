@@ -19,4 +19,8 @@ public interface SvLibTagAttributeVisitor<R, X extends Exception> {
   R accept(SvLibEnsuresTag pSvLibEnsuresTag) throws X;
 
   R accept(SvLibInvariantTag pSvLibInvariantTag) throws X;
+
+  R accept(SvLibRecurringTag pSvLibRecurringTag) throws X;
+
+  R accept(SvLibNotRecurringTag pSvLibNotRecurringTag) throws X;
 }

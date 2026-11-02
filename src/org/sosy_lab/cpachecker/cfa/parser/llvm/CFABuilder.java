@@ -1151,7 +1151,8 @@ class CFABuilder {
               undefName,
               undefName,
               undefName,
-              null);
+              null,
+              /* pHasThreadLocalStorage= */ false);
       CExpression undefExpression = new CIdExpression(location, undefDecl);
       return undefExpression;
 
@@ -1384,7 +1385,8 @@ class CFABuilder {
               assignedVar,
               assignedVar,
               getQualifiedName(assignedVar, pFunctionName),
-              pInitializer);
+              pInitializer,
+              /* pHasThreadLocalStorage= */ false);
       assert !variableDeclarations.containsKey(itemId);
       variableDeclarations.put(itemId, newDecl);
     }
@@ -1597,7 +1599,8 @@ class CFABuilder {
         RETURN_VAR_NAME,
         RETURN_VAR_NAME,
         getQualifiedName(RETURN_VAR_NAME, pFunctionName),
-        null /* no initializer */);
+        null /* no initializer */,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   private CType getPointerOfType(final CType type) {

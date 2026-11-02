@@ -93,8 +93,7 @@ public class SubstituteEdgeBuilder {
                   variableDeclaration, callContext, pInputCfa, tracker);
           CDeclarationEdge substituteDeclarationEdge =
               substituteDeclarationEdge(declarationEdge, declarationSubstitute);
-          return Optional.of(
-              SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, pSubstitution, tracker));
+          return Optional.of(SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, tracker));
         }
       }
 
@@ -104,8 +103,7 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(
               assume.getExpression(), callContext, false, false, false, false, tracker);
       CAssumeEdge substituteAssumeEdge = substituteAssumeEdge(assume, substituteAssumption);
-      return Optional.of(
-          SubstituteEdge.of(substituteAssumeEdge, pThreadEdge, pSubstitution, tracker));
+      return Optional.of(SubstituteEdge.of(substituteAssumeEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
@@ -113,8 +111,7 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(statement.getStatement(), callContext, pInputCfa, tracker);
       CStatementEdge substituteStatementEdge =
           substituteStatementEdge(statement, substituteStatement);
-      return Optional.of(
-          SubstituteEdge.of(substituteStatementEdge, pThreadEdge, pSubstitution, tracker));
+      return Optional.of(SubstituteEdge.of(substituteStatementEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
@@ -124,8 +121,7 @@ public class SubstituteEdgeBuilder {
             pSubstitution.substitute(assignment, callContext, pInputCfa, tracker);
         CFunctionSummaryEdge substituteFunctionSummaryEdge =
             substituteFunctionSummaryEdge(functionSummary, substituteAssignment);
-        return Optional.of(
-            SubstituteEdge.of(substituteFunctionSummaryEdge, pThreadEdge, pSubstitution, tracker));
+        return Optional.of(SubstituteEdge.of(substituteFunctionSummaryEdge, pThreadEdge, tracker));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
@@ -135,8 +131,7 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(functionCall.getFunctionCall(), callContext, pInputCfa, tracker);
       CFunctionCallEdge substituteFunctionCallEdge =
           substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall);
-      return Optional.of(
-          SubstituteEdge.of(substituteFunctionCallEdge, pThreadEdge, pSubstitution, tracker));
+      return Optional.of(SubstituteEdge.of(substituteFunctionCallEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
@@ -144,8 +139,7 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(returnStatement.getReturnStatement(), callContext, tracker);
       CReturnStatementEdge substituteReturnStatementEdge =
           substituteReturnStatementEdge(returnStatement, substituteReturnStatement);
-      return Optional.of(
-          SubstituteEdge.of(substituteReturnStatementEdge, pThreadEdge, pSubstitution, tracker));
+      return Optional.of(SubstituteEdge.of(substituteReturnStatementEdge, pThreadEdge, tracker));
     }
     return Optional.empty();
   }

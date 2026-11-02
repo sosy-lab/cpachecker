@@ -206,7 +206,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
       ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters,
-      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences,
+      Set<FileLocation> pUnhandledThreadLocalOccurrences) {
     options = pOptions;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -220,7 +221,8 @@ class CFAFunctionBuilder extends ASTVisitor {
             pMachine,
             staticVariablePrefix,
             pSideAssignmentStack,
-            pUnhandledAtomicOccurrences);
+            pUnhandledAtomicOccurrences,
+            pUnhandledThreadLocalOccurrences);
     parseContext = pParseContext;
     checkBinding = pCheckBinding;
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
@@ -426,7 +428,8 @@ class CFAFunctionBuilder extends ASTVisitor {
                   newD.getName(),
                   newD.getOrigName(),
                   newD.getQualifiedName(),
-                  initializer);
+                  initializer,
+                  ((CVariableDeclaration) newD).hasThreadLocalStorage());
         }
 
       } else if (newD instanceof CComplexTypeDeclaration) {
