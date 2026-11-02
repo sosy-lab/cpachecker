@@ -567,7 +567,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
     // package. But this is likely rarely useful in practice.
     // But we have seen code that relies on the address being non-null, so encode that.
-    // The formula is cached, but the constraint needs to be part of every path formula that uses it.
+    // The formula is cached, but every path formula that uses it needs the constraint.
     constraints.addConstraint(
         fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
 
