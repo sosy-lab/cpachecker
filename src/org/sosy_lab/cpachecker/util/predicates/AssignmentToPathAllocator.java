@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.SequencedMap;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
@@ -350,19 +352,16 @@ public class AssignmentToPathAllocator {
     String nameAndFunctionAsString = references.get(NAME_AND_FUNCTION);
 
     // Only the first separator separates the function, a name of SV-LIB can contain it too
-    List<String> nameAndFunction =
-        ImmutableList.copyOf(Splitter.on("::").limit(2).split(nameAndFunctionAsString));
+    Pair<Optional<String>, String> nameAndFunction =
+        CFAUtils.getFunctionAndVariableNameFromQualifiedVariableName(nameAndFunctionAsString);
 
-    String name;
-    String function = null;
-    boolean isNotGlobal = nameAndFunction.size() == IS_NOT_GLOBAL;
+    String name = Objects.requireNonNull(nameAndFunction.getSecond());
+    String function = Objects.requireNonNull(nameAndFunction.getFirst()).orElse(null);
+    boolean isNotGlobal = function != null;
     boolean isReference = references.size() > IS_FIELD_REFERENCE;
 
     if (isNotGlobal) {
-      function = nameAndFunction.getFirst();
-      name = nameAndFunction.get(1);
-    } else {
-      name = nameAndFunction.getFirst();
+      function = nameAndFunction.getFirst().orElseThrow();
     }
 
     if (isReference) {
