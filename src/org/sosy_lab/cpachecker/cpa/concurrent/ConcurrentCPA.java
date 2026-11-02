@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 /**
  * POR (Partial Order Reduction) CPA that manages thread interleaving in concurrent programs. This
@@ -117,6 +118,17 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
     pConfig.inject(this);
 
     logger = pLogger;
+
+    if (abstractionAware && CPAs.retrieveCPA(pCpa, PredicateCPA.class) != null) {
+      // Inside a block, the path formula keeps exact values of variables without predicates, so
+      // treating accesses to them as independent would prune feasible interleavings.
+      BlockOperator blk = new BlockOperator();
+      pConfig.inject(blk);
+      if (!blk.isSingleBlockEncoding()) {
+        throw new InvalidConfigurationException(
+            "Abstraction-aware POR with PredicateCPA requires cpa.predicate.blk.threshold = 1");
+      }
+    }
 
     threadSpecificCPA = new ThreadSpecificCPA(pConfig, pCfa, pLogger);
 

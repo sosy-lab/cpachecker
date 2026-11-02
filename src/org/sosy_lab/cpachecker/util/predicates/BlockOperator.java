@@ -287,6 +287,11 @@ public class BlockOperator {
         && !alwaysAtFunctionExit;
   }
 
+  /** Whether every location is a block end (single-block encoding). */
+  public boolean isSingleBlockEncoding() {
+    return !alwaysAndOnlyAtExplicitNodes && threshold == 1;
+  }
+
   protected boolean isJoinNode(CFANode pSuccLoc) {
     return pSuccLoc.getNumEnteringEdges() > 1;
   }
