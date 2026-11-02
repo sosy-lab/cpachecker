@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,7 +26,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,11 +45,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cmdline.CPAMain;
-import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker.InvariantCheckResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.DecreasingCardinalityChecker;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.ImplicitRankingChecker;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
@@ -60,7 +56,6 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_founde
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.WellFoundednessChecker;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -214,7 +209,8 @@ public class TerminationWitnessValidator implements Algorithm {
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
     if (hasSupportingInvariants(loopsToSupportingInvariants)) {
-      if (areSupportingInvariantsCorrect()) {
+      if (SupportingInvariantsChecker.checkInvariants(witnessPath, cfa, logger, shutdownNotifier)
+          == InvariantCheckResult.INVALID) {
         // Supporting invariants are not invariants
         pReachedSet.addNoWaitlist(
             DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
@@ -336,54 +332,6 @@ public class TerminationWitnessValidator implements Algorithm {
   private boolean hasSupportingInvariants(
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants) {
     return !pLoopsToSupportingInvariants.keys().isEmpty();
-  }
-
-  private boolean areSupportingInvariantsCorrect() throws CPAException, InterruptedException {
-    try {
-      Path invariantsSpecPath =
-          Classes.getCodeLocation(TerminationWitnessValidator.class)
-              .resolveSibling("config/properties/no-overflow.prp");
-      Path validationConfigPath =
-          Classes.getCodeLocation(TerminationWitnessValidator.class)
-              .resolveSibling("config/witnessValidation.properties");
-      // The configuration requires the program files, although the given CFA is analyzed
-      Configuration generationConfig =
-          CPAMain.createConfiguration(
-                  FluentIterable.of(
-                          "--witness",
-                          witnessPath.toString(),
-                          "--spec",
-                          invariantsSpecPath.toString(),
-                          "--config",
-                          validationConfigPath.toString(),
-                          "--no-output-files")
-                      .append(FluentIterable.from(cfa.getFileNames()).transform(Path::toString))
-                      .toArray(String.class))
-              .configuration();
-      Specification invariantSpec =
-          Specification.fromFiles(
-              ImmutableList.of(Path.of(invariantsSpecPath.toString()), witnessPath),
-              cfa,
-              generationConfig,
-              logger,
-              shutdownNotifier);
-      CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(
-              generationConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
-      ConfigurableProgramAnalysis supportingInvariantsCPA = coreComponents.createCPA(invariantSpec);
-      Algorithm invariantCheckingAlgorithm =
-          coreComponents.createAlgorithm(supportingInvariantsCPA, invariantSpec);
-
-      ReachedSet reachedSet =
-          coreComponents.createInitializedReachedSet(
-              supportingInvariantsCPA, cfa.getMainFunction());
-
-      // Running the algorithm
-      invariantCheckingAlgorithm.run(reachedSet);
-      return reachedSet.wasTargetReached();
-    } catch (InvalidConfigurationException | InvalidCmdlineArgumentException | IOException e) {
-      throw new CPAException("Supporting invariants check failed: ", e);
-    }
   }
 
   /**
