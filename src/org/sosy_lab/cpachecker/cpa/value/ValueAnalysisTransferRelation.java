@@ -928,11 +928,12 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleBuiltinOverflowFunction(
       CFunctionCall pFunctionCall, CFAEdge pCfaEdge) throws UnrecognizedCodeException {
     CFunctionCallExpression functionCallExp = pFunctionCall.getFunctionCallExpression();
-    String functionName = ((CIdExpression) functionCallExp.getFunctionNameExpression()).getName();
+    String calledFunctionName =
+        ((CIdExpression) functionCallExp.getFunctionNameExpression()).getName();
     List<CExpression> parameters = functionCallExp.getParameterExpressions();
     if (parameters.size() != 3) {
       throw new UnrecognizedCodeException(
-          functionName + " expects exactly three arguments", pCfaEdge, functionCallExp);
+          calledFunctionName + " expects exactly three arguments", pCfaEdge, functionCallExp);
     }
 
     OverflowFunctionResult result =
@@ -940,7 +941,7 @@ public class ValueAnalysisTransferRelation
             functionCallExp, getVisitor(), machineModel, logger);
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
-    if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(functionName)) {
+    if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(calledFunctionName)) {
       CLeftHandSide resultTarget = getPointerTarget(parameters.get(2), pCfaEdge);
       assignValue(newElement, resultTarget, result.result());
     }
