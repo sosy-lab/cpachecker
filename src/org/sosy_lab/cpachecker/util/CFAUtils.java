@@ -648,7 +648,7 @@ public class CFAUtils {
     // paths are stored in reverse order, so that extending a path shares its prefix
     Queue<PersistentLinkedList<CFAEdge>> waitlist = new ArrayDeque<>();
     for (CFANode startNode : pStartNodes) {
-      for (CFAEdge edge : startNode.getAllLeavingEdges().filter(pEdges::contains).toSet()) {
+      for (CFAEdge edge : startNode.getAllLeavingEdges().filter(pEdges::contains)) {
         waitlist.offer(PersistentLinkedList.of(edge));
       }
     }
