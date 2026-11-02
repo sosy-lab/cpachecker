@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
+import java.math.BigInteger;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -26,9 +27,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -39,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -166,7 +171,24 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CTypeIdExpression pIastTypeIdExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Type id expression invalid for constraint");
+    final TypeIdOperator idOperator = pIastTypeIdExpression.getOperator();
+    final CType innerType = pIastTypeIdExpression.getType();
+
+    return switch (idOperator) {
+      case ALIGNOF ->
+          ConstantSymbolicExpression.of(
+              new NumericValue(machineModel.getAlignof(innerType)), CNumericTypes.SIZE_T);
+      case SIZEOF -> {
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          yield ConstantSymbolicExpression.of(new NumericValue(size), CNumericTypes.SIZE_T);
+        }
+        throw new AssertionError("Type id expression invalid for constraint");
+      }
+      default ->
+          // TODO support more operators
+          throw new AssertionError("Type id expression invalid for constraint");
+    };
   }
 
   @Override
