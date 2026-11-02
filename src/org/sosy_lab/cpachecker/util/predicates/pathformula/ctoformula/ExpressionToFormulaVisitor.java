@@ -251,8 +251,18 @@ public class ExpressionToFormulaVisitor
 
         addModuloConstraints(exp, f1, f2, signed, ret);
       }
-      case BITWISE_AND -> ret = mgr.makeAnd(f1, f2);
-      case BITWISE_OR -> ret = mgr.makeOr(f1, f2);
+      case BITWISE_AND -> {
+        ret = mgr.makeAnd(f1, f2);
+        if (conv.options.approximateBitwiseOperationsLinearly()) {
+          addBitwiseAndConstraints(f1, f2, signed, ret);
+        }
+      }
+      case BITWISE_OR -> {
+        ret = mgr.makeOr(f1, f2);
+        if (conv.options.approximateBitwiseOperationsLinearly()) {
+          addBitwiseOrConstraints(f1, f2, signed, ret);
+        }
+      }
       case BITWISE_XOR -> ret = mgr.makeXor(f1, f2);
       case SHIFT_LEFT ->
           // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
@@ -372,6 +382,63 @@ public class ExpressionToFormulaVisitor
     constraints.addConstraint(newConstraints);
   }
 
+  /**
+   * Adds linear bounds for ret = f1 & f2: ret is in [0, f] for each non-negative operand f, and
+   * negative and at most both operands if both are negative.
+   */
+  private void addBitwiseAndConstraints(
+      final Formula f1, final Formula f2, final boolean signed, final Formula ret) {
+    BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
+    Formula zero = mgr.makeNumber(mgr.getFormulaType(f1), 0L);
+    BooleanFormula f1Negative = mgr.makeLessThan(f1, zero, signed);
+    BooleanFormula f2Negative = mgr.makeLessThan(f2, zero, signed);
+
+    // Disjunctions instead of implications, which the lasso construction does not handle
+    constraints.addConstraint(
+        bfmgr.and(
+            bfmgr.or(f1Negative, mgr.makeRangeConstraint(ret, zero, f1, signed)),
+            bfmgr.or(f2Negative, mgr.makeRangeConstraint(ret, zero, f2, signed)),
+            bfmgr.or(
+                mgr.makeGreaterOrEqual(f1, zero, signed),
+                mgr.makeGreaterOrEqual(f2, zero, signed),
+                bfmgr.and(
+                    mgr.makeLessThan(ret, zero, signed),
+                    mgr.makeLessOrEqual(ret, f1, signed),
+                    mgr.makeLessOrEqual(ret, f2, signed)))));
+  }
+
+  /**
+   * Adds linear bounds for ret = f1 | f2: ret is at least both operands if both are non-negative,
+   * and in [f, 0) for each negative operand f. The upper bound f1 + f2 for non-negative operands is
+   * left out, since the sum may overflow with bitvectors.
+   */
+  private void addBitwiseOrConstraints(
+      final Formula f1, final Formula f2, final boolean signed, final Formula ret) {
+    BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
+    Formula zero = mgr.makeNumber(mgr.getFormulaType(f1), 0L);
+    BooleanFormula f1NonNegative = mgr.makeGreaterOrEqual(f1, zero, signed);
+    BooleanFormula f2NonNegative = mgr.makeGreaterOrEqual(f2, zero, signed);
+    BooleanFormula f1Negative = mgr.makeLessThan(f1, zero, signed);
+    BooleanFormula f2Negative = mgr.makeLessThan(f2, zero, signed);
+
+    constraints.addConstraint(
+        bfmgr.and(
+            bfmgr.or(
+                f1Negative,
+                f2Negative,
+                bfmgr.and(
+                    mgr.makeGreaterOrEqual(ret, f1, signed),
+                    mgr.makeGreaterOrEqual(ret, f2, signed))),
+            bfmgr.or(
+                f1NonNegative,
+                bfmgr.and(
+                    mgr.makeLessOrEqual(f1, ret, signed), mgr.makeLessThan(ret, zero, signed))),
+            bfmgr.or(
+                f2NonNegative,
+                bfmgr.and(
+                    mgr.makeLessOrEqual(f2, ret, signed), mgr.makeLessThan(ret, zero, signed)))));
+  }
+
   @Override
   public Formula visit(CCastExpression cexp) throws UnrecognizedCodeException {
     CExpression op = cexp.getOperand();
@@ -479,7 +546,7 @@ public class ExpressionToFormulaVisitor
           ret = mgr.makeNegate(operandFormula);
         } else {
           assert op == UnaryOperator.TILDE : "This case should be impossible because of switch";
-          ret = mgr.makeNot(operandFormula);
+          ret = makeBitwiseNot(promoted, operandFormula);
         }
 
         CType returnType = exp.getExpressionType();
@@ -504,6 +571,24 @@ public class ExpressionToFormulaVisitor
       }
       case ALIGNOF -> handleAlignOf(exp, exp.getOperand().getExpressionType());
     };
+  }
+
+  /**
+   * Returns ~x. If bitwise operations are approximated linearly, it is encoded exactly as -1 - x
+   * for signed types and as 2^w - 1 - x for unsigned types of width w.
+   */
+  private Formula makeBitwiseNot(CType pType, Formula pOperand) {
+    FormulaType<?> formulaType = mgr.getFormulaType(pOperand);
+    if (conv.options.approximateBitwiseOperationsLinearly()
+        && pType instanceof CSimpleType simpleType
+        && formulaType instanceof BitvectorType bitvectorType) {
+      BigInteger allBitsSet =
+          conv.machineModel.isSigned(simpleType)
+              ? BigInteger.ONE.negate()
+              : BigInteger.ONE.shiftLeft(bitvectorType.getSize()).subtract(BigInteger.ONE);
+      return mgr.makeMinus(mgr.makeNumber(mgr.getFormulaType(pOperand), allBitsSet), pOperand);
+    }
+    return mgr.makeNot(pOperand);
   }
 
   @Override
