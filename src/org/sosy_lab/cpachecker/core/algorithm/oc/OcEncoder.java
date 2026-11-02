@@ -24,6 +24,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -61,6 +62,11 @@ final class OcEncoder {
    * realistic program has.
    */
   private static final long LAYOUT_CEILING = 1L << 30;
+
+  private static final String EXECUTED_VARIABLE_PREFIX = "__oc_exec_";
+
+  /** The clock value of the event that ends the program, if any (see {@link #endsProgram}). */
+  private static final String PROGRAM_END_CLOCK_VARIABLE = "__oc_clk_end";
 
   private static final String CLOCK_VARIABLE_PREFIX = "__oc_clk_";
   private static final String READ_FROM_VARIABLE_PREFIX = "__oc_rf_";
@@ -115,7 +121,17 @@ final class OcEncoder {
   private final boolean withOrderingBooleans;
 
   private final ImmutableList<MemoryEvent> events;
+
+  /** Whether the event's thread instance is created and its path passes through the event. */
+  private final ImmutableMap<MemoryEvent, BooleanFormula> enabledGuards;
+
+  /**
+   * Whether the event is executed: one Boolean variable per event, constrained by {@link
+   * #executionConstraints} to an enabled, program-order-closed prefix of each thread instance.
+   */
   private final ImmutableMap<MemoryEvent, BooleanFormula> fullGuards;
+
+  private final ImmutableList<BooleanFormula> executionConstraints;
   private final List<PoEdge> poEdges = new ArrayList<>();
   private final List<CrossPoEdge> crossPoEdges = new ArrayList<>();
   private final BitSet[] definiteReach;
@@ -137,7 +153,9 @@ final class OcEncoder {
     buildPoEdges(linearizations, childrenByParent);
     definiteReach = computeReachability(buildDefiniteOrderEdges(childrenByParent));
     checkProgramOrderAcyclic();
-    fullGuards = computeFullGuards();
+    enabledGuards = computeEnabledGuards();
+    fullGuards = computeExecutedVariables();
+    executionConstraints = buildExecutionConstraints();
     rfPairs = buildRfPairs();
     wsPairs = withOrderingBooleans ? buildWsPairs() : ImmutableList.of();
     csPairs = buildCsPairs(childrenByParent);
@@ -328,6 +346,7 @@ final class OcEncoder {
   /** Constraints shared by both solving modes. */
   ImmutableList<BooleanFormula> getBaseConstraints() {
     List<BooleanFormula> constraints = new ArrayList<>(registry.getPathConstraints());
+    constraints.addAll(executionConstraints);
 
     for (RfPair rf : rfPairs) {
       BooleanFormula sameValue = fmgr.makeEqual(rf.write().variable(), rf.read().variable());
@@ -387,37 +406,24 @@ final class OcEncoder {
         constraints.add(bfmgr.implication(ws.var21(), bothEnabled));
         constraints.add(bfmgr.implication(bothEnabled, bfmgr.or(ws.var12(), ws.var21())));
       }
-      for (CsPair cs : csPairs) {
-        // the two sections exclude each other only when they are the same mutex (equal addresses)
-        // and each section really ends where its Section says (closeCondition — non-trivial only
-        // when an ambiguous unlock made the end address-conditional)
-        BooleanFormula same = sameMutex(cs.section1().lock(), cs.section2().lock());
-        BooleanFormula closes =
-            bfmgr.and(cs.section1().closeCondition(), cs.section2().closeCondition());
-        constraints.add(
-            bfmgr.implication(
-                cs.var12(),
-                bfmgr.and(
-                    getFullGuard(cs.section1().unlock()),
-                    getFullGuard(cs.section2().lock()),
-                    closes,
-                    same)));
-        constraints.add(
-            bfmgr.implication(
-                cs.var21(),
-                bfmgr.and(
-                    getFullGuard(cs.section2().unlock()),
-                    getFullGuard(cs.section1().lock()),
-                    closes,
-                    same)));
-        constraints.add(
-            bfmgr.implication(
-                bfmgr.and(
-                    getFullGuard(cs.section1().unlock()),
-                    getFullGuard(cs.section2().unlock()),
-                    closes,
-                    same),
-                bfmgr.or(cs.var12(), cs.var21())));
+      // two executed locks of the same mutex exclude each other: one of their sections must be
+      // ordered first, which it can only be if it is really released (see getClockConstraints)
+      for (List<CsPair> group : Multimaps.asMap(csPairsByLocks()).values()) {
+        List<BooleanFormula> orders = new ArrayList<>();
+        for (CsPair cs : group) {
+          BooleanFormula both = bothLocked(cs);
+          constraints.add(
+              bfmgr.implication(
+                  cs.var12(),
+                  bfmgr.and(both, releases(cs.section1()), cs.section1().closeCondition())));
+          constraints.add(
+              bfmgr.implication(
+                  cs.var21(),
+                  bfmgr.and(both, releases(cs.section2()), cs.section2().closeCondition())));
+          orders.add(cs.var12());
+          orders.add(cs.var21());
+        }
+        constraints.add(bfmgr.implication(bothLocked(group.getFirst()), bfmgr.or(orders)));
       }
     }
     return ImmutableList.copyOf(constraints);
@@ -465,23 +471,37 @@ final class OcEncoder {
       }
     }
 
-    for (CsPair cs : csPairs) {
-      // the two sections must not overlap only when they are the same mutex (equal addresses) and
-      // each section really ends where its Section says (closeCondition — non-trivial only when an
-      // ambiguous unlock made the end address-conditional)
-      constraints.add(
-          bfmgr.implication(
-              bfmgr.and(
-                  getFullGuard(cs.section1().unlock()),
-                  getFullGuard(cs.section2().unlock()),
-                  cs.section1().closeCondition(),
-                  cs.section2().closeCondition(),
-                  sameMutex(cs.section1().lock(), cs.section2().lock())),
-              bfmgr.or(
-                  imgr.lessThan(
-                      clocks.get(cs.section1().unlock()), clocks.get(cs.section2().lock())),
-                  imgr.lessThan(
-                      clocks.get(cs.section2().unlock()), clocks.get(cs.section1().lock())))));
+    // two executed locks of the same mutex (equal addresses): one of them must be released before
+    // the other is taken, by an executed unlock that really ends its section (closeCondition —
+    // non-trivial only when an ambiguous unlock made the end address-conditional)
+    for (List<CsPair> group : Multimaps.asMap(csPairsByLocks()).values()) {
+      Set<BooleanFormula> releasedFirst = new LinkedHashSet<>();
+      for (CsPair cs : group) {
+        releasedFirst.add(
+            bfmgr.and(
+                releases(cs.section1()),
+                cs.section1().closeCondition(),
+                imgr.lessThan(
+                    clocks.get(cs.section1().unlock()), clocks.get(cs.section2().lock()))));
+        releasedFirst.add(
+            bfmgr.and(
+                releases(cs.section2()),
+                cs.section2().closeCondition(),
+                imgr.lessThan(
+                    clocks.get(cs.section2().unlock()), clocks.get(cs.section1().lock()))));
+      }
+      constraints.add(bfmgr.implication(bothLocked(group.getFirst()), bfmgr.or(releasedFirst)));
+    }
+
+    // nothing executes after the program ended: every executed event lies before the end
+    IntegerFormula end = imgr.makeVariable(PROGRAM_END_CLOCK_VARIABLE);
+    for (MemoryEvent event : events) {
+      if (endsProgram(event)) {
+        constraints.add(bfmgr.implication(getFullGuard(event), imgr.equal(clocks.get(event), end)));
+      } else {
+        constraints.add(
+            bfmgr.implication(getFullGuard(event), imgr.lessThan(clocks.get(event), end)));
+      }
     }
     return ImmutableList.copyOf(constraints);
   }
@@ -668,7 +688,7 @@ final class OcEncoder {
     }
   }
 
-  private ImmutableMap<MemoryEvent, BooleanFormula> computeFullGuards() {
+  private ImmutableMap<MemoryEvent, BooleanFormula> computeEnabledGuards() {
     ImmutableList<ThreadInstance> instances = registry.getInstances();
     BooleanFormula[] creationGuards = new BooleanFormula[instances.size()];
     ImmutableMap.Builder<MemoryEvent, BooleanFormula> guards = ImmutableMap.builder();
@@ -691,6 +711,94 @@ final class OcEncoder {
       }
     }
     return guards.buildOrThrow();
+  }
+
+  private ImmutableMap<MemoryEvent, BooleanFormula> computeExecutedVariables() {
+    ImmutableMap.Builder<MemoryEvent, BooleanFormula> executed = ImmutableMap.builder();
+    for (MemoryEvent event : events) {
+      executed.put(event, bfmgr.makeVariable(EXECUTED_VARIABLE_PREFIX + event.id()));
+    }
+    return executed.buildOrThrow();
+  }
+
+  /**
+   * The executed events form a prefix of an execution: every thread instance executes a
+   * program-order prefix of one of its enabled paths, and only after one of its create events was
+   * executed. A thread may stop anywhere, as it does when it blocks forever (on a mutex that is
+   * never released, or on a join of a thread that never terminates) or when another thread ends the
+   * program; every prefix of an execution is itself one, so a violation found on a prefix is real,
+   * and requiring complete executions instead would both miss such violations and run threads past
+   * points they can never pass.
+   */
+  private ImmutableList<BooleanFormula> buildExecutionConstraints() {
+    List<BooleanFormula> constraints = new ArrayList<>();
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
+    for (MemoryEvent event : events) {
+      BooleanFormula executed = getFullGuard(event);
+      constraints.add(bfmgr.implication(executed, enabledGuards.get(event)));
+      ImmutableSet<Integer> predecessorIds = predecessors.get(event.id());
+      if (predecessorIds.isEmpty()) {
+        if (event.instanceId() != ThreadInstance.MAIN_INSTANCE_ID) {
+          List<BooleanFormula> creates = new ArrayList<>();
+          for (int createEventId :
+              registry.getInstances().get(event.instanceId()).getCreateEventIds()) {
+            creates.add(getFullGuard(registry.getEvent(createEventId)));
+          }
+          constraints.add(bfmgr.implication(executed, bfmgr.or(creates)));
+        }
+      }
+      for (int predecessorId : predecessorIds) {
+        MemoryEvent predecessor = registry.getEvent(predecessorId);
+        // after a branch merge only the predecessor on the taken path is enabled
+        constraints.add(
+            bfmgr.implication(
+                bfmgr.and(executed, enabledGuards.get(predecessor)), getFullGuard(predecessor)));
+      }
+    }
+    return ImmutableList.copyOf(constraints);
+  }
+
+  /**
+   * Whether the event ends the whole program: a call such as {@code abort} or {@code exit}, or the
+   * return of {@code main} (a THREAD_EXIT of the main instance without an edge; {@code
+   * pthread_exit} in main has one and ends only the main thread).
+   */
+  private static boolean endsProgram(MemoryEvent pEvent) {
+    return pEvent.kind() == EventKind.ABORT
+        || (pEvent.kind() == EventKind.THREAD_EXIT
+            && pEvent.instanceId() == ThreadInstance.MAIN_INSTANCE_ID
+            && pEvent.edge() == null);
+  }
+
+  /**
+   * Whether a section really releases its mutex when its end event is executed: only an unlock
+   * does. A section that ends at the last event of a path (the thread exits, the program ends, or
+   * the path is cut) still holds the mutex there, and keeps holding it forever.
+   */
+  private BooleanFormula releases(Section pSection) {
+    return pSection.unlock().kind() == EventKind.UNLOCK
+        ? getFullGuard(pSection.unlock())
+        : bfmgr.makeFalse();
+  }
+
+  /**
+   * The critical-section pairs grouped by their two lock events. A lock with branches below it has
+   * one section per path end, and which of them is taken cannot be read off the guards of the ends:
+   * an end that is not executed may depend on values that were never read. Exclusion is therefore
+   * stated per pair of executed locks: one of them must have been released (by an executed unlock
+   * of one of its sections) before the other was taken.
+   */
+  private ImmutableListMultimap<List<Integer>, CsPair> csPairsByLocks() {
+    return Multimaps.index(
+        csPairs, cs -> List.of(cs.section1().lock().id(), cs.section2().lock().id()));
+  }
+
+  /** The premise of a lock pair's exclusion: both locks are executed and are the same mutex. */
+  private BooleanFormula bothLocked(CsPair pPair) {
+    return bfmgr.and(
+        getFullGuard(pPair.section1().lock()),
+        getFullGuard(pPair.section2().lock()),
+        sameMutex(pPair.section1().lock(), pPair.section2().lock()));
   }
 
   /**
