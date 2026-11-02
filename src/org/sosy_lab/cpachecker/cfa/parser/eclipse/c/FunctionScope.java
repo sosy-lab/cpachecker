@@ -140,7 +140,8 @@ class FunctionScope extends AbstractScope {
                   name,
                   name,
                   createScopedNameOf(name),
-                  null));
+                  null,
+                  /* pHasThreadLocalStorage= */ false));
     }
   }
 

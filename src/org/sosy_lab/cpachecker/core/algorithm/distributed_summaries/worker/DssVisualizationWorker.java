@@ -31,6 +31,7 @@ public class DssVisualizationWorker extends DssWorker {
   private final Path reportFiles;
   private boolean shutdown = false;
   private final int identifier;
+  private final boolean compressMessages;
 
   DssVisualizationWorker(
       String id,
@@ -44,6 +45,7 @@ public class DssVisualizationWorker extends DssWorker {
     identifier = Instant.now().hashCode();
     connection = pConnection;
     reportFiles = pOptions.getReportFiles();
+    compressMessages = pOptions.compressMessages();
     try {
       if (pOptions.getBlockCFAFile() != null) {
         JSON.writeJSONString(pBlockGraph.getExportData(cfa), pOptions.getBlockCFAFile());
@@ -61,7 +63,7 @@ public class DssVisualizationWorker extends DssWorker {
   private void log(DssMessage pMessage) throws IOException {
     if (reportFiles != null) {
       JSON.writeJSONString(
-          pMessage.asJsonWithIdentifier(identifier),
+          pMessage.asJsonWithIdentifier(identifier, compressMessages),
           reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
     }
   }

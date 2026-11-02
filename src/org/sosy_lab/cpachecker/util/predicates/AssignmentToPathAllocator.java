@@ -341,15 +341,17 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private LeftHandSide createLeftHandSide(String pTermName) {
+  /** The variable that a formula names with the given name, without its SSA index. */
+  public static LeftHandSide createLeftHandSide(String pTermName) {
 
     // TODO ugly, refactor (no splitting)
 
     List<String> references = ImmutableList.copyOf(Splitter.on('$').split(pTermName));
     String nameAndFunctionAsString = references.get(NAME_AND_FUNCTION);
 
+    // Only the first separator separates the function, a name of SV-LIB can contain it too
     List<String> nameAndFunction =
-        ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
+        ImmutableList.copyOf(Splitter.on("::").limit(2).split(nameAndFunctionAsString));
 
     String name;
     String function = null;

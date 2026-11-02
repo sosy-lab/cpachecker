@@ -26,7 +26,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class DistributedSummarySynthesisStatistics implements Statistics {
 
   @Option(
-      description = "Print per-block statistics in addition to aggregate block statistics.",
+      description =
+          "Print per-block statistics, including the local CPA and CEGAR statistics, in addition"
+              + " to aggregate block statistics.",
       secure = true)
   private boolean printBlockLevelStats = false;
 

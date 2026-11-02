@@ -634,7 +634,8 @@ public class CProgramScope implements Scope {
                 original.getName(),
                 original.getOrigName(),
                 original.getQualifiedName(),
-                null);
+                null,
+                original.hasThreadLocalStorage());
           }
           return v;
         });
@@ -740,7 +741,8 @@ public class CProgramScope implements Scope {
                           original.getName(),
                           original.getOrigName(),
                           original.getQualifiedName(),
-                          null);
+                          null,
+                          original.hasThreadLocalStorage());
                     }
                     return decl;
                   }
@@ -917,7 +919,8 @@ public class CProgramScope implements Scope {
         name,
         name,
         createScopedNameOf(pFunctionDeclaration.getName(), name),
-        null);
+        null,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   public static boolean isArtificialFunctionReturnVariable(CIdExpression pCIdExpression) {

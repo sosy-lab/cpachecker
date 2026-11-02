@@ -143,7 +143,8 @@ public class SeqPointerAliasingStructTest {
           "global_ptr_A",
           "global_ptr_A",
           "global_ptr_A",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration OUTER_STRUCT_DECLARATION =
       new CVariableDeclaration(
@@ -154,7 +155,8 @@ public class SeqPointerAliasingStructTest {
           "outer_struct",
           "outer_struct",
           "outer_struct",
-          EMPTY_INITIALIZER_LIST);
+          EMPTY_INITIALIZER_LIST,
+          /* pHasThreadLocalStorage= */ false);
 
   // CDeclaration
 
@@ -167,7 +169,8 @@ public class SeqPointerAliasingStructTest {
           "global_G1",
           "global_G1",
           "global_G1",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration LOCAL_L1_DECLARATION =
       new CVariableDeclaration(
@@ -178,7 +181,8 @@ public class SeqPointerAliasingStructTest {
           "local_L1",
           "local_L1",
           "local_L1",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration INNER_STRUCT_VARIABLE_DECLARATION =
       new CVariableDeclaration(
@@ -189,7 +193,8 @@ public class SeqPointerAliasingStructTest {
           "inner_struct",
           "inner_struct",
           "inner_struct",
-          EMPTY_INITIALIZER_LIST);
+          EMPTY_INITIALIZER_LIST,
+          /* pHasThreadLocalStorage= */ false);
 
   private final class CParameterDeclarations {
     final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT =

@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.Optional;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
@@ -19,9 +20,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class CombinePredicateStatePreconditionsOperator implements CombinePreconditionsOperator {
 
@@ -31,11 +31,21 @@ public class CombinePredicateStatePreconditionsOperator implements CombinePrecon
     predicateCPA = pPredicateCPA;
   }
 
+  @Override
+  public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
+      throws InterruptedException {
+    if (states.isEmpty()
+        || states.stream()
+            .anyMatch(s -> !(s instanceof PredicateAbstractState p) || !p.isAbstractionState())) {
+      return Optional.empty();
+    }
+    return Optional.of(combinePreconditions(states));
+  }
+
   /**
    * Combine multiple PredicateAbstractStates into one by taking the disjunction of their
-   * abstraction formulas. The resulting state is a non-abstraction state with a path formula where
-   * all SSA indices are set to 1 and the PointerTargetSet is merged accordingly (delegated to
-   * {@link PathFormulaManager#mergePts(PointerTargetSet, PointerTargetSet, SSAMapBuilder)})
+   * abstraction formulas. The resulting abstraction state retains the merged SSA and pointer
+   * context of the block formulas.
    *
    * <p>This method assumes that all provided states are abstraction states.
    *
@@ -62,9 +72,20 @@ public class CombinePredicateStatePreconditionsOperator implements CombinePrecon
       first = predicateCPA.getPredicateManager().makeOr(first, formulas.get(i));
     }
 
+    FormulaManagerView formulaManager = predicateCPA.getSolver().getFormulaManager();
+    PathFormula pathFormula =
+        predicateCPA
+            .getPathFormulaManager()
+            .makeEmptyPathFormulaWithContextFrom(first.getBlockFormula());
+    // Counterexample checking uses the path formulas after the ARG root, without its abstraction.
+    // Keep the entry constraint in the first path formula so refinement can refute paths that are
+    // feasible only outside the received precondition. Reinstantiate at the merged SSA indices.
+    pathFormula =
+        pathFormula.withFormula(
+            formulaManager.instantiate(first.asFormula(), pathFormula.getSsa()));
     return PredicateAbstractState.mkAbstractionState(
-        predicateCPA.getPathFormulaManager().makeEmptyPathFormula(),
-        first,
+        pathFormula,
+        predicateCPA.getPredicateManager().asAbstraction(first.asFormula(), pathFormula),
         PathCopyingPersistentTreeMap.of());
   }
 }

@@ -346,8 +346,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
-        if (scope.lookupVariable(variable).getType().getCanonicalType()
-            instanceof CSimpleType simpleType) {
+        // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
+        // renamed it, but the scope knows it only as main::i or i__1. The name without the
+        // function is unique, since the scope has only the variables in scope at the loop.
+        CSimpleDeclaration declaration =
+            scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
+        if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
           nondetVerifierCall = nondetCall(simpleType) + ";";
         } else {
           throw new CPAException(
@@ -388,7 +392,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       throws CPAException {
     String varDeclaration;
     String loopCondition =
-        TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+        TransitionInvariantUtils.transformFormulaToStringWithReplacement(
             pFormula, bfmgr, fmgr, scope);
     String exitCondition = computeLoopCondition(loopHead);
     loopCondition = loopCondition + " && " + exitCondition;
@@ -396,13 +400,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       loopCondition =
           loopCondition
               + " && "
-              + TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+              + TransitionInvariantUtils.transformFormulaToStringWithReplacement(
                   invariant, bfmgr, fmgr, scope);
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(
-                scope.lookupVariable(variable).toString());
+                scope.lookupVariable(variableName).toString());
         if (alreadyDeclaredVars.add(variableName)) {
           builder.add(varDeclaration);
         }
@@ -435,7 +439,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     for (String variable : mapNamesToVariables.keySet()) {
       String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
-      CSimpleDeclaration declaration = scope.lookupVariable(variable);
+      CSimpleDeclaration declaration = scope.lookupVariable(variableName);
       if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
         varDeclaration =
             declaration.getType().toASTString(variableName) + " = " + nondetCall(simpleType) + ";";

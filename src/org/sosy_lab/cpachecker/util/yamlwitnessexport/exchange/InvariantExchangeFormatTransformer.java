@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
@@ -156,6 +158,16 @@ public class InvariantExchangeFormatTransformer {
    */
   private Optional<ImmutableSet<CSimpleDeclaration>> variablesInScope(
       InvariantEntry pInvariantEntry) {
+    return nodeOfInvariant(pInvariantEntry)
+        .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
+        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
+  }
+
+  /**
+   * The node where the invariant holds, at which the variables of the invariant are in scope, if it
+   * is known. It belongs to the function of the invariant location.
+   */
+  private Optional<CFANode> nodeOfInvariant(InvariantEntry pInvariantEntry) {
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
     int line = pInvariantEntry.getLocation().getLine();
     OptionalInt column = pInvariantEntry.getLocation().getColumn();
@@ -186,8 +198,7 @@ public class InvariantExchangeFormatTransformer {
               .getTightestStatementForStarting(line, column)
               .flatMap(statement -> astCfaRelation.getNodeBeforeStatement(statement, function));
     }
-    return node.flatMap(astCfaRelation::getVariablesAndParametersInScope)
-        .map(variables -> variables.filter(CSimpleDeclaration.class).toSet());
+    return node;
   }
 
   /**
@@ -229,7 +240,26 @@ public class InvariantExchangeFormatTransformer {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
 
-    Scope scope = new CProgramScope(cfa, logger);
+    CFANode locationNode =
+        cfa.getAstCfaRelation()
+            .getNodeForStatementLocation(
+                pInvariantEntry.getLocation().getLine(),
+                pInvariantEntry.getLocation().getColumn().orElseThrow())
+            .orElseThrow();
+    // The node may belong to a function called in the statement, so the function of the invariant
+    // location is preferred
+    String functionName =
+        Objects.requireNonNullElse(
+            pInvariantEntry.getLocation().getFunction(), locationNode.getFunctionName());
+    // As in the invariant, a name refers to the variable in scope, e.g., x to x__1
+    CProgramScope programScope = new CProgramScope(cfa, logger);
+    CProgramScope scope =
+        nodeOfInvariant(pInvariantEntry)
+            .map(
+                node ->
+                    TerminationArgumentsToWitnessUtils.getScopeAtNode(
+                        programScope, node, cfa.getAstCfaRelation()))
+            .orElseGet(() -> programScope.withFunctionScope(functionName));
     Set<String> alreadyDeclaredVariables = new HashSet<>();
 
     while (matcher.find()) {
@@ -243,12 +273,6 @@ public class InvariantExchangeFormatTransformer {
       }
       alreadyDeclaredVariables.add(prevVariable);
       CDeclaration prevDeclaration;
-      CFANode locationNode =
-          cfa.getAstCfaRelation()
-              .getNodeForStatementLocation(
-                  pInvariantEntry.getLocation().getLine(),
-                  pInvariantEntry.getLocation().getColumn().orElseThrow())
-              .orElseThrow();
       if (currDeclaration == null) {
         currDeclaration =
             (CVariableDeclaration)
@@ -265,8 +289,9 @@ public class InvariantExchangeFormatTransformer {
               prevVariable,
               prevVariable,
               // The scope is not relevant as these variables are not in the original program
-              locationNode.getFunctionName() + "::" + prevVariable,
-              null);
+              functionName + "::" + prevVariable,
+              null,
+              /* pHasThreadLocalStorage= */ false);
       mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }
     return mapPrevToCurr.buildOrThrow();

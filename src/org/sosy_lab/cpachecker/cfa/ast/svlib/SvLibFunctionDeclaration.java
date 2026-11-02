@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
@@ -20,6 +22,9 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 public final class SvLibFunctionDeclaration extends AFunctionDeclaration
     implements SvLibDeclaration {
   @Serial private static final long serialVersionUID = -7637229289026207373L;
+
+  // Only set for an operator of SMT-LIB that is an indexed identifier
+  private final @Nullable SmtLibIndexedSymbol indexedSymbol;
 
   public static SvLibFunctionDeclaration nondetFunctionWithReturnType(SvLibType pType) {
     return new SvLibFunctionDeclaration(
@@ -46,6 +51,18 @@ public final class SvLibFunctionDeclaration extends AFunctionDeclaration
       String pOrigName,
       List<SvLibParameterDeclaration> pParameters) {
     super(pFileLocation, pType, pName, pOrigName, pParameters);
+    indexedSymbol = null;
+  }
+
+  public SvLibFunctionDeclaration(
+      FileLocation pFileLocation, SvLibFunctionType pType, SmtLibIndexedSymbol pIndexedSymbol) {
+    super(
+        pFileLocation,
+        pType,
+        pIndexedSymbol.toString(),
+        pIndexedSymbol.toString(),
+        ImmutableList.of());
+    indexedSymbol = pIndexedSymbol;
   }
 
   @SuppressWarnings("unchecked")
@@ -62,5 +79,9 @@ public final class SvLibFunctionDeclaration extends AFunctionDeclaration
   @Override
   public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
+  }
+
+  public Optional<SmtLibIndexedSymbol> getIndexedSymbol() {
+    return Optional.ofNullable(indexedSymbol);
   }
 }

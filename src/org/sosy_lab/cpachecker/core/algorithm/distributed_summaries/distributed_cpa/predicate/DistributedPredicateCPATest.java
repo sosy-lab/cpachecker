@@ -24,6 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
@@ -36,7 +37,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -94,6 +98,174 @@ public class DistributedPredicateCPATest {
       node = edge.getSuccessor();
     }
     return pathFormula;
+  }
+
+  @Test
+  public void testBoundaryPrecisionRemainsAtTheSharedLocation() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
+    try (PredicateCPA cpa = createPredicateCpa(cfa)) {
+      CFANode entry = cfa.getMainFunction();
+      CFANode shared = entry.getLeavingEdge(0).getSuccessor();
+      CFANode exit = shared.getLeavingEdge(0).getSuccessor();
+      AbstractionPredicate predicate =
+          cpa.getAbstractionManager()
+              .makePredicate(
+                  cpa.getSolver()
+                      .getFormulaManager()
+                      .getBooleanFormulaManager()
+                      .makeVariable("main::local"));
+      PredicatePrecision sender =
+          new PredicatePrecision(
+              ImmutableListMultimap.of(),
+              ImmutableListMultimap.of(entry, predicate, shared, predicate, exit, predicate),
+              ImmutableListMultimap.of(),
+              ImmutableSet.of());
+      PredicatePrecision sent =
+          DistributedPredicateCPA.boundaryPrecision(sender, ImmutableSet.of(entry, shared));
+      PredicatePrecision received =
+          DistributedPredicateCPA.boundaryPrecision(sent, ImmutableSet.of(shared, exit));
+      assertThat(received.getLocalPredicates().keySet()).containsExactly(shared);
+      assertThat(received.getPredicates(shared, 1)).containsExactly(predicate);
+      assertThat(received.getPredicates(exit, 1)).isEmpty();
+      assertThat(received.getGlobalPredicates()).isEmpty();
+    }
+  }
+
+  @Test
+  public void testBoundaryPrecisionPreservesConfiguredScopes() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
+    try (PredicateCPA cpa = createPredicateCpa(cfa)) {
+      CFANode entry = cfa.getMainFunction();
+      CFANode shared = entry.getLeavingEdge(0).getSuccessor();
+      CFANode exit = shared.getLeavingEdge(0).getSuccessor();
+      BooleanFormulaManagerView bmgr =
+          cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
+      AbstractionPredicate global =
+          cpa.getAbstractionManager().makePredicate(bmgr.makeVariable("g"));
+      AbstractionPredicate function =
+          cpa.getAbstractionManager().makePredicate(bmgr.makeVariable("main::local"));
+      AbstractionPredicate otherFunction =
+          cpa.getAbstractionManager().makePredicate(bmgr.makeVariable("other::local"));
+      PredicatePrecision sender =
+          new PredicatePrecision(
+              ImmutableListMultimap.of(),
+              ImmutableListMultimap.of(),
+              ImmutableListMultimap.of(entry.getFunctionName(), function, "other", otherFunction),
+              ImmutableSet.of(global));
+      PredicatePrecision sent =
+          DistributedPredicateCPA.boundaryPrecision(sender, ImmutableSet.of(entry, shared));
+      PredicatePrecision received =
+          DistributedPredicateCPA.boundaryPrecision(sent, ImmutableSet.of(shared, exit));
+      assertThat(received.getPredicates(shared, 1)).containsExactly(global, function);
+      assertThat(received.getPredicates(exit, 1)).containsExactly(global, function);
+      assertThat(received.getGlobalPredicates()).containsExactly(global);
+      assertThat(received.getFunctionPredicates().get(entry.getFunctionName()))
+          .containsExactly(global, function);
+    }
+  }
+
+  @Test
+  public void testWorkerAbstractionLocationsExcludeInteriorLoopHeads() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFunctionBody("int i = 0; while (i < 3) { i++; } return i;");
+    CFANode entry = cfa.getMainFunction();
+    CFANode exit = cfa.getMainFunction().getExitNode().orElseThrow();
+    Configuration config =
+        TestUtils.configurationForTest()
+            .loadFromFile(
+                "config/distributed-summary-synthesis/dss-block-analysis-predicate.properties")
+            .setOption(
+                "cpa.predicate.blk.alwaysAtGivenNodes",
+                entry.getNodeNumber() + "," + exit.getNodeNumber())
+            .build();
+    BlockOperator operator = new org.sosy_lab.cpachecker.util.predicates.BlockOperator();
+    config.inject(operator);
+    operator.setCFA(cfa);
+    for (CFANode node : cfa.nodes()) {
+      assertThat(operator.isBlockEnd(node, 100)).isEqualTo(node.equals(entry) || node.equals(exit));
+    }
+  }
+
+  @Test
+  public void testExactCombinationPreservesDisjunctionAndSsaContext() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
+    PredicateCPA cpa = createPredicateCpa(cfa);
+    FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
+    PathFormula path = advancePathFormula(cpa, cfa, EDGES_PAST_DECLARATIONS);
+    BooleanFormula left = fmgr.uninstantiate(path.getFormula());
+    BooleanFormula right = fmgr.getBooleanFormulaManager().not(left);
+    PredicateAbstractState first =
+        PredicateAbstractState.mkAbstractionState(
+            path,
+            cpa.getPredicateManager().asAbstraction(left, path),
+            PathCopyingPersistentTreeMap.of());
+    PredicateAbstractState second =
+        PredicateAbstractState.mkAbstractionState(
+            path,
+            cpa.getPredicateManager().asAbstraction(right, path),
+            PathCopyingPersistentTreeMap.of());
+    CombinePredicateStatePreconditionsOperator operator =
+        new CombinePredicateStatePreconditionsOperator(cpa);
+    PredicateAbstractState combined =
+        (PredicateAbstractState)
+            operator.combineIfPossible(ImmutableList.of(first, second)).orElseThrow();
+    BooleanFormula expected = fmgr.getBooleanFormulaManager().or(left, right);
+    BooleanFormula actual = combined.getAbstractionFormula().asFormula();
+    assertThat(cpa.getSolver().implies(expected, actual)).isTrue();
+    assertThat(cpa.getSolver().implies(actual, expected)).isTrue();
+    assertThat(combined.getPathFormula().getSsa()).isEqualTo(path.getSsa());
+    assertThat(
+            operator.combineIfPossible(
+                ImmutableList.of(
+                    PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(path, first))))
+        .isEmpty();
+  }
+
+  @Test
+  public void testCombinedPreconditionConstrainsCounterexampleChecking() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile("doc/examples/example.c");
+    try (PredicateCPA cpa = createPredicateCpa(cfa)) {
+      FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
+      BitvectorFormulaManagerView bv = fmgr.getBitvectorFormulaManager();
+      BooleanFormula zero = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 0));
+      BooleanFormula one = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 1));
+      BooleanFormula two = bv.equal(bv.makeVariable(32, "main::i"), bv.makeBitvector(32, 2));
+      PathFormula path = advancePathFormula(cpa, cfa, EDGES_PAST_DECLARATIONS);
+      PathFormula laterPath =
+          path.withContext(
+              path.getSsa().builder().setIndex("main::i", CNumericTypes.INT, 7).build(),
+              path.getPointerTargetSet());
+      PredicateAbstractState first =
+          PredicateAbstractState.mkAbstractionState(
+              path,
+              cpa.getPredicateManager().asAbstraction(zero, path),
+              PathCopyingPersistentTreeMap.of());
+      PredicateAbstractState second =
+          PredicateAbstractState.mkAbstractionState(
+              laterPath,
+              cpa.getPredicateManager().asAbstraction(one, laterPath),
+              PathCopyingPersistentTreeMap.of());
+      CombinePredicateStatePreconditionsOperator operator =
+          new CombinePredicateStatePreconditionsOperator(cpa);
+      for (ImmutableList<PredicateAbstractState> states :
+          ImmutableList.of(ImmutableList.of(first), ImmutableList.of(first, second))) {
+        PredicateAbstractState combined =
+            (PredicateAbstractState)
+                operator.combineIfPossible(ImmutableList.copyOf(states)).orElseThrow();
+        PathFormula entry = combined.getPathFormula();
+        BooleanFormula outsidePrecondition = fmgr.instantiate(two, entry.getSsa());
+        // A path reaching i == 2 is feasible in isolation, but not from this block entry.
+        assertThat(cpa.getSolver().isUnsat(outsidePrecondition)).isFalse();
+        assertThat(cpa.getSolver().isUnsat(fmgr.makeAnd(entry.getFormula(), outsidePrecondition)))
+            .isTrue();
+        BooleanFormula expected =
+            fmgr.instantiate(states.size() == 1 ? zero : fmgr.makeOr(zero, one), entry.getSsa());
+        assertThat(cpa.getSolver().implies(expected, entry.getFormula())).isTrue();
+        assertThat(cpa.getSolver().implies(entry.getFormula(), expected)).isTrue();
+        assertThat(combined.getAbstractionFormula().asInstantiatedFormula())
+            .isEqualTo(
+                fmgr.instantiate(combined.getAbstractionFormula().asFormula(), entry.getSsa()));
+      }
+    }
   }
 
   @Test

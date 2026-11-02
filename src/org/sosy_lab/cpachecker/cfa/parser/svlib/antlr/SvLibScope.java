@@ -8,9 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -29,12 +33,12 @@ public abstract class SvLibScope {
 
   protected final ImmutableMap.Builder<String, SvLibSortDeclaration> sortDeclarations;
 
-  protected final ImmutableMap.Builder<String, SvLibSmtFunctionDeclaration> functionDeclarations;
+  protected final Map<String, SvLibSmtFunctionDeclaration> functionDeclarations;
 
   protected SvLibScope(
       ImmutableSet.Builder<SmtLibLogic> pLogics,
       ImmutableMap.Builder<String, SvLibSortDeclaration> pSortDeclarations,
-      ImmutableMap.Builder<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
+      Map<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
     logics = pLogics;
     sortDeclarations = pSortDeclarations;
     functionDeclarations = pFunctionDeclarations;
@@ -50,11 +54,20 @@ public abstract class SvLibScope {
 
   public abstract SvLibSimpleParsingDeclaration getVariableForQualifiedName(String pQualifiedName);
 
-  abstract void addVariable(SvLibParsingVariableDeclaration pDeclaration);
+  /** Is a variable with the given qualified name declared in this scope? */
+  public abstract boolean hasVariableForQualifiedName(String pQualifiedName);
+
+  /** Is a variable with the given name declared in this scope? */
+  public abstract boolean hasVariable(String pName);
+
+  public abstract void addVariable(SvLibParsingVariableDeclaration pDeclaration);
 
   abstract void addProcedureDeclaration(SvLibProcedureDeclaration pDeclaration);
 
   abstract SvLibProcedureDeclaration getProcedureDeclaration(String pName);
+
+  /** Is a procedure with the given name declared in this scope? */
+  abstract boolean hasProcedureDeclaration(String pName);
 
   void addLogic(SmtLibLogic pLogic) {
     logics.add(pLogic);
@@ -87,13 +100,32 @@ public abstract class SvLibScope {
         .getType();
   }
 
-  void addFunctionDeclaration(SvLibSmtFunctionDeclaration pDeclaration) {
-    functionDeclarations.put(pDeclaration.getName(), pDeclaration);
+  public void addFunctionDeclaration(SvLibSmtFunctionDeclaration pDeclaration) {
+    SvLibSmtFunctionDeclaration declared =
+        functionDeclarations.putIfAbsent(pDeclaration.getName(), pDeclaration);
+    // The same function is declared again whenever it is used again, which is fine, but two
+    // functions of one name with different types would give the terms of one of them the type of
+    // the other.
+    checkArgument(
+        declared == null || declared.getType().equals(pDeclaration.getType()),
+        "The function %s is declared with the type %s and with the type %s.",
+        pDeclaration.getName(),
+        declared == null ? null : declared.getType(),
+        pDeclaration.getType());
   }
 
-  SvLibSmtFunctionDeclaration getFunctionDeclaration(String pName) {
+  /** Is a function with the given name declared, i.e. is it an uninterpreted function? */
+  public boolean hasFunctionDeclaration(String pName) {
+    return functionDeclarations.containsKey(pName);
+  }
+
+  public SvLibSmtFunctionDeclaration getFunctionDeclaration(String pName) {
     return Objects.requireNonNull(
-        functionDeclarations.buildOrThrow().get(pName),
-        "Function declaration '" + pName + "' not found.");
+        functionDeclarations.get(pName), "Function declaration '" + pName + "' not found.");
+  }
+
+  /** All functions that are declared in this scope, in the order in which they were declared. */
+  public ImmutableList<SvLibSmtFunctionDeclaration> getFunctionDeclarations() {
+    return ImmutableList.copyOf(functionDeclarations.values());
   }
 }
