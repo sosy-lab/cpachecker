@@ -2984,7 +2984,8 @@ class ASTConverter {
     }
 
     CExpression subscriptExpression =
-        convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression());
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression()));
     CDesignator designator = new CArrayDesignator(fileLoc, subscriptExpression);
     return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
   }
@@ -3001,9 +3002,12 @@ class ASTConverter {
       elementType = ownerType;
     }
 
-    CExpression rangeFloor = convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor());
+    CExpression rangeFloor =
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor()));
     CExpression rangeCeiling =
-        convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling());
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling()));
 
     CDesignator designator = new CArrayRangeDesignator(fileLoc, rangeFloor, rangeCeiling);
     return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
