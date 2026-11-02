@@ -13,26 +13,40 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.acsl.AcslState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslPredicateToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -47,6 +61,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
+  private final MachineModel machineModel;
 
   private final PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
@@ -66,7 +81,8 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
-      PredicateProvider pPredicateProvider) {
+      PredicateProvider pPredicateProvider,
+      MachineModel pModel) {
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;
@@ -75,6 +91,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
+    machineModel = pModel;
   }
 
   @Override
@@ -89,14 +106,32 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     totalPrecTime.start();
     try {
       PredicateAbstractState element = (PredicateAbstractState) pElement;
+      PredicatePrecision precision = (PredicatePrecision) pPrecision;
 
       // default number of locations is 1, for concurrent programs we can have multiple locations.
       // if any location wants to abstract, we compute the abstraction
       final Collection<CFANode> locations =
           ImmutableList.copyOf(AbstractStates.extractLocations(fullState));
+
+      // add additional predicates from the AcslState to the precision
+      // TODO maybe introduce a config option so this is skipped unless we really want to use it
+      LanguageToSmtConverter<? extends Type> converter = pathFormulaManager.getConverter();
+      if (converter instanceof CToFormulaConverterWithPointerAliasing cConverter) {
+        PointerTargetSet pts =
+            ((PredicateAbstractState) pElement).getPathFormula().getPointerTargetSet();
+        AcslPredicateToFormulaVisitor acslToFormula =
+            new AcslPredicateToFormulaVisitor(
+                fmgr,
+                SSAMap.emptySSAMap().builder(),
+                cConverter,
+                machineModel,
+                cConverter.createPointerTargetSetBuilder(pts),
+                new Constraints(fmgr.getBooleanFormulaManager()));
+        precision = addAcslInvariants(precision, fullState, locations, acslToFormula);
+      }
+
       for (CFANode location : locations) {
         if (shouldComputeAbstraction(fullState, location, element)) {
-          PredicatePrecision precision = (PredicatePrecision) pPrecision;
           return computeAbstraction(element, precision, locations, fullState);
         }
       }
@@ -217,5 +252,50 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
             element.getPreviousAbstractionState());
     return Optional.of(
         new PrecisionAdjustmentResult(state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+  }
+
+  private PredicatePrecision addAcslInvariants(
+      PredicatePrecision pPrecision,
+      AbstractState fullState,
+      Collection<CFANode> pLocations,
+      AcslPredicateToFormulaVisitor acslToFormula) {
+
+    if (!((fullState instanceof ARGState as)
+        && (as.getWrappedState() instanceof CompositeState cs))) {
+      // we don't have a composite state, so there cannot be an AcslState
+      return pPrecision;
+    }
+
+    List<Map.Entry<CFANode, AbstractionPredicate>> newPreds = new ArrayList<>();
+
+    for (AbstractState wrapped : cs.getWrappedStates()) {
+      if (wrapped instanceof AcslState acslState) {
+        for (CFANode loc : pLocations) {
+
+          AcslPredicate acslPred =
+              acslState.getAcslPredicate(loc, FileLocation.DUMMY); // TODO is dummy a good idea?
+          if (acslPred == null) {
+            continue;
+          }
+          BooleanFormula invariant = acslPred.accept(acslToFormula);
+
+          if (fmgr.getBooleanFormulaManager().isTrue(invariant)) {
+            // needed so we can safely call getPredicateFor below
+            continue;
+          }
+          AbstractionPredicate predicate = formulaManager.getPredicateFor(invariant);
+
+          // Do not add predicates that already exist
+          if (!pPrecision.getLocalPredicates().get(loc).contains(predicate)) {
+            newPreds.add(Map.entry(loc, predicate));
+            logger.log(
+                Level.INFO,
+                "Adding ACSL predicate to the precision in prec!"); // TODO lower log level later
+          }
+        }
+      }
+    }
+
+    return pPrecision.addLocalPredicates(newPreds);
   }
 }

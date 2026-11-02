@@ -227,7 +227,8 @@ public class PredicateCPA
             blk,
             predAbsManager,
             invariantsManager,
-            predicateProvider);
+            predicateProvider,
+            cfa.getMachineModel());
     stop =
         switch (stopType) {
           case "SEP" -> new PredicateStopOperator(domain);
