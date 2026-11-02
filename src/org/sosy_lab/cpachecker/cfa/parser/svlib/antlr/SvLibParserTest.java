@@ -111,7 +111,7 @@ public class SvLibParserTest {
     SvLibScript output =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
                 new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(w, FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(z, FileLocation.DUMMY),
@@ -198,7 +198,7 @@ public class SvLibParserTest {
     SvLibScript output =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
                 new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(w, FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(z, FileLocation.DUMMY),
@@ -300,7 +300,7 @@ public class SvLibParserTest {
     SvLibScript output =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
                 new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibProcedureDefinitionCommand(
                     FileLocation.DUMMY,
@@ -457,7 +457,7 @@ public class SvLibParserTest {
     SvLibScript expectedOutput =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
                 new SvLibSetOptionCommand(
                     ":witness-output-channel", "./output/witness.svlib", FileLocation.DUMMY),
                 new SvLibSetOptionCommand(
