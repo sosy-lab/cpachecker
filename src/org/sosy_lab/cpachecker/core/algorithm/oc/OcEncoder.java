@@ -822,7 +822,7 @@ final class OcEncoder {
    */
   private ImmutableListMultimap<List<Integer>, CsPair> csPairsByLocks() {
     return Multimaps.index(
-        csPairs, cs -> List.of(cs.section1().lock().id(), cs.section2().lock().id()));
+        csPairs, cs -> ImmutableList.of(cs.section1().lock().id(), cs.section2().lock().id()));
   }
 
   /** The premise of a lock pair's exclusion: both locks are executed and are the same mutex. */
