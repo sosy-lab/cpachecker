@@ -93,8 +93,12 @@ public record ArrayInitialization(
         new AcslBinaryPredicate(
             pLoc,
             new AcslBinaryTermPredicate(
-                pLoc, lowerbound, paramiTerm, AcslBinaryTermExpressionOperator.LESS_EQUAL),
-            new AcslBinaryTermPredicate(pLoc, paramiTerm, upperbound, upperBoundOp),
+                pLoc,
+                lowerbound.accept(ssaRemover),
+                paramiTerm,
+                AcslBinaryTermExpressionOperator.LESS_EQUAL),
+            new AcslBinaryTermPredicate(
+                pLoc, paramiTerm, upperbound.accept(ssaRemover), upperBoundOp),
             AcslBinaryPredicateOperator.AND);
     AcslPredicate arrayPred =
         new AcslBinaryTermPredicate(
