@@ -59,6 +59,7 @@ public class InputRejection {
   /** Handles input program rejections and throws a {@link UnsupportedCodeException} accordingly. */
   public static void handleRejections(CFA pInputCfa) throws UnsupportedCodeException {
     checkLanguageC(pInputCfa);
+    checkUnsupportedMachineModels(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
     checkFunctionPointerInInitializer(pInputCfa);
     checkDuplicateStructMemberNames(pInputCfa);
@@ -82,6 +83,16 @@ public class InputRejection {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
       throw new UnsupportedCodeException(InputMessage.LANGUAGE_NOT_C.formatMessage(), null);
+    }
+  }
+
+  private static void checkUnsupportedMachineModels(CFA pInputCfa) throws UnsupportedCodeException {
+    switch (pInputCfa.getMachineModel()) {
+      case LINUX32, LINUX64 -> {}
+      case ARM, ARM64 ->
+          throw new UnsupportedCodeException(
+              InputMessage.UNSUPPORTED_MACHINE_MODEL.formatMessage(pInputCfa.getMachineModel()),
+              null);
     }
   }
 
