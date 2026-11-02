@@ -110,6 +110,32 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       ImmutableSet.of(
           "scanf", "fscanf", "sscanf", "vscanf", "vfscanf", "vsscanf", "gets", "fgets", "getline");
 
+  /**
+   * Name prefixes of thread-library functions. A call to such a function without a body is either
+   * modeled by this analysis (thread creation/join/exit, mutexes) or known to have no effect on the
+   * ordering of events ({@link #NO_ORDERING_EFFECT_FUNCTIONS}); any other one (barriers, {@code
+   * pthread_once}, semaphores, condition variables, ...) is rejected, as the generic path-formula
+   * converter would treat it as a pure call and drop the synchronization it implies.
+   */
+  private static final ImmutableList<String> THREAD_LIBRARY_PREFIXES =
+      ImmutableList.of("pthread_", "sem_", "mtx_", "cnd_", "thrd_", "tss_", "call_once");
+
+  /** Prefixes of the attribute-object functions, which never synchronize. */
+  private static final ImmutableList<String> ATTRIBUTE_FUNCTION_PREFIXES =
+      ImmutableList.of(
+          "pthread_attr_", "pthread_mutexattr_", "pthread_rwlockattr_", "pthread_condattr_");
+
+  /** Bodiless thread-library functions that neither synchronize nor touch program memory. */
+  private static final ImmutableSet<String> NO_ORDERING_EFFECT_FUNCTIONS =
+      ImmutableSet.of(
+          "pthread_rwlock_init",
+          "pthread_rwlock_destroy",
+          "pthread_detach",
+          "pthread_yield",
+          "pthread_setcancelstate",
+          "pthread_setcanceltype",
+          "pthread_testcancel");
+
   private final OrderingConsistencyCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pathFormulaManager;
@@ -318,7 +344,19 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (handleMutex(pState, pEdge, pSuccessors)) {
       return;
     }
+    if (pEdge instanceof CStatementEdge
+        && callee.isPresent()
+        && isUnmodeledThreadLibraryFunction(callee.orElseThrow())) {
+      throw new UnsupportedCodeException(
+          callee.orElseThrow() + " is not modeled by the ordering-consistency analysis", pEdge);
+    }
     handleRegularEdge(pState, pPrecision, pEdge, pSuccessors);
+  }
+
+  private static boolean isUnmodeledThreadLibraryFunction(String pFunctionName) {
+    return THREAD_LIBRARY_PREFIXES.stream().anyMatch(pFunctionName::startsWith)
+        && ATTRIBUTE_FUNCTION_PREFIXES.stream().noneMatch(pFunctionName::startsWith)
+        && !NO_ORDERING_EFFECT_FUNCTIONS.contains(pFunctionName);
   }
 
   /** Whether the call on this edge takes the address of a global variable as an argument. */
