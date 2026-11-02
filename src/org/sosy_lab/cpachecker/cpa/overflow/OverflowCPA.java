@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -25,7 +27,17 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 
 /** CPA for detecting overflows in C programs. */
+@Options(prefix = "cpa.overflow")
 public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
+
+  @Option(
+      secure = true,
+      description =
+          "Check the edges leaving the successor of each edge for overflows (lookahead). Analyses"
+              + " that interleave the edges of several threads must disable this, because the next"
+              + " edge may belong to another thread, and request the check of each edge right"
+              + " before it with an OverflowCheckEdge instead.")
+  private boolean lookahead = true;
 
   private final CBinaryExpressionBuilder expressionBuilder;
   private final ArithmeticOverflowAssumptionBuilder noOverflowAssumptionBuilder;
@@ -37,6 +49,7 @@ public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnaly
   private OverflowCPA(CFA pCfa, LogManager pLogger, Configuration pConfiguration)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
+    pConfiguration.inject(this);
     expressionBuilder = new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
     noOverflowAssumptionBuilder =
         new ArithmeticOverflowAssumptionBuilder(pCfa, pLogger, pConfiguration);
@@ -44,7 +57,12 @@ public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnaly
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new OverflowTransferRelation(noOverflowAssumptionBuilder, expressionBuilder);
+    return new OverflowTransferRelation(noOverflowAssumptionBuilder, expressionBuilder, lookahead);
+  }
+
+  /** Whether edges are checked by lookahead or only via {@link OverflowCheckEdge}. */
+  public boolean usesLookahead() {
+    return lookahead;
   }
 
   @Override

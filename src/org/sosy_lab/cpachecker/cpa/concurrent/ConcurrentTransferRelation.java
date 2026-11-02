@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Random;
@@ -61,10 +62,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
+import org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA;
+import org.sosy_lab.cpachecker.cpa.overflow.OverflowCheckEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -102,6 +106,9 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private final EdgeDefUseData.Extractor defUseExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
+  private final boolean checkOverflows;
+  private final Map<CFAEdge, OverflowCheckEdge> overflowCheckEdges = new HashMap<>();
+
   @SuppressWarnings("unused") // pConfig and the declared exceptions are kept for future use
   public ConcurrentTransferRelation(
       ConfigurableProgramAnalysis wrappedCpa,
@@ -114,6 +121,14 @@ public class ConcurrentTransferRelation implements TransferRelation {
       Random pRandom)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
+    OverflowCPA overflowCpa = CPAs.retrieveCPA(wrappedCpa, OverflowCPA.class);
+    if (overflowCpa != null && overflowCpa.usesLookahead()) {
+      // The lookahead checks the next edge of the thread that just moved, but the next edge may
+      // belong to another thread, so an overflow enabled by an interleaved write would be missed.
+      throw new InvalidConfigurationException(
+          "OverflowCPA inside ConcurrentCPA requires cpa.overflow.lookahead = false");
+    }
+    checkOverflows = overflowCpa != null;
 
     // Construct thread specific CPA
     threadSpecificCPA = pThreadSpecificCPA;
@@ -226,8 +241,20 @@ public class ConcurrentTransferRelation implements TransferRelation {
       int threadId,
       Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
-    Collection<? extends AbstractState> wrappedSuccessors =
-        applyEdgeWithForgetting(precision, state.getWrappedState(), cfaEdge, threadId);
+    Collection<? extends AbstractState> wrappedSuccessors;
+    if (checkOverflows) {
+      // Check the edge in the state it is executed in (see OverflowCheckEdge).
+      CFAEdge checkEdge = overflowCheckEdges.computeIfAbsent(cfaEdge, OverflowCheckEdge::new);
+      List<AbstractState> checked = new ArrayList<>();
+      for (AbstractState wrapped :
+          applyEdgeWithForgetting(precision, state.getWrappedState(), checkEdge, threadId)) {
+        checked.addAll(applyEdgeWithForgetting(precision, wrapped, cfaEdge, threadId));
+      }
+      wrappedSuccessors = checked;
+    } else {
+      wrappedSuccessors =
+          applyEdgeWithForgetting(precision, state.getWrappedState(), cfaEdge, threadId);
+    }
     if (wrappedSuccessors.isEmpty()) {
       return;
     }
@@ -471,7 +498,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
       mutexState.addEdgePids(new HashMap<>(ImmutableMap.of(edge, threadId)));
     }
     List<Runnable> restoreForgotten = new ArrayList<>();
-    Iterable<MemoryLocation> uses = defUseExtractor.extract(edge).getUses();
+    CFAEdge accessingEdge = edge instanceof OverflowCheckEdge check ? check.getCheckedEdge() : edge;
+    Iterable<MemoryLocation> uses = defUseExtractor.extract(accessingEdge).getUses();
     for (AbstractState component : AbstractStates.asIterable(wrappedState)) {
       if (component instanceof ForgetfulState<?> forgetfulState) {
         for (MemoryLocation location : uses) {
