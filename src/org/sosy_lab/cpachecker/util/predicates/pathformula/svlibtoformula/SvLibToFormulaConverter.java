@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibFunctionCallEdge;
@@ -39,17 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunRecCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunsRecCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAssertCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareConstCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareSortCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
@@ -81,7 +69,6 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
   private final FormulaManagerView fmgr;
   private final SvLibFormulaEncodingOptions options;
   private final Optional<VariableClassification> variableClassification;
-  private final List<SmtLibCommand> smtLibCommands;
   private final BooleanFormulaManagerView bfmgr;
 
   @SuppressWarnings("unused")
@@ -99,13 +86,11 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
       FormulaManagerView pFmgr,
       Optional<VariableClassification> pVariableClassification,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      List<SmtLibCommand> pSmtLibCommands) {
+      ShutdownNotifier pShutdownNotifier) {
 
     fmgr = pFmgr;
     options = pOptions;
     variableClassification = pVariableClassification;
-    smtLibCommands = pSmtLibCommands;
 
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
@@ -190,53 +175,6 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     }
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
-
-    // Now add all the smt-lib declarations into the formula.
-    // They are part of the formula of the edge, so that the variable instances and the constraints
-    // that they create are part of the result of this method.
-    // TODO: Add them once as assumptions to the pathformula. IIRC Philipp implemented something for
-    //  this
-    Constraints commandConstraints = new Constraints(bfmgr);
-    BooleanFormula commandAxioms = bfmgr.makeTrue();
-    for (SmtLibCommand smtLibCommand : smtLibCommands) {
-      commandAxioms =
-          switch (smtLibCommand) {
-            // The term converter rejects applications of the function
-            case SmtLibDefineFunCommand pSmtLibDefineFunCommand -> commandAxioms;
-            case SmtLibDefineFunRecCommand pSmtLibDefineFunRecCommand ->
-                throw new UnsupportedCodeException(
-                    "Define fun rec commands are not yet supported", pEdge);
-            case SmtLibDefineFunsRecCommand pSmtLibDefineFunsRecCommand ->
-                throw new UnsupportedCodeException(
-                    "Define fun rec commands are not yet supported", pEdge);
-            case SvLibAssertCommand pSvLibAssertCommand -> {
-              SvLibTerm term = pSvLibAssertCommand.getTerm();
-              yield bfmgr.and(
-                  commandAxioms,
-                  makePredicate(
-                      new SvLibAssumeEdge(
-                          term.toASTString(),
-                          FileLocation.DUMMY,
-                          CFANode.newDummyCFANode(),
-                          CFANode.newDummyCFANode(),
-                          term,
-                          true,
-                          false,
-                          false),
-                      "",
-                      ssa,
-                      commandConstraints,
-                      pErrorConditions));
-            }
-            case SvLibDeclareConstCommand pSvLibDeclareConstCommand -> commandAxioms;
-            case SvLibDeclareFunCommand pSvLibDeclareFunCommand -> commandAxioms;
-            case SvLibDeclareSortCommand pSvLibDeclareSortCommand -> commandAxioms;
-            case SvLibSetInfoCommand pSvLibSetInfoCommand -> commandAxioms;
-            case SvLibSetLogicCommand pSvLibSetLogicCommand -> commandAxioms;
-            case SvLibSetOptionCommand pSvLibSetOptionCommand -> commandAxioms;
-          };
-    }
-    edgeFormula = bfmgr.and(edgeFormula, commandAxioms, commandConstraints.get());
 
     // There are no pointers in SV-LIB, so the pointer target set remains unchanged, and can
     // therefore be ignored.
