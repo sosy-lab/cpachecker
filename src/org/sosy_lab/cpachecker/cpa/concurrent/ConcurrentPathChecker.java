@@ -223,7 +223,11 @@ final class ConcurrentPathChecker extends PathChecker {
     if (edges.isEmpty()) {
       throw new CPATransferException("Concurrent ARG transition has no CFA edges");
     }
+    CFAEdge lastEdge = edges.getLast();
     for (CFAEdge edge : edges) {
+      if (edge == lastEdge) {
+        formula = addOverflowAssumptions(formula, child);
+      }
       int threadId = edge.getPredecessor().getCloneThreadId().orElseThrow();
       ImmutableList<Frame> stack = stacks.getOrDefault(threadId, ImmutableList.of());
       if (edge instanceof FunctionCallEdge call) {
@@ -288,16 +292,35 @@ final class ConcurrentPathChecker extends PathChecker {
       throws CPATransferException, InterruptedException {
     for (AbstractStateWithAssumptions component :
         AbstractStates.asIterable(state).filter(AbstractStateWithAssumptions.class)) {
-      AbstractStateWithAssumptions assumptions = component;
       if (component instanceof OverflowState overflow && overflow.hasOverflow()) {
-        assumptions = overflow.getParent();
+        continue; // added before the overflowing edge, see addOverflowAssumptions
       }
-      for (AExpression expression : assumptions.getAssumptions()) {
-        if (!(expression instanceof CExpression cExpression)) {
-          throw new CPATransferException("Unsupported assumption in a concurrent counterexample");
-        }
-        formula = formulas.makeAnd(formula, cExpression);
+      formula = addAssumptions(formula, component);
+    }
+    return formula;
+  }
+
+  /**
+   * If {@code target} reports an overflow, adds the condition under which its entering edge
+   * overflows. That condition is about the values before the edge, so it must be added before it.
+   */
+  private PathFormula addOverflowAssumptions(PathFormula formula, ARGState target)
+      throws CPATransferException, InterruptedException {
+    for (OverflowState overflow : AbstractStates.asIterable(target).filter(OverflowState.class)) {
+      if (overflow.hasOverflow()) {
+        formula = addAssumptions(formula, overflow.getParent());
       }
+    }
+    return formula;
+  }
+
+  private PathFormula addAssumptions(PathFormula formula, AbstractStateWithAssumptions assumptions)
+      throws CPATransferException, InterruptedException {
+    for (AExpression expression : assumptions.getAssumptions()) {
+      if (!(expression instanceof CExpression cExpression)) {
+        throw new CPATransferException("Unsupported assumption in a concurrent counterexample");
+      }
+      formula = formulas.makeAnd(formula, cExpression);
     }
     return formula;
   }
