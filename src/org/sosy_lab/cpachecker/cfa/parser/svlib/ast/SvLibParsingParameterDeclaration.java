@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -66,7 +67,7 @@ public final class SvLibParsingParameterDeclaration implements SvLibSimpleParsin
 
   @Override
   public String toASTString() {
-    return name;
+    return SmtLibSymbols.quoteIfNeeded(name);
   }
 
   @Override

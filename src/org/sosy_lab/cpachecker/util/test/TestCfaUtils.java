@@ -58,7 +58,15 @@ public class TestCfaUtils {
     FileLocation loc = FileLocation.DUMMY;
     CVariableDeclaration decl =
         new CVariableDeclaration(
-            loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
+            loc,
+            true,
+            CStorageClass.AUTO,
+            varType,
+            varName,
+            varName,
+            varName,
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     return new CIdExpression(loc, decl);
   }

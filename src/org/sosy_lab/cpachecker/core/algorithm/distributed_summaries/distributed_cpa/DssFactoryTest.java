@@ -12,6 +12,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.BiMap;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory.TypeAndLocationCache;
@@ -35,5 +38,26 @@ public class DssFactoryTest {
         TypeAndLocationCache.getOrCreateLocationMapping(shiftedCFA);
 
     assertThat(cfaNodeIdMapWithOriginalCFA.keySet()).isEqualTo(cfaNodeIdMapWithShiftedCFA.keySet());
+  }
+
+  @Test
+  public void memoryShareCountsEdgesThatAccessMemoryThroughPointers() throws Exception {
+    Configuration config =
+        Configuration.builder().setOption("cpa.predicate.handlePointerAliasing", "true").build();
+    assertThat(memoryShare("int main() { int x = 1; if (x > 0) { x = 2; } return x; }", config))
+        .isEqualTo(0.0);
+    assertThat(
+            memoryShare(
+                "int main() { int x = 1; int *p = &x; if (x > 0) { *p = 2; } return x; }", config))
+        .isGreaterThan(0.0);
+  }
+
+  private static double memoryShare(String pProgram, Configuration pConfig) throws Exception {
+    return TypeAndLocationCache.getOrCreateProgramFacts(
+            TestCfaUtils.makeCfaFromString(pProgram),
+            pConfig,
+            LogManager.createTestLogManager(),
+            ShutdownNotifier.createDummy())
+        .memoryShare();
   }
 }

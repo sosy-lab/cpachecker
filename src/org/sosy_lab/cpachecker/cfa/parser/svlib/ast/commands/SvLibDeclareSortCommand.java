@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 
@@ -32,7 +33,7 @@ public final class SvLibDeclareSortCommand implements SvLibCommand, SmtLibComman
   @Override
   public String toASTString() {
     return "(declare-sort "
-        + typeDelaration.getType().getType()
+        + SmtLibSymbols.quoteIfNeeded(typeDelaration.getType().getType())
         + " "
         + typeDelaration.getType().getArity()
         + ")";

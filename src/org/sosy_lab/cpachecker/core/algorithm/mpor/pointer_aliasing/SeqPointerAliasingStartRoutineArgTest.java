@@ -66,7 +66,8 @@ public class SeqPointerAliasingStartRoutineArgTest {
           "local_L1",
           "local_L1",
           "local_L1",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final class CParameterDeclarations {
     private final CParameterDeclaration START_ROUTINE_ARG_DECLARATION =

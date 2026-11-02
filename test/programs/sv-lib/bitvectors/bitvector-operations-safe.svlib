@@ -1,0 +1,30 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic QF_BV)
+
+(set-info :format-version 1.0)
+
+(define-proc
+  main
+  ((x (_ BitVec 8)))
+  ()
+  ((low (_ BitVec 4)) (wide (_ BitVec 16)))
+  (! (sequence
+    (assign (low ((_ extract 3 0) x)))
+    (assign (wide ((_ zero_extend 8) x)))
+    (! (sequence)
+      :tag check
+      :check-true (= (concat ((_ extract 7 4) x) low) x)
+      :check-true (bvule wide #x00ff)
+      :check-true (= (bvand x #x0f) ((_ zero_extend 4) low))
+      :check-true (= (bvneg (bvneg x)) x))) :tag main-body))
+
+(declare-var x (_ BitVec 8))
+(verify-call main (x))
+(get-witness)
