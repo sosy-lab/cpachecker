@@ -240,7 +240,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       partsCollector.add((SvLibBitVectorConstantTerm) argument);
     }
     ImmutableList<SvLibBitVectorConstantTerm> parts = partsCollector.build();
-    SvLibBitVectorConstantTerm sign = parts.get(0);
+    SvLibBitVectorConstantTerm sign = parts.getFirst();
     SvLibBitVectorConstantTerm exponent = parts.get(1);
     SvLibBitVectorConstantTerm significand = parts.get(2);
     Verify.verify(sign.getSize() == 1, "The sign of a floating point literal is a single bit");

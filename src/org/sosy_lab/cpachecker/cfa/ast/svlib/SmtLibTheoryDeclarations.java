@@ -217,7 +217,8 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
-  /** Real stuff */
+  /* Real stuff */
+
   /** The floor of a real, which SMT-LIB calls {@code to_int}. */
   public static SvLibFunctionDeclaration REAL_TO_INT =
       new SvLibFunctionDeclaration(
@@ -269,7 +270,8 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
-  /** Array stuff */
+  /* Array stuff */
+
   public static SvLibFunctionDeclaration arraySelect(
       SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
     return new SvLibFunctionDeclaration(
@@ -324,7 +326,8 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
-  /** Bit Vector stuff */
+  /* Bit Vector stuff */
+
   public static SvLibFunctionDeclaration bitVectorConcat(int pLeftSize, int pRightSize) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
