@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA;
 import org.sosy_lab.cpachecker.cpa.overflow.OverflowCheckEdge;
@@ -241,6 +242,12 @@ public class ConcurrentTransferRelation implements TransferRelation {
       int threadId,
       Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
+    Optional<String> callee = calledFunctionName(cfaEdge);
+    if (callee.isPresent() && isUnmodeledFunction(callee.orElseThrow())) {
+      throw new UnsupportedCodeException(
+          callee.orElseThrow() + " is not modeled by the concurrent analysis", cfaEdge);
+    }
+
     Collection<? extends AbstractState> wrappedSuccessors;
     if (checkOverflows) {
       // Check the edge in the state it is executed in (see OverflowCheckEdge).
@@ -526,6 +533,22 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private static <T> Runnable forgetTemporarily(ForgetfulState<T> state, MemoryLocation location) {
     T forgotten = state.forget(location);
     return () -> state.remember(location, forgotten);
+  }
+
+  /**
+   * Whether a call to the given bodiless function synchronizes threads in a way that neither this
+   * transfer relation (thread creation/join/exit) nor MutexCPA (locks, atomic sections) models.
+   */
+  private static boolean isUnmodeledFunction(String functionName) {
+    return ThreadFunctions.isUnmodeledThreadLibraryFunction(functionName)
+        && !ThreadFunctions.isCreateFunction(functionName)
+        && !ThreadFunctions.isJoinFunction(functionName)
+        && !ThreadFunctions.isThreadExitFunction(functionName)
+        && !MutexFunctions.isLockFunction(functionName)
+        && !MutexFunctions.isUnlockFunction(functionName)
+        && !MutexFunctions.isTrylockFunction(functionName)
+        && !MutexFunctions.isInitFunction(functionName)
+        && !MutexFunctions.isDestroyFunction(functionName);
   }
 
   /** The called function's name, or null if {@code edge} is not a function-call statement. */

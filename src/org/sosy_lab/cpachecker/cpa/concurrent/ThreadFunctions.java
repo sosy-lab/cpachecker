@@ -52,6 +52,32 @@ public final class ThreadFunctions {
   private static final ImmutableSet<String> JOIN_FUNCTIONS = ImmutableSet.of("pthread_join");
   private static final ImmutableSet<String> THREAD_EXIT_FUNCTIONS = ImmutableSet.of("pthread_exit");
 
+  /**
+   * Name prefixes of thread-library functions. A call to such a function without a body must either
+   * be modeled by the concurrency analysis (thread creation/join/exit, mutexes) or be known to have
+   * no effect on the ordering of events ({@link #NO_ORDERING_EFFECT_FUNCTIONS}); any other one
+   * (barriers, {@code pthread_once}, semaphores, condition variables, ...) has to be rejected, as
+   * the wrapped analyses would treat it as a pure call and drop the synchronization it implies.
+   */
+  private static final ImmutableList<String> THREAD_LIBRARY_PREFIXES =
+      ImmutableList.of("pthread_", "sem_", "mtx_", "cnd_", "thrd_", "tss_", "call_once");
+
+  /** Prefixes of the attribute-object functions, which never synchronize. */
+  private static final ImmutableList<String> ATTRIBUTE_FUNCTION_PREFIXES =
+      ImmutableList.of(
+          "pthread_attr_", "pthread_mutexattr_", "pthread_rwlockattr_", "pthread_condattr_");
+
+  /** Bodiless thread-library functions that neither synchronize nor touch program memory. */
+  private static final ImmutableSet<String> NO_ORDERING_EFFECT_FUNCTIONS =
+      ImmutableSet.of(
+          "pthread_rwlock_init",
+          "pthread_rwlock_destroy",
+          "pthread_detach",
+          "pthread_yield",
+          "pthread_setcancelstate",
+          "pthread_setcanceltype",
+          "pthread_testcancel");
+
   private ThreadFunctions() {}
 
   /** Returns {@code true} if the given function name is a thread creation function. */
@@ -67,6 +93,17 @@ public final class ThreadFunctions {
   /** Returns {@code true} if the given function name is a thread exit function. */
   public static boolean isThreadExitFunction(String functionName) {
     return THREAD_EXIT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * Returns {@code true} if the given bodiless function belongs to the thread library and may
+   * synchronize, i.e., it is neither an attribute-object function nor one without ordering effect.
+   * Callers must handle the functions they model before asking.
+   */
+  public static boolean isUnmodeledThreadLibraryFunction(String functionName) {
+    return THREAD_LIBRARY_PREFIXES.stream().anyMatch(functionName::startsWith)
+        && ATTRIBUTE_FUNCTION_PREFIXES.stream().noneMatch(functionName::startsWith)
+        && !NO_ORDERING_EFFECT_FUNCTIONS.contains(functionName);
   }
 
   /**
