@@ -27,7 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
-import org.sosy_lab.common.Classes;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,15 +76,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
   @Option(
       secure = true,
+      required = true,
       description =
           "configuration of the termination analysis that proves the well-foundedness of the"
               + " transition invariants by proving the termination of an overapproximating"
               + " program, its resource limits apply to each transition invariant")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path wellFoundednessConfig =
-      Classes.getCodeLocation(ImplicitRankingChecker.class)
-          .resolveSibling(
-              "config/components/correctnessWitnessValidation-termination--wellFoundedness.properties");
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private @Nullable Path wellFoundednessConfig = null;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;

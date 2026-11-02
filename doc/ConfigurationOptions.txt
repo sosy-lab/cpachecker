@@ -5835,7 +5835,7 @@ termination.validation.checkWithInfiniteSpace = false
 # of the transition invariants by proving the termination of an
 # overapproximating program, its resource limits apply to each transition
 # invariant
-termination.validation.wellFoundednessConfig = "config/components/correctnessWitnessValidation-termination--wellFoundedness.properties"
+termination.validation.wellFoundednessConfig = no default value
 
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
