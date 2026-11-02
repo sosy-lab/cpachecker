@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -644,27 +645,28 @@ public class CFAUtils {
   public static ImmutableList<ImmutableList<CFAEdge>> getMaximalPaths(
       Set<CFAEdge> pEdges, Set<CFANode> pStartNodes, Set<CFANode> pEndNodes) {
     ImmutableList.Builder<ImmutableList<CFAEdge>> maximalPaths = ImmutableList.builder();
-    Queue<ImmutableList<CFAEdge>> waitlist = new ArrayDeque<>();
+    // paths are stored in reverse order, so that extending a path shares its prefix
+    Queue<PersistentLinkedList<CFAEdge>> waitlist = new ArrayDeque<>();
     for (CFANode startNode : pStartNodes) {
       for (CFAEdge edge : startNode.getAllLeavingEdges().filter(pEdges::contains).toSet()) {
-        waitlist.offer(ImmutableList.of(edge));
+        waitlist.offer(PersistentLinkedList.of(edge));
       }
     }
     while (!waitlist.isEmpty()) {
-      ImmutableList<CFAEdge> path = waitlist.poll();
-      CFANode pathSucc = path.getLast().getSuccessor();
+      PersistentLinkedList<CFAEdge> reversedPath = waitlist.poll();
+      CFANode pathSucc = reversedPath.head().getSuccessor();
       ImmutableSet<CFAEdge> leavingEdges =
           pEndNodes.contains(pathSucc)
               ? ImmutableSet.of()
               : pathSucc
                   .getAllLeavingEdges()
-                  .filter(edge -> pEdges.contains(edge) && !path.contains(edge))
+                  .filter(edge -> pEdges.contains(edge) && !reversedPath.contains(edge))
                   .toSet();
       if (leavingEdges.isEmpty()) {
-        maximalPaths.add(path);
+        maximalPaths.add(ImmutableList.copyOf(reversedPath.reversed()));
       }
       for (CFAEdge leavingEdge : leavingEdges) {
-        waitlist.offer(listAndElement(path, leavingEdge));
+        waitlist.offer(reversedPath.with(leavingEdge));
       }
     }
     return maximalPaths.build();
