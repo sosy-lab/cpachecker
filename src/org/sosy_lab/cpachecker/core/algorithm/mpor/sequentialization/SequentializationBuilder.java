@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -53,16 +54,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
-public class SequentializationBuilder {
+record SequentializationBuilder(MPOROptions options, MachineModel machineModel) {
 
-  public static String buildInputFunctionAndTypeDeclarations(
-      MPOROptions pOptions,
-      CFunctionDeclaration pInputMainFunctionDeclaration,
-      ImmutableList<MPORThread> pThreads)
+  String buildInputFunctionAndTypeDeclarations(
+      CFunctionDeclaration pInputMainFunctionDeclaration, ImmutableList<MPORThread> pThreads)
       throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.INPUT_PROGRAM_DECLARATIONS.toASTString());
     }
     // add all original program declarations that are not substituted
@@ -70,7 +69,7 @@ public class SequentializationBuilder {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           MPORThreadUtil.extractNonVariableDeclarations(thread);
       for (CDeclaration declaration : nonVariableDeclarations) {
-        if (isIncludedDeclaration(pOptions, declaration, pInputMainFunctionDeclaration)) {
+        if (isIncludedDeclaration(options, declaration, pInputMainFunctionDeclaration)) {
           if (declaration instanceof CTypeDeclaration typeDeclaration) {
             // For CTypeDeclaration, substitute pthread types such as pthread_mutex_t so that they
             // can be simulated.
@@ -78,7 +77,9 @@ public class SequentializationBuilder {
               case CComplexTypeDeclaration complexTypeDeclaration -> {
                 CType typeSubstitute =
                     PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                        complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
+                        complexTypeDeclaration.getType(),
+                        ImmutableSet.of(CCompositeType.class),
+                        machineModel);
                 CComplexTypeDeclaration newComplexTypeDeclaration =
                     new CComplexTypeDeclaration(
                         complexTypeDeclaration.getFileLocation(),
@@ -89,7 +90,9 @@ public class SequentializationBuilder {
               case CTypeDefDeclaration typeDefDeclaration -> {
                 CType typeSubstitute =
                     PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                        typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
+                        typeDefDeclaration.getType(),
+                        ImmutableSet.of(CElaboratedType.class),
+                        machineModel);
                 CTypeDefDeclaration newTypeDefDeclaration =
                     new CTypeDefDeclaration(
                         typeDefDeclaration.getFileLocation(),
@@ -132,12 +135,11 @@ public class SequentializationBuilder {
 
   // Input Variable Declarations ===================================================================
 
-  public static String buildInputGlobalVariableDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+  String buildInputGlobalVariableDeclarations(MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS.toASTString());
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
@@ -150,12 +152,11 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildInputLocalVariableDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+  String buildInputLocalVariableDeclarations(ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS.toASTString());
     }
     for (MPORSubstitution substitution : pSubstitutions) {
@@ -209,12 +210,11 @@ public class SequentializationBuilder {
 
   // Input Parameter Declarations ==================================================================
 
-  public static String buildInputParameterDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+  String buildInputParameterDeclarations(ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES.toASTString());
     }
     for (MPORSubstitution substitution : pSubstitutions) {
@@ -234,12 +234,11 @@ public class SequentializationBuilder {
    * Adds the declarations of main function arguments, e.g. {@code int arg;} that are
    * non-deterministically initialized in {@code main()} later in the sequentialization.
    */
-  public static String buildMainFunctionArgDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+  String buildMainFunctionArgDeclarations(MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.getMainFunctionArgSubstitutes().values()) {
@@ -251,12 +250,11 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildStartRoutineArgDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+  String buildStartRoutineArgDeclarations(MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES.toASTString());
     }
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
@@ -270,11 +268,11 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildStartRoutineExitDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
+  String buildStartRoutineExitDeclarations(ImmutableList<MPORThread> pThreads)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES.toASTString());
     }
     for (MPORThread thread : pThreads) {
@@ -291,13 +289,14 @@ public class SequentializationBuilder {
 
   // CVariableDeclaration helper
 
-  private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
+  private CVariableDeclaration buildVariableDeclarationWithSubstituteType(
       CVariableDeclaration pVariableDeclaration) {
 
     CType typeSubstitute =
         PthreadObjectSubstitution.substitutePthreadObjectTypes(
             pVariableDeclaration.getType(),
-            ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
+            ImmutableSet.of(CElaboratedType.class, CTypedefType.class),
+            machineModel);
 
     return new CVariableDeclaration(
         pVariableDeclaration.getFileLocation(),
@@ -313,11 +312,11 @@ public class SequentializationBuilder {
 
   // Function Declarations and Definitions =========================================================
 
-  public static String buildFunctionDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
+  String buildFunctionDeclarations(SequentializationFields pFields)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS.toASTString());
     }
 
@@ -334,12 +333,12 @@ public class SequentializationBuilder {
     // input program contains a call to malloc, then its declaration is included in the input
     // program. But since we exclude these for CBMC, and because CBMC still needs a function
     // declaration (it produces incorrect results otherwise), we add it here.
-    if (!pOptions.inputFunctionDeclarations()) {
+    if (!options.inputFunctionDeclarations()) {
       rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
     }
 
     // thread simulation functions, only enabled when loop is unrolled
-    if (pOptions.threadSimulationUnrolling()) {
+    if (options.threadSimulationUnrolling()) {
       pFields
           .threadSimulationFunctions
           .orElseThrow()
@@ -356,12 +355,11 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildFunctionDefinitions(
-      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+  String buildFunctionDefinitions(SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     StringJoiner rDefinitions = new StringJoiner(System.lineSeparator());
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS.toASTString());
     }
     // custom function definitions: assume(), main()
@@ -369,7 +367,7 @@ public class SequentializationBuilder {
         SeqAssumeFunctionBuilder.buildFunctionDefinition(pUtils.binaryExpressionBuilder())
             .toASTString());
     // create separate thread simulation function definitions, if enabled
-    if (pOptions.threadSimulationUnrolling()) {
+    if (options.threadSimulationUnrolling()) {
       for (CExportFunctionDefinition functionDefinition :
           pFields.threadSimulationFunctions.orElseThrow().values()) {
         rDefinitions.add(functionDefinition.toASTString());
@@ -377,7 +375,7 @@ public class SequentializationBuilder {
     }
     // create clauses in main method
     rDefinitions.add(
-        SeqMainFunctionBuilder.buildFunctionDefinition(pOptions, pFields, pUtils).toASTString());
+        SeqMainFunctionBuilder.buildFunctionDefinition(options, pFields, pUtils).toASTString());
     return rDefinitions.toString();
   }
 
@@ -388,19 +386,19 @@ public class SequentializationBuilder {
    * {@code main} function. Variables that are used in other functions are declared beforehand as
    * global variables.
    */
-  static String buildThreadSimulationVariableDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
+  String buildThreadSimulationVariableDeclarations(SequentializationFields pFields)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
 
     // if the loop is finite, i.e., threadSimulationIterations is not 0, and
     // threadSimulationUnrolling is disabled,
     // then add the variable that is incremented with each iteration
-    if (pOptions.threadSimulationIterations() != 0 && !pOptions.threadSimulationUnrolling()) {
+    if (options.threadSimulationIterations() != 0 && !options.threadSimulationUnrolling()) {
       rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
     }
 
-    if (pOptions.isPrevThreadVariableRequired()) {
+    if (options.isPrevThreadVariableRequired()) {
       // prev_thread ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
@@ -418,18 +416,18 @@ public class SequentializationBuilder {
     }
 
     // next_thread
-    if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
+    if (options.nondeterminismSource().isNextThreadNondeterministic()) {
       CVariableDeclaration nextThreadDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
-              pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+              options.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
               SeqIdExpressions.NEXT_THREAD.getName(),
               SeqInitializers.INT_0);
       rDeclarations.add(nextThreadDeclaration.toASTString());
     }
 
     // pc variable(s)
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.PC_DECLARATION.toASTString());
     }
     ImmutableList<CVariableDeclaration> pcDeclarations =
@@ -439,10 +437,10 @@ public class SequentializationBuilder {
     }
 
     // if enabled: bit vectors
-    if (pOptions.isAnyBitVectorReductionEnabled()) {
+    if (options.isAnyBitVectorReductionEnabled()) {
       SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
           new SeqBitVectorDeclarationBuilder(
-              pOptions,
+              options,
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
               pFields.machineModel,
@@ -455,28 +453,28 @@ public class SequentializationBuilder {
     }
 
     // track active thread number via thread_count
-    if (pOptions.executeSingleActiveThreadFirst()) {
+    if (options.executeSingleActiveThreadFirst()) {
       rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
     }
 
     // if enabled: round_max and round
-    if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
+    if (options.nondeterminismSource().isNumStatementsNondeterministic()) {
       rDeclarations.add(SeqVariableDeclarations.ROUND.toASTString());
       rDeclarations.add(
           SeqDeclarationBuilder.buildVariableDeclaration(
                   true,
-                  pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+                  options.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
                   SeqIdExpressions.ROUND_MAX.getName(),
                   SeqInitializers.INT_0)
               .toASTString());
     }
 
     // thread synchronization variables (e.g. mutex_locked)
-    if (pOptions.comments()) {
+    if (options.comments()) {
       rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES.toASTString());
     }
     for (CSimpleDeclaration declaration :
-        pFields.ghostElements.threadSyncFlags().getDeclarations(pOptions)) {
+        pFields.ghostElements.threadSyncFlags().getDeclarations(options)) {
       rDeclarations.add(declaration.toASTString());
     }
     return rDeclarations.toString();

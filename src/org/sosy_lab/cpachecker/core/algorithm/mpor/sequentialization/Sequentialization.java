@@ -81,48 +81,40 @@ public class Sequentialization {
       MPOR_HEADER.forEach(line -> rProgram.add(line));
     }
 
+    SequentializationBuilder sequentializationBuilder =
+        new SequentializationBuilder(pOptions, pFields.machineModel);
+
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.add(
-        SequentializationBuilder.buildInputFunctionAndTypeDeclarations(
-            pOptions, pFields.inputMainFunctionDeclaration, pFields.threads));
+        sequentializationBuilder.buildInputFunctionAndTypeDeclarations(
+            pFields.inputMainFunctionDeclaration, pFields.threads));
     // add all variable and parameter declarations, but only if there are any
     Optional.of(
-            SequentializationBuilder.buildInputGlobalVariableDeclarations(
-                pOptions, pFields.mainSubstitution))
+            sequentializationBuilder.buildInputGlobalVariableDeclarations(pFields.mainSubstitution))
         .filter(s -> !s.isEmpty())
         .ifPresent(rProgram::add);
-    Optional.of(
-            SequentializationBuilder.buildInputLocalVariableDeclarations(
-                pOptions, pFields.substitutions))
+    Optional.of(sequentializationBuilder.buildInputLocalVariableDeclarations(pFields.substitutions))
         .filter(s -> !s.isEmpty())
         .ifPresent(rProgram::add);
-    Optional.of(
-            SequentializationBuilder.buildInputParameterDeclarations(
-                pOptions, pFields.substitutions))
+    Optional.of(sequentializationBuilder.buildInputParameterDeclarations(pFields.substitutions))
         .filter(s -> !s.isEmpty())
         .ifPresent(rProgram::add);
-    Optional.of(
-            SequentializationBuilder.buildMainFunctionArgDeclarations(
-                pOptions, pFields.mainSubstitution))
+    Optional.of(sequentializationBuilder.buildMainFunctionArgDeclarations(pFields.mainSubstitution))
         .filter(s -> !s.isEmpty())
         .ifPresent(rProgram::add);
-    Optional.of(
-            SequentializationBuilder.buildStartRoutineArgDeclarations(
-                pOptions, pFields.mainSubstitution))
+    Optional.of(sequentializationBuilder.buildStartRoutineArgDeclarations(pFields.mainSubstitution))
         .filter(s -> !s.isEmpty())
         .ifPresent(rProgram::add);
-    Optional.of(
-            SequentializationBuilder.buildStartRoutineExitDeclarations(pOptions, pFields.threads))
+    Optional.of(sequentializationBuilder.buildStartRoutineExitDeclarations(pFields.threads))
         .filter(s -> !s.isEmpty())
         .ifPresent(rProgram::add);
 
     // add thread simulation variables (i.e. ghost elements)
-    rProgram.add(
-        SequentializationBuilder.buildThreadSimulationVariableDeclarations(pOptions, pFields));
+    rProgram.add(sequentializationBuilder.buildThreadSimulationVariableDeclarations(pFields));
 
     // add custom function declarations and definitions
-    rProgram.add(SequentializationBuilder.buildFunctionDeclarations(pOptions, pFields));
-    rProgram.add(SequentializationBuilder.buildFunctionDefinitions(pOptions, pFields, pUtils));
+    rProgram.add(sequentializationBuilder.buildFunctionDeclarations(pFields));
+    rProgram.add(sequentializationBuilder.buildFunctionDefinitions(pFields, pUtils));
 
     return rProgram.toString();
   }
