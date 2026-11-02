@@ -70,6 +70,8 @@ final class OcEncoder {
 
   private static final String CLOCK_VARIABLE_PREFIX = "__oc_clk_";
   private static final String READ_FROM_VARIABLE_PREFIX = "__oc_rf_";
+
+  private static final String INDETERMINATE_READ_VARIABLE_PREFIX = "__oc_undef_";
   private static final String WRITE_SERIALIZATION_VARIABLE_PREFIX = "__oc_ws_";
 
   /** A read-from pair with its Boolean selector variable. */
@@ -363,10 +365,11 @@ final class OcEncoder {
             .collect(ImmutableListMultimap.toImmutableListMultimap(p -> p.read().id(), p -> p));
     for (MemoryEvent event : events) {
       if (event.kind() == EventKind.READ) {
-        List<BooleanFormula> candidates =
-            rfByRead.get(event.id()).stream()
-                .map(RfPair::variable)
-                .collect(ImmutableList.toImmutableList());
+        List<BooleanFormula> candidates = new ArrayList<>();
+        rfByRead.get(event.id()).forEach(rf -> candidates.add(rf.variable()));
+        if (hasIndeterminateInitialValue(event)) {
+          candidates.add(readsIndeterminateValue(event));
+        }
         constraints.add(bfmgr.implication(getFullGuard(event), bfmgr.or(candidates)));
       }
     }
@@ -429,6 +432,22 @@ final class OcEncoder {
     return ImmutableList.copyOf(constraints);
   }
 
+  /**
+   * Whether the read may see the indeterminate initial content of its cell instead of a write. Only
+   * a heap object allocated through a {@code void *} has no initial write (its cells get a type
+   * only when accessed through a typed pointer), so this is allowed for every region read whose
+   * cell no executed write precedes (see {@link #getClockConstraints}); every other object's cells
+   * are written before they can be read, by their declaration or allocation, which rules it out
+   * there. The REFINEMENT mode has no clocks to state this with and keeps requiring a write.
+   */
+  private boolean hasIndeterminateInitialValue(MemoryEvent pRead) {
+    return !withOrderingBooleans && pRead.isRegionAccess();
+  }
+
+  private BooleanFormula readsIndeterminateValue(MemoryEvent pRead) {
+    return bfmgr.makeVariable(INDETERMINATE_READ_VARIABLE_PREFIX + pRead.id());
+  }
+
   /** Eager integer-clock ordering constraints (used by the CLOCKS mode). */
   ImmutableList<BooleanFormula> getClockConstraints() {
     var imgr = fmgr.getIntegerFormulaManager();
@@ -449,6 +468,19 @@ final class OcEncoder {
     }
 
     ImmutableListMultimap<CellKey, MemoryEvent> writesByCell = writesByCell();
+    for (MemoryEvent read : events) {
+      if (read.kind() != EventKind.READ || !hasIndeterminateInitialValue(read)) {
+        continue;
+      }
+      // a read of the indeterminate initial content comes before every executed write of its cell
+      for (MemoryEvent write : writesByCell.get(cellKey(read))) {
+        constraints.add(
+            bfmgr.implication(
+                bfmgr.and(
+                    readsIndeterminateValue(read), getFullGuard(write), sameAddress(write, read)),
+                imgr.lessThan(clocks.get(read), clocks.get(write))));
+      }
+    }
     for (RfPair rf : rfPairs) {
       constraints.add(
           bfmgr.implication(
