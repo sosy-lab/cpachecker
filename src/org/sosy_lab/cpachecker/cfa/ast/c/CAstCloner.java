@@ -264,7 +264,10 @@ public abstract class CAstCloner extends AbstractTransformingCAstNodeVisitor<NoE
     CParameterDeclaration newDecl =
         new CParameterDeclaration(
             decl.getFileLocation(), cloneType(decl.getType()), decl.getName());
-    newDecl.setQualifiedName(changeQualifiedName(decl));
+    // parameters of a function declaration without a body have no qualified name
+    if (decl.getQualifiedName() != null) {
+      newDecl.setQualifiedName(changeQualifiedName(decl));
+    }
     return newDecl;
   }
 

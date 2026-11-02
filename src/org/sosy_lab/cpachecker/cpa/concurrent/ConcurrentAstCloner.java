@@ -132,7 +132,10 @@ class ConcurrentAstCloner extends CAstCloner {
     } else if (decl instanceof CParameterDeclaration param) {
       final CParameterDeclaration newParam =
           new CParameterDeclaration(param.getFileLocation(), param.getType(), param.getName());
-      newParam.setQualifiedName(changeQualifiedName(param));
+      // parameters of a function declaration without a body have no qualified name
+      if (param.getQualifiedName() != null) {
+        newParam.setQualifiedName(changeQualifiedName(param));
+      }
       return newParam;
     } else {
       return decl;
