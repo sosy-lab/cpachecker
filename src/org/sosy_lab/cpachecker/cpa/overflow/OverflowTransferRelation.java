@@ -29,15 +29,12 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
 
   private final CBinaryExpressionBuilder expressionBuilder;
   private final ArithmeticOverflowAssumptionBuilder noOverflowAssumptionBuilder;
-  private final boolean lookahead;
 
   public OverflowTransferRelation(
       ArithmeticOverflowAssumptionBuilder pNoOverflowAssumptionBuilder,
-      CBinaryExpressionBuilder pExpressionBuilder,
-      boolean pLookahead) {
+      CBinaryExpressionBuilder pExpressionBuilder) {
     expressionBuilder = pExpressionBuilder;
     noOverflowAssumptionBuilder = pNoOverflowAssumptionBuilder;
-    lookahead = pLookahead;
   }
 
   @Override
@@ -52,28 +49,14 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
-    if (cfaEdge instanceof OverflowCheckEdge checkEdge) {
-      return checkEdges(prev, ImmutableList.of(checkEdge.getCheckedEdge()));
-    }
-
-    if (!lookahead || cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
+    if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
       // Preserve final states for terminal edges, including overflow and thread termination.
       return ImmutableList.of(new OverflowState(ImmutableSet.of(), prev.nextHasOverflow(), prev));
     }
 
-    return checkEdges(prev, cfaEdge.getSuccessor().getLeavingEdges());
-  }
-
-  /**
-   * Splits {@code prev} into one state per way one of {@code edges} can overflow, plus one state in
-   * which none of them overflows. The overflow is reported by the transfer for the overflowing
-   * edge.
-   */
-  private Collection<OverflowState> checkEdges(OverflowState prev, Iterable<CFAEdge> edges)
-      throws CPATransferException, InterruptedException {
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
-    for (CFAEdge nextEdge : edges) {
+    for (CFAEdge nextEdge : cfaEdge.getSuccessor().getLeavingEdges()) {
       Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(nextEdge);
 
       ImmutableSet.Builder<CExpression> logicalAssumptions = ImmutableSet.builder();

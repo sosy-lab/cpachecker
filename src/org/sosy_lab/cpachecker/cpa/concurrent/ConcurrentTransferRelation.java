@@ -10,10 +10,14 @@ package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,12 +63,16 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA;
-import org.sosy_lab.cpachecker.cpa.overflow.OverflowCheckEdge;
+import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -108,6 +116,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
   private final boolean checkOverflows;
+  private final ImmutableList<TransferRelation> componentTransferRelations;
   private final Map<CFAEdge, OverflowCheckEdge> overflowCheckEdges = new HashMap<>();
 
   @SuppressWarnings("unused") // pConfig and the declared exceptions are kept for future use
@@ -122,14 +131,18 @@ public class ConcurrentTransferRelation implements TransferRelation {
       Random pRandom)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
-    OverflowCPA overflowCpa = CPAs.retrieveCPA(wrappedCpa, OverflowCPA.class);
-    if (overflowCpa != null && overflowCpa.usesLookahead()) {
-      // The lookahead checks the next edge of the thread that just moved, but the next edge may
-      // belong to another thread, so an overflow enabled by an interleaved write would be missed.
-      throw new InvalidConfigurationException(
-          "OverflowCPA inside ConcurrentCPA requires cpa.overflow.lookahead = false");
+    checkOverflows = CPAs.retrieveCPA(wrappedCpa, OverflowCPA.class) != null;
+    if (wrappedTransferRelation instanceof WrapperTransferRelation composite) {
+      componentTransferRelations = ImmutableList.copyOf(composite.getWrappedTransferRelations());
+    } else {
+      componentTransferRelations = ImmutableList.of();
     }
-    checkOverflows = overflowCpa != null;
+    if (checkOverflows
+        && !(wrappedCpa instanceof CompositeCPA composite
+            && composite.getWrappedCPAs().stream().anyMatch(OverflowCPA.class::isInstance))) {
+      throw new InvalidConfigurationException(
+          "ConcurrentCPA supports OverflowCPA only as a direct component of its CompositeCPA");
+    }
 
     // Construct thread specific CPA
     threadSpecificCPA = pThreadSpecificCPA;
@@ -518,8 +531,15 @@ public class ConcurrentTransferRelation implements TransferRelation {
       }
     }
     try {
-      return wrappedTransferRelation.getAbstractSuccessorsForEdge(
-          wrappedState, precision.getWrappedPrecision(), edge);
+      if (edge instanceof OverflowCheckEdge check) {
+        return checkOverflow(wrappedState, precision.getWrappedPrecision(), check);
+      }
+      Collection<? extends AbstractState> successors =
+          wrappedTransferRelation.getAbstractSuccessorsForEdge(
+              wrappedState, precision.getWrappedPrecision(), edge);
+      return checkOverflows
+          ? transformedImmutableListCopy(successors, ConcurrentTransferRelation::dropLookahead)
+          : successors;
     } finally {
       restoreForgotten.forEach(Runnable::run);
     }
@@ -549,6 +569,80 @@ public class ConcurrentTransferRelation implements TransferRelation {
         && !MutexFunctions.isTrylockFunction(functionName)
         && !MutexFunctions.isInitFunction(functionName)
         && !MutexFunctions.isDestroyFunction(functionName);
+  }
+
+  /**
+   * Applies {@code pCheckEdge} like the CompositeCPA would, except that specification automata do
+   * not take part: the check is not a program step, and an automaton would match it against its
+   * transitions (e.g., the path automaton of a counterexample check would leave the path).
+   */
+  private Collection<CompositeState> checkOverflow(
+      AbstractState pWrappedState, Precision pWrappedPrecision, OverflowCheckEdge pCheckEdge)
+      throws CPATransferException, InterruptedException {
+    ImmutableList<AbstractState> components = ((CompositeState) pWrappedState).getWrappedStates();
+    ImmutableList<Precision> precisions =
+        ((CompositePrecision) pWrappedPrecision).getWrappedPrecisions();
+
+    List<List<AbstractState>> componentSuccessors = new ArrayList<>(components.size());
+    for (int i = 0; i < components.size(); i++) {
+      AbstractState component = components.get(i);
+      if (component instanceof AutomatonState) {
+        componentSuccessors.add(ImmutableList.of(component));
+      } else {
+        componentSuccessors.add(
+            ImmutableList.copyOf(
+                componentTransferRelations
+                    .get(i)
+                    .getAbstractSuccessorsForEdge(component, precisions.get(i), pCheckEdge)));
+      }
+    }
+
+    List<CompositeState> result = new ArrayList<>();
+    nextSuccessor:
+    for (List<AbstractState> successor : Lists.cartesianProduct(componentSuccessors)) {
+      List<AbstractState> strengthenedSuccessor = new ArrayList<>(successor);
+      for (int i = 0; i < successor.size(); i++) {
+        if (successor.get(i) instanceof AutomatonState) {
+          continue;
+        }
+        Collection<? extends AbstractState> strengthened =
+            componentTransferRelations
+                .get(i)
+                .strengthen(successor.get(i), successor, pCheckEdge, precisions.get(i));
+        if (strengthened.isEmpty()) {
+          continue nextSuccessor; // infeasible
+        }
+        strengthenedSuccessor.set(i, Iterables.getOnlyElement(strengthened));
+      }
+      result.add(new CompositeState(strengthenedSuccessor));
+    }
+    return result;
+  }
+
+  /**
+   * Clears the overflow that the lookahead of a program step found pending for the next edge of the
+   * same thread. With POR, the next step may belong to another thread, which would then be reported
+   * as the overflowing edge. The overflow and no-overflow successors of the lookahead together
+   * still cover every state, and the next edge is checked right before it executes anyway (see
+   * {@link OverflowCheckEdge}).
+   */
+  private static AbstractState dropLookahead(AbstractState pWrappedState) {
+    if (!(pWrappedState instanceof CompositeState composite)
+        || AbstractStates.isTargetState(pWrappedState)) {
+      return pWrappedState;
+    }
+    List<AbstractState> components = new ArrayList<>(composite.getWrappedStates());
+    for (int i = 0; i < components.size(); i++) {
+      if (components.get(i) instanceof OverflowState overflow && overflow.nextHasOverflow()) {
+        components.set(
+            i,
+            new OverflowState(
+                ImmutableSet.copyOf(overflow.getAssumptions()),
+                false,
+                (OverflowState) overflow.getParent()));
+      }
+    }
+    return new CompositeState(components);
   }
 
   /** The called function's name, or null if {@code edge} is not a function-call statement. */

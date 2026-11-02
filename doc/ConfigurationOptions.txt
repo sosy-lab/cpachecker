@@ -2592,13 +2592,6 @@ cpa.octagon.octagonLibrary = "INT"
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
-# Check the edges leaving the successor of each edge for overflows
-# (lookahead). Analyses that interleave the edges of several threads must
-# disable this, because the next edge may belong to another thread, and
-# request the check of each edge right before it with an OverflowCheckEdge
-# instead.
-cpa.overflow.lookahead = true
-
 # which merge operator to use for PointerCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
