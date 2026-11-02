@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.List;
@@ -40,8 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunRecCommand;
@@ -59,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -166,24 +164,30 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     SSAMapBuilder ssa = pOldFormula.getSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
 
-    BooleanFormula edgeFormula =
-        switch (pEdge) {
-          case BlankEdge ignored -> bfmgr.makeTrue();
-          case SvLibDeclarationEdge declarationEdge ->
-              makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
-          case SvLibFunctionCallEdge procedureCallEdge ->
-              makeProcedureCall(procedureCallEdge, function, ssa, constraints, pErrorConditions);
-          case SvLibAssumeEdge assumeEdge ->
-              makePredicate(assumeEdge, function, ssa, constraints, pErrorConditions);
-          case SvLibProcedureReturnEdge returnEdge ->
-              makeExitFunction(
-                  returnEdge.getSummaryEdge(), function, ssa, constraints, pErrorConditions);
-          case SvLibStatementEdge statementEdge ->
-              SvLibStatementToFormulaConverter.convertStatement(
-                  statementEdge.getStatement(), ssa, fmgr, this);
+    BooleanFormula edgeFormula;
+    try {
+      edgeFormula =
+          switch (pEdge) {
+            case BlankEdge ignored -> bfmgr.makeTrue();
+            case SvLibDeclarationEdge declarationEdge ->
+                makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
+            case SvLibFunctionCallEdge procedureCallEdge ->
+                makeProcedureCall(procedureCallEdge, function, ssa, constraints, pErrorConditions);
+            case SvLibAssumeEdge assumeEdge ->
+                makePredicate(assumeEdge, function, ssa, constraints, pErrorConditions);
+            case SvLibProcedureReturnEdge returnEdge ->
+                makeExitFunction(
+                    returnEdge.getSummaryEdge(), function, ssa, constraints, pErrorConditions);
+            case SvLibStatementEdge statementEdge ->
+                SvLibStatementToFormulaConverter.convertStatement(
+                    statementEdge.getStatement(), ssa, fmgr, this);
 
-          default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
-        };
+            default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
+          };
+    } catch (UnsupportedOperationByDesignException e) {
+      // The term converter cannot throw a checked exception, because it converts in lambdas
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
+    }
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
@@ -197,8 +201,8 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     for (SmtLibCommand smtLibCommand : smtLibCommands) {
       commandAxioms =
           switch (smtLibCommand) {
-            case SmtLibDefineFunCommand pSmtLibDefineFunCommand ->
-                bfmgr.and(commandAxioms, makeDefineFunAxiom(pSmtLibDefineFunCommand, ssa));
+            // The term converter rejects applications of the function
+            case SmtLibDefineFunCommand pSmtLibDefineFunCommand -> commandAxioms;
             case SmtLibDefineFunRecCommand pSmtLibDefineFunRecCommand ->
                 throw new UnsupportedCodeException(
                     "Define fun rec commands are not yet supported", pEdge);
@@ -253,52 +257,6 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
             newFormula, newSsa, pOldFormula.getPointerTargetSet(), newLength);
 
     return result;
-  }
-
-  /**
-   * Encode a {@code (define-fun name (params) sort body)} command as a boolean formula.
-   *
-   * <p>A definition without parameters defines a constant and is encoded as the equality {@code
-   * name = body}, with the constant encoded as a variable in the same way uses of it are encoded by
-   * {@link SvLibTermToFormulaConverter}. A definition with parameters is encoded as an
-   * uninterpreted function constrained by the axiom {@code forall params. name(params) = body}. The
-   * parameter variables are built exactly like {@link SvLibTermToFormulaConverter} encodes their
-   * uses inside the body, such that the quantifier binds the free variables of the body formula.
-   */
-  private BooleanFormula makeDefineFunAxiom(SmtLibDefineFunCommand pCommand, SSAMapBuilder ssa) {
-    SvLibTerm body = pCommand.getBody();
-    SvLibSmtFunctionDefinition functionDefinition = pCommand.getFunctionDeclaration();
-
-    Formula bodyFormula = SvLibTermToFormulaConverter.convertTerm(body, ssa, fmgr, this);
-
-    String functionName = cleanVariableNameForJavaSMT(functionDefinition.getName());
-    FormulaType<?> returnFormulaType =
-        ((SvLibSmtLibType) functionDefinition.getReturnType()).toFormulaType();
-
-    if (functionDefinition.getParameters().isEmpty()) {
-      int useIndex =
-          SvLibTermToFormulaConverter.getIndex(
-              functionName, functionDefinition.getReturnType(), ssa, this);
-      Formula constant = fmgr.makeVariable(returnFormulaType, functionName, useIndex);
-      return SvLibTermToFormulaConverter.makeEqualOfCoreTheory(constant, bodyFormula, fmgr);
-    }
-
-    ImmutableList.Builder<Formula> parameterFormulas = ImmutableList.builder();
-    for (SvLibParsingParameterDeclaration parameter : functionDefinition.getParameters()) {
-      String parameterName = cleanVariableNameForJavaSMT(parameter.getQualifiedName());
-      int useIndex =
-          SvLibTermToFormulaConverter.getIndex(parameterName, parameter.getType(), ssa, this);
-      parameterFormulas.add(
-          fmgr.makeVariable(
-              ((SvLibSmtLibType) parameter.getType()).toFormulaType(), parameterName, useIndex));
-    }
-    ImmutableList<Formula> parameters = parameterFormulas.build();
-
-    Formula functionApplication =
-        ffmgr.declareAndCallUF(functionName, returnFormulaType, parameters);
-    BooleanFormula definition =
-        SvLibTermToFormulaConverter.makeEqualOfCoreTheory(functionApplication, bodyFormula, fmgr);
-    return fmgr.getQuantifiedFormulaManager().forall(parameters, definition);
   }
 
   /** Create an application of the uninterpreted function with the given name. */

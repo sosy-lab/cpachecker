@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -147,6 +149,11 @@ public class SvLibTermToFormulaConverter {
       FormulaManagerView fmgr,
       SvLibToFormulaConverter pConverter) {
     SvLibSimpleDeclaration variable = pSvLibIdTerm.getDeclaration();
+    if (variable instanceof SvLibVariableDeclaration variableDeclaration
+        && variableDeclaration.hasBeenDefined()) {
+      throw new UnsupportedOperationByDesignException(
+          "Constants of define-fun are not supported: " + variable.getName());
+    }
     String varName = cleanVariableNameForJavaSMT(variable.getQualifiedName());
     int useIndex = getIndex(varName, variable.getType(), ssa, pConverter);
     return fmgr.makeVariable(
@@ -158,19 +165,24 @@ public class SvLibTermToFormulaConverter {
       SSAMapBuilder ssa,
       FormulaManagerView fmgr,
       SvLibToFormulaConverter pConverter) {
-    // A declared function is uninterpreted, so nothing is known about it. This has to be checked
-    // before the theories, because such a function can have the same argument types as an operator
-    // of a theory.
+    // Functions of declare-fun and define-fun have to be checked before the theories, because such
+    // a function can have the same argument types as an operator of a theory.
     if (pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration()
-            instanceof SvLibFunctionDeclaration functionDeclaration
-        && functionDeclaration.isUninterpreted()) {
-      return pConverter.makeUninterpretedFunctionApplication(
-          pSvLibGeneralSymbolApplicationTerm.getSymbol().getName(),
-          ((SvLibSmtLibType) pSvLibGeneralSymbolApplicationTerm.getExpressionType())
-              .toFormulaType(),
-          transformedImmutableListCopy(
-              pSvLibGeneralSymbolApplicationTerm.getTerms(),
-              term -> convertTerm(term, ssa, fmgr, pConverter)));
+        instanceof SvLibFunctionDeclaration functionDeclaration) {
+      if (functionDeclaration.hasBeenDefined()) {
+        throw new UnsupportedOperationByDesignException(
+            "Functions of define-fun are not supported: " + functionDeclaration.getName());
+      }
+      // A declared function is uninterpreted, so nothing is known about it
+      if (functionDeclaration.isUninterpreted()) {
+        return pConverter.makeUninterpretedFunctionApplication(
+            pSvLibGeneralSymbolApplicationTerm.getSymbol().getName(),
+            ((SvLibSmtLibType) pSvLibGeneralSymbolApplicationTerm.getExpressionType())
+                .toFormulaType(),
+            transformedImmutableListCopy(
+                pSvLibGeneralSymbolApplicationTerm.getTerms(),
+                term -> convertTerm(term, ssa, fmgr, pConverter)));
+      }
     }
 
     if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
