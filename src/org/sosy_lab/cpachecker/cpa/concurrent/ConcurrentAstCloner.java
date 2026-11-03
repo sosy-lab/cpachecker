@@ -147,6 +147,10 @@ class ConcurrentAstCloner extends CAstCloner {
    * Never called for an ordinary global: those are either left unchanged or renamed via {@link
    * #globalRenamer} instead. Typedefs and enum constants are not per-thread state and keep their
    * qualified name, which is why {@code changeTypeQualifiedName} stays at its default.
+   *
+   * <p>The cloning does not rename functions, so the prefix goes in front of the whole qualified
+   * name: {@code f::x} becomes {@code T1_f::x} (see {@link ThreadFunctions#perThreadName} and its
+   * inverse {@link ThreadFunctions#originalName}).
    */
   @Override
   protected String changeQualifiedName(CSimpleDeclaration decl) {
