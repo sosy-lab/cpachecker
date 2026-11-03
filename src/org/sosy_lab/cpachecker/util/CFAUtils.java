@@ -583,6 +583,19 @@ public class CFAUtils {
   }
 
   /**
+   * This record is used to store the function name and the variable name of a qualified variable
+   * name. It is used in the method {@link
+   * #getFunctionAndVariableNameFromQualifiedVariableName(String)} to return the function name and
+   * variable name as a pair. It should also be deleted as part of <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a>.
+   *
+   * @param functionName the function name of the qualified variable name. It is optional, since the
+   *     variable may be global.
+   * @param variableName the variable name of the qualified variable name.
+   */
+  public record FunctionAndVariableName(Optional<String> functionName, String variableName) {}
+
+  /**
    * This method allows to split a qualified name of a variable into the function name and the
    * variable name. This requires that the qualified name is in the format returned by {@link
    * AbstractSimpleDeclaration#getQualifiedName()}. This function should be removed as part of <a
@@ -594,13 +607,13 @@ public class CFAUtils {
    * @return A pair of the function name and the variable name. The function name is optional, since
    *     the variable may be global.
    */
-  public static Pair<Optional<String>, String> getFunctionAndVariableNameFromQualifiedVariableName(
+  public static FunctionAndVariableName getFunctionAndVariableNameFromQualifiedVariableName(
       String qualifiedName) {
     int index = qualifiedName.indexOf("::");
     if (index == -1) {
-      return Pair.of(Optional.empty(), qualifiedName);
+      return new FunctionAndVariableName(Optional.empty(), qualifiedName);
     } else {
-      return Pair.of(
+      return new FunctionAndVariableName(
           Optional.of(qualifiedName.substring(0, index)), qualifiedName.substring(index + 2));
     }
   }
