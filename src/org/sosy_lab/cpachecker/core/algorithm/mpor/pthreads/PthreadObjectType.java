@@ -30,7 +30,6 @@ public enum PthreadObjectType {
           PthreadObjectSubstitutions.BARRIER_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE,
           PthreadObjectSubstitutions.BARRIER_TYPEDEF_TYPE)),
-  PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", false, ImmutableSet.of()),
   PTHREAD_COND_T(
       "pthread_cond_t",
       true,
@@ -39,7 +38,6 @@ public enum PthreadObjectType {
           PthreadObjectSubstitutions.COND_ELABORATED_TYPE,
           PthreadObjectSubstitutions.COND_TYPEDEF_TYPE)),
   PTHREAD_KEY_T("pthread_key_t", false, ImmutableSet.of()),
-  PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", false, ImmutableSet.of()),
   PTHREAD_MUTEX_T(
       "pthread_mutex_t",
       true,
@@ -49,7 +47,6 @@ public enum PthreadObjectType {
           PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE)),
   PTHREAD_ONCE_T(
       "pthread_once_t", true, ImmutableSet.of(PthreadObjectSubstitutions.ONCE_TYPEDEF_TYPE)),
-  PTHREAD_ONCE_INITIALIZER("PTHREAD_ONCE_INIT", false, ImmutableSet.of()),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
       true,
