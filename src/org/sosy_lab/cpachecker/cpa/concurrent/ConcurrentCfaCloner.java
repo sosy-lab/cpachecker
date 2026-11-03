@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MapMaker;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
 import java.util.IdentityHashMap;
@@ -20,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -55,24 +53,13 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
  * own copy of all local variables. Function names stay unchanged; only the qualified names of local
  * variables, parameters, and {@code __thread} variables get the thread-ID prefix (see {@link
  * ConcurrentAstCloner}), and other global variables keep their names. Apart from these names, the
- * clone is identical to the original CFA. The cloning is performed lazily on first access for each
- * thread ID and then cached.
+ * clone is identical to the original CFA. {@link ConcurrentCfaClones} creates the clone of each
+ * thread ID on first access.
  *
  * <p>For {@link CFunctionEntryNode}s, the function declaration is also cloned so that parameter
  * declarations carry the renamed qualified names.
  */
 final class ConcurrentCfaCloner {
-
-  /**
-   * Thread cloners, scoped to the CFA they were cloned from. The CFA key is essential: several
-   * CPAchecker analyses can run in one JVM (the JUnit suites, and the restart/parallel algorithms),
-   * and a cache keyed on the thread ID alone would hand the second analysis the thread clones of
-   * the *first* analysis's program — silently verifying the wrong CFA. Keyed by identity (a CFA has
-   * no value equality) and weakly, so a finished analysis's clones become collectable with it
-   * rather than being retained for the life of the JVM.
-   */
-  private static final Map<CFA, Map<Integer, ConcurrentCfaCloner>> perCfaCache =
-      new MapMaker().weakKeys().makeMap();
 
   /** Map from original node to cloned node. */
   private final IdentityHashMap<CFANode, CFANode> nodeMap = new IdentityHashMap<>();
@@ -83,29 +70,19 @@ final class ConcurrentCfaCloner {
   private final int threadId;
   private final ConcurrentAstCloner astCloner;
 
-  private ConcurrentCfaCloner(int pThreadId) {
-    this(pThreadId, true);
-  }
-
   private ConcurrentCfaCloner(int pThreadId, boolean pUseThreadSpecificNames) {
     threadId = pThreadId;
     astCloner = new ConcurrentAstCloner(pThreadId, pUseThreadSpecificNames);
   }
 
   /**
-   * Get or create the CFA clone of {@code pCfa} for the given thread ID. Cloning is performed once
-   * per (CFA, thread ID) pair and then cached.
+   * Clones {@code pCfa} for the given thread ID. Callers cache the result per thread ID (see {@link
+   * ConcurrentCfaClones}).
    */
-  static ConcurrentCfaCloner getOrCreate(int pThreadId, CFA pCfa) {
-    return perCfaCache
-        .computeIfAbsent(pCfa, unused -> new ConcurrentHashMap<>())
-        .computeIfAbsent(
-            pThreadId,
-            threadId -> {
-              ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(threadId);
-              cloner.cloneEntireCfa(pCfa);
-              return cloner;
-            });
+  static ConcurrentCfaCloner cloneCfa(int pThreadId, CFA pCfa) {
+    ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(pThreadId, true);
+    cloner.cloneEntireCfa(pCfa);
+    return cloner;
   }
 
   /** Creates a standalone structural clone of a CFA for project-wide compatibility tests. */
@@ -163,21 +140,6 @@ final class ConcurrentCfaCloner {
   CFANode getClonedNode(CFANode pOriginalNode) {
     CFANode cloned = nodeMap.get(pOriginalNode);
     return cloned != null ? cloned : pOriginalNode;
-  }
-
-  /**
-   * Returns the cloned counterpart of the given edge. If the edge is an original CFA edge, the
-   * corresponding cloned edge is returned. If it is already a cloned edge (or unknown), it is
-   * returned as-is.
-   */
-  CFAEdge getClonedEdge(CFAEdge pOriginalEdge) {
-    CFAEdge cloned = edgeMap.get(pOriginalEdge);
-    return cloned != null ? cloned : pOriginalEdge;
-  }
-
-  /** Returns the thread ID this cloner is for. */
-  int getThreadId() {
-    return threadId;
   }
 
   // ---- CFA cloning ----

@@ -145,7 +145,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
             pCpa,
             threadSpecificCPA,
             pConfig,
-            pCfa,
+            new ConcurrentCfaClones(pCfa),
             strategy,
             aggregateBasicBlocks,
             pLogger,

@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Random;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /** Interface for a partial order reduction algorithm that guides the state space exploration. */
@@ -20,7 +19,7 @@ public interface PartialOrderReductionStrategy {
 
   ConcurrentState getDynamicThreadState(
       AbstractState pWrappedState,
-      CFA pCfa,
+      ConcurrentCfaClones pCfaClones,
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
@@ -28,10 +27,13 @@ public interface PartialOrderReductionStrategy {
       Random pRandom);
 
   default ConcurrentState emptyState(
-      AbstractState pWrappedInitialState, CFA pCfa, LogManager pLogger, Random pRandom) {
+      AbstractState pWrappedInitialState,
+      ConcurrentCfaClones pCfaClones,
+      LogManager pLogger,
+      Random pRandom) {
     return getDynamicThreadState(
         pWrappedInitialState,
-        pCfa,
+        pCfaClones,
         pLogger,
         ImmutableMap.of(),
         ImmutableSet.of(),

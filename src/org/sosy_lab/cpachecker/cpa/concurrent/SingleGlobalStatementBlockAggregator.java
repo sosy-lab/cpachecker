@@ -32,10 +32,10 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
   private final ImmutableCollection<CFANode> initializationPhaseNodes;
   private final ImmutableCollection<CFANode> atomicBlockNodes;
 
-  SingleGlobalStatementBlockAggregator(CFA pCfa) {
-    super(pCfa);
-    initializationPhaseNodes = getInitializationPhaseNodes(pCfa);
-    atomicBlockNodes = getAtomicBlockNodes(pCfa);
+  SingleGlobalStatementBlockAggregator(ConcurrentCfaClones pCfaClones) {
+    super(pCfaClones.getCfa());
+    initializationPhaseNodes = getInitializationPhaseNodes(pCfaClones);
+    atomicBlockNodes = getAtomicBlockNodes(pCfaClones.getCfa());
   }
 
   @Override
@@ -124,7 +124,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     }
   }
 
-  private ImmutableCollection<CFANode> getInitializationPhaseNodes(CFA pCFA) {
+  private ImmutableCollection<CFANode> getInitializationPhaseNodes(ConcurrentCfaClones pCfaClones) {
     final Set<CFANode> nodesBeforeAnyThreadStart = new LinkedHashSet<>();
     final Set<CFANode> visitedNodes = new LinkedHashSet<>();
     final Set<CFANode> nodesToVisit = new LinkedHashSet<>();
@@ -132,7 +132,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
 
     // 1st traversal: add each node reachable from the initial node
     // continue until thread start edges
-    nodesToVisit.add(pCFA.getMainFunction());
+    nodesToVisit.add(pCfaClones.getCfa().getMainFunction());
     while (!nodesToVisit.isEmpty()) {
       CFANode currentNode = nodesToVisit.iterator().next();
       nodesToVisit.remove(currentNode);
@@ -165,7 +165,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     }
 
     return transformedImmutableSetCopy(
-        nodesBeforeAnyThreadStart, node -> ConcurrentEdgeCloner.getClonedNode(node, 0, pCFA));
+        nodesBeforeAnyThreadStart, node -> pCfaClones.getClonedNode(node, 0));
   }
 
   private ImmutableCollection<CFANode> getAtomicBlockNodes(CFA pCFA) {

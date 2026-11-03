@@ -88,6 +88,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private final TransferRelation threadSpecificTransferRelation;
 
   private final CFA cfa;
+  private final ConcurrentCfaClones cfaClones;
 
   private final PartialOrderReductionStrategy por;
 
@@ -124,7 +125,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
       ConfigurableProgramAnalysis wrappedCpa,
       ConfigurableProgramAnalysis pThreadSpecificCPA,
       Configuration pConfig,
-      CFA pCfa,
+      ConcurrentCfaClones pCfaClones,
       PartialOrderReductionStrategy pPor,
       boolean pAggregateBasicBlocks,
       LogManager pLogger,
@@ -151,14 +152,15 @@ public class ConcurrentTransferRelation implements TransferRelation {
         threadSpecificCPA.getInitialPrecision(
             CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
 
-    cfa = pCfa;
+    cfaClones = pCfaClones;
+    cfa = pCfaClones.getCfa();
     por = pPor;
     logger = pLogger;
-    threadLocalDeclarations = ThreadFunctions.threadLocalGlobals(pCfa);
+    threadLocalDeclarations = ThreadFunctions.threadLocalGlobals(cfa);
 
     aggregateBasicBlocks = pAggregateBasicBlocks;
     basicBlockAggregator =
-        aggregateBasicBlocks ? new SingleGlobalStatementBlockAggregator(pCfa) : null;
+        aggregateBasicBlocks ? new SingleGlobalStatementBlockAggregator(pCfaClones) : null;
 
     random = pRandom;
   }
@@ -417,7 +419,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
                         && node.getNumLeavingEdges() == 0)
             .findAny()
             .orElseThrow();
-    CFANode clonedExitNode = ConcurrentEdgeCloner.getClonedNode(originalExitNode, threadId, cfa);
+    CFANode clonedExitNode = cfaClones.getClonedNode(originalExitNode, threadId);
     String description = "Thread exit dummy edge";
     CFAEdge exitEdge =
         new BlankEdge(
@@ -886,7 +888,10 @@ public class ConcurrentTransferRelation implements TransferRelation {
 
   ConcurrentState initial(AbstractState wrappedInitialState) throws InterruptedException {
     return addNewThreadNode(
-        por.emptyState(wrappedInitialState, cfa, logger, random), false, "main", Optional.empty());
+        por.emptyState(wrappedInitialState, cfaClones, logger, random),
+        false,
+        "main",
+        Optional.empty());
   }
 
   ConcurrentState addNewThread(
@@ -907,8 +912,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
 
     // Compute the thread ID for the new thread so we can get its cloned entry node.
     int newThreadId = old.threads().size();
-    CFANode clonedEntryNode =
-        ConcurrentEdgeCloner.getClonedNode(functionCallNode, newThreadId, cfa);
+    CFANode clonedEntryNode = cfaClones.getClonedNode(functionCallNode, newThreadId);
     AbstractState initialWrappedState =
         threadSpecificCPA.getInitialState(
             clonedEntryNode, StateSpacePartition.getDefaultPartition());

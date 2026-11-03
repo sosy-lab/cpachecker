@@ -23,7 +23,6 @@ import java.util.Random;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -54,7 +53,7 @@ class SPORConcurrentState extends ConcurrentState {
 
   SPORConcurrentState(
       AbstractState pWrappedState,
-      CFA pCfa,
+      ConcurrentCfaClones pCfaClones,
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
@@ -62,7 +61,7 @@ class SPORConcurrentState extends ConcurrentState {
       Random pRandom) {
     super(
         pWrappedState,
-        pCfa,
+        pCfaClones,
         pLogger,
         pThreads,
         pLiveThreadIds,
@@ -77,7 +76,13 @@ class SPORConcurrentState extends ConcurrentState {
       ImmutableSet<Integer> pLiveThreadIds,
       ImmutableMap<String, Integer> pHandleToLastCreatedThreadId) {
     return new SPORConcurrentState(
-        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleToLastCreatedThreadId, random);
+        pWrappedState,
+        cfaClones,
+        logger,
+        pThreads,
+        pLiveThreadIds,
+        pHandleToLastCreatedThreadId,
+        random);
   }
 
   /**

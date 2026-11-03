@@ -53,6 +53,8 @@ public class ConcurrentState extends AbstractSingleWrapperState
 
   protected final CFA cfa;
 
+  protected final ConcurrentCfaClones cfaClones;
+
   protected final LogManager logger;
 
   protected final ImmutableMap<Integer, ThreadState> threads;
@@ -82,7 +84,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
 
   protected ConcurrentState(
       AbstractState pWrappedState,
-      CFA pCfa,
+      ConcurrentCfaClones pCfaClones,
       LogManager pLogger,
       ImmutableMap<Integer, ThreadState> pThreads,
       ImmutableSet<Integer> pLiveThreadIds,
@@ -90,7 +92,8 @@ public class ConcurrentState extends AbstractSingleWrapperState
       Random pRandom) {
     super(pWrappedState);
 
-    cfa = pCfa;
+    cfaClones = pCfaClones;
+    cfa = pCfaClones.getCfa();
     logger = pLogger;
     threads = pThreads;
     liveThreadIds = pLiveThreadIds;
@@ -104,7 +107,13 @@ public class ConcurrentState extends AbstractSingleWrapperState
       ImmutableSet<Integer> pLiveThreadIds,
       ImmutableMap<String, Integer> pHandleToLastCreatedThreadId) {
     return new ConcurrentState(
-        pWrappedState, cfa, logger, pThreads, pLiveThreadIds, pHandleToLastCreatedThreadId, random);
+        pWrappedState,
+        cfaClones,
+        logger,
+        pThreads,
+        pLiveThreadIds,
+        pHandleToLastCreatedThreadId,
+        random);
   }
 
   public ImmutableMap<Integer, ThreadState> threads() {
@@ -261,7 +270,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
     }
 
     CFANode locationNode = threadState.getLocationNode();
-    CFANode clonedNode = ConcurrentEdgeCloner.getClonedNode(locationNode, threadId, cfa);
+    CFANode clonedNode = cfaClones.getClonedNode(locationNode, threadId);
     var leavingEdges = clonedNode.getLeavingEdges();
     assert leavingEdges.size() == 1 : "Expected exactly one leaving edge for basic block stepping";
     CFAEdge cloned = leavingEdges.get(0);
@@ -317,7 +326,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
       }
 
       CFANode locationNode = threadState.getLocationNode();
-      CFANode clonedNode = ConcurrentEdgeCloner.getClonedNode(locationNode, threadId, cfa);
+      CFANode clonedNode = cfaClones.getClonedNode(locationNode, threadId);
       for (CFAEdge cloned : clonedNode.getLeavingEdges()) {
 
         if (mutexState != null) {

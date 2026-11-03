@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -38,11 +37,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 /**
- * Edge cloner for POR. Most methods delegate to {@link ConcurrentCfaCloner}, which clones the
- * entire CFA (nodes and edges) per thread ID. {@link #cloneSingleEdge} instead rebuilds one edge in
+ * Single-edge cloner, used by the ordering-consistency analysis (POR instead clones the entire CFA
+ * per thread ID, see {@link ConcurrentCfaClones}). {@link #cloneSingleEdge} rebuilds one edge in
  * isolation, keeping its original endpoint nodes and optionally renaming every global-variable
  * access to a fresh name via a {@link GlobalAccessRenamer} ("concurrent SSA"); the result is not
- * wired into the CFA.
+ * wired into the CFA. It keeps no state, so no cache is involved.
  */
 public final class ConcurrentEdgeCloner {
 
@@ -110,25 +109,6 @@ public final class ConcurrentEdgeCloner {
         super(pMessage);
       }
     }
-  }
-
-  /**
-   * Returns the cloned edge for the given original CFA edge and thread ID. The first call for a
-   * given thread ID triggers a full CFA clone. If the edge is already a cloned edge, it is returned
-   * as-is.
-   */
-  static CFAEdge clone(final CFAEdge pCFAEdge, final int threadId, final CFA pCfa) {
-    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(threadId, pCfa);
-    return cfaCloner.getClonedEdge(pCFAEdge);
-  }
-
-  /**
-   * Returns the cloned CFA node corresponding to the given node for the given thread ID. If the
-   * node is already a cloned node, it is returned as-is.
-   */
-  static CFANode getClonedNode(final CFANode pNode, final int threadId, final CFA pCfa) {
-    ConcurrentCfaCloner cfaCloner = ConcurrentCfaCloner.getOrCreate(threadId, pCfa);
-    return cfaCloner.getClonedNode(pNode);
   }
 
   /**
