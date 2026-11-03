@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cpa.composite.StraightLineBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
@@ -165,7 +166,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     }
 
     return transformedImmutableSetCopy(
-        nodesBeforeAnyThreadStart, node -> pCfaClones.getClonedNode(node, 0));
+        nodesBeforeAnyThreadStart, node -> pCfaClones.getClonedNode(node, ThreadId.MAIN));
   }
 
   private ImmutableCollection<CFANode> getAtomicBlockNodes(CFA pCFA) {

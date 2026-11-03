@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -67,10 +68,10 @@ final class ConcurrentCfaCloner {
   /** Map from original edge to cloned edge. */
   private final IdentityHashMap<CFAEdge, CFAEdge> edgeMap = new IdentityHashMap<>();
 
-  private final int threadId;
+  private final ThreadId threadId;
   private final ConcurrentAstCloner astCloner;
 
-  private ConcurrentCfaCloner(int pThreadId, boolean pUseThreadSpecificNames) {
+  private ConcurrentCfaCloner(ThreadId pThreadId, boolean pUseThreadSpecificNames) {
     threadId = pThreadId;
     astCloner = new ConcurrentAstCloner(pThreadId, pUseThreadSpecificNames);
   }
@@ -79,7 +80,7 @@ final class ConcurrentCfaCloner {
    * Clones {@code pCfa} for the given thread ID. Callers cache the result per thread ID (see {@link
    * ConcurrentCfaClones}).
    */
-  static ConcurrentCfaCloner cloneCfa(int pThreadId, CFA pCfa) {
+  static ConcurrentCfaCloner cloneCfa(ThreadId pThreadId, CFA pCfa) {
     ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(pThreadId, true);
     cloner.cloneEntireCfa(pCfa);
     return cloner;
@@ -88,7 +89,7 @@ final class ConcurrentCfaCloner {
   /** Creates a standalone structural clone of a CFA for project-wide compatibility tests. */
   static ImmutableCFA cloneForTesting(ImmutableCFA pCfa) {
     checkState(pCfa.getLanguage() == Language.C, "only C supported");
-    ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(0, false);
+    ConcurrentCfaCloner cloner = new ConcurrentCfaCloner(ThreadId.MAIN, false);
     cloner.cloneEntireCfa(pCfa);
 
     TreeMap<String, FunctionEntryNode> functions = new TreeMap<>();

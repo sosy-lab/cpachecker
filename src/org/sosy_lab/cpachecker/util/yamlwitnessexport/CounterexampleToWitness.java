@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -247,7 +248,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // and thus uniquely identify the thread that just moved to the successor of the edge.
     ConcurrentState concurrentState = extractStateByType(pState, ConcurrentState.class);
     if (concurrentState != null) {
-      for (Map.Entry<Integer, ThreadState> entry : concurrentState.threads().entrySet()) {
+      for (Map.Entry<ThreadId, ThreadState> entry : concurrentState.threads().entrySet()) {
         if (entry.getValue().getLocationNode().equals(pEdge.getSuccessor())) {
           return getPorThreadName(concurrentState, entry.getKey());
         }
@@ -277,7 +278,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     ConcurrentState previousConcurrentState =
         extractStateByType(pPreviousState, ConcurrentState.class);
     if (concurrentState != null && previousConcurrentState != null) {
-      for (Integer pid : concurrentState.threads().keySet()) {
+      for (ThreadId pid : concurrentState.threads().keySet()) {
         if (!previousConcurrentState.threads().containsKey(pid)) {
           return getPorThreadName(concurrentState, pid);
         }
@@ -295,14 +296,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * name to recover here. This still yields one stable, unique name per thread, which is all the
    * caller's name-to-witness-id map (see pThreadNameToId) needs.
    */
-  private static Optional<String> getPorThreadName(ConcurrentState pState, int pPid) {
-    if (pPid == 0) {
+  private static Optional<String> getPorThreadName(ConcurrentState pState, ThreadId pPid) {
+    if (pPid.equals(ThreadId.MAIN)) {
       return Optional.of("main");
     }
     if (!pState.threads().containsKey(pPid) && !pState.livePids().contains(pPid)) {
       return Optional.empty();
     }
-    return Optional.of("T" + pPid);
+    return Optional.of("T" + pPid.id());
   }
 
   private static OptionalInt getThreadIdIfExists(

@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.OptionalInt;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -51,7 +51,7 @@ public sealed class CFANode implements Comparable<CFANode>
 
   // the node this node is a per-thread clone of, and the ID of that thread (see getOriginal())
   private @Nullable CFANode original = null;
-  private OptionalInt cloneThreadId = OptionalInt.empty();
+  private Optional<ThreadId> cloneThreadId = Optional.empty();
 
   // set of variables out of scope after this node.
   // lazy initialization: first null, then final set
@@ -97,7 +97,7 @@ public sealed class CFANode implements Comparable<CFANode>
    * Returns the ID of the thread whose per-thread CFA copy contains this node, or empty if this
    * node is not a clone. See {@link CFAEdge#getOriginal()} for what "clone" means here.
    */
-  public OptionalInt getCloneThreadId() {
+  public Optional<ThreadId> getCloneThreadId() {
     return cloneThreadId;
   }
 
@@ -106,11 +106,11 @@ public sealed class CFANode implements Comparable<CFANode>
    * the cloner that created this node, directly after creating it (see {@link
    * CFAEdge#getOriginal()}).
    */
-  public void setOriginal(CFANode pOriginal, int pThreadId) {
+  public void setOriginal(CFANode pOriginal, ThreadId pThreadId) {
     checkState(original == null, "Original already set for node %s", this);
     checkArgument(pOriginal != this && pOriginal.getOriginal() == pOriginal);
     original = pOriginal;
-    cloneThreadId = OptionalInt.of(pThreadId);
+    cloneThreadId = Optional.of(pThreadId);
   }
 
   public int getNodeNumber() {

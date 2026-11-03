@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
@@ -55,9 +56,9 @@ class SPORConcurrentState extends ConcurrentState {
       AbstractState pWrappedState,
       ConcurrentCfaClones pCfaClones,
       LogManager pLogger,
-      ImmutableMap<Integer, ThreadState> pThreads,
-      ImmutableSet<Integer> pLiveThreadIds,
-      ImmutableMap<String, Integer> pHandleToLastCreatedThreadId,
+      ImmutableMap<ThreadId, ThreadState> pThreads,
+      ImmutableSet<ThreadId> pLiveThreadIds,
+      ImmutableMap<String, ThreadId> pHandleToLastCreatedThreadId,
       Random pRandom) {
     super(
         pWrappedState,
@@ -72,9 +73,9 @@ class SPORConcurrentState extends ConcurrentState {
   @Override
   protected ConcurrentState update(
       AbstractState pWrappedState,
-      ImmutableMap<Integer, ThreadState> pThreads,
-      ImmutableSet<Integer> pLiveThreadIds,
-      ImmutableMap<String, Integer> pHandleToLastCreatedThreadId) {
+      ImmutableMap<ThreadId, ThreadState> pThreads,
+      ImmutableSet<ThreadId> pLiveThreadIds,
+      ImmutableMap<String, ThreadId> pHandleToLastCreatedThreadId) {
     return new SPORConcurrentState(
         pWrappedState,
         cfaClones,
@@ -234,7 +235,7 @@ class SPORConcurrentState extends ConcurrentState {
     }
 
     final MutexState initialMutexState;
-    final Integer threadId;
+    final ThreadId threadId;
     if (MutexFunctions.isLockCall(edge)) {
       MutexState currentMutexState =
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
@@ -251,7 +252,7 @@ class SPORConcurrentState extends ConcurrentState {
           (pCFAEdge, pMutexState) ->
               (pMutexState != null
                       && (!pMutexState.getLockedMutexes().isEmpty()
-                          || pMutexState.getAtomicHolder().orElse(-1) == threadId))
+                          || pMutexState.getAtomicHolder().equals(Optional.of(threadId))))
                   || originalGoFurther.test(pCFAEdge, pMutexState);
     } else {
       initialMutexState = null;
@@ -269,7 +270,7 @@ class SPORConcurrentState extends ConcurrentState {
       CFAEdge startEdge,
       BiPredicate<CFAEdge, MutexState> goFurther,
       MutexState initialMutexState,
-      Integer threadId,
+      ThreadId threadId,
       boolean visitStartedThreadFunction)
       throws CPATransferException {
     EdgeDefUseData uses = EdgeDefUseData.empty();

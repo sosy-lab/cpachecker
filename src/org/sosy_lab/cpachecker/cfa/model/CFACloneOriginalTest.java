@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.OptionalInt;
+import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -23,7 +23,7 @@ public class CFACloneOriginalTest {
 
     assertThat(node.getOriginal()).isSameInstanceAs(node);
     assertThat(edge.getOriginal()).isSameInstanceAs(edge);
-    assertThat(node.getCloneThreadId()).isEqualTo(OptionalInt.empty());
+    assertThat(node.getCloneThreadId()).isEqualTo(Optional.empty());
   }
 
   @Test
@@ -37,13 +37,13 @@ public class CFACloneOriginalTest {
     BlankEdge clonedEdge =
         new BlankEdge("", FileLocation.DUMMY, clonedPredecessor, clonedSuccessor, "");
 
-    clonedPredecessor.setOriginal(originalPredecessor, 3);
-    clonedSuccessor.setOriginal(originalSuccessor, 3);
+    clonedPredecessor.setOriginal(originalPredecessor, new ThreadId(3));
+    clonedSuccessor.setOriginal(originalSuccessor, new ThreadId(3));
     clonedEdge.setOriginal(originalEdge);
 
     assertThat(clonedPredecessor.getOriginal()).isSameInstanceAs(originalPredecessor);
     assertThat(clonedEdge.getOriginal()).isSameInstanceAs(originalEdge);
-    assertThat(clonedPredecessor.getCloneThreadId()).isEqualTo(OptionalInt.of(3));
-    assertThat(originalPredecessor.getCloneThreadId()).isEqualTo(OptionalInt.empty());
+    assertThat(clonedPredecessor.getCloneThreadId()).isEqualTo(Optional.of(new ThreadId(3)));
+    assertThat(originalPredecessor.getCloneThreadId()).isEqualTo(Optional.empty());
   }
 }

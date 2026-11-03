@@ -14,13 +14,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
 
@@ -38,31 +38,31 @@ public class MutexState implements AbstractState {
   private final ImmutableSet<MutexHandle> initializedMutexes;
 
   /** Maps mutex lock to the PIDs of the threads that currently hold the lock. */
-  private final ImmutableMap<MutexLock, ImmutableSet<Integer>> lockedMutexes;
+  private final ImmutableMap<MutexLock, ImmutableSet<ThreadId>> lockedMutexes;
 
   /**
    * The PID of the thread currently inside a {@code __VERIFIER_atomic_begin/end} block, or {@code
    * null} if no thread is executing atomically. While non-null, all other threads are blocked.
    */
-  private final @Nullable Integer atomicHolder;
+  private final @Nullable ThreadId atomicHolder;
 
   /** Maps CFA edges to the PIDs of the threads that execute them. */
-  private final Map<CFAEdge, Integer> edgePidMap = new HashMap<>();
+  private final Map<CFAEdge, ThreadId> edgePidMap = new HashMap<>();
 
   MutexState(
       ImmutableSet<MutexHandle> pInitializedMutexes,
-      ImmutableMap<MutexLock, ImmutableSet<Integer>> pLockedMutexes,
-      @Nullable Integer pAtomicHolder) {
+      ImmutableMap<MutexLock, ImmutableSet<ThreadId>> pLockedMutexes,
+      @Nullable ThreadId pAtomicHolder) {
     initializedMutexes = pInitializedMutexes;
     lockedMutexes = pLockedMutexes;
     atomicHolder = pAtomicHolder;
   }
 
-  public void addEdgePids(Map<CFAEdge, Integer> pEdgePidMap) {
+  public void addEdgePids(Map<CFAEdge, ThreadId> pEdgePidMap) {
     edgePidMap.putAll(pEdgePidMap);
   }
 
-  public Integer getEdgePid(CFAEdge edge) {
+  public ThreadId getEdgePid(CFAEdge edge) {
     return edgePidMap.get(edge);
   }
 
@@ -70,7 +70,7 @@ public class MutexState implements AbstractState {
     return initializedMutexes;
   }
 
-  public ImmutableMap<MutexLock, ImmutableSet<Integer>> getLockedMutexes() {
+  public ImmutableMap<MutexLock, ImmutableSet<ThreadId>> getLockedMutexes() {
     return lockedMutexes;
   }
 
@@ -80,30 +80,30 @@ public class MutexState implements AbstractState {
   }
 
   /** Returns the PID of the thread holding the given mutex, or {@code null} if not locked. */
-  public ImmutableSet<Integer> getHolders(MutexLock mutex) {
+  public ImmutableSet<ThreadId> getHolders(MutexLock mutex) {
     return lockedMutexes.get(mutex);
   }
 
   /** Returns the PID of the thread currently in an atomic block, if there is one. */
-  public OptionalInt getAtomicHolder() {
-    return atomicHolder == null ? OptionalInt.empty() : OptionalInt.of(atomicHolder);
+  public Optional<ThreadId> getAtomicHolder() {
+    return Optional.ofNullable(atomicHolder);
   }
 
   /**
    * Returns {@code true} if there is an active atomic block held by a thread other than the
    * specified one.
    */
-  public boolean isAtomicBlockedFor(int pid) {
-    return atomicHolder != null && atomicHolder != pid;
+  public boolean isAtomicBlockedFor(ThreadId pid) {
+    return atomicHolder != null && !atomicHolder.equals(pid);
   }
 
   /**
    * Returns {@code true} if the given mutex is currently locked by a thread other than the
    * specified one.
    */
-  public boolean isMutexBlockedFor(MutexLock mutex, int pid) {
+  public boolean isMutexBlockedFor(MutexLock mutex, ThreadId pid) {
     for (var blockingMutex : mutex.getBlockingLocks()) {
-      ImmutableSet<Integer> holders = lockedMutexes.get(blockingMutex);
+      ImmutableSet<ThreadId> holders = lockedMutexes.get(blockingMutex);
       if (holders != null && !holders.contains(pid)) {
         return true;
       }
@@ -125,19 +125,19 @@ public class MutexState implements AbstractState {
    *
    * @throws IllegalStateException if the mutex is locked by a different thread
    */
-  public Optional<MutexState> withLock(MutexLock mutex, int holderPid) {
+  public Optional<MutexState> withLock(MutexLock mutex, ThreadId holderPid) {
     if (isMutexBlockedFor(mutex, holderPid)) {
       return Optional.empty();
     }
 
-    ImmutableSet<Integer> currentHolders = lockedMutexes.get(mutex);
-    ImmutableSet<Integer> updatedHolders;
+    ImmutableSet<ThreadId> currentHolders = lockedMutexes.get(mutex);
+    ImmutableSet<ThreadId> updatedHolders;
     if (currentHolders != null) {
       if (currentHolders.contains(holderPid)) {
         return Optional.of(this); // re-lock by same thread: no-op
       }
       updatedHolders =
-          ImmutableSet.<Integer>builder().addAll(currentHolders).add(holderPid).build();
+          ImmutableSet.<ThreadId>builder().addAll(currentHolders).add(holderPid).build();
     } else {
       updatedHolders = ImmutableSet.of(holderPid);
     }
@@ -145,7 +145,7 @@ public class MutexState implements AbstractState {
     return Optional.of(
         new MutexState(
             initializedMutexes,
-            ImmutableMap.<MutexLock, ImmutableSet<Integer>>builder()
+            ImmutableMap.<MutexLock, ImmutableSet<ThreadId>>builder()
                 .putAll(lockedMutexes)
                 .put(mutex, updatedHolders)
                 .buildKeepingLast(),
@@ -153,11 +153,11 @@ public class MutexState implements AbstractState {
   }
 
   /** Returns a new state with the given mutex marked as unlocked. */
-  public MutexState withUnlock(MutexLock mutex, int holderPid) {
+  public MutexState withUnlock(MutexLock mutex, ThreadId holderPid) {
     if (!lockedMutexes.containsKey(mutex)) {
       return this;
     }
-    ImmutableMap.Builder<MutexLock, ImmutableSet<Integer>> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<MutexLock, ImmutableSet<ThreadId>> builder = ImmutableMap.builder();
     for (var entry : lockedMutexes.entrySet()) {
       // handle() is guaranteed non-null by MutexLock's compact constructor, so both handles
       // being compared here are always non-null: MutexFunctions never constructs a MutexLock for
@@ -166,20 +166,20 @@ public class MutexState implements AbstractState {
       if (entry.getKey().equals(mutex)
           || (entry.getKey().handle().equals(mutex.handle())
               && mutex.type() == MutexLockType.BOTH)) {
-        ImmutableSet<Integer> holders = entry.getValue();
+        ImmutableSet<ThreadId> holders = entry.getValue();
         if (!holders.contains(holderPid)) {
           return this;
         }
         if (holders.size() == 1) {
           continue; // no more holders, remove entry
         }
-        ImmutableSet.Builder<Integer> updatedHoldersBuilder = ImmutableSet.builder();
-        for (int pid : holders) {
-          if (pid != holderPid) {
+        ImmutableSet.Builder<ThreadId> updatedHoldersBuilder = ImmutableSet.builder();
+        for (ThreadId pid : holders) {
+          if (!pid.equals(holderPid)) {
             updatedHoldersBuilder.add(pid);
           }
         }
-        ImmutableSet<Integer> updatedHolders = updatedHoldersBuilder.build();
+        ImmutableSet<ThreadId> updatedHolders = updatedHoldersBuilder.build();
         builder.put(entry.getKey(), updatedHolders);
       } else {
         builder.put(entry);
@@ -196,7 +196,7 @@ public class MutexState implements AbstractState {
         initBuilder.add(m);
       }
     }
-    ImmutableMap.Builder<MutexLock, ImmutableSet<Integer>> lockBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<MutexLock, ImmutableSet<ThreadId>> lockBuilder = ImmutableMap.builder();
     for (var entry : lockedMutexes.entrySet()) {
       if (!entry.getKey().handle().equals(mutex)) {
         lockBuilder.put(entry);
@@ -206,10 +206,10 @@ public class MutexState implements AbstractState {
   }
 
   /** Returns a new state with the specified thread entering an atomic block. */
-  public MutexState withAtomicBegin(int pid) {
-    if (atomicHolder != null && atomicHolder != pid) {
+  public MutexState withAtomicBegin(ThreadId pid) {
+    if (atomicHolder != null && !atomicHolder.equals(pid)) {
       throw new IllegalStateException(
-          "Thread %d cannot enter atomic block: thread %d already holds it"
+          "Thread %s cannot enter atomic block: thread %s already holds it"
               .formatted(pid, atomicHolder));
     }
     return new MutexState(initializedMutexes, lockedMutexes, pid);
@@ -222,7 +222,7 @@ public class MutexState implements AbstractState {
 
   /** Returns the updated mutex state or empty if the operation is blocked by a mutex. */
   public Optional<MutexState> update(
-      CFAEdge edge, int pid, ImmutableMap<MutexHandle, MutexHandle> mutexCandidates) {
+      CFAEdge edge, ThreadId pid, ImmutableMap<MutexHandle, MutexHandle> mutexCandidates) {
     // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
     if (MutexFunctions.isAtomicBegin(edge)) {
       if (isAtomicBlockedFor(pid)) {

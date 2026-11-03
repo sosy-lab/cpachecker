@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,7 +38,7 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     MutexState state = (MutexState) pState;
-    Integer pid = state.getEdgePid(pCfaEdge);
+    ThreadId pid = state.getEdgePid(pCfaEdge);
     if (pid == null) {
       throw new CPATransferException("PID for edge not found in MutexState.");
     }

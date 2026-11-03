@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -122,7 +123,7 @@ public final class ConcurrentEdgeCloner {
    * it into a distinct symbol ("concurrent SSA").
    */
   public static CFAEdge cloneSingleEdge(
-      final CFAEdge pEdge, final int pThreadId, final GlobalAccessRenamer pRenamer) {
+      final CFAEdge pEdge, final ThreadId pThreadId, final GlobalAccessRenamer pRenamer) {
     checkNotNull(pRenamer);
 
     if (pEdge instanceof BlankEdge) {
@@ -211,7 +212,7 @@ public final class ConcurrentEdgeCloner {
    * fresh, renamer-less cloner.
    */
   private static CFAEdge cloneSingleFunctionCallEdge(
-      CFunctionCallEdge pEdge, int pThreadId, ConcurrentAstCloner pRenamerCloner) {
+      CFunctionCallEdge pEdge, ThreadId pThreadId, ConcurrentAstCloner pRenamerCloner) {
     CFANode succ = pEdge.getSuccessor();
     if (!(succ instanceof CFunctionEntryNode entryNode)) {
       throw new AssertionError("Expected CFunctionEntryNode successor: " + succ);
@@ -263,7 +264,7 @@ public final class ConcurrentEdgeCloner {
    * plain thread-ID renaming.
    */
   private static CFAEdge cloneSingleFunctionReturnEdge(
-      CFunctionReturnEdge pEdge, int pThreadId, ConcurrentAstCloner pRenamerCloner) {
+      CFunctionReturnEdge pEdge, ThreadId pThreadId, ConcurrentAstCloner pRenamerCloner) {
     CFANode pred = pEdge.getPredecessor();
     if (!(pred instanceof FunctionExitNode exitNode)) {
       throw new AssertionError("Expected FunctionExitNode predecessor: " + pred);

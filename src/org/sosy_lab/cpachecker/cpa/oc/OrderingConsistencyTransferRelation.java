@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -545,7 +546,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       CType type = threadLocal.getType();
       CIdExpression copy =
           syntheticIdExpression(
-              ThreadFunctions.perThreadName(pInstance.getId(), qualifiedName), type);
+              ThreadFunctions.perThreadName(new ThreadId(pInstance.getId()), qualifiedName), type);
       // an assume rather than a statement: it indexes the copy in the root context and yields the
       // equality as its formula in one step, exactly like indexSymbol's identity assumption does
       CBinaryExpression initialized =
@@ -632,7 +633,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       try {
         rewritten =
             (CAssumeEdge)
-                ConcurrentEdgeCloner.cloneSingleEdge(assumeEdge, pState.getInstanceId(), renamer);
+                ConcurrentEdgeCloner.cloneSingleEdge(
+                    assumeEdge, new ThreadId(pState.getInstanceId()), renamer);
       } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
         throw new UnsupportedCodeException(e.getMessage(), pEdge);
       }
@@ -768,7 +770,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     try {
       CFAEdge edgeToClone = BuiltinIoFunctions.rewriteFscanfCall(pEdge);
       CFAEdge rewritten =
-          ConcurrentEdgeCloner.cloneSingleEdge(edgeToClone, pState.getInstanceId(), pRenamer);
+          ConcurrentEdgeCloner.cloneSingleEdge(
+              edgeToClone, new ThreadId(pState.getInstanceId()), pRenamer);
       edgeFormula =
           pathFormulaManager.makeAnd(
               pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
@@ -978,7 +981,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       try {
         rewritten =
             (CAssumeEdge)
-                ConcurrentEdgeCloner.cloneSingleEdge(successEdge, pState.getInstanceId(), renamer);
+                ConcurrentEdgeCloner.cloneSingleEdge(
+                    successEdge, new ThreadId(pState.getInstanceId()), renamer);
       } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
         throw new UnsupportedCodeException(e.getMessage(), pEdge);
       }
@@ -1100,7 +1104,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     try {
       rewrittenFirst =
           (CAssumeEdge)
-              ConcurrentEdgeCloner.cloneSingleEdge(pFirst, pState.getInstanceId(), renamer);
+              ConcurrentEdgeCloner.cloneSingleEdge(
+                  pFirst, new ThreadId(pState.getInstanceId()), renamer);
     } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
       throw new UnsupportedCodeException(e.getMessage(), pFirst);
     }

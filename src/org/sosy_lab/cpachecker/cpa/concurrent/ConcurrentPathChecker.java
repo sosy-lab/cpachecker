@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -56,7 +57,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 final class ConcurrentPathChecker extends PathChecker {
   private record Frame(FunctionCallEdge call, SSAMap locals) {}
 
-  private record Context(PathFormula formula, ImmutableMap<Integer, ImmutableList<Frame>> stacks) {}
+  private record Context(
+      PathFormula formula, ImmutableMap<ThreadId, ImmutableList<Frame>> stacks) {}
 
   private record Choice(ARGState parent, BooleanFormula selector) {}
 
@@ -218,7 +220,7 @@ final class ConcurrentPathChecker extends PathChecker {
     ConcurrentState after =
         checkNotNull(AbstractStates.extractStateByType(child, ConcurrentState.class));
     PathFormula formula = previous.formula();
-    Map<Integer, ImmutableList<Frame>> stacks = new HashMap<>(previous.stacks());
+    Map<ThreadId, ImmutableList<Frame>> stacks = new HashMap<>(previous.stacks());
     List<CFAEdge> edges = parent.getEdgesToChild(child);
     if (edges.isEmpty()) {
       throw new CPATransferException("Concurrent ARG transition has no CFA edges");
@@ -228,7 +230,7 @@ final class ConcurrentPathChecker extends PathChecker {
       if (edge == lastEdge) {
         formula = addOverflowAssumptions(formula, child);
       }
-      int threadId = edge.getPredecessor().getCloneThreadId().orElseThrow();
+      ThreadId threadId = edge.getPredecessor().getCloneThreadId().orElseThrow();
       ImmutableList<Frame> stack = stacks.getOrDefault(threadId, ImmutableList.of());
       if (edge instanceof FunctionCallEdge call) {
         SSAMap.SSAMapBuilder locals = SSAMap.emptySSAMap().builder();
@@ -283,7 +285,7 @@ final class ConcurrentPathChecker extends PathChecker {
     return new Context(formula, ImmutableMap.copyOf(stacks));
   }
 
-  private static boolean isThreadLocal(String variable, int threadId) {
+  private static boolean isThreadLocal(String variable, ThreadId threadId) {
     return variable.startsWith(ThreadFunctions.perThreadNamePrefix(threadId))
         && variable.contains("::");
   }

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -1679,12 +1680,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
-      OptionalInt cloneThreadId = edge.getSuccessor().getCloneThreadId();
+      Optional<ThreadId> cloneThreadId = edge.getSuccessor().getCloneThreadId();
       if (cloneThreadId.isEmpty()) {
         cloneThreadId = edge.getPredecessor().getCloneThreadId();
       }
       if (cloneThreadId.isPresent()) {
-        return cloneThreadId.orElseThrow() == threadId ? CONST_TRUE : CONST_FALSE;
+        return cloneThreadId.orElseThrow().id() == threadId ? CONST_TRUE : CONST_FALSE;
       }
       return fallbackQuery.eval(pArgs);
     }

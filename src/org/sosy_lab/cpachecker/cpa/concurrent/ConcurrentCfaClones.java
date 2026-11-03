@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 
 /**
  * The per-thread clones of the CFA of one analysis (see {@link ConcurrentCfaCloner}). Each thread
@@ -24,7 +25,7 @@ final class ConcurrentCfaClones {
 
   private final CFA cfa;
 
-  private final Map<Integer, ConcurrentCfaCloner> clonersByThreadId = new HashMap<>();
+  private final Map<ThreadId, ConcurrentCfaCloner> clonersByThreadId = new HashMap<>();
 
   ConcurrentCfaClones(CFA pCfa) {
     cfa = checkNotNull(pCfa);
@@ -39,7 +40,7 @@ final class ConcurrentCfaClones {
    * Returns the clone of the given node for the given thread ID. If the node is already a clone, it
    * is returned as-is.
    */
-  CFANode getClonedNode(CFANode pNode, int pThreadId) {
+  CFANode getClonedNode(CFANode pNode, ThreadId pThreadId) {
     return clonersByThreadId
         .computeIfAbsent(pThreadId, threadId -> ConcurrentCfaCloner.cloneCfa(threadId, cfa))
         .getClonedNode(pNode);

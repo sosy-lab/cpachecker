@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Random;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -53,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -196,7 +196,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
     }
 
     // Determine which thread this edge belongs to (populated by getOutgoingEdges)
-    final Integer threadId = pConcurrentState.getEdgeThreadId(cfaEdge);
+    final ThreadId threadId = pConcurrentState.getEdgeThreadId(cfaEdge);
     if (threadId == null) {
       throw new CPATransferException("Could not determine thread for edge " + cfaEdge);
     }
@@ -216,7 +216,10 @@ public class ConcurrentTransferRelation implements TransferRelation {
   }
 
   private Collection<ConcurrentState> getAbstractSuccessorsForBasicBlock(
-      ConcurrentState initialState, ConcurrentPrecision precision, CFAEdge firstEdge, int threadId)
+      ConcurrentState initialState,
+      ConcurrentPrecision precision,
+      CFAEdge firstEdge,
+      ThreadId threadId)
       throws CPATransferException, InterruptedException {
     CFANode startNode = firstEdge.getPredecessor();
     CFAEdge edge = firstEdge;
@@ -254,7 +257,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
       ConcurrentState state,
       ConcurrentPrecision precision,
       CFAEdge cfaEdge,
-      int threadId,
+      ThreadId threadId,
       Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
     Optional<String> callee = calledFunctionName(cfaEdge);
@@ -306,14 +309,14 @@ public class ConcurrentTransferRelation implements TransferRelation {
       ConcurrentState state,
       ConcurrentPrecision precision,
       CFAEdge cfaEdge,
-      int threadId,
+      ThreadId threadId,
       List<? extends AExpression> params,
       Collection<? extends AbstractState> wrappedSuccessors,
       Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
     ThreadFunctions.checkCreateParams(params);
     String threadFunction = ThreadFunctions.extractCreateFunctionName(params);
-    int newThreadId = state.threads().size();
+    ThreadId newThreadId = new ThreadId(state.threads().size());
     List<AbstractState> afterHandleWrite = new ArrayList<>();
     for (AbstractState wrapped : wrappedSuccessors) {
       afterHandleWrite.addAll(
@@ -352,7 +355,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
       ConcurrentState state,
       ConcurrentPrecision precision,
       CFAEdge cfaEdge,
-      int threadId,
+      ThreadId threadId,
       List<? extends AExpression> params,
       Collection<? extends AbstractState> wrappedSuccessors,
       Collection<ConcurrentState> result)
@@ -366,7 +369,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
     // otherwise steer refinement toward facts about the handle rather than program behavior.
     Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
     if (handleKey.isPresent()) {
-      OptionalInt hint = state.getLastCreatedThreadId(handleKey.orElseThrow());
+      Optional<ThreadId> hint = state.getLastCreatedThreadId(handleKey.orElseThrow());
       if (hint.isPresent() && state.liveThreadIds().contains(hint.orElseThrow())) {
         Optional<ConcurrentState> joined = state.joinThread(hint.orElseThrow());
         if (joined.isPresent()) {
@@ -378,7 +381,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
 
     // Without a unique syntactic mapping, branch over live instances and let the wrapped analysis
     // filter each candidate's synthetic identity assumption; this needs no alias analysis here.
-    for (int candidateThreadId : state.liveThreadIds()) {
+    for (ThreadId candidateThreadId : state.liveThreadIds()) {
       Optional<ConcurrentState> joined = state.joinThread(candidateThreadId);
       if (joined.isEmpty()) {
         continue;
@@ -401,7 +404,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private void handleThreadExit(
       ConcurrentState state,
       CFAEdge cfaEdge,
-      int threadId,
+      ThreadId threadId,
       Collection<? extends AbstractState> wrappedSuccessors,
       Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
@@ -441,7 +444,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private void finishEdge(
       ConcurrentState old,
       CFAEdge cfaEdge,
-      int threadId,
+      ThreadId threadId,
       Collection<? extends AbstractState> wrappedSuccessors,
       Collection<ConcurrentState> result)
       throws CPATransferException, InterruptedException {
@@ -485,7 +488,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * so the handle value it never got told about cannot matter.
    */
   private Collection<? extends AbstractState> applyBookkeepingEdge(
-      ConcurrentPrecision precision, AbstractState wrappedState, CFAEdge edge, int threadId)
+      ConcurrentPrecision precision, AbstractState wrappedState, CFAEdge edge, ThreadId threadId)
       throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> successors =
         applyEdgeWithForgetting(precision, wrappedState, edge, threadId);
@@ -513,7 +516,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * Re-registering the real edge here too is a harmless no-op (same value it already has).
    */
   private Collection<? extends AbstractState> applyEdgeWithForgetting(
-      ConcurrentPrecision precision, AbstractState wrappedState, CFAEdge edge, int threadId)
+      ConcurrentPrecision precision, AbstractState wrappedState, CFAEdge edge, ThreadId threadId)
       throws CPATransferException, InterruptedException {
     MutexState mutexState = AbstractStates.extractStateByType(wrappedState, MutexState.class);
     if (mutexState != null) {
@@ -699,12 +702,14 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * analysis exactly like any other edge, so whatever it already supports for regular lvalues
    * (array elements, struct fields, ...) is all that is needed here — nothing POR-specific.
    */
-  private static CFAEdge writeThreadHandleEdge(CExpression handle, int threadId, CFAEdge edge)
+  private static CFAEdge writeThreadHandleEdge(CExpression handle, ThreadId threadId, CFAEdge edge)
       throws UnsupportedCodeException {
     CLeftHandSide lhs = threadHandleLvalue(handle, edge);
     CIntegerLiteralExpression rhs =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, lhs.getExpressionType(), BigInteger.valueOf((long) threadId + 1));
+            FileLocation.DUMMY,
+            lhs.getExpressionType(),
+            BigInteger.valueOf((long) threadId.id() + 1));
     return new CStatementEdge(
         "",
         new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, rhs),
@@ -732,9 +737,9 @@ public class ConcurrentTransferRelation implements TransferRelation {
   private List<AbstractState> initializeThreadLocals(
       ConcurrentPrecision precision,
       List<AbstractState> pStates,
-      int newThreadId,
+      ThreadId newThreadId,
       CFAEdge cfaEdge,
-      int creatorThreadId)
+      ThreadId creatorThreadId)
       throws CPATransferException, InterruptedException {
     List<AbstractState> states = pStates;
     for (CVariableDeclaration threadLocalDeclaration : threadLocalDeclarations) {
@@ -765,7 +770,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * parameter — remains).
    */
   private Optional<CFAEdge> threadArgumentInitEdge(
-      String pThreadFunc, CExpression pArgument, int pNewThreadId, CFAEdge pEdge) {
+      String pThreadFunc, CExpression pArgument, ThreadId pNewThreadId, CFAEdge pEdge) {
     FunctionEntryNode entry = cfa.getFunctionHead(pThreadFunc);
     if (entry == null || entry.getFunctionParameters().isEmpty()) {
       return Optional.empty();
@@ -803,7 +808,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * this write and the child's own reads of the variable are the same symbol to the wrapped
    * analysis.
    */
-  private CFAEdge threadLocalInitEdge(CVariableDeclaration pDecl, int threadId, CFAEdge edge)
+  private CFAEdge threadLocalInitEdge(CVariableDeclaration pDecl, ThreadId threadId, CFAEdge edge)
       throws UnsupportedCodeException {
     CExpression value = ThreadFunctions.threadLocalInitValue(pDecl, cfa.getMachineModel(), edge);
     CVariableDeclaration childCopy =
@@ -834,12 +839,12 @@ public class ConcurrentTransferRelation implements TransferRelation {
    * so it is compared directly, no dereference.
    */
   private static CFAEdge assumeThreadHandleEqualsEdge(
-      CExpression handle, int candidateThreadId, CFAEdge edge) {
+      CExpression handle, ThreadId candidateThreadId, CFAEdge edge) {
     CIntegerLiteralExpression literal =
         new CIntegerLiteralExpression(
             FileLocation.DUMMY,
             handle.getExpressionType(),
-            BigInteger.valueOf((long) candidateThreadId + 1));
+            BigInteger.valueOf((long) candidateThreadId.id() + 1));
     CBinaryExpression identity =
         new CBinaryExpression(
             FileLocation.DUMMY,
@@ -864,7 +869,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
     }
     List<? extends AExpression> params = callParameters(edge);
     if (ThreadFunctions.isCreateFunction(name.orElseThrow())) {
-      int newThreadId = parent.threads().size();
+      ThreadId newThreadId = new ThreadId(parent.threads().size());
       edges.add(writeThreadHandleEdge((CExpression) params.getFirst(), newThreadId, edge));
       threadArgumentInitEdge(
               ThreadFunctions.extractCreateFunctionName(params),
@@ -877,7 +882,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
       }
     } else if (ThreadFunctions.isJoinFunction(name.orElseThrow())) {
       CExpression handle = (CExpression) params.getFirst();
-      for (int threadId : parent.liveThreadIds()) {
+      for (ThreadId threadId : parent.liveThreadIds()) {
         if (!child.liveThreadIds().contains(threadId)) {
           edges.add(assumeThreadHandleEqualsEdge(handle, threadId, edge));
         }
@@ -911,7 +916,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
 
     // Compute the thread ID for the new thread so we can get its cloned entry node.
-    int newThreadId = old.threads().size();
+    ThreadId newThreadId = new ThreadId(old.threads().size());
     CFANode clonedEntryNode = cfaClones.getClonedNode(functionCallNode, newThreadId);
     AbstractState initialWrappedState =
         threadSpecificCPA.getInitialState(

@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentEdgeCloner.GlobalAccessRenamer;
@@ -47,21 +48,21 @@ import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentEdgeCloner.GlobalAccessR
  */
 class ConcurrentAstCloner extends CAstCloner {
 
-  private final int threadId;
+  private final ThreadId threadId;
   private final @Nullable GlobalAccessRenamer globalRenamer;
   private final boolean useThreadSpecificNames;
 
-  ConcurrentAstCloner(int pThreadId) {
+  ConcurrentAstCloner(ThreadId pThreadId) {
     this(pThreadId, true);
   }
 
-  ConcurrentAstCloner(int pThreadId, boolean pUseThreadSpecificNames) {
+  ConcurrentAstCloner(ThreadId pThreadId, boolean pUseThreadSpecificNames) {
     this.threadId = pThreadId;
     this.globalRenamer = null;
     useThreadSpecificNames = pUseThreadSpecificNames;
   }
 
-  ConcurrentAstCloner(int pThreadId, GlobalAccessRenamer pGlobalRenamer) {
+  ConcurrentAstCloner(ThreadId pThreadId, GlobalAccessRenamer pGlobalRenamer) {
     this.threadId = pThreadId;
     this.globalRenamer = checkNotNull(pGlobalRenamer);
     useThreadSpecificNames = true;

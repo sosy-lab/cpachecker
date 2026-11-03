@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.concurrent;
 import com.google.common.collect.ImmutableList;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -71,7 +72,7 @@ class ConcurrentMergeOperator implements MergeOperator {
     if (c1.threads.size() != c2.threads.size()) {
       return false;
     }
-    for (Entry<Integer, ThreadState> entry : c1.threads.entrySet()) {
+    for (Entry<ThreadId, ThreadState> entry : c1.threads.entrySet()) {
       ThreadState thisThreadState = entry.getValue();
       ThreadState otherThreadState = c2.threads.get(entry.getKey());
       if (otherThreadState == null) {

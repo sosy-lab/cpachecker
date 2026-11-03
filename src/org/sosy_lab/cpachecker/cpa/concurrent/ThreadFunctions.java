@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -210,13 +211,13 @@ public final class ThreadFunctions {
    * initializations against the very same name (see {@link #threadLocalGlobals}). The two must
    * agree exactly, or a thread would initialize a copy nobody ever reads.
    */
-  public static String perThreadName(int pThreadId, String pQualifiedName) {
+  public static String perThreadName(ThreadId pThreadId, String pQualifiedName) {
     return perThreadNamePrefix(pThreadId) + pQualifiedName;
   }
 
   /** The thread-specific prefix shared by all renamed variables for the given thread ID. */
-  public static String perThreadNamePrefix(int pThreadId) {
-    return "T%d_".formatted(pThreadId);
+  public static String perThreadNamePrefix(ThreadId pThreadId) {
+    return "T%d_".formatted(pThreadId.id());
   }
 
   /**

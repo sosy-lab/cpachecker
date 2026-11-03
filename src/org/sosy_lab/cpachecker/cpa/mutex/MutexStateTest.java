@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -148,12 +149,12 @@ public class MutexStateTest {
     MutexLock read = new MutexLock(handle("rwlock"), MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit(handle("rwlock"));
-    state = state.withLock(read, 1).orElseThrow();
+    state = state.withLock(read, new ThreadId(1)).orElseThrow();
     // A 2nd concurrent reader used to throw IllegalArgumentException("Multiple entries with
     // same key") because withLock's builder put()'d the already-putAll()'d key again.
-    state = state.withLock(read, 2).orElseThrow();
+    state = state.withLock(read, new ThreadId(2)).orElseThrow();
 
-    assertThat(state.getHolders(read)).containsExactly(1, 2);
+    assertThat(state.getHolders(read)).containsExactly(new ThreadId(1), new ThreadId(2));
   }
 
   @Test
@@ -161,14 +162,16 @@ public class MutexStateTest {
     MutexLock read = new MutexLock(handle("rwlock"), MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit(handle("rwlock"));
-    state = state.withLock(read, 1).orElseThrow();
-    state = state.withLock(read, 2).orElseThrow();
-    state = state.withUnlock(read, 1);
+    state = state.withLock(read, new ThreadId(1)).orElseThrow();
+    state = state.withLock(read, new ThreadId(2)).orElseThrow();
+    state = state.withUnlock(read, new ThreadId(1));
 
-    assertThat(state.getHolders(read)).containsExactly(2);
-    assertThat(state.isMutexBlockedFor(read, 2)).isFalse();
-    assertThat(state.isMutexBlockedFor(read, 3)).isFalse();
-    assertThat(state.isMutexBlockedFor(new MutexLock(handle("rwlock"), MutexLockType.WRITE), 3))
+    assertThat(state.getHolders(read)).containsExactly(new ThreadId(2));
+    assertThat(state.isMutexBlockedFor(read, new ThreadId(2))).isFalse();
+    assertThat(state.isMutexBlockedFor(read, new ThreadId(3))).isFalse();
+    assertThat(
+            state.isMutexBlockedFor(
+                new MutexLock(handle("rwlock"), MutexLockType.WRITE), new ThreadId(3)))
         .isTrue();
   }
 
@@ -177,8 +180,8 @@ public class MutexStateTest {
     MutexLock read = new MutexLock(handle("rwlock"), MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit(handle("rwlock"));
-    state = state.withLock(read, 1).orElseThrow();
-    state = state.withUnlock(read, 1);
+    state = state.withLock(read, new ThreadId(1)).orElseThrow();
+    state = state.withUnlock(read, new ThreadId(1));
 
     assertThat(state.isLocked(read)).isFalse();
   }

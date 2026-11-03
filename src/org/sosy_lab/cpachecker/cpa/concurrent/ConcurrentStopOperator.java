@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,7 +55,7 @@ class ConcurrentStopOperator implements StopOperator {
                 reachedConcurrentState.handleToLastCreatedThreadId)) {
           boolean allThreadsStop = true;
           for (var entry : concurrentState.threads.entrySet()) {
-            int threadId = entry.getKey();
+            ThreadId threadId = entry.getKey();
             ThreadState reachedThreadState = reachedConcurrentState.threads.get(threadId);
             if (reachedThreadState == null) {
               allThreadsStop = false;
