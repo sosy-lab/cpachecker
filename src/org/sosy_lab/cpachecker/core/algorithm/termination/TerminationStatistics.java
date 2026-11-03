@@ -60,10 +60,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -71,7 +69,6 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
@@ -125,7 +122,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
@@ -178,16 +174,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               + " no supporting invariants are exported.")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path supportingInvariantsCheckConfig = null;
-
-  @Option(
-      secure = true,
-      name = "supportingInvariantsCheckTimeLimit",
-      description =
-          "Wall-time limit for checking whether the supporting invariants are invariants of the"
-              + " program before they are exported into the witness. The limit is for all"
-              + " supporting invariants together (0 means no limit).")
-  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
-  private TimeSpan supportingInvariantsCheckTimeLimit = TimeSpan.ofSeconds(60);
 
   @Option(
       secure = true,
@@ -603,9 +589,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   /**
    * Checks which supporting invariants of the synthesized termination arguments are invariants of
    * the program, such that only these are exported into the witness. This has to be called while
-   * the analysis is still running, since the checks are stopped together with the analysis. All
-   * checks together are limited by the option supportingInvariantsCheckTimeLimit, the supporting
-   * invariants that are not checked within this limit are not exported.
+   * the analysis is still running, since the checks are stopped together with the analysis.
    *
    * @param pShutdownNotifier the shutdown notifier of the analysis
    * @throws InterruptedException if the analysis is shut down
@@ -636,25 +620,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return;
     }
 
-    ShutdownManager shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
-    ResourceLimitChecker limitChecker =
-        ResourceLimitChecker.createWallTimeLimitChecker(
-            shutdownManager, supportingInvariantsCheckTimeLimit);
-    limitChecker.start();
-    try {
-      for (InvariantEntry supportingInvariant : supportingInvariants) {
-        if (shutdownManager.getNotifier().shouldShutdown()) {
-          break;
-        }
-        if (isProvenInvariant(supportingInvariant, shutdownManager.getNotifier())) {
-          confirmedSupportingInvariants.add(supportingInvariant);
-        }
+    for (InvariantEntry supportingInvariant : supportingInvariants) {
+      if (isProvenInvariant(supportingInvariant, pShutdownNotifier)) {
+        confirmedSupportingInvariants.add(supportingInvariant);
       }
-    } finally {
-      limitChecker.cancel();
     }
-    // Only the time limit of the checks may stop them without stopping the analysis
-    pShutdownNotifier.shutdownIfNecessary();
     logger.logf(
         INFO,
         "Confirmed %d of %d supporting invariants for the export into the witness.",
@@ -670,8 +640,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
    * @param pInvariant the invariant to check
    * @param pShutdownNotifier the shutdown notifier for the check
    * @return true iff the invariant was proven to hold
+   * @throws InterruptedException if the analysis is shut down
    */
-  private boolean isProvenInvariant(InvariantEntry pInvariant, ShutdownNotifier pShutdownNotifier) {
+  private boolean isProvenInvariant(InvariantEntry pInvariant, ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
     Path witness = null;
     try {
       witness = Files.createTempFile("supporting-invariant", ".yml");
@@ -693,9 +665,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     } catch (IOException | CPAException e) {
       logger.logUserException(
           WARNING, e, "Could not check the supporting invariant, it is not exported.");
-      return false;
-    } catch (InterruptedException e) {
-      // The check was stopped, the caller handles the shutdown of the analysis
       return false;
     } finally {
       if (witness != null) {

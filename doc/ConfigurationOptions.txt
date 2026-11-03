@@ -5889,11 +5889,6 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # Without it, no supporting invariants are exported.
 termination.supportingInvariantsCheckConfig = no default value
 
-# Wall-time limit for checking whether the supporting invariants are
-# invariants of the program before they are exported into the witness. The
-# limit is for all supporting invariants together (0 means no limit).
-termination.supportingInvariantsCheckTimeLimit = 60s
-
 # consider counterexamples for loops for which only pointer variables are
 # relevant or which check that pointer is unequal to null pointer to be
 # imprecise
