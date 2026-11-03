@@ -30,7 +30,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks name="SV-LIB.Simple">
-    <include>../programs/sv-lib/*.yml</include>
+    <includesfile>../programs/sv-lib/svlib.set</includesfile>
     <propertyfile>../config/properties/correct-annotations.prp</propertyfile>
   </tasks>
 

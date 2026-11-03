@@ -43,6 +43,16 @@ public final class SvLibIdTerm extends AIdExpression implements SvLibTerm, SvLib
   }
 
   @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    // An indexed identifier like (_ extract 7 0) is no symbol, so it is never quoted
+    if (getDeclaration() instanceof SvLibFunctionDeclaration function
+        && function.getIndexedSymbol().isPresent()) {
+      return function.getIndexedSymbol().orElseThrow().toString();
+    }
+    return SmtLibSymbols.quoteIfNeeded(super.toASTString(pAAstNodeRepresentation));
+  }
+
+  @Override
   public SvLibType getExpressionType() {
     return (SvLibType) super.getExpressionType();
   }

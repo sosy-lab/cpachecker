@@ -332,7 +332,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               isOverapproximating ? summarizedIterationFormula : iterationFormula,
               prefixPathFormula);
       if (numberOfUnrollingsForLasso.isPresent()) {
-        if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
+        if (!isOverapproximating
+            && isSound(bfmgr.and(prefixPathFormula.getFormula(), iterationFormula.getFormula()))) {
           TerminationToReachState cycleState =
               new TerminationToReachState(numberOfUnrollingsForLasso.orElseThrow());
           cycleState.makeTarget();

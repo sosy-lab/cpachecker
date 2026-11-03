@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -103,7 +104,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibArrayConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
@@ -112,6 +116,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
@@ -120,6 +125,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibNotRecurringTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRecurringTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -556,7 +563,10 @@ public class CFAUtils {
   /**
    * This method allows to select from a set of variables all local variables from a given function.
    * This requires that the given set contains the qualified names of each variable as returned by
-   * {@link AbstractSimpleDeclaration#getQualifiedName()}.
+   * {@link AbstractSimpleDeclaration#getQualifiedName()}. This function should be removed as part
+   * of <a href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a> and is
+   * closely related to {@link #getFunctionAndVariableNameFromQualifiedVariableName(String)} and
+   * should be removed together with it.
    *
    * @param variables Set of qualified names of variables.
    * @param function A function name.
@@ -574,6 +584,42 @@ public class CFAUtils {
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
+  }
+
+  /**
+   * This record is used to store the function name and the variable name of a qualified variable
+   * name. It is used in the method {@link
+   * #getFunctionAndVariableNameFromQualifiedVariableName(String)} to return the function name and
+   * variable name as a pair. It should also be deleted as part of <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a>.
+   *
+   * @param functionName the function name of the qualified variable name. It is optional, since the
+   *     variable may be global.
+   * @param variableName the variable name of the qualified variable name.
+   */
+  public record FunctionAndVariableName(Optional<String> functionName, String variableName) {}
+
+  /**
+   * This method allows to split a qualified name of a variable into the function name and the
+   * variable name. This requires that the qualified name is in the format returned by {@link
+   * AbstractSimpleDeclaration#getQualifiedName()}. This function should be removed as part of <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a> It is also
+   * closely related to {@link #filterVariablesOfFunction(NavigableSet, String)} and should be
+   * removed together with it.
+   *
+   * @param qualifiedName A qualified name of a variable.
+   * @return A pair of the function name and the variable name. The function name is optional, since
+   *     the variable may be global.
+   */
+  public static FunctionAndVariableName getFunctionAndVariableNameFromQualifiedVariableName(
+      String qualifiedName) {
+    int index = qualifiedName.indexOf("::");
+    if (index == -1) {
+      return new FunctionAndVariableName(Optional.empty(), qualifiedName);
+    } else {
+      return new FunctionAndVariableName(
+          Optional.of(qualifiedName.substring(0, index)), qualifiedName.substring(index + 2));
+    }
   }
 
   /**
@@ -641,27 +687,28 @@ public class CFAUtils {
   public static ImmutableList<ImmutableList<CFAEdge>> getMaximalPaths(
       Set<CFAEdge> pEdges, Set<CFANode> pStartNodes, Set<CFANode> pEndNodes) {
     ImmutableList.Builder<ImmutableList<CFAEdge>> maximalPaths = ImmutableList.builder();
-    Queue<ImmutableList<CFAEdge>> waitlist = new ArrayDeque<>();
+    // paths are stored in reverse order, so that extending a path shares its prefix
+    Queue<PersistentLinkedList<CFAEdge>> waitlist = new ArrayDeque<>();
     for (CFANode startNode : pStartNodes) {
-      for (CFAEdge edge : startNode.getAllLeavingEdges().filter(pEdges::contains).toSet()) {
-        waitlist.offer(ImmutableList.of(edge));
+      for (CFAEdge edge : startNode.getAllLeavingEdges().filter(pEdges::contains)) {
+        waitlist.offer(PersistentLinkedList.of(edge));
       }
     }
     while (!waitlist.isEmpty()) {
-      ImmutableList<CFAEdge> path = waitlist.poll();
-      CFANode pathSucc = path.getLast().getSuccessor();
+      PersistentLinkedList<CFAEdge> reversedPath = waitlist.poll();
+      CFANode pathSucc = reversedPath.head().getSuccessor();
       ImmutableSet<CFAEdge> leavingEdges =
           pEndNodes.contains(pathSucc)
               ? ImmutableSet.of()
               : pathSucc
                   .getAllLeavingEdges()
-                  .filter(edge -> pEdges.contains(edge) && !path.contains(edge))
+                  .filter(edge -> pEdges.contains(edge) && !reversedPath.contains(edge))
                   .toSet();
       if (leavingEdges.isEmpty()) {
-        maximalPaths.add(path);
+        maximalPaths.add(ImmutableList.copyOf(reversedPath).reverse());
       }
       for (CFAEdge leavingEdge : leavingEdges) {
-        waitlist.offer(listAndElement(path, leavingEdge));
+        waitlist.offer(reversedPath.with(leavingEdge));
       }
     }
     return maximalPaths.build();
@@ -1187,6 +1234,24 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(
+        SvLibFloatingPointConstantTerm pSvLibFloatingPointConstantTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibArrayConstantTerm pSvLibArrayConstantTerm)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
         SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
         throws NoException {
       return pSvLibSymbolApplicationRelationalTerm.getTerms();
@@ -1205,6 +1270,12 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
     public Iterable<? extends AAstNode> accept(SvLibTagReference pSvLibTagReference) {
       return ImmutableList.of();
     }
@@ -1218,6 +1289,16 @@ public class CFAUtils {
     public Iterable<? extends AAstNode> accept(SvLibRequiresTag pSvLibRequiresTag)
         throws NoException {
       return ImmutableList.of(pSvLibRequiresTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibRecurringTag pSvLibRecurringTag) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibNotRecurringTag pSvLibNotRecurringTag) {
+      return ImmutableList.of();
     }
 
     @Override
