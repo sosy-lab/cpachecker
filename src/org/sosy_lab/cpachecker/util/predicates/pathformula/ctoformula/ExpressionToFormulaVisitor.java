@@ -383,8 +383,13 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Adds linear bounds for ret = f1 & f2: ret is in [0, f] for each non-negative operand f, and
-   * negative and at most both operands if both are negative.
+   * Adds linear bounds for {@code ret = f1 & f2}, depending on the signs of the operands:
+   *
+   * <ul>
+   *   <li>both non-negative: {@code 0 <= ret <= min(f1, f2)},
+   *   <li>one non-negative and one negative: {@code 0 <= ret <= max(f1, f2)},
+   *   <li>both negative: {@code ret <= min(f1, f2)}, so ret is negative.
+   * </ul>
    */
   private void addBitwiseAndConstraints(
       final Formula f1, final Formula f2, final boolean signed, final Formula ret) {
@@ -408,9 +413,16 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Adds linear bounds for ret = f1 | f2: ret is at least both operands if both are non-negative,
-   * and in [f, 0) for each negative operand f. The upper bound f1 + f2 for non-negative operands is
-   * left out, since the sum may overflow with bitvectors.
+   * Adds linear bounds for {@code ret = f1 | f2}, depending on the signs of the operands:
+   *
+   * <ul>
+   *   <li>both non-negative: {@code ret >= max(f1, f2)},
+   *   <li>one non-negative and one negative: {@code min(f1, f2) <= ret < 0},
+   *   <li>both negative: {@code max(f1, f2) <= ret < 0}.
+   * </ul>
+   *
+   * <p>The upper bound {@code f1 + f2} for non-negative operands is left out, since the sum may
+   * overflow with bitvectors.
    */
   private void addBitwiseOrConstraints(
       final Formula f1, final Formula f2, final boolean signed, final Formula ret) {
