@@ -16,7 +16,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.concurrent.ThreadFunctions;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -830,17 +828,13 @@ public final class DynamicMemoryHandler {
    *
    * @param function The name of the function.
    */
-  void handleDeferredAllocationInFunctionExit(final String function, OptionalInt pThreadId) {
-    String variableFunction =
-        pThreadId.isPresent()
-            ? ThreadFunctions.perThreadName(pThreadId.orElseThrow(), function)
-            : function;
+  void handleDeferredAllocationInFunctionExit(final String function) {
     for (String v :
         CFAUtils.filterVariablesOfFunction(
             from(pts.getDeferredAllocationPointers())
                 .transform(PointerBase::name)
                 .toSortedSet(Comparator.naturalOrder()),
-            variableFunction)) {
+            function)) {
       if (!pts.removeDeferredAllocationPointer(new PointerBase(v)).isEmpty()) {
         conv.logger.logfOnce(
             Level.WARNING,

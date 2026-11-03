@@ -1253,8 +1253,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       DynamicMemoryHandler memoryHandler =
           new DynamicMemoryHandler(
               this, summaryEdge, calledFunction, ssa, pts, constraints, errorConditions, regionMgr);
-      memoryHandler.handleDeferredAllocationInFunctionExit(
-          calledFunction, summaryEdge.getPredecessor().getCloneThreadId());
+      memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
     }
 
     return result;
