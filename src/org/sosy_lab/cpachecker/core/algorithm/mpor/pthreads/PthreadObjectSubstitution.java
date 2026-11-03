@@ -179,7 +179,7 @@ public class PthreadObjectSubstitution {
           ImmutableMap.builder();
 
       paths.forEach((path, member) -> immutablePaths.put(ImmutableList.copyOf(path), member));
-      return new CTypeSubstitutionResult(pType, immutablePaths.build(), pIsSubstituted);
+      return new CTypeSubstitutionResult(pType, immutablePaths.buildOrThrow(), pIsSubstituted);
     }
 
     @Override
