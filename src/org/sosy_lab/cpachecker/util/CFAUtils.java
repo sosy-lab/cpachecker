@@ -663,7 +663,7 @@ public class CFAUtils {
                   .filter(edge -> pEdges.contains(edge) && !reversedPath.contains(edge))
                   .toSet();
       if (leavingEdges.isEmpty()) {
-        maximalPaths.add(ImmutableList.copyOf(reversedPath.reversed()));
+        maximalPaths.add(ImmutableList.copyOf(reversedPath).reverse());
       }
       for (CFAEdge leavingEdge : leavingEdges) {
         waitlist.offer(reversedPath.with(leavingEdge));
