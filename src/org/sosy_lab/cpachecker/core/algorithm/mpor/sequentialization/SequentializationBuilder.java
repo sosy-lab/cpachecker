@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution.CTypeSubstitutionResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
@@ -78,7 +79,8 @@ class SequentializationBuilder {
               case CComplexTypeDeclaration complexTypeDeclaration -> {
                 CType typeSubstitute =
                     PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                        complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
+                            complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class))
+                        .type();
                 CComplexTypeDeclaration newComplexTypeDeclaration =
                     new CComplexTypeDeclaration(
                         complexTypeDeclaration.getFileLocation(),
@@ -89,7 +91,8 @@ class SequentializationBuilder {
               case CTypeDefDeclaration typeDefDeclaration -> {
                 CType typeSubstitute =
                     PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                        typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
+                            typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class))
+                        .type();
                 CTypeDefDeclaration newTypeDefDeclaration =
                     new CTypeDefDeclaration(
                         typeDefDeclaration.getFileLocation(),
@@ -294,7 +297,7 @@ class SequentializationBuilder {
   private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
       CVariableDeclaration pVariableDeclaration) {
 
-    CType typeSubstitute =
+    CTypeSubstitutionResult typeSubstitute =
         PthreadObjectSubstitution.substitutePthreadObjectTypes(
             pVariableDeclaration.getType(),
             ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
@@ -303,7 +306,7 @@ class SequentializationBuilder {
         pVariableDeclaration.getFileLocation(),
         pVariableDeclaration.isGlobal(),
         pVariableDeclaration.getCStorageClass(),
-        typeSubstitute,
+        typeSubstitute.type(),
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
