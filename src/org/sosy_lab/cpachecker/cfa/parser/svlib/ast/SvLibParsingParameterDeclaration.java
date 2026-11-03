@@ -39,7 +39,8 @@ public final class SvLibParsingParameterDeclaration implements SvLibSimpleParsin
   }
 
   public SvLibVariableDeclaration toVariableDeclaration() {
-    return new SvLibVariableDeclaration(fileLocation, false, type, name, name, getQualifiedName());
+    return new SvLibVariableDeclaration(
+        fileLocation, false, type, name, name, getQualifiedName(), false);
   }
 
   @Override

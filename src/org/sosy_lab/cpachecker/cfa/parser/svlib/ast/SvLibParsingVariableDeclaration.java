@@ -26,6 +26,8 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
   private final String name;
   private final String origName;
   private final @Nullable String procedureName;
+  // Set for a constant of `define-fun`
+  private final boolean hasBeenDefined;
 
   public SvLibParsingVariableDeclaration(
       FileLocation pFileLocation,
@@ -35,6 +37,18 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
       String pName,
       String pOrigName,
       @Nullable String pProcedureName) {
+    this(pFileLocation, pIsGlobal, pIsConstant, pType, pName, pOrigName, pProcedureName, false);
+  }
+
+  private SvLibParsingVariableDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      boolean pIsConstant,
+      SvLibType pType,
+      String pName,
+      String pOrigName,
+      @Nullable String pProcedureName,
+      boolean pHasBeenDefined) {
     fileLocation = pFileLocation;
     isGlobal = pIsGlobal;
     isConstant = pIsConstant;
@@ -42,6 +56,14 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
     name = pName;
     origName = pOrigName;
     procedureName = pProcedureName;
+    hasBeenDefined = pHasBeenDefined;
+  }
+
+  /** The constant that a `define-fun` without parameters defines. */
+  public static SvLibParsingVariableDeclaration definedConstant(
+      FileLocation pFileLocation, SvLibType pType, String pName) {
+    return new SvLibParsingVariableDeclaration(
+        pFileLocation, true, true, pType, pName, pName, null, true);
   }
 
   public static SvLibParsingVariableDeclaration dummyVariableForName(String pName) {
@@ -52,7 +74,7 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
   @Override
   public SvLibVariableDeclaration toSimpleDeclaration() {
     return new SvLibVariableDeclaration(
-        fileLocation, isGlobal, type, name, origName, getQualifiedName());
+        fileLocation, isGlobal, type, name, origName, getQualifiedName(), hasBeenDefined);
   }
 
   @Override
@@ -84,6 +106,10 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
     return isConstant;
   }
 
+  public boolean hasBeenDefined() {
+    return hasBeenDefined;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -94,6 +120,7 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
     result = prime * result + name.hashCode();
     result = prime * result + origName.hashCode();
     result = prime * result + (procedureName == null ? 0 : procedureName.hashCode());
+    result = prime * result + (hasBeenDefined ? 1231 : 1237);
     return result;
   }
 
@@ -109,7 +136,8 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
         && type.equals(other.type)
         && name.equals(other.name)
         && origName.equals(other.origName)
-        && Objects.equals(procedureName, other.procedureName);
+        && Objects.equals(procedureName, other.procedureName)
+        && hasBeenDefined == other.hasBeenDefined;
   }
 
   public boolean isGlobal() {

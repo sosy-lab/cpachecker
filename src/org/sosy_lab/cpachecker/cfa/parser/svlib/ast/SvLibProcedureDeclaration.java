@@ -58,7 +58,7 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
 
   @Override
   public SvLibFunctionDeclaration toSimpleDeclaration() {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.procedure(
         fileLocation,
         new SvLibFunctionType(
             transformedImmutableListCopy(parameters, SvLibParsingParameterDeclaration::getType),

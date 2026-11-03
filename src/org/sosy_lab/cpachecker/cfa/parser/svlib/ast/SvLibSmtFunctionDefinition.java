@@ -82,10 +82,9 @@ public final class SvLibSmtFunctionDefinition implements SvLibParsingDeclaration
 
   @Override
   public SvLibFunctionDeclaration toSimpleDeclaration() {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.definedFunction(
         fileLocation,
         new SvLibFunctionType(inputTypes, returnType),
-        name,
         name,
         ImmutableList.copyOf(
             parameters.stream()
