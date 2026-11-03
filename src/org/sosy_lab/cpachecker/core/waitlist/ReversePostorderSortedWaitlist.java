@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import com.google.common.collect.Streams;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -34,11 +35,10 @@ public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integ
     }
 
     // For states with several locations, use the largest ID as the best reverse-postorder key.
-    var maxId =
+    OptionalInt maxId =
         Streams.stream(AbstractStates.extractLocations(pState))
             .mapToInt(CFANode::getReversePostorderId)
             .max();
-    assert maxId.isPresent() : "State has no CFA locations";
     return maxId.orElseThrow(() -> new IllegalArgumentException("State has no CFA locations"));
   }
 
