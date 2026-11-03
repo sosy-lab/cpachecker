@@ -79,14 +79,19 @@ public enum PthreadObjectType {
   @SuppressWarnings("Immutable")
   private final ImmutableSet<CType> substituteTypes;
 
+  @SuppressWarnings("Immutable")
+  private final Optional<CInitializer> substituteInitializer;
+
   PthreadObjectType(
       String pName,
       boolean pIsArraySupported,
       ImmutableSet<CType> pSubstituteTypes,
       Optional<CInitializer> pSubstituteInitializer) {
+
     name = pName;
     isArraySupported = pIsArraySupported;
     substituteTypes = pSubstituteTypes;
+    substituteInitializer = pSubstituteInitializer;
   }
 
   public String getName() {
@@ -99,6 +104,10 @@ public enum PthreadObjectType {
 
   public ImmutableSet<CType> getSubstituteTypes() {
     return substituteTypes;
+  }
+
+  public Optional<CInitializer> getSubstituteInitializer() {
+    return substituteInitializer;
   }
 
   public boolean equalsType(CType pType) {
