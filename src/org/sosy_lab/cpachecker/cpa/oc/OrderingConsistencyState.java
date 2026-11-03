@@ -125,7 +125,7 @@ public final class OrderingConsistencyState
     return pathFormula;
   }
 
-  BooleanFormula getGuard() {
+  public BooleanFormula getGuard() {
     return guard;
   }
 

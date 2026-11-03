@@ -9,10 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
@@ -71,6 +76,10 @@ final class OrderingConsistencyCounterexampleExtractor {
         earlierAccess = race.access1().id() == terminalEvent.id() ? race.access2() : race.access1();
       }
       boolean earlierAccessPassed = false;
+      // how far the path has walked each thread instance's exploration DAG; the event-free steps
+      // between two events of a thread (local assignments and branches) are taken from that walk,
+      // so that the witness also pins down local nondeterministic choices
+      Map<Integer, Optional<ARGState>> walkPositions = new HashMap<>();
       for (MemoryEvent event : pAlgorithm.orderedViolationEvents(model, pEncoder)) {
         if (earlierAccessPassed
             && earlierAccess != null
@@ -96,6 +105,23 @@ final class OrderingConsistencyCounterexampleExtractor {
               && !java.util.EnumSet.of(EventKind.READ, EventKind.WRITE, EventKind.CREATE)
                   .contains(event.kind())) {
             index = edges.size() - 1;
+          }
+          if (index == null) {
+            Optional<ARGState> position =
+                walkPositions.computeIfAbsent(
+                    event.instanceId(), instance -> threadRoot(pReachedSet, instance));
+            List<CFAEdge> steps = new ArrayList<>();
+            Optional<ARGState> next =
+                position.flatMap(start -> walkTo(start, edge, model, steps));
+            if (next.isPresent()) {
+              for (CFAEdge local : steps) {
+                edges.add(local);
+                edgeInstances.add(event.instanceId());
+                edgeCreatedInstances.add(MemoryEvent.NO_INSTANCE);
+                edgeAssumptions.add(new ArrayList<>());
+              }
+              walkPositions.put(event.instanceId(), next);
+            }
           }
           if (index == null || event.id() == terminalEvent.id()) {
             edges.add(edge);
@@ -202,5 +228,105 @@ final class OrderingConsistencyCounterexampleExtractor {
         }
       }
     }
+  }
+
+  /** The unique root of a thread instance's exploration DAG, if it has one. */
+  private static Optional<ARGState> threadRoot(ReachedSet pReachedSet, int pInstance) {
+    ARGState root = null;
+    for (AbstractState reached : pReachedSet) {
+      OrderingConsistencyState ocState =
+          AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
+      if (reached instanceof ARGState argState
+          && argState.getParents().isEmpty()
+          && ocState != null
+          && ocState.getThreadInstanceId() == pInstance) {
+        if (root != null) {
+          return Optional.empty();
+        }
+        root = argState;
+      }
+    }
+    return Optional.ofNullable(root);
+  }
+
+  /**
+   * Walks a thread instance's exploration DAG from {@code pStart} to the next execution of {@code
+   * pTarget}, collecting the edges taken before it into {@code pSteps}, and returns the state after
+   * {@code pTarget}. Where the exploration branched, the walk follows the successor whose guard
+   * holds in the model and from which {@code pTarget} is reachable; it fails (empty result) where
+   * this does not decide the successor. Edges are compared by identity: a synthetic edge (e.g. a
+   * thread-handle write) equals the CFA edge it was derived from, but is no step of the walk.
+   */
+  private static Optional<ARGState> walkTo(
+      ARGState pStart, CFAEdge pTarget, Model pModel, List<CFAEdge> pSteps) {
+    ARGState current = pStart;
+    while (true) {
+      List<ARGState> children = liveChildren(current);
+      if (children.size() > 1) {
+        children.removeIf(
+            child ->
+                !Boolean.TRUE.equals(
+                    pModel.evaluate(
+                        AbstractStates.extractStateByType(child, OrderingConsistencyState.class)
+                            .getGuard())));
+      }
+      if (children.size() > 1) {
+        ARGState parent = current;
+        children.removeIf(
+            child ->
+                indexOfIdentical(parent.getEdgesToChild(child), pTarget) < 0
+                    && !reaches(child, pTarget));
+      }
+      if (children.size() != 1) {
+        return Optional.empty();
+      }
+      ARGState next = children.getFirst();
+      List<CFAEdge> step = current.getEdgesToChild(next);
+      int target = indexOfIdentical(step, pTarget);
+      if (target >= 0) {
+        pSteps.addAll(step.subList(0, target));
+        return Optional.of(next);
+      }
+      pSteps.addAll(step);
+      current = next;
+    }
+  }
+
+  /** Whether {@code pEdge} is taken anywhere below {@code pState}. */
+  private static boolean reaches(ARGState pState, CFAEdge pEdge) {
+    Set<ARGState> visited = new HashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.push(pState);
+    while (!waitlist.isEmpty()) {
+      ARGState state = waitlist.pop();
+      for (ARGState child : liveChildren(state)) {
+        if (indexOfIdentical(state.getEdgesToChild(child), pEdge) >= 0) {
+          return true;
+        }
+        if (visited.add(child)) {
+          waitlist.push(child);
+        }
+      }
+    }
+    return false;
+  }
+
+  private static List<ARGState> liveChildren(ARGState pState) {
+    List<ARGState> children = new ArrayList<>();
+    for (ARGState child : pState.getChildren()) {
+      if (!child.isCovered() && !child.isDestroyed()) {
+        children.add(child);
+      }
+    }
+    return children;
+  }
+
+  private static int indexOfIdentical(List<CFAEdge> pEdges, CFAEdge pEdge) {
+    for (int i = 0; i < pEdges.size(); i++) {
+      if (pEdges.get(i) == pEdge) {
+        return i;
+      }
+    }
+    return -1;
   }
 }
