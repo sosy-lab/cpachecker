@@ -126,6 +126,15 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
               + " variables.")
   private boolean useHavocAbstraction = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Encode bitwise negation exactly with linear arithmetic, and add linear bounds for the"
+              + " results of bitwise and and or, e.g., x & y is in [0, x] if x is not negative."
+              + " This makes bitwise operations more precise if bitvectors are encoded as integers,"
+              + " where they are uninterpreted functions.")
+  private boolean approximateBitwiseOperationsLinearly = false;
+
   public CFormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, CFormulaEncodingOptions.class);
@@ -183,5 +192,9 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
 
   public boolean useHavocAbstraction() {
     return useHavocAbstraction;
+  }
+
+  public boolean approximateBitwiseOperationsLinearly() {
+    return approximateBitwiseOperationsLinearly;
   }
 }

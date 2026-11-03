@@ -78,7 +78,20 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       CFA pCFA,
       Specification pSpecification)
       throws InvalidConfigurationException {
-    super("sep", "sep", new TerminationToReachAbstractDomain(), null);
+    // It is not possible to merge the states across different branches since we are checking
+    // for inductivity of transition invariants only with respect to an iteration formula
+    // and given prefix formula. If we compute the same transition invariant
+    // on a different ARG path, we cannot cover (nor merge) it with the transition invariants
+    // from different branches because they have different prefix formula.
+    // Hence, they could continue with different iteration formulas for which
+    // we have not yet proven these transition predicates to be inductive.
+    // Therefore, in this state, we need to keep merge as "sep".
+    // It is a future work to implement better merging mechanism.
+    super(
+        "sep",
+        "sep",
+        new TerminationToReachAbstractDomain(pCFA.getLoopStructure().orElseThrow()),
+        null);
     pConfiguration.inject(this);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA, this);
     cfa = pCFA;
@@ -157,7 +170,10 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         ImmutableMap.of(),
         Optional.empty(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
         Optional.empty(),
+        ImmutableList.of(),
         ImmutableList.of(),
         ImmutableSet.of(),
         ImmutableSet.of());

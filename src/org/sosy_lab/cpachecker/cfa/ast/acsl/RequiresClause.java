@@ -41,6 +41,6 @@ public class RequiresClause {
 
   @Override
   public int hashCode() {
-    return Objects.hash(predicate);
+    return Objects.hashCode(predicate);
   }
 }

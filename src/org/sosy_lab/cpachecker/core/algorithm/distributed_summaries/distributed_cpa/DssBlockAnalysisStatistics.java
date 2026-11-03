@@ -15,8 +15,6 @@ public class DssBlockAnalysisStatistics {
   private final StatCounter serializationCount;
   private final StatCounter deserializationCount;
 
-  private final DssThreadCpuTimer serializationTime;
-  private final DssThreadCpuTimer deserializationTime;
   private final StatCounter proceedCount;
   private final DssThreadCpuTimer proceedTime;
 
@@ -25,8 +23,6 @@ public class DssBlockAnalysisStatistics {
     deserializationCount = new StatCounter("Deserialization Count " + pId);
     proceedCount = new StatCounter("Proceed Count " + pId);
 
-    serializationTime = new DssThreadCpuTimer("Serialization Time " + pId);
-    deserializationTime = new DssThreadCpuTimer("Deserialization Time " + pId);
     proceedTime = new DssThreadCpuTimer("Proceed Time " + pId);
   }
 
@@ -38,19 +34,11 @@ public class DssBlockAnalysisStatistics {
     return serializationCount;
   }
 
-  public DssThreadCpuTimer getDeserializationTime() {
-    return deserializationTime;
-  }
-
   public StatCounter getProceedCount() {
     return proceedCount;
   }
 
   public DssThreadCpuTimer getProceedTime() {
     return proceedTime;
-  }
-
-  public DssThreadCpuTimer getSerializationTime() {
-    return serializationTime;
   }
 }

@@ -494,7 +494,7 @@ public class SymbolicProgramConfiguration {
           break;
         }
         seen.add(walkerSLL);
-        walkerSLL = (SMGSinglyLinkedListSegment) nextObj;
+        walkerSLL = nextSll;
       }
     }
 

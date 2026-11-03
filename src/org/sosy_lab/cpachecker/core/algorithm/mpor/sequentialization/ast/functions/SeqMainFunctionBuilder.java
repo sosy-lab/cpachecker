@@ -96,7 +96,7 @@ public final class SeqMainFunctionBuilder {
         if (pOptions.comments()) {
           loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
         }
-        if (pOptions.executeCommutingThreadsFirst()) {
+        if (pOptions.executeCommutingThreadsFirst() && pFields.isInputProgramConcurrent()) {
           // with executeCommutingThreadsFirst enabled, the nondeterministic next_thread assignment
           // is embedded into the reduction instrumentation, not added on top
           loopBlock.add(

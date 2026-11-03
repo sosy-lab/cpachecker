@@ -118,7 +118,7 @@ public class CandidateInvariantCombination {
       }
       return pOther instanceof GenericCombination other
           && conjunction == other.conjunction
-          && operands.equals(((GenericCombination) pOther).operands);
+          && operands.equals(other.operands);
     }
 
     @Override

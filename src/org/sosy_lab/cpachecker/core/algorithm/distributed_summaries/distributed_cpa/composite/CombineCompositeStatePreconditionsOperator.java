@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
@@ -30,6 +31,51 @@ public class CombineCompositeStatePreconditionsOperator implements CombinePrecon
       List<ConfigurableProgramAnalysis> pWrapped, CFANode pInitialNode) {
     wrapped = pWrapped;
     node = pInitialNode;
+  }
+
+  @Override
+  public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
+      throws CPAException, InterruptedException {
+    Preconditions.checkArgument(!states.isEmpty(), "States cannot be empty");
+    ImmutableList.Builder<AbstractState> result = ImmutableList.builder();
+    boolean hasDisjunctiveComponent = false;
+    for (int i = 0; i < wrapped.size(); i++) {
+      ImmutableList.Builder<AbstractState> components = ImmutableList.builder();
+      for (AbstractState state : states) {
+        CompositeState composite = (CompositeState) state;
+        Preconditions.checkArgument(composite.getWrappedStates().size() == wrapped.size());
+        components.add(composite.getWrappedStates().get(i));
+      }
+      ImmutableList<AbstractState> inputs = components.build();
+      if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        Optional<AbstractState> combined = dcpa.getCombineOperator().combineIfPossible(inputs);
+        if (combined.isEmpty()) {
+          return Optional.empty();
+        }
+        if (!dcpa.getCoverageOperator().isBasedOnEquality()) {
+          for (AbstractState input : inputs) {
+            if (!dcpa.getCoverageOperator().areStatesSyntacticallyEqual(inputs.getFirst(), input)) {
+              // Component-wise unions of two varying domains would lose their correlation:
+              // (a, b) or (c, d) must not become (a or c, b or d).
+              if (hasDisjunctiveComponent) {
+                return Optional.empty();
+              }
+              hasDisjunctiveComponent = true;
+              break;
+            }
+          }
+        }
+        result.add(combined.orElseThrow());
+      } else {
+        // A component without a distributed operator may only stay unchanged.
+        AbstractState first = inputs.getFirst();
+        if (!inputs.stream().allMatch(first::equals)) {
+          return Optional.empty();
+        }
+        result.add(first);
+      }
+    }
+    return Optional.of(new CompositeState(result.build()));
   }
 
   @Override

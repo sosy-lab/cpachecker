@@ -31,7 +31,7 @@
             location:
               file_name: "./concurrent-unreach.c"
               line: 41
-              column: 19
+              column: 36
               function: "main"
     - segment:
         - waypoint:

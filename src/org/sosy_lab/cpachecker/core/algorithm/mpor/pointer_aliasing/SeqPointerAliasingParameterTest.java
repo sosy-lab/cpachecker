@@ -63,7 +63,8 @@ public class SeqPointerAliasingParameterTest {
           "global_ptr_A",
           "global_ptr_A",
           "global_ptr_A",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration GLOBAL_X_DECLARATION =
       new CVariableDeclaration(
@@ -74,7 +75,8 @@ public class SeqPointerAliasingParameterTest {
           "global_X",
           "global_X",
           "global_X",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration LOCAL_POINTER_C_DECLARATION =
       new CVariableDeclaration(
@@ -85,7 +87,8 @@ public class SeqPointerAliasingParameterTest {
           "local_ptr_C",
           "local_ptr_C",
           "local_ptr_C",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration LOCAL_Z_DECLARATION =
       new CVariableDeclaration(
@@ -96,7 +99,8 @@ public class SeqPointerAliasingParameterTest {
           "local_Z",
           "local_Z",
           "local_Z",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final class CParameterDeclarations {
     final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =

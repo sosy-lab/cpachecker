@@ -236,7 +236,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
 
     @Override
     public int hashCode() {
-      return Objects.hash(getLocation(), invariant.hashCode());
+      return Objects.hash(getLocation(), invariant);
     }
 
     @Override

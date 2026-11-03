@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -212,7 +213,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to recursion");
           }
-          if (cause.getMessage().contains("pthread_create")) {
+          if (ThreadingTransferRelation.FUNCTIONS_REQUIRING_THREADING.stream()
+              .anyMatch(cause.getMessage()::contains)) {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to concurrency");
           }

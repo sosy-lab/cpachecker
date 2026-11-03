@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.2"
+    uuid: "b5f96772-8d89-5491-aba1-83dd017f205c"
+    creation_time: "2026-10-19T10:00:00+02:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/do-while-loop.c"
+      input_file_hashes:
+        "../../simple/witness_validation/do-while-loop.c": "846a8807d75c537a6fdf644b966e92eeca92a812042aa885f8fc15bfc0b844c6"
+      specification: "G ! overflow"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_invariant"
+        location:
+          file_name: "../../simple/witness_validation/do-while-loop.c"
+          line: 11
+          column: 3
+          function: "main"
+        value: "1 <= i && i <= 5"
+        format: "c_expression"

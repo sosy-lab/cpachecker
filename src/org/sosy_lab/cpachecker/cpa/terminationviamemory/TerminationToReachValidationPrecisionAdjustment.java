@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -118,6 +119,7 @@ public class TerminationToReachValidationPrecisionAdjustment
             invariantFormula = invariant.getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula());
           }
         } catch (CPATransferException e) {
+          logger.logUserException(Level.WARNING, e, "It was not possible to parse the invariant.");
           invariantFormula = bfmgr.makeTrue();
         }
         candidateTransitionInvariant = bfmgr.and(candidateTransitionInvariant, invariantFormula);
