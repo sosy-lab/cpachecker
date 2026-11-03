@@ -403,11 +403,11 @@ public class LassoAnalysis {
   private LassoAnalysisResult checkTermination0(
       Loop pLoop, CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {
-    Collection<Lasso> lassos;
+    LassoBuilder.Lassos lassos;
     statistics.lassoConstructionStarted();
     try {
       lassos = lassoBuilder.buildLasso(pCounterexample, pRelevantVariables);
-      statistics.lassosConstructed(pLoop, lassos.size());
+      statistics.lassosConstructed(pLoop, lassos.lassos().size());
 
     } catch (TermException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not extract lasso (" + pLoop + ").");
@@ -416,8 +416,13 @@ public class LassoAnalysis {
       statistics.lassoConstructionFinished();
     }
 
+    if (lassos.abstractsHeap()) {
+      logger.log(
+          Level.FINE, "Heap accesses are abstracted, skipping the non-termination analysis.");
+    }
     try {
-      return checkTermination(pLoop, lassos, pRelevantVariables);
+      return checkTermination(
+          pLoop, lassos.lassos(), pRelevantVariables, !lassos.abstractsHeap());
 
     } catch (IOException | SMTLIBException | TermException | SolverException e) {
       logger.logUserException(
@@ -431,20 +436,31 @@ public class LassoAnalysis {
   public LassoAnalysisResult checkTermination(
       Loop pLoop, Collection<Lasso> lassos, Set<CVariableDeclaration> pRelevantVariables)
       throws IOException, SMTLIBException, TermException, InterruptedException, SolverException {
+    return checkTermination(pLoop, lassos, pRelevantVariables, true);
+  }
+
+  private LassoAnalysisResult checkTermination(
+      Loop pLoop,
+      Collection<Lasso> lassos,
+      Set<CVariableDeclaration> pRelevantVariables,
+      boolean pCheckNonTermination)
+      throws IOException, SMTLIBException, TermException, InterruptedException, SolverException {
 
     LassoAnalysisResult result = LassoAnalysisResult.unknown();
 
     // Try to synthesize non-termination arguments first because it is much cheaper
     // than synthesizing termination arguments.
-    for (Lasso lasso : lassos) {
-      shutdownNotifier.shutdownIfNecessary();
-      logger.logf(Level.FINER, "Synthesizing non-termination argument for lasso:\n%s.", lasso);
-      LassoAnalysisResult resultFromLasso = synthesizeNonTerminationArgument(pLoop, lasso);
-      result = result.update(resultFromLasso);
+    if (pCheckNonTermination) {
+      for (Lasso lasso : lassos) {
+        shutdownNotifier.shutdownIfNecessary();
+        logger.logf(Level.FINER, "Synthesizing non-termination argument for lasso:\n%s.", lasso);
+        LassoAnalysisResult resultFromLasso = synthesizeNonTerminationArgument(pLoop, lasso);
+        result = result.update(resultFromLasso);
 
-      // Stop and return result if non-termination could be proved.
-      if (result.hasNonTerminationArgument()) {
-        return result;
+        // Stop and return result if non-termination could be proved.
+        if (result.hasNonTerminationArgument()) {
+          return result;
+        }
       }
     }
 
