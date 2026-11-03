@@ -70,20 +70,19 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
 
   private void constructWitness(
       ImmutableList<AbstractInvariantEntry> pTerminationArguments, Path pPath) throws IOException {
-    exportEntries(
-        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), pTerminationArguments), pPath);
+    exportEntries(createWitness(pTerminationArguments), pPath);
   }
 
   /**
-   * Export a YAML witness (version 2.1) with the given invariants into the given file, independent
-   * of the option witness.yamlexporter.terminationWitness.
+   * Create a YAML witness (version 2.1) with the given invariants, independent of the option
+   * witness.yamlexporter.terminationWitness.
    *
    * @param pInvariants the invariants of the witness
-   * @param pPath the file into which the witness is exported
+   * @return the entry of the witness that contains the given invariants
    */
-  public void exportToFile(ImmutableList<AbstractInvariantEntry> pInvariants, Path pPath)
+  public InvariantSetEntry createWitness(ImmutableList<AbstractInvariantEntry> pInvariants)
       throws IOException {
-    constructWitness(pInvariants, pPath);
+    return new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), pInvariants);
   }
 
   /**

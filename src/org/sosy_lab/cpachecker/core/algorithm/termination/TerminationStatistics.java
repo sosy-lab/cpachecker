@@ -44,7 +44,6 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -645,14 +644,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private boolean isProvenInvariant(
       InvariantEntry pInvariant, CFA pOriginalCfa, ShutdownNotifier pShutdownNotifier)
       throws InterruptedException {
-    Path witness = null;
     try {
-      witness = Files.createTempFile("supporting-invariant", ".yml");
-      terminationWitnessExporter.exportToFile(ImmutableList.of(pInvariant), witness);
       InvariantCheckResult result =
           SupportingInvariantsChecker.checkInvariants(
               supportingInvariantsCheckConfig,
-              witness,
+              ImmutableList.of(
+                  terminationWitnessExporter.createWitness(ImmutableList.of(pInvariant))),
               pOriginalCfa,
               logger.withComponentName("SupportingInvariantCheck"),
               pShutdownNotifier);
@@ -666,14 +663,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       logger.logUserException(
           WARNING, e, "Could not check the supporting invariant, it is not exported.");
       return false;
-    } finally {
-      if (witness != null) {
-        try {
-          Files.deleteIfExists(witness);
-        } catch (IOException e) {
-          logger.logDebugException(e, "Could not delete the temporary witness " + witness);
-        }
-      }
     }
   }
 
