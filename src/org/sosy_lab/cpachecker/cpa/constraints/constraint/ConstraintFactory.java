@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -43,24 +44,31 @@ public class ConstraintFactory {
   private final String functionName;
   private final ValueAnalysisState valueState;
 
+  // The CFAEdge is only used for checked exceptions
+  private final CFAEdge cfaEdgeForDebugging;
+
   private ConstraintFactory(
       String pFunctionName,
       ValueAnalysisState pValueState,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+      LogManagerWithoutDuplicates pLogger,
+      CFAEdge pCfaEdgeForDebugging) {
 
     machineModel = pMachineModel;
     logger = pLogger;
     functionName = pFunctionName;
     valueState = pValueState;
+    cfaEdgeForDebugging = pCfaEdgeForDebugging;
   }
 
   public static ConstraintFactory getInstance(
       String pFunctionName,
       ValueAnalysisState pValueState,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
-    return new ConstraintFactory(pFunctionName, pValueState, pMachineModel, pLogger);
+      LogManagerWithoutDuplicates pLogger,
+      final CFAEdge cfaEdgeForDebugging) {
+    return new ConstraintFactory(
+        pFunctionName, pValueState, pMachineModel, pLogger, cfaEdgeForDebugging);
   }
 
   public Constraint createNegativeConstraint(CBinaryExpression pExpression)
@@ -144,7 +152,8 @@ public class ConstraintFactory {
   }
 
   public Constraint createPositiveConstraint(AIdExpression pExpression) {
-    ExpressionTransformer transformer = new ExpressionTransformer(functionName, valueState);
+    ExpressionTransformer transformer =
+        new ExpressionTransformer(functionName, valueState, cfaEdgeForDebugging);
     SymbolicExpression symbolicExpression = transformer.visit(pExpression);
 
     if (symbolicExpression == null) {
@@ -178,11 +187,12 @@ public class ConstraintFactory {
   }
 
   private JExpressionTransformer getJavaTransformer() {
-    return new JExpressionTransformer(functionName, valueState);
+    return new JExpressionTransformer(functionName, valueState, cfaEdgeForDebugging);
   }
 
   private CExpressionTransformer getCTransformer() {
-    return new CExpressionTransformer(functionName, valueState, machineModel, logger);
+    return new CExpressionTransformer(
+        functionName, valueState, machineModel, logger, cfaEdgeForDebugging);
   }
 
   private boolean isNumeric(Type pType) {

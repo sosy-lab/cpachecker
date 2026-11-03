@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -65,8 +67,9 @@ public class CExpressionTransformer extends ExpressionTransformer
       final String pFunctionName,
       final ValueAnalysisState pValueState,
       final MachineModel pMachineModel,
-      final LogManagerWithoutDuplicates pLogger) {
-    super(pFunctionName, pValueState);
+      final LogManagerWithoutDuplicates pLogger,
+      final CFAEdge pCfaEdgeForDebugging) {
+    super(pFunctionName, pValueState, pCfaEdgeForDebugging);
 
     machineModel = pMachineModel;
     logger = pLogger;
@@ -183,11 +186,13 @@ public class CExpressionTransformer extends ExpressionTransformer
           BigInteger size = machineModel.getSizeof(innerType);
           yield ConstantSymbolicExpression.of(new NumericValue(size), CNumericTypes.SIZE_T);
         }
-        throw new AssertionError("Type id expression invalid for constraint");
+        throw new UnsupportedCodeException(
+            "Type id expression invalid for constraint", getCfaEdgeForDebugging());
       }
       default ->
           // TODO support more operators
-          throw new AssertionError("Type id expression invalid for constraint");
+          throw new UnsupportedCodeException(
+              "Type id expression invalid for constraint", getCfaEdgeForDebugging());
     };
   }
 

@@ -375,7 +375,7 @@ public class ConstraintsTransferRelation
       final AExpression edgeExpression = assume.getExpression();
 
       final ConstraintFactory factory =
-          ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger);
+          ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger, pCfaEdge);
 
       ConstraintsState newState;
       try {
@@ -470,7 +470,8 @@ public class ConstraintsTransferRelation
       // The assumptions are about the successor state, so they are in the scope of its function
       final String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
       final ConstraintFactory factory =
-          ConstraintFactory.getInstance(successorFunctionName, valueState, machineModel, logger);
+          ConstraintFactory.getInstance(
+              successorFunctionName, valueState, machineModel, logger, pCfaEdge);
 
       try {
         ConstraintsState newState = pStateToStrengthen;
