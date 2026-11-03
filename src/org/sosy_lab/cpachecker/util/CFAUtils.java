@@ -560,7 +560,10 @@ public class CFAUtils {
   /**
    * This method allows to select from a set of variables all local variables from a given function.
    * This requires that the given set contains the qualified names of each variable as returned by
-   * {@link AbstractSimpleDeclaration#getQualifiedName()}.
+   * {@link AbstractSimpleDeclaration#getQualifiedName()}. This function should be removed as part
+   * of <a href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a> and is
+   * closely related to {@link #getFunctionAndVariableNameFromQualifiedVariableName(String)} and
+   * should be removed together with it.
    *
    * @param variables Set of qualified names of variables.
    * @param function A function name.
@@ -578,6 +581,42 @@ public class CFAUtils {
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
+  }
+
+  /**
+   * This record is used to store the function name and the variable name of a qualified variable
+   * name. It is used in the method {@link
+   * #getFunctionAndVariableNameFromQualifiedVariableName(String)} to return the function name and
+   * variable name as a pair. It should also be deleted as part of <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a>.
+   *
+   * @param functionName the function name of the qualified variable name. It is optional, since the
+   *     variable may be global.
+   * @param variableName the variable name of the qualified variable name.
+   */
+  public record FunctionAndVariableName(Optional<String> functionName, String variableName) {}
+
+  /**
+   * This method allows to split a qualified name of a variable into the function name and the
+   * variable name. This requires that the qualified name is in the format returned by {@link
+   * AbstractSimpleDeclaration#getQualifiedName()}. This function should be removed as part of <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a> It is also
+   * closely related to {@link #filterVariablesOfFunction(NavigableSet, String)} and should be
+   * removed together with it.
+   *
+   * @param qualifiedName A qualified name of a variable.
+   * @return A pair of the function name and the variable name. The function name is optional, since
+   *     the variable may be global.
+   */
+  public static FunctionAndVariableName getFunctionAndVariableNameFromQualifiedVariableName(
+      String qualifiedName) {
+    int index = qualifiedName.indexOf("::");
+    if (index == -1) {
+      return new FunctionAndVariableName(Optional.empty(), qualifiedName);
+    } else {
+      return new FunctionAndVariableName(
+          Optional.of(qualifiedName.substring(0, index)), qualifiedName.substring(index + 2));
+    }
   }
 
   /**
