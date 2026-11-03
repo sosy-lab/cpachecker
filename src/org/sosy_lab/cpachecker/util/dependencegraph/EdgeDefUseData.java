@@ -12,6 +12,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -109,34 +109,7 @@ public final class EdgeDefUseData {
     return partialDefs;
   }
 
-  public EdgeDefUseData merge(EdgeDefUseData other) {
-    ImmutableSet<MemoryLocation> mergedDefs =
-        ImmutableSet.<MemoryLocation>builder().addAll(defs).addAll(other.defs).build();
-    ImmutableSet<MemoryLocation> mergedUses =
-        ImmutableSet.<MemoryLocation>builder().addAll(uses).addAll(other.uses).build();
-
-    ImmutableSet<CExpression> mergedPointeeDefs =
-        ImmutableSet.<CExpression>builder().addAll(pointeeDefs).addAll(other.pointeeDefs).build();
-    ImmutableSet<CExpression> mergedPointeeUses =
-        ImmutableSet.<CExpression>builder().addAll(pointeeUses).addAll(other.pointeeUses).build();
-
-    boolean mergedPartialDefs = partialDefs || other.partialDefs;
-
-    return new EdgeDefUseData(
-        mergedDefs, mergedUses, mergedPointeeDefs, mergedPointeeUses, mergedPartialDefs);
-  }
-
-  public static EdgeDefUseData empty() {
-    return new EdgeDefUseData(
-        ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
-  }
-
   public static EdgeDefUseData.Extractor createExtractor(boolean pConsiderPointees) {
-    return createExtractor(pConsiderPointees, false);
-  }
-
-  public static EdgeDefUseData.Extractor createExtractor(
-      boolean pConsiderPointees, boolean pOnlyGlobals) {
 
     return new Extractor() {
 
@@ -169,7 +142,7 @@ public final class EdgeDefUseData {
 
           if (astNode instanceof CAstNode cAstNode) {
 
-            Collector collector = new Collector(pConsiderPointees, pOnlyGlobals);
+            Collector collector = new Collector(pConsiderPointees);
             cAstNode.accept(collector);
 
             return createEdgeDefUseData(collector);
@@ -183,7 +156,7 @@ public final class EdgeDefUseData {
       @Override
       public EdgeDefUseData extract(CAstNode pAstNode) {
 
-        Collector collector = new Collector(pConsiderPointees, pOnlyGlobals);
+        Collector collector = new Collector(pConsiderPointees);
         pAstNode.accept(collector);
 
         return createEdgeDefUseData(collector);
@@ -232,7 +205,6 @@ public final class EdgeDefUseData {
   private static class Collector implements CAstNodeVisitor<Void, NoException> {
 
     private final boolean considerPointees;
-    private final boolean onlyGlobals;
 
     private final Set<MemoryLocation> defs;
     private final Set<MemoryLocation> uses;
@@ -244,10 +216,9 @@ public final class EdgeDefUseData {
 
     private Mode mode;
 
-    private Collector(boolean pConsiderPointees, boolean pOnlyGlobals) {
+    private Collector(boolean pConsiderPointees) {
 
       considerPointees = pConsiderPointees;
-      onlyGlobals = pOnlyGlobals;
 
       partialDefs = false;
 
@@ -319,25 +290,6 @@ public final class EdgeDefUseData {
 
     @Override
     public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
-      var functionName = pIastFunctionCallExpression.getFunctionNameExpression();
-      if (functionName instanceof CIdExpression functionNameId) {
-        if ("scanf".equals(functionNameId.getName())) {
-          var parameters = pIastFunctionCallExpression.getParameterExpressions();
-          Mode prev = mode;
-          for (int i = 1; i < parameters.size(); i++) {
-            mode = Mode.DEF;
-            var parameter = parameters.get(i);
-            if (parameter instanceof CUnaryExpression cUnaryExpression
-                && cUnaryExpression.getOperator() == UnaryOperator.AMPER) {
-              cUnaryExpression.getOperand().accept(this);
-            } else {
-              parameters.get(i).accept(this);
-            }
-          }
-          mode = prev;
-          return null;
-        }
-      }
 
       pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
 
@@ -413,16 +365,12 @@ public final class EdgeDefUseData {
 
       Mode prev = mode;
 
-      mode = Mode.USE;
       pIastArraySubscriptExpression.getArrayExpression().accept(this);
+
+      mode = Mode.USE;
       pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
 
       mode = prev;
-
-      if (considerPointees) {
-        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
-        pointeeSet.add(pIastArraySubscriptExpression);
-      }
 
       if (mode == Mode.DEF) {
         partialDefs = true;
@@ -449,21 +397,7 @@ public final class EdgeDefUseData {
         }
 
       } else {
-        var owner = pIastFieldReference.getFieldOwner();
-        owner.accept(this);
-        if (owner instanceof CIdExpression cIdExpression
-            && ((cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration
-                    && (!onlyGlobals || cVariableDeclaration.isGlobal()))
-                || (!onlyGlobals
-                    && cIdExpression.getDeclaration() instanceof CParameterDeclaration))) {
-          MemoryLocation memLoc =
-              MemoryLocation.forIdentifier(
-                  cIdExpression.getDeclaration().getQualifiedName()
-                      + "."
-                      + pIastFieldReference.getFieldName());
-          Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
-          set.add(memLoc);
-        }
+        pIastFieldReference.getFieldOwner().accept(this);
       }
 
       if (mode == Mode.DEF) {
@@ -490,9 +424,8 @@ public final class EdgeDefUseData {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
 
-      if ((declaration instanceof CVariableDeclaration cVariableDeclaration
-              && (!onlyGlobals || cVariableDeclaration.isGlobal()))
-          || (!onlyGlobals && declaration instanceof CParameterDeclaration)) {
+      if (declaration instanceof CVariableDeclaration
+          || declaration instanceof CParameterDeclaration) {
 
         MemoryLocation memLoc = MemoryLocation.forDeclaration(declaration);
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
@@ -551,10 +484,8 @@ public final class EdgeDefUseData {
     @Override
     public Void visit(CVariableDeclaration pDecl) {
 
-      if (!onlyGlobals || pDecl.isGlobal()) {
-        MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
-        defs.add(memLoc);
-      }
+      MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
+      defs.add(memLoc);
 
       CInitializer initializer = pDecl.getInitializer();
       if (initializer != null) {
@@ -569,7 +500,7 @@ public final class EdgeDefUseData {
     public Void visit(CParameterDeclaration pDecl) {
 
       // undeclared functions don't have qualified parameter names, so we ignore them
-      if (!onlyGlobals && pDecl.getQualifiedName() != null) {
+      if (pDecl.getQualifiedName() != null) {
         pDecl.asVariableDeclaration().accept(this);
       }
 
@@ -615,7 +546,20 @@ public final class EdgeDefUseData {
 
     @Override
     public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
-      pIastFunctionCallStatement.getFunctionCallExpression().accept(this);
+
+      List<CExpression> paramExpressions =
+          pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
+
+      for (CExpression expression : paramExpressions) {
+        expression.accept(this);
+      }
+
+      CFunctionDeclaration declaration =
+          pIastFunctionCallStatement.getFunctionCallExpression().getDeclaration();
+      if (declaration != null) {
+        declaration.accept(this);
+      }
+
       return null;
     }
 

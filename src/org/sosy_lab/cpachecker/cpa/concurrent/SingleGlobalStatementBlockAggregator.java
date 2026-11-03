@@ -23,12 +23,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cpa.composite.StraightLineBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
-import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 
 class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
 
-  private final EdgeDefUseData.Extractor memoryAccessExtractor =
-      new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
+  private final GlobalMemoryAccesses.Extractor memoryAccessExtractor =
+      new GlobalMemoryAccesses.Extractor();
 
   private final ImmutableCollection<CFANode> initializationPhaseNodes;
   private final ImmutableCollection<CFANode> atomicBlockNodes;
@@ -91,10 +90,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
         return false;
       }
       var accesses = memoryAccessExtractor.extract(currentEdge);
-      if ((!accesses.getUses().isEmpty()
-              || !accesses.getDefs().isEmpty()
-              || !accesses.getPointeeDefs().isEmpty()
-              || !accesses.getPointeeUses().isEmpty()
+      if ((!accesses.isEmpty()
               // The walked edge (not the constant candidate) must be tested: a lock/atomic_begin
               // anywhere in the chain consumes the single-global-statement budget, so a block can
               // contain at most one critical-section entry and no global statement besides it.

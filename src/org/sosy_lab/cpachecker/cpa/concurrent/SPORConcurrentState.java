@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -47,8 +46,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 class SPORConcurrentState extends ConcurrentState {
 
-  private final EdgeDefUseData.Extractor memoryAccessExtractor =
-      new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
+  private final GlobalMemoryAccesses.Extractor memoryAccessExtractor =
+      new GlobalMemoryAccesses.Extractor();
 
   private ImmutableCollection<CFAEdge> sourceSet = null;
 
@@ -217,11 +216,11 @@ class SPORConcurrentState extends ConcurrentState {
         .orElse(false);
   }
 
-  private EdgeDefUseData getDirectlyUsedGlobalVars(CFAEdge edge) {
+  private GlobalMemoryAccesses getDirectlyUsedGlobalVars(CFAEdge edge) {
     return memoryAccessExtractor.extract(edge);
   }
 
-  private EdgeDefUseData getUsedGlobalVars(CFAEdge edge, BasicBlockAggregator basicBlock)
+  private GlobalMemoryAccesses getUsedGlobalVars(CFAEdge edge, BasicBlockAggregator basicBlock)
       throws CPATransferException {
     // collect directly used vars by the cfa edge
     // plus continue to successor edges until the current thread obtains any mutexes
@@ -262,18 +261,18 @@ class SPORConcurrentState extends ConcurrentState {
     return getVarsWithTraversal(edge, goFurther, initialMutexState, threadId, false);
   }
 
-  private EdgeDefUseData getInfluencedGlobalVars(CFAEdge edge) throws CPATransferException {
+  private GlobalMemoryAccesses getInfluencedGlobalVars(CFAEdge edge) throws CPATransferException {
     return getVarsWithTraversal(edge, (e, s) -> true, null, null, true);
   }
 
-  private EdgeDefUseData getVarsWithTraversal(
+  private GlobalMemoryAccesses getVarsWithTraversal(
       CFAEdge startEdge,
       BiPredicate<CFAEdge, MutexState> goFurther,
       MutexState initialMutexState,
       ThreadId threadId,
       boolean visitStartedThreadFunction)
       throws CPATransferException {
-    EdgeDefUseData uses = EdgeDefUseData.empty();
+    GlobalMemoryAccesses uses = GlobalMemoryAccesses.EMPTY;
     final List<CFAEdge> exploredEdges = new ArrayList<>();
     final List<Pair<CFAEdge, MutexState>> toExplore =
         new ArrayList<>(ImmutableList.of(Pair.of(startEdge, initialMutexState)));
@@ -336,22 +335,16 @@ class SPORConcurrentState extends ConcurrentState {
   }
 
   private boolean intersect(
-      EdgeDefUseData access1, EdgeDefUseData access2, ConcurrentPrecision precision) {
-    if (access1.getDefs().isEmpty()
-        && access1.getPointeeDefs().isEmpty()
-        && access2.getDefs().isEmpty()
-        && access2.getPointeeDefs().isEmpty()) {
+      GlobalMemoryAccesses access1, GlobalMemoryAccesses access2, ConcurrentPrecision precision) {
+    if (!access1.hasWrites() && !access2.hasWrites()) {
       return false;
     }
-    if (!access1.getPointeeDefs().isEmpty()
-        || !access1.getPointeeUses().isEmpty()
-        || !access2.getPointeeDefs().isEmpty()
-        || !access2.getPointeeUses().isEmpty()) {
+    if (access1.accessesThroughPointer() || access2.accessesThroughPointer()) {
       return true;
     }
-    return intersect(access1.getDefs(), access2.getUses(), precision)
-        || intersect(access1.getUses(), access2.getDefs(), precision)
-        || intersect(access1.getDefs(), access2.getDefs(), precision);
+    return intersect(access1.writes(), access2.reads(), precision)
+        || intersect(access1.reads(), access2.writes(), precision)
+        || intersect(access1.writes(), access2.writes(), precision);
   }
 
   private boolean intersect(

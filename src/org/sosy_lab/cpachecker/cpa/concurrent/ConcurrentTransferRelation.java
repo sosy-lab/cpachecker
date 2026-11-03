@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -113,8 +112,8 @@ public class ConcurrentTransferRelation implements TransferRelation {
    */
   private final ImmutableList<CVariableDeclaration> threadLocalDeclarations;
 
-  private final EdgeDefUseData.Extractor defUseExtractor =
-      new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
+  private final GlobalMemoryAccesses.Extractor memoryAccessExtractor =
+      new GlobalMemoryAccesses.Extractor();
 
   private final boolean checkOverflows;
   private final ImmutableList<TransferRelation> componentTransferRelations;
@@ -524,7 +523,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
     }
     List<Runnable> restoreForgotten = new ArrayList<>();
     CFAEdge accessingEdge = edge instanceof OverflowCheckEdge check ? check.getCheckedEdge() : edge;
-    Iterable<MemoryLocation> uses = defUseExtractor.extract(accessingEdge).getUses();
+    Iterable<MemoryLocation> uses = memoryAccessExtractor.extract(accessingEdge).reads();
     for (AbstractState component : AbstractStates.asIterable(wrappedState)) {
       if (component instanceof ForgetfulState<?> forgetfulState) {
         for (MemoryLocation location : uses) {
