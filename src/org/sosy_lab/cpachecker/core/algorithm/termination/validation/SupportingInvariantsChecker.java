@@ -8,18 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cmdline.CPAMain;
-import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -31,8 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Checks whether the (supporting) invariants of a correctness witness are invariants of the
- * program, by validating the witness with the configuration for the validation of correctness
- * witnesses.
+ * program, by running a nested analysis that validates the witness.
  */
 public final class SupportingInvariantsChecker {
 
@@ -52,6 +47,8 @@ public final class SupportingInvariantsChecker {
    * Check whether the invariants of the given correctness witness hold in the program of the given
    * CFA.
    *
+   * @param pConfigFile the configuration of the analysis that checks the invariants. The witness is
+   *     converted into an automaton according to this configuration.
    * @param pWitnessPath the correctness witness whose invariants are checked
    * @param pCfa the CFA of the program
    * @return {@link InvariantCheckResult#INVALID} if a violation of an invariant was found, {@link
@@ -59,39 +56,29 @@ public final class SupportingInvariantsChecker {
    *     and {@link InvariantCheckResult#UNKNOWN} otherwise
    */
   public static InvariantCheckResult checkInvariants(
-      Path pWitnessPath, CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      Path pConfigFile,
+      Path pWitnessPath,
+      CFA pCfa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
       throws CPAException, InterruptedException {
     try {
-      Path invariantsSpecPath =
-          Classes.getCodeLocation(SupportingInvariantsChecker.class)
-              .resolveSibling("config/properties/no-overflow.prp");
-      Path validationConfigPath =
-          Classes.getCodeLocation(SupportingInvariantsChecker.class)
-              .resolveSibling("config/witnessValidation.properties");
-      // The configuration requires the program files, although the given CFA is analyzed
-      Configuration generationConfig =
-          CPAMain.createConfiguration(
-                  FluentIterable.of(
-                          "--witness",
-                          pWitnessPath.toString(),
-                          "--spec",
-                          invariantsSpecPath.toString(),
-                          "--config",
-                          validationConfigPath.toString(),
-                          "--no-output-files")
-                      .append(FluentIterable.from(pCfa.getFileNames()).transform(Path::toString))
-                      .toArray(String.class))
-              .configuration();
+      Configuration invariantsCheckConfig =
+          Configuration.builder().loadFromFile(pConfigFile).build();
       Specification invariantSpec =
           Specification.fromFiles(
-              ImmutableList.of(invariantsSpecPath, pWitnessPath),
+              ImmutableList.of(pWitnessPath),
               pCfa,
-              generationConfig,
+              invariantsCheckConfig,
               pLogger,
               pShutdownNotifier);
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
-              generationConfig, pLogger, pShutdownNotifier, AggregatedReachedSets.empty(), pCfa);
+              invariantsCheckConfig,
+              pLogger,
+              pShutdownNotifier,
+              AggregatedReachedSets.empty(),
+              pCfa);
       ConfigurableProgramAnalysis supportingInvariantsCPA = coreComponents.createCPA(invariantSpec);
       Algorithm invariantCheckingAlgorithm =
           coreComponents.createAlgorithm(supportingInvariantsCPA, invariantSpec);
@@ -110,7 +97,7 @@ public final class SupportingInvariantsChecker {
         return InvariantCheckResult.VALID;
       }
       return InvariantCheckResult.UNKNOWN;
-    } catch (InvalidConfigurationException | InvalidCmdlineArgumentException | IOException e) {
+    } catch (InvalidConfigurationException | IOException e) {
       throw new CPAException("Supporting invariants check failed: " + e.getMessage(), e);
     }
   }

@@ -5899,6 +5899,10 @@ termination.validation.checkWithInfiniteSpace = false
 # the k-induction is unbounded.
 termination.validation.maxInductionDepth = -1
 
+# configuration of the analysis that checks whether the supporting invariants
+# of the witness are invariants of the program
+termination.validation.supportingInvariantsConfig = no default value
+
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
 

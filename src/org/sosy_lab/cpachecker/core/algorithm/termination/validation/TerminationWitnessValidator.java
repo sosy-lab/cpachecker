@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -107,6 +108,15 @@ public class TerminationWitnessValidator implements Algorithm {
               + " unbounded.")
   @IntegerOption(min = -1)
   private int maxInductionDepth = -1;
+
+  @Option(
+      secure = true,
+      required = true,
+      description =
+          "configuration of the analysis that checks whether the supporting invariants of the"
+              + " witness are invariants of the program")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path supportingInvariantsConfig;
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
       DummyTargetState.withSimpleTargetInformation("termination");
@@ -209,7 +219,8 @@ public class TerminationWitnessValidator implements Algorithm {
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
     if (hasSupportingInvariants(loopsToSupportingInvariants)) {
-      if (SupportingInvariantsChecker.checkInvariants(witnessPath, cfa, logger, shutdownNotifier)
+      if (SupportingInvariantsChecker.checkInvariants(
+              supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier)
           == InvariantCheckResult.INVALID) {
         // Supporting invariants are not invariants
         pReachedSet.addNoWaitlist(
