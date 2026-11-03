@@ -356,7 +356,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     ImmutableList<BooleanFormula> constraints;
     try {
       encoder =
-          new OcEncoder(registry, solver.getFormulaManager(), encoding == EncodingMode.REFINEMENT);
+          new OcEncoder(
+              registry,
+              solver.getFormulaManager(),
+              encoding == EncodingMode.REFINEMENT,
+              shutdownNotifier);
       ImmutableList.Builder<BooleanFormula> constraintBuilder = ImmutableList.builder();
       constraintBuilder.addAll(encoder.getBaseConstraints());
       if (encoding == EncodingMode.CLOCKS) {

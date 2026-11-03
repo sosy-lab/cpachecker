@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.oc.EventKind;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.cpa.oc.OcExplorationRegistry;
@@ -121,6 +122,7 @@ final class OcEncoder {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final boolean withOrderingBooleans;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final ImmutableList<MemoryEvent> events;
 
@@ -142,12 +144,16 @@ final class OcEncoder {
   private final ImmutableList<CsPair> csPairs;
 
   OcEncoder(
-      OcExplorationRegistry pRegistry, FormulaManagerView pFmgr, boolean pWithOrderingBooleans)
-      throws CPAException {
+      OcExplorationRegistry pRegistry,
+      FormulaManagerView pFmgr,
+      boolean pWithOrderingBooleans,
+      ShutdownNotifier pShutdownNotifier)
+      throws CPAException, InterruptedException {
     registry = pRegistry;
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     withOrderingBooleans = pWithOrderingBooleans;
+    shutdownNotifier = pShutdownNotifier;
     events = pRegistry.getEvents();
 
     ImmutableListMultimap<Integer, MemoryEvent> childrenByParent = buildChildren();
@@ -312,11 +318,12 @@ final class OcEncoder {
    * directly from a concurrent write, however, stay adjacent and are (correctly) a race. Asserted,
    * together with the clock constraints, only for the violation check.
    */
-  BooleanFormula getDataRaceConstraint() {
+  BooleanFormula getDataRaceConstraint() throws InterruptedException {
     var imgr = fmgr.getIntegerFormulaManager();
     IntegerFormula one = imgr.makeNumber(1);
     List<BooleanFormula> disjuncts = new ArrayList<>();
     for (RacePair pair : getRacePairs()) {
+      shutdownNotifier.shutdownIfNecessary();
       IntegerFormula clock1 = imgr.makeVariable(CLOCK_VARIABLE_PREFIX + pair.access1().id());
       IntegerFormula clock2 = imgr.makeVariable(CLOCK_VARIABLE_PREFIX + pair.access2().id());
       BooleanFormula adjacent =
@@ -346,11 +353,12 @@ final class OcEncoder {
   }
 
   /** Constraints shared by both solving modes. */
-  ImmutableList<BooleanFormula> getBaseConstraints() {
+  ImmutableList<BooleanFormula> getBaseConstraints() throws InterruptedException {
     List<BooleanFormula> constraints = new ArrayList<>(registry.getPathConstraints());
     constraints.addAll(executionConstraints);
 
     for (RfPair rf : rfPairs) {
+      shutdownNotifier.shutdownIfNecessary();
       BooleanFormula sameValue = fmgr.makeEqual(rf.write().variable(), rf.read().variable());
       BooleanFormula condition =
           bfmgr.and(sameValue, getFullGuard(rf.write()), getFullGuard(rf.read()));
@@ -365,6 +373,7 @@ final class OcEncoder {
             .collect(ImmutableListMultimap.toImmutableListMultimap(p -> p.read().id(), p -> p));
     for (MemoryEvent event : events) {
       if (event.kind() == EventKind.READ) {
+        shutdownNotifier.shutdownIfNecessary();
         List<BooleanFormula> candidates = new ArrayList<>();
         rfByRead.get(event.id()).forEach(rf -> candidates.add(rf.variable()));
         if (hasIndeterminateInitialValue(event)) {
@@ -400,6 +409,7 @@ final class OcEncoder {
 
     if (withOrderingBooleans) {
       for (WsPair ws : wsPairs) {
+        shutdownNotifier.shutdownIfNecessary();
         BooleanFormula bothEnabled =
             bfmgr.and(getFullGuard(ws.write1()), getFullGuard(ws.write2()));
         if (ws.write1().isRegionAccess()) {
@@ -414,6 +424,7 @@ final class OcEncoder {
       for (List<CsPair> group : Multimaps.asMap(csPairsByLocks()).values()) {
         List<BooleanFormula> orders = new ArrayList<>();
         for (CsPair cs : group) {
+          shutdownNotifier.shutdownIfNecessary();
           BooleanFormula both = bothLocked(cs);
           constraints.add(
               bfmgr.implication(
@@ -449,7 +460,7 @@ final class OcEncoder {
   }
 
   /** Eager integer-clock ordering constraints (used by the CLOCKS mode). */
-  ImmutableList<BooleanFormula> getClockConstraints() {
+  ImmutableList<BooleanFormula> getClockConstraints() throws InterruptedException {
     var imgr = fmgr.getIntegerFormulaManager();
     Map<MemoryEvent, IntegerFormula> clocks = new LinkedHashMap<>();
     for (MemoryEvent event : events) {
@@ -472,6 +483,7 @@ final class OcEncoder {
       if (read.kind() != EventKind.READ || !hasIndeterminateInitialValue(read)) {
         continue;
       }
+      shutdownNotifier.shutdownIfNecessary();
       // a read of the indeterminate initial content comes before every executed write of its cell
       for (MemoryEvent write : writesByCell.get(cellKey(read))) {
         constraints.add(
@@ -482,6 +494,7 @@ final class OcEncoder {
       }
     }
     for (RfPair rf : rfPairs) {
+      shutdownNotifier.shutdownIfNecessary();
       constraints.add(
           bfmgr.implication(
               rf.variable(), imgr.lessThan(clocks.get(rf.write()), clocks.get(rf.read()))));
@@ -509,6 +522,7 @@ final class OcEncoder {
     for (List<CsPair> group : Multimaps.asMap(csPairsByLocks()).values()) {
       Set<BooleanFormula> releasedFirst = new LinkedHashSet<>();
       for (CsPair cs : group) {
+        shutdownNotifier.shutdownIfNecessary();
         releasedFirst.add(
             bfmgr.and(
                 releases(cs.section1()),
@@ -688,7 +702,7 @@ final class OcEncoder {
     return edges;
   }
 
-  private BitSet[] computeReachability(List<PoEdge> pEdges) {
+  private BitSet[] computeReachability(List<PoEdge> pEdges) throws InterruptedException {
     int n = events.size();
     BitSet[] reach = new BitSet[n];
     for (int i = 0; i < n; i++) {
@@ -699,6 +713,7 @@ final class OcEncoder {
     }
     boolean changed = true;
     while (changed) {
+      shutdownNotifier.shutdownIfNecessary();
       changed = false;
       for (PoEdge edge : pEdges) {
         BitSet source = reach[edge.from().id()];
@@ -915,13 +930,14 @@ final class OcEncoder {
         .collect(ImmutableListMultimap.toImmutableListMultimap(OcEncoder::cellKey, e -> e));
   }
 
-  private ImmutableList<RfPair> buildRfPairs() {
+  private ImmutableList<RfPair> buildRfPairs() throws InterruptedException {
     ImmutableListMultimap<CellKey, MemoryEvent> writes = writesByCell();
     ImmutableList.Builder<RfPair> result = ImmutableList.builder();
     for (MemoryEvent read : events) {
       if (read.kind() != EventKind.READ) {
         continue;
       }
+      shutdownNotifier.shutdownIfNecessary();
       for (MemoryEvent write : writes.get(cellKey(read))) {
         if (definiteReach[read.id()].get(write.id())) {
           continue; // the write is in program order after the read
@@ -936,11 +952,12 @@ final class OcEncoder {
     return result.build();
   }
 
-  private ImmutableList<WsPair> buildWsPairs() {
+  private ImmutableList<WsPair> buildWsPairs() throws InterruptedException {
     ImmutableListMultimap<CellKey, MemoryEvent> writes = writesByCell();
     ImmutableList.Builder<WsPair> result = ImmutableList.builder();
     for (List<MemoryEvent> sameLocation : Multimaps.asMap(writes).values()) {
       for (int i = 0; i < sameLocation.size(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
         for (int j = i + 1; j < sameLocation.size(); j++) {
           MemoryEvent w1 = sameLocation.get(i);
           MemoryEvent w2 = sameLocation.get(j);
@@ -962,13 +979,14 @@ final class OcEncoder {
     return result.build();
   }
 
-  private ImmutableList<CsPair> buildCsPairs(
-      ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
+  private ImmutableList<CsPair> buildCsPairs(ImmutableListMultimap<Integer, MemoryEvent> pChildren)
+      throws InterruptedException {
     List<Section> sections = new ArrayList<>();
     for (MemoryEvent lock : events) {
       if (lock.kind() != EventKind.LOCK) {
         continue;
       }
+      shutdownNotifier.shutdownIfNecessary();
       // find the matching unlock (same mutex, nesting depth zero) reachable from the lock in the
       // DAG; a path that ends while still holding the lock keeps it to its last event. Nesting
       // depth at a DAG node is path-independent (states with different lock depths never merge),
@@ -1033,6 +1051,7 @@ final class OcEncoder {
 
     ImmutableList.Builder<CsPair> result = ImmutableList.builder();
     for (int i = 0; i < sections.size(); i++) {
+      shutdownNotifier.shutdownIfNecessary();
       for (int j = i + 1; j < sections.size(); j++) {
         Section s1 = sections.get(i);
         Section s2 = sections.get(j);
