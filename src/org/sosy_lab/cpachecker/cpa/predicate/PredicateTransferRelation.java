@@ -25,7 +25,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -66,13 +65,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
               + "(non-negative number, 0 means never, if positive should be smaller than"
               + " blocksize)")
   private int satCheckBlockSize = 0;
-
-  @Option(
-      secure = true,
-      description =
-          "Restrict satisfiability checks triggered by cpa.predicate.satCheck to assume edges."
-              + " Checks at abstraction locations and target states are unaffected.")
-  private boolean satCheckOnlyAtAssumeEdges = false;
 
   @Option(
       secure = true,
@@ -185,9 +177,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private boolean shouldDoSatCheck(CFAEdge edge, PathFormula pathFormula) {
-    if (satCheckBlockSize > 0
-        && pathFormula.getLength() >= satCheckBlockSize
-        && (!satCheckOnlyAtAssumeEdges || edge instanceof AssumeEdge)) {
+    if ((satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize)) {
       return true;
     }
     if (satCheckAtAbstraction) {
