@@ -5823,8 +5823,10 @@ termination.config = no default value
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
 
-# export supporting invariants in the witness
-termination.exportSupportingInvariantsInWitness = false
+# Export supporting invariants in the witness. Only the supporting invariants
+# that are proven to be invariants of the program are exported, see
+# termination.supportingInvariantsCheckConfig.
+termination.exportSupportingInvariantsInWitness = true
 
 # Consider variables with unsigned types in ranking function synthesis.This
 # can lead to unsound results as LassoRanker assumes infinite domain for
@@ -5881,6 +5883,16 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # A human readable representation of the synthesized (non-)termination
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
+
+# configuration of the analysis that checks whether the supporting invariants
+# are invariants of the program before they are exported into the witness.
+# Without it, no supporting invariants are exported.
+termination.supportingInvariantsCheckConfig = no default value
+
+# Wall-time limit for checking whether the supporting invariants are
+# invariants of the program before they are exported into the witness. The
+# limit is for all supporting invariants together (0 means no limit).
+termination.supportingInvariantsCheckTimeLimit = 60s
 
 # consider counterexamples for loops for which only pointer variables are
 # relevant or which check that pointer is unequal to null pointer to be

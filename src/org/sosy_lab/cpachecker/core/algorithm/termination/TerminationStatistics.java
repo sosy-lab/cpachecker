@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
+import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
@@ -43,6 +44,7 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -51,20 +53,25 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
@@ -92,6 +99,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker.InvariantCheckResult;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
@@ -106,6 +115,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -115,11 +125,13 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 
 @Options(prefix = "termination", deprecatedPrefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
@@ -151,8 +163,31 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   @Option(
       secure = true,
       name = "exportSupportingInvariantsInWitness",
-      description = "export supporting invariants in the witness")
-  private boolean exportSupportingInvariantsInWitness = false;
+      description =
+          "Export supporting invariants in the witness. Only the supporting invariants that are"
+              + " proven to be invariants of the program are exported, see"
+              + " termination.supportingInvariantsCheckConfig.")
+  private boolean exportSupportingInvariantsInWitness = true;
+
+  @Option(
+      secure = true,
+      name = "supportingInvariantsCheckConfig",
+      description =
+          "configuration of the analysis that checks whether the supporting invariants are"
+              + " invariants of the program before they are exported into the witness. Without it,"
+              + " no supporting invariants are exported.")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path supportingInvariantsCheckConfig = null;
+
+  @Option(
+      secure = true,
+      name = "supportingInvariantsCheckTimeLimit",
+      description =
+          "Wall-time limit for checking whether the supporting invariants are invariants of the"
+              + " program before they are exported into the witness. The limit is for all"
+              + " supporting invariants together (0 means no limit).")
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
+  private TimeSpan supportingInvariantsCheckTimeLimit = TimeSpan.ofSeconds(60);
 
   @Option(
       secure = true,
@@ -192,20 +227,30 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final MachineModel machineModel;
 
   private final CFA cfa;
+  // The CFA of the input program. The analysis may work on a copy of it
+  // (analysis.algorithm.copyCFA).
+  private final CFA originalCfa;
   // The scope of the input program, which is created before the analysis adds edges to the CFA
   private final CProgramScope programScope;
+  // The supporting invariants that are invariants of the program, see confirmSupportingInvariants
+  private final Set<InvariantEntry> confirmedSupportingInvariants = Sets.newConcurrentHashSet();
 
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, 0, pCFA);
+    this(pConfig, pLogger, 0, pCFA, pCFA);
   }
 
   public TerminationStatistics(
-      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
+      Configuration pConfig,
+      LogManager pLogger,
+      int pTotalNumberOfLoops,
+      CFA pCFA,
+      CFA pOriginalCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCFA);
+    originalCfa = checkNotNull(pOriginalCfa);
     programScope = new CProgramScope(cfa, pLogger);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
@@ -525,14 +570,19 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         for (TerminationArgument argument : pTerminationArguments.get(loop)) {
           if (exportSupportingInvariantsInWitness) {
             // First construct reachability invariants that support the termination argument.
+            // They hold for the lasso they were synthesized for, but not necessarily for the
+            // program, so only the confirmed ones are exported, see confirmSupportingInvariants.
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-              entries.add(
+              InvariantEntry supportingInvariantEntry =
                   TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
                       supportingInvariant,
                       loopHead,
                       incomingLoopEdge,
                       cfa.getAstCfaRelation(),
-                      programScope));
+                      programScope);
+              if (confirmedSupportingInvariants.contains(supportingInvariantEntry)) {
+                entries.add(supportingInvariantEntry);
+              }
             }
           }
         }
@@ -548,6 +598,114 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       }
     }
     return entries.build();
+  }
+
+  /**
+   * Checks which supporting invariants of the synthesized termination arguments are invariants of
+   * the program, such that only these are exported into the witness. This has to be called while
+   * the analysis is still running, since the checks are stopped together with the analysis. All
+   * checks together are limited by the option supportingInvariantsCheckTimeLimit, the supporting
+   * invariants that are not checked within this limit are not exported.
+   *
+   * @param pShutdownNotifier the shutdown notifier of the analysis
+   * @throws InterruptedException if the analysis is shut down
+   */
+  void confirmSupportingInvariants(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+    if (!exportSupportingInvariantsInWitness || supportingInvariantsCheckConfig == null) {
+      return;
+    }
+    // The same supporting invariant may occur in several termination arguments
+    Set<InvariantEntry> supportingInvariants = new LinkedHashSet<>();
+    for (Loop loop : terminationArguments.keySet()) {
+      CFAEdge incomingLoopEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
+      for (CFANode loopHead : loop.getLoopHeads()) {
+        for (TerminationArgument argument : terminationArguments.get(loop)) {
+          for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
+            supportingInvariants.add(
+                TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
+                    supportingInvariant,
+                    loopHead,
+                    incomingLoopEdge,
+                    cfa.getAstCfaRelation(),
+                    programScope));
+          }
+        }
+      }
+    }
+    if (supportingInvariants.isEmpty()) {
+      return;
+    }
+
+    ShutdownManager shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
+    ResourceLimitChecker limitChecker =
+        ResourceLimitChecker.createWallTimeLimitChecker(
+            shutdownManager, supportingInvariantsCheckTimeLimit);
+    limitChecker.start();
+    try {
+      for (InvariantEntry supportingInvariant : supportingInvariants) {
+        if (shutdownManager.getNotifier().shouldShutdown()) {
+          break;
+        }
+        if (isProvenInvariant(supportingInvariant, shutdownManager.getNotifier())) {
+          confirmedSupportingInvariants.add(supportingInvariant);
+        }
+      }
+    } finally {
+      limitChecker.cancel();
+    }
+    // Only the time limit of the checks may stop them without stopping the analysis
+    pShutdownNotifier.shutdownIfNecessary();
+    logger.logf(
+        INFO,
+        "Confirmed %d of %d supporting invariants for the export into the witness.",
+        confirmedSupportingInvariants.size(),
+        supportingInvariants.size());
+  }
+
+  /**
+   * Checks whether the given invariant is proven to be an invariant of the program. For this, a
+   * witness containing only this invariant is checked with the configuration given by the option
+   * supportingInvariantsCheckConfig.
+   *
+   * @param pInvariant the invariant to check
+   * @param pShutdownNotifier the shutdown notifier for the check
+   * @return true iff the invariant was proven to hold
+   */
+  private boolean isProvenInvariant(InvariantEntry pInvariant, ShutdownNotifier pShutdownNotifier) {
+    Path witness = null;
+    try {
+      witness = Files.createTempFile("supporting-invariant", ".yml");
+      terminationWitnessExporter.exportToFile(ImmutableList.of(pInvariant), witness);
+      InvariantCheckResult result =
+          SupportingInvariantsChecker.checkInvariants(
+              supportingInvariantsCheckConfig,
+              witness,
+              // The invariants of the witness refer to the nodes of the original CFA
+              originalCfa,
+              logger.withComponentName("SupportingInvariantCheck"),
+              pShutdownNotifier);
+      logger.logf(
+          FINER,
+          "Result of checking the supporting invariant %s: %s",
+          pInvariant.getValue(),
+          result);
+      return result == InvariantCheckResult.VALID;
+    } catch (IOException | CPAException e) {
+      logger.logUserException(
+          WARNING, e, "Could not check the supporting invariant, it is not exported.");
+      return false;
+    } catch (InterruptedException e) {
+      // The check was stopped, the caller handles the shutdown of the analysis
+      return false;
+    } finally {
+      if (witness != null) {
+        try {
+          Files.deleteIfExists(witness);
+        } catch (IOException e) {
+          logger.logDebugException(e, "Could not delete the temporary witness " + witness);
+        }
+      }
+    }
   }
 
   private void exportViolationWitness(final ARGState root, final ARGState loopStart) {
