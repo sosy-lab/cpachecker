@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
-import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
@@ -28,6 +27,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -261,7 +261,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     List<String> pathConditions = new ArrayList<>();
     for (CFANode entry : conditionEntries) {
       if (!collectPathConditions(
-          entry, conditionEdges, bodyEntries, ImmutableList.of(), pathConditions)) {
+          entry, conditionEdges, bodyEntries, PersistentLinkedList.of(), pathConditions)) {
         return "1";
       }
     }
@@ -277,19 +277,21 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * Collects the conjunctions of the assumptions on all paths from the given node through the
    * condition edges to a node of the body.
    *
+   * @param pReversedPath the assumptions on the path to the given node, in reversed order
    * @return false if the condition of a path cannot be expressed as a C expression
    */
   private static boolean collectPathConditions(
       CFANode pNode,
       ImmutableSet<CFAEdge> pConditionEdges,
       ImmutableSet<CFANode> pBodyEntries,
-      ImmutableList<String> pPath,
+      PersistentLinkedList<String> pReversedPath,
       List<String> pPathConditions) {
     if (pBodyEntries.contains(pNode)) {
-      pPathConditions.add(pPath.isEmpty() ? "1" : Joiner.on(" && ").join(pPath));
+      pPathConditions.add(
+          pReversedPath.isEmpty() ? "1" : Joiner.on(" && ").join(pReversedPath.reversed()));
       return true;
     }
-    if (pPath.size() > pConditionEdges.size()) {
+    if (pReversedPath.size() > pConditionEdges.size()) {
       // The condition edges contain a cycle
       return false;
     }
@@ -297,22 +299,21 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       if (!pConditionEdges.contains(edge)) {
         continue;
       }
-      ImmutableList<String> path = pPath;
+      PersistentLinkedList<String> reversedPath = pReversedPath;
       if (edge instanceof CAssumeEdge assumeEdge) {
         String expression = assumeEdge.getExpression().toASTString();
         if (expression.contains("__CPAchecker_TMP")) {
           // The condition has side effects, which are not part of the generated program
           return false;
         }
-        path =
-            listAndElement(
-                pPath,
+        reversedPath =
+            pReversedPath.with(
                 assumeEdge.getTruthAssumption() ? "(" + expression + ")" : "!(" + expression + ")");
       } else if (!(edge instanceof BlankEdge)) {
         return false;
       }
       if (!collectPathConditions(
-          edge.getSuccessor(), pConditionEdges, pBodyEntries, path, pPathConditions)) {
+          edge.getSuccessor(), pConditionEdges, pBodyEntries, reversedPath, pPathConditions)) {
         return false;
       }
     }
