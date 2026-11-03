@@ -2664,6 +2664,12 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
 
+# Encode bitwise negation exactly with linear arithmetic, and add linear
+# bounds for the results of bitwise and and or, e.g., x & y is in [0, x] if x
+# is not negative. This makes bitwise operations more precise if bitvectors
+# are encoded as integers, where they are uninterpreted functions.
+cpa.predicate.approximateBitwiseOperationsLinearly = false
+
 # When using the NLA encoding, approximate unsupported operations (e.g.,
 # bitwise shift) with an uninterpreted function (UF). If false, the operation
 # fails early by throwing UnsupportedOperationByDesignException.
