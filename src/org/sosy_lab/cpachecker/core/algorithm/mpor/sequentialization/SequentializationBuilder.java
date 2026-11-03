@@ -302,6 +302,10 @@ class SequentializationBuilder {
             pVariableDeclaration.getType(),
             ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
 
+    CInitializer initializerSubstitute =
+        PthreadObjectSubstitution.substitutePthreadObjectInitializers(
+            typeSubstitute, pVariableDeclaration.getInitializer());
+
     return new CVariableDeclaration(
         pVariableDeclaration.getFileLocation(),
         pVariableDeclaration.isGlobal(),
@@ -310,7 +314,7 @@ class SequentializationBuilder {
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
-        pVariableDeclaration.getInitializer(),
+        initializerSubstitute,
         pVariableDeclaration.hasThreadLocalStorage());
   }
 

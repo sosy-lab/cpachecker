@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import java.util.HashMap;
@@ -31,14 +32,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution.CTypeSubstitutionResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -145,8 +151,9 @@ public record MPORSubstitutionBuilder(
         CInitializerExpression substituteInitializerExpression =
             substituteInitializerExpression(initializerExpression, substituteExpression);
         CVariableDeclaration newSubstituteDeclaration =
-            substituteVariableDeclaration(
-                (CVariableDeclaration) idExpression.getDeclaration(),
+            substituteSimpleDeclaration(
+                idExpression.getDeclaration(),
+                idExpression.getName(),
                 substituteInitializerExpression);
         CIdExpression newIdExpression =
             SeqExpressionBuilder.buildIdExpression(newSubstituteDeclaration);
@@ -168,7 +175,8 @@ public record MPORSubstitutionBuilder(
       if (options.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
         String substituteName = SeqNameUtil.buildGlobalVariableName(options, variableDeclaration);
         CVariableDeclaration substitute =
-            substituteVariableDeclaration(variableDeclaration, substituteName);
+            substituteSimpleDeclaration(
+                variableDeclaration, substituteName, variableDeclaration.getInitializer());
         CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
         dummyGlobalSubstitutes.add(Map.entry(variableDeclaration, substituteExpression));
       }
@@ -256,7 +264,7 @@ public record MPORSubstitutionBuilder(
         // we use variable declarations for parameters in the sequentialization
         rSubstitutes.add(
             SeqExpressionBuilder.buildIdExpression(
-                substituteParameterDeclaration(parameterDeclaration, null, substituteName)));
+                substituteSimpleDeclaration(parameterDeclaration, substituteName, null)));
       }
     }
     return rSubstitutes.build();
@@ -291,8 +299,8 @@ public record MPORSubstitutionBuilder(
         // we use variable declarations for parameters in the sequentialization
         rSubstitutes.add(
             SeqExpressionBuilder.buildIdExpression(
-                substituteParameterDeclaration(
-                    parameterDeclaration, initializerExpression, substituteName)));
+                substituteSimpleDeclaration(
+                    parameterDeclaration, substituteName, initializerExpression)));
       }
     }
     return rSubstitutes.build();
@@ -308,7 +316,7 @@ public record MPORSubstitutionBuilder(
       String varName = SeqNameUtil.buildMainFunctionArgName(options, parameterDeclaration);
       // we use variable declarations for main function args in the sequentialization
       CVariableDeclaration variableDeclaration =
-          substituteVariableDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
+          substituteSimpleDeclaration(parameterDeclaration, varName, null);
       CIdExpression substitute = SeqExpressionBuilder.buildIdExpression(variableDeclaration);
       rArgs.put(parameterDeclaration, substitute);
     }
@@ -369,7 +377,7 @@ public record MPORSubstitutionBuilder(
                   pCreatedThread.id(),
                   startRoutineDeclaration.getOrigName());
           CVariableDeclaration substituteParameterDeclaration =
-              substituteParameterDeclaration(parameterDeclaration, null, substituteName);
+              substituteSimpleDeclaration(parameterDeclaration, substituteName, null);
           CIdExpression substitute =
               SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
           return Optional.of(Map.entry(parameterDeclaration, substitute));
@@ -441,8 +449,9 @@ public record MPORSubstitutionBuilder(
                     false,
                     tracker));
         CVariableDeclaration newDeclarationSubstitute =
-            substituteVariableDeclaration(
-                (CVariableDeclaration) substituteDeclaration.idExpression().getDeclaration(),
+            substituteSimpleDeclaration(
+                substituteDeclaration.idExpression().getDeclaration(),
+                substituteDeclaration.idExpression().getName(),
                 initializerSubstitute);
         CIdExpression newIdExpression =
             SeqExpressionBuilder.buildIdExpression(newDeclarationSubstitute);
@@ -478,7 +487,8 @@ public record MPORSubstitutionBuilder(
                 SeqNameUtil.buildLocalVariableName(
                     options, variableDeclaration, pThreadId, call++, functionName);
             CVariableDeclaration substituteDeclaration =
-                substituteVariableDeclaration(variableDeclaration, substituteName);
+                substituteSimpleDeclaration(
+                    variableDeclaration, substituteName, variableDeclaration.getInitializer());
             CIdExpression substituteExpression =
                 SeqExpressionBuilder.buildIdExpression(substituteDeclaration);
             dummySubstitutes.put(
@@ -523,63 +533,44 @@ public record MPORSubstitutionBuilder(
   }
 
   /**
-   * Creates a clone of the given CVariableDeclaration with substituted name(s).
+   * Creates a clone of the given {@link CSimpleDeclaration} with substituted name(s), type, and
+   * initializer.{@link CVariableDeclaration} is used when substituting {@link
+   * CParameterDeclaration}s in the sequentialization because all functions are inlined.
    *
-   * @param pOriginal the variable declaration to substitute
+   * @param pSimpleDeclaration The variable declaration to substitute.
+   * @param pNewName The new variable name to use for {@code pSimpleDeclaration}.
+   * @param pNewInitializer The new initializer of the declaration in {@code pSimpleDeclaration}.
    */
-  private CVariableDeclaration substituteVariableDeclaration(
-      CVariableDeclaration pOriginal, String pName) {
+  private CVariableDeclaration substituteSimpleDeclaration(
+      CSimpleDeclaration pSimpleDeclaration,
+      String pNewName,
+      @Nullable CInitializer pNewInitializer) {
+
+    checkArgument(SubstituteUtil.isSubstitutable(pSimpleDeclaration));
+
+    CVariableDeclaration variableDeclaration =
+        MPORUtil.convertToVariableDeclaration(pSimpleDeclaration);
+
+    // additionally substitute pthread object types, mandatory for all types
+    CTypeSubstitutionResult pthreadTypeSubstitute =
+        PthreadObjectSubstitution.substitutePthreadObjectTypes(
+            variableDeclaration.getType(),
+            ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
+    CInitializer pthreadInitializerSubstitute =
+        pNewInitializer == null
+            ? null
+            : PthreadObjectSubstitution.substitutePthreadObjectInitializers(
+                pthreadTypeSubstitute, pNewInitializer);
 
     return new CVariableDeclaration(
-        pOriginal.getFileLocation(),
-        pOriginal.isGlobal(),
-        pOriginal.getCStorageClass(),
-        pOriginal.getType(),
-        pName,
-        pName,
-        pName,
-        pOriginal.getInitializer(),
-        pOriginal.hasThreadLocalStorage());
-  }
-
-  /**
-   * Creates a clone of the given CVariableDeclaration with substituted name(s) and initializer.
-   *
-   * @param pOriginal the variable declaration to substitute
-   */
-  private CVariableDeclaration substituteVariableDeclaration(
-      CVariableDeclaration pOriginal, CInitializerExpression pInitializerExpression) {
-
-    return new CVariableDeclaration(
-        pOriginal.getFileLocation(),
-        pOriginal.isGlobal(),
-        pOriginal.getCStorageClass(),
-        pOriginal.getType(),
-        pOriginal.getName(),
-        pOriginal.getOrigName(),
-        pOriginal.getQualifiedName(),
-        pInitializerExpression,
-        pOriginal.hasThreadLocalStorage());
-  }
-
-  /**
-   * We use {@link CVariableDeclaration}s when substituting {@link CParameterDeclaration}s in the
-   * sequentialization because all functions are inlined.
-   */
-  private static CVariableDeclaration substituteParameterDeclaration(
-      CParameterDeclaration pOriginal,
-      @Nullable CInitializerExpression pInitializerExpression,
-      String pName) {
-
-    return new CVariableDeclaration(
-        pOriginal.getFileLocation(),
-        false,
-        CStorageClass.AUTO,
-        pOriginal.getType(),
-        pName,
-        pOriginal.getOrigName(),
-        pOriginal.getQualifiedName(),
-        pInitializerExpression,
-        /* pHasThreadLocalStorage= */ false);
+        pSimpleDeclaration.getFileLocation(),
+        variableDeclaration.isGlobal(),
+        variableDeclaration.getCStorageClass(),
+        pthreadTypeSubstitute.type(),
+        pNewName,
+        pNewName,
+        pNewName,
+        pthreadInitializerSubstitute,
+        variableDeclaration.hasThreadLocalStorage());
   }
 }

@@ -16,9 +16,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -78,22 +82,55 @@ public class PthreadObjectSubstitution {
 
     CTypeSubstitutionResult rSubstitutionResult =
         new CTypeSubstitutionResult(pType, ImmutableMap.of(), false);
-    // replace all pthread object types, which is necessary for structs that contain multiple
-    // pthread object types
-    for (PthreadObjectType pObjectType : PthreadObjectType.values()) {
-      for (CType substituteType : pObjectType.getSubstituteTypes()) {
+
+    // replace all pthread object types, necessary for structs with multiple pthread object types
+    for (PthreadObjectType currentObjectType : PthreadObjectType.values()) {
+      for (CType substituteType : currentObjectType.getSubstituteTypes()) {
         if (pClasses.isEmpty() || pClasses.stream().anyMatch(c -> c.isInstance(substituteType))) {
           CTypeSubstitutionVisitor substitutionVisitor =
               new CTypeSubstitutionVisitor(
                   ImmutableSet.of(
-                      pObjectType.getName(),
-                      SequentializationParseTest.ANON_TYPE_KEYWORD + pObjectType.getName()),
+                      currentObjectType.getName(),
+                      SequentializationParseTest.ANON_TYPE_KEYWORD + currentObjectType.getName()),
                   substituteType);
-          rSubstitutionResult = substitutionVisitor.visitDefault(rSubstitutionResult.type());
+
+          CTypeSubstitutionResult currentResult =
+              substitutionVisitor.visitDefault(rSubstitutionResult.type());
+          Map<ImmutableList<Integer>, CCompositeTypeMemberDeclaration> paths =
+              new HashMap<>(rSubstitutionResult.paths());
+          paths.putAll(currentResult.paths());
+          rSubstitutionResult =
+              new CTypeSubstitutionResult(
+                  currentResult.type(),
+                  ImmutableMap.copyOf(paths),
+                  rSubstitutionResult.isSubstituted() || currentResult.isSubstituted());
         }
       }
     }
     return rSubstitutionResult;
+  }
+
+  public static CInitializer substitutePthreadObjectInitializers(
+      CTypeSubstitutionResult pSubstitutionResult, CInitializer pInitializer) {
+
+    CInitializer result = pInitializer;
+    for (PthreadObjectType objectType : PthreadObjectType.values()) {
+      Optional<CInitializer> substituteInitializer = objectType.getSubstituteInitializer();
+
+      if (substituteInitializer.isPresent()) {
+        for (Map.Entry<ImmutableList<Integer>, CCompositeTypeMemberDeclaration> entry :
+            pSubstitutionResult.paths().entrySet()) {
+
+          CCompositeTypeMemberDeclaration member = entry.getValue();
+          if (isPthreadObjectType(member.getType(), objectType)) {
+            result =
+                substituteInitializerAtPath(
+                    result, entry.getKey(), 0, member, substituteInitializer.orElseThrow());
+          }
+        }
+      }
+    }
+    return result;
   }
 
   /**
@@ -135,31 +172,26 @@ public class PthreadObjectSubstitution {
       return new CTypeSubstitutionResult(pType, immutablePaths.build(), pIsSubstituted);
     }
 
-    private CTypeSubstitutionResult result(CType pType) {
-      return result(pType, false);
-    }
-
     @Override
     public CTypeSubstitutionResult visitDefault(CType pType) {
-      // Do not use getCanonicalType(), as this may replace CElaboratedType
-      // with CCompositeType and lead to duplicate declarations.
       return pType.accept(this);
     }
 
     @Override
     public CTypeSubstitutionResult visit(CVoidType pVoidType) {
-      return result(pVoidType);
+      return result(pVoidType, false);
     }
 
     @Override
     public CTypeSubstitutionResult visit(CSimpleType pSimpleType) {
-      return result(pSimpleType);
+      return result(pSimpleType, false);
     }
 
     @Override
     public CTypeSubstitutionResult visit(CArrayType pArrayType) {
+      // Do not use getCanonicalType() on CArrayType, as this may replace CElaboratedType
+      // with CCompositeType and lead to duplicate declarations.
       CTypeSubstitutionResult elementResult = pArrayType.getType().accept(this);
-
       return result(
           new CArrayType(pArrayType.getQualifiers(), elementResult.type(), pArrayType.getLength()),
           elementResult.isSubstituted());
@@ -174,7 +206,7 @@ public class PthreadObjectSubstitution {
 
       // Prevent circular searches.
       if (!visitedCompositeTypes.add(pCompositeType)) {
-        return result(pCompositeType);
+        return result(pCompositeType, false);
       }
 
       ImmutableList.Builder<CCompositeTypeMemberDeclaration> memberDeclarations =
@@ -218,7 +250,7 @@ public class PthreadObjectSubstitution {
       }
 
       if (pElaboratedType.getRealType() == null) {
-        return result(pElaboratedType);
+        return result(pElaboratedType, false);
       }
 
       CTypeSubstitutionResult realTypeResult = pElaboratedType.getRealType().accept(this);
@@ -239,7 +271,7 @@ public class PthreadObjectSubstitution {
         return result(substitution, true);
       }
 
-      return result(pEnumType);
+      return result(pEnumType, false);
     }
 
     @Override
@@ -300,5 +332,93 @@ public class PthreadObjectSubstitution {
           new CBitFieldType(innerResult.type(), pBitFieldType.getBitFieldSize()),
           innerResult.isSubstituted());
     }
+  }
+
+  private static boolean isPthreadObjectType(CType pType, PthreadObjectType pObjectType) {
+    String name = pObjectType.getName();
+    return switch (pType) {
+      case CArrayType arrayType -> isPthreadObjectType(arrayType.getType(), pObjectType);
+      case CPointerType pointerType -> isPthreadObjectType(pointerType.getType(), pObjectType);
+      case CBitFieldType bitFieldType -> isPthreadObjectType(bitFieldType.getType(), pObjectType);
+      case CTypedefType typedefType ->
+          typedefType.getName().equals(name)
+              || typedefType.getName().equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
+      case CElaboratedType elaboratedType ->
+          elaboratedType.getName().equals(name)
+              || elaboratedType
+                  .getName()
+                  .equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
+      case CCompositeType compositeType ->
+          compositeType.getName().equals(name)
+              || compositeType
+                  .getName()
+                  .equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
+      default -> false;
+    };
+  }
+
+  private static CInitializer substituteInitializerAtPath(
+      CInitializer pInitializer,
+      ImmutableList<Integer> pPath,
+      int pPathIndex,
+      CCompositeTypeMemberDeclaration pMember,
+      CInitializer pSubstituteInitializer) {
+
+    // the path was consumed completely
+    if (pPathIndex == pPath.size()) {
+      return pSubstituteInitializer;
+    }
+
+    if (!(pInitializer instanceof CInitializerList initializerList)) {
+      return pInitializer;
+    }
+
+    int targetIndex = pPath.get(pPathIndex);
+    List<CInitializer> newInitializers = new ArrayList<>(initializerList.getInitializers());
+    int actualIndex = targetIndex;
+
+    // A designated initializer uses its field name instead of its positional index.
+    for (int i = 0; i < newInitializers.size(); i++) {
+      CInitializer initializer = newInitializers.get(i);
+      if (initializer instanceof CDesignatedInitializer designatedInitializer
+          && designatedInitializer.getDesignators().stream()
+              .filter(CFieldDesignator.class::isInstance)
+              .map(CFieldDesignator.class::cast)
+              .anyMatch(designator -> designator.getFieldName().equals(pMember.getName()))) {
+        actualIndex = i;
+        break;
+      }
+    }
+
+    if (actualIndex < 0 || actualIndex >= newInitializers.size()) {
+      return pInitializer;
+    }
+
+    CInitializer targetInitializer = newInitializers.get(actualIndex);
+
+    if (targetInitializer instanceof CDesignatedInitializer designatedInitializer) {
+      CInitializer newRight =
+          substituteInitializerAtPath(
+              designatedInitializer.getRightHandSide(),
+              pPath,
+              pPathIndex + 1,
+              pMember,
+              pSubstituteInitializer);
+
+      newInitializers.set(
+          actualIndex,
+          new CDesignatedInitializer(
+              designatedInitializer.getFileLocation(),
+              designatedInitializer.getDesignators(),
+              newRight));
+
+    } else {
+      newInitializers.set(
+          actualIndex,
+          substituteInitializerAtPath(
+              targetInitializer, pPath, pPathIndex + 1, pMember, pSubstituteInitializer));
+    }
+
+    return new CInitializerList(initializerList.getFileLocation(), newInitializers);
   }
 }
