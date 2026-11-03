@@ -161,6 +161,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+  // The CFA of the input program. The analysis may work on a copy of it
+  // (analysis.algorithm.copyCFA).
+  private final CFA originalCfa;
   private final ReachedSetFactory reachedSetFactory;
   private final Algorithm safetyAlgorithm;
   private final ConfigurableProgramAnalysis safetyCPA;
@@ -187,6 +190,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
     cfa = checkNotNull(pCfa);
+    originalCfa = checkNotNull(pOriginalCfa);
     aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
@@ -211,8 +215,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(
-            pConfig, logger, loopStructure.getAllLoops().size(), cfa, pOriginalCfa);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 
@@ -304,7 +307,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     logger.log(Level.INFO, "Termination algorithm did not find a non-terminating loop.");
     if (status.isSound()) {
       // Check the supporting invariants for the export now, while the analysis is still running
-      statistics.confirmSupportingInvariants(shutdownNotifier);
+      statistics.confirmSupportingInvariants(originalCfa, shutdownNotifier);
     }
     while (status.isSound() && pReachedSet.hasWaitingState()) {
       pReachedSet.popFromWaitlist();

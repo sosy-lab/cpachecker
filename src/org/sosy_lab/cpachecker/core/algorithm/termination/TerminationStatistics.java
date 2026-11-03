@@ -213,9 +213,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final MachineModel machineModel;
 
   private final CFA cfa;
-  // The CFA of the input program. The analysis may work on a copy of it
-  // (analysis.algorithm.copyCFA).
-  private final CFA originalCfa;
   // The scope of the input program, which is created before the analysis adds edges to the CFA
   private final CProgramScope programScope;
   // The supporting invariants that are invariants of the program, see confirmSupportingInvariants
@@ -223,20 +220,15 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, 0, pCFA, pCFA);
+    this(pConfig, pLogger, 0, pCFA);
   }
 
   public TerminationStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      int pTotalNumberOfLoops,
-      CFA pCFA,
-      CFA pOriginalCfa)
+      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCFA);
-    originalCfa = checkNotNull(pOriginalCfa);
     programScope = new CProgramScope(cfa, pLogger);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
@@ -591,10 +583,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
    * the program, such that only these are exported into the witness. This has to be called while
    * the analysis is still running, since the checks are stopped together with the analysis.
    *
+   * @param pOriginalCfa the CFA of the input program, on which the supporting invariants are
+   *     checked. The analysis may work on a copy of it (analysis.algorithm.copyCFA), but the
+   *     invariants of the witness can only be matched to the nodes of the original CFA.
    * @param pShutdownNotifier the shutdown notifier of the analysis
    * @throws InterruptedException if the analysis is shut down
    */
-  void confirmSupportingInvariants(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+  void confirmSupportingInvariants(CFA pOriginalCfa, ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
     if (!exportSupportingInvariantsInWitness || supportingInvariantsCheckConfig == null) {
       return;
     }
@@ -621,7 +617,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     }
 
     for (InvariantEntry supportingInvariant : supportingInvariants) {
-      if (isProvenInvariant(supportingInvariant, pShutdownNotifier)) {
+      if (isProvenInvariant(supportingInvariant, pOriginalCfa, pShutdownNotifier)) {
         confirmedSupportingInvariants.add(supportingInvariant);
       }
     }
@@ -638,11 +634,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
    * supportingInvariantsCheckConfig.
    *
    * @param pInvariant the invariant to check
+   * @param pOriginalCfa the CFA of the input program
    * @param pShutdownNotifier the shutdown notifier for the check
    * @return true iff the invariant was proven to hold
    * @throws InterruptedException if the analysis is shut down
    */
-  private boolean isProvenInvariant(InvariantEntry pInvariant, ShutdownNotifier pShutdownNotifier)
+  private boolean isProvenInvariant(
+      InvariantEntry pInvariant, CFA pOriginalCfa, ShutdownNotifier pShutdownNotifier)
       throws InterruptedException {
     Path witness = null;
     try {
@@ -652,8 +650,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           SupportingInvariantsChecker.checkInvariants(
               supportingInvariantsCheckConfig,
               witness,
-              // The invariants of the witness refer to the nodes of the original CFA
-              originalCfa,
+              pOriginalCfa,
               logger.withComponentName("SupportingInvariantCheck"),
               pShutdownNotifier);
       logger.logf(
