@@ -216,7 +216,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   // The scope of the input program, which is created before the analysis adds edges to the CFA
   private final CProgramScope programScope;
   // The supporting invariants that are invariants of the program, see confirmSupportingInvariants
-  private final Set<InvariantEntry> confirmedSupportingInvariants = Sets.newConcurrentHashSet();
+  private ImmutableSet<InvariantEntry> confirmedSupportingInvariants = ImmutableSet.of();
 
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
@@ -616,11 +616,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return;
     }
 
+    ImmutableSet.Builder<InvariantEntry> confirmedSupportingInvariantsBuilder =
+        ImmutableSet.builder();
     for (InvariantEntry supportingInvariant : supportingInvariants) {
       if (isProvenInvariant(supportingInvariant, pOriginalCfa, pShutdownNotifier)) {
-        confirmedSupportingInvariants.add(supportingInvariant);
+        confirmedSupportingInvariantsBuilder.add(supportingInvariant);
       }
     }
+    confirmedSupportingInvariants = confirmedSupportingInvariantsBuilder.build();
     logger.logf(
         INFO,
         "Confirmed %d of %d supporting invariants for the export into the witness.",
