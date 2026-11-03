@@ -31,11 +31,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution.CTypeSubstitutionResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
@@ -146,9 +144,7 @@ class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclarationWithSubstituteType(globalDeclaration);
-      rDeclarations.add(variableDeclarationSubstitute.toASTString());
+      rDeclarations.add(globalDeclaration.toASTString());
     }
     return rDeclarations.toString();
   }
@@ -165,10 +161,8 @@ class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> localDeclarations =
           substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclarationWithSubstituteType(localDeclaration);
         Optional<CVariableDeclaration> variableDeclaration =
-            tryBuildInputLocalVariableDeclaration(variableDeclarationSubstitute);
+            tryBuildInputLocalVariableDeclaration(localDeclaration);
         if (variableDeclaration.isPresent()) {
           rDeclarations.add(variableDeclaration.orElseThrow().toASTString());
         }
@@ -224,10 +218,7 @@ class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
       for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclarationWithSubstituteType(parameterDeclaration);
-        rDeclarations.add(
-            MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
+        rDeclarations.add(MPORUtil.withInitializer(parameterDeclaration, null).toASTString());
       }
     }
     return rDeclarations.toString();
@@ -246,10 +237,8 @@ class SequentializationBuilder {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.getMainFunctionArgSubstitutes().values()) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclarationWithSubstituteType(
-              (CVariableDeclaration) mainArg.getDeclaration());
-      rDeclarations.add(variableDeclarationSubstitute.toASTString());
+      rDeclarations.add(
+          MPORUtil.convertToVariableDeclaration(mainArg.getDeclaration()).toASTString());
     }
     return rDeclarations.toString();
   }
@@ -265,10 +254,7 @@ class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclarationWithSubstituteType(startRoutineArgDeclaration);
-      rDeclarations.add(
-          MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
+      rDeclarations.add(MPORUtil.withInitializer(startRoutineArgDeclaration, null).toASTString());
     }
     return rDeclarations.toString();
   }
@@ -283,39 +269,12 @@ class SequentializationBuilder {
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
       if (exitVariable.isPresent()) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclarationWithSubstituteType(
-                (CVariableDeclaration) exitVariable.orElseThrow().getDeclaration());
-        rDeclarations.add(variableDeclarationSubstitute.toASTString());
+        rDeclarations.add(
+            MPORUtil.convertToVariableDeclaration(exitVariable.orElseThrow().getDeclaration())
+                .toASTString());
       }
     }
     return rDeclarations.toString();
-  }
-
-  // CVariableDeclaration helper
-
-  private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
-      CVariableDeclaration pVariableDeclaration) {
-
-    CTypeSubstitutionResult typeSubstitute =
-        PthreadObjectSubstitution.substitutePthreadObjectTypes(
-            pVariableDeclaration.getType(),
-            ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
-
-    CInitializer initializerSubstitute =
-        PthreadObjectSubstitution.substitutePthreadObjectInitializers(
-            typeSubstitute, pVariableDeclaration.getInitializer());
-
-    return new CVariableDeclaration(
-        pVariableDeclaration.getFileLocation(),
-        pVariableDeclaration.isGlobal(),
-        pVariableDeclaration.getCStorageClass(),
-        typeSubstitute.type(),
-        pVariableDeclaration.getName(),
-        pVariableDeclaration.getOrigName(),
-        pVariableDeclaration.getQualifiedName(),
-        initializerSubstitute,
-        pVariableDeclaration.hasThreadLocalStorage());
   }
 
   // Function Declarations and Definitions =========================================================
