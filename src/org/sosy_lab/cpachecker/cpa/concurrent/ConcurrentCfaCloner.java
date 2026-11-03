@@ -15,12 +15,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaClonerData;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
@@ -52,9 +52,12 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /**
- * Clones the entire CFA (nodes and edges) for a specific thread ID, renaming all variable
- * references with the thread-ID prefix using {@link ConcurrentAstCloner}. The cloning is performed
- * lazily on first access for each thread ID and then cached.
+ * Clones the entire CFA (nodes and edges) for a specific thread ID, so that each thread gets its
+ * own copy of all local variables. Function names stay unchanged; only the qualified names of local
+ * variables, parameters, and {@code __thread} variables get the thread-ID prefix (see {@link
+ * ConcurrentAstCloner}), and other global variables keep their names. Apart from these names, the
+ * clone is identical to the original CFA. The cloning is performed lazily on first access for each
+ * thread ID and then cached.
  *
  * <p>For {@link CFunctionEntryNode}s, the function declaration is also cloned so that parameter
  * declarations carry the renamed qualified names.
@@ -98,7 +101,7 @@ final class ConcurrentCfaCloner {
    */
   static ConcurrentCfaCloner getOrCreate(int pThreadId, CFA pCfa) {
     return perCfaCache
-        .computeIfAbsent(pCfa, unused -> new HashMap<>())
+        .computeIfAbsent(pCfa, unused -> new ConcurrentHashMap<>())
         .computeIfAbsent(
             pThreadId,
             threadId -> {
