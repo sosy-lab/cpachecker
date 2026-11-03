@@ -581,6 +581,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     return result;
   }
 
+  private static boolean isNullPointerConstant(CExpression pExpression) {
+    return stripCasts(pExpression) instanceof CIntegerLiteralExpression literal
+        && literal.getValue().signum() == 0;
+  }
+
   /**
    * A pthread_join's handle expression is not resolved to a single instance statically: it is
    * branched over every thread instance created so far on this path as a candidate, mirroring how
@@ -603,6 +608,13 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     List<? extends AExpression> params = getCallParameters(pEdge);
     ThreadFunctions.checkJoinParams(params);
+    if (params.size() > 1 && !isNullPointerConstant((CExpression) params.get(1))) {
+      // the joined thread's return value is not modeled: the result variable would keep its old
+      // value, which makes every path that depends on it unsound
+      throw new UnsupportedCodeException(
+          "pthread_join with a result pointer is not modeled by the ordering-consistency analysis",
+          pEdge);
+    }
     CExpression handle = (CExpression) params.get(0);
 
     for (int candidate : pState.getLiveInstanceIds()) {
@@ -1518,7 +1530,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         && MutexFunctions.extractMutexName(unary).isPresent());
   }
 
-  /** Binds the freshly written pointer of a {@code lhs = malloc(...)} to a distinct heap base. */
+  /**
+   * Binds the freshly written pointer of a {@code lhs = malloc(...)} or {@code lhs = calloc(...)} to
+   * a distinct heap base.
+   */
   private ImmutableList<Integer> handleMallocIfAny(
       OrderingConsistencyState pState,
       CFAEdge pEdge,
@@ -1530,12 +1545,13 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         || !(statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement call)
         || !(call.getFunctionCallExpression().getFunctionNameExpression()
             instanceof CIdExpression function)
-        || !function.getName().equals("malloc")) {
+        || !(function.getName().equals("malloc") || function.getName().equals("calloc"))) {
       return pLastEventIds;
     }
+    boolean zeroed = function.getName().equals("calloc");
     if (!(call.getLeftHandSide() instanceof CIdExpression lhs)
         || !(lhs.getExpressionType().getCanonicalType() instanceof CPointerType pointerType)) {
-      throw new UnsupportedCodeException("unsupported form of malloc", pEdge);
+      throw new UnsupportedCodeException("unsupported form of " + function.getName(), pEdge);
     }
     CType pointee = pointerType.getType();
 
@@ -1549,7 +1565,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         }
       }
       if (lhsName == null) {
-        throw new UnsupportedCodeException("unsupported form of malloc", pEdge);
+        throw new UnsupportedCodeException("unsupported form of " + function.getName(), pEdge);
       }
     } else {
       lhsName = "T" + pState.getInstanceId() + "_" + lhs.getDeclaration().getQualifiedName();
@@ -1568,13 +1584,27 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(lhsTerm, baseTerm)));
 
-    // the allocation provides one indeterminate value across each of its scalar leaf regions: a
-    // fill write covers the whole allocation, so a later read at any offset can read from it and
-    // uninitialised reads stay feasible (cells of one region share one indeterminate value)
+    // the allocation provides one value across each of its scalar leaf regions: a fill write covers
+    // the whole allocation, so a later read at any offset can read from it; malloc leaves it
+    // indeterminate (cells of one region share one indeterminate value), calloc zeroes it
+    ImmutableList<CType> leafTypes = scalarLeafTypes(pointee);
+    if (zeroed && leafTypes.isEmpty()) {
+      // an untyped object (e.g. void*) gets no fill write, so its reads would be unconstrained
+      // instead of zero
+      throw new UnsupportedCodeException("calloc of an object without a known type", pEdge);
+    }
     ImmutableList<Integer> lastEventIds = pLastEventIds;
-    for (CType leafType : scalarLeafTypes(pointee)) {
+    for (CType leafType : leafTypes) {
       String initName = registry.freshCssaName("__oc_heapinit");
       resolution = indexSymbol(resolution, initName, leafType, pEdge);
+      Formula valueTerm = resolve(resolution, initName, leafType, pEdge);
+      if (zeroed) {
+        registry.addPathConstraint(
+            bfmgr.implication(
+                pState.getGuard(),
+                fmgr.makeEqual(
+                    valueTerm, fmgr.makeNumber(fmgr.getFormulaType(valueTerm), BigInteger.ZERO))));
+      }
       int primary = lastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : lastEventIds.getFirst();
       MemoryEvent initialWrite =
           registry.addEvent(
@@ -1584,7 +1614,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               pState.getGuard(),
               null,
               initName,
-              resolve(resolution, initName, leafType, pEdge),
+              valueTerm,
               null,
               MemoryEvent.NO_INSTANCE,
               regionOf(leafType),

@@ -502,10 +502,12 @@ final class OcEncoder {
         if (other.id() == rf.write().id()) {
           continue;
         }
-        // no other enabled write to the same cell may fall between an rf-related write and read
+        // no other enabled write to the cell read may fall between an rf-related write and read
+        // (compared with the read, not the write: a fill write covers its whole object, so a write
+        // to another cell of that object does not overwrite the cell the read reads)
         BooleanFormula premise = bfmgr.and(rf.variable(), getFullGuard(other));
         if (rf.write().isRegionAccess()) {
-          premise = bfmgr.and(premise, sameAddress(other, rf.write()));
+          premise = bfmgr.and(premise, sameAddress(other, rf.read()));
         }
         constraints.add(
             bfmgr.implication(

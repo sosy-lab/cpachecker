@@ -163,11 +163,13 @@ final class ConsistencyChecker {
           ImmutableList.Builder<BooleanFormula> sideBuilder = ImmutableList.builder();
           sideBuilder.add(encoder.getFullGuard(other));
           if (write.isRegionAccess()) {
-            // in the aliasing regime, "same cell" additionally means equal addresses
-            if (!sameCellInModel(other, write, addressValues)) {
+            // in the aliasing regime, "same cell" additionally means equal addresses; compared with
+            // the read, not the write: a fill write covers its whole object, so a write to another
+            // cell of that object does not overwrite the cell the read reads
+            if (!sameCellInModel(other, read, addressValues)) {
               continue;
             }
-            sideBuilder.add(encoder.sameAddress(other, write));
+            sideBuilder.add(encoder.sameAddress(other, read));
           }
           ImmutableList<BooleanFormula> sideCondition = sideBuilder.build();
           if (isReachable(other, read) && !hasEdge(other, write)) {
