@@ -85,7 +85,10 @@ public sealed class CFANode implements Comparable<CFANode>
     nodeNumber = idGenerator.getFreshId();
   }
 
-  /** Returns the original CFA node if this node was cloned, and this node otherwise. */
+  /**
+   * Returns the node of the original CFA that this node is a per-thread clone of, and this node
+   * otherwise. See {@link CFAEdge#getOriginal()} for what "clone" means here.
+   */
   public CFANode getOriginal() {
     CfaClonerData data = clonerData;
     if (data == null) {
@@ -99,7 +102,10 @@ public sealed class CFANode implements Comparable<CFANode>
     return result;
   }
 
-  /** Returns the thread ID this node was cloned for, or empty if this node is not a clone. */
+  /**
+   * Returns the ID of the thread whose per-thread CFA copy contains this node, or empty if this
+   * node is not a clone. See {@link CFAEdge#getOriginal()} for what "clone" means here.
+   */
   public OptionalInt getCloneThreadId() {
     CfaClonerData data = clonerData;
     return data == null ? OptionalInt.empty() : data.getThreadId(this);
