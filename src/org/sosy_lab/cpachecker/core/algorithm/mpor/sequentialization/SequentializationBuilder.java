@@ -53,9 +53,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
-public class SequentializationBuilder {
+class SequentializationBuilder {
 
-  public static String buildInputFunctionAndTypeDeclarations(
+  static String buildInputFunctionAndTypeDeclarations(
       MPOROptions pOptions,
       CFunctionDeclaration pInputMainFunctionDeclaration,
       ImmutableList<MPORThread> pThreads)
@@ -132,7 +132,7 @@ public class SequentializationBuilder {
 
   // Input Variable Declarations ===================================================================
 
-  public static String buildInputGlobalVariableDeclarations(
+  static String buildInputGlobalVariableDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
@@ -150,7 +150,7 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildInputLocalVariableDeclarations(
+  static String buildInputLocalVariableDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
@@ -209,7 +209,7 @@ public class SequentializationBuilder {
 
   // Input Parameter Declarations ==================================================================
 
-  public static String buildInputParameterDeclarations(
+  static String buildInputParameterDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
@@ -234,7 +234,7 @@ public class SequentializationBuilder {
    * Adds the declarations of main function arguments, e.g. {@code int arg;} that are
    * non-deterministically initialized in {@code main()} later in the sequentialization.
    */
-  public static String buildMainFunctionArgDeclarations(
+  static String buildMainFunctionArgDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
@@ -251,7 +251,7 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildStartRoutineArgDeclarations(
+  static String buildStartRoutineArgDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
@@ -270,7 +270,7 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildStartRoutineExitDeclarations(
+  static String buildStartRoutineExitDeclarations(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
@@ -313,8 +313,8 @@ public class SequentializationBuilder {
 
   // Function Declarations and Definitions =========================================================
 
-  public static String buildFunctionDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
+  static String buildFunctionDeclarations(MPOROptions pOptions, SequentializationFields pFields)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
@@ -356,7 +356,7 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildFunctionDefinitions(
+  static String buildFunctionDefinitions(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
