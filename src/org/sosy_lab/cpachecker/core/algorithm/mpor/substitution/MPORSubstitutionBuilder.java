@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -556,11 +557,17 @@ public record MPORSubstitutionBuilder(
         PthreadObjectSubstitution.substitutePthreadObjectTypes(
             variableDeclaration.getType(),
             ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
-    CInitializer pthreadInitializerSubstitute =
-        pNewInitializer == null
-            ? null
-            : PthreadObjectSubstitution.substitutePthreadObjectInitializers(
-                pthreadTypeSubstitute, pNewInitializer);
+    // only substitute CInitializerList
+    CInitializer pthreadInitializerSubstitute;
+    if (pNewInitializer == null) {
+      pthreadInitializerSubstitute = null;
+    } else {
+      pthreadInitializerSubstitute =
+          pNewInitializer instanceof CInitializerList
+              ? PthreadObjectSubstitution.substitutePthreadObjectInitializers(
+                  pthreadTypeSubstitute, pNewInitializer)
+              : pNewInitializer;
+    }
 
     return new CVariableDeclaration(
         pSimpleDeclaration.getFileLocation(),

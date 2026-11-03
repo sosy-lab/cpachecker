@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -112,6 +114,9 @@ public class PthreadObjectSubstitution {
 
   public static CInitializer substitutePthreadObjectInitializers(
       CTypeSubstitutionResult pSubstitutionResult, CInitializer pInitializer) {
+
+    checkArgument(
+        pInitializer instanceof CInitializerList, "pInitializer must be CInitializerList");
 
     CInitializer result = pInitializer;
     for (PthreadObjectType objectType : PthreadObjectType.values()) {
