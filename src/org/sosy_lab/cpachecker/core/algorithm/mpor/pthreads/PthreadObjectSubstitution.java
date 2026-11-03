@@ -118,9 +118,14 @@ public class PthreadObjectSubstitution {
       Optional<CInitializer> substituteInitializer = objectType.getSubstituteInitializer();
 
       if (substituteInitializer.isPresent()) {
+        if (pSubstitutionResult.isSubstituted() && pSubstitutionResult.paths().isEmpty()) {
+          if (isPthreadObjectType(pSubstitutionResult.type(), objectType)) {
+            return substituteInitializer.orElseThrow();
+          }
+        }
+        // substitute nested initializers inside CInitializerList, if an inner type was substituted
         for (Map.Entry<ImmutableList<Integer>, CCompositeTypeMemberDeclaration> entry :
             pSubstitutionResult.paths().entrySet()) {
-
           CCompositeTypeMemberDeclaration member = entry.getValue();
           if (isPthreadObjectType(member.getType(), objectType)) {
             result =
