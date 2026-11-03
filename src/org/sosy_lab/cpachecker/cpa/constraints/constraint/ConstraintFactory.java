@@ -266,4 +266,9 @@ public class ConstraintFactory {
 
     return EqualsExpression.of(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
+
+  /** Returns the current {@link CFAEdge} that can be used for checked exceptions. */
+  public CFAEdge getCfaEdgeForDebugging() {
+    return cfaEdgeForDebugging;
+  }
 }

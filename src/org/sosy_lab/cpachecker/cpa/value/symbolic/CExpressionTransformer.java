@@ -132,12 +132,15 @@ public class CExpressionTransformer extends ExpressionTransformer
   private SymbolicExpression transformUnaryArithmetic(
       final CUnaryExpression.UnaryOperator pOperator,
       final SymbolicExpression pOperand,
-      final Type pExpressionType) {
+      final Type pExpressionType)
+      throws UnsupportedCodeException {
     return switch (pOperator) {
       case MINUS -> NegationExpression.of(pOperand, pExpressionType);
       case TILDE -> BinaryNotExpression.of(pOperand, pExpressionType);
       case AMPER -> AddressOfExpression.of(pOperand, pExpressionType);
-      default -> throw new AssertionError("No arithmetic operator: " + pOperator);
+      default ->
+          throw new UnsupportedCodeException(
+              "No arithmetic operator: " + pOperator, getCfaEdgeForDebugging());
     };
   }
 
@@ -199,13 +202,15 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CImaginaryLiteralExpression pIastLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Imaginary literal invalid for constraint");
+    throw new UnsupportedCodeException(
+        "Imaginary literal invalid for constraint", getCfaEdgeForDebugging());
   }
 
   @Override
   public SymbolicExpression visit(final CAddressOfLabelExpression pAddressOfLabelExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Address of label expression used in symbolic expression");
+    throw new UnsupportedCodeException(
+        "Address of label expression used in symbolic expression", getCfaEdgeForDebugging());
   }
 
   @Override
@@ -278,6 +283,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CComplexCastExpression complexCastExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Complex cast not valid for constraint");
+    throw new UnsupportedCodeException(
+        "Complex cast not valid for constraint", getCfaEdgeForDebugging());
   }
 }

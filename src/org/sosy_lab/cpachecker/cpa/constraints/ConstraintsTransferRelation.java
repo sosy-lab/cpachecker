@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -199,7 +200,10 @@ public class ConstraintsTransferRelation
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
       case AIdExpression aIdExpression ->
           createConstraint(aIdExpression, pFactory, pTruthAssumption);
-      default -> throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+      default ->
+          throw new UnsupportedCodeException(
+              "Unhandled expression type " + pExpression.getClass(),
+              pFactory.getCfaEdgeForDebugging());
     };
   }
 
