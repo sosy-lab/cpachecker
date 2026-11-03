@@ -252,6 +252,10 @@ public final class BMCHelper {
         .toSet();
   }
 
+  /**
+   * Filters the states whose (lowest) iteration is between the given bounds. For states with an
+   * iteration range, see {@link #filterIterationsOverlapping} and {@link #filterIterationsWithin}.
+   */
   public static FluentIterable<AbstractState> filterIterationsBetween(
       Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
     return filterIterations(
@@ -259,43 +263,61 @@ public final class BMCHelper {
         pMinIt,
         pMaxIt,
         pLoopHeads,
-        (minIt, maxIt, lowerIt, upperIt) -> minIt <= lowerIt && lowerIt <= maxIt);
+        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
+            fromIt <= stateLowerIt && stateLowerIt <= toIt);
   }
 
   /**
-   * Filters the states of which some represented path may be in an iteration between the given
-   * bounds. A state can represent paths of different iterations if the analysis merges them (cf.
-   * {@link LoopIterationReportingState}); otherwise, this is the same as {@link
-   * #filterIterationsBetween}. Use it to select the states at which a property is checked.
+   * Filters the states whose iteration range overlaps the given range.
+   *
+   * <p>A state can represent paths with different iteration counts if the analysis merges them; it
+   * then reports the range [lower, upper] of these counts (cf. {@link
+   * LoopIterationReportingState}). This method keeps a state if [lower, upper] and [pFromIt, pToIt]
+   * have at least one iteration in common, i.e., if <em>some</em> represented path may be in an
+   * iteration between pFromIt and pToIt. For states without a range (lower = upper), this is the
+   * same as {@link #filterIterationsBetween}.
+   *
+   * <p>Use it to select the states at which a property is <em>checked</em>: no path of the given
+   * iterations may be missed.
    */
-  public static FluentIterable<AbstractState> filterIterationsPossiblyBetween(
-      Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
+  public static FluentIterable<AbstractState> filterIterationsOverlapping(
+      Iterable<AbstractState> pStates, int pFromIt, int pToIt, Set<CFANode> pLoopHeads) {
     return filterIterations(
         pStates,
-        pMinIt,
-        pMaxIt,
+        pFromIt,
+        pToIt,
         pLoopHeads,
-        (minIt, maxIt, lowerIt, upperIt) -> lowerIt <= maxIt && minIt <= upperIt);
+        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
+            stateLowerIt <= toIt && fromIt <= stateUpperIt);
   }
 
   /**
-   * Filters the states of which all represented paths are in an iteration between the given bounds.
-   * A state can represent paths of different iterations if the analysis merges them (cf. {@link
-   * LoopIterationReportingState}); otherwise, this is the same as {@link #filterIterationsBetween}.
-   * Use it to select the states at which a property is assumed.
+   * Filters the states whose iteration range lies within the given range.
+   *
+   * <p>A state can represent paths with different iteration counts if the analysis merges them; it
+   * then reports the range [lower, upper] of these counts (cf. {@link
+   * LoopIterationReportingState}). This method keeps a state if [lower, upper] is contained in
+   * [pFromIt, pToIt], i.e., if <em>all</em> represented paths are in an iteration between pFromIt
+   * and pToIt. For states without a range (lower = upper), this is the same as {@link
+   * #filterIterationsBetween}.
+   *
+   * <p>Use it to select the states at which a property is <em>assumed</em>: no path outside the
+   * given iterations may be constrained.
    */
-  public static FluentIterable<AbstractState> filterIterationsCertainlyBetween(
-      Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
+  public static FluentIterable<AbstractState> filterIterationsWithin(
+      Iterable<AbstractState> pStates, int pFromIt, int pToIt, Set<CFANode> pLoopHeads) {
     return filterIterations(
         pStates,
-        pMinIt,
-        pMaxIt,
+        pFromIt,
+        pToIt,
         pLoopHeads,
-        (minIt, maxIt, lowerIt, upperIt) -> minIt <= lowerIt && upperIt <= maxIt);
+        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
+            fromIt <= stateLowerIt && stateUpperIt <= toIt);
   }
 
+  /** Decides whether a state's iteration range [lower, upper] matches the requested range. */
   private interface IterationFilter {
-    boolean accepts(int pMinIt, int pMaxIt, int pLowerIt, int pUpperIt);
+    boolean accepts(int pFromIt, int pToIt, int pStateLowerIt, int pStateUpperIt);
   }
 
   private static FluentIterable<AbstractState> filterIterations(

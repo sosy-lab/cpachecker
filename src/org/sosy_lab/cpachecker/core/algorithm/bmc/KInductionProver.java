@@ -12,8 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.createFormulaFor;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsCertainlyBetween;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsPossiblyBetween;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsOverlapping;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsWithin;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
 import com.google.common.base.Suppliers;
@@ -401,7 +401,7 @@ class KInductionProver implements AutoCloseable {
             predecessorAssertion =
                 candidateInvariant.getAssertion(
                     BMCHelper.filterBmcChecked(
-                        filterIterationsCertainlyBetween(reached, 0, pK, loopHeads), pCheckedKeys),
+                        filterIterationsWithin(reached, 0, pK, loopHeads), pCheckedKeys),
                     fmgr,
                     pfmgr);
           }
@@ -472,12 +472,7 @@ class KInductionProver implements AutoCloseable {
     InductionResult<T> result = null;
     AssertCandidate assertPredecessor =
         p ->
-            assertAt(
-                filterIterationsCertainlyBetween(loopHeadStates, 1, 1, loopHeads),
-                p,
-                fmgr,
-                pfmgr,
-                true);
+            assertAt(filterIterationsWithin(loopHeadStates, 1, 1, loopHeads), p, fmgr, pfmgr, true);
     while (result == null) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -622,8 +617,7 @@ class KInductionProver implements AutoCloseable {
   private BooleanFormula assertCandidate(
       Iterable<AbstractState> pReached, CandidateInvariant pCandidateInvariant, int pK)
       throws CPATransferException, InterruptedException {
-    FluentIterable<AbstractState> states =
-        filterIterationsPossiblyBetween(pReached, pK, pK, loopHeads);
+    FluentIterable<AbstractState> states = filterIterationsOverlapping(pReached, pK, pK, loopHeads);
     final List<BooleanFormula> assertions = new ArrayList<>();
     for (CandidateInvariant component :
         CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
@@ -654,7 +648,7 @@ class KInductionProver implements AutoCloseable {
     // The known invariants hold at every reachable state, so they may also be asserted at states
     // that represent paths of other iterations
     Iterable<AbstractState> loopHeadStates =
-        filterIterationsPossiblyBetween(pLoopHeadStates, 1, 1, loopHeads);
+        filterIterationsOverlapping(pLoopHeadStates, 1, 1, loopHeads);
     return assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr);
   }
 
@@ -738,7 +732,7 @@ class KInductionProver implements AutoCloseable {
     Map<String, CType> types = new HashMap<>();
 
     FluentIterable<AbstractState> inputStates =
-        filterIterationsPossiblyBetween(
+        filterIterationsOverlapping(
             pCandidateInvariant.filterApplicable(pReached), pK, pK, loopHeads);
     if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
       inputStates = inputStates.filter(AbstractStates::isTargetState);
@@ -760,7 +754,7 @@ class KInductionProver implements AutoCloseable {
       // States that represent paths with different iteration counts were never checked by BMC,
       // because the base case does not merge them
       FluentIterable<AbstractState> loopHeadStates =
-          filterIterationsPossiblyBetween(
+          filterIterationsOverlapping(
               AbstractStates.filterLocations(pReached, ImmutableSet.of(loopHead))
                   .filter(
                       state ->
@@ -849,7 +843,7 @@ class KInductionProver implements AutoCloseable {
       return from(pCandidateInvariant.filterApplicable(reached))
           .filter(state -> !pHypothesis.contains(state));
     }
-    return filterIterationsPossiblyBetween(
+    return filterIterationsOverlapping(
         pCandidateInvariant.filterApplicable(reached), pK, pK, loopHeads);
   }
 
