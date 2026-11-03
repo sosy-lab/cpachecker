@@ -21,8 +21,8 @@ SPDX-License-Identifier: Apache-2.0
   <!-- The predicate and value variants run over disjoint task sets, because BenchExec
        does not allow the same task twice within one benchmark definition. -->
 
-  <tasks name="por-pred">
-    <option name="--por-pred"/>
+  <tasks name="predicateAnalysis-POR">
+    <option name="--predicateAnalysis-POR"/>
     <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
 
     <include>../programs/por/single_thread_safe.yml</include>
@@ -40,15 +40,15 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/escaping_local_unsafe.yml</include>
   </tasks>
 
-  <tasks name="por-pred-sv-benchmarks">
-    <option name="--por-pred"/>
+  <tasks name="predicateAnalysis-POR-sv-benchmarks">
+    <option name="--predicateAnalysis-POR"/>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
     <include>../programs/benchmarks/pthread/singleton.yml</include>
   </tasks>
 
-  <tasks name="por-value">
-    <option name="--por-value-cegar"/>
+  <tasks name="valueAnalysis-Cegar-POR">
+    <option name="--valueAnalysis-Cegar-POR"/>
     <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
 
     <include>../programs/por/two_threads_join_safe.yml</include>
@@ -67,16 +67,16 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/atomic_float_unsafe.yml</include>
   </tasks>
 
-  <tasks name="por-pred-overflow">
-    <option name="--por-pred-overflow"/>
+  <tasks name="predicateAnalysis-POR--overflow">
+    <option name="--predicateAnalysis-POR--overflow"/>
     <propertyfile>../../config/properties/no-overflow.prp</propertyfile>
 
     <include>../programs/por/overflow_safe.yml</include>
     <include>../programs/por/overflow_unsafe.yml</include>
   </tasks>
 
-  <tasks name="por-value-overflow">
-    <option name="--por-value-overflow"/>
+  <tasks name="valueAnalysis-Cegar-POR--overflow">
+    <option name="--valueAnalysis-Cegar-POR--overflow"/>
     <propertyfile>../../config/properties/no-overflow.prp</propertyfile>
 
     <include>../programs/por/overflow_after_join_unsafe.yml</include>

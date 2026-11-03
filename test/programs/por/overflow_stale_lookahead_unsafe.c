@@ -6,8 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// KNOWN BUG, currently reported as TRUE by por-value-overflow and
-// por-pred-overflow. Deliberately NOT wired into PORCPAOverflowTest, which would
+// KNOWN BUG, currently reported as TRUE by valueAnalysis-Cegar-POR--overflow and
+// predicateAnalysis-POR--overflow. Deliberately NOT wired into PORCPAOverflowTest, which would
 // go red; it is kept here as the reproducer, ready to enable once fixed.
 //
 // The program overflows: `setter` runs to completion, then `incr` computes
