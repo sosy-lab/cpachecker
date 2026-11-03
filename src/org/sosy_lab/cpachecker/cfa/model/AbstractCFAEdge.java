@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.CfaClonerData;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -24,8 +25,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   private final String rawStatement;
   private final FileLocation fileLocation;
 
-  private volatile CfaClonerData clonerData;
-  private volatile CFAEdge originalEdge;
+  /** The edge this edge is a per-thread clone of, or null (see {@link CFAEdge#getOriginal()}). */
+  private @Nullable CFAEdge original = null;
 
   protected AbstractCFAEdge(
       String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
@@ -42,22 +43,17 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public CFAEdge getOriginal() {
-    CfaClonerData data = clonerData;
-    if (data == null) {
-      return this;
-    }
-    CFAEdge result = originalEdge;
-    if (result == null) {
-      result = data.getOriginal(this);
-      originalEdge = result;
-    }
-    return result;
+    return original == null ? this : original;
   }
 
-  /** Associates this edge with the data of the CFA cloner that created it. */
-  public final void setClonerData(CfaClonerData pClonerData) {
-    checkState(clonerData == null, "CFA cloner data already set for edge %s", this);
-    clonerData = checkNotNull(pClonerData);
+  /**
+   * Marks this edge as the per-thread clone of {@code pOriginal}. Only for the cloner that created
+   * this edge, directly after creating it (see {@link CFAEdge#getOriginal()}).
+   */
+  public final void setOriginal(CFAEdge pOriginal) {
+    checkState(original == null, "Original already set for edge %s", this);
+    checkArgument(pOriginal != this && pOriginal.getOriginal() == pOriginal);
+    original = pOriginal;
   }
 
   @Override

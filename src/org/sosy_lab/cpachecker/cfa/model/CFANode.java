@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
@@ -25,8 +24,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.CfaClonerData;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -50,8 +49,9 @@ public sealed class CFANode implements Comparable<CFANode>
   // in which function is that node?
   private final AFunctionDeclaration function;
 
-  private volatile CfaClonerData clonerData;
-  private volatile CFANode originalNode;
+  // the node this node is a per-thread clone of, and the ID of that thread (see getOriginal())
+  private @Nullable CFANode original = null;
+  private OptionalInt cloneThreadId = OptionalInt.empty();
 
   // set of variables out of scope after this node.
   // lazy initialization: first null, then final set
@@ -90,16 +90,7 @@ public sealed class CFANode implements Comparable<CFANode>
    * otherwise. See {@link CFAEdge#getOriginal()} for what "clone" means here.
    */
   public CFANode getOriginal() {
-    CfaClonerData data = clonerData;
-    if (data == null) {
-      return this;
-    }
-    CFANode result = originalNode;
-    if (result == null) {
-      result = data.getOriginal(this);
-      originalNode = result;
-    }
-    return result;
+    return original == null ? this : original;
   }
 
   /**
@@ -107,14 +98,19 @@ public sealed class CFANode implements Comparable<CFANode>
    * node is not a clone. See {@link CFAEdge#getOriginal()} for what "clone" means here.
    */
   public OptionalInt getCloneThreadId() {
-    CfaClonerData data = clonerData;
-    return data == null ? OptionalInt.empty() : data.getThreadId(this);
+    return cloneThreadId;
   }
 
-  /** Associates this node with the data of the CFA cloner that created it. */
-  public void setClonerData(CfaClonerData pClonerData) {
-    checkState(clonerData == null, "CFA cloner data already set for node %s", this);
-    clonerData = checkNotNull(pClonerData);
+  /**
+   * Marks this node as the clone of {@code pOriginal} for the thread with the given ID. Only for
+   * the cloner that created this node, directly after creating it (see {@link
+   * CFAEdge#getOriginal()}).
+   */
+  public void setOriginal(CFANode pOriginal, int pThreadId) {
+    checkState(original == null, "Original already set for node %s", this);
+    checkArgument(pOriginal != this && pOriginal.getOriginal() == pOriginal);
+    original = pOriginal;
+    cloneThreadId = OptionalInt.of(pThreadId);
   }
 
   public int getNodeNumber() {

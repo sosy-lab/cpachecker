@@ -22,7 +22,6 @@ import java.util.Queue;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaClonerData;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -80,8 +79,6 @@ final class ConcurrentCfaCloner {
 
   /** Map from original edge to cloned edge. */
   private final IdentityHashMap<CFAEdge, CFAEdge> edgeMap = new IdentityHashMap<>();
-
-  private final CfaClonerData clonerData = new CfaClonerData();
 
   private final int threadId;
   private final ConcurrentAstCloner astCloner;
@@ -240,8 +237,7 @@ final class ConcurrentCfaCloner {
           pOriginalNode.getOutOfScopeVariables().stream().map(astCloner::cloneAst).toList());
     }
     nodeMap.put(pOriginalNode, cloned);
-    clonerData.registerNode(cloned, pOriginalNode, threadId);
-    cloned.setClonerData(clonerData);
+    cloned.setOriginal(pOriginalNode, threadId);
     return cloned;
   }
 
@@ -295,9 +291,8 @@ final class ConcurrentCfaCloner {
 
     CFAEdge clonedEdge = cloneEdge(originalEdge, clonedPred, clonedSucc);
     edgeMap.put(originalEdge, clonedEdge);
-    clonerData.registerEdge(clonedEdge, originalEdge);
     checkState(clonedEdge instanceof AbstractCFAEdge);
-    ((AbstractCFAEdge) clonedEdge).setClonerData(clonerData);
+    ((AbstractCFAEdge) clonedEdge).setOriginal(originalEdge);
 
     // Register the cloned edge with its cloned nodes
     if (clonedEdge instanceof FunctionSummaryEdge summaryEdge) {
