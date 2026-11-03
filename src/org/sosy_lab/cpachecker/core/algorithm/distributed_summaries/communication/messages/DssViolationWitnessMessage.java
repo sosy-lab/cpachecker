@@ -13,18 +13,18 @@ import java.time.Instant;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssHeaderPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssViolationWitnessPayload;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public final class DssViolationWitnessMessage implements DssWitnessMessage {
   private final String senderId;
   private final Instant timestamp;
-  private final SegmentedPaths violationPath;
+  private final DecisionGraph violationPath;
 
-  public DssViolationWitnessMessage(String pSenderId, SegmentedPaths pViolationPath) {
+  public DssViolationWitnessMessage(String pSenderId, DecisionGraph pViolationPath) {
     this(pSenderId, Instant.now(), pViolationPath);
   }
 
-  DssViolationWitnessMessage(String pSenderId, Instant pTimestamp, SegmentedPaths pViolationPath) {
+  DssViolationWitnessMessage(String pSenderId, Instant pTimestamp, DecisionGraph pViolationPath) {
     senderId = Preconditions.checkNotNull(pSenderId);
     timestamp = Preconditions.checkNotNull(pTimestamp);
     violationPath = Preconditions.checkNotNull(pViolationPath);
@@ -40,7 +40,7 @@ public final class DssViolationWitnessMessage implements DssWitnessMessage {
     return timestamp;
   }
 
-  public SegmentedPaths getViolationPath() {
+  public DecisionGraph getViolationPath() {
     return violationPath;
   }
 

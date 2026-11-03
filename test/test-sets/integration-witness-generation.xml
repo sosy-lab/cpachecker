@@ -39,6 +39,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="simple_concurrent">
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
 
   <tasks name="ConcurrencySafety-Main">
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>

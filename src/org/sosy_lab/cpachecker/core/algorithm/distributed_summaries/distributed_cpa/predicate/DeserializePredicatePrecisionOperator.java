@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Function;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -41,12 +44,16 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 public class DeserializePredicatePrecisionOperator implements DeserializePrecisionOperator {
 
   private final Function<Integer, CFANode> nodeMapping;
-  private final AbstractionManager abstractionManager;
+  // Scoped to this solver context: incoming messages repeatedly carry the same predicates.
+  private final LoadingCache<String, AbstractionPredicate> parsedPredicates;
 
   public DeserializePredicatePrecisionOperator(
       final AbstractionManager pAbstractionManager, final Function<Integer, CFANode> pNodeMapping) {
     nodeMapping = pNodeMapping;
-    abstractionManager = pAbstractionManager;
+    parsedPredicates =
+        CacheBuilder.newBuilder()
+            .maximumSize(1024)
+            .build(CacheLoader.from(pAbstractionManager::parsePredicate));
   }
 
   private Multimap<LocationInstance, AbstractionPredicate> parseLocationInstances(
@@ -62,7 +69,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
                   nodeMapping.apply(locationInstancePayload.nodeId()),
                   locationInstancePayload.instance());
           for (String precision : serializedPredicates) {
-            locationInstances.put(locationInstance, abstractionManager.parsePredicate(precision));
+            locationInstances.put(locationInstance, parsedPredicates.getUnchecked(precision));
           }
         });
     return locationInstances.build();
@@ -77,7 +84,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
           for (String precision : serializedPrecisions) {
             localPredicates.put(
                 Objects.requireNonNull(nodeMapping.apply(location)),
-                abstractionManager.parsePredicate(precision));
+                parsedPredicates.getUnchecked(precision));
           }
         });
     return localPredicates.build();
@@ -90,7 +97,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     pFunctionPredicates.forEach(
         (function, serializedPredicates) -> {
           for (String predicate : serializedPredicates) {
-            functionPredicates.put(function, abstractionManager.parsePredicate(predicate));
+            functionPredicates.put(function, parsedPredicates.getUnchecked(predicate));
           }
         });
     return functionPredicates.build();
@@ -98,7 +105,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
 
   private ImmutableSet<AbstractionPredicate> parseGlobals(ImmutableSet<String> pGlobalPredicates) {
     return transformedImmutableSetCopy(
-        pGlobalPredicates, predicate -> abstractionManager.parsePredicate(predicate));
+        pGlobalPredicates, predicate -> parsedPredicates.getUnchecked(predicate));
   }
 
   @Override

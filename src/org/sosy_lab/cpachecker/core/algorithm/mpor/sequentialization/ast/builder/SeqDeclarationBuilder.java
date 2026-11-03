@@ -28,6 +28,7 @@ public class SeqDeclarationBuilder {
         pName,
         pName,
         SeqNameUtil.buildDummyQualifiedName(pName),
-        pInitializer);
+        pInitializer,
+        /* pHasThreadLocalStorage= */ false);
   }
 }

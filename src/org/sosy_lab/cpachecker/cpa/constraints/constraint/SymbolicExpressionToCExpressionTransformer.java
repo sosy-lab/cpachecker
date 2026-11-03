@@ -184,7 +184,8 @@ public class SymbolicExpressionToCExpressionTransformer
         pIdentifierName,
         pIdentifierName,
         pIdentifierName,
-        null);
+        null,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   private CExpression createBinaryExpression(

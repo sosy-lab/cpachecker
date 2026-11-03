@@ -88,16 +88,51 @@ public class DssAnalysisOptions {
   private boolean resetCallstackState = false;
 
   @Option(
+      name = "syntacticVcEquality",
+      description =
+          "Whether to decide equality of violation conditions by their representation instead of"
+              + " asking the solver. A violation condition is built from the edges of a path, so"
+              + " the same path yields the same formula. Deciding it this way spares an implication"
+              + " query per compared pair, but tells equivalent conditions that are written"
+              + " differently apart.",
+      secure = true)
+  private boolean syntacticViolationConditionEquality = false;
+
+  @Option(
       name = "combineVcsByHash",
       description = "Whether to combine violation conditions at same program location",
       secure = true)
   private boolean combineViolationConditionsByHash = true;
 
   @Option(
-      name = "combinePresByHash",
-      description = "Whether to combine preconditions at same program location",
-      secure = true)
-  private boolean combinePreconditionsByHash = false;
+      secure = true,
+      description = "Whether to combine incoming states and outgoing summaries by exact union.")
+  private boolean combineStates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to send and use precision updates in precondition and violation-condition"
+              + " messages.")
+  private boolean sharePrecision = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to cache violation conditions normalized for comparison.")
+  private boolean cacheViolationConditions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether a block without successors stops exploring after its first run. Such a block"
+              + " never receives a violation condition, and its first run, from the unconstrained"
+              + " start state, already finds every violation it can report.")
+  private boolean retireTerminalBlocks = false;
+
+  @Option(
+      secure = true,
+      description = "Whether to add the block entry as an explicit predicate abstraction location.")
+  private boolean abstractAtBlockEntry = true;
 
   // TODO How to make sure the other Witness export does not overwrite this?
   @Option(
@@ -150,12 +185,32 @@ public class DssAnalysisOptions {
     return debug && readableFormulas;
   }
 
+  public boolean abstractAtBlockEntry() {
+    return abstractAtBlockEntry;
+  }
+
+  public boolean combineStates() {
+    return combineStates;
+  }
+
+  public boolean sharePrecision() {
+    return sharePrecision;
+  }
+
+  public boolean cacheViolationConditions() {
+    return cacheViolationConditions;
+  }
+
+  public boolean retireTerminalBlocks() {
+    return retireTerminalBlocks;
+  }
+
   public boolean combineViolationConditionsByHash() {
     return combineViolationConditionsByHash;
   }
 
-  public boolean combinePreconditionsByHash() {
-    return combinePreconditionsByHash;
+  public boolean useSyntacticViolationConditionEquality() {
+    return syntacticViolationConditionEquality;
   }
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {

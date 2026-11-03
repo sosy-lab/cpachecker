@@ -63,6 +63,8 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFAUtils.FunctionAndVariableName;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
@@ -74,7 +76,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class AssignmentToPathAllocator {
 
-  private static final int IS_NOT_GLOBAL = 2;
   private static final int NAME_AND_FUNCTION = 0;
   private static final int IS_FIELD_REFERENCE = 1;
 
@@ -341,27 +342,22 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private LeftHandSide createLeftHandSide(String pTermName) {
+  /** The variable that a formula names with the given name, without its SSA index. */
+  public static LeftHandSide createLeftHandSide(String pTermName) {
 
     // TODO ugly, refactor (no splitting)
 
     List<String> references = ImmutableList.copyOf(Splitter.on('$').split(pTermName));
     String nameAndFunctionAsString = references.get(NAME_AND_FUNCTION);
 
-    List<String> nameAndFunction =
-        ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
+    // Only the first separator separates the function, a name of SV-LIB can contain it too
+    FunctionAndVariableName nameAndFunction =
+        CFAUtils.getFunctionAndVariableNameFromQualifiedVariableName(nameAndFunctionAsString);
 
-    String name;
-    String function = null;
-    boolean isNotGlobal = nameAndFunction.size() == IS_NOT_GLOBAL;
+    final String name = nameAndFunction.variableName();
+    final String function = nameAndFunction.functionName().orElse(null);
+    boolean isNotGlobal = function != null;
     boolean isReference = references.size() > IS_FIELD_REFERENCE;
-
-    if (isNotGlobal) {
-      function = nameAndFunction.getFirst();
-      name = nameAndFunction.get(1);
-    } else {
-      name = nameAndFunction.getFirst();
-    }
 
     if (isReference) {
       List<String> fieldNames = new ArrayList<>(references.size() - 1);

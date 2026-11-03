@@ -18,7 +18,6 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
@@ -35,25 +34,16 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -212,17 +202,6 @@ public final class InterpolationManager {
 
   @Option(
       secure = true,
-      name = "timelimit",
-      description =
-          "time limit for refinement (use milliseconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(
-      codeUnit = TimeUnit.MILLISECONDS,
-      defaultUserUnit = TimeUnit.MILLISECONDS,
-      min = 0)
-  private TimeSpan itpTimeLimit = TimeSpan.ofMillis(0);
-
-  @Option(
-      secure = true,
       description =
           "skip refinement if input formula is larger than "
               + "this amount of bytes (ignored if 0)")
@@ -253,7 +232,6 @@ public final class InterpolationManager {
   private final boolean enableCounterexampleAnalysis;
   private final ITPStrategy itpStrategy;
 
-  private final ExecutorService executor;
   private final LoopStructure loopStructure;
   private final VariableClassification variableClassification;
 
@@ -294,15 +272,6 @@ public final class InterpolationManager {
         enableCounterexampleAnalysis
             ? new ProverOptions[] {ProverOptions.GENERATE_MODELS}
             : new ProverOptions[] {};
-
-    if (itpTimeLimit.isEmpty()) {
-      executor = null;
-    } else {
-      // important to use daemon threads here, because we never have the chance to stop the executor
-      executor =
-          Executors.newSingleThreadExecutor(
-              Thread.ofPlatform().daemon().name(getClass().getSimpleName() + "-thread").factory());
-    }
 
     if (reuseInterpolationEnvironment) {
       interpolator = new Interpolator<>();
@@ -351,46 +320,7 @@ public final class InterpolationManager {
         enableCounterexampleAnalysis,
         "Need to set pEnableCounterexampleAnalysis=true when creating InterpolationManager");
 
-    return callWithTimelimit(
-        () ->
-            buildCounterexampleTrace0(pFormulas, pAbstractionStates, Optional.of(pImprecisePath)));
-  }
-
-  private CounterexampleTraceInfo callWithTimelimit(Callable<CounterexampleTraceInfo> callable)
-      throws CPAException, InterruptedException {
-
-    // if we don't want to limit the time given to the solver
-    if (itpTimeLimit.isEmpty()) {
-      try {
-        return callable.call();
-      } catch (Exception e) {
-        Throwables.throwIfInstanceOf(e, CPAException.class);
-        Throwables.throwIfInstanceOf(e, InterruptedException.class);
-        Throwables.throwIfUnchecked(e);
-        throw new UnexpectedCheckedException("refinement", e);
-      }
-    }
-
-    assert executor != null;
-
-    Future<CounterexampleTraceInfo> future = executor.submit(callable);
-
-    try {
-      // here we get the result of the post computation but there is a time limit
-      // given to complete the task specified by timeLimit
-      return future.get(itpTimeLimit.asNanos(), TimeUnit.NANOSECONDS);
-
-    } catch (TimeoutException e) {
-      logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
-      throw new RefinementFailedException(Reason.TIMEOUT, null);
-
-    } catch (ExecutionException e) {
-      Throwable t = e.getCause();
-      Throwables.throwIfInstanceOf(t, CPAException.class);
-      Throwables.throwIfInstanceOf(t, InterruptedException.class);
-      Throwables.throwIfUnchecked(t);
-      throw new UnexpectedCheckedException("interpolation", t);
-    }
+    return buildCounterexampleTrace0(pFormulas, pAbstractionStates, Optional.of(pImprecisePath));
   }
 
   /**
@@ -436,10 +366,8 @@ public final class InterpolationManager {
       final List<BooleanFormula> pFormulas, final List<AbstractState> pAbstractionStates)
       throws CPAException, InterruptedException {
     CounterexampleTraceInfo cexInfo =
-        callWithTimelimit(
-            () ->
-                buildCounterexampleTrace0(
-                    new BlockFormulas(pFormulas), pAbstractionStates, Optional.empty()));
+        buildCounterexampleTrace0(
+            new BlockFormulas(pFormulas), pAbstractionStates, Optional.empty());
     if (cexInfo.isSpurious()) {
       return Optional.of(cexInfo.getInterpolants());
     } else {
@@ -533,8 +461,7 @@ public final class InterpolationManager {
         enableCounterexampleAnalysis,
         "Need to set pEnableCounterexampleAnalysis=true when creating InterpolationManager");
 
-    return callWithTimelimit(
-        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas, Optional.of(imprecisePath)));
+    return buildCounterexampleTraceWithoutInterpolation0(pFormulas, Optional.of(imprecisePath));
   }
 
   private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(

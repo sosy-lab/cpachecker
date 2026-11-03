@@ -205,8 +205,7 @@ public class BDDTransferRelation
 
         // make region for RIGHT SIDE and build equality of var and region
         final Region[] regRHS =
-            bvComputer.evaluateVectorExpression(
-                partition, (CExpression) rhs, targetType, location, precision);
+            bvComputer.evaluateVectorExpression(partition, exp, targetType, location, precision);
         newState = newState.addAssignment(var, regRHS);
       }
       return newState;

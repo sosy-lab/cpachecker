@@ -40,7 +40,8 @@ public abstract class AbstractTransformingCAstNodeVisitor<X extends Exception>
               pCVariableDeclaration.getName(),
               pCVariableDeclaration.getOrigName(),
               pCVariableDeclaration.getQualifiedName(),
-              null);
+              null,
+              pCVariableDeclaration.hasThreadLocalStorage());
 
       variableDeclarations.put(pCVariableDeclaration, newVariableDeclaration);
 

@@ -929,7 +929,9 @@ public class CFACreator {
           final AExpression functionNameExp =
               aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
           if (functionNameExp instanceof AIdExpression aIdExpression) {
-            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())) {
+            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())
+                // the ThreadingCPA runs the init routine of pthread_once in a new thread
+                || ThreadingTransferRelation.THREAD_ONCE.equals(aIdExpression.getName())) {
               return true;
             }
           }
@@ -1242,7 +1244,8 @@ public class CFACreator {
                     v.getName(),
                     v.getOrigName(),
                     v.getQualifiedName(),
-                    initializer);
+                    initializer,
+                    v.hasThreadLocalStorage());
 
             previouslyInitializedVariables.add(name);
             iterator.set(Pair.of(v, p.getSecond())); // replace declaration

@@ -101,18 +101,18 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       Semaphore automatonAvailable = new Semaphore(1);
 
       Thread readingThread =
-          new Thread(
-              new ProofPartReader(
-                  automatonAvailable,
-                  partitionsAvailable,
-                  checkResult,
-                  ioHelpers,
-                  cpas,
-                  roots,
-                  new ReachedSetFactory(config, logger)));
+          Thread.ofPlatform()
+              .name("PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy")
+              .start(
+                  new ProofPartReader(
+                      automatonAvailable,
+                      partitionsAvailable,
+                      checkResult,
+                      ioHelpers,
+                      cpas,
+                      roots,
+                      new ReachedSetFactory(config, logger)));
       try {
-        readingThread.start();
-
         Pair<ARGState, List<ARGState>> checkingResult;
 
         CMCPartitionChecker checker;

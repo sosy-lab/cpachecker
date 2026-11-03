@@ -40,26 +40,21 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
   @Override
   public CompositeState deserialize(DssStatePayload pStatePayload, DssMessageType pMessageType)
       throws InterruptedException {
-    try {
-      stats.getDeserializationCount().inc();
-      stats.getDeserializationTime().start();
-      DssCompositeStatePayload parentPayload = (DssCompositeStatePayload) pStatePayload;
-      ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
-      for (ConfigurableProgramAnalysis analysis : analyses) {
-        if (analysis instanceof DistributedConfigurableProgramAnalysis dcpa) {
-          String key = DssComponentKey.serializedNameFor(dcpa.getAbstractStateClass());
-          DssStatePayload childPayload = parentPayload.components().get(key);
-          states.add(dcpa.getDeserializeOperator().deserialize(childPayload, pMessageType));
-        } else {
-          states.add(
-              analysis.getInitialState(
-                  DeserializeOperator.startLocationFromMessageType(pMessageType, blockNode),
-                  StateSpacePartition.getDefaultPartition()));
-        }
+    stats.getDeserializationCount().inc();
+    DssCompositeStatePayload parentPayload = (DssCompositeStatePayload) pStatePayload;
+    ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis analysis : analyses) {
+      if (analysis instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        String key = DssComponentKey.serializedNameFor(dcpa.getAbstractStateClass());
+        DssStatePayload childPayload = parentPayload.components().get(key);
+        states.add(dcpa.getDeserializeOperator().deserialize(childPayload, pMessageType));
+      } else {
+        states.add(
+            analysis.getInitialState(
+                DeserializeOperator.startLocationFromMessageType(pMessageType, blockNode),
+                StateSpacePartition.getDefaultPartition()));
       }
-      return new CompositeState(states.build());
-    } finally {
-      stats.getDeserializationTime().stop();
     }
+    return new CompositeState(states.build());
   }
 }

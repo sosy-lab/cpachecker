@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -34,9 +33,9 @@ interface DssExplorationEngine {
   /**
    * Re-explores the block after one of the handlers asked the analysis to proceed.
    *
-   * @param pViolationConditionSender the successor block whose violation conditions triggered this
-   *     round, or empty if a received postcondition triggered it
+   * @param pViolationConditionsChanged whether a received violation condition triggered this round
+   *     (possibly alongside postconditions), as opposed to received postconditions only
    */
-  AnalysisResult explore(Optional<String> pViolationConditionSender)
+  AnalysisResult explore(boolean pViolationConditionsChanged)
       throws CPAException, InterruptedException;
 }

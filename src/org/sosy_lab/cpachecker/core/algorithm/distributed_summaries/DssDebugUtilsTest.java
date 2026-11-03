@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssPredicateStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DssSSAVariablePayload;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class DssDebugUtilsTest {
 
@@ -48,7 +48,7 @@ public class DssDebugUtilsTest {
     DssMessage condition = postCondition(ImmutableList.of(locationState(1)));
     DssMessage result = new DssResultMessage("worker", Result.TRUE);
     DssMessage exception = new DssExceptionMessage("worker", "first line\nsecond line");
-    DssMessage witness = new DssViolationWitnessMessage("worker", SegmentedPaths.EMPTY);
+    DssMessage witness = new DssViolationWitnessMessage("worker", DecisionGraph.UNRESTRICTED);
 
     assertThat(DssDebugUtils.summarize(condition))
         .contains("POST_CONDITION from B1 states=1 status=sound+precise");
@@ -87,7 +87,11 @@ public class DssDebugUtilsTest {
         postCondition(
             ImmutableList.of(
                 new DssStateAndPrecisionPayload(
-                    new DssBlockStatePayload("unique-id", "block-1", "", ImmutableList.of()),
+                    new DssBlockStatePayload(
+                        "unique-id",
+                        "block-1",
+                        DecisionGraph.UNRESTRICTED.serialize(),
+                        ImmutableList.of()),
                     DssNoPrecisionPayload.INSTANCE)));
 
     String resultDescription = DssDebugUtils.describe(result);
@@ -96,7 +100,7 @@ public class DssDebugUtilsTest {
     assertThat(resultDescription).contains("RESULT from worker result=FALSE");
     assertThat(resultDescription).doesNotContain("state 0");
     assertThat(blockDescription).contains("blockState");
-    assertThat(blockDescription).contains("witnessSegments=0");
+    assertThat(blockDescription).contains("witnessDecisions=0");
   }
 
   @Test

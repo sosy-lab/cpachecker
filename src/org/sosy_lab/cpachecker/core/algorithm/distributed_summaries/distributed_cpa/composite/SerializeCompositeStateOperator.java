@@ -34,20 +34,15 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
 
   @Override
   public DssCompositeStatePayload serialize(AbstractState pState) {
-    try {
-      stats.getSerializationCount().inc();
-      stats.getSerializationTime().start();
-      ImmutableMap.Builder<String, DssStatePayload> components = ImmutableMap.builder();
-      CompositeState compositeState = ((CompositeState) pState);
-      for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
-        if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
-          DssStatePayload statePayload = dcpa.getSerializeOperator().serialize(cpaAndState.state());
-          components.put(statePayload.getComponentKey().getSerializedName(), statePayload);
-        }
+    stats.getSerializationCount().inc();
+    ImmutableMap.Builder<String, DssStatePayload> components = ImmutableMap.builder();
+    CompositeState compositeState = ((CompositeState) pState);
+    for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
+      if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        DssStatePayload statePayload = dcpa.getSerializeOperator().serialize(cpaAndState.state());
+        components.put(statePayload.getComponentKey().getSerializedName(), statePayload);
       }
-      return new DssCompositeStatePayload(components.buildOrThrow());
-    } finally {
-      stats.getSerializationTime().stop();
     }
+    return new DssCompositeStatePayload(components.buildOrThrow());
   }
 }

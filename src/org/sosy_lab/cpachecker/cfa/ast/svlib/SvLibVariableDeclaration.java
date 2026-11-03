@@ -18,13 +18,17 @@ public final class SvLibVariableDeclaration extends AVariableDeclaration
 
   @Serial private static final long serialVersionUID = -6558791317019048432L;
 
+  // Set for a constant of `define-fun`
+  private final boolean hasBeenDefined;
+
   public SvLibVariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
       SvLibType pType,
       String pName,
       String pOrigName,
-      String pQualifiedName) {
+      String pQualifiedName,
+      boolean pHasBeenDefined) {
     super(
         pFileLocation,
         pIsGlobal,
@@ -33,6 +37,11 @@ public final class SvLibVariableDeclaration extends AVariableDeclaration
         pOrigName,
         pQualifiedName,
         null /* There are no initializers in SV-LIB */);
+    hasBeenDefined = pHasBeenDefined;
+  }
+
+  public boolean hasBeenDefined() {
+    return hasBeenDefined;
   }
 
   @Override

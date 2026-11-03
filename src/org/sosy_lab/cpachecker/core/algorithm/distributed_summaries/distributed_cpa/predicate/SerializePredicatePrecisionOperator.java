@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -26,16 +29,22 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 public class SerializePredicatePrecisionOperator implements SerializePrecisionOperator {
 
   private final Map<CFANode, Integer> nodeToId;
-  private final FormulaManagerView formulaManagerView;
+  private final LoadingCache<AbstractionPredicate, String> serializedPredicates;
 
   public SerializePredicatePrecisionOperator(
       final FormulaManagerView pFormulaManagerView, Map<CFANode, Integer> pNodeToId) {
     nodeToId = pNodeToId;
-    formulaManagerView = pFormulaManagerView;
+    // Predicates are immutable and recur in multiple precision scopes and neighboring messages.
+    serializedPredicates =
+        CacheBuilder.newBuilder()
+            .maximumSize(1024)
+            .build(
+                CacheLoader.from(
+                    p -> pFormulaManagerView.dumpFormula(p.getSymbolicAtom()).toString()));
   }
 
   private String serializeAbstractionPredicate(AbstractionPredicate pPredicate) {
-    return formulaManagerView.dumpFormula(pPredicate.getSymbolicAtom()).toString();
+    return serializedPredicates.getUnchecked(pPredicate);
   }
 
   @Override
@@ -50,7 +59,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
     }
 
     Multimap<DssLocationInstancePayload, String> locationInstancePredicatesMultimap =
-        ArrayListMultimap.create();
+        LinkedHashMultimap.create();
     predicatePrecision
         .getLocationInstancePredicates()
         .forEach(
@@ -67,7 +76,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
                 locationInstancePredicates.add(
                     new DssLocationInstancePredicatesPayload(l, ImmutableList.copyOf(p))));
 
-    Multimap<Integer, String> localPredicatesMultimap = ArrayListMultimap.create();
+    Multimap<Integer, String> localPredicatesMultimap = LinkedHashMultimap.create();
     predicatePrecision
         .getLocalPredicates()
         .forEach(
@@ -78,7 +87,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
         .asMap()
         .forEach((l, p) -> localPredicates.put(l, ImmutableSet.copyOf(p)));
 
-    Multimap<String, String> functionPredicatesMultimap = ArrayListMultimap.create();
+    Multimap<String, String> functionPredicatesMultimap = LinkedHashMultimap.create();
     predicatePrecision
         .getFunctionPredicates()
         .forEach((l, p) -> functionPredicatesMultimap.put(l, serializeAbstractionPredicate(p)));

@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -31,7 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -47,9 +48,10 @@ public class DssObserverWorker extends DssWorker {
 
   private final DssConnection connection;
   private final StatusObserver statusObserver;
+  private final ShutdownNotifier shutdownNotifier;
   private boolean shutdown;
   private Optional<Result> finalResult;
-  private Optional<SegmentedPaths> violationWitness;
+  private Optional<DecisionGraph> violationWitness;
   private Optional<String> errorMessage;
 
   private int witnessMessagesReceived;
@@ -63,7 +65,8 @@ public class DssObserverWorker extends DssWorker {
       BlockGraph pBlockGraph,
       DssMessageFactory pMessageFactory,
       LogManager pLogger,
-      DssWitnessArgStateCollector pStateCollector) {
+      DssWitnessArgStateCollector pStateCollector,
+      ShutdownNotifier pShutdownNotifier) {
     super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
@@ -73,6 +76,7 @@ public class DssObserverWorker extends DssWorker {
     violationWitness = Optional.empty();
     blockGraph = pBlockGraph;
     stateCollector = pStateCollector;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -124,6 +128,9 @@ public class DssObserverWorker extends DssWorker {
   public StatusAndResult observe() throws CPAException, InterruptedException {
     super.run();
     if (errorMessage.isPresent()) {
+      // Worker messages serialize exceptions as text. Preserve a requested cancellation instead
+      // of turning its stack trace into a CPAException.
+      shutdownNotifier.shutdownIfNecessary();
       throw new CPAException(errorMessage.orElseThrow());
     }
     if (finalResult.isEmpty()) {

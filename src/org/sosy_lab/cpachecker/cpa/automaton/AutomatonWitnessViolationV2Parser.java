@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -39,21 +38,19 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.ALLCPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
@@ -65,6 +62,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.Inval
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
@@ -343,19 +342,62 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     //
     // Note that this will be problematic if there is an assumption and a branching
     // waypoint at the same location directly after a function call.
+    Optional<ImmutableSet<CFANode>> nodesBeforeEmptyBody =
+        enterElement.edges().isEmpty() ? nodesBeforeEmptyLoopBody(enterElement) : Optional.empty();
     AutomatonBoolExpr expr =
         restrictToThread(
-            new AutomatonBoolExpr.Or(
-                new CheckReachesElement(enterElement), new CheckEntersElement(enterElement)),
+            nodesBeforeEmptyBody.isPresent()
+                ? new CheckEndsAtNodes(nodesBeforeEmptyBody.orElseThrow())
+                : new AutomatonBoolExpr.Or(
+                    new CheckReachesElement(enterElement), new CheckEntersElement(enterElement)),
             threadId);
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
     transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
 
-    handleConstraint(constraint, Optional.ofNullable(function), followLine, transitionBuilder);
+    // The constraint is evaluated among the variables in scope before the statement
+    Optional<CFANode> nodeBefore =
+        nodesBeforeEmptyBody.isPresent()
+            ? nodesBeforeEmptyBody.orElseThrow().stream().findFirst()
+            : Optional.ofNullable(function)
+                .flatMap(f -> cfa.getAstCfaRelation().getNodeBeforeStatement(enterElement, f));
+    handleConstraint(
+        constraint, Optional.ofNullable(function), followLine, nodeBefore, transitionBuilder);
 
     transitions.add(transitionBuilder.build());
+  }
+
+  /**
+   * An empty loop body, like in {@code while (c);}, has no CFA edges. The sequence point before it
+   * is directly after the controlling expression enters the loop, i.e., at the successors of the
+   * controlling expression which stay inside the loop.
+   */
+  private Optional<ImmutableSet<CFANode>> nodesBeforeEmptyLoopBody(ASTElement pBody) {
+    Optional<ASTElement> controllingExpression =
+        cfa.getAstCfaRelation()
+            .getIterationStructureWithBody(pBody)
+            .flatMap(IterationElement::getControllingExpression);
+    if (controllingExpression.isEmpty() || cfa.getLoopStructure().isEmpty()) {
+      return Optional.empty();
+    }
+
+    LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
+    ImmutableSet<CFAEdge> conditionEdges = controllingExpression.orElseThrow().edges();
+    ImmutableSet<CFANode> conditionNodes =
+        transformedImmutableSetCopy(conditionEdges, CFAEdge::getPredecessor);
+    ImmutableSet<CFANode> loopNodes =
+        FluentIterable.from(conditionNodes)
+            .filter(CFANode::isLoopStart)
+            .transformAndConcat(loopStructure::getLoopsForLoopHead)
+            .transformAndConcat(Loop::getLoopNodes)
+            .toSet();
+    ImmutableSet<CFANode> nodes =
+        FluentIterable.from(conditionEdges)
+            .transform(CFAEdge::getSuccessor)
+            .filter(node -> loopNodes.contains(node) && !conditionNodes.contains(node))
+            .toSet();
+    return nodes.isEmpty() ? Optional.empty() : Optional.of(nodes);
   }
 
   /**
@@ -507,7 +549,6 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * @param threadId the thread that performs the call, if the witness names one
    * @param pPthreadFunctionEnterWaypoint the identifier that the created thread has in the witness
    * @param pDistanceToViolation the distance to the violation
-   * @param startLineToCFAEdge a mapping from the start line to the CFA edge
    * @throws WitnessParseException if this waypoint is not supported
    */
   protected void handleFunctionEnter(
@@ -517,7 +558,6 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
       OptionalInt threadId,
       Integer pPthreadFunctionEnterWaypoint,
       Integer pDistanceToViolation,
-      Multimap<Integer, CFAEdge> startLineToCFAEdge,
       ImmutableList.Builder<AutomatonTransition> transitions)
       throws WitnessParseException {
     if (!supportsFunctionEnterWaypoints()) {
@@ -527,8 +567,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
     // or a CStatementEdge
     ImmutableSet<CFAEdge> inputEdges =
-        findFunctionEnterEdge(
-            followLine, followColumn, startLineToCFAEdge, cfa.getAstCfaRelation());
+        cfa.getAstCfaRelation().getEdgesOfCallsWithClosingParenthesisAt(followLine, followColumn);
 
     if (inputEdges.isEmpty()) {
       throw new WitnessParseException(
@@ -559,65 +598,6 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
             distanceToViolationAction(pDistanceToViolation)));
 
     transitions.add(transitionBuilder.build());
-  }
-
-  /**
-   * Finds the CFA edge corresponding to a function-enter waypoint.
-   *
-   * <p>The matching edge is either a {@link FunctionCallEdge} or an {@link AStatementEdge}
-   * containing a function call. The edges on the given line are sorted by their column so that the
-   * first one matching the requested column is returned.
-   *
-   * @param followLine the line the waypoint should pass through
-   * @param followColumn the column the waypoint should pass through, if given
-   * @param startLineToCFAEdge mapping from start lines to the CFA edges starting there
-   * @param pAstCfaRelation the relation between the CFA and the AST, used to locate the call
-   * @return the matching edge, or {@link Optional#empty()} if no edge matches
-   */
-  private static ImmutableSet<CFAEdge> findFunctionEnterEdge(
-      Integer followLine,
-      OptionalInt followColumn,
-      Multimap<Integer, CFAEdge> startLineToCFAEdge,
-      AstCfaRelation pAstCfaRelation) {
-    // We sort the edges by their column, so we can take the first one which matches the given
-    // column
-    ImmutableSet.Builder<CFAEdge> foundEdges = ImmutableSet.builder();
-    for (CFAEdge edge :
-        FluentIterable.from(startLineToCFAEdge.get(followLine))
-            .toSortedList(
-                Comparator.comparingInt(
-                    pCFAEdge -> pCFAEdge.getFileLocation().getStartColumnInLine()))) {
-      // Not a function call so we skip it
-      Optional<AFunctionCallExpression> functionCall = getCalledFunction(edge);
-      if (functionCall.isEmpty()) {
-        continue;
-      }
-
-      // If the column does not match we continue by not matching this edge
-      if (followColumn.isPresent()) {
-        OptionalInt columnOfCall =
-            pAstCfaRelation.getColumnOfFunctionCallParenthesis(functionCall.orElseThrow());
-        if (columnOfCall.isEmpty() || columnOfCall.orElseThrow() != followColumn.orElseThrow()) {
-          continue;
-        }
-      }
-
-      foundEdges.add(edge);
-    }
-
-    return foundEdges.build();
-  }
-
-  /** Returns the function called by the given edge, if it is a function call at all. */
-  private static Optional<AFunctionCallExpression> getCalledFunction(CFAEdge pEdge) {
-    return switch (pEdge) {
-      case FunctionCallEdge functionCallEdge ->
-          Optional.of(functionCallEdge.getFunctionCallExpression());
-      case AStatementEdge statementEdge
-          when statementEdge.getStatement() instanceof AFunctionCall functionCall ->
-          Optional.of(functionCall.getFunctionCallExpression());
-      default -> Optional.empty();
-    };
   }
 
   /**
@@ -756,9 +736,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
             follows.add(waypoint);
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
             containsCycle = true;
-            // TODO: It is a bug to build it here, since there may be avoid
-            //  waypoints which are not collected
-            segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
+            follows.add(waypoint);
           }
         }
       }
@@ -1141,7 +1119,6 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
                 avoid.getThread(),
                 pPthreadFunctionEnterWaypoint,
                 distance,
-                startLineToCFAEdge,
                 transitions);
         case TARGET ->
             throw new WitnessParseException("Avoid waypoints of type target are invalid.");
@@ -1189,7 +1166,6 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
             follow.getThread(),
             pPthreadFunctionEnterWaypoint,
             distance,
-            startLineToCFAEdge,
             transitions);
         // The thread created here is the next one the witness refers to.
         pPthreadFunctionEnterWaypoint++;

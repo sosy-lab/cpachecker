@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -524,6 +524,11 @@ public class MPORSubstitution {
       rGlobalDeclarations.add((CVariableDeclaration) substitute.getDeclaration());
     }
     return rGlobalDeclarations.build();
+  }
+
+  /** Returns the entries mapping input program global variables to their substitutes. */
+  public ImmutableList<Entry<CVariableDeclaration, CIdExpression>> getGlobalVariableSubstitutes() {
+    return globalVariableSubstitutes;
   }
 
   public ImmutableList<CVariableDeclaration> getLocalVariableDeclarationSubstitutes() {

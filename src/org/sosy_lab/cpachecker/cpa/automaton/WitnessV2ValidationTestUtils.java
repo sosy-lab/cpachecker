@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.truth.Truth;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,9 +33,11 @@ public final class WitnessV2ValidationTestUtils {
    * @param pFilePath The filename of the Sourcecode to analyze
    * @param pExpectedVerdict The expected verdict of the analysis
    * @param pSpecificationFilePath The specification to use for the analysis
+   * @return The exported witness
    * @throws Exception Gets thrown if the test fails
    */
-  public static void verificationPlusValidationTest(
+  @CanIgnoreReturnValue
+  public static Path verificationPlusValidationTest(
       Path pFilePath, Result pExpectedVerdict, Path pSpecificationFilePath) throws Exception {
     Path outputPath = Files.createTempDirectory("witness-v2-validation");
     Configuration witnessGenerationConfig =
@@ -53,13 +55,15 @@ public final class WitnessV2ValidationTestUtils {
 
     IntegrationTestResult generationResult =
         IntegrationTestRunner.run(witnessGenerationConfig, pFilePath.toString());
+
+    generationResult.assertIs(pExpectedVerdict);
+
     // Trigger statistics so that the witness is written to the file
     generationResult.cpaCheckerResult().writeOutputFiles();
 
-    Truth.assertThat(generationResult.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
-
     Path witnessFile = outputPath.resolve("witness.yml");
     performValidationTest(pFilePath, pExpectedVerdict, pSpecificationFilePath, witnessFile);
+    return witnessFile;
   }
 
   /**
@@ -104,6 +108,6 @@ public final class WitnessV2ValidationTestUtils {
     IntegrationTestResult results =
         IntegrationTestRunner.run(generationConfig, pFilePath.toString());
 
-    Truth.assertThat(results.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
+    results.assertIs(pExpectedVerdict);
   }
 }

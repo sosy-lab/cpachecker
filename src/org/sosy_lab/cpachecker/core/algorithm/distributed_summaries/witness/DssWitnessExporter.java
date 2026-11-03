@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.PathRestrictionCPA;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -62,7 +62,13 @@ public class DssWitnessExporter {
     specification = pSpecification;
   }
 
-  public void export(
+  /**
+   * Prepares the reached set for the witness export of the given result.
+   *
+   * @return {@code false} if the result is {@link Result#FALSE} and replaying the violation path
+   *     did not reach a property violation, {@code true} otherwise
+   */
+  public boolean export(
       ResultWithWitnessInformation resultWithWitness,
       ReachedSet reachedSet,
       Modification pModification)
@@ -86,14 +92,19 @@ public class DssWitnessExporter {
 
       if (resultWithWitness.hasWitnessInformation()) {
         logger.log(Level.INFO, "Preparing Violation Witness");
-        fillReachedSetWithViolation(
-            reachedSet, resultWithWitness.getViolationPath(), pModification);
-        logger.log(Level.INFO, "Violation Witness prepared");
+        boolean violationReplayed =
+            fillReachedSetWithViolation(
+                reachedSet, resultWithWitness.getViolationPath(), pModification);
+        if (violationReplayed) {
+          logger.log(Level.INFO, "Violation Witness prepared");
+        }
+        return violationReplayed;
 
       } else {
         addDummyTargetToReachedSet(reachedSet);
       }
     }
+    return true;
   }
 
   private void addDummyTargetToReachedSet(ReachedSet reachedSet) {
@@ -137,11 +148,11 @@ public class DssWitnessExporter {
     }
   }
 
-  private void fillReachedSetWithViolation(
-      ReachedSet reachedSet, SegmentedPaths pViolationPath, Modification modification)
+  private boolean fillReachedSetWithViolation(
+      ReachedSet reachedSet, DecisionGraph pViolationPath, Modification modification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    SegmentedPaths mappedViolation = convertToOriginalEdges(pViolationPath, modification);
+    DecisionGraph mappedViolation = convertToOriginalEdges(pViolationPath, modification);
     Optional.ofNullable(CPAs.retrieveCPA(violationCPA, PathRestrictionCPA.class))
         .ifPresent(p -> p.init(mappedViolation));
 
@@ -181,11 +192,13 @@ public class DssWitnessExporter {
               StateSpacePartition.getDefaultPartition()));
 
       addDummyTargetToReachedSet(reachedSet);
+      return false;
     }
+    return true;
   }
 
-  private SegmentedPaths convertToOriginalEdges(
-      SegmentedPaths pViolationPath, Modification pModification) {
+  private DecisionGraph convertToOriginalEdges(
+      DecisionGraph pViolationPath, Modification pModification) {
 
     return pViolationPath.transformEdges(
         pModification.metadata().mappingInfo().originalToInstrumentedEdges().inverse());

@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssResultPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssViolationConditionPayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.payloads.DssViolationWitnessPayload;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public final class DssMessageCodec {
   public static DssMessage fromJson(Path pJson) throws IOException {
@@ -58,7 +58,7 @@ public final class DssMessageCodec {
           new DssViolationWitnessMessage(
               senderId,
               timestamp,
-              SegmentedPaths.deserialize(violationWitnessPayload.violationPath()));
+              DecisionGraph.deserialize(violationWitnessPayload.violationPath()));
     };
   }
 }

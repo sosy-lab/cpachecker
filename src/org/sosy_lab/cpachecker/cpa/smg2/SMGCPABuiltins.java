@@ -11,9 +11,38 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinCeilFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinCopysignFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFabsFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFdimFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFloorFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFmaxFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFminFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFmodFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinFpclassifyFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinInfinityFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsfiniteFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsgreaterFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsgreaterequalFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsinfFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsinfSignFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIslessFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIslessequalFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIslessgreaterFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsnanFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinIsunorderedFunction;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinLlroundFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinLroundFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinModfFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinNanFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinRemainderFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinRoundFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinSignbitFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinSqrtFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handleBuiltinTruncFunctionFamily;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGMathBuiltins.handlePopcount;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling.ASSUME_EXTERNALLY_ALLOCATED_WARN;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryDeallocatingFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryReallocatingFunction;
@@ -65,19 +94,17 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -154,15 +181,17 @@ public class SMGCPABuiltins {
    *
    * @param funCallExpr {@link CFunctionCallExpression} that has been checked for all other known
    *     functions (math functions etc.).
-   * @param functionName Name of the function.
    * @param state current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return the result of the function call and the state for it, which may be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
   public List<ValueAndSMGState> handleFunctionCallWithoutBody(
-      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
+      CFunctionCallExpression funCallExpr, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
+
+    // Extract function name first
+    final String functionName = getFunctionNameFrom(funCallExpr);
 
     if (isSafeFunction(functionName)) {
       return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
@@ -177,6 +206,16 @@ public class SMGCPABuiltins {
     }
 
     return handleBuiltinFunctionCall(funCallExpr, functionName, state, cfaEdge);
+  }
+
+  protected static String getFunctionNameFrom(CFunctionCallExpression funCallExpr) {
+    // We want to be able to resolve names at all times!
+    final CExpression funNameExpr = funCallExpr.getFunctionNameExpression();
+    if (funNameExpr instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getName();
+    } else {
+      return funNameExpr.toASTString();
+    }
   }
 
   /**
@@ -340,7 +379,10 @@ public class SMGCPABuiltins {
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> handleBuiltinFunctionCall(
-      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
+      CFunctionCallExpression funCallExpr,
+      String functionName,
+      final SMGState state,
+      CFAEdge cfaEdge)
       throws CPATransferException {
 
     if (isMemoryAllocatingFunction(functionName)) {
@@ -368,9 +410,319 @@ public class SMGCPABuiltins {
           state, cfaEdge, funCallExpr, functionName);
     }
 
+    // TODO: add math.h isnormal(x) macro
+    //  int isnormal(x)
+    //  x may be float, double, or long double.
+    //  Returns nonzero if x is a normal floating-point number.
+    //  Undefined behavior: x is not a real floating-point expression.
+
+    // TODO: add math.h multiply-add functions:
+    //  double fma(double x, double y, double z);
+    //  float fmaf(float x, float y, float z);
+    //  long double fmal(long double x, long double y, long double z);
+    //  Computes x*y + z as one operation, rounding the final result only once.
+    //  Range error: overflow or underflow may occur.
+    //  Annex F: multiplying zero by infinity returns NaN and raises FE_INVALID,
+    //   except when z is NaN, in which case FE_INVALID is optional.
+    //  Annex F: an infinite product added to an infinity of opposite sign
+    //   returns NaN and raises FE_INVALID.
+
+    // TODO: add math.h nexttoward function family
+    //  double nexttoward(double x, long double y);
+    //  float nexttowardf(float x, long double y);
+    //  long double nexttowardl(long double x, long double y);
+    //  Returns the next representable floating-point value after x toward y.
+    //  Unlike nextafter(), y is always a long double.
+    //  Returns y converted to the result type if x == y.
+    //  Range error may occur when stepping beyond the largest finite value.
+    //  Annex F: very small results may also raise underflow exceptions.
+
+    // TODO: add math.h nextafter function family
+    //  double nextafter(double x, double y);
+    //  float nextafterf(float x, float y);
+    //  long double nextafterl(long double x, long double y);
+    //  Returns the next representable floating-point value after x toward y.
+    //  Returns y if x == y.
+    //  Range error may occur when stepping beyond the largest finite value.
+    //  Annex F: very small results may also raise underflow exceptions.
+
+    // TODO: add math.h remquo function family
+    //  double remquo(double x, double y, int *quo);
+    //  float remquof(float x, float y, int *quo);
+    //  long double remquol(long double x, long double y, int *quo);
+    //  Returns the same remainder as remainder().
+    //  Stores a signed integer in *quo containing at least the three
+    //  lowest binary digits of the rounded quotient magnitude.
+    //  Undefined behavior: quo is NULL or does not point to writable int storage.
+    //  Implementation-defined: when y == 0, either a domain error
+    //  occurs or zero is returned.
+    //  Unspecified: the value stored in *quo when y == 0.
+
+    // TODO: add math.h nearbyint function family
+    //  double nearbyint(double x);
+    //  float nearbyintf(float x);
+    //  long double nearbyintl(long double x);
+    //  Rounds x to an integer-valued floating-point number
+    //  using the current rounding mode.
+    //  Does not raise FE_INEXACT.
+
+    // TODO: add math.h rint function family
+    //  double rint(double x);
+    //  float rintf(float x);
+    //  long double rintl(long double x);
+    //  Rounds x to an integer-valued floating-point number
+    //  using the current rounding mode.
+    //  May raise FE_INEXACT.
+
+    // TODO: add math.h lrint function family
+    //  long int lrint(double x);
+    //  long int lrintf(float x);
+    //  long int lrintl(long double x);
+    //  Rounds x using the current rounding mode and returns long int.
+    //  Unspecified numeric result if the rounded value exceeds long int range.
+    //  Domain or range error may occur for an unrepresentable result.
+    //  Annex F: an unrepresentable result raises FE_INVALID.
+
+    // TODO: add math.h llrint function family
+    //  long long int llrint(double x);
+    //  long long int llrintf(float x);
+    //  long long int llrintl(long double x);
+    //  Rounds x using the current rounding mode and returns long long int.
+    //  Unspecified numeric result if the rounded value exceeds long long int range.
+    //  Domain or range error may occur for an unrepresentable result.
+    //  Annex F: an unrepresentable result raises FE_INVALID.
+
+    // TODO: add math.h erf error function family
+    // double erf(double x);
+    // float erff(float x);
+    // long double erfl(long double x);
+    // Returns the error function of x, defined by the integral above.
+
+    // TODO: add math.h erfc error function family
+    // double erfc(double x);
+    // float erfcf(float x);
+    // long double erfcl(long double x);
+    // Returns 1 - erf(x), calculated to preserve accuracy.
+    // Range error: sufficiently large positive x causes underflow.
+
+    // TODO: add math.h lgamma gamma function family
+    // double lgamma(double x);
+    // float lgammaf(float x);
+    // long double lgammal(long double x);
+    // Returns the natural logarithm of the absolute value
+    // of the gamma function of x.
+    // Pole error may occur when x is zero or a negative integer.
+    // Range error: sufficiently large x causes overflow.
+
+    // TODO: add math.h tgamma gamma function family
+    // double tgamma(double x);
+    // float tgammaf(float x);
+    // long double tgammal(long double x);
+    // Returns the gamma function of x.
+    // Domain or pole error may occur when x is zero or a negative integer.
+    // Range error: very large or very small |x| may cause
+    // overflow or underflow.
+
+    // TODO: add math.h cbrt root function family
+    // double cbrt(double x);
+    // float cbrtf(float x);
+    // long double cbrtl(long double x);
+    // Returns the real cube root of x.
+    // Negative finite inputs are permitted.
+
+    // TODO: add math.h hypot function family
+    // double hypot(double x, double y);
+    // float hypotf(float x, float y);
+    // long double hypotl(long double x, long double y);
+    // Returns sqrt(x*x + y*y), avoiding unnecessary
+    // intermediate overflow and underflow.
+    // Range error may occur if the result is too large to represent.
+
+    // TODO: add math.h pow power function family
+    // double pow(double x, double y);
+    // float powf(float x, float y);
+    // long double powl(long double x, long double y);
+    // Returns x raised to the power y.
+    // Domain error: negative finite x and finite noninteger y.
+    // Domain error may occur when x == 0 and y == 0.
+    // Domain or pole error may occur when x == 0 and y < 0.
+    // Range error: overflow or underflow may occur.
+
+    // TODO: many more math.h functions are missing!
+
+    if (BuiltinFunctions.isBuiltinFunction(functionName)) {
+      // TODO: this block needs to be sensibly refactored into dedicated methods!
+      CType functionType = BuiltinFunctions.getFunctionType(functionName);
+
+      // TODO: do we need this?!
+      if (isUnspecifiedType(functionType) && !functionName.equals("__builtin_alloca")) {
+        // unsupported formula
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                state,
+                "Returned unknown value due to unknown function "
+                    + functionName
+                    + " in expression in ",
+                cfaEdge));
+      }
+
+      List<CExpression> parameterExpressions = funCallExpr.getParameterExpressions();
+
+      if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+        // Evaluate all parameters to detect memsafety problems
+        SMGState currentState = state;
+        for (CExpression currParamExp : parameterExpressions) {
+          SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
+          List<ValueAndSMGState> newValuesAndStates =
+              vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
+          checkArgument(newValuesAndStates.size() == 1);
+          // CPA access has side effects! Always take the newest state!
+          currentState = newValuesAndStates.getFirst().getState();
+        }
+        // TODO: currently being worked on in a another MR. So don't touch this.
+
+        /*
+         * Problem: this method needs an AbstractExpressionValueVisitor as input (this)
+         * but this class is not correctly abstracted such that we can inherit it here
+         * (because it essentially is the same except for 1 method that would need to be
+         * abstract)
+         *
+         * return BuiltinOverflowFunctions.evaluateFunctionCall(
+         *   funCallExpr, this, machineModel, logger);
+         */
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown result of unhandled builtin function " + functionName + " ",
+                cfaEdge));
+
+      } else if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
+        return handleBuiltinFabsFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
+          || BuiltinFloatFunctions.matchesInfinity(functionName)) {
+
+        // TODO: check whether this matching wrongly matches other functions containing "inf"
+
+        // TODO: does this cover the entire function families or just those 2 below?
+        return handleBuiltinInfinityFunctionFamily(
+            functionName, parameterExpressions, state, machineModel);
+
+      } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
+        return handleBuiltinNanFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+        return handleBuiltinIsnanFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
+        return handleBuiltinIsinfFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIsInfinitySign(functionName)) {
+        return handleBuiltinIsinfSignFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
+        return handleBuiltinIsfiniteFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+        return handleBuiltinFloorFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
+        return handleBuiltinCeilFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
+        return handleBuiltinRoundFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesLround(functionName)) {
+        return handleBuiltinLroundFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesLlround(functionName)) {
+        return handleBuiltinLlroundFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
+        return handleBuiltinTruncFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
+        return handleBuiltinFdimFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
+        return handleBuiltinFmaxFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
+        return handleBuiltinFminFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
+        return handleBuiltinSignbitFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
+        return handleBuiltinCopysignFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
+        return handleBuiltinFpclassifyFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
+        return handleBuiltinModfFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
+        return handleBuiltinRemainderFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesFmod(functionName)) {
+        return handleBuiltinFmodFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
+        return handleBuiltinSqrtFunctionFamily(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
+        return handleBuiltinIsgreaterFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
+        return handleBuiltinIsgreaterequalFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
+        return handleBuiltinIslessFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
+        return handleBuiltinIslessequalFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
+        return handleBuiltinIslessgreaterFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+
+      } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
+        return handleBuiltinIsunorderedFunction(
+            functionName, parameterExpressions, state, cfaEdge, evaluator, machineModel, logger);
+      }
+    }
+
     return switch (functionName) {
       case "__builtin_popcount", "__builtin_popcountl", "__builtin_popcountll" ->
-          handlePopcount(functionName, state, funCallExpr, cfaEdge);
+          handlePopcount(
+              functionName, state, funCallExpr, cfaEdge, evaluator, machineModel, logger, options);
 
       case "alloca", "__builtin_alloca" -> evaluateAlloca(funCallExpr, state, cfaEdge);
 
@@ -1196,13 +1548,18 @@ public class SMGCPABuiltins {
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
 
-      case ASSUME_EXTERNAL_ALLOCATED -> {
+      case ASSUME_EXTERNALLY_ALLOCATED, ASSUME_EXTERNALLY_ALLOCATED_WARN -> {
         ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
         for (SMGState checkedState :
             checkAllParametersForValidity(state, cfaEdge, funCallExpr, functionName)) {
+          Level logLevel = Level.FINE;
+          if (options.getHandleUnknownFunctions() == ASSUME_EXTERNALLY_ALLOCATED_WARN) {
+            logLevel = Level.WARNING;
+          }
           logger.log(
-              Level.FINE,
-              "Returned unknown value with allocated memory for unknown function " + funCallExpr,
+              logLevel,
+              "Returned unknown value with potentially newly allocated memory for unknown function "
+                  + funCallExpr,
               cfaEdge);
           builder.addAll(
               evaluateExternalAllocationFunction(funCallExpr, checkedState, functionName));
@@ -3267,96 +3624,9 @@ public class SMGCPABuiltins {
 
   // TODO: strlen
 
-  /**
-   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
-   * sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int number
-   * given. Test C programs available at test/programs/simple/builtin_popcount*.c
-   */
-  private List<ValueAndSMGState> handlePopcount(
-      String pFunctionName, SMGState pState, CFunctionCallExpression functionCall, CFAEdge edge)
-      throws CPATransferException {
-
-    if (functionCall.getParameterExpressions().size() != 1) {
-      throw new UnrecognizedCodeException(
-          "Function "
-              + pFunctionName
-              + " received "
-              + functionCall.getParameterExpressions().size()
-              + " parameters"
-              + " instead of the expected "
-              + 1,
-          functionCall);
-    }
-
-    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
-    CSimpleType paramType = getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
-    assert functionCall.getExpressionType() instanceof CSimpleType simpleType
-        && simpleType.getCanonicalType().getType().isIntegerType()
-        && simpleType.getCanonicalType().hasSignedSpecifier();
-    assert paramType.hasUnsignedSpecifier();
-
-    // Cast to unsigned target type
-    for (ValueAndSMGState evaluatedParamAndState :
-        getFunctionParameterValue(0, functionCall, paramType, pState, edge)) {
-      Value castParamValue = evaluatedParamAndState.getValue();
-      SMGState currentState = evaluatedParamAndState.getState();
-
-      if (castParamValue instanceof NumericValue numCastParamValue) {
-        BigInteger numericParam = numCastParamValue.bigIntegerValue();
-
-        // Check that the cast function parameter is really unsigned, as defined by the function and
-        // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
-        // results
-        verify(
-            numericParam.signum() >= 0,
-            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
-                + " parameters only",
-            pFunctionName);
-
-        result.add(ValueAndSMGState.of(new NumericValue(numericParam.bitCount()), currentState));
-
-      } else if (options.trackPredicates() && !castParamValue.isUnknown()) {
-
-        checkArgument(castParamValue instanceof SymbolicExpression);
-
-        SymbolicExpression symbolicParam = (SymbolicExpression) castParamValue;
-        int parameterBitSize = machineModel.getSizeofInBits(paramType);
-
-        SymbolicExpression one =
-            ConstantSymbolicExpression.of(new NumericValue(1), CNumericTypes.INT);
-        SymbolicExpression constraint =
-            BinaryAndExpression.of(symbolicParam, one, CNumericTypes.INT, paramType);
-
-        // Add up the bits one by one
-        // (castParamValue >> 0) & 1 + (castParamValue >> 1) & 1 + ...
-        for (int i = 1; i < parameterBitSize; i++) {
-          SymbolicExpression countOfBitAtIndex =
-              BinaryAndExpression.of(
-                  ShiftRightExpression.ofUnsigned(
-                      symbolicParam,
-                      ConstantSymbolicExpression.of(new NumericValue(i), CNumericTypes.INT),
-                      paramType,
-                      paramType),
-                  one,
-                  CNumericTypes.INT,
-                  paramType);
-          constraint =
-              AdditionExpression.of(
-                  constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
-        }
-
-        result.add(ValueAndSMGState.of(constraint, currentState));
-      } else {
-
-        // TODO: we could associate a symbolic output with the input used to assure ==
-        currentState.logUnknownValue(
-            "Assumed unknown return value for function call to builtin popcountX() function in ",
-            edge);
-        result.add(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
-      }
-    }
-
-    return result.build();
+  private boolean isUnspecifiedType(CType pType) {
+    return pType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
   private static boolean isNumericZero(Value value) {

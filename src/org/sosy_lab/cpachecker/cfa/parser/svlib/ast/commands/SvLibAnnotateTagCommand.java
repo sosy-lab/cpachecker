@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
@@ -47,7 +48,7 @@ public final class SvLibAnnotateTagCommand implements SvLibCommand {
   @Override
   public String toASTString() {
     return "(annotate-tag "
-        + tagName
+        + SmtLibSymbols.quoteIfNeeded(tagName)
         + " "
         + Joiner.on(" ").join(FluentIterable.from(tags).transform(SvLibTagProperty::toASTString))
         + ")";

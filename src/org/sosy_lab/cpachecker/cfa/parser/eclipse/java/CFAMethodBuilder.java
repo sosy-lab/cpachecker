@@ -1392,141 +1392,144 @@ class CFAMethodBuilder extends ASTVisitor {
       boolean furtherThenComputation,
       boolean furtherElseComputation) {
 
-    if (condition instanceof JBinaryExpression jBinaryExpression
-        && (jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_AND)) {
-      CFANode innerNode = new CFANode(cfa.getFunction());
-      cfaNodes.add(innerNode);
-      buildConditionTree(
-          jBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          innerNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-      buildConditionTree(
-          jBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-
-    } else if (condition instanceof JBinaryExpression jBinaryExpression
-        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_OR) {
-      CFANode innerNode = new CFANode(cfa.getFunction());
-      cfaNodes.add(innerNode);
-      buildConditionTree(
-          jBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          thenNode,
-          innerNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-      buildConditionTree(
-          jBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-
-    } else if (condition instanceof JBinaryExpression jBinaryExpression
-        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_OR) {
-      CFANode innerNode = new CFANode(cfa.getFunction());
-      CFANode innerEagerNode = new CFANode(cfa.getFunction());
-      cfaNodes.add(innerNode);
-      cfaNodes.add(innerEagerNode);
-      buildConditionTree(
-          jBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          innerEagerNode,
-          innerNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-      buildConditionTree(
-          jBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-      buildConditionTree(
-          jBinaryExpression.getOperand2(),
-          fileLocation,
-          innerEagerNode,
-          thenNode,
-          thenNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-
-    } else if (condition instanceof JBinaryExpression jBinaryExpression
-        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_AND) {
-      CFANode innerNode = new CFANode(cfa.getFunction());
-      CFANode innerEagerNode = new CFANode(cfa.getFunction());
-      cfaNodes.add(innerNode);
-      cfaNodes.add(innerEagerNode);
-      buildConditionTree(
-          jBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          innerNode,
-          innerEagerNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-      buildConditionTree(
-          jBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-      buildConditionTree(
-          jBinaryExpression.getOperand2(),
-          fileLocation,
-          innerEagerNode,
-          elseNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true);
-
-    } else {
-      buildConditionTreeCondition(
-          condition,
-          fileLocation,
-          rootNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          furtherThenComputation,
-          furtherElseComputation);
+    switch (condition) {
+      case JBinaryExpression jBinaryExpression
+          when (jBinaryExpression.getOperator()
+              == JBinaryExpression.BinaryOperator.CONDITIONAL_AND) -> {
+        CFANode innerNode = new CFANode(cfa.getFunction());
+        cfaNodes.add(innerNode);
+        buildConditionTree(
+            jBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            innerNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+        buildConditionTree(
+            jBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+      }
+      case JBinaryExpression jBinaryExpression
+          when jBinaryExpression.getOperator()
+              == JBinaryExpression.BinaryOperator.CONDITIONAL_OR -> {
+        CFANode innerNode = new CFANode(cfa.getFunction());
+        cfaNodes.add(innerNode);
+        buildConditionTree(
+            jBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            thenNode,
+            innerNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+        buildConditionTree(
+            jBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+      }
+      case JBinaryExpression jBinaryExpression
+          when jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_OR -> {
+        CFANode innerNode = new CFANode(cfa.getFunction());
+        CFANode innerEagerNode = new CFANode(cfa.getFunction());
+        cfaNodes.add(innerNode);
+        cfaNodes.add(innerEagerNode);
+        buildConditionTree(
+            jBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            innerEagerNode,
+            innerNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+        buildConditionTree(
+            jBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+        buildConditionTree(
+            jBinaryExpression.getOperand2(),
+            fileLocation,
+            innerEagerNode,
+            thenNode,
+            thenNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+      }
+      case JBinaryExpression jBinaryExpression
+          when jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_AND -> {
+        CFANode innerNode = new CFANode(cfa.getFunction());
+        CFANode innerEagerNode = new CFANode(cfa.getFunction());
+        cfaNodes.add(innerNode);
+        cfaNodes.add(innerEagerNode);
+        buildConditionTree(
+            jBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            innerNode,
+            innerEagerNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+        buildConditionTree(
+            jBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+        buildConditionTree(
+            jBinaryExpression.getOperand2(),
+            fileLocation,
+            innerEagerNode,
+            elseNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true);
+      }
+      default ->
+          buildConditionTreeCondition(
+              condition,
+              fileLocation,
+              rootNode,
+              thenNode,
+              elseNode,
+              thenNodeForLastThen,
+              elseNodeForLastElse,
+              furtherThenComputation,
+              furtherElseComputation);
     }
   }
 

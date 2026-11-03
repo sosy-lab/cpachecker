@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -148,6 +147,29 @@ int main(void) {
 
   // 127 + 1 = 128, which is outside the destination range; overflow = 1.
   __VERIFIER_assert(addp_char_max_1 == 1);
+
+
+  long long int addp_ignored_ll;
+  int addp_int_max_1_ignored_wide;
+  addp_int_max_1_ignored_wide = __builtin_add_overflow_p(int_max, 1, addp_ignored_ll);
+
+  // The third argument's uninitialized value is ignored; its long long type makes the sum representable.
+  __VERIFIER_assert(addp_int_max_1_ignored_wide == 0);
+
+
+  int addp_int_max_1_ignored_int;
+  addp_int_max_1_ignored_int = __builtin_add_overflow_p(int_max, 1, (int)addp_ignored_ll);
+
+  // Casting the ignored third argument to int makes 2147483647 + 1 overflow.
+  __VERIFIER_assert(addp_int_max_1_ignored_int == 1);
+
+
+  int addp_wide_back_in_range;
+  addp_wide_back_in_range = __builtin_add_overflow_p(2147483648LL, -100, int_0);
+
+  // The first operand exceeds int, but 2147483648LL + -100 fits the third argument's type.
+  __VERIFIER_assert(addp_wide_back_in_range == 0);
+
   int subp_schar_min_0;
   subp_schar_min_0 = __builtin_sub_overflow_p(schar_min, 0, schar_0);
 
@@ -232,6 +254,20 @@ int main(void) {
 
   // -128 - 1 = -129, which is outside the destination range; overflow = 1.
   __VERIFIER_assert(subp_char_min_1 == 1);
+
+
+  int subp_int_min_1_wide;
+  subp_int_min_1_wide = __builtin_sub_overflow_p(int_min, 1, ll_0);
+
+  // -2147483648 - 1 fits the long long third argument's type.
+  __VERIFIER_assert(subp_int_min_1_wide == 0);
+
+
+  int subp_wide_back_in_range;
+  subp_wide_back_in_range = __builtin_sub_overflow_p(-2147483649LL, -100, int_0);
+
+  // The first operand is below int, but -2147483649LL - -100 fits the third argument's type.
+  __VERIFIER_assert(subp_wide_back_in_range == 0);
   int mulp_schar_max_1;
   mulp_schar_max_1 = __builtin_mul_overflow_p(schar_max, 1, schar_0);
 
@@ -317,6 +353,13 @@ int main(void) {
 
   // 127 * 2 = 254, which is outside the destination range; overflow = 1.
   __VERIFIER_assert(mulp_char_max_2 == 1);
+
+
+  int mulp_int_max_2_wide;
+  mulp_int_max_2_wide = __builtin_mul_overflow_p(int_max, 2, ll_0);
+
+  // 2147483647 * 2 fits the long long third argument's type.
+  __VERIFIER_assert(mulp_int_max_2_wide == 0);
 
 
   return 0;

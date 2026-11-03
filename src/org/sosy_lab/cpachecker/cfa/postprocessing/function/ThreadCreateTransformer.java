@@ -264,7 +264,15 @@ public class ThreadCreateTransformer {
     CType retType = fCall.getDeclaration().getType().getReturnType();
     CSimpleDeclaration decl =
         new CVariableDeclaration(
-            pFileLocation, false, CStorageClass.AUTO, retType, tmpName, tmpName, tmpName, null);
+            pFileLocation,
+            false,
+            CStorageClass.AUTO,
+            retType,
+            tmpName,
+            tmpName,
+            tmpName,
+            null,
+            /* pHasThreadLocalStorage= */ false);
     CIdExpression tmp = new CIdExpression(pFileLocation, decl);
 
     return new CExpressionAssignmentStatement(pFileLocation, left, tmp);

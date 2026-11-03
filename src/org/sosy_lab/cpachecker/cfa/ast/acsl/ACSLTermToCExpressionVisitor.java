@@ -164,7 +164,8 @@ public class ACSLTermToCExpressionVisitor
               boundIdentifier.getName(),
               boundIdentifier.getName(),
               boundIdentifier.getFunctionName() + "::" + boundIdentifier.getName(),
-              null);
+              null,
+              /* pHasThreadLocalStorage= */ false);
       result = new CIdExpression(FileLocation.DUMMY, declaration);
     }
     return result;

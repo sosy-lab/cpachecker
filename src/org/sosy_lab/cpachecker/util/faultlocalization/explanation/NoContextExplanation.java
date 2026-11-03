@@ -77,9 +77,8 @@ public class NoContextExplanation implements FaultExplanation {
         String functionName = ((CFunctionReturnEdge) pEdge).getFunctionEntry().getFunctionName();
         yield "The function " + functionName + "(...) may have an unwanted return value.";
       }
-      case CallToReturnEdge, BlankEdge -> {
-        yield "No proposal found for the statement: \"" + description + "\".";
-      }
+      case CallToReturnEdge, BlankEdge ->
+          "No proposal found for the statement: \"" + description + "\".";
     };
   }
 }

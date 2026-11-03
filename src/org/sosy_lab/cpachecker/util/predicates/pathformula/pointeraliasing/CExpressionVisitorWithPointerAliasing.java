@@ -704,9 +704,8 @@ class CExpressionVisitorWithPointerAliasing
             || functionName.equals("strcmp")
             || functionName.equals("strncmp")) {
           return handleCmpFunction(functionName, e);
-        }
 
-        if (functionName.equals("memcpy")
+        } else if (functionName.equals("memcpy")
             || functionName.equals("memmove")
             || functionName.equals("memset")) {
           if (!conv.options.enableMemoryAssignmentFunctions()) {
@@ -735,6 +734,12 @@ class CExpressionVisitorWithPointerAliasing
               dereference(resultExpression, resultExpression.accept(this));
           Formula destinationFormula = destinationAsAliasedLocation.getAddress();
           return Value.ofValue(destinationFormula);
+
+        } else if (functionName.equals("__VERIFIER_nondet_memory")) {
+          MemoryManipulationFunctionHandler memoryFunctionHandler =
+              new MemoryManipulationFunctionHandler(
+                  conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
+          memoryFunctionHandler.handleNondetMemoryAssignment(e);
         }
 
       } catch (InterruptedException exc) {

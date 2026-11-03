@@ -19,10 +19,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -44,14 +42,16 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 @Options(prefix = "witness.yamlexporter")
-public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
+public class ARGToCorrectnessWitnessV2 extends AbstractARGToCorrectnessWitness {
 
   @Option(
       secure = true,
@@ -183,18 +183,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
     }
   }
 
-  /**
-   * Export the given ARG to a witness file in YAML format. All versions of witnesses will be
-   * exported. It also prints output information to the user explaining what guarantees are provided
-   * by the witness.
-   *
-   * @param pRootState The root state of the ARG.
-   * @param pOutputFileTemplate The template for the output file. The template will be used to
-   *     generate unique names for each witness version by replacing the string '%s' with the
-   *     version.
-   * @throws InterruptedException If the witness export was interrupted.
-   * @throws IOException If the witness could not be written to the file.
-   */
+  @Override
   public void export(
       ARGState pRootState, UnmodifiableReachedSet pReachedSet, PathTemplate pOutputFileTemplate)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
@@ -268,11 +257,15 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
   }
 
   private ExpressionTreeResult getOverapproximationOfStatesIgnoringReturnVariables(
-      Collection<ARGState> argStates, CFANode node, boolean useOldKeywordForVariables)
+      Collection<ARGState> argStates,
+      CFANode node,
+      Set<CFANode> pLocationsBehindCutOff,
+      boolean useOldKeywordForVariables)
       throws InterruptedException, ReportingMethodNotImplementedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
     return getOverapproximationOfStates(
         argStates,
+        pLocationsBehindCutOff,
         (ExpressionTreeReportingState x) ->
             x.getFormulaApproximationInputProgramInScopeVariables(
                 entryNode,
@@ -283,7 +276,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
   }
 
   private ExpressionTreeResult getOverapproximationOfStatesWithOnlyReturnVariables(
-      Collection<ARGState> argStates, CFANode node)
+      Collection<ARGState> argStates, CFANode node, Set<CFANode> pLocationsBehindCutOff)
       throws InterruptedException, ReportingMethodNotImplementedException {
     AIdExpression returnVariable;
     if (node.getFunction().getType().getReturnType() instanceof CType cType) {
@@ -301,7 +294,8 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
                   "\\result",
                   "\\result",
                   node.getFunctionName() + "::\\result",
-                  null));
+                  null,
+                  /* pHasThreadLocalStorage= */ false));
     } else {
       // Currently, we do not export witnesses for other programming languages than C, therefore
       // everything else is currently not supported.
@@ -311,6 +305,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
     return getOverapproximationOfStates(
         argStates,
+        pLocationsBehindCutOff,
         (ExpressionTreeReportingState x) ->
             x.getFormulaApproximationFunctionReturnVariableOnly(
                 entryNode, returnVariable, cfa.getMachineModel()));
@@ -321,51 +316,42 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
    * the node.
    *
    * @param pArgStates the ARG states encoding abstractions of the state
+   * @param pLocationsBehindCutOff the locations at which the analysis may have missed states
    * @return an over approximation of the abstraction at the state
    * @throws InterruptedException if the call to this function is interrupted
    */
   private ExpressionTreeResult getOverapproximationOfStates(
       Collection<ARGState> pArgStates,
+      Set<CFANode> pLocationsBehindCutOff,
       NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
           pStateToAbstraction)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    FluentIterable<ExpressionTreeReportingState> reportingStates =
-        FluentIterable.from(pArgStates)
-            .transformAndConcat(AbstractStates::asIterable)
-            .filter(ExpressionTreeReportingState.class);
-    List<List<ExpressionTreeResult>> expressionsPerClass = new ArrayList<>();
+    ImmutableList.Builder<ExpressionTree<Object>> expressionPerState = ImmutableList.builder();
+    boolean backTranslationSuccessful = true;
 
-    for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
-      List<ExpressionTreeResult> expressionsMatchingClass = new ArrayList<>();
-      for (ExpressionTreeReportingState state : reportingStates) {
-        if (stateClass.isAssignableFrom(state.getClass())) {
-          ExpressionTreeResult expressionTreeResult;
-          try {
-            expressionTreeResult = new ExpressionTreeResult(pStateToAbstraction.apply(state), true);
-          } catch (TranslationToExpressionTreeFailedException e) {
-            logger.logDebugException(e, "Could not translate state to expression tree");
-            expressionTreeResult = new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
-          }
-          expressionsMatchingClass.add(expressionTreeResult);
+    if (AbstractStates.extractLocations(pArgStates).anyMatch(pLocationsBehindCutOff::contains)) {
+      // A path that can reach this location was cut off, so its states here are incomplete.
+      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
+    }
+    for (ARGState argState : pArgStates) {
+      ImmutableList.Builder<ExpressionTree<Object>> describeState = ImmutableList.builder();
+      for (ExpressionTreeReportingState state :
+          AbstractStates.asIterable(argState).filter(ExpressionTreeReportingState.class)) {
+        ExpressionTree<Object> expression;
+        try {
+          expression = pStateToAbstraction.apply(state);
+        } catch (TranslationToExpressionTreeFailedException e) {
+          logger.logDebugException(e, "Could not translate state to expression tree");
+          expression = ExpressionTrees.getTrue();
+          backTranslationSuccessful = false;
         }
+        describeState.add(expression);
       }
-      expressionsPerClass.add(expressionsMatchingClass);
+
+      expressionPerState.add(And.of(describeState.build()));
     }
 
-    ExpressionTree<Object> overapproximationOfState =
-        And.of(
-            FluentIterable.from(expressionsPerClass)
-                .transform(
-                    elementsForClass ->
-                        FluentIterable.from(elementsForClass)
-                            .transform(ExpressionTreeResult::expressionTree))
-                .transform(Or::of));
-    boolean backTranslationSuccessful =
-        expressionsPerClass.stream()
-            .allMatch(
-                elementsForClass ->
-                    elementsForClass.stream()
-                        .allMatch(ExpressionTreeResult::backTranslationSuccessful));
+    ExpressionTree<Object> overapproximationOfState = Or.of(expressionPerState.build());
 
     // Filter out CPAchecker internal variables from the over-approximation of the states
     // This transformation is NOT correct for all possible cases, since if multiple internal
@@ -425,6 +411,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
   CollectedInvariants createInvariantEntries(ARGState pRootState, Set<WitnessInvariantType> pTypes)
       throws InterruptedException, ReportingMethodNotImplementedException {
     CollectedARGStates statesCollector = argStatesCollector.getRelevantStates(pRootState);
+    ImmutableSet<CFANode> locationsBehindCutOff = locationsBehindCutOff(pRootState);
 
     ImmutableListMultimap.Builder<WitnessInvariantType, AbstractInvariantEntry> entries =
         ImmutableListMultimap.builder();
@@ -434,6 +421,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       collectInvariants(
           statesCollector.loopInvariants(),
           InvariantRecordType.LOOP_INVARIANT,
+          locationsBehindCutOff,
           entries,
           typesWithFailedTranslation);
     }
@@ -442,6 +430,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       collectInvariants(
           statesCollector.functionCallInvariants(),
           InvariantRecordType.LOCATION_INVARIANT,
+          locationsBehindCutOff,
           entries,
           typesWithFailedTranslation);
     }
@@ -450,7 +439,8 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       ImmutableList<FunctionContractCreationResult> contracts =
           createFunctionContracts(
               statesCollector.functionContractRequires(),
-              statesCollector.functionContractEnsures());
+              statesCollector.functionContractEnsures(),
+              locationsBehindCutOff);
       entries.putAll(
           WitnessInvariantType.FUNCTION_CONTRACT,
           FluentIterable.from(contracts)
@@ -470,6 +460,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
    *
    * @param pStates the ARG states to over approximate, per node
    * @param pType the type of the invariants to create
+   * @param pLocationsBehindCutOff the locations at which the analysis may have missed states
    * @param pEntries where to add the created invariants
    * @param pTypesWithFailedTranslation where to note the type if a translation was not successful
    * @throws InterruptedException if the execution is interrupted
@@ -477,6 +468,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
   private void collectInvariants(
       Multimap<CFANode, ARGState> pStates,
       InvariantRecordType pType,
+      Set<CFANode> pLocationsBehindCutOff,
       ImmutableListMultimap.Builder<WitnessInvariantType, AbstractInvariantEntry> pEntries,
       ImmutableSet.Builder<WitnessInvariantType> pTypesWithFailedTranslation)
       throws InterruptedException, ReportingMethodNotImplementedException {
@@ -493,7 +485,8 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
         continue;
       }
       InvariantCreationResult invariant =
-          createInvariant(pStates.get(node), node, pType, location.orElseThrow());
+          createInvariant(
+              pStates.get(node), node, pType, location.orElseThrow(), pLocationsBehindCutOff);
       pEntries.put(invariantType, invariant.invariantEntry());
       translationSuccessful &= invariant.translationSuccessful();
     }
@@ -503,8 +496,26 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
   }
 
   /**
+   * The locations of the states at which the analysis stopped, e.g., at the loop bound of BMC, and
+   * all locations reachable from them in the CFA.
+   */
+  private static ImmutableSet<CFANode> locationsBehindCutOff(ARGState pRootState) {
+    NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
+    for (ARGState state : pRootState.getSubgraph()) {
+      if (AbstractStates.asIterable(state)
+          .filter(AssumptionStorageState.class)
+          .anyMatch(AssumptionStorageState::isStop)) {
+        for (CFANode location : AbstractStates.extractLocations(state)) {
+          CFATraversal.dfs().traverse(location, visitor);
+        }
+      }
+    }
+    return ImmutableSet.copyOf(visitor.getVisitedNodes());
+  }
+
+  /**
    * The location in the input program an invariant of the given type at the given node belongs to.
-   * A loop invariant belongs to its loop, a location invariant to the statement containing the
+   * A loop invariant belongs to its loop, a location invariant to the statement that starts at the
    * node, which is also the statement the validator resolves such an invariant to.
    */
   private Optional<FileLocation> locationOfInvariant(CFANode pNode, InvariantRecordType pType) {
@@ -512,8 +523,14 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       case LOOP_INVARIANT ->
           getASTStructure()
               .getTightestIterationStructureForNode(pNode)
+              // The validator checks the invariant at the head of this loop, which must be the node
+              .filter(
+                  iteration ->
+                      cfa.getLoopStructure()
+                          .flatMap(iteration::getLoopHead)
+                          .equals(Optional.of(pNode)))
               .map(iteration -> iteration.getCompleteElement().location());
-      case LOCATION_INVARIANT -> getASTStructure().getStatementFileLocationForNode(pNode);
+      case LOCATION_INVARIANT -> getASTStructure().getStatementStartingAtNode(pNode);
       default -> throw new AssertionError("Cannot export invariants of type " + pType);
     };
   }
@@ -525,6 +542,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
    * @param pNode the node at whose location the states should be over approximated
    * @param pType the type of the invariant
    * @param pLocation the location in the input program the invariant belongs to
+   * @param pLocationsBehindCutOff the locations at which the analysis may have missed states
    * @return an invariant over approximating the abstraction at the state
    * @throws InterruptedException if the execution is interrupted
    */
@@ -532,13 +550,14 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       Collection<ARGState> pArgStates,
       CFANode pNode,
       InvariantRecordType pType,
-      FileLocation pLocation)
+      FileLocation pLocation,
+      Set<CFANode> pLocationsBehindCutOff)
       throws InterruptedException, ReportingMethodNotImplementedException {
     // TODO: The original name of the variables should be used here. This requires a visitor to
     // rename them
     ExpressionTreeResult invariantResult =
         getOverapproximationOfStatesIgnoringReturnVariables(
-            pArgStates, pNode, /* useOldKeywordForVariables= */ false);
+            pArgStates, pNode, pLocationsBehindCutOff, /* useOldKeywordForVariables= */ false);
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
             pLocation,
@@ -561,13 +580,15 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
    *     abstractions at that location
    * @param pFunctionContractEnsures a mapping from function exit nodes to ARG states encoding the
    *     abstractions at that location
+   * @param pLocationsBehindCutOff the locations at which the analysis may have missed states
    * @return a list of function contracts, one for each of the functions whose entry nodes have been
    *     given
    * @throws InterruptedException if the execution is interrupted
    */
   private ImmutableList<FunctionContractCreationResult> createFunctionContracts(
       Multimap<FunctionEntryNode, ARGState> pFunctionContractRequires,
-      Multimap<FunctionExitNode, FunctionEntryExitPair> pFunctionContractEnsures)
+      Multimap<FunctionExitNode, FunctionEntryExitPair> pFunctionContractEnsures,
+      Set<CFANode> pLocationsBehindCutOff)
       throws InterruptedException, ReportingMethodNotImplementedException {
     ImmutableList.Builder<FunctionContractCreationResult> functionContractRecords =
         new ImmutableList.Builder<>();
@@ -579,7 +600,10 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       FileLocation location = functionEntryNode.getFileLocation();
       ExpressionTreeResult requiresClauseResult =
           getOverapproximationOfStatesIgnoringReturnVariables(
-              requiresArgStates, functionEntryNode, /* useOldKeywordForVariables= */ false);
+              requiresArgStates,
+              functionEntryNode,
+              pLocationsBehindCutOff,
+              /* useOldKeywordForVariables= */ false);
       String requiresClause = requiresClauseResult.expressionTree().toString();
       translationSuccessful &= requiresClauseResult.backTranslationSuccessful();
 
@@ -594,6 +618,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
               getOverapproximationOfStatesIgnoringReturnVariables(
                   ImmutableSet.of(pair.entry()),
                   functionEntryNode,
+                  pLocationsBehindCutOff,
                   // we need to use the old keyword to reference the variables in the input.
                   /* useOldKeywordForVariables= */ true);
 
@@ -603,7 +628,7 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
           // Get the state of the output of the function
           ExpressionTreeResult stateOfTheOutputResult =
               getOverapproximationOfStatesWithOnlyReturnVariables(
-                  ImmutableSet.of(pair.exit()), functionEntryNode);
+                  ImmutableSet.of(pair.exit()), functionEntryNode, pLocationsBehindCutOff);
           String stateOfTheOutput = stateOfTheOutputResult.expressionTree().toString();
           translationSuccessful &= stateOfTheOutputResult.backTranslationSuccessful();
 

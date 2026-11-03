@@ -438,7 +438,7 @@ final class VariableAndFieldRelevancyComputer {
             + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
     // Currently, we don't pay attention to possible qualifiers (e.g., const/volatile)
-    return compositeType.withoutQualifiers();
+    return compositeType.asUnqualified();
   }
 
   public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)

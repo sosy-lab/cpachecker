@@ -77,7 +77,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
         new DeserializeCallstackStateOperator(pCallstackCPA, pBlockNode, pIdToNodeMap::get);
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
-            callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
+            callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA, serialize);
     coverageOperator = new CallstackStateCoverageOperator();
     combinePreconditionsOperator =
         new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
@@ -162,7 +162,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
           block.getInitialLocation(),
           canBeTopState(pAbstractState));
     }
-    return pAbstractState;
+    return pAbstractState instanceof DssCallstackState state ? state.reset() : pAbstractState;
   }
 
   /** Whether the given state stems from a block analysis that does not know its callstack. */

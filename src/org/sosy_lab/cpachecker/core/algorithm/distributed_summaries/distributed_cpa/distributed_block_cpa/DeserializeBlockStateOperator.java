@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 /**
  * Reverses the serialization performed by {@link SerializeBlockStateOperator}; see there for the
@@ -57,12 +57,12 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   }
 
   public record ParseResult(
-      String id, String serializedBlockState, SegmentedPaths witness, BlockGraphPath history) {
+      String id, String serializedBlockState, DecisionGraph witness, BlockGraphPath history) {
     public static ParseResult fromPayload(DssBlockStatePayload pPayload) {
       return new ParseResult(
           pPayload.uid(),
           pPayload.blockId(),
-          SegmentedPaths.deserialize(pPayload.witness()),
+          DecisionGraph.deserialize(pPayload.witness()),
           BlockGraphPath.of(pPayload.history()));
     }
   }

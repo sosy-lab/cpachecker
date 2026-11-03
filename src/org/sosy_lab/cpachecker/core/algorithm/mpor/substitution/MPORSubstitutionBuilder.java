@@ -365,7 +365,7 @@ public record MPORSubstitutionBuilder(
           String substituteName =
               SeqNameUtil.buildStartRoutineArgName(
                   options,
-                  parameterDeclaration,
+                  parameterDeclaration.getName(),
                   pCreatedThread.id(),
                   startRoutineDeclaration.getOrigName());
           CVariableDeclaration substituteParameterDeclaration =
@@ -536,9 +536,10 @@ public record MPORSubstitutionBuilder(
         pOriginal.getCStorageClass(),
         pOriginal.getType(),
         pName,
-        pOriginal.getOrigName(),
-        pOriginal.getQualifiedName(),
-        pOriginal.getInitializer());
+        pName,
+        pName,
+        pOriginal.getInitializer(),
+        pOriginal.hasThreadLocalStorage());
   }
 
   /**
@@ -557,7 +558,8 @@ public record MPORSubstitutionBuilder(
         pOriginal.getName(),
         pOriginal.getOrigName(),
         pOriginal.getQualifiedName(),
-        pInitializerExpression);
+        pInitializerExpression,
+        pOriginal.hasThreadLocalStorage());
   }
 
   /**
@@ -577,6 +579,7 @@ public record MPORSubstitutionBuilder(
         pName,
         pOriginal.getOrigName(),
         pOriginal.getQualifiedName(),
-        pInitializerExpression);
+        pInitializerExpression,
+        /* pHasThreadLocalStorage= */ false);
   }
 }

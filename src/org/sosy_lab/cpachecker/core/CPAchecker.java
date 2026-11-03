@@ -464,21 +464,18 @@ public class CPAchecker {
   }
 
   private static void logErrorMessage(Exception e, LogManager pLogger) {
-    if (e instanceof IOException) {
-      pLogger.logUserException(Level.SEVERE, e, "Could not read file");
-    } else if (e instanceof InvalidConfigurationException) {
-      pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
-    } else if (e instanceof ParserException parserException) {
-      handleParserException(parserException, pLogger);
-    } else if (e instanceof InterruptedException) {
-      // CPAchecker must exit because it was asked to
-      // we return normally instead of propagating the exception
-      // so we can return the partial result we have so far
-      pLogger.logUserException(Level.WARNING, e, "Analysis interrupted");
-    } else if (e instanceof CPAException) {
-      pLogger.logUserException(Level.SEVERE, e, null);
-    } else {
-      throw new AssertionError("unexpected exception type", e);
+    switch (e) {
+      case IOException unused -> pLogger.logUserException(Level.SEVERE, e, "Could not read file");
+      case InvalidConfigurationException unused ->
+          pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
+      case ParserException parserException -> handleParserException(parserException, pLogger);
+      case InterruptedException unused ->
+          // CPAchecker must exit because it was asked to
+          // we return normally instead of propagating the exception
+          // so we can return the partial result we have so far
+          pLogger.logUserException(Level.WARNING, e, "Analysis interrupted");
+      case CPAException unused -> pLogger.logUserException(Level.SEVERE, e, null);
+      default -> throw new AssertionError("unexpected exception type", e);
     }
   }
 
