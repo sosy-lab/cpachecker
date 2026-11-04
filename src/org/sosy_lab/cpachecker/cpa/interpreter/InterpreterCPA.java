@@ -85,17 +85,6 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
               + " ARG, e.g., for exporting counterexamples).")
   private int stepsPerTransfer = -1;
 
-  @Option(
-      secure = true,
-      description =
-          "Restore the values of the local variables of a caller when a recursive function call"
-              + " returns. A value analysis identifies local variables by the name of their"
-              + " function, so all invocations of a function share the same memory locations and a"
-              + " recursive call overwrites the variables of its caller. This option lets"
-              + " InterpreterCPA remember and restore those values, such that recursive programs"
-              + " can be executed precisely. The value analysis itself is not changed by this.")
-  private boolean restoreCallerValuesOnRecursion = true;
-
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
   private final InterpreterStatistics stats = new InterpreterStatistics();
@@ -146,8 +135,7 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
         witnessExporter,
         sampler,
         valueTransferOptions,
-        stepsPerTransfer,
-        restoreCallerValuesOnRecursion);
+        stepsPerTransfer);
   }
 
   @Override

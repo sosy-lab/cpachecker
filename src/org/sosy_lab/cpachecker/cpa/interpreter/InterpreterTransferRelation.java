@@ -64,7 +64,6 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   private final @Nullable ValueTransferOptions valueTransferOptions;
   private final boolean collectInvariants;
   private final int stepsPerTransfer;
-  private final boolean restoreCallerValues;
 
   InterpreterTransferRelation(
       TransferRelation pWrapped,
@@ -74,8 +73,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       InterpreterWitnessExporter pWitnessExporter,
       InterpreterSampler pSampler,
       @Nullable ValueTransferOptions pValueTransferOptions,
-      int pStepsPerTransfer,
-      boolean pRestoreCallerValues) {
+      int pStepsPerTransfer) {
     super(pWrapped);
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
@@ -85,7 +83,6 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     valueTransferOptions = pValueTransferOptions;
     collectInvariants = pWitnessExporter.collectsInvariants();
     stepsPerTransfer = pStepsPerTransfer;
-    restoreCallerValues = pRestoreCallerValues;
   }
 
   @Override
@@ -370,9 +367,6 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   private ImmutableMap<MemoryLocation, ValueAndType> getShadowedValues(
       AbstractState pCallerState, FunctionEntryNode pEntryNode) {
 
-    if (!restoreCallerValues) {
-      return ImmutableMap.of();
-    }
     ValueAnalysisState valueState =
         AbstractStates.extractStateByType(pCallerState, ValueAnalysisState.class);
     if (valueState == null) {

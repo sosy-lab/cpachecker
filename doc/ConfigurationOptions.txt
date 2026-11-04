@@ -2301,15 +2301,6 @@ cpa.interpreter.maxAssignmentsPerLocation = 100
 # inputs in a loop would need. Use -1 for no limit.
 cpa.interpreter.maxSamples = 1000
 
-# Restore the values of the local variables of a caller when a recursive
-# function call returns. A value analysis identifies local variables by the
-# name of their function, so all invocations of a function share the same
-# memory locations and a recursive call overwrites the variables of its
-# caller. This option lets InterpreterCPA remember and restore those values,
-# such that recursive programs can be executed precisely. The value analysis
-# itself is not changed by this.
-cpa.interpreter.restoreCallerValuesOnRecursion = true
-
 # Execute programs with inputs by asking the SMT solver for one assignment of
 # the inputs instead of aborting on the first nondeterministic choice. This
 # needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
