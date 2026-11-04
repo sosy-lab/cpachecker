@@ -444,8 +444,9 @@ class CFABuilder extends ASTVisitor {
             // key was added more than once, since this would be a bug
             cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
             cfaNodeToAstParametersInScope.buildOrThrow(),
-            cfaNodeToVisibleLocalVariables.buildOrThrow(),
-            cfaNodeToVisibleParameters.buildOrThrow());
+            // A node gets new ones when variables go out of scope at it
+            cfaNodeToVisibleLocalVariables.buildKeepingLast(),
+            cfaNodeToVisibleParameters.buildKeepingLast());
 
     return result;
   }

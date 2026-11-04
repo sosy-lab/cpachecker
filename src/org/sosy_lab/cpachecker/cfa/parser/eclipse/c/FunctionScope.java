@@ -87,9 +87,8 @@ class FunctionScope extends AbstractScope {
   //     // both: parameter x, variable y
   //   }
   //
-  // AstCfaRelationBuilder uses them, so that it does not have to remove the hidden declarations
-  // for each CFA node. While no local variable is hidden, the sets of local variables below are
-  // the same instances as above, so they need no additional memory.
+  // The CFA builder records them for each CFA node. While no local variable is hidden, the sets of
+  // local variables below are the same instances as above, so they need no additional memory.
   private final Deque<PersistentSet<AVariableDeclaration>> visibleLocalVarsStack =
       new ArrayDeque<>();
   private final Deque<ImmutableSet<AParameterDeclaration>> visibleParametersStack =
@@ -259,6 +258,16 @@ class FunctionScope extends AbstractScope {
    */
   public ImmutableSet<AParameterDeclaration> getVisibleParameters() {
     return visibleParametersStack.peekLast();
+  }
+
+  /** Like {@link #getVisibleVariablesInScope}, but for the block around the current block. */
+  public Set<AVariableDeclaration> getVisibleVariablesOfEnclosingBlock() {
+    return Iterables.get(visibleLocalVarsStack::descendingIterator, 1);
+  }
+
+  /** Like {@link #getVisibleParameters}, but for the block around the current block. */
+  public ImmutableSet<AParameterDeclaration> getVisibleParametersOfEnclosingBlock() {
+    return Iterables.get(visibleParametersStack::descendingIterator, 1);
   }
 
   /**
