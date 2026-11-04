@@ -785,18 +785,17 @@ final class OcEncoder {
     for (MemoryEvent event : events) {
       BooleanFormula executed = getFullGuard(event);
       constraints.add(bfmgr.implication(executed, enabledGuards.get(event)));
-      ImmutableSet<Integer> predecessorIds = predecessors.get(event.id());
-      if (predecessorIds.isEmpty()) {
-        if (event.instanceId() != ThreadInstance.MAIN_INSTANCE_ID) {
-          List<BooleanFormula> creates = new ArrayList<>();
-          for (int createEventId :
-              registry.getInstances().get(event.instanceId()).getCreateEventIds()) {
-            creates.add(getFullGuard(registry.getEvent(createEventId)));
-          }
-          constraints.add(bfmgr.implication(executed, bfmgr.or(creates)));
+      // required of every event, not only of those without predecessors: the predecessors of a
+      // thread's first executed event may all lie on branches that were not taken
+      if (event.instanceId() != ThreadInstance.MAIN_INSTANCE_ID) {
+        List<BooleanFormula> creates = new ArrayList<>();
+        for (int createEventId :
+            registry.getInstances().get(event.instanceId()).getCreateEventIds()) {
+          creates.add(getFullGuard(registry.getEvent(createEventId)));
         }
+        constraints.add(bfmgr.implication(executed, bfmgr.or(creates)));
       }
-      for (int predecessorId : predecessorIds) {
+      for (int predecessorId : predecessors.get(event.id())) {
         MemoryEvent predecessor = registry.getEvent(predecessorId);
         // after a branch merge only the predecessor on the taken path is enabled
         constraints.add(
