@@ -102,9 +102,6 @@ class InterpreterSampler {
    */
   private final ImmutableMap<CFANode, Integer> distanceToInterestingLocation;
 
-  /** Whether the program reads its inputs outside of all loops. */
-  private final boolean inputsOutsideLoops;
-
   private int samples = 0;
 
   InterpreterSampler(
@@ -119,8 +116,7 @@ class InterpreterSampler {
     stats = pStats;
     if (sampleNondeterministicValues) {
       distanceToInterestingLocation = computeDistances(pCfa);
-      inputsOutsideLoops = checkInputsOutsideLoops(pCfa);
-      if (!inputsOutsideLoops) {
+      if (isAnyInputInsideLoop(pCfa)) {
         logger.log(
             Level.WARNING,
             "The program reads an input inside a loop, so the number of inputs is not bounded by"
@@ -130,7 +126,6 @@ class InterpreterSampler {
       }
     } else {
       distanceToInterestingLocation = ImmutableMap.of();
-      inputsOutsideLoops = false;
     }
   }
 
@@ -284,13 +279,13 @@ class InterpreterSampler {
   }
 
   /**
-   * Whether all calls that may return a nondeterministic value are outside of every loop. Only then
-   * is the number of inputs of the program bounded, and one assignment per input is enough.
+   * Whether a call that may return a nondeterministic value is inside a loop. Only if none is, the
+   * number of inputs of the program is bounded and one assignment per input is enough.
    */
-  private boolean checkInputsOutsideLoops(CFA pCfa) {
+  private boolean isAnyInputInsideLoop(CFA pCfa) {
     Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
     if (loopStructure.isEmpty()) {
-      return true;
+      return false;
     }
     ImmutableSet<CFANode> loopNodes =
         loopStructure.orElseThrow().getAllLoops().stream()
@@ -304,10 +299,10 @@ class InterpreterSampler {
             "The call in line",
             edge.getFileLocation().getStartingLineInOrigin(),
             "may return a nondeterministic value and is inside a loop.");
-        return false;
+        return true;
       }
     }
-    return true;
+    return false;
   }
 
   /**
