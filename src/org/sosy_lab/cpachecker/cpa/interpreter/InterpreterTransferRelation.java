@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -72,7 +71,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   InterpreterTransferRelation(
       TransferRelation pWrapped,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger,
+      LogManagerWithoutDuplicates pLogger,
       InterpreterStatistics pStats,
       InterpreterWitnessExporter pWitnessExporter,
       InterpreterSampler pSampler,
@@ -81,7 +80,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       boolean pRestoreCallerValues) {
     super(pWrapped);
     shutdownNotifier = pShutdownNotifier;
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
     stats = pStats;
     witnessExporter = pWitnessExporter;
     sampler = pSampler;
