@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
+import static com.google.common.base.Verify.verifyNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -60,7 +62,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   private final LogManagerWithoutDuplicates logger;
   private final InterpreterStatistics stats;
   private final InterpreterWitnessExporter witnessExporter;
-  private final InterpreterSampler sampler;
+  private final @Nullable InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
   private final boolean collectInvariants;
   private final int stepsPerTransfer;
@@ -71,7 +73,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       LogManagerWithoutDuplicates pLogger,
       InterpreterStatistics pStats,
       InterpreterWitnessExporter pWitnessExporter,
-      InterpreterSampler pSampler,
+      @Nullable InterpreterSampler pSampler,
       @Nullable ValueTransferOptions pValueTransferOptions,
       int pStepsPerTransfer) {
     super(pWrapped);
@@ -140,7 +142,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
             callStack,
             locationState,
             pPrecision,
-            /* pAllowSeveralSuccessors= */ sampler.isEnabled());
+            /* pAllowSeveralSuccessors= */ sampler != null);
 
     if (steps.size() > 1) {
       // The execution depends on an input of the program. Choose values for the inputs and
@@ -214,6 +216,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
    */
   private AbstractState sampleInputs(AbstractState pState, List<InterpreterStep> pSteps)
       throws UnsupportedCodeException {
+    verifyNotNull(sampler, "there is more than one successor only if the inputs are sampled");
     AbstractState sampledState = sampler.sample(pState, pSteps);
     if (sampledState == null) {
       throw nondeterminismException(pSteps.getFirst().edge(), pSteps.get(1).edge());

@@ -85,11 +85,21 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
               + " ARG, e.g., for exporting counterexamples).")
   private int stepsPerTransfer = -1;
 
+  @Option(
+      secure = true,
+      description =
+          "Execute programs with inputs by asking the SMT solver for one assignment of the inputs"
+              + " instead of aborting on the first nondeterministic choice. This needs symbolic"
+              + " values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC) and the ConstraintsCPA"
+              + " in the CPA configuration. Only one of the possible executions is explored, so"
+              + " the analysis can then only report FALSE, never TRUE.")
+  private boolean sampleNondeterministicValues = false;
+
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
   private final InterpreterStatistics stats = new InterpreterStatistics();
   private final InterpreterWitnessExporter witnessExporter;
-  private final InterpreterSampler sampler;
+  private final @Nullable InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
 
   public static CPAFactory factory() {
@@ -114,7 +124,10 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, logger, pCpa);
-    sampler = new InterpreterSampler(pConfig, pCfa, logger, stats);
+    sampler =
+        sampleNondeterministicValues
+            ? new InterpreterSampler(pConfig, pCfa, logger, stats)
+            : null;
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();
   }

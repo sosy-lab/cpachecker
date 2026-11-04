@@ -68,20 +68,12 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  * <p>This explores one of the possible executions of the program, so a violation that is found is a
  * real one, but the absence of a violation does not prove anything: an analysis that samples must
  * never report TRUE.
+ *
+ * <p>An instance of this class exists only if sampling is enabled, cf. {@code
+ * cpa.interpreter.sampleNondeterministicValues}.
  */
 @Options(prefix = "cpa.interpreter")
 class InterpreterSampler {
-
-  @Option(
-      secure = true,
-      name = "sampleNondeterministicValues",
-      description =
-          "Execute programs with inputs by asking the SMT solver for one assignment of the inputs"
-              + " instead of aborting on the first nondeterministic choice. This needs symbolic"
-              + " values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC) and the ConstraintsCPA"
-              + " in the CPA configuration. Only one of the possible executions is explored, so"
-              + " the analysis can then only report FALSE, never TRUE.")
-  private boolean sampleNondeterministicValues = false;
 
   @Option(
       secure = true,
@@ -115,23 +107,15 @@ class InterpreterSampler {
     logger = pLogger;
     machineModel = pCfa.getMachineModel();
     stats = pStats;
-    if (sampleNondeterministicValues) {
-      distanceToInterestingLocation = computeDistances(pCfa);
-      if (isAnyInputInsideLoop(pCfa)) {
-        logger.log(
-            Level.WARNING,
-            "The program reads an input inside a loop, so the number of inputs is not bounded by"
-                + " the program. InterpreterCPA samples the inputs anyway, but at most",
-            maxSamples,
-            "times.");
-      }
-    } else {
-      distanceToInterestingLocation = ImmutableMap.of();
+    distanceToInterestingLocation = computeDistances(pCfa);
+    if (isAnyInputInsideLoop(pCfa)) {
+      logger.log(
+          Level.WARNING,
+          "The program reads an input inside a loop, so the number of inputs is not bounded by"
+              + " the program. InterpreterCPA samples the inputs anyway, but at most",
+          maxSamples,
+          "times.");
     }
-  }
-
-  boolean isEnabled() {
-    return sampleNondeterministicValues;
   }
 
   /**
