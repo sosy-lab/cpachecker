@@ -31,6 +31,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * remembers the values that a recursive call is about to overwrite, so that {@link
  * InterpreterTransferRelation} can restore them when the call returns. Only this CPA does so, the
  * value analysis itself is not affected.
+ *
+ * <p>The status records whether ignored external calls have made the execution unsound or
+ * imprecise. A target state may be reported only if the execution is still precise, and
+ * termination without a target state proves safety only if it is still sound; otherwise the
+ * analysis aborts with an exception and reports {@code UNKNOWN}.
  */
 public class InterpreterState extends AbstractSingleWrapperState {
 

@@ -52,10 +52,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * aborts with an {@link org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException} and the result
  * is {@code UNKNOWN}.
  *
- * <p>The state tracks whether ignored external calls have made the execution unsound or imprecise.
- * A target state is reported only if the execution is still precise, and termination without a
- * target state proves safety only if the execution is still sound. Otherwise the analysis aborts
- * with an exception and reports {@code UNKNOWN}. For an exact execution:
+ * <p>For an exact execution (cf. {@link InterpreterState} for when an execution is exact):
  *
  * <ul>
  *   <li>If a target state is reached, the specification is really violated ({@code FALSE}).
