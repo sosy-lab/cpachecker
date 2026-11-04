@@ -167,7 +167,8 @@ public class PthreadObjectSubstitution {
 
     private final CType substitution;
 
-    private final Map<List<Integer>, CCompositeTypeMemberDeclaration> paths = new HashMap<>();
+    private final Map<ImmutableList<Integer>, CCompositeTypeMemberDeclaration> paths =
+        new HashMap<>();
 
     /** The current path taken through composite type members. */
     private final List<Integer> currentPath = new ArrayList<>();
@@ -178,11 +179,7 @@ public class PthreadObjectSubstitution {
     }
 
     private CTypeSubstitutionResult result(CType pType, boolean pIsSubstituted) {
-      ImmutableMap.Builder<ImmutableList<Integer>, CCompositeTypeMemberDeclaration> immutablePaths =
-          ImmutableMap.builder();
-
-      paths.forEach((path, member) -> immutablePaths.put(ImmutableList.copyOf(path), member));
-      return new CTypeSubstitutionResult(pType, immutablePaths.buildOrThrow(), pIsSubstituted);
+      return new CTypeSubstitutionResult(pType, ImmutableMap.copyOf(paths), pIsSubstituted);
     }
 
     @Override
@@ -233,7 +230,7 @@ public class PthreadObjectSubstitution {
         CTypeSubstitutionResult memberResult = memberDeclaration.getType().accept(this);
         // record the complete path if this member contains any substitution
         if (memberResult.isSubstituted()) {
-          paths.put(List.copyOf(currentPath), memberDeclaration);
+          paths.put(ImmutableList.copyOf(currentPath), memberDeclaration);
         }
         // leave the current composite member
         currentPath.removeLast();
