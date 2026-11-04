@@ -188,7 +188,6 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  /** The answer FALSE: a target state that describes the violated propositions. */
   private AlgorithmStatus reportViolation(
       ReachedSet pReachedSet, Decision pViolation, ImmutableSet<Property> pProven) {
 
@@ -212,7 +211,6 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  /** The answer TRUE: an empty proof, because no rule reasons about the state of the program. */
   private AlgorithmStatus reportProof(ReachedSet pReachedSet, Outcome pOutcome) {
     for (Map.Entry<Property, SimpleRule> entry : pOutcome.proven().entrySet()) {
       logger.logf(
@@ -221,11 +219,11 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
           entry.getValue().name(),
           SimpleRules.nameOf(entry.getKey()));
     }
+    // No rule reasons about the state of the program, so there is no invariant to offer.
     witnessExporter.prepareCorrectnessWitness(pReachedSet, ImmutableListMultimap.of());
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  /** The answer UNKNOWN: no target state, but also no proof. */
   private AlgorithmStatus unknown(ReachedSet pReachedSet) {
     pReachedSet.clear();
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
