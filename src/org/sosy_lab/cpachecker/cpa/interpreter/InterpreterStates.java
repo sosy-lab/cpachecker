@@ -36,9 +36,8 @@ final class InterpreterStates {
   }
 
   /**
-   * Create a state that is like the given one but uses the given state of the value analysis. This
-   * is how {@link InterpreterCPA} changes values that the value analysis cannot compute on its own,
-   * i.e. the values of a caller after a recursive call and the sampled values of the inputs.
+   * Create a state that is equal to the given one, except that its state of the value analysis is
+   * replaced with the given one.
    *
    * @return the new state, or an empty {@link Optional} if the given state does not have a value
    *     analysis as a direct component
