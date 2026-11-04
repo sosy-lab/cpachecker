@@ -18,7 +18,6 @@ import static org.junit.Assume.assumeNoException;
 import com.google.common.base.Ascii;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -229,23 +228,6 @@ public class ConfigurationFileChecks {
   private static final Path CONFIG_DIR = Path.of("config");
   private static final Path SPEC_DIR = CONFIG_DIR.resolve(SPECIFICATION_OPTION);
   private static final Path OUTPUT_DIR = Path.of("output");
-
-  /**
-   * Configs containing the ordering-consistency analysis, which interprets the property itself and
-   * rejects specification automata, mapped to the property file to run them with.
-   */
-  private static final ImmutableMap<Path, String> PROPERTY_FILE_FOR_CONFIG =
-      ImmutableMap.of(
-          Path.of("orderingConsistency.properties"),
-          "config/properties/unreach-call.prp",
-          Path.of("svcomp27--concurrency-orderingConsistency-opensmt.properties"),
-          "config/properties/unreach-call.prp",
-          Path.of("svcomp27--concurrency-orderingConsistency-z3.properties"),
-          "config/properties/unreach-call.prp",
-          Path.of("svcomp27--concurrency.properties"),
-          "config/properties/unreach-call.prp",
-          Path.of("svcomp27--datarace.properties"),
-          "config/properties/no-data-race.prp");
 
   @Parameters(name = "{0}")
   public static Object[] getConfigFiles() throws IOException {
@@ -541,15 +523,6 @@ public class ConfigurationFileChecks {
       configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/Assertion.spc");
       config = configBuilder.build();
     }
-    if (configFile instanceof Path configFilePath
-        && PROPERTY_FILE_FOR_CONFIG.containsKey(configFilePath.getFileName())) {
-      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
-      configBuilder.setOption(
-          SPECIFICATION_OPTION, PROPERTY_FILE_FOR_CONFIG.get(configFilePath.getFileName()));
-      // as the command line does for a property file given with --spec
-      configBuilder.setOption("analysis.entryFunction", "main");
-      config = configBuilder.build();
-    }
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
@@ -583,7 +556,13 @@ public class ConfigurationFileChecks {
               Path.of("sequentializeProgram.properties"),
               Path.of("sequentialization-concurrency--memorysafety.properties"),
               Path.of("sequentialization-concurrency--overflow.properties"),
-              Path.of("sequentialization-concurrency.properties"));
+              Path.of("sequentialization-concurrency.properties"),
+              // interpret the property itself, so they reject the default specification
+              Path.of("orderingConsistency.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency-opensmt.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency-z3.properties"),
+              Path.of("svcomp27--concurrency.properties"),
+              Path.of("svcomp27--datarace.properties"));
     }
 
     CPAcheckerResult result;
