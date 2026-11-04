@@ -138,7 +138,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
       return Optional.of(
           new PrecisionAdjustmentResult(
-              element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+              element, precision, PrecisionAdjustmentResult.Action.CONTINUE));
 
     } catch (SolverException e) {
       throw new CPAException("Solver Failure: " + e.getMessage(), e);
