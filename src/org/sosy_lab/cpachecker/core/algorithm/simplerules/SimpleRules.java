@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 
-/** All trivial rules, and the propositions they talk about. */
+/** All simple rules, and the propositions they talk about. */
 final class SimpleRules {
 
   private SimpleRules() {}

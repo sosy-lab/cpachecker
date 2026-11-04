@@ -77,7 +77,7 @@ class SimpleRulesStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer =
-        StatisticsWriter.writingStatisticsTo(pOut).put("Time for the trivial rules", totalTime);
+        StatisticsWriter.writingStatisticsTo(pOut).put("Time for the simple rules", totalTime);
 
     if (facts != null) {
       writer =
@@ -125,6 +125,6 @@ class SimpleRulesStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return "Trivial rules";
+    return "Simple rules";
   }
 }

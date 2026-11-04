@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Checks a specification with trivial rules: arguments that settle a proposition without reasoning
+ * Checks a specification with simple rules: arguments that settle a proposition without reasoning
  * about what the program computes, such as "a program without loops and without recursion
  * terminates" or "a program that never allocates memory cannot leak memory".
  *
@@ -59,7 +59,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
   @Option(
       secure = true,
       description =
-          "Use only the trivial rules with these names, e.g. to measure a single rule. Leave empty"
+          "Use only the simple rules with these names, e.g. to measure a single rule. Leave empty"
               + " to use all rules that can decide a proposition of the specification. The names of"
               + " the rules are printed in the statistics.")
   private Set<String> rules = ImmutableSet.of();
@@ -115,7 +115,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
       // whose propositions we do not know, i.e. a task that comes without a property file.
       logger.log(
           Level.INFO,
-          "The trivial rules need to know which propositions to settle, which is stated by the"
+          "The simple rules need to know which propositions to settle, which is stated by the"
               + " property file of the task (e.g. '--spec unreach-call.prp'). The specification of"
               + " this run contains no proposition, so there is nothing to decide.");
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -134,7 +134,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.logf(
         Level.INFO,
-        "No trivial rule decides %s",
+        "No simple rule decides %s",
         describe(Sets.difference(propositions, outcome.proven().keySet())));
     return unknown(pReachedSet);
   }
@@ -198,13 +198,13 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
       logger.logf(
           Level.SEVERE,
           "Rule %s refutes a proposition that another rule has proven. This is a bug, please"
-              + " report it. The answer of the trivial rules is UNKNOWN.",
+              + " report it. The answer of the simple rules is UNKNOWN.",
           pViolation.rule().name());
       return unknown(pReachedSet);
     }
 
     logger.logf(
-        Level.INFO, "Trivial rule %s: %s", pViolation.rule().name(), pViolation.verdict().reason());
+        Level.INFO, "Simple rule %s: %s", pViolation.rule().name(), pViolation.verdict().reason());
     witnessExporter.prepareViolationWitness(
         pReachedSet,
         pViolation.verdict().violatingEdgeOrThrow(),
@@ -217,7 +217,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
     for (Map.Entry<Property, SimpleRule> entry : pOutcome.proven().entrySet()) {
       logger.logf(
           Level.INFO,
-          "Trivial rule %s proves %s",
+          "Simple rule %s proves %s",
           entry.getValue().name(),
           SimpleRules.nameOf(entry.getKey()));
     }

@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.witnesses.LocationWitnessExporter;
 
 /**
- * Uses the standard YAML witness exporters with the location summary prepared by the trivial rules.
+ * Uses the standard YAML witness exporters with the location summary prepared by the simple rules.
  *
  * <p>A witness is written only if a rule has decided the task, i.e. only if the reached set was
  * prepared by one of the {@code prepare...} methods; the answer UNKNOWN leaves the reached set

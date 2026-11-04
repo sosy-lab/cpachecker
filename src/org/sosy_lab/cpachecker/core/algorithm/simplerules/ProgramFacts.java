@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 
 /**
- * The facts about a program that the trivial rules are built on. Every fact is computed at most
+ * The facts about a program that the simple rules are built on. Every fact is computed at most
  * once, and only if a rule asks for it.
  *
  * <p>All facts are properties of the CFA, so they hold for every execution of the program. Facts

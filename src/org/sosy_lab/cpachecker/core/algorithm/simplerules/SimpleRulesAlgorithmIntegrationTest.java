@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
- * Tests for the trivial rules. A rule has to abstain whenever its argument does not hold, so a
+ * Tests for the simple rules. A rule has to abstain whenever its argument does not hold, so a
  * large part of these tests expects the result UNKNOWN.
  */
 public class SimpleRulesAlgorithmIntegrationTest {
@@ -326,7 +326,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
 
   @Test
   public void correctnessWitnessIsAnEmptyInvariantSet() throws Exception {
-    // A trivial rule argues about the program as a whole, so it has no invariant to offer.
+    // A simple rule argues about the program as a whole, so it has no invariant to offer.
     String witness =
         runAndReadWitness(REACHABILITY_CONFIG, "unreach-call.prp", "no-error-call-true.c");
     assertThat(witness).contains("entry_type: \"invariant_set\"");

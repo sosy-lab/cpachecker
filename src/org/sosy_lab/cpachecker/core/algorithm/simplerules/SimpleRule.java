@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * A trivial rule: an argument that settles some propositions of a specification without reasoning
- * about what the program computes.
+ * An argument that settles some propositions of a specification without reasoning about what the
+ * program computes.
  *
  * @param name the name of the rule, used to select it and to report which rule decided a task
  * @param argument the argument that makes the rule sound, independently of the program
