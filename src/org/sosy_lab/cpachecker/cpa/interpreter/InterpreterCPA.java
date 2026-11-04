@@ -96,16 +96,16 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
               + " can be executed precisely. The value analysis itself is not changed by this.")
   private boolean restoreCallerValuesOnRecursion = true;
 
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(InterpreterCPA.class);
-  }
-
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
   private final InterpreterStatistics stats = new InterpreterStatistics();
   private final InterpreterWitnessExporter witnessExporter;
   private final InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(InterpreterCPA.class);
+  }
 
   private InterpreterCPA(
       ConfigurableProgramAnalysis pCpa,
