@@ -16,6 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -122,7 +123,7 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(InterpreterCPA.class);
   }
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
   private final InterpreterStatistics stats = new InterpreterStatistics();
   private final InterpreterWitnessExporter witnessExporter;
@@ -144,10 +145,10 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
           "cpa.interpreter.stepsPerTransfer needs to be at least 1 (or -1 for no limit),"
               + " otherwise the analysis would not make any progress");
     }
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
-    witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa);
-    sampler = new InterpreterSampler(pConfig, pCfa, pLogger, stats);
+    witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, logger, pCpa);
+    sampler = new InterpreterSampler(pConfig, pCfa, logger, stats);
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();
   }

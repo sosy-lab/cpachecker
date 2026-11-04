@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -109,10 +108,13 @@ class InterpreterSampler {
   private int samples = 0;
 
   InterpreterSampler(
-      Configuration pConfig, CFA pCfa, LogManager pLogger, InterpreterStatistics pStats)
+      Configuration pConfig,
+      CFA pCfa,
+      LogManagerWithoutDuplicates pLogger,
+      InterpreterStatistics pStats)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
     machineModel = pCfa.getMachineModel();
     stats = pStats;
     if (sampleNondeterministicValues) {
