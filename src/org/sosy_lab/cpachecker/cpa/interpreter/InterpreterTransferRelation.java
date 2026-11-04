@@ -342,7 +342,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
               : StackFrame.push(
                   callStack,
                   entryNode.getFunctionName(),
-                  isRecursive ? shadowedValues(pCallerState, entryNode) : ImmutableMap.of());
+                  isRecursive ? getShadowedValues(pCallerState, entryNode) : ImmutableMap.of());
       stats.maxCallStackDepth.setNextValue(newFrame.depth());
       return newFrame;
     }
@@ -365,7 +365,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
    *
    * @return the values to restore when the call returns, empty if nothing needs to be restored
    */
-  private ImmutableMap<MemoryLocation, ValueAndType> shadowedValues(
+  private ImmutableMap<MemoryLocation, ValueAndType> getShadowedValues(
       AbstractState pCallerState, FunctionEntryNode pEntryNode) {
 
     if (!restoreCallerValues) {
@@ -393,7 +393,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
 
   /**
    * Replace the frame of the returning function by the frame of its caller. This is the counterpart
-   * of {@link #shadowedValues} and is applied to the state at the exit node of the function, i.e.,
+   * of {@link #getShadowedValues} and is applied to the state at the exit node of the function, i.e.,
    * before the return value is assigned to the left-hand side of the function call.
    */
   private AbstractState restoreCallerValues(
