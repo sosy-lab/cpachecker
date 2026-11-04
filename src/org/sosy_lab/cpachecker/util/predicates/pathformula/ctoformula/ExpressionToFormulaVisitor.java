@@ -253,13 +253,13 @@ public class ExpressionToFormulaVisitor
       }
       case BITWISE_AND -> {
         ret = mgr.makeAnd(f1, f2);
-        if (conv.options.approximateBitwiseOperationsLinearly()) {
+        if (shouldApproximateBitwiseOperationLinearly(exp)) {
           addBitwiseAndConstraints(f1, f2, signed, ret);
         }
       }
       case BITWISE_OR -> {
         ret = mgr.makeOr(f1, f2);
-        if (conv.options.approximateBitwiseOperationsLinearly()) {
+        if (shouldApproximateBitwiseOperationLinearly(exp)) {
           addBitwiseOrConstraints(f1, f2, signed, ret);
         }
       }
@@ -380,6 +380,39 @@ public class ExpressionToFormulaVisitor
             bfmgr.and(signAndNumBound, denomBound));
 
     constraints.addConstraint(newConstraints);
+  }
+
+  /**
+   * Returns whether linear bounds should be added for the bitwise and or or in {@code exp}, i.e.,
+   * whether it is applied to integers and not used as a logical connective. The termination
+   * analysis, for example, combines the comparisons in its ranking relations with & and |. Bounds
+   * for these add little, but they make the formulas larger, which slows down the analysis.
+   */
+  private boolean shouldApproximateBitwiseOperationLinearly(CBinaryExpression exp) {
+    return conv.options.approximateBitwiseOperationsLinearly() && !isLogicalConnective(exp);
+  }
+
+  /** Returns whether both operands of the bitwise and or or in {@code exp} are truth values. */
+  private static boolean isLogicalConnective(CBinaryExpression exp) {
+    return isTruthValue(exp.getOperand1()) && isTruthValue(exp.getOperand2());
+  }
+
+  /**
+   * Returns whether {@code exp} is a truth value, i.e., the literal 0 or 1, a comparison, or a
+   * logical connective.
+   */
+  private static boolean isTruthValue(CExpression exp) {
+    if (exp instanceof CIntegerLiteralExpression literal) {
+      BigInteger value = literal.getValue();
+      return value.equals(BigInteger.ZERO) || value.equals(BigInteger.ONE);
+    }
+    if (exp instanceof CBinaryExpression binaryExpression) {
+      BinaryOperator operator = binaryExpression.getOperator();
+      return operator.isLogicalOperator()
+          || ((operator == BinaryOperator.BITWISE_AND || operator == BinaryOperator.BITWISE_OR)
+              && isLogicalConnective(binaryExpression));
+    }
+    return false;
   }
 
   /**
