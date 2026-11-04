@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
@@ -53,9 +52,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
-public class SequentializationBuilder {
+class SequentializationBuilder {
 
-  public static String buildInputFunctionAndTypeDeclarations(
+  static String buildInputFunctionAndTypeDeclarations(
       MPOROptions pOptions,
       CFunctionDeclaration pInputMainFunctionDeclaration,
       ImmutableList<MPORThread> pThreads)
@@ -78,7 +77,8 @@ public class SequentializationBuilder {
               case CComplexTypeDeclaration complexTypeDeclaration -> {
                 CType typeSubstitute =
                     PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                        complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
+                            complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class))
+                        .type();
                 CComplexTypeDeclaration newComplexTypeDeclaration =
                     new CComplexTypeDeclaration(
                         complexTypeDeclaration.getFileLocation(),
@@ -89,7 +89,8 @@ public class SequentializationBuilder {
               case CTypeDefDeclaration typeDefDeclaration -> {
                 CType typeSubstitute =
                     PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                        typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
+                            typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class))
+                        .type();
                 CTypeDefDeclaration newTypeDefDeclaration =
                     new CTypeDefDeclaration(
                         typeDefDeclaration.getFileLocation(),
@@ -132,7 +133,7 @@ public class SequentializationBuilder {
 
   // Input Variable Declarations ===================================================================
 
-  public static String buildInputGlobalVariableDeclarations(
+  static String buildInputGlobalVariableDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
@@ -143,14 +144,12 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclarationWithSubstituteType(globalDeclaration);
-      rDeclarations.add(variableDeclarationSubstitute.toASTString());
+      rDeclarations.add(globalDeclaration.toASTString());
     }
     return rDeclarations.toString();
   }
 
-  public static String buildInputLocalVariableDeclarations(
+  static String buildInputLocalVariableDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
@@ -162,10 +161,8 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> localDeclarations =
           substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclarationWithSubstituteType(localDeclaration);
         Optional<CVariableDeclaration> variableDeclaration =
-            tryBuildInputLocalVariableDeclaration(variableDeclarationSubstitute);
+            tryBuildInputLocalVariableDeclaration(localDeclaration);
         if (variableDeclaration.isPresent()) {
           rDeclarations.add(variableDeclaration.orElseThrow().toASTString());
         }
@@ -209,7 +206,7 @@ public class SequentializationBuilder {
 
   // Input Parameter Declarations ==================================================================
 
-  public static String buildInputParameterDeclarations(
+  static String buildInputParameterDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
 
@@ -221,10 +218,7 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
       for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclarationWithSubstituteType(parameterDeclaration);
-        rDeclarations.add(
-            MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
+        rDeclarations.add(MPORUtil.withInitializer(parameterDeclaration, null).toASTString());
       }
     }
     return rDeclarations.toString();
@@ -234,7 +228,7 @@ public class SequentializationBuilder {
    * Adds the declarations of main function arguments, e.g. {@code int arg;} that are
    * non-deterministically initialized in {@code main()} later in the sequentialization.
    */
-  public static String buildMainFunctionArgDeclarations(
+  static String buildMainFunctionArgDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
@@ -243,15 +237,13 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.getMainFunctionArgSubstitutes().values()) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclarationWithSubstituteType(
-              (CVariableDeclaration) mainArg.getDeclaration());
-      rDeclarations.add(variableDeclarationSubstitute.toASTString());
+      rDeclarations.add(
+          MPORUtil.convertToVariableDeclaration(mainArg.getDeclaration()).toASTString());
     }
     return rDeclarations.toString();
   }
 
-  public static String buildStartRoutineArgDeclarations(
+  static String buildStartRoutineArgDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
       throws UnrecognizedCodeException {
 
@@ -262,15 +254,12 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
-      CVariableDeclaration variableDeclarationSubstitute =
-          buildVariableDeclarationWithSubstituteType(startRoutineArgDeclaration);
-      rDeclarations.add(
-          MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
+      rDeclarations.add(MPORUtil.withInitializer(startRoutineArgDeclaration, null).toASTString());
     }
     return rDeclarations.toString();
   }
 
-  public static String buildStartRoutineExitDeclarations(
+  static String buildStartRoutineExitDeclarations(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
@@ -280,41 +269,18 @@ public class SequentializationBuilder {
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
       if (exitVariable.isPresent()) {
-        CVariableDeclaration variableDeclarationSubstitute =
-            buildVariableDeclarationWithSubstituteType(
-                (CVariableDeclaration) exitVariable.orElseThrow().getDeclaration());
-        rDeclarations.add(variableDeclarationSubstitute.toASTString());
+        rDeclarations.add(
+            MPORUtil.convertToVariableDeclaration(exitVariable.orElseThrow().getDeclaration())
+                .toASTString());
       }
     }
     return rDeclarations.toString();
   }
 
-  // CVariableDeclaration helper
-
-  private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
-      CVariableDeclaration pVariableDeclaration) {
-
-    CType typeSubstitute =
-        PthreadObjectSubstitution.substitutePthreadObjectTypes(
-            pVariableDeclaration.getType(),
-            ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
-
-    return new CVariableDeclaration(
-        pVariableDeclaration.getFileLocation(),
-        pVariableDeclaration.isGlobal(),
-        pVariableDeclaration.getCStorageClass(),
-        typeSubstitute,
-        pVariableDeclaration.getName(),
-        pVariableDeclaration.getOrigName(),
-        pVariableDeclaration.getQualifiedName(),
-        pVariableDeclaration.getInitializer(),
-        pVariableDeclaration.hasThreadLocalStorage());
-  }
-
   // Function Declarations and Definitions =========================================================
 
-  public static String buildFunctionDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
+  static String buildFunctionDeclarations(MPOROptions pOptions, SequentializationFields pFields)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
@@ -356,7 +322,7 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildFunctionDefinitions(
+  static String buildFunctionDefinitions(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
