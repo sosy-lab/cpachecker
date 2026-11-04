@@ -4089,6 +4089,11 @@ cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 # BMC.
 cpa.terminationviamemory.disableTransitionAbstractions = false
 
+# configuration of the analysis that checks whether the supporting invariants
+# of the witness are invariants of the program before they are used, see
+# useTransitionPredicatesFromWitness
+cpa.terminationviamemory.supportingInvariantsConfig = no default value
+
 # Enables use of transition predicates from the witness.
 cpa.terminationviamemory.useTransitionPredicatesFromWitness = false
 
