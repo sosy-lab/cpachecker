@@ -535,8 +535,10 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
-# decide the specification with trivial rules, i.e., with arguments that need
-# no reasoning about what the program computes
+# decide the specification with simple rules, i.e., with arguments that need
+# no reasoning about what the program computes. This replaces the analysis
+# that would otherwise run, so use a portfolio to combine the rules with
+# another analysis.
 analysis.algorithm.simpleRules = false
 
 # Use termination algorithm to prove (non-)termination. This needs the
@@ -5749,7 +5751,7 @@ sampling.random.samplesToBeGenerated = 10
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
 
-# Use only the trivial rules with these names, e.g. to measure a single rule.
+# Use only the simple rules with these names, e.g. to measure a single rule.
 # Leave empty to use all rules that can decide a proposition of the
 # specification. The names of the rules are printed in the statistics.
 simplerules.rules = {}

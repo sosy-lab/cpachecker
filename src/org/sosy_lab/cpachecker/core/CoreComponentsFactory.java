@@ -357,9 +357,10 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.simpleRules",
       description =
-          "decide the specification with trivial rules, i.e., with arguments that need no reasoning"
-              + " about what the program computes")
-  private boolean usesimpleRules = false;
+          "decide the specification with simple rules, i.e., with arguments that need no reasoning"
+              + " about what the program computes. This replaces the analysis that would otherwise"
+              + " run, so use a portfolio to combine the rules with another analysis.")
+  private boolean useSimpleRules = false;
 
   @Option(
       secure = true,
@@ -581,8 +582,8 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
-    } else if (usesimpleRules) {
-      logger.log(Level.INFO, "Using trivial rules");
+    } else if (useSimpleRules) {
+      logger.log(Level.INFO, "Using the simple rules");
       algorithm =
           new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification, cpa);
     } else if (analysisSequentializesCfa()) {
@@ -973,7 +974,7 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
-        || usesimpleRules
+        || useSimpleRules
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
