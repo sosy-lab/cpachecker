@@ -94,10 +94,6 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  // The declarations of the functions returning nondeterministic values that are used in the
-  // generated program, see nondetCall
-  private final Map<String, String> nondetDeclarations = new LinkedHashMap<>();
-
   public ImplicitRankingChecker(
       final FormulaManagerView pFmgr,
       final BooleanFormulaManagerView pBfmgr,
@@ -134,7 +130,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       throws InterruptedException, CPAException {
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
     StringJoiner builder = new StringJoiner(System.lineSeparator());
-    nondetDeclarations.clear();
+    // The declarations of the functions returning nondeterministic values that are used in the
+    // generated program, see nondetCall
+    Map<String, String> nondetDeclarations = new LinkedHashMap<>();
     builder.add("int main() {");
     CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
 
@@ -145,7 +143,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     Set<String> alreadyDeclaredVars = new HashSet<>();
 
     // Initialize the variables from the transition invariant
-    initializeVariables(loopHead, alreadyDeclaredVars, builder, mapNamesToVariables);
+    initializeVariables(
+        loopHead, alreadyDeclaredVars, builder, mapNamesToVariables, nondetDeclarations);
 
     // Build the loop
     buildTheLoop(loopHead, pFormula, builder, alreadyDeclaredVars, pSupportingInvariants);
@@ -154,10 +153,11 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     resetVariablesFromTransitionInvariant(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
 
     // Reset the original variables
-    resetVariablesFromProgram(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
+    resetVariablesFromProgram(
+        builder, mapCurrVarsToPrevVars, mapNamesToVariables, nondetDeclarations);
 
     builder.add("}}");
-    String overapproximatingProgam = finishProgram(builder.toString());
+    String overapproximatingProgam = finishProgram(builder.toString(), nondetDeclarations);
 
     try {
       // Initialization:
@@ -214,9 +214,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * Returns a call of a function that returns a nondeterministic value of the given type, and
    * records the declaration of the function, see {@link #finishProgram}.
    */
-  private String nondetCall(CSimpleType pType) {
+  private static String nondetCall(CSimpleType pType, Map<String, String> pNondetDeclarations) {
     String functionName = VerifierNondetFunctions.getFunctionName(pType);
-    nondetDeclarations.putIfAbsent(
+    pNondetDeclarations.putIfAbsent(
         functionName, VerifierNondetFunctions.getFunctionDeclaration(pType));
     return functionName + "()";
   }
@@ -226,9 +226,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * since otherwise their return types would be unknown, and the variables for the previous values
    * are renamed, since the termination analyses use the keywords of these names internally.
    */
-  private String finishProgram(String pProgram) {
+  private static String finishProgram(String pProgram, Map<String, String> pNondetDeclarations) {
     StringJoiner program = new StringJoiner(System.lineSeparator());
-    nondetDeclarations.values().forEach(program::add);
+    pNondetDeclarations.values().forEach(program::add);
     program.add(pProgram.replace(TransitionInvariantUtils.PREV_KEYWORD, "__validation_previous"));
     return program.toString();
   }
@@ -326,7 +326,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
   private void resetVariablesFromProgram(
       StringJoiner builder,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars,
-      Map<String, Formula> mapNamesToVariables)
+      Map<String, Formula> mapNamesToVariables,
+      Map<String, String> pNondetDeclarations)
       throws CPAException {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
@@ -337,7 +338,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         CSimpleDeclaration declaration =
             scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
         if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
-          nondetVerifierCall = nondetCall(simpleType) + ";";
+          nondetVerifierCall = nondetCall(simpleType, pNondetDeclarations) + ";";
         } else {
           throw new CPAException(
               "We currently do not support nondeterministic initialization of complex types.");
@@ -404,7 +405,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       CFANode loopHead,
       Set<String> alreadyDeclaredVars,
       StringJoiner builder,
-      Map<String, Formula> mapNamesToVariables) {
+      Map<String, Formula> mapNamesToVariables,
+      Map<String, String> pNondetDeclarations) {
     String varDeclaration;
     FluentIterable<AbstractSimpleDeclaration> variablesInScope =
         cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow();
@@ -419,7 +421,11 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       if (alreadyDeclaredVars.add(variable.getName())) {
         // The variables have arbitrary initial values, the termination analyses may treat
         // uninitialized variables imprecisely
-        builder.add(type.toASTString(variable.getName()) + " = " + nondetCall(simpleType) + ";");
+        builder.add(
+            type.toASTString(variable.getName())
+                + " = "
+                + nondetCall(simpleType, pNondetDeclarations)
+                + ";");
       }
     }
     for (String variable : mapNamesToVariables.keySet()) {
@@ -427,7 +433,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       CSimpleDeclaration declaration = scope.lookupVariable(variableName);
       if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
         varDeclaration =
-            declaration.getType().toASTString(variableName) + " = " + nondetCall(simpleType) + ";";
+            declaration.getType().toASTString(variableName)
+                + " = "
+                + nondetCall(simpleType, pNondetDeclarations)
+                + ";";
       } else {
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(declaration.toString());
