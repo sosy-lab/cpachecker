@@ -1531,8 +1531,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   }
 
   /**
-   * Binds the freshly written pointer of a {@code lhs = malloc(...)} or {@code lhs = calloc(...)} to
-   * a distinct heap base.
+   * Binds the freshly written pointer of a {@code lhs = malloc(...)} or {@code lhs = calloc(...)}
+   * to a distinct heap base.
    */
   private ImmutableList<Integer> handleMallocIfAny(
       OrderingConsistencyState pState,

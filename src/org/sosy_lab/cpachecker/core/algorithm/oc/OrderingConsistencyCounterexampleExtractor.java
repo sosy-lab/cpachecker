@@ -111,8 +111,7 @@ final class OrderingConsistencyCounterexampleExtractor {
                 walkPositions.computeIfAbsent(
                     event.instanceId(), instance -> threadRoot(pReachedSet, instance));
             List<CFAEdge> steps = new ArrayList<>();
-            Optional<ARGState> next =
-                position.flatMap(start -> walkTo(start, edge, model, steps));
+            Optional<ARGState> next = position.flatMap(start -> walkTo(start, edge, model, steps));
             if (next.isPresent()) {
               for (CFAEdge local : steps) {
                 edges.add(local);
