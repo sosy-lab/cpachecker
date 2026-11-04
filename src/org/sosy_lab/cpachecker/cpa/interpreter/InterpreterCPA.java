@@ -19,7 +19,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -66,10 +66,10 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * </ul>
  *
  * <p>Developer note: the loop over a chain of single successors also exists in {@link
- * org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA}, but that
- * is all the two have in common. For the compactor a chain is a transparent optimization of an
- * arbitrary analysis, while here a single successor is the defining property, this CPA has a
- * state of its own, and it has to inspect every step, which the compactor hides.
+ * org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA}, but that is
+ * all the two have in common. For the compactor a chain is a transparent optimization of an
+ * arbitrary analysis, while here a single successor is the defining property, this CPA has a state
+ * of its own, and it has to inspect every step, which the compactor hides.
  */
 @Options(prefix = "cpa.interpreter")
 public class InterpreterCPA extends AbstractSingleWrapperCPA {
@@ -125,9 +125,7 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
     shutdownNotifier = pShutdownNotifier;
     witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, logger, pCpa);
     sampler =
-        sampleNondeterministicValues
-            ? new InterpreterSampler(pConfig, pCfa, logger, stats)
-            : null;
+        sampleNondeterministicValues ? new InterpreterSampler(pConfig, pCfa, logger, stats) : null;
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();
   }

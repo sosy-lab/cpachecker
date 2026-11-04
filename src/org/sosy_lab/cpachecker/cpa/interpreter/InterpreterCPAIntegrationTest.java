@@ -190,7 +190,9 @@ public class InterpreterCPAIntegrationTest {
   public void samplingFindsAViolationThatDependsOnAnInput() throws Exception {
     // Without sampling these programs are rejected, because their execution depends on an input.
     runWithProperty(
-            "config/interpreter-sampling.properties", "unreach-call.prp", "nondeterministic-input.c")
+            "config/interpreter-sampling.properties",
+            "unreach-call.prp",
+            "nondeterministic-input.c")
         .assertIsUnsafe();
     runWithProperty(
             "config/interpreter-sampling.properties",

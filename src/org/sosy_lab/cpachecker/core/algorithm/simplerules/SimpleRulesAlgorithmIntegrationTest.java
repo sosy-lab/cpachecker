@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
- * Tests for the simple rules. A rule has to abstain whenever its argument does not hold, so a
- * large part of these tests expects the result UNKNOWN.
+ * Tests for the simple rules. A rule has to abstain whenever its argument does not hold, so a large
+ * part of these tests expects the result UNKNOWN.
  */
 public class SimpleRulesAlgorithmIntegrationTest {
 

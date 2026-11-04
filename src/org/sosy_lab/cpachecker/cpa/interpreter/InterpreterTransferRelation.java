@@ -392,8 +392,8 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
 
   /**
    * Replace the frame of the returning function by the frame of its caller. This is the counterpart
-   * of {@link #getShadowedValues} and is applied to the state at the exit node of the function, i.e.,
-   * before the return value is assigned to the left-hand side of the function call.
+   * of {@link #getShadowedValues} and is applied to the state at the exit node of the function,
+   * i.e., before the return value is assigned to the left-hand side of the function call.
    */
   private AbstractState restoreCallerValues(
       AbstractState pState, FunctionReturnEdge pEdge, StackFrame pFrame) {

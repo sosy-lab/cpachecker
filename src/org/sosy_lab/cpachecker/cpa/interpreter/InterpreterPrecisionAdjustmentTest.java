@@ -13,7 +13,6 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
