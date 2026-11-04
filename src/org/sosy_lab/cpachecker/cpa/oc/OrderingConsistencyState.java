@@ -51,9 +51,9 @@ public final class OrderingConsistencyState
       boolean target) {}
 
   private static final ImmutableSet<TargetInformation> TARGET_INFORMATION =
-      SimpleTargetInformation.singleton("error function called");
+      SimpleTargetInformation.singleton("unreach-call: error function called");
   private static final ImmutableSet<TargetInformation> RACE_TARGET_INFORMATION =
-      SimpleTargetInformation.singleton("data race");
+      SimpleTargetInformation.singleton("no-data-race: data race");
 
   private final int instanceId;
   private final LocationState locationState;
