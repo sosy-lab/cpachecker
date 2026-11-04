@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_found
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -39,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -63,6 +63,11 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.ToCodeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -258,7 +263,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
             .filter(node -> !successorsInCondition.contains(node))
             .toSet();
 
-    List<String> pathConditions = new ArrayList<>();
+    List<ExpressionTree<CExpression>> pathConditions = new ArrayList<>();
     for (CFANode entry : conditionEntries) {
       if (!collectPathConditions(
           entry, conditionEdges, bodyEntries, PersistentLinkedList.of(), pathConditions)) {
@@ -268,9 +273,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     if (pathConditions.isEmpty()) {
       return "1";
     }
-    return FluentIterable.from(pathConditions)
-        .transform(condition -> "(" + condition + ")")
-        .join(Joiner.on(" || "));
+    // The variables are printed with the names that are declared in the generated program, unlike
+    // ExpressionTree#toString, which prints their original names
+    return Or.of(pathConditions).accept(new ToCodeVisitor<>(CExpression::toASTString));
   }
 
   /**
@@ -284,11 +289,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       CFANode pNode,
       ImmutableSet<CFAEdge> pConditionEdges,
       ImmutableSet<CFANode> pBodyEntries,
-      PersistentLinkedList<String> pReversedPath,
-      List<String> pPathConditions) {
+      PersistentLinkedList<ExpressionTree<CExpression>> pReversedPath,
+      List<ExpressionTree<CExpression>> pPathConditions) {
     if (pBodyEntries.contains(pNode)) {
-      pPathConditions.add(
-          pReversedPath.isEmpty() ? "1" : Joiner.on(" && ").join(pReversedPath.reversed()));
+      pPathConditions.add(And.of(pReversedPath.reversed()));
       return true;
     }
     if (pReversedPath.size() > pConditionEdges.size()) {
@@ -299,16 +303,15 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       if (!pConditionEdges.contains(edge)) {
         continue;
       }
-      PersistentLinkedList<String> reversedPath = pReversedPath;
+      PersistentLinkedList<ExpressionTree<CExpression>> reversedPath = pReversedPath;
       if (edge instanceof CAssumeEdge assumeEdge) {
-        String expression = assumeEdge.getExpression().toASTString();
-        if (expression.contains("__CPAchecker_TMP")) {
+        CExpression expression = assumeEdge.getExpression();
+        if (expression.toASTString().contains("__CPAchecker_TMP")) {
           // The condition has side effects, which are not part of the generated program
           return false;
         }
         reversedPath =
-            pReversedPath.with(
-                assumeEdge.getTruthAssumption() ? "(" + expression + ")" : "!(" + expression + ")");
+            pReversedPath.with(LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
       } else if (!(edge instanceof BlankEdge)) {
         return false;
       }
