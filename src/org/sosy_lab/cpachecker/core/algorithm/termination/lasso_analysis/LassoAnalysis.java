@@ -421,8 +421,7 @@ public class LassoAnalysis {
           Level.FINE, "Heap accesses are abstracted, skipping the non-termination analysis.");
     }
     try {
-      return checkTermination(
-          pLoop, lassos.lassos(), pRelevantVariables, !lassos.abstractsHeap());
+      return checkTermination(pLoop, lassos.lassos(), pRelevantVariables, !lassos.abstractsHeap());
 
     } catch (IOException | SMTLIBException | TermException | SolverException e) {
       logger.logUserException(

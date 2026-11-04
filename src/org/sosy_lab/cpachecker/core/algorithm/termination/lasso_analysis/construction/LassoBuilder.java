@@ -340,8 +340,8 @@ public class LassoBuilder {
 
   /**
    * @param pWeakenAbstractedHeap if heap accesses are abstracted, drop the functional-consistency
-   *     constraints of the UF elimination. This over-approximates the formula and avoids a DNF
-   *     that grows exponentially with the number of heap accesses.
+   *     constraints of the UF elimination. This over-approximates the formula and avoids a DNF that
+   *     grows exponentially with the number of heap accesses.
    */
   private Dnf toDnf(
       BooleanFormula pFormula, UfElimination.Result eliminatedUfs, boolean pWeakenAbstractedHeap)
