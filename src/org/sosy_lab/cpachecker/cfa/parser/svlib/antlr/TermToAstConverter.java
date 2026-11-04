@@ -372,8 +372,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       default -> {}
     }
 
-    // A declared function is uninterpreted, so it is not part of any theory and is resolved from
-    // the scope instead.
+    // A declared or defined function is not part of any theory and is resolved from the scope
     if (scope.hasFunctionDeclaration(pSymbol)) {
       SvLibSmtFunctionDeclaration declaration = scope.getFunctionDeclaration(pSymbol);
       Verify.verify(
@@ -382,12 +381,11 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           pSymbol,
           pArguments.size(),
           declaration.getType().getParameters().size());
-      return new SvLibFunctionDeclaration(
-          declaration.getFileLocation(),
-          declaration.getType(),
-          pSymbol,
-          pSymbol,
-          ImmutableList.of());
+      return declaration.hasBeenDefined()
+          ? SvLibFunctionDeclaration.definedFunction(
+              declaration.getFileLocation(), declaration.getType(), pSymbol, ImmutableList.of())
+          : SvLibFunctionDeclaration.uninterpretedFunction(
+              declaration.getFileLocation(), declaration.getType(), pSymbol);
     }
 
     // Match Integer Arithmetic logic

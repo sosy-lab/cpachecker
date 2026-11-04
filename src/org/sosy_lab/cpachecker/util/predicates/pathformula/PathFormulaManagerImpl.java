@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -146,10 +145,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pCfa.getMachineModel(),
         pCfa.getVarClassification(),
         pDirection,
-        pCfa.getLanguage(),
-        pCfa.getMetadata()
-            .getSvLibCfaMetadata()
-            .map(pSvLibCfaMetadata -> pSvLibCfaMetadata.smtLibCommands()));
+        pCfa.getLanguage());
   }
 
   public PathFormulaManagerImpl(
@@ -161,29 +157,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Optional<VariableClassification> pVariableClassification,
       AnalysisDirection pDirection,
       Language pLanguage)
-      throws InvalidConfigurationException {
-    this(
-        pFmgr,
-        config,
-        pLogger,
-        pShutdownNotifier,
-        pMachineModel,
-        pVariableClassification,
-        pDirection,
-        pLanguage,
-        Optional.empty());
-  }
-
-  public PathFormulaManagerImpl(
-      FormulaManagerView pFmgr,
-      Configuration config,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification,
-      AnalysisDirection pDirection,
-      Language pLanguage,
-      Optional<List<SmtLibCommand>> pSmtLibCommands)
       throws InvalidConfigurationException {
 
     config.inject(this, PathFormulaManagerImpl.class);
@@ -281,11 +254,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                 fmgr,
                 pVariableClassification,
                 logger,
-                shutdownNotifier,
-                pSmtLibCommands.orElseThrow(
-                    () ->
-                        new InvalidConfigurationException(
-                            "Missing SMT-LIB commands for SV-LIB language")));
+                shutdownNotifier);
         wpConverter = null;
         pfbFactory = null;
         NONDET_FORMULA_TYPE = null;
