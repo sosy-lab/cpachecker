@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashMap;
@@ -114,8 +112,12 @@ public final class ThreadFunctions {
    * OrderingConsistencyTransferRelation#handleCreate / ConcurrentTransferRelation's create
    * dispatch), not by statically resolving a variable name here.
    */
-  public static void checkCreateParams(List<? extends AExpression> params) {
-    checkState(params.size() == 4, "Malformed pthread_create (not 4 params): %s", params);
+  public static void checkCreateParams(List<? extends AExpression> params)
+      throws UnsupportedCodeException {
+    if (params.size() != 4) {
+      throw new UnsupportedCodeException(
+          "Malformed pthread_create (not 4 params): " + params, null);
+    }
   }
 
   /**
@@ -165,8 +167,11 @@ public final class ThreadFunctions {
    * instance it identifies is resolved by candidate-set branching over the live thread instances at
    * the join site, not by statically resolving a variable name here.
    */
-  public static void checkJoinParams(List<? extends AExpression> params) {
-    checkState(params.size() == 2, "Malformed pthread_join (not 2 params): %s", params);
+  public static void checkJoinParams(List<? extends AExpression> params)
+      throws UnsupportedCodeException {
+    if (params.size() != 2) {
+      throw new UnsupportedCodeException("Malformed pthread_join (not 2 params): " + params, null);
+    }
   }
 
   /**

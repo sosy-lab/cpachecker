@@ -138,7 +138,7 @@ class SPORConcurrentState extends ConcurrentState {
               && firstActions.stream()
                   .allMatch(
                       e -> {
-                        Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(e);
+                        Optional<MutexLock> lockMutex = MutexFunctions.getResolvableLockMutex(e);
                         return lockMutex.isPresent()
                             && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), threadId);
                       });

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MutexStateTest {
 
@@ -231,16 +232,18 @@ public class MutexStateTest {
   public void unresolvableMutexCall_isRejected() {
     // `pthread_mutex_lock(&(cache[i]).refs_mutex)` with a runtime index: the handle cannot be
     // determined statically. The mutex CPA does not silently treat such an edge as a non-mutex
-    // operation, which would drop the lock; it refuses it instead, so a caller that reaches one
-    // without pre-filtering it through the handle candidates fails loudly.
+    // operation, which would drop the lock; it refuses the edge as unsupported code instead. The
+    // edge is still recognized as a lock call, so block aggregation keeps treating it as a
+    // scheduling barrier.
     CVariableDeclaration cacheDecl = variable("cache", PROBLEM_TYPE);
     CVariableDeclaration indexDecl = variable("i", CNumericTypes.INT);
     CExpression symbolicMutexExpr =
         addressOfSymbolicIndexArrayFieldAccess(cacheDecl, indexDecl, "refs_mutex");
     CFAEdge lockEdge = functionCallEdge("pthread_mutex_lock", symbolicMutexExpr);
 
-    assertThrows(UnsupportedOperationException.class, () -> MutexFunctions.getLockMutex(lockEdge));
-    assertThrows(UnsupportedOperationException.class, () -> MutexFunctions.isLockCall(lockEdge));
+    assertThrows(UnsupportedCodeException.class, () -> MutexFunctions.getLockMutex(lockEdge));
+    assertThat(MutexFunctions.isLockCall(lockEdge)).isTrue();
+    assertThat(MutexFunctions.getResolvableLockMutex(lockEdge)).isEmpty();
   }
 
   @Test

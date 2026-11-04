@@ -331,7 +331,7 @@ public class ConcurrentState extends AbstractSingleWrapperState
         if (mutexState != null) {
           // Mutex lock filtering: if this edge is a lock call and the mutex is held by another
           // thread, this thread is blocked and cannot proceed along this edge.
-          Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(cloned);
+          Optional<MutexLock> lockMutex = MutexFunctions.getResolvableLockMutex(cloned);
           if (lockMutex.isPresent()
               && mutexState.isMutexBlockedFor(lockMutex.orElseThrow(), threadId)) {
             continue;

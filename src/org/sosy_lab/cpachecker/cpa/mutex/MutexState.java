@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * Tracks the state of mutexes in concurrent programs. Records <em>which thread</em> (by PID) holds
@@ -220,9 +221,15 @@ public class MutexState implements AbstractState {
     return new MutexState(initializedMutexes, lockedMutexes, null);
   }
 
-  /** Returns the updated mutex state or empty if the operation is blocked by a mutex. */
+  /**
+   * Returns the updated mutex state or empty if the operation is blocked by a mutex.
+   *
+   * @throws UnsupportedCodeException if the edge locks or unlocks a mutex whose handle cannot be
+   *     determined statically or was reassigned
+   */
   public Optional<MutexState> update(
-      CFAEdge edge, ThreadId pid, ImmutableMap<MutexHandle, MutexHandle> mutexCandidates) {
+      CFAEdge edge, ThreadId pid, ImmutableMap<MutexHandle, MutexHandle> mutexCandidates)
+      throws UnsupportedCodeException {
     // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
     if (MutexFunctions.isAtomicBegin(edge)) {
       if (isAtomicBlockedFor(pid)) {
@@ -238,13 +245,13 @@ public class MutexState implements AbstractState {
 
     Optional<MutexLock> mutexToLock = MutexFunctions.getLockMutex(edge);
     if (mutexToLock.isPresent()) {
-      MutexLock aliasUpdated = updateAlias(mutexToLock.orElseThrow(), mutexCandidates);
+      MutexLock aliasUpdated = updateAlias(mutexToLock.orElseThrow(), mutexCandidates, edge);
       return withLock(aliasUpdated, pid);
     }
 
     Optional<MutexLock> mutexToUnlock = MutexFunctions.getUnlockMutex(edge);
     if (mutexToUnlock.isPresent()) {
-      MutexLock aliasUpdated = updateAlias(mutexToUnlock.orElseThrow(), mutexCandidates);
+      MutexLock aliasUpdated = updateAlias(mutexToUnlock.orElseThrow(), mutexCandidates, edge);
       return Optional.of(withUnlock(aliasUpdated, pid));
     }
 
@@ -274,12 +281,13 @@ public class MutexState implements AbstractState {
   }
 
   private MutexLock updateAlias(
-      MutexLock lock, ImmutableMap<MutexHandle, MutexHandle> mutexCandidates) {
+      MutexLock lock, ImmutableMap<MutexHandle, MutexHandle> mutexCandidates, CFAEdge edge)
+      throws UnsupportedCodeException {
     if (mutexCandidates == null) {
       return lock;
     }
     if (!mutexCandidates.containsKey(lock.handle())) {
-      throw new IllegalArgumentException("Reassigned mutex handle not supported: " + lock.handle());
+      throw new UnsupportedCodeException("reassigned mutex handle " + lock.handle(), edge);
     }
     MutexHandle aliased = mutexCandidates.get(lock.handle());
     if (lock.handle().equals(aliased)) {

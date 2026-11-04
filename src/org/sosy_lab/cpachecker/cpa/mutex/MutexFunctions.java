@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * Utility class for detecting and extracting information from mutex-related C function calls.
@@ -99,30 +100,50 @@ public final class MutexFunctions {
         : Optional.empty();
   }
 
-  /** Returns {@code true} if the given CFA edge is a mutex lock function call. */
+  /**
+   * Returns {@code true} if the given CFA edge is a mutex lock function call (regardless of whether
+   * its mutex argument can be resolved to a concrete object).
+   */
   public static boolean isLockCall(CFAEdge edge) {
-    return getLockMutex(edge).isPresent() || isAtomicBegin(edge);
-  }
-
-  /** Returns {@code true} if the given CFA edge is a mutex unlock function call. */
-  public static boolean isUnlockCall(CFAEdge edge) {
-    return getUnlockMutex(edge).isPresent() || isAtomicEnd(edge);
+    return getMutexCall(edge, LOCK_FUNCTIONS).isPresent() || isAtomicBegin(edge);
   }
 
   /**
-   * If the given CFA edge is a mutex lock call with a statically resolvable handle, returns that
-   * handle; otherwise returns empty.
+   * Returns {@code true} if the given CFA edge is a mutex unlock function call (regardless of
+   * whether its mutex argument can be resolved to a concrete object).
    */
-  public static Optional<MutexLock> getLockMutex(CFAEdge edge) {
+  public static boolean isUnlockCall(CFAEdge edge) {
+    return getMutexCall(edge, UNLOCK_FUNCTIONS).isPresent() || isAtomicEnd(edge);
+  }
+
+  /**
+   * If the given CFA edge is a mutex lock call, returns its lock; otherwise returns empty.
+   *
+   * @throws UnsupportedCodeException if the edge is a lock call whose handle cannot be determined
+   *     statically
+   */
+  public static Optional<MutexLock> getLockMutex(CFAEdge edge) throws UnsupportedCodeException {
     return getMutexLockForFunctionSet(edge, LOCK_FUNCTIONS);
   }
 
   /**
-   * If the given CFA edge is a mutex unlock call with a statically resolvable handle, returns that
-   * handle; otherwise returns empty.
+   * If the given CFA edge is a mutex unlock call, returns its lock; otherwise returns empty.
+   *
+   * @throws UnsupportedCodeException if the edge is an unlock call whose handle cannot be
+   *     determined statically
    */
-  public static Optional<MutexLock> getUnlockMutex(CFAEdge edge) {
+  public static Optional<MutexLock> getUnlockMutex(CFAEdge edge) throws UnsupportedCodeException {
     return getMutexLockForFunctionSet(edge, UNLOCK_FUNCTIONS);
+  }
+
+  /**
+   * If the given CFA edge is a mutex lock call with a statically resolvable handle, returns that
+   * handle; otherwise returns empty. Only for filtering: an unresolvable lock call is refused by
+   * {@link MutexState#update} once the edge is taken.
+   */
+  public static Optional<MutexLock> getResolvableLockMutex(CFAEdge edge) {
+    return getMutexCall(edge, LOCK_FUNCTIONS)
+        .flatMap(call -> call.handle().map(handle -> new MutexLock(handle, call.type())));
   }
 
   /**
@@ -191,7 +212,22 @@ public final class MutexFunctions {
             && edge.getPredecessor().getFunctionName().startsWith(ATOMIC_PREFIX));
   }
 
+  private record MutexCall(MutexLockType type, Optional<MutexHandle> handle) {}
+
   private static Optional<MutexLock> getMutexLockForFunctionSet(
+      CFAEdge edge, ImmutableMap<String, MutexLockType> functions) throws UnsupportedCodeException {
+    Optional<MutexCall> call = getMutexCall(edge, functions);
+    if (call.isEmpty()) {
+      return empty();
+    }
+    if (call.orElseThrow().handle().isEmpty()) {
+      throw new UnsupportedCodeException("mutex handle that cannot be determined statically", edge);
+    }
+    return Optional.of(
+        new MutexLock(call.orElseThrow().handle().orElseThrow(), call.orElseThrow().type()));
+  }
+
+  private static Optional<MutexCall> getMutexCall(
       CFAEdge edge, ImmutableMap<String, MutexLockType> functions) {
     if (edge instanceof AStatementEdge sEdge
         && sEdge.getStatement() instanceof AFunctionCall funcCall) {
@@ -201,11 +237,7 @@ public final class MutexFunctions {
         if (lockType != null) {
           var params = funcCall.getFunctionCallExpression().getParameterExpressions();
           if (!params.isEmpty()) {
-            Optional<MutexHandle> handle = extractMutexName(params.getFirst());
-            if (handle.isEmpty()) {
-              throw new UnsupportedOperationException("Cannot statically determine mutex handle.");
-            }
-            return Optional.of(new MutexLock(handle.orElseThrow(), lockType));
+            return Optional.of(new MutexCall(lockType, extractMutexName(params.getFirst())));
           }
         }
       }

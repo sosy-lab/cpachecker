@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
@@ -24,6 +23,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.concurrent.PrecisionVariableManager.ScopedRef
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -108,6 +109,8 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
   private final ConcurrentTransferRelation transferRelation;
   private final ConfigurableProgramAnalysis threadSpecificCPA;
   private final PrecisionAdjustment precisionAdjustment;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
   private final LogManager logger;
 
   @SuppressWarnings("unused")
@@ -119,6 +122,10 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
     logger = pLogger;
 
+    if (pCfa.getLanguage() != Language.C) {
+      throw new UnsupportedCodeException("ConcurrentCPA supports only C programs", null);
+    }
+
     if (abstractionAware && CPAs.retrieveCPA(pCpa, PredicateCPA.class) != null) {
       // Inside a block, the path formula keeps exact values of variables without predicates, so
       // treating accesses to them as independent would prune feasible interleavings.
@@ -128,6 +135,20 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
         throw new InvalidConfigurationException(
             "Abstraction-aware POR with PredicateCPA requires cpa.predicate.blk.threshold = 1");
       }
+      // PredicatePrecisionVariableManager supports only predicates that hold at all locations
+      @SuppressWarnings("deprecation") // just a sanity check, the option belongs to PredicateCPA
+      String predicateSharing = pConfig.getProperty("cpa.predicate.precision.sharing");
+      if (!"GLOBAL".equals(predicateSharing)) {
+        throw new InvalidConfigurationException(
+            "Abstraction-aware POR with PredicateCPA requires cpa.predicate.precision.sharing ="
+                + " GLOBAL");
+      }
+    }
+    if (abstractionAware) {
+      // fail during construction rather than when the analysis asks for the initial precision
+      createVariableManager(
+          pCpa.getInitialPrecision(
+              pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
     }
 
     threadSpecificCPA = new ThreadSpecificCPA(pConfig, pCfa, pLogger);
@@ -150,6 +171,12 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
             aggregateBasicBlocks,
             pLogger,
             new Random(randomSeed));
+
+    mergeOperator =
+        mergeType.equals("SEP")
+            ? MergeSepOperator.getInstance()
+            : new ConcurrentMergeOperator(pCpa, threadSpecificCPA);
+    stopOperator = new ConcurrentStopOperator(pCpa, threadSpecificCPA);
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
     precisionAdjustment =
@@ -195,48 +222,55 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
     ConfigurableProgramAnalysis wrappedCpa = getWrappedCpa();
     if (abstractionAware) {
       Precision initialWrappedPrecision = wrappedCpa.getInitialPrecision(pNode, pPartition);
-      List<PrecisionVariableManager> variableManagers = new ArrayList<>(1);
-
-      ConfigurablePrecision configurablePrecision =
-          Precisions.extractPrecisionByType(initialWrappedPrecision, ConfigurablePrecision.class);
-      if (configurablePrecision != null) {
-        variableManagers.add(new ConfigurablePrecisionVariableManager());
+      PrecisionVariableManager variableManager;
+      try {
+        variableManager = createVariableManager(initialWrappedPrecision);
+      } catch (InvalidConfigurationException e) {
+        throw new AssertionError("precision was already checked in the constructor", e);
       }
-
-      ScopedRefinablePrecision scopedRefinablePrecision =
-          Precisions.extractPrecisionByType(
-              initialWrappedPrecision, ScopedRefinablePrecision.class);
-      if (scopedRefinablePrecision != null) {
-        variableManagers.add(new ScopedRefinablePrecisionVariableManager(logger));
-      }
-
-      PredicatePrecision predicatePrecision =
-          Precisions.extractPrecisionByType(initialWrappedPrecision, PredicatePrecision.class);
-      if (predicatePrecision != null) {
-        var predicateCPA = CPAs.retrieveCPA(wrappedCpa, PredicateCPA.class);
-        checkState(
-            predicateCPA != null,
-            "Abstraction-aware POR requires PredicateCPA when using PredicatePrecision, but it is"
-                + " not present.");
-        var fmgr = predicateCPA.getSolver().getFormulaManager();
-        variableManagers.add(new PredicatePrecisionVariableManager(fmgr));
-      }
-
-      PrecisionVariableManager variableManager =
-          switch (variableManagers.size()) {
-            case 0 ->
-                throw new IllegalStateException(
-                    "Abstraction-aware POR does not support this precision: "
-                        + initialWrappedPrecision);
-            case 1 -> variableManagers.getFirst();
-            default ->
-                new CompositePrecisionVariableManager(ImmutableList.copyOf(variableManagers));
-          };
-
       return new AbstractionAwarePORPrecision(variableManager, initialWrappedPrecision);
     }
 
     return new SimpleConcurrentPrecision(wrappedCpa.getInitialPrecision(pNode, pPartition));
+  }
+
+  private PrecisionVariableManager createVariableManager(Precision initialWrappedPrecision)
+      throws InvalidConfigurationException {
+    ConfigurableProgramAnalysis wrappedCpa = getWrappedCpa();
+    List<PrecisionVariableManager> variableManagers = new ArrayList<>(1);
+
+    ConfigurablePrecision configurablePrecision =
+        Precisions.extractPrecisionByType(initialWrappedPrecision, ConfigurablePrecision.class);
+    if (configurablePrecision != null) {
+      variableManagers.add(new ConfigurablePrecisionVariableManager());
+    }
+
+    ScopedRefinablePrecision scopedRefinablePrecision =
+        Precisions.extractPrecisionByType(initialWrappedPrecision, ScopedRefinablePrecision.class);
+    if (scopedRefinablePrecision != null) {
+      variableManagers.add(new ScopedRefinablePrecisionVariableManager(logger));
+    }
+
+    PredicatePrecision predicatePrecision =
+        Precisions.extractPrecisionByType(initialWrappedPrecision, PredicatePrecision.class);
+    if (predicatePrecision != null) {
+      var predicateCPA = CPAs.retrieveCPA(wrappedCpa, PredicateCPA.class);
+      if (predicateCPA == null) {
+        throw new InvalidConfigurationException(
+            "Abstraction-aware POR requires PredicateCPA when using PredicatePrecision, but it is"
+                + " not present.");
+      }
+      var fmgr = predicateCPA.getSolver().getFormulaManager();
+      variableManagers.add(new PredicatePrecisionVariableManager(fmgr));
+    }
+
+    return switch (variableManagers.size()) {
+      case 0 ->
+          throw new InvalidConfigurationException(
+              "Abstraction-aware POR does not support this precision: " + initialWrappedPrecision);
+      case 1 -> variableManagers.getFirst();
+      default -> new CompositePrecisionVariableManager(ImmutableList.copyOf(variableManagers));
+    };
   }
 
   @Override
@@ -246,14 +280,11 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public MergeOperator getMergeOperator() {
-    if (mergeType.equals("SEP")) {
-      return MergeSepOperator.getInstance();
-    }
-    return new ConcurrentMergeOperator(getWrappedCpa(), threadSpecificCPA);
+    return mergeOperator;
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return new ConcurrentStopOperator(getWrappedCpa(), threadSpecificCPA);
+    return stopOperator;
   }
 }

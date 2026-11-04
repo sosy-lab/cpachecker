@@ -315,6 +315,10 @@ public class ConcurrentTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     ThreadFunctions.checkCreateParams(params);
     String threadFunction = ThreadFunctions.extractCreateFunctionName(params);
+    if (cfa.getFunctionHead(threadFunction) == null) {
+      throw new UnsupportedCodeException(
+          "pthread_create of function without body: " + threadFunction, cfaEdge);
+    }
     ThreadId newThreadId = new ThreadId(state.threads().size());
     List<AbstractState> afterHandleWrite = new ArrayList<>();
     for (AbstractState wrapped : wrappedSuccessors) {

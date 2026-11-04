@@ -74,7 +74,8 @@ public class StraightLineBlockAggregator implements BasicBlockAggregator {
       } else if (edge instanceof SvLibStatementEdge pSvLibStatementEdge) {
         return pSvLibStatementEdge.getStatement() instanceof SvLibFunctionCallAssignmentStatement;
       } else {
-        throw new UnsupportedOperationException("Unknown statement edge type: " + edge.getClass());
+        // unknown kind of statement: conservatively treat it as a call, so it ends the block
+        return true;
       }
     }
     return false;

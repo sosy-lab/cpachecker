@@ -27,17 +27,13 @@ class ConcurrentStopOperator implements StopOperator {
   private final Precision threadSpecificUnitPrecision;
 
   ConcurrentStopOperator(
-      ConfigurableProgramAnalysis pWrappedCpa, ConfigurableProgramAnalysis pThreadSpecificCpa) {
+      ConfigurableProgramAnalysis pWrappedCpa, ConfigurableProgramAnalysis pThreadSpecificCpa)
+      throws InterruptedException {
     wrappedCpa = pWrappedCpa;
     threadSpecificStop = pThreadSpecificCpa.getStopOperator();
-    try {
-      threadSpecificUnitPrecision =
-          pThreadSpecificCpa.getInitialPrecision(
-              CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
-    } catch (InterruptedException e) {
-      throw new IllegalArgumentException(
-          "Could not get initial precision for thread-specific CPA", e);
-    }
+    threadSpecificUnitPrecision =
+        pThreadSpecificCpa.getInitialPrecision(
+            CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
   }
 
   @Override

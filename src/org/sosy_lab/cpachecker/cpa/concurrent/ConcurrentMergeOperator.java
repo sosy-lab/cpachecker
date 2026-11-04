@@ -27,17 +27,13 @@ class ConcurrentMergeOperator implements MergeOperator {
   private final Precision threadSpecificUnitPrecision;
 
   ConcurrentMergeOperator(
-      ConfigurableProgramAnalysis pWrappedCpa, ConfigurableProgramAnalysis pThreadSpecificCpa) {
+      ConfigurableProgramAnalysis pWrappedCpa, ConfigurableProgramAnalysis pThreadSpecificCpa)
+      throws InterruptedException {
     wrappedMerge = pWrappedCpa.getMergeOperator();
     threadSpecificStop = pThreadSpecificCpa.getStopOperator();
-    try {
-      threadSpecificUnitPrecision =
-          pThreadSpecificCpa.getInitialPrecision(
-              CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
-    } catch (InterruptedException e) {
-      throw new IllegalArgumentException(
-          "Could not get initial precision for thread-specific CPA", e);
-    }
+    threadSpecificUnitPrecision =
+        pThreadSpecificCpa.getInitialPrecision(
+            CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
   }
 
   @Override
