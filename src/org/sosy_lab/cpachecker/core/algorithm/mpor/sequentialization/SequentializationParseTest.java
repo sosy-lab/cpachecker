@@ -200,6 +200,26 @@ public class SequentializationParseTest {
   }
 
   @Test
+  public void test_nested_pthread_object_structs() throws Exception {
+    Path path = BASE_PATH.resolve("nested-pthread-object-structs.i");
+    assertThat(Files.exists(path)).isTrue();
+    Configuration config =
+        TestUtils.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.mergeCommutingStatements", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption(
+                "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
+    testProgram(path, options);
+  }
+
+  @Test
   public void test_queue_longest() throws Exception {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
     Path path = BASE_PATH.resolve("pthread-queue_longest.i");
