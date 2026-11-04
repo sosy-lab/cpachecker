@@ -47,14 +47,12 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Transfer relation of the {@link InterpreterCPA}. It executes the program edge by edge and checks
- * after every step that the wrapped CPA produced exactly one or zero successors. If a state has
- * more than one successor, the program makes a nondeterministic choice, which this analysis does
- * not support, and an {@link UnsupportedCodeException} is thrown.
+ * after every step that the wrapped CPA produced exactly one or zero successors.
  *
  * <p>Because there is at most one successor, several execution steps can be performed within a
- * single call of this transfer relation. The intermediate states are then never added to the
- * reached set and can be garbage collected immediately, which is what makes this analysis use only
- * a constant amount of memory for the state space (cf. {@code cpa.interpreter.stepsPerTransfer}).
+ * single call of this transfer relation. The intermediate states are then never returned and can be
+ * garbage collected immediately, which is what makes this analysis use only a constant amount of
+ * memory for the state space (cf. {@code cpa.interpreter.stepsPerTransfer}).
  */
 class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation {
 
@@ -309,6 +307,10 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     return false;
   }
 
+  /**
+   * The exception for a state with more than one successor: the execution cannot follow several
+   * successors at once, so it stops here unless the inputs are sampled.
+   */
   private UnsupportedCodeException nondeterminismException(
       @Nullable CFAEdge pFirstEdge, CFAEdge pSecondEdge) {
     String reason =
