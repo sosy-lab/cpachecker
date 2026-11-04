@@ -21,9 +21,16 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * State of the {@link InterpreterCPA}. Besides the state of the wrapped CPA it stores the stack of
- * currently active function calls, which is needed to restore the values of a caller after
- * returning from a recursive function call (cf. {@link StackFrame}), and whether the execution
- * still permits a sound proof of safety or a precise counterexample.
+ * currently active function calls (cf. {@link StackFrame}) and whether the execution still permits
+ * a sound proof of safety or a precise counterexample.
+ *
+ * <p>The stack is needed because a value analysis identifies the local variables of a function by
+ * the name of the function (cf. {@link MemoryLocation#isOnFunctionStack(String)}), so all
+ * invocations of the same function share the same memory locations: a recursive callee overwrites
+ * the local variables of its caller and returning from it discards them. Every frame therefore
+ * remembers the values that a recursive call is about to overwrite, so that {@link
+ * InterpreterTransferRelation} can restore them when the call returns. Only this CPA does so, the
+ * value analysis itself is not affected.
  */
 public class InterpreterState extends AbstractSingleWrapperState {
 
@@ -73,14 +80,6 @@ public class InterpreterState extends AbstractSingleWrapperState {
 
   /**
    * One entry of the stack of active function calls.
-   *
-   * <p>A value analysis identifies the local variables of a function by the name of the function
-   * (cf. {@link MemoryLocation#isOnFunctionStack(String)}), so all invocations of the same function
-   * share the same memory locations. For a recursive call this means that the callee overwrites the
-   * local variables of its caller and that returning from the callee discards them. A stack frame
-   * therefore remembers the values that a recursive call is about to overwrite, so that {@link
-   * InterpreterTransferRelation} can restore them when the call returns. This is done in this CPA
-   * only, the value analysis itself is not affected.
    *
    * @param parent the frame of the caller, {@code null} for the outermost call
    * @param functionName the name of the function that this frame belongs to
