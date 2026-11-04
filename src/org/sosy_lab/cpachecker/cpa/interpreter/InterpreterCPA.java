@@ -65,32 +65,11 @@ import org.sosy_lab.cpachecker.util.CPAs;
  *       performs exactly as many steps as the program does.
  * </ul>
  *
- * <p>Executing several steps within one call of the transfer relation resembles {@link
- * org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA}, which also
- * follows a chain of states as long as there is exactly one successor and puts only the end of the
- * chain into the reached set. The two CPAs are kept separate because that loop is all they have in
- * common:
- *
- * <ul>
- *   <li>For the compactor a chain is an optimization: it shortens the ARG of an arbitrary analysis
- *       without changing its result, and a state with several successors is ordinary branching that
- *       it hands on to the algorithm. Here a single successor is the defining property: several
- *       successors mean that the program reads an input, which an execution cannot follow, so this
- *       CPA samples the inputs or reports {@code UNKNOWN}.
- *   <li>The compactor is transparent. It has no abstract state of its own and delegates domain,
- *       merge, and stop operator to the wrapped CPA. This CPA has its own state, which holds the
- *       stack of active function calls and whether the execution still permits a proof or a
- *       counterexample, and it fixes merge-sep and stop-never, which is what turns termination of
- *       the analysis into a proof of termination of the program.
- *   <li>This CPA has to inspect every single step: it updates the call stack, restores the values
- *       of a caller when a recursive call returns, collects the invariants and the violating edge
- *       for the witnesses, and accounts for the calls that the value analysis does not handle. The
- *       compactor hides exactly those intermediate states from its caller, so this CPA cannot be
- *       built on top of it.
- *   <li>Conversely, the compactor supports BAM and reconstructs the hidden states for a refinement
- *       (cf. {@code SSCBasedRefiner}). An execution is never refined and needs neither, and {@code
- *       cpa.interpreter.stepsPerTransfer = 1} already yields a complete ARG.
- * </ul>
+ * <p>Developer note: the loop over a chain of single successors also exists in {@link
+ * org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA}, but that
+ * is all the two have in common. For the compactor a chain is a transparent optimization of an
+ * arbitrary analysis, while here a single successor is the defining property, this CPA has a
+ * state of its own, and it has to inspect every step, which the compactor hides.
  */
 @Options(prefix = "cpa.interpreter")
 public class InterpreterCPA extends AbstractSingleWrapperCPA {
