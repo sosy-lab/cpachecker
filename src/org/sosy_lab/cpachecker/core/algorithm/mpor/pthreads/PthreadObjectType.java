@@ -54,6 +54,7 @@ public enum PthreadObjectType {
           PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
           PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE),
       Optional.of(PthreadObjectSubstitutions.MUTEX_INITIALIZER)),
+  PTHREAD_MUTEXATTR_T("pthread_mutexattr_t", false, ImmutableSet.of(), Optional.empty()),
   PTHREAD_ONCE_T(
       "pthread_once_t",
       true,
