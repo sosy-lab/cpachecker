@@ -170,9 +170,9 @@ public abstract class CAstCloner extends AbstractTransformingCAstNodeVisitor<NoE
   }
 
   /**
-   * Offers a replacement for a whole memory access (address-of, dereference, subscript or field
-   * reference), called with the original expression before its operands are cloned. Returning
-   * {@code null} keeps the default copy.
+   * Offers a replacement for a whole memory access (address-of, dereference, subscript, field
+   * reference or variable identifier), called with the original expression before its operands are
+   * cloned. Returning {@code null} keeps the default copy.
    */
   @SuppressWarnings("unused")
   protected @Nullable CExpression replaceAccess(final CExpression exp) {
@@ -474,6 +474,10 @@ public abstract class CAstCloner extends AbstractTransformingCAstNodeVisitor<NoE
             changeFunctionName(exp.getName()),
             cloneAst(exp.getDeclaration()));
       } else {
+        CExpression replacement = replaceAccess(exp);
+        if (replacement != null) {
+          return replacement;
+        }
         return new CIdExpression(
             exp.getFileLocation(),
             cloneType(exp.getExpressionType()),

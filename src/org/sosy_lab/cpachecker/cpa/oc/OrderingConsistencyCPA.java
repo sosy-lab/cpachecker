@@ -191,7 +191,8 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
         s2.getLiveInstanceIds(),
         s2.getLoopCounts(),
         s2.getLockDepths(),
-        false);
+        // equal for both states, it is part of the merge key
+        s2.isTarget());
   }
 
   public Solver getSolver() {

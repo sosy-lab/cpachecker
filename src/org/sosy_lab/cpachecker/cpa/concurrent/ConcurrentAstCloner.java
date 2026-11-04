@@ -17,16 +17,22 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstCloner;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ThreadId;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentEdgeCloner.GlobalAccessRenamer;
 
 /**
@@ -51,6 +57,9 @@ class ConcurrentAstCloner extends CAstCloner {
   private final ThreadId threadId;
   private final @Nullable GlobalAccessRenamer globalRenamer;
   private final boolean useThreadSpecificNames;
+
+  // an array operand that the enclosing default copy uses as an array (indexed, or under sizeof)
+  private @Nullable CExpression nonDecayingArray = null;
 
   ConcurrentAstCloner(ThreadId pThreadId) {
     this(pThreadId, true);
@@ -165,15 +174,50 @@ class ConcurrentAstCloner extends CAstCloner {
     if (globalRenamer == null) {
       return null;
     }
+    if (exp != nonDecayingArray
+        && exp.getExpressionType().getCanonicalType() instanceof CArrayType arrayType
+        && (exp instanceof CIdExpression id
+            ? id.getDeclaration() instanceof CVariableDeclaration
+            : exp instanceof CLeftHandSide)) {
+      // an array used as a value decays to the address of its first element, which is the
+      // address of the whole array; the renamer resolves that like an explicit &arr
+      CExpression address =
+          globalRenamer.replaceAddressOf(
+              new CUnaryExpression(
+                  exp.getFileLocation(),
+                  new CPointerType(CTypeQualifiers.NONE, exp.getExpressionType()),
+                  exp,
+                  CUnaryExpression.UnaryOperator.AMPER),
+              this::cloneRvalue);
+      if (address != null) {
+        return new CCastExpression(
+            exp.getFileLocation(),
+            new CPointerType(CTypeQualifiers.NONE, arrayType.getType()),
+            address);
+      }
+    }
+    if (exp instanceof CIdExpression) {
+      return null;
+    }
     if (exp instanceof CUnaryExpression unary) {
-      return unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
-          ? globalRenamer.replaceAddressOf(unary, this::cloneRvalue)
-          : null;
+      if (unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
+        return globalRenamer.replaceAddressOf(unary, this::cloneRvalue);
+      }
+      if (unary.getOperator() == CUnaryExpression.UnaryOperator.SIZEOF
+          || unary.getOperator() == CUnaryExpression.UnaryOperator.ALIGNOF) {
+        nonDecayingArray = unary.getOperand(); // sizeof(arr) is the size of the array
+      }
+      return null;
     }
     if (exp instanceof CArraySubscriptExpression
         || exp instanceof CFieldReference
         || exp instanceof CPointerExpression) {
-      return globalRenamer.replaceAliasedAccess(exp, isLhs(), this::cloneRvalue);
+      CExpression replacement = globalRenamer.replaceAliasedAccess(exp, isLhs(), this::cloneRvalue);
+      if (replacement == null && exp instanceof CArraySubscriptExpression subscript) {
+        // the default copy indexes the array itself, so it must not decay it to an address
+        nonDecayingArray = subscript.getArrayExpression();
+      }
+      return replacement;
     }
     return null;
   }

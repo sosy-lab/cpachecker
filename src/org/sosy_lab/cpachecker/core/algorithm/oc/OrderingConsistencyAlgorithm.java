@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.oc;
 import static com.google.common.base.Strings.nullToEmpty;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -778,10 +779,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         if (race == null) {
           yield null;
         }
-        var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
-        BigInteger clock1 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + race.access1().id()));
-        BigInteger clock2 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + race.access2().id()));
-        yield clock1 != null && clock2 != null && clock1.compareTo(clock2) >= 0
+        // the later one in the execution order, not by clock: that order moves an access the model
+        // places inside another thread's atomic block behind the block's end
+        List<Integer> orderedIds =
+            Lists.transform(orderedViolationEvents(pModel, pEncoder), MemoryEvent::id);
+        yield orderedIds.indexOf(race.access1().id()) > orderedIds.indexOf(race.access2().id())
             ? race.access1()
             : race.access2();
       }

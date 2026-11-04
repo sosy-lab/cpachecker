@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -155,13 +157,17 @@ final class OrderingConsistencyCounterexampleExtractor {
       // (see OcExplorationRegistry#chainTerminalEventId).
       int terminalChainId =
           pAlgorithm.getOcCpa().getRegistry().chainTerminalEventId(terminalEvent.id());
+      // a branch-condition read is shared by both assume edges of the branch, so the state must
+      // also sit after the terminal edge, where the path's last edge leads
+      CFANode terminalSuccessor = edges.isEmpty() ? null : edges.getLast().getSuccessor();
       ARGState target = null;
       for (AbstractState reached : pReachedSet) {
         OrderingConsistencyState ocState =
             AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
         if (reached instanceof ARGState argState
             && ocState != null
-            && ocState.getLastEventIds().contains(terminalChainId)) {
+            && ocState.getLastEventIds().contains(terminalChainId)
+            && Iterables.contains(AbstractStates.extractLocations(reached), terminalSuccessor)) {
           if (pAlgorithm.isDataRaceTarget()) {
             // no exploration-time target exists for a race; mark this reached state so the verdict
             // is FALSE (the reached set now contains a genuine target with a proper location)
