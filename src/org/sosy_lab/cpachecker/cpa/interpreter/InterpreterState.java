@@ -99,6 +99,11 @@ public class InterpreterState extends AbstractSingleWrapperState {
       checkNotNull(shadowedValues);
     }
 
+    /** The frame of the function that an execution starts in, i.e. the bottom of the stack. */
+    static StackFrame initial(String pFunctionName) {
+      return new StackFrame(null, pFunctionName, ImmutableMap.of(), 1);
+    }
+
     /** Push a new frame for a call of the given function onto the given stack. */
     static StackFrame push(
         @Nullable StackFrame pParent,

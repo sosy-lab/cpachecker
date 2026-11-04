@@ -19,6 +19,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -197,7 +198,10 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new InterpreterState(super.getInitialState(pNode, pPartition), null);
+    // The execution starts inside the entry function, so its frame is already on the stack
+    // (analogously to org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA#getInitialState).
+    return new InterpreterState(
+        super.getInitialState(pNode, pPartition), StackFrame.initial(pNode.getFunctionName()));
   }
 
   @Override
