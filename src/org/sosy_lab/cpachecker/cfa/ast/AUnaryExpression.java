@@ -45,8 +45,8 @@ public abstract class AUnaryExpression extends AbstractExpression {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hash(operand);
-    result = prime * result + Objects.hash(operator);
+    result = prime * result + Objects.hashCode(operand);
+    result = prime * result + Objects.hashCode(operator);
     result = prime * result + super.hashCode();
     return result;
   }

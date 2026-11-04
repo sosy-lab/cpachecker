@@ -102,6 +102,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
         sys.exit(f"unknown tool {tool}")
 
     requiredfiles = etree.Element("requiredfiles")
+    requiredfiles.set("ifmissing", "skip-run")
     requiredfiles.text = (
         os.path.relpath(test_dir, os.path.dirname(testdef_path))
         + "/results/"

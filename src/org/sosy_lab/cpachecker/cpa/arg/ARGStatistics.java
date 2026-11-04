@@ -285,7 +285,12 @@ public class ARGStatistics implements Statistics {
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      RelevantArgStatesCollector argStatesCollector = new RootExplorationArgStateCollector();
+      RelevantArgStatesCollector argStatesCollector =
+          new RootExplorationArgStateCollector(
+              pCFA.getAstCfaRelation() != null && pCFA.getLoopStructure().isPresent()
+                  ? pCFA.getAstCfaRelation()
+                      .getLoopInvariantNodes(pCFA.getLoopStructure().orElseThrow())
+                  : ImmutableSet.of());
       ProgramTransformation transformation = pCFA.getMetadata().getTransformation();
       if (transformation != null && transformation.isSuccessful()) {
         argToWitnessWriter =

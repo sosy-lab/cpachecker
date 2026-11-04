@@ -132,6 +132,32 @@ PS_Unsat
     : 'unsat'
     ;
 
+// Predefined symbols which a value of a model is built from
+
+PS_Const
+    : 'const'
+    ;
+
+PS_Divide
+    : '/'
+    ;
+
+PS_Fp
+    : 'fp'
+    ;
+
+PS_Minus
+    : '-'
+    ;
+
+PS_Store
+    : 'store'
+    ;
+
+PS_ToReal
+    : 'to_real'
+    ;
+
 // RESERVED Words
 
 // Command names
@@ -313,20 +339,18 @@ GRW_String
 Numeral
     : '0'
     | [1-9] Digit*
-    | '-' [1-9] Digit*
     ;
 
 Binary
-    : BinaryDigit+
+    : '#b' BinaryDigit+
     ;
 
 HexDecimal
-    : '#x' HexDigit HexDigit HexDigit HexDigit
+    : '#x' HexDigit+
     ;
 
 Decimal
     : Numeral '.' '0'* Numeral
-    | '-' Numeral '.' '0'* Numeral
     ;
 
 fragment HexDigit
@@ -651,6 +675,12 @@ predefSymbol
     | PS_Unknown
     | PS_Unsupported
     | PS_Unsat
+    | PS_Const
+    | PS_Divide
+    | PS_Fp
+    | PS_Minus
+    | PS_Store
+    | PS_ToReal
     ;
 
 predefKeyword

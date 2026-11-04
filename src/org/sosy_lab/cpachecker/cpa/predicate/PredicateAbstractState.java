@@ -206,7 +206,12 @@ public abstract sealed class PredicateAbstractState
                               // For global variables
                               || var.getName().equals(name))
                   && !name.contains("__CPAchecker_"),
-          name -> useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name,
+          name -> {
+            String nameInProgram = pAstCfaRelation.getNameInInputProgram(pLocation, name);
+            return useOldKeywordForVariables
+                ? ExpressionTreeReportingState.oldValueOf(nameInProgram)
+                : nameInProgram;
+          },
           pMachineModel);
     }
 

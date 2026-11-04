@@ -101,7 +101,7 @@ Structure of Tests
 - To run JUnit test cases automatically, the name of the class containing the test methods has to end with `Test`.
   No other classes should have such a name.
 
-- Utilities specifically for tests should be placed in the package util.test,
+- Utilities specifically for tests should be placed in the package `util.test`,
   if they are reusable. Feel free to add utilities there.
 
 
@@ -112,7 +112,7 @@ Hints for Writing JUnit Tests
   - `LogManager.createTestLogManager()` (with tests for correct logger usage)
   - `TestUtils.configurationForTest()` for `Configuration`
   - `ShutdownNotifier.createDummy()` for `ShutdownNotifier`
-  - `FileLocation.DUMMY?
+  - `FileLocation.DUMMY`
   - `CNumericTypes.*` for `CSimpleType` instances
   - `TestCfaUtils` has utilities for CFA and AST nodes.
   - For other types, look in the specific class.

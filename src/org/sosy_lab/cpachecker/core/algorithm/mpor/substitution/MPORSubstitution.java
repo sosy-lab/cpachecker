@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -207,7 +207,8 @@ public class MPORSubstitution {
               new CArraySubscriptExpression(
                   arraySubscript.getFileLocation(),
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      arraySubscript.getExpressionType(), ImmutableSet.of()),
+                          arraySubscript.getExpressionType(), ImmutableSet.of())
+                      .type(),
                   arraySubstitute,
                   subscriptSubstitute);
           MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
@@ -233,7 +234,8 @@ public class MPORSubstitution {
               new CFieldReference(
                   fieldReference.getFileLocation(),
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      fieldReference.getExpressionType(), ImmutableSet.of()),
+                          fieldReference.getExpressionType(), ImmutableSet.of())
+                      .type(),
                   fieldReference.getFieldName(),
                   fieldOwnerSubstitute,
                   fieldReference.isPointerDereference());
@@ -246,7 +248,8 @@ public class MPORSubstitution {
         return new CUnaryExpression(
             unary.getFileLocation(),
             PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                unary.getExpressionType(), ImmutableSet.of()),
+                    unary.getExpressionType(), ImmutableSet.of())
+                .type(),
             substitute(
                 unary.getOperand(),
                 pCallContext,
@@ -263,7 +266,8 @@ public class MPORSubstitution {
             new CPointerExpression(
                 pointer.getFileLocation(),
                 PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                    pointer.getExpressionType(), ImmutableSet.of()),
+                        pointer.getExpressionType(), ImmutableSet.of())
+                    .type(),
                 substitute(
                     pointer.getOperand(),
                     pCallContext,
@@ -280,7 +284,8 @@ public class MPORSubstitution {
         return new CCastExpression(
             cast.getFileLocation(),
             PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                cast.getExpressionType(), ImmutableSet.of()),
+                    cast.getExpressionType(), ImmutableSet.of())
+                .type(),
             substitute(
                 cast.getOperand(),
                 pCallContext,

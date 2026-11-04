@@ -51,7 +51,7 @@ public class CFAEdgeForThread {
     return predecessor;
   }
 
-  protected void setPredecessor(CFANodeForThread pPredecessor) {
+  void setPredecessor(CFANodeForThread pPredecessor) {
     checkNotNull(pPredecessor);
     checkArgument(predecessor == null, "predecessor set already");
     predecessor = pPredecessor;
@@ -62,7 +62,7 @@ public class CFAEdgeForThread {
     return successor;
   }
 
-  protected void setSuccessor(CFANodeForThread pSuccessor) {
+  void setSuccessor(CFANodeForThread pSuccessor) {
     checkNotNull(pSuccessor);
     checkArgument(successor == null, "successor set already");
     successor = pSuccessor;
@@ -70,12 +70,7 @@ public class CFAEdgeForThread {
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        id,
-        threadId,
-        cfaEdge,
-        predecessor == null ? null : predecessor.id,
-        successor == null ? null : successor.id);
+    return Objects.hash(id, threadId, cfaEdge);
   }
 
   @Override
@@ -86,9 +81,7 @@ public class CFAEdgeForThread {
     return pOther instanceof CFAEdgeForThread other
         && id == other.id
         && threadId == other.threadId
-        && cfaEdge.equals(other.cfaEdge)
-        && (predecessor == null || predecessor.id == other.predecessor.id)
-        && (successor == null || successor.id == other.successor.id);
+        && cfaEdge.equals(other.cfaEdge);
   }
 
   @Override

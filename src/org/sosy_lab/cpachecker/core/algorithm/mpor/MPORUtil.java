@@ -166,7 +166,8 @@ public final class MPORUtil {
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
-        pInitializer);
+        pInitializer,
+        pVariableDeclaration.hasThreadLocalStorage());
   }
 
   // Pointers ======================================================================================

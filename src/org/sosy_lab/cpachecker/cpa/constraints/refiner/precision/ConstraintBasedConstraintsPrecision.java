@@ -227,7 +227,7 @@ final class ConstraintBasedConstraintsPrecision implements ConstraintsPrecision 
 
   @Override
   public int hashCode() {
-    return Objects.hash(trackedLocally);
+    return Objects.hashCode(trackedLocally);
   }
 
   @Override

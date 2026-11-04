@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks;
 
 class Simple{
   public static void main(String args[]){

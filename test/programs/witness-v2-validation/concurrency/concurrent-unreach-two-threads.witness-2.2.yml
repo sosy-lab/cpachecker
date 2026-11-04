@@ -39,7 +39,7 @@
             location:
               file_name: "./concurrent-unreach-two-threads.c"
               line: 51
-              column: 17
+              column: 35
               function: "main"
     - segment:
         - waypoint:
