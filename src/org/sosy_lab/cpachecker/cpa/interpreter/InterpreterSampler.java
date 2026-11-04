@@ -246,10 +246,7 @@ class InterpreterSampler {
     return result;
   }
 
-  /**
-   * Compute for every node the number of edges to the nearest loop head or function call, by a
-   * breadth-first search backwards from those locations.
-   */
+  /** The number of edges from a node to the nearest loop head or function call, per node. */
   private static ImmutableMap<CFANode, Integer> computeDistances(CFA pCfa) {
     Map<CFANode, Integer> distances = new HashMap<>();
     Deque<CFANode> waitlist = new ArrayDeque<>();
