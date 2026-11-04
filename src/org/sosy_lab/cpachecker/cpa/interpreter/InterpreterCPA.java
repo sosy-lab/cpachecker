@@ -150,19 +150,17 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
         restoreCallerValuesOnRecursion);
   }
 
-  /** There is only a single execution, so there is never anything to merge. */
   @Override
   public MergeOperator getMergeOperator() {
+    // There is only a single execution, so there is never anything to merge.
     return MergeSepOperator.getInstance();
   }
 
-  /**
-   * States are never covered. This is essential for the claim that termination of the analysis
-   * implies termination of the program: a coverage check would stop the analysis when the program
-   * revisits a state, i.e., exactly when the program does not terminate.
-   */
   @Override
   public StopOperator getStopOperator() {
+    // Stop-never is what lets termination of the analysis prove termination of the program: a
+    // coverage check would stop the analysis when the program revisits a state, i.e., exactly
+    // when the program does not terminate.
     return StopNeverOperator.getInstance();
   }
 
