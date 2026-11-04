@@ -157,7 +157,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         builder, mapCurrVarsToPrevVars, mapNamesToVariables, nondetDeclarations);
 
     builder.add("}}");
-    String overapproximatingProgam = finishProgram(builder.toString(), nondetDeclarations);
+    String overapproximatingProgam = declareNondetfunctions(builder.toString(), nondetDeclarations);
 
     try {
       // Initialization:
@@ -226,7 +226,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * since otherwise their return types would be unknown, and the variables for the previous values
    * are renamed, since the termination analyses use the keywords of these names internally.
    */
-  private static String finishProgram(String pProgram, Map<String, String> pNondetDeclarations) {
+  private static String declareNondetfunctions(String pProgram, Map<String, String> pNondetDeclarations) {
     StringJoiner program = new StringJoiner(System.lineSeparator());
     pNondetDeclarations.values().forEach(program::add);
     program.add(pProgram.replace(TransitionInvariantUtils.PREV_KEYWORD, "__validation_previous"));
