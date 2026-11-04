@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
@@ -31,6 +32,14 @@ public class LoopBoundState
 
   private final LoopStack loopStack;
 
+  /**
+   * The largest iteration counts of the represented paths if this state was merged from states with
+   * different iteration counts (see {@link LoopBoundRangeDomain}); {@link #loopStack} then holds
+   * the smallest ones. Empty if all represented paths have the iteration counts of {@link
+   * #loopStack}.
+   */
+  private final Optional<LoopStack> upperBounds;
+
   private final boolean stopIt;
 
   private int hashCache = 0;
@@ -40,6 +49,15 @@ public class LoopBoundState
   }
 
   private LoopBoundState(LoopStack pLoopStack, boolean pStopIt) {
+    this(pLoopStack, Optional.empty(), pStopIt);
+  }
+
+  private LoopBoundState(LoopStack pLoopStack, Optional<LoopStack> pUpperBounds, boolean pStopIt) {
+    Preconditions.checkArgument(
+        pUpperBounds.isEmpty()
+            || (pLoopStack.getSize() == 1 && pUpperBounds.orElseThrow().getSize() == 1),
+        "Iteration ranges are only supported without tracking the loop stack");
+    upperBounds = Objects.requireNonNull(pUpperBounds);
     loopStack = Objects.requireNonNull(pLoopStack);
     Preconditions.checkArgument(
         !pLoopStack.isEmpty(),
@@ -62,12 +80,14 @@ public class LoopBoundState
         throw new CPATransferException(
             "Unexpected exit from loop " + pOldLoop + " when loop stack is " + this);
       }
+      Preconditions.checkState(upperBounds.isEmpty());
       return new LoopBoundState(loopStack.pop(), stopIt);
     }
     return this;
   }
 
   public LoopBoundState enter(Loop pLoop) {
+    Preconditions.checkState(upperBounds.isEmpty());
     return new LoopBoundState(loopStack.push(DeterminedLoopIterationState.newState(pLoop)), stopIt);
   }
 
@@ -78,19 +98,28 @@ public class LoopBoundState
     if (isLoopCounterAbstracted()) {
       return this;
     }
-    LoopIterationState loopIterationState = loopStack.peek();
-    LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoop);
-    if (newLoopIterationState != loopIterationState) {
-      return new LoopBoundState(loopStack.pop().push(newLoopIterationState), stopIt);
+    LoopStack newLoopStack = visitLoopHead(loopStack, pLoop);
+    Optional<LoopStack> newUpperBounds = upperBounds.map(u -> visitLoopHead(u, pLoop));
+    if (newLoopStack != loopStack || newUpperBounds.orElse(null) != upperBounds.orElse(null)) {
+      return new LoopBoundState(newLoopStack, newUpperBounds, stopIt);
     }
     return this;
+  }
+
+  private static LoopStack visitLoopHead(LoopStack pLoopStack, Loop pLoop) {
+    LoopIterationState loopIterationState = pLoopStack.peek();
+    LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoop);
+    if (newLoopIterationState != loopIterationState) {
+      return pLoopStack.pop().push(newLoopIterationState);
+    }
+    return pLoopStack;
   }
 
   public LoopBoundState setStop(boolean pStop) {
     if (stopIt == pStop) {
       return this;
     }
-    return new LoopBoundState(loopStack, pStop);
+    return new LoopBoundState(loopStack, upperBounds, pStop);
   }
 
   public boolean isLoopCounterAbstracted() {
@@ -110,6 +139,7 @@ public class LoopBoundState
   @Override
   public String toString() {
     return loopStack.peek()
+        + upperBounds.map(u -> ", at most: " + u.peek()).orElse("")
         + ", stack depth "
         + getDepth()
         + " ["
@@ -124,13 +154,14 @@ public class LoopBoundState
     }
     return obj instanceof LoopBoundState other
         && stopIt == other.stopIt
-        && loopStack.equals(other.loopStack);
+        && loopStack.equals(other.loopStack)
+        && upperBounds.equals(other.upperBounds);
   }
 
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(stopIt, loopStack);
+      hashCache = Objects.hash(stopIt, loopStack, upperBounds);
     }
     return hashCache;
   }
@@ -150,7 +181,16 @@ public class LoopBoundState
 
   @Override
   public int getIteration(Loop pLoop) {
-    for (LoopIterationState loopIterationState : loopStack) {
+    return getIteration(loopStack, pLoop);
+  }
+
+  @Override
+  public int getIterationUpperBound(Loop pLoop) {
+    return getIteration(upperOrLowerBounds(), pLoop);
+  }
+
+  private static int getIteration(LoopStack pLoopStack, Loop pLoop) {
+    for (LoopIterationState loopIterationState : pLoopStack) {
       if (!loopIterationState.isEntryKnown()) {
         return loopIterationState.getLoopIterationCount(pLoop);
       }
@@ -163,11 +203,25 @@ public class LoopBoundState
 
   @Override
   public int getDeepestIteration() {
+    return getDeepestIteration(loopStack);
+  }
+
+  @Override
+  public int getDeepestIterationUpperBound() {
+    return getDeepestIteration(upperOrLowerBounds());
+  }
+
+  private static int getDeepestIteration(LoopStack pLoopStack) {
     int deepestIteration = 0;
-    for (LoopIterationState loopIterationState : loopStack) {
+    for (LoopIterationState loopIterationState : pLoopStack) {
       deepestIteration = Math.max(deepestIteration, loopIterationState.getMaxIterationCount());
     }
     return deepestIteration;
+  }
+
+  @Override
+  public boolean hasIterationRange() {
+    return upperBounds.isPresent();
   }
 
   @Override
@@ -197,7 +251,46 @@ public class LoopBoundState
     if (currentLoopIterationState == newLoopIterationState) {
       return this;
     }
+    Preconditions.checkState(upperBounds.isEmpty());
     return new LoopBoundState(loopStack.pop().push(newLoopIterationState), stopIt);
+  }
+
+  /**
+   * Returns a state that represents the paths of both states: its lower bounds are the minimum and
+   * its upper bounds the maximum of the iteration counts of both states.
+   */
+  LoopBoundState joinIterationRanges(LoopBoundState pOther) {
+    if (coversIterationRanges(pOther)) {
+      return this;
+    }
+    if (pOther.coversIterationRanges(this)) {
+      return pOther;
+    }
+    return new LoopBoundState(
+        new LoopStack(getOnlyFrame(loopStack).minimum(getOnlyFrame(pOther.loopStack))),
+        Optional.of(
+            new LoopStack(
+                getOnlyFrame(upperOrLowerBounds())
+                    .maximum(getOnlyFrame(pOther.upperOrLowerBounds())))),
+        stopIt && pOther.stopIt);
+  }
+
+  /** Returns whether the iteration ranges of this state enclose those of the other state. */
+  boolean coversIterationRanges(LoopBoundState pOther) {
+    return stopIt == pOther.stopIt
+        && getOnlyFrame(loopStack).isAtMost(getOnlyFrame(pOther.loopStack))
+        && getOnlyFrame(pOther.upperOrLowerBounds()).isAtMost(getOnlyFrame(upperOrLowerBounds()));
+  }
+
+  private LoopStack upperOrLowerBounds() {
+    return upperBounds.orElse(loopStack);
+  }
+
+  private static UndeterminedLoopIterationState getOnlyFrame(LoopStack pLoopStack) {
+    Preconditions.checkState(
+        pLoopStack.getSize() == 1,
+        "Iteration ranges are only supported without tracking the loop stack");
+    return (UndeterminedLoopIterationState) pLoopStack.peek();
   }
 
   public int getMaxNumberOfIterationsInLoopstackFrame() {
