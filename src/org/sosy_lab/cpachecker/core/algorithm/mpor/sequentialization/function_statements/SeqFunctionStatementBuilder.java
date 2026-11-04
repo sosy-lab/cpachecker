@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -327,27 +328,26 @@ public record SeqFunctionStatementBuilder(
 
     ImmutableMap.Builder<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
         rStartRoutineExitAssignments = ImmutableMap.builder();
+
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      Optional<CFunctionCall> functionCall =
-          PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
-          SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
-          CFunctionCall substituteFunctionCall =
-              PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
-          CExpressionAssignmentStatement assignmentStatement =
-              SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  pThread.startRoutineExitVariable().orElseThrow(),
-                  PthreadUtil.extractExitReturnValue(substituteFunctionCall));
-          CFAEdgeForThread cfaEdgeForThread =
-              substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
-          SeqFunctionReturnValueAssignment assignment =
-              new SeqFunctionReturnValueAssignment(
-                  assignmentStatement,
-                  cfaEdgeForThread.callContext,
-                  substituteEdge.getCallContext());
-          rStartRoutineExitAssignments.put(threadEdge, assignment);
-        }
+      // return value assignments via pthread_exit
+      if (PthreadUtil.isCallToPthreadFunction(
+          threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+        SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+        CFunctionCall substituteFunctionCall =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
+        CExpression rightHandSide =
+            PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
+                substituteFunctionCall, PthreadObjectType.RETURN_VALUE);
+        CExpressionAssignmentStatement assignmentStatement =
+            SeqStatementBuilder.buildExpressionAssignmentStatement(
+                pThread.startRoutineExitVariable(), rightHandSide);
+        CFAEdgeForThread cfaEdgeForThread =
+            substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
+        SeqFunctionReturnValueAssignment assignment =
+            new SeqFunctionReturnValueAssignment(
+                assignmentStatement, cfaEdgeForThread.callContext, substituteEdge.getCallContext());
+        rStartRoutineExitAssignments.put(threadEdge, assignment);
       }
     }
     return rStartRoutineExitAssignments.buildOrThrow();

@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
@@ -61,7 +59,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
@@ -591,45 +588,16 @@ public record SeqThreadStatementBuilder(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                 pcVariables.getThreadInactiveExpression(targetThread.id())));
 
-    CExpression parameter =
+    CExpression parameterExpression =
         PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
             pFunctionCall, PthreadObjectType.RETURN_VALUE);
-    if (!MPORUtil.isVoidPointer(parameter)) {
-      if (targetThread.startRoutineExitVariable().isPresent()) {
-        CStatementWrapper returnValueRead =
-            new CStatementWrapper(
-                buildReturnValueRead(
-                    targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
-        return SeqThreadStatement.of(
-            data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
-      }
-    }
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall));
-  }
-
-  private static CStatement buildReturnValueRead(
-      CIdExpression pJoinedThreadExitVariable, SubstituteEdge pSubstituteEdge)
-      throws UnsupportedCodeException {
-
-    int returnValueIndex =
-        PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
-    CFunctionCall functionCall =
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
-    CExpression returnValueParameter =
-        functionCall.getFunctionCallExpression().getParameterExpressions().get(returnValueIndex);
-    if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
-      // extract retval from unary expression &retval
-      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-          return SeqStatementBuilder.buildExpressionAssignmentStatement(
-              idExpression, pJoinedThreadExitVariable);
-        }
-      }
-    }
-    throw new UnsupportedCodeException(
-        "pthread_join retval could not be extracted from the following expression: "
-            + returnValueParameter,
-        pSubstituteEdge.cfaEdge);
+    CExpressionAssignmentStatement returnValueAssignmentStatement =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, targetThread.startRoutineExitVariable(), parameterExpression);
+    return SeqThreadStatement.of(
+        data,
+        pTargetPc,
+        ImmutableList.of(assumeCall, new CStatementWrapper(returnValueAssignmentStatement)));
   }
 
   SeqThreadStatement buildMutexStatement(

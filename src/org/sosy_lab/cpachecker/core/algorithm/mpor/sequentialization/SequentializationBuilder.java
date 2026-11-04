@@ -267,12 +267,9 @@ class SequentializationBuilder {
       rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES.toASTString());
     }
     for (MPORThread thread : pThreads) {
-      Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
-      if (exitVariable.isPresent()) {
-        rDeclarations.add(
-            MPORUtil.convertToVariableDeclaration(exitVariable.orElseThrow().getDeclaration())
-                .toASTString());
-      }
+      rDeclarations.add(
+          MPORUtil.convertToVariableDeclaration(thread.startRoutineExitVariable().getDeclaration())
+              .toASTString());
     }
     return rDeclarations.toString();
   }

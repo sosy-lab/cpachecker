@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -194,13 +193,6 @@ public class PthreadUtil {
         .getFunctionCallExpression()
         .getParameterExpressions()
         .get(returnValueIndex);
-  }
-
-  public static boolean isCallToPthreadExitWithReturnValue(CFunctionCall pFunctionCall) {
-    return isCallToPthreadFunction(pFunctionCall, PthreadFunctionType.PTHREAD_EXIT)
-        && !MPORUtil.isVoidPointer(
-            Iterables.getOnlyElement(
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions()));
   }
 
   // PTHREAD_MUTEX_INITIALIZER =====================================================================

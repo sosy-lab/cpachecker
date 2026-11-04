@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 public class SeqDeclarationBuilder {
 
   public static CVariableDeclaration buildVariableDeclaration(
-      boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
+      boolean pIsGlobal, CType pCType, String pName, @Nullable CInitializer pInitializer) {
 
     return new CVariableDeclaration(
         FileLocation.DUMMY,
