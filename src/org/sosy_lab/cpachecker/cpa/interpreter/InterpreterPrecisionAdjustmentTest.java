@@ -53,7 +53,7 @@ public class InterpreterPrecisionAdjustmentTest {
 
   @Test
   public void replacingWrappedStatePreservesVerdictRestrictionsAndStack() throws Exception {
-    StackFrame stack = StackFrame.push(null, "main", ImmutableMap.of());
+    StackFrame stack = StackFrame.initial("main");
     AbstractState replacement =
         new CompositeState(ImmutableList.of(SingletonAbstractState.INSTANCE));
     for (AlgorithmStatus status :

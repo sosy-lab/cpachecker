@@ -334,11 +334,15 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       if (isRecursive) {
         stats.recursiveCalls.inc();
       }
+      // The stack is empty only if the execution has returned from the entry function, which is
+      // possible when that function is called elsewhere in the program.
       StackFrame newFrame =
-          StackFrame.push(
-              callStack,
-              entryNode.getFunctionName(),
-              isRecursive ? shadowedValues(pCallerState, entryNode) : ImmutableMap.of());
+          callStack == null
+              ? StackFrame.initial(entryNode.getFunctionName())
+              : StackFrame.push(
+                  callStack,
+                  entryNode.getFunctionName(),
+                  isRecursive ? shadowedValues(pCallerState, entryNode) : ImmutableMap.of());
       stats.maxCallStackDepth.setNextValue(newFrame.depth());
       return newFrame;
     }

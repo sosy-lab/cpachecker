@@ -106,11 +106,11 @@ public class InterpreterState extends AbstractSingleWrapperState {
 
     /** Push a new frame for a call of the given function onto the given stack. */
     static StackFrame push(
-        @Nullable StackFrame pParent,
+        StackFrame pParent,
         String pFunctionName,
         ImmutableMap<MemoryLocation, ValueAndType> pShadowedValues) {
-      return new StackFrame(
-          pParent, pFunctionName, pShadowedValues, pParent == null ? 1 : pParent.depth() + 1);
+      checkNotNull(pParent);
+      return new StackFrame(pParent, pFunctionName, pShadowedValues, pParent.depth() + 1);
     }
 
     /** Whether the given function is already active, i.e., whether calling it means recursion. */
