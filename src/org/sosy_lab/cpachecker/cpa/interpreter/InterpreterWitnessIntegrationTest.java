@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,7 +78,7 @@ public class InterpreterWitnessIntegrationTest {
   }
 
   private void assertOnlyWitnesses() throws Exception {
-    try (var files = Files.list(output(""))) {
+    try (Stream<Path> files = Files.list(output(""))) {
       List<String> names = files.map(path -> path.getFileName().toString()).toList();
       assertThat(
               names.stream()
