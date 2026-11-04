@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.collect.ImmutableMap;
@@ -142,6 +143,10 @@ class InterpreterSampler {
    *     {@code null} if no assignment could be computed
    */
   @Nullable AbstractState sample(AbstractState pState, List<InterpreterStep> pSuccessors) {
+    checkArgument(
+        pSuccessors.size() > 1,
+        "sampling needs a state whose successor is not determined, but got %s successors",
+        pSuccessors.size());
     if (maxSamples >= 0 && samples >= maxSamples) {
       logger.logOnce(
           Level.WARNING,
