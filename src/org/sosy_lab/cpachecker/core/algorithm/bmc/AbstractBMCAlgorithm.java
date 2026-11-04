@@ -224,15 +224,15 @@ abstract class AbstractBMCAlgorithm
   @Option(
       secure = true,
       description =
-          "Configuration file with options that apply to the induction step case only. Its options"
-              + " are added on top of the configuration of the analysis.\n"
+          "Configuration file with options that overwrite the options of the analysis for the"
+              + " induction step case only.\n"
               + "This allows the step case to merge states that the base case keeps apart, e.g.,"
               + " with cpa.loopbound.domain=RANGE, which only the step case supports. The options"
               + " must not make the step case drop paths: a path that is missing in the step case"
               + " can hide a counterexample to induction and lead to a wrong proof.",
-      name = "bmc.stepCaseConfig")
+      name = "bmc.overwriteStepCaseOptions")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
-  private @Nullable Path stepCaseConfig = null;
+  private @Nullable Path overwriteStepCaseOptions = null;
 
   @Option(
       secure = true,
@@ -341,13 +341,16 @@ abstract class AbstractBMCAlgorithm
     if (induction) {
       LogManager stepCaseLogger = logger.withComponentName("InductionStepCase");
       Configuration stepCaseConfiguration = pConfig;
-      if (stepCaseConfig != null) {
+      if (overwriteStepCaseOptions != null) {
         try {
           stepCaseConfiguration =
-              Configuration.builder().copyFrom(pConfig).loadFromFile(stepCaseConfig).build();
+              Configuration.builder()
+                  .copyFrom(pConfig)
+                  .loadFromFile(overwriteStepCaseOptions)
+                  .build();
         } catch (IOException e) {
           throw new InvalidConfigurationException(
-              String.format("Cannot load configuration from file %s", stepCaseConfig), e);
+              String.format("Cannot load configuration from file %s", overwriteStepCaseOptions), e);
         }
       }
       // The reached set of the step case is created by this factory (in KInductionProver), so it

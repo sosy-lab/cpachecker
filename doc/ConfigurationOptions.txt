@@ -1086,21 +1086,21 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
   enum:     [ALL, GLOBAL, FUNCTION, LOCAL, GLOBAL_AND_FUNCTION, GLOBAL_AND_LOCAL,
              FUNCTION_AND_LOCAL]
 
+# Configuration file with options that overwrite the options of the analysis
+# for the induction step case only.
+# This allows the step case to merge states that the base case keeps apart,
+# e.g., with cpa.loopbound.domain=RANGE, which only the step case supports.
+# The options must not make the step case drop paths: a path that is missing
+# in the step case can hide a counterexample to induction and lead to a wrong
+# proof.
+bmc.overwriteStepCaseOptions = no default value
+
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
 # Try to simplify the structure of formulas for the sat check of BMC. The
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
-
-# Configuration file with options that apply to the induction step case only.
-# Its options are added on top of the configuration of the analysis.
-# This allows the step case to merge states that the base case keeps apart,
-# e.g., with cpa.loopbound.domain=RANGE, which only the step case supports.
-# The options must not make the step case drop paths: a path that is missing
-# in the step case can hide a counterexample to induction and lead to a wrong
-# proof.
-bmc.stepCaseConfig = no default value
 
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
@@ -2415,8 +2415,8 @@ cpa.loopbound.cyclicStopModulus = -1
 # each loop, the smallest and the largest count of the merged states. A
 # merged state is cut off by the loop bound only once all of its paths exceed
 # it. Only the induction step case of k-induction takes the ranges into
-# account, so this domain is only meant for bmc.stepCaseConfig. It requires
-# trackStack=false and neither cyclicStopModulus nor
+# account, so this domain is only meant for bmc.overwriteStepCaseOptions. It
+# requires trackStack=false and neither cyclicStopModulus nor
 # loopIterationsBeforeAbstraction.
 cpa.loopbound.domain = "FLAT"
   allowed values: [FLAT, RANGE]

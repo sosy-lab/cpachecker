@@ -73,8 +73,8 @@ public class LoopBoundCPA extends AbstractCPA
               + "RANGE merges states with different per-loop iteration counts and keeps, for each"
               + " loop, the smallest and the largest count of the merged states. A merged state is"
               + " cut off by the loop bound only once all of its paths exceed it. Only the"
-              + " induction step case of k-induction takes the ranges into account, so this"
-              + " domain is only meant for bmc.stepCaseConfig. It requires trackStack=false and"
+              + " induction step case of k-induction takes the ranges into account, so this domain"
+              + " is only meant for bmc.overwriteStepCaseOptions. It requires trackStack=false and"
               + " neither cyclicStopModulus nor loopIterationsBeforeAbstraction.")
   private String domainType = "FLAT";
 
