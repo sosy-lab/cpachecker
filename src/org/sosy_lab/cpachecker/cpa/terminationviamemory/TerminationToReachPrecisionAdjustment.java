@@ -64,7 +64,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   protected final BooleanFormulaManagerView bfmgr;
   protected final FormulaManagerView fmgr;
   private final InterpolationManager itpMgr;
-  private final TerminationToReachStatistics statistics;
   private final CFA cfa;
   private final ImmutableSet<Loop> allLoops;
   private final NestedLoopSummarizer nestedLoopSummarizer;
@@ -95,7 +94,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
-      TerminationToReachStatistics pStatistics,
       LogManager plogger,
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
@@ -106,7 +104,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       throws InvalidConfigurationException {
     pConfiguration.inject(this, TerminationToReachPrecisionAdjustment.class);
     solver = pSolver;
-    statistics = pStatistics;
     cfa = pCFA;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
@@ -186,7 +183,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   summarizedIterationFormula,
                   prefixPathFormula,
                   terminationState,
-                  location,
                   result,
                   noFixPointResult);
           if (lassoResult.isPresent()) {
@@ -319,7 +315,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PartitionedRelationFormula summarizedIterationFormula,
       PathFormula prefixPathFormula,
       TerminationToReachState terminationState,
-      CFANode location,
       PrecisionAdjustmentResult result,
       PrecisionAdjustmentResult noFixPointResult)
       throws InterruptedException {
@@ -338,8 +333,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               new TerminationToReachState(numberOfUnrollingsForLasso.orElseThrow());
           cycleState.makeTarget();
           PrecisionAdjustmentResult lassoResult = result.withAbstractState(terminationState);
-          statistics.setNonterminatingLoop(
-              cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
           lassoResult = lassoResult.withAction(Action.BREAK);
           return Optional.of(lassoResult.withAbstractState(cycleState));
         }

@@ -46,7 +46,6 @@ public class TerminationToReachValidationPrecisionAdjustment
 
   public TerminationToReachValidationPrecisionAdjustment(
       Solver pSolver,
-      TerminationToReachStatistics pStatistics,
       LogManager plogger,
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
@@ -57,7 +56,7 @@ public class TerminationToReachValidationPrecisionAdjustment
       ImmutableSet<Loop> pAllLoops,
       ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants)
       throws InvalidConfigurationException {
-    super(pSolver, pStatistics, plogger, pCFA, pBfmgr, pFmgr, pItpMgr, pConfiguration, pAllLoops);
+    super(pSolver, plogger, pCFA, pBfmgr, pFmgr, pItpMgr, pConfiguration, pAllLoops);
     pthfmgr = pPthfmgr;
     candidateInvariants = pCandidateInvariants;
   }

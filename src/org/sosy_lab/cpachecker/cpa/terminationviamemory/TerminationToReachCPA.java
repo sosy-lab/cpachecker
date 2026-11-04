@@ -130,7 +130,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         useTransitionPredicatesFromWitness
             ? new TerminationToReachValidationPrecisionAdjustment(
                 solver,
-                statistics,
                 logger,
                 cfa,
                 bfmgr,
@@ -142,7 +141,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
                 collectCandidateTransitionInvariants())
             : new TerminationToReachPrecisionAdjustment(
                 solver,
-                statistics,
                 logger,
                 cfa,
                 bfmgr,
