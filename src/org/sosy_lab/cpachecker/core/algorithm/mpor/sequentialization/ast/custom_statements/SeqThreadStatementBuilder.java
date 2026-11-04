@@ -18,6 +18,7 @@ import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -57,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
@@ -600,16 +603,41 @@ public record SeqThreadStatementBuilder(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                 pcVariables.getThreadInactiveExpression(targetThread.id())));
 
-    CExpression parameterExpression =
+    CExpression returnVariableExpression =
         PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
             pFunctionCall, PthreadObjectType.RETURN_VALUE);
-    CExpressionAssignmentStatement returnValueAssignmentStatement =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, targetThread.startRoutineExitVariable(), parameterExpression);
-    return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        ImmutableList.of(assumeCall, new CStatementWrapper(returnValueAssignmentStatement)));
+    if (!(returnVariableExpression instanceof CCastExpression)
+        && !(returnVariableExpression instanceof CLiteralExpression)) {
+      CStatementWrapper returnValueRead =
+          new CStatementWrapper(
+              buildReturnValueAssignmentStatement(
+                  targetThread.startRoutineExitVariable(),
+                  returnVariableExpression,
+                  pSubstituteEdge));
+      return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
+    }
+    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall));
+  }
+
+  private static CExpressionAssignmentStatement buildReturnValueAssignmentStatement(
+      CIdExpression pJoinedThreadExitVariable,
+      CExpression pReturnVariableExpression,
+      SubstituteEdge pSubstituteEdge)
+      throws UnsupportedCodeException {
+
+    if (pReturnVariableExpression instanceof CUnaryExpression unaryExpression) {
+      // extract retval from unary expression &retval
+      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+          return SeqStatementBuilder.buildExpressionAssignmentStatement(
+              idExpression, pJoinedThreadExitVariable);
+        }
+      }
+    }
+    throw new UnsupportedCodeException(
+        "pthread_join retval could not be extracted from the following expression: "
+            + pReturnVariableExpression,
+        pSubstituteEdge.cfaEdge);
   }
 
   SeqThreadStatement buildMutexStatement(
