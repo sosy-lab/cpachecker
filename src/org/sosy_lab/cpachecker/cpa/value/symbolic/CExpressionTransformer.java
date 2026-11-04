@@ -140,7 +140,8 @@ public class CExpressionTransformer extends ExpressionTransformer
       case AMPER -> AddressOfExpression.of(pOperand, pExpressionType);
       default ->
           throw new UnsupportedCodeException(
-              "No arithmetic operator: " + pOperator, getCfaEdgeForDebugging());
+              "Constraints with arithmetic operator " + pOperator + " unsupported",
+              getCfaEdgeForDebugging());
     };
   }
 
@@ -190,12 +191,12 @@ public class CExpressionTransformer extends ExpressionTransformer
           yield ConstantSymbolicExpression.of(new NumericValue(size), CNumericTypes.SIZE_T);
         }
         throw new UnsupportedCodeException(
-            "Type id expression invalid for constraint", getCfaEdgeForDebugging());
+            "Type id expressions with variable size not supported", getCfaEdgeForDebugging());
       }
       default ->
           // TODO support more operators
           throw new UnsupportedCodeException(
-              "Type id expression invalid for constraint", getCfaEdgeForDebugging());
+              "Type id operator " + idOperator + " not supported", getCfaEdgeForDebugging());
     };
   }
 
@@ -203,14 +204,15 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(final CImaginaryLiteralExpression pIastLiteralExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedCodeException(
-        "Imaginary literal invalid for constraint", getCfaEdgeForDebugging());
+        "Imaginary literals unsupported in constraints", getCfaEdgeForDebugging());
   }
 
   @Override
   public SymbolicExpression visit(final CAddressOfLabelExpression pAddressOfLabelExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedCodeException(
-        "Address of label expression used in symbolic expression", getCfaEdgeForDebugging());
+        "Address of label expression used in symbolic expression unsupported",
+        getCfaEdgeForDebugging());
   }
 
   @Override
@@ -264,7 +266,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(final CFunctionCallExpression pIastFunctionCallExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedOperationException(
-        "Function calls can't be transformed to ConstraintExpressions");
+        "Function call transformation to ConstraintExpressions unsupported");
   }
 
   @Override
@@ -284,6 +286,6 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(final CComplexCastExpression complexCastExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedCodeException(
-        "Complex cast not valid for constraint", getCfaEdgeForDebugging());
+        "Complex cast unsupported for constraint", getCfaEdgeForDebugging());
   }
 }
