@@ -32,6 +32,12 @@ public class InterpreterWitnessIntegrationTest {
 
   @Rule public TemporaryFolder temporary = new TemporaryFolder();
 
+  /**
+   * The property files that CPAchecker ships. The JUnit tests must not use the ones below {@code
+   * test/programs/benchmarks/}, which is a submodule that is not always checked out.
+   */
+  private static final String PROPERTY_DIR = "config/properties/";
+
   private static final String PROGRAM =
       """
       int witness_step(int amount) {
@@ -55,7 +61,7 @@ public class InterpreterWitnessIntegrationTest {
   private ConfigurationBuilder config(String pConfig) throws Exception {
     return TestUtils.configurationForTestWithOutput(temporary)
         .loadFromFile("config/" + pConfig + ".properties")
-        .setOption("specification", "test/programs/benchmarks/properties/unreach-call.prp")
+        .setOption("specification", PROPERTY_DIR + "unreach-call.prp")
         .setOption("analysis.entryFunction", "main")
         .setOption("cpa.arg.yamlProofWitness", "proof-%s.yml")
         .setOption("counterexample.export.yaml", "violation.yml");
@@ -200,7 +206,7 @@ public class InterpreterWitnessIntegrationTest {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
             config("simpleRules--termination")
-                .setOption("specification", "test/programs/benchmarks/properties/termination.prp")
+                .setOption("specification", PROPERTY_DIR + "termination.prp")
                 .build(),
             "test/programs/simplerules/endless-loop-false.c");
     result.assertIsUnsafe();

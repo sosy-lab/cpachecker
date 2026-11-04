@@ -22,6 +22,12 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SimpleChecksIntegrationTest {
 
+  /**
+   * The property files that CPAchecker ships. The JUnit tests must not use the ones below {@code
+   * test/programs/benchmarks/}, which is a submodule that is not always checked out.
+   */
+  private static final String PROPERTY_DIR = "config/properties/";
+
   @BeforeClass
   public static void requireExtendedTests() {
     IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
@@ -39,7 +45,7 @@ public class SimpleChecksIntegrationTest {
     Configuration config =
         TestUtils.configurationForTest()
             .loadFromFile("config/simpleChecks" + suffix + ".properties")
-            .setOption("specification", "test/programs/benchmarks/properties/" + pProperty + ".prp")
+            .setOption("specification", PROPERTY_DIR + pProperty + ".prp")
             .setOption("analysis.entryFunction", "main")
             .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, "test/programs/" + pProgram);

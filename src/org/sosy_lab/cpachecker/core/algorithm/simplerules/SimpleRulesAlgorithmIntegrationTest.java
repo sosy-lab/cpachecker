@@ -31,7 +31,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
 
   private static final String PROGRAM_DIR = "test/programs/simplerules/";
 
-  private static final String PROPERTY_DIR = "test/programs/benchmarks/properties/";
+  private static final String PROPERTY_DIR = "config/properties/";
 
   @BeforeClass
   public static void skipUnlessExtendedTestsEnabled() {
