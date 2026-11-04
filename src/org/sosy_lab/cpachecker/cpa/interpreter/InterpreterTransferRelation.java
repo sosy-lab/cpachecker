@@ -321,7 +321,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     return new UnsupportedCodeException(
         "nondeterministic choice ("
             + reason
-            + "); InterpreterCPA requires that the behavior of the program is fully determined",
+            + "); InterpreterCPA always requires a single successor state",
         pSecondEdge);
   }
 
