@@ -124,9 +124,10 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     SEQUENTIAL
   }
 
-  // Decomposition and instrumentation depend on this analysis configuration. A later restart
-  // may use the same CFA with different boundaries, so it must not reuse this cache.
-  private final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
+  // Cache is static because it is shared between different instances of
+  // DistributedSummarySynthesis: node ids in the messages between blocks only match if all
+  // instances use the same instrumented copy of the CFA.
+  private static final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
 
   public DistributedSummarySynthesis(
       Configuration pConfig,
