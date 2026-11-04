@@ -60,7 +60,7 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
 
   @Override
   public int hashCode() {
-    return Objects.hash(activePredicates);
+    return Objects.hashCode(activePredicates);
   }
 
   @Override

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -174,9 +175,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
-        if (scope.lookupVariable(variable).getType() instanceof CSimpleType) {
-          nondetVerifierCall =
-              "__VERIFIER_nondet_" + scope.lookupVariable(variable).getType() + "();";
+        // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
+        // renamed it, but the scope knows it only as main::i or i__1. The name without the
+        // function is unique, since the scope has only the variables in scope at the loop.
+        CSimpleDeclaration declaration =
+            scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
+        if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
+          nondetVerifierCall = VerifierNondetFunctions.getFunctionName(simpleType) + "();";
         } else {
           throw new CPAException(
               "We currently do not support nondeterministic initialization of complex types.");
@@ -216,7 +221,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       throws CPAException {
     String varDeclaration;
     String loopCondition =
-        TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+        TransitionInvariantUtils.transformFormulaToStringWithReplacement(
             pFormula, bfmgr, fmgr, scope);
     String exitCondition =
         cfa
@@ -237,13 +242,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       loopCondition =
           loopCondition
               + " && "
-              + TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+              + TransitionInvariantUtils.transformFormulaToStringWithReplacement(
                   invariant, bfmgr, fmgr, scope);
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(
-                scope.lookupVariable(variable).toString());
+                scope.lookupVariable(variableName).toString());
         if (alreadyDeclaredVars.add(variableName)) {
           builder.add(varDeclaration);
         }
@@ -274,7 +279,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
       varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
-              scope.lookupVariable(variable).toString());
+              scope.lookupVariable(variableName).toString());
       if (alreadyDeclaredVars.add(variableName)) {
         builder.add(varDeclaration);
       }

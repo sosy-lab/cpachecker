@@ -223,7 +223,7 @@ public final class DeadLockState extends AbstractLockState {
 
   @Override
   public int hashCode() {
-    return Objects.hash(lockList);
+    return Objects.hashCode(lockList);
   }
 
   @Override

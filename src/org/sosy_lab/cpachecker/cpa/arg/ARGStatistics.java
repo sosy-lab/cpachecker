@@ -260,7 +260,17 @@ public class ARGStatistics implements Statistics {
       Specification pSpecification,
       CFA pCFA)
       throws InvalidConfigurationException {
-    this(config, pLogger, pCpa, pSpecification, pCFA, new RootExplorationArgStateCollector());
+    this(
+        config,
+        pLogger,
+        pCpa,
+        pSpecification,
+        pCFA,
+        new RootExplorationArgStateCollector(
+            pCFA.getAstCfaRelation() != null && pCFA.getLoopStructure().isPresent()
+                ? pCFA.getAstCfaRelation()
+                    .getLoopInvariantNodes(pCFA.getLoopStructure().orElseThrow())
+                : ImmutableSet.of()));
   }
 
   /** Allows analyses without an ARG to supply their recorded invariant states directly. */

@@ -79,43 +79,45 @@ final class RangeEstimator {
 
   /** The range of the given expression, or {@code null} if we cannot say anything about it. */
   @Nullable IntegerRange rangeOf(CExpression pExpression) {
-    if (pExpression instanceof CIntegerLiteralExpression literal) {
-      return IntegerRange.of(literal.getValue());
+    return switch (pExpression) {
+      case CIntegerLiteralExpression literal -> IntegerRange.of(literal.getValue());
 
-    } else if (pExpression instanceof CCharLiteralExpression literal) {
-      char character = literal.getCharacter();
-      if (character <= 127) {
-        // The value of a character of the basic character set is the same in every representation.
-        return IntegerRange.of(character);
-      }
-      return rangeOfType(pExpression.getExpressionType());
-
-    } else if (pExpression instanceof CIdExpression id) {
-      if (id.getDeclaration() instanceof CEnumerator enumerator) {
-        return IntegerRange.of(enumerator.getValue());
-      }
-      if (id.getDeclaration() != null) {
-        BigInteger constant = constants.get(id.getDeclaration().getQualifiedName());
-        if (constant != null) {
-          return IntegerRange.of(constant);
+      case CCharLiteralExpression literal -> {
+        char character = literal.getCharacter();
+        if (character <= 127) {
+          // The value of a character of the basic character set is the same in every
+          // representation.
+          yield IntegerRange.of(character);
         }
+        yield rangeOfType(pExpression.getExpressionType());
       }
-      return rangeOfType(pExpression.getExpressionType());
 
-    } else if (pExpression instanceof CCastExpression cast) {
-      return convertTo(cast.getExpressionType(), rangeOf(cast.getOperand()));
+      case CIdExpression id -> {
+        if (id.getDeclaration() instanceof CEnumerator enumerator) {
+          yield IntegerRange.of(enumerator.getValue());
+        }
+        if (id.getDeclaration() != null) {
+          BigInteger constant = constants.get(id.getDeclaration().getQualifiedName());
+          if (constant != null) {
+            yield IntegerRange.of(constant);
+          }
+        }
+        yield rangeOfType(pExpression.getExpressionType());
+      }
 
-    } else if (pExpression instanceof CUnaryExpression unary) {
-      return convertTo(unary.getExpressionType(), resultOfOperation(unary));
+      case CCastExpression cast -> convertTo(cast.getExpressionType(), rangeOf(cast.getOperand()));
 
-    } else if (pExpression instanceof CBinaryExpression binary) {
-      IntegerRange inCalculationType =
-          convertTo(binary.getCalculationType(), resultOfOperation(binary));
-      return convertTo(binary.getExpressionType(), inCalculationType);
-    }
+      case CUnaryExpression unary -> convertTo(unary.getExpressionType(), resultOfOperation(unary));
 
-    // Every other expression of an integer type has a value of that type.
-    return rangeOfType(pExpression.getExpressionType());
+      case CBinaryExpression binary -> {
+        IntegerRange inCalculationType =
+            convertTo(binary.getCalculationType(), resultOfOperation(binary));
+        yield convertTo(binary.getExpressionType(), inCalculationType);
+      }
+
+      // Every other expression of an integer type has a value of that type.
+      default -> rangeOfType(pExpression.getExpressionType());
+    };
   }
 
   /** The range of the values of the given type, or {@code null} if it is not an integer type. */

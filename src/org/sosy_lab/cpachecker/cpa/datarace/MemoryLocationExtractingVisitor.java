@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.SetMultimap;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -27,11 +29,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -41,9 +46,16 @@ public class MemoryLocationExtractingVisitor
     implements CExpressionVisitor<Set<OverapproximatingMemoryLocation>, NoException> {
 
   private final String functionName;
+  private final Set<String> addressedVariables;
+  private final SetMultimap<MemoryLocation, MemoryLocation> pointerTargets;
 
-  public MemoryLocationExtractingVisitor(String pFunctionName) {
+  public MemoryLocationExtractingVisitor(
+      String pFunctionName,
+      Set<String> pAddressedVariables,
+      SetMultimap<MemoryLocation, MemoryLocation> pPointerTargets) {
     functionName = pFunctionName;
+    addressedVariables = pAddressedVariables;
+    pointerTargets = pPointerTargets;
   }
 
   @Override
@@ -89,6 +101,9 @@ public class MemoryLocationExtractingVisitor
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CUnaryExpression pUnaryExpression) {
+    if (pUnaryExpression.getOperator() == UnaryOperator.AMPER) {
+      return getAddressReads(pUnaryExpression.getOperand());
+    }
     return pUnaryExpression.getOperand().accept(this);
   }
 
@@ -107,27 +122,59 @@ public class MemoryLocationExtractingVisitor
   @Override
   public Set<OverapproximatingMemoryLocation> visit(
       CArraySubscriptExpression pArraySubscriptExpression) {
-    return ImmutableSet.of(getMemoryLocation(pArraySubscriptExpression));
+    return getAccessedLocations(pArraySubscriptExpression);
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CFieldReference pFieldReference) {
-    return ImmutableSet.of(getMemoryLocation(pFieldReference));
+    return getAccessedLocations(pFieldReference);
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CIdExpression pIdExpression) {
-    return ImmutableSet.of(getMemoryLocation(pIdExpression));
+    return getAccessedLocations(pIdExpression);
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CPointerExpression pPointerExpression) {
-    return ImmutableSet.of(getMemoryLocation(pPointerExpression));
+    return getAccessedLocations(pPointerExpression);
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CComplexCastExpression pComplexCastExpression) {
     return pComplexCastExpression.getOperand().accept(this);
+  }
+
+  /**
+   * Returns the location of the given lvalue and the locations read to compute its address. An
+   * array only denotes its address, so its own location is not accessed.
+   */
+  private Set<OverapproximatingMemoryLocation> getAccessedLocations(CExpression pLvalue) {
+    Set<OverapproximatingMemoryLocation> addressReads = getAddressReads(pLvalue);
+    if (pLvalue.getExpressionType().getCanonicalType() instanceof CArrayType) {
+      return addressReads;
+    }
+    return ImmutableSet.<OverapproximatingMemoryLocation>builder()
+        .add(getMemoryLocation(pLvalue))
+        .addAll(addressReads)
+        .build();
+  }
+
+  /** Returns the locations read to compute the address of the given lvalue. */
+  public Set<OverapproximatingMemoryLocation> getAddressReads(CExpression pLvalue) {
+    return switch (pLvalue) {
+      case CIdExpression unused -> ImmutableSet.of();
+      case CPointerExpression pointerExpression -> pointerExpression.getOperand().accept(this);
+      case CFieldReference fieldRef when fieldRef.isPointerDereference() ->
+          fieldRef.getFieldOwner().accept(this);
+      case CFieldReference fieldRef -> getAddressReads(fieldRef.getFieldOwner());
+      case CArraySubscriptExpression subscript ->
+          ImmutableSet.<OverapproximatingMemoryLocation>builder()
+              .addAll(subscript.getArrayExpression().accept(this))
+              .addAll(subscript.getSubscriptExpression().accept(this))
+              .build();
+      default -> pLvalue.accept(this);
+    };
   }
 
   public OverapproximatingMemoryLocation getMemoryLocation(AExpression pExpression) {
@@ -137,53 +184,99 @@ public class MemoryLocationExtractingVisitor
 
     CType type = expression.getExpressionType();
     Set<MemoryLocation> potentialLocations = new HashSet<>();
+    boolean mayBePointedTo = true;
 
-    if (pExpression instanceof CIdExpression var) {
-      String varName = var.getName();
-      boolean isLocal = false;
-      if (var.getDeclaration() != null) {
-        CSimpleDeclaration decl = var.getDeclaration();
-        if (!((decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal())
-            || decl instanceof CEnumerator)) {
-          isLocal = true;
+    switch (pExpression) {
+      case CIdExpression var -> {
+        String varName = var.getName();
+        boolean isLocal = false;
+        if (var.getDeclaration() != null) {
+          CSimpleDeclaration decl = var.getDeclaration();
+          if (!((decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal())
+              || decl instanceof CEnumerator)) {
+            isLocal = true;
+          }
         }
-      }
-      if (isLocal) {
-        potentialLocations.add(MemoryLocation.forLocalVariable(functionName, varName));
-      } else {
-        potentialLocations.add(MemoryLocation.parseExtendedQualifiedName(varName));
-      }
-    } else if (pExpression instanceof CFieldReference fieldRef) {
-      String varName = fieldRef.getFieldName();
-      CExpression owner = fieldRef.getFieldOwner();
-      if (fieldRef.isPointerDereference()) {
-        return new OverapproximatingMemoryLocation(type);
-      } else {
-        OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
-        if (ownerLocation.isAmbiguous()) {
-          return new OverapproximatingMemoryLocation(type);
+        if (isLocal) {
+          potentialLocations.add(MemoryLocation.forLocalVariable(functionName, varName));
         } else {
-          varName = ownerLocation.getMemoryLocations().iterator().next() + "." + varName;
-          potentialLocations.add(MemoryLocation.fromQualifiedName(varName));
+          potentialLocations.add(MemoryLocation.parseExtendedQualifiedName(varName));
+        }
+        mayBePointedTo =
+            var.getDeclaration() == null
+                || type.getCanonicalType() instanceof CArrayType
+                || addressedVariables.contains(var.getDeclaration().getQualifiedName());
+      }
+      case CFieldReference fieldRef -> {
+        String varName = fieldRef.getFieldName();
+        CExpression owner = fieldRef.getFieldOwner();
+        if (fieldRef.isPointerDereference()) {
+          return new OverapproximatingMemoryLocation(
+              fieldRef, getAddressReads(fieldRef), getTargets(owner));
+        } else {
+          OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
+          if (ownerLocation.isAmbiguous()) {
+            return new OverapproximatingMemoryLocation(
+                fieldRef, getAddressReads(fieldRef), ownerLocation.getMemoryLocations());
+          } else {
+            varName = ownerLocation.getMemoryLocations().iterator().next() + "." + varName;
+            potentialLocations.add(MemoryLocation.fromQualifiedName(varName));
+            mayBePointedTo = ownerLocation.mayBePointedTo();
+          }
         }
       }
-    } else if (pExpression instanceof CArraySubscriptExpression) {
-      return new OverapproximatingMemoryLocation(type);
-    } else if (pExpression instanceof CPointerExpression pointerExpression) {
-      if (pointerExpression.getOperand() instanceof CIdExpression cIdExpression) {
-        type = cIdExpression.getDeclaration().getType();
+      case CArraySubscriptExpression subscript -> {
+        return new OverapproximatingMemoryLocation(
+            subscript, getAddressReads(subscript), getTargets(subscript.getArrayExpression()));
       }
-      return new OverapproximatingMemoryLocation(type);
-    } else if (pExpression instanceof CCastExpression cast) {
-      return getMemoryLocation(cast.getOperand());
-    } else {
-      potentialLocations.add(MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
-    }
-    if (type instanceof CPointerType) {
-      return new OverapproximatingMemoryLocation(type);
+      case CPointerExpression pointerExpression -> {
+        return new OverapproximatingMemoryLocation(
+            pointerExpression,
+            getAddressReads(pointerExpression),
+            getTargets(pointerExpression.getOperand()));
+      }
+      case CCastExpression cast -> {
+        return getMemoryLocation(cast.getOperand());
+      }
+      default ->
+          potentialLocations.add(
+              MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
     }
     assert !potentialLocations.isEmpty();
     return new OverapproximatingMemoryLocation(
-        potentialLocations, type, potentialLocations.size() > 1, true);
+        potentialLocations, type, potentialLocations.size() > 1, true, mayBePointedTo, expression);
+  }
+
+  /**
+   * Returns the variables that the given pointer or array may point into, or nothing if unknown.
+   */
+  Set<MemoryLocation> getTargets(CExpression pPointer) {
+    return switch (pPointer) {
+      case CCastExpression cast -> getTargets(cast.getOperand());
+      case CBinaryExpression binary
+          when binary.getExpressionType().getCanonicalType() instanceof CPointerType ->
+          isPointerOrArray(binary.getOperand1())
+              ? getTargets(binary.getOperand1())
+              : getTargets(binary.getOperand2());
+      case CUnaryExpression unary when unary.getOperator() == UnaryOperator.AMPER ->
+          getMemoryLocation(unary.getOperand()).getMemoryLocations();
+      case CExpression array when isArray(array) -> getMemoryLocation(array).getMemoryLocations();
+      case CIdExpression pointer ->
+          pointerTargets.get(
+              Iterables.getOnlyElement(getMemoryLocation(pointer).getMemoryLocations()));
+      default -> ImmutableSet.of();
+    };
+  }
+
+  /** Checks whether the given expression denotes an array object, not a parameter. */
+  static boolean isArray(CExpression pExpression) {
+    return pExpression.getExpressionType().getCanonicalType() instanceof CArrayType
+        && !(pExpression instanceof CIdExpression id
+            && id.getDeclaration() instanceof CParameterDeclaration);
+  }
+
+  static boolean isPointerOrArray(CExpression pExpression) {
+    CType type = pExpression.getExpressionType().getCanonicalType();
+    return type instanceof CPointerType || type instanceof CArrayType;
   }
 }

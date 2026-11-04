@@ -34,6 +34,8 @@ class AstCfaRelationBuilder {
       List<IASTTranslationUnit> pAsts,
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters,
       ImmutableSet<AVariableDeclaration> pGlobalVariables) {
     AstLocationClassifier classifier = new AstLocationClassifier(pSourceOriginMapping);
     for (IASTTranslationUnit ast : pAsts) {
@@ -44,6 +46,8 @@ class AstCfaRelationBuilder {
         getIterationStructures(classifier),
         classifier.getStatementOffsetsToLocations(),
         getStatementStructures(classifier),
+        pCfaNodeToVisibleLocalVariables,
+        pCfaNodeToVisibleParameters,
         pCfaNodeToAstLocalVariablesInScope,
         pCfaNodeToAstParametersVariablesInScope,
         pGlobalVariables,

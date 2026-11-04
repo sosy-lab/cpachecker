@@ -34,7 +34,7 @@
             location:
               file_name: "./concurrent-data-race-empty-loop-body.c"
               line: 40
-              column: 17
+              column: 35
               function: "main"
     - segment:
         - waypoint:

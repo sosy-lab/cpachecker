@@ -1090,6 +1090,15 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
   enum:     [ALL, GLOBAL, FUNCTION, LOCAL, GLOBAL_AND_FUNCTION, GLOBAL_AND_LOCAL,
              FUNCTION_AND_LOCAL]
 
+# Configuration file with options that overwrite the options of the analysis
+# for the induction step case only.
+# This allows the step case to merge states that the base case keeps apart,
+# e.g., with cpa.loopbound.domain=RANGE, which only the step case supports.
+# The options must not make the step case drop paths: a path that is missing
+# in the step case can hide a counterexample to induction and lead to a wrong
+# proof.
+bmc.overwriteStepCaseOptions = no default value
+
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
@@ -2087,6 +2096,8 @@ cpa.callstack.traverseBackwards = false
 # Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {
           "pthread_create",
+          "pthread_once",
+          "pthread_barrier_wait",
           "pthread_key_create",
           "_longjmp",
           "longjmp",
@@ -2444,16 +2455,15 @@ cpa.loopbound.cyclicStopModulus = -1
 # Which abstract domain to use for the loop-bound CPA.
 # FLAT (the default) considers two states comparable only if their whole
 # per-loop iteration vectors are equal.
-# DEEPEST_ITERATION considers them comparable as soon as their deepest loop
-# iteration is equal, which lets states that merely visited a different set
-# of loops be merged and cover each other. This is much coarser and is
-# intended for analyses that only inspect the deepest iteration, such as the
-# induction step case of k-induction. It is NOT sound for analyses that read
-# back the per-loop iteration counts of individual states, in particular
-# k-induction with candidate invariants for specific program locations (cf.
-# BMCHelper.filterBmcCheckedWithin).
+# RANGE merges states with different per-loop iteration counts and keeps, for
+# each loop, the smallest and the largest count of the merged states. A
+# merged state is cut off by the loop bound only once all of its paths exceed
+# it. Only the induction step case of k-induction takes the ranges into
+# account, so this domain is only meant for bmc.overwriteStepCaseOptions. It
+# requires trackStack=false and neither cyclicStopModulus nor
+# loopIterationsBeforeAbstraction.
 cpa.loopbound.domain = "FLAT"
-  allowed values: [FLAT, DEEPEST_ITERATION]
+  allowed values: [FLAT, RANGE]
 
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
@@ -2705,6 +2715,12 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
+
+# Encode bitwise negation exactly with linear arithmetic, and add linear
+# bounds for the results of bitwise and and or, e.g., x & y is in [0, x] if x
+# is not negative. This makes bitwise operations more precise if bitvectors
+# are encoded as integers, where they are uninterpreted functions.
+cpa.predicate.approximateBitwiseOperationsLinearly = false
 
 # When using the NLA encoding, approximate unsupported operations (e.g.,
 # bitwise shift) with an uninterpreted function (UF). If false, the operation
@@ -4125,6 +4141,11 @@ cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 # BMC.
 cpa.terminationviamemory.disableTransitionAbstractions = false
 
+# configuration of the analysis that checks whether the supporting invariants
+# of the witness are invariants of the program before they are used, see
+# useTransitionPredicatesFromWitness
+cpa.terminationviamemory.supportingInvariantsConfig = no default value
+
 # Enables use of transition predicates from the witness.
 cpa.terminationviamemory.useTransitionPredicatesFromWitness = false
 
@@ -4710,15 +4731,25 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Whether to add the block entry as an explicit predicate abstraction
+# location.
+distributedSummaries.abstractAtBlockEntry = true
+
 # Which block analysis to use for the distributed summaries algorithm
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
   enum:     [ALWAYS_REPLACE]
 
-# Whether to combine preconditions at same program location
-distributedSummaries.combinePresByHash = false
+# Whether to cache violation conditions normalized for comparison.
+distributedSummaries.cacheViolationConditions = true
+
+# Whether to combine incoming states and outgoing summaries by exact union.
+distributedSummaries.combineStates = true
 
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true
+
+# Whether to dictionary-encode repeated text in serialized messages.
+distributedSummaries.compressMessages = true
 
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
@@ -4765,6 +4796,9 @@ distributedSummaries.decomposition.importDecomposition = no default value
 # allows all merges
 distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT
 
+# Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.
+distributedSummaries.decomposition.mergeBranchBoundaries = false
+
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
@@ -4775,7 +4809,8 @@ distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
 # output file for visualizing message exchange
 distributedSummaries.logging.reportFiles = "block_analysis/messages"
 
-# Print per-block statistics in addition to aggregate block statistics.
+# Print per-block statistics, including the local CPA and CEGAR statistics,
+# in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
 
 # Report UNKNOWN instead of FALSE if the analysis that replays the violation
@@ -4785,6 +4820,15 @@ distributedSummaries.requireConfirmedViolation = true
 # Whether to reset callstack state before running a block analysis; usually
 # used together with the inlining decomposition
 distributedSummaries.resetCallstackState = false
+
+# Whether a block without successors stops exploring after its first run.
+# Such a block never receives a violation condition, and its first run, from
+# the unconstrained start state, already finds every violation it can report.
+distributedSummaries.retireTerminalBlocks = false
+
+# Whether to send and use precision updates in precondition and
+# violation-condition messages.
+distributedSummaries.sharePrecision = true
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4837,6 +4881,44 @@ distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
 
 # Whether to query the SMT solver before proceeding backwards.
 dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
+
+# Whether to rewrite generalized violation conditions over the predicates of
+# the precondition where possible. These are the predicates the predecessors
+# abstract their block ends with, including the interpolants they learned
+# while refuting violation conditions of this block. Has no effect unless
+# generalizeViolationConditions is enabled.
+dss.cpa.predicate.generalizeOverPreconditionPredicates = true
+
+# Whether to rewrite every violation condition as a disjunction of cubes
+# generalized from models. The cubes together describe exactly all entry
+# states of the condition; incomplete enumeration falls back to the original
+# condition.
+dss.cpa.predicate.generalizeViolationConditions = true
+
+# The maximal number of cubes a generalized violation condition may consist
+# of. A condition that needs more is sent exactly.
+dss.cpa.predicate.maxCubesPerViolationCondition = 16
+
+# The largest share of CFA edges accessing modelled memory, from 0 to 1, for
+# which violation conditions are generalized and projected into nested
+# disjunctions. Conditions of programs that use memory more are only
+# projected: with the pointer-aliasing encoding, generalization and nested
+# projection cost much more than they save there.
+dss.cpa.predicate.maxMemoryShareForExpensiveSimplification = 1.0
+
+# Whether graph-condition projection may substitute into nested disjunctions.
+# Disabling this keeps shared intermediate values, which can make large exact
+# conditions easier for the solver even when messages become larger.
+dss.cpa.predicate.projectNestedDisjunctions = true
+
+# Whether to remove the intermediate variables of a violation condition
+# before it is sent. The result is equivalent, but usually much smaller, and
+# conditions of different paths that only differ in intermediate values
+# become equal.
+dss.cpa.predicate.projectViolationConditions = true
+
+# Compute violation conditions over the shared ARG graph.
+dss.graphViolationConditions = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -5880,6 +5962,15 @@ termination.useCexImpreciseHeuristic = false
 # space is detected.
 termination.validation.checkWithInfiniteSpace = false
 
+# maximal k for the k-induction that checks whether a disjunctively
+# well-founded candidate is a transition invariant, i.e., R^+ => T. If -1,
+# the k-induction is unbounded.
+termination.validation.maxInductionDepth = -1
+
+# configuration of the analysis that checks whether the supporting invariants
+# of the witness are invariants of the program
+termination.validation.supportingInvariantsConfig = no default value
+
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
 
@@ -5908,6 +5999,15 @@ testcase.compress = false
 
 # Do not output values for variables that are not initialized when declared
 testcase.excludeInitialization = false
+
+# once a test case is generated for a test goal (internally) continue
+# execution of test case from test goal to detect collaterally covered test
+# goals
+testcase.execution = false
+
+# Limit for cpu time used for the continued execution of a test case (use
+# seconds or specify a unit; -1 for infinite)
+testcase.execution.limit.cpu = -1ns
 
 # export test harness to file as code
 testcase.file = no default value
@@ -5951,6 +6051,9 @@ testcase.randomInputSeed = 0
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# whether to stop or continue analysis once a test target is hit
+testcase.stopAtTarget = true
 
 # CFA edge if only a specific edge should be considered, e.g., in
 # counterexample check

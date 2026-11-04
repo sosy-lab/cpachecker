@@ -207,7 +207,7 @@ public class PartitionedRelationFormula {
 
   @Override
   public int hashCode() {
-    return Objects.hash(formula);
+    return Objects.hashCode(formula);
   }
 
   @Override

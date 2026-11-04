@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -34,6 +33,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -162,11 +164,11 @@ public record SeqFunctionStatementBuilder(
                 FileLocation.DUMMY, argSubstitute, nondetFunctionCallExpression.orElseThrow());
         rAssignments.add(new SeqMainFunctionArgAssignment(assignment));
       } else {
-        logger.log(
-            Level.WARNING,
-            "Could not find __VERIFIER_nondet function "
-                + "for the following main function argument type: "
-                + argType.toASTString(""));
+        InputWarning.logWarningWithFileLocationAndCode(
+            InputMessage.UNHANDLED_NONDET_TYPE,
+            parameterDeclaration.getFileLocation(),
+            parameterDeclaration.getType().toASTString(""),
+            logger);
       }
     }
     return rAssignments.build();
@@ -324,28 +326,56 @@ public record SeqFunctionStatementBuilder(
   private ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
       buildStartRoutineExitAssignments(MPORThread pThread) throws UnsupportedCodeException {
 
+    // main threads can never return any value, because they have no pthread_t object to join
+    if (pThread.isMain()) {
+      return ImmutableMap.of();
+    }
+
     ImmutableMap.Builder<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
         rStartRoutineExitAssignments = ImmutableMap.builder();
+
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      Optional<CFunctionCall> functionCall =
-          PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
-          SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
-          CFunctionCall substituteFunctionCall =
-              PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
+      SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+      CFAEdgeForThread cfaEdgeForThread =
+          substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
+
+      // return value assignments via pthread_exit, no matter what the call context is
+      if (PthreadUtil.isCallToPthreadFunction(
+          threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+
+        CFunctionCall substituteFunctionCall =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
+        CExpression rightHandSide =
+            PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
+                substituteFunctionCall, PthreadObjectType.RETURN_VALUE);
+        CExpressionAssignmentStatement assignmentStatement =
+            SeqStatementBuilder.buildExpressionAssignmentStatement(
+                pThread.startRoutineExitVariable(), rightHandSide);
+        SeqFunctionReturnValueAssignment returnValueAssignment =
+            new SeqFunctionReturnValueAssignment(
+                assignmentStatement, cfaEdgeForThread.callContext, substituteEdge.getCallContext());
+        rStartRoutineExitAssignments.put(threadEdge, returnValueAssignment);
+      }
+
+      // return value assignments from normal 'return expr;' statements, are only created if it is
+      // inside the start_routine directly which is checked via the call context.
+      SeqCallContext startRoutineCallContext = new SeqCallContext(pThread.startRoutineCall());
+      if (threadEdge.callContext.equals(startRoutineCallContext)) {
+        if (threadEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge
+            && returnStatementEdge.getExpression().isPresent()) {
+
+          CReturnStatementEdge substituteReturnStatementEdge =
+              (CReturnStatementEdge) substituteEdge.cfaEdge;
           CExpressionAssignmentStatement assignmentStatement =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  pThread.startRoutineExitVariable().orElseThrow(),
-                  PthreadUtil.extractExitReturnValue(substituteFunctionCall));
-          CFAEdgeForThread cfaEdgeForThread =
-              substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
-          SeqFunctionReturnValueAssignment assignment =
+                  pThread.startRoutineExitVariable(),
+                  substituteReturnStatementEdge.getExpression().orElseThrow());
+          SeqFunctionReturnValueAssignment returnValueAssignment =
               new SeqFunctionReturnValueAssignment(
                   assignmentStatement,
                   cfaEdgeForThread.callContext,
                   substituteEdge.getCallContext());
-          rStartRoutineExitAssignments.put(threadEdge, assignment);
+          rStartRoutineExitAssignments.put(threadEdge, returnValueAssignment);
         }
       }
     }

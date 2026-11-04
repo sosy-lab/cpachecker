@@ -187,6 +187,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Sideassignments sideAssignmentStack;
   ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
   ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToVisibleLocalVariables;
+  ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToVisibleParameters;
 
   private boolean encounteredAsm = false;
 
@@ -202,7 +204,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       CheckBindingVisitor pCheckBinding,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
-      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters,
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences,
+      Set<FileLocation> pUnhandledThreadLocalOccurrences) {
     options = pOptions;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -216,7 +221,8 @@ class CFAFunctionBuilder extends ASTVisitor {
             pMachine,
             staticVariablePrefix,
             pSideAssignmentStack,
-            pUnhandledAtomicOccurrences);
+            pUnhandledAtomicOccurrences,
+            pUnhandledThreadLocalOccurrences);
     parseContext = pParseContext;
     checkBinding = pCheckBinding;
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
@@ -231,6 +237,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     sideAssignmentStack = pSideAssignmentStack;
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersInScope;
+    cfaNodeToVisibleLocalVariables = pCfaNodeToVisibleLocalVariables;
+    cfaNodeToVisibleParameters = pCfaNodeToVisibleParameters;
   }
 
   FunctionEntryNode getStartNode() {
@@ -420,7 +428,8 @@ class CFAFunctionBuilder extends ASTVisitor {
                   newD.getName(),
                   newD.getOrigName(),
                   newD.getQualifiedName(),
-                  initializer);
+                  initializer,
+                  ((CVariableDeclaration) newD).hasThreadLocalStorage());
         }
 
       } else if (newD instanceof CComplexTypeDeclaration) {
@@ -914,6 +923,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     for (Collection<CSimpleDeclaration> vars : scope.getVariablesOfMostLocalScopes()) {
       functionExitNode.addOutOfScopeVariables(vars);
     }
+    trackVisibleVariables(functionExitNode, ImmutableSet.of(), ImmutableSet.of());
 
     for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
       if (block.getStartOffset() <= fileloc.getNodeOffset()
@@ -994,8 +1004,7 @@ class CFAFunctionBuilder extends ASTVisitor {
                 locStack.peek()));
       }
 
-      locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-      scope.leaveBlock();
+      leaveBlock(locStack.peek());
 
     } else if (statement instanceof IASTWhileStatement || statement instanceof IASTDoStatement) {
       CFANode prevNode = locStack.pop();
@@ -1049,6 +1058,26 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void trackScopeInformation(CFANode pNode) {
     cfaNodeToAstLocalVariablesInScope.put(pNode, scope.getVariablesInScope());
     cfaNodeToAstParametersInScope.put(pNode, scope.getParameters());
+    trackVisibleVariables(pNode, scope.getVisibleVariablesInScope(), scope.getVisibleParameters());
+  }
+
+  /**
+   * Records the variables and parameters in scope at the node as in the input program. A later call
+   * for the same node replaces them, e.g., when variables go out of scope at the node.
+   */
+  private void trackVisibleVariables(
+      CFANode pNode,
+      Set<AVariableDeclaration> pLocalVariables,
+      Set<AParameterDeclaration> pParameters) {
+    cfaNodeToVisibleLocalVariables.put(pNode, pLocalVariables);
+    cfaNodeToVisibleParameters.put(pNode, pParameters);
+  }
+
+  /** Leaves the innermost block, whose variables go out of scope at the given node. */
+  private void leaveBlock(CFANode pNode) {
+    pNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
+    scope.leaveBlock();
+    trackVisibleVariables(pNode, scope.getVisibleVariablesInScope(), scope.getVisibleParameters());
   }
 
   /**
@@ -1280,130 +1309,132 @@ class CFAFunctionBuilder extends ASTVisitor {
       boolean flippedThenElse,
       Set<CFANode> pInnerNodes) {
 
-    // unwrap (a)
-    if (condition instanceof IASTUnaryExpression iASTUnaryExpression
-        && iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-      return buildConditionTree(
-          pRawSignature,
-          iASTUnaryExpression.getOperand(),
-          fileLocation,
-          rootNode,
-          thenNode,
-          elseNode,
-          thenNode,
-          elseNode,
-          true,
-          true,
-          flippedThenElse,
-          pInnerNodes);
-
-      // !a --> switch branches
-    } else if (condition instanceof IASTUnaryExpression iASTUnaryExpression
-        && iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_not) {
-      buildConditionTree(
-          pRawSignature,
-          iASTUnaryExpression.getOperand(),
-          fileLocation,
-          rootNode,
-          elseNode,
-          thenNode,
-          elseNode,
-          thenNode,
-          true,
-          true,
-          !flippedThenElse,
-          pInnerNodes);
-      return Optional.empty();
-
-      // a && b
-    } else if (condition instanceof IASTBinaryExpression iASTBinaryExpression
-        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalAnd) {
-      // This case is not necessary,
-      // but it prevents the need for a temporary variable in the common case of
-      // "if (a && b)"
-      CFANode innerNode = newCFANode();
-      pInnerNodes.add(innerNode);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          innerNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNode,
-          true,
-          false,
-          flippedThenElse,
-          pInnerNodes);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true,
-          flippedThenElse,
-          pInnerNodes);
-      return Optional.empty();
-
-      // a || b
-    } else if (condition instanceof IASTBinaryExpression iASTBinaryExpression
-        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalOr) {
-      // This case is not necessary,
-      // but it prevents the need for a temporary variable in the common case of
-      // "if (a || b)"
-      CFANode innerNode = newCFANode();
-      pInnerNodes.add(innerNode);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand1(),
-          fileLocation,
-          rootNode,
-          thenNode,
-          innerNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          false,
-          true,
-          flippedThenElse,
-          pInnerNodes);
-      buildConditionTree(
-          pRawSignature,
-          iASTBinaryExpression.getOperand2(),
-          fileLocation,
-          innerNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          true,
-          true,
-          flippedThenElse,
-          pInnerNodes);
-      return Optional.empty();
-
-      // plain condition
-    } else {
-      return Optional.of(
-          buildConditionTreeLeaf(
+    return switch (condition) {
+      // unwrap (a)
+      case IASTUnaryExpression iASTUnaryExpression
+          when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary ->
+          buildConditionTree(
               pRawSignature,
-              condition,
+              iASTUnaryExpression.getOperand(),
               fileLocation,
               rootNode,
               thenNode,
               elseNode,
-              thenNodeForLastThen,
-              elseNodeForLastElse,
-              furtherThenComputation,
-              furtherElseComputation,
+              thenNode,
+              elseNode,
+              true,
+              true,
               flippedThenElse,
-              pInnerNodes));
-    }
+              pInnerNodes);
+
+      // !a --> switch branches
+      case IASTUnaryExpression iASTUnaryExpression
+          when iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_not -> {
+        buildConditionTree(
+            pRawSignature,
+            iASTUnaryExpression.getOperand(),
+            fileLocation,
+            rootNode,
+            elseNode,
+            thenNode,
+            elseNode,
+            thenNode,
+            true,
+            true,
+            !flippedThenElse,
+            pInnerNodes);
+        yield Optional.empty();
+      }
+
+      // a && b
+      case IASTBinaryExpression iASTBinaryExpression
+          when iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalAnd -> {
+        // This case is not necessary,
+        // but it prevents the need for a temporary variable in the common case of "if (a && b)"
+        CFANode innerNode = newCFANode();
+        pInnerNodes.add(innerNode);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            innerNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNode,
+            true,
+            false,
+            flippedThenElse,
+            pInnerNodes);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true,
+            flippedThenElse,
+            pInnerNodes);
+        yield Optional.empty();
+      }
+
+      // a || b
+      case IASTBinaryExpression iASTBinaryExpression
+          when iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalOr -> {
+        // This case is not necessary,
+        // but it prevents the need for a temporary variable in the common case of "if (a || b)"
+        CFANode innerNode = newCFANode();
+        pInnerNodes.add(innerNode);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand1(),
+            fileLocation,
+            rootNode,
+            thenNode,
+            innerNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            false,
+            true,
+            flippedThenElse,
+            pInnerNodes);
+        buildConditionTree(
+            pRawSignature,
+            iASTBinaryExpression.getOperand2(),
+            fileLocation,
+            innerNode,
+            thenNode,
+            elseNode,
+            thenNodeForLastThen,
+            elseNodeForLastElse,
+            true,
+            true,
+            flippedThenElse,
+            pInnerNodes);
+        yield Optional.empty();
+      }
+
+      // plain condition
+      default ->
+          Optional.of(
+              buildConditionTreeLeaf(
+                  pRawSignature,
+                  condition,
+                  fileLocation,
+                  rootNode,
+                  thenNode,
+                  elseNode,
+                  thenNodeForLastThen,
+                  elseNodeForLastElse,
+                  furtherThenComputation,
+                  furtherElseComputation,
+                  flippedThenElse,
+                  pInnerNodes));
+    };
   }
 
   /** Handle a leaf node of a condition tree, i.e. the most primitive part of a condition. */
@@ -1617,6 +1648,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     // on "return" we add the OOSVars after the return edge, because the return can access all vars.
     // on "break" we add the OOSVars before the break edge, because nothing happens along the edge.
     prevNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
+    trackVisibleVariables(
+        prevNode,
+        scope.getVisibleVariablesOfEnclosingBlock(),
+        scope.getVisibleParametersOfEnclosingBlock());
 
     BlankEdge blankEdge =
         new BlankEdge(breakStatement.getRawSignature(), fileloc, prevNode, postLoopNode, "break");
@@ -1734,8 +1769,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       assert loopEnd.equals(loopStart);
     }
 
-    postLoopNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-    scope.leaveBlock();
+    leaveBlock(postLoopNode);
 
     // skip visiting children of loop, because loopbody was handled before
     return PROCESS_SKIP;
@@ -2292,8 +2326,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // If we do not need a return value, last statement is also easy.
     if (tempVar == null) {
       lastStatement.accept(this);
-      locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-      scope.leaveBlock();
+      leaveBlock(locStack.peek());
       IASTFileLocation location = compoundExp.getFileLocation();
       blocks.add(
           new StatementBlock(
@@ -2347,8 +2380,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         createIASTExpressionStatementEdges(
             stmt.toASTString(), stmt.getFileLocation(), middleNode, stmt);
 
-    lastNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-    scope.leaveBlock();
+    leaveBlock(lastNode);
 
     IASTFileLocation location = compoundExp.getFileLocation();
     blocks.add(
