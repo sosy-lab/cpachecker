@@ -169,6 +169,9 @@ public class PthreadObjectSubstitution {
 
     private final Map<List<Integer>, CCompositeTypeMemberDeclaration> paths = new HashMap<>();
 
+    /** The current path taken through composite type members. */
+    private final List<Integer> currentPath = new ArrayList<>();
+
     private CTypeSubstitutionVisitor(ImmutableSet<String> pSubstitutedNames, CType pSubstitution) {
       substitutedNames = pSubstitutedNames;
       substitution = pSubstitution;
@@ -221,25 +224,24 @@ public class PthreadObjectSubstitution {
 
       ImmutableList.Builder<CCompositeTypeMemberDeclaration> memberDeclarations =
           ImmutableList.builder();
-
       boolean isSubstituted = false;
 
-      int memberIndex = 0;
-      for (CCompositeTypeMemberDeclaration memberDeclaration : pCompositeType.getMembers()) {
-        List<Integer> path = new ArrayList<>();
-        path.add(memberIndex);
-
+      for (int i = 0; i < pCompositeType.getMembers().size(); i++) {
+        CCompositeTypeMemberDeclaration memberDeclaration = pCompositeType.getMembers().get(i);
+        // enter the current composite member
+        currentPath.add(i);
         CTypeSubstitutionResult memberResult = memberDeclaration.getType().accept(this);
-
+        // record the complete path if this member contains any substitution
         if (memberResult.isSubstituted()) {
-          paths.put(List.copyOf(path), memberDeclaration);
+          paths.put(List.copyOf(currentPath), memberDeclaration);
         }
+        // leave the current composite member
+        currentPath.removeLast();
 
         memberDeclarations.add(
             new CCompositeTypeMemberDeclaration(memberResult.type(), memberDeclaration.getName()));
 
         isSubstituted |= memberResult.isSubstituted();
-        memberIndex++;
       }
 
       return result(

@@ -206,7 +206,7 @@ public class SequentializationParseTest {
     Configuration config =
         TestUtils.configurationForTest()
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.mergeCommutingStatements", "false")
+            .setOption("analysis.algorithm.MPOR.mergeCommutingStatements", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
