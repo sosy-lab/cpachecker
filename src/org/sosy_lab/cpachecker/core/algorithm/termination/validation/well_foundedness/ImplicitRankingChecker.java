@@ -8,25 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,14 +32,10 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -59,15 +49,9 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
-import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.expressions.ToCodeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -212,7 +196,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
   /**
    * Returns a call of a function that returns a nondeterministic value of the given type, and
-   * records the declaration of the function, see {@link #finishProgram}.
+   * records the declaration of the function, see {@link #declareNondetfunctions}.
    */
   private static String nondetCall(CSimpleType pType, Map<String, String> pNondetDeclarations) {
     String functionName = VerifierNondetFunctions.getFunctionName(pType);
@@ -226,101 +210,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * since otherwise their return types would be unknown, and the variables for the previous values
    * are renamed, since the termination analyses use the keywords of these names internally.
    */
-  private static String declareNondetfunctions(String pProgram, Map<String, String> pNondetDeclarations) {
+  private static String declareNondetfunctions(
+      String pProgram, Map<String, String> pNondetDeclarations) {
     StringJoiner program = new StringJoiner(System.lineSeparator());
     pNondetDeclarations.values().forEach(program::add);
     program.add(pProgram.replace(TransitionInvariantUtils.PREV_KEYWORD, "__validation_previous"));
     return program.toString();
-  }
-
-  /**
-   * Computes the condition under which the body of the loop with the given loop head is entered, as
-   * a C expression. It is the disjunction over all paths through the controlling expression of the
-   * loop from the loop head to the body of the conjunction of the assumptions on the path. If the
-   * condition cannot be expressed, e.g., for loops like while(1) or conditions with side effects,
-   * the condition true ("1") is returned, which overapproximates the loop.
-   */
-  private String computeLoopCondition(CFANode pLoopHead) {
-    Optional<IterationElement> iteration =
-        cfa.getAstCfaRelation().getTightestIterationStructureForNode(pLoopHead);
-    if (iteration.isEmpty() || iteration.orElseThrow().getControllingExpression().isEmpty()) {
-      return "1";
-    }
-    ImmutableSet<CFAEdge> conditionEdges =
-        iteration.orElseThrow().getControllingExpression().orElseThrow().edges();
-    ImmutableSet<CFANode> bodyEntries;
-    try {
-      bodyEntries = iteration.orElseThrow().getNodesBetweenConditionAndBody();
-    } catch (BoundaryNodesComputationFailed e) {
-      logger.logDebugException(e, "Could not compute the condition of the loop");
-      return "1";
-    }
-    ImmutableSet<CFANode> successorsInCondition =
-        transformedImmutableSetCopy(conditionEdges, CFAEdge::getSuccessor);
-    ImmutableSet<CFANode> conditionEntries =
-        FluentIterable.from(conditionEdges)
-            .transform(CFAEdge::getPredecessor)
-            .filter(node -> !successorsInCondition.contains(node))
-            .toSet();
-
-    List<ExpressionTree<CExpression>> pathConditions = new ArrayList<>();
-    for (CFANode entry : conditionEntries) {
-      if (!collectPathConditions(
-          entry, conditionEdges, bodyEntries, PersistentLinkedList.of(), pathConditions)) {
-        return "1";
-      }
-    }
-    if (pathConditions.isEmpty()) {
-      return "1";
-    }
-    // The variables are printed with the names that are declared in the generated program, unlike
-    // ExpressionTree#toString, which prints their original names
-    return Or.of(pathConditions).accept(new ToCodeVisitor<>(CExpression::toASTString));
-  }
-
-  /**
-   * Collects the conjunctions of the assumptions on all paths from the given node through the
-   * condition edges to a node of the body.
-   *
-   * @param pReversedPath the assumptions on the path to the given node, in reversed order
-   * @return false if the condition of a path cannot be expressed as a C expression
-   */
-  private static boolean collectPathConditions(
-      CFANode pNode,
-      ImmutableSet<CFAEdge> pConditionEdges,
-      ImmutableSet<CFANode> pBodyEntries,
-      PersistentLinkedList<ExpressionTree<CExpression>> pReversedPath,
-      List<ExpressionTree<CExpression>> pPathConditions) {
-    if (pBodyEntries.contains(pNode)) {
-      pPathConditions.add(And.of(pReversedPath.reversed()));
-      return true;
-    }
-    if (pReversedPath.size() > pConditionEdges.size()) {
-      // The condition edges contain a cycle
-      return false;
-    }
-    for (CFAEdge edge : pNode.getLeavingEdges()) {
-      if (!pConditionEdges.contains(edge)) {
-        continue;
-      }
-      PersistentLinkedList<ExpressionTree<CExpression>> reversedPath = pReversedPath;
-      if (edge instanceof CAssumeEdge assumeEdge) {
-        CExpression expression = assumeEdge.getExpression();
-        if (expression.toASTString().contains("__CPAchecker_TMP")) {
-          // The condition has side effects, which are not part of the generated program
-          return false;
-        }
-        reversedPath =
-            pReversedPath.with(LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
-      } else if (!(edge instanceof BlankEdge)) {
-        return false;
-      }
-      if (!collectPathConditions(
-          edge.getSuccessor(), pConditionEdges, pBodyEntries, reversedPath, pPathConditions)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private void resetVariablesFromProgram(
@@ -380,7 +275,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     String loopCondition =
         TransitionInvariantUtils.transformFormulaToStringWithReplacement(
             pFormula, bfmgr, fmgr, scope);
-    String exitCondition = computeLoopCondition(loopHead);
+    // If the condition of the loop cannot be computed, the condition true overapproximates it
+    String exitCondition =
+        CFAUtils.computeLoopCondition(loopHead, cfa.getAstCfaRelation()).orElse("1");
     loopCondition = loopCondition + " && " + exitCondition;
     for (BooleanFormula invariant : pSupportingInvariants) {
       loopCondition =
