@@ -326,14 +326,23 @@ public record SeqFunctionStatementBuilder(
   private ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
       buildStartRoutineExitAssignments(MPORThread pThread) throws UnsupportedCodeException {
 
+    // main threads can never return any value, because they have no pthread_t object to join
+    if (pThread.isMain()) {
+      return ImmutableMap.of();
+    }
+
     ImmutableMap.Builder<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
         rStartRoutineExitAssignments = ImmutableMap.builder();
 
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      // return value assignments via pthread_exit
+      SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+      CFAEdgeForThread cfaEdgeForThread =
+          substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
+
+      // return value assignments via pthread_exit, no matter what the call context is
       if (PthreadUtil.isCallToPthreadFunction(
           threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
-        SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+
         CFunctionCall substituteFunctionCall =
             PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
         CExpression rightHandSide =
@@ -342,12 +351,32 @@ public record SeqFunctionStatementBuilder(
         CExpressionAssignmentStatement assignmentStatement =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 pThread.startRoutineExitVariable(), rightHandSide);
-        CFAEdgeForThread cfaEdgeForThread =
-            substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
-        SeqFunctionReturnValueAssignment assignment =
+        SeqFunctionReturnValueAssignment returnValueAssignment =
             new SeqFunctionReturnValueAssignment(
                 assignmentStatement, cfaEdgeForThread.callContext, substituteEdge.getCallContext());
-        rStartRoutineExitAssignments.put(threadEdge, assignment);
+        rStartRoutineExitAssignments.put(threadEdge, returnValueAssignment);
+      }
+
+      // return value assignments from normal 'return expr;' statements, are only created if it is
+      // inside the start_routine directly which is checked via the call context.
+      SeqCallContext startRoutineCallContext = new SeqCallContext(pThread.startRoutineCall());
+      if (threadEdge.callContext.equals(startRoutineCallContext)) {
+        if (threadEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge
+            && returnStatementEdge.getExpression().isPresent()) {
+
+          CReturnStatementEdge substituteReturnStatementEdge =
+              (CReturnStatementEdge) substituteEdge.cfaEdge;
+          CExpressionAssignmentStatement assignmentStatement =
+              SeqStatementBuilder.buildExpressionAssignmentStatement(
+                  pThread.startRoutineExitVariable(),
+                  substituteReturnStatementEdge.getExpression().orElseThrow());
+          SeqFunctionReturnValueAssignment returnValueAssignment =
+              new SeqFunctionReturnValueAssignment(
+                  assignmentStatement,
+                  cfaEdgeForThread.callContext,
+                  substituteEdge.getCallContext());
+          rStartRoutineExitAssignments.put(threadEdge, returnValueAssignment);
+        }
       }
     }
     return rStartRoutineExitAssignments.buildOrThrow();

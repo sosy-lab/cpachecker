@@ -36,8 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -153,9 +151,8 @@ public record SeqThreadStatementBuilder(
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
-    CFANode successor = pThreadEdge.getSuccessor().getCfaNode();
 
-    if (resultsInBlankStatement(pSubstituteEdge, successor)) {
+    if (resultsInBlankStatement(pSubstituteEdge)) {
       return ImmutableList.of(
           buildGhostOnlyStatement(
               thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, targetPc));
@@ -379,13 +376,28 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildReturnValueAssignmentStatement(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
-    // returning from non-start-routine function: assign return value to return vars
+    // return from non start_routine function: assign return value to return vars
     if (functionStatements.returnValueAssignments().containsKey(pThreadEdge)) {
       SeqFunctionReturnValueAssignment assignment =
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
       SeqThreadStatementData data =
           SeqThreadStatementData.of(
               SeqThreadStatementType.FUNCTION_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
+      return SeqThreadStatement.of(
+          data,
+          pTargetPc,
+          ImmutableList.of(new CStatementWrapper(assignment.expressionAssignmentStatement())));
+    }
+
+    // return from start_routine, but exclude pthread_exit because it is handled separately.
+    if (!PthreadUtil.isCallToPthreadFunction(pThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)
+        && functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge)) {
+
+      SeqFunctionReturnValueAssignment assignment =
+          Objects.requireNonNull(functionStatements.startRoutineExitAssignments().get(pThreadEdge));
+      SeqThreadStatementData data =
+          SeqThreadStatementData.of(
+              SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
       return SeqThreadStatement.of(
           data,
           pTargetPc,
@@ -764,15 +776,10 @@ public record SeqThreadStatementBuilder(
    *       handled.
    * </ul>
    */
-  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor)
+  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
-    // exiting start_routine of thread -> blank, just set pc = EXIT_PC;
-    if (pSuccessor instanceof FunctionExitNode
-        && pSuccessor.getFunction().equals(thread.startRoutine())) {
-      return true;
-
-    } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge
+    if (pSubstituteEdge.cfaEdge instanceof BlankEdge
         && !pSubstituteEdge.cfaEdge.getPredecessor().isLoopStart()) {
       // blank edges have no code
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
