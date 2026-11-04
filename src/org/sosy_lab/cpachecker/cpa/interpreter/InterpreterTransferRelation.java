@@ -354,11 +354,9 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   }
 
   /**
-   * Compute the values of the caller that a recursive function call is about to overwrite, i.e.,
-   * the values of all memory locations in the scope of the called function. This is called for
-   * recursive calls only, because a caller cannot have values in the scope of a function that is
-   * not active yet. Non-recursive programs are thus not affected at all, and a recursive program
-   * pays one iteration over the state of the value analysis per recursive call.
+   * The values of the given state that lie in the scope of the given function, i.e. the values that
+   * a call of that function is about to overwrite. Computing them costs one iteration over the
+   * state of the value analysis.
    *
    * <p>Note that the value analysis cannot distinguish the memory locations of two invocations of
    * the same function, so a callee that writes to a local variable of a recursive caller through a
