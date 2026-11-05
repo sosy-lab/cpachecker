@@ -231,11 +231,11 @@ class InterpreterSampler {
   }
 
   /** The number of edges from a node to the nearest loop head or function call, per node. */
-  private static ImmutableMap<CFANode, Integer> computeDistances(CFA pCfa) {
+  private ImmutableMap<CFANode, Integer> computeDistances(CFA pCfa) {
     Map<CFANode, Integer> distances = new HashMap<>();
     Deque<CFANode> waitlist = new ArrayDeque<>();
     for (CFANode node : pCfa.nodes()) {
-      if (node.isLoopStart() || node.getLeavingEdges().anyMatch(InterpreterSampler::isCall)) {
+      if (node.isLoopStart() || node.getLeavingEdges().anyMatch(this::isCall)) {
         distances.put(node, 0);
         waitlist.add(node);
       }
@@ -258,7 +258,7 @@ class InterpreterSampler {
    * Whether the edge calls a function. Calls to functions without a body count as well, because
    * they are just as interesting for an execution as the ones the analysis can enter.
    */
-  private static boolean isCall(CFAEdge pEdge) {
+  private boolean isCall(CFAEdge pEdge) {
     return pEdge instanceof FunctionCallEdge
         || (pEdge instanceof AStatementEdge statementEdge
             && statementEdge.getStatement() instanceof AFunctionCall);
@@ -295,7 +295,7 @@ class InterpreterSampler {
    * Whether the edge calls a function that has no body in the program, i.e. a function whose return
    * value the analysis does not know.
    */
-  private static boolean isCallToUndefinedFunction(CFAEdge pEdge, CFA pCfa) {
+  private boolean isCallToUndefinedFunction(CFAEdge pEdge, CFA pCfa) {
     return pEdge instanceof AStatementEdge statementEdge
         && statementEdge.getStatement() instanceof AFunctionCall call
         && call.getFunctionCallExpression().getFunctionNameExpression()
