@@ -15,7 +15,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -240,21 +239,13 @@ public class InvariantExchangeFormatTransformer {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
 
-    CFANode locationNode =
-        cfa.getAstCfaRelation()
-            .getNodeForStatementLocation(
-                pInvariantEntry.getLocation().getLine(),
-                pInvariantEntry.getLocation().getColumn().orElseThrow())
-            .orElseThrow();
-    // The node may belong to a function called in the statement, so the function of the invariant
-    // location is preferred
-    String functionName =
-        Objects.requireNonNullElse(
-            pInvariantEntry.getLocation().getFunction(), locationNode.getFunctionName());
+    // The column of the location is optional
+    Optional<CFANode> locationNode = nodeOfInvariant(pInvariantEntry);
+    String functionName = pInvariantEntry.getLocation().getFunction();
     // As in the invariant, a name refers to the variable in scope, e.g., x to x__1
     CProgramScope programScope = new CProgramScope(cfa, logger);
     CProgramScope scope =
-        nodeOfInvariant(pInvariantEntry)
+        locationNode
             .map(
                 node ->
                     TerminationArgumentsToWitnessUtils.getScopeAtNode(
@@ -276,7 +267,10 @@ public class InvariantExchangeFormatTransformer {
       if (currDeclaration == null) {
         currDeclaration =
             (CVariableDeclaration)
-                cfa.getAstCfaRelation().getAstLocalVariablesInScopeByCfaNode(locationNode).stream()
+                cfa
+                    .getAstCfaRelation()
+                    .getAstLocalVariablesInScopeByCfaNode(locationNode.orElseThrow())
+                    .stream()
                     .findAny()
                     .orElseThrow();
       }
