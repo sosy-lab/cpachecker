@@ -59,8 +59,10 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -68,6 +70,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
@@ -121,6 +124,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
@@ -173,6 +178,16 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               + " no supporting invariants are exported.")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path supportingInvariantsCheckConfig = null;
+
+  @Option(
+      secure = true,
+      name = "supportingInvariantsCheckTimeLimit",
+      description =
+          "thread CPU-time limit of the check of each supporting invariant, see"
+              + " termination.supportingInvariantsCheckConfig. A supporting invariant whose check"
+              + " reaches the limit is not exported.")
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 1)
+  private TimeSpan supportingInvariantsCheckTimeLimit = TimeSpan.ofSeconds(10);
 
   @Option(
       secure = true,
@@ -642,6 +657,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private boolean isProvenInvariant(
       InvariantEntry pInvariant, CFA pOriginalCfa, ShutdownNotifier pShutdownNotifier)
       throws InterruptedException {
+    // Reaching the time limit of the check must not stop the analysis
+    ShutdownManager checkShutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
+    new ResourceLimitChecker(
+            checkShutdownManager,
+            ImmutableList.of(ThreadCpuTimeLimit.create(supportingInvariantsCheckTimeLimit)))
+        .start();
     try {
       InvariantCheckResult result =
           SupportingInvariantsChecker.checkInvariants(
@@ -650,7 +671,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                   terminationWitnessExporter.createWitness(ImmutableList.of(pInvariant))),
               pOriginalCfa,
               logger.withComponentName("SupportingInvariantCheck"),
-              pShutdownNotifier);
+              checkShutdownManager.getNotifier());
       logger.logf(
           FINER,
           "Result of checking the supporting invariant %s: %s",
@@ -661,6 +682,15 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       logger.logUserException(
           WARNING, e, "Could not check the supporting invariant, it is not exported.");
       return false;
+    } catch (InterruptedException e) {
+      pShutdownNotifier.shutdownIfNecessary();
+      logger.logf(
+          FINER,
+          "The check of the supporting invariant %s reached its time limit, it is not exported.",
+          pInvariant.getValue());
+      return false;
+    } finally {
+      checkShutdownManager.requestShutdown("Supporting invariant check finished");
     }
   }
 

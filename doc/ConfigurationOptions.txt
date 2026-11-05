@@ -5908,6 +5908,11 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # Without it, no supporting invariants are exported.
 termination.supportingInvariantsCheckConfig = no default value
 
+# thread CPU-time limit of the check of each supporting invariant, see
+# termination.supportingInvariantsCheckConfig. A supporting invariant whose
+# check reaches the limit is not exported.
+termination.supportingInvariantsCheckTimeLimit = 10s
+
 # consider counterexamples for loops for which only pointer variables are
 # relevant or which check that pointer is unequal to null pointer to be
 # imprecise
