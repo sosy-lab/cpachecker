@@ -8,215 +8,122 @@
 
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
-import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
+/**
+ * Checks that the interpreter configurations give the expected verdict for the specification that
+ * CPAchecker derives from an SV-COMP property file, i.e., for what {@code --spec <property>.prp}
+ * does on the command line.
+ */
+@RunWith(Parameterized.class)
 public class InterpreterCPAIntegrationTest {
 
   private static final String PROGRAM_DIR = "test/programs/simple/interpreter/";
 
-  private static final String PROPERTY_DIR = "test/config/properties/";
+  /**
+   * The property files that CPAchecker ships. The JUnit tests must not use the ones below {@code
+   * test/programs/benchmarks/}, which is a submodule that is not always checked out.
+   */
+  private static final String PROPERTY_DIR = "config/properties/";
 
-  private static final String REACHABILITY_SPECIFICATION =
-      "config/specification/sv-comp-reachability.spc";
+  /**
+   * One verification task: the configuration that CPAchecker switches to for the given property,
+   * the program to analyze, and the verdict that the analysis must report.
+   */
+  private record Task(
+      String config,
+      String property,
+      String program,
+      Result expected,
+      ImmutableMap<String, String> options) {
+
+    @Override
+    public String toString() {
+      return config + " " + program + " = " + expected;
+    }
+  }
+
+  private static Task task(String pConfig, String pProperty, String pProgram, Result pExpected) {
+    return new Task(pConfig, pProperty, pProgram, pExpected, ImmutableMap.of());
+  }
+
+  @Parameters(name = "{0}")
+  public static ImmutableList<Task> tasks() {
+    return ImmutableList.of(
+        // The plain value analysis reports a spurious counterexample for the recursive programs,
+        // because it loses the values of a caller during a recursive call.
+        task("interpreter", "unreach-call", "recursive-factorial-true.c", Result.TRUE),
+        task("interpreter", "unreach-call", "recursive-factorial-false.c", Result.FALSE),
+        task("interpreter", "unreach-call", "mutual-recursion-true.c", Result.TRUE),
+        // The program has more than one execution, so InterpreterCPA is not applicable to it
+        // and must not claim any result.
+        task("interpreter", "unreach-call", "nondeterministic-input.c", Result.UNKNOWN),
+        // Values that a callee writes through a pointer to a local of its caller are kept only by
+        // the SMG analysis.
+        task("interpreter-smg", "unreach-call", "pointer-to-caller-local-true.c", Result.TRUE),
+        // With sampling the programs above that depend on an input are executed for one assignment
+        // of the inputs, so a violation is found.
+        task("interpreter-sampling", "unreach-call", "nondeterministic-input.c", Result.FALSE),
+        task(
+            "interpreter-sampling",
+            "unreach-call",
+            "input-error-in-second-branch-false.c",
+            Result.FALSE),
+        // Only one of the executions was explored, so TRUE must not be reported even though this
+        // execution did not violate the specification.
+        task("interpreter-sampling", "unreach-call", "input-safe-unknown.c", Result.UNKNOWN),
+        task("interpreter-sampling", "unreach-call", "recursive-factorial-true.c", Result.TRUE),
+        task("interpreter--termination", "termination", "terminating-loop-true.c", Result.TRUE),
+        // A non-terminating program cannot be shown to be non-terminating by executing it, so the
+        // analysis must not report FALSE. It runs into the time limit, hence the small limit here.
+        new Task(
+            "interpreter--termination",
+            "termination",
+            "nonterminating.c",
+            Result.UNKNOWN,
+            ImmutableMap.of("limits.time.cpu", "10s")),
+        task("interpreter--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
+        task("interpreter--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
+        task("interpreter--memorysafety", "valid-memsafety", "heap-recursion-true.i", Result.TRUE),
+        task(
+            "interpreter--memorysafety",
+            "valid-memsafety",
+            "heap-out-of-bounds-false.i",
+            Result.FALSE),
+        task(
+            "interpreter--memorycleanup", "valid-memcleanup", "heap-recursion-true.i", Result.TRUE),
+        task("interpreter--memorycleanup", "valid-memcleanup", "heap-leak-false.i", Result.FALSE));
+  }
+
+  @Parameter public Task task;
 
   @BeforeClass
   public static void skipUnlessExtendedTestsEnabled() {
     IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
   }
 
-  private static IntegrationTestResult run(String pConfigFile, String pSpec, String pProgram)
-      throws Exception {
+  @Test
+  public void testVerdict() throws Exception {
     Configuration config =
         TestUtils.configurationForTest()
-            .loadFromFile(pConfigFile)
-            .setOption("specification", pSpec)
+            .loadFromFile("config/" + task.config() + ".properties")
+            .setOption("specification", PROPERTY_DIR + task.property() + ".prp")
+            // CPAchecker takes the entry function from the property file itself when the property
+            // is given on the command line, so it has to be set here.
+            .setOption("analysis.entryFunction", "main")
+            .setOptions(task.options())
             .build();
-    return IntegrationTestRunner.run(config, PROGRAM_DIR + pProgram);
-  }
-
-  private static IntegrationTestResult run(String pConfigFile, String pProgram) throws Exception {
-    Configuration config = TestUtils.configurationForTest().loadFromFile(pConfigFile).build();
-    return IntegrationTestRunner.run(config, PROGRAM_DIR + pProgram);
-  }
-
-  /**
-   * Create the configuration that CPAchecker uses after it has detected an SV-COMP property on the
-   * command line and switched to the configuration named by the corresponding {@code *.config}
-   * option: the given configuration file with the property file as specification. The entry
-   * function is taken from the property file by CPAchecker itself, so we have to set it here.
-   */
-  private static ConfigurationBuilder configWithProperty(String pConfigFile, String pProperty)
-      throws Exception {
-    return TestUtils.configurationForTest()
-        .loadFromFile(pConfigFile)
-        .setOption("specification", PROPERTY_DIR + pProperty)
-        .setOption("analysis.entryFunction", "main");
-  }
-
-  private static IntegrationTestResult runWithProperty(
-      String pConfigFile, String pProperty, String pProgram) throws Exception {
-    return IntegrationTestRunner.run(
-        configWithProperty(pConfigFile, pProperty).build(), PROGRAM_DIR + pProgram);
-  }
-
-  @Test
-  public void testRecursionIsExecutedPrecisely() throws Exception {
-    // The plain value analysis reports a spurious counterexample here, because it loses the
-    // values of a caller during a recursive call.
-    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-true.c")
-        .assertIsSafe();
-  }
-
-  @Test
-  public void testRecursionViolationIsFound() throws Exception {
-    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-false.c")
-        .assertIsUnsafe();
-  }
-
-  @Test
-  public void testMutualRecursionIsExecutedPrecisely() throws Exception {
-    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "mutual-recursion-true.c")
-        .assertIsSafe();
-  }
-
-  @Test
-  public void testNondeterministicProgramIsRejected() throws Exception {
-    // The program has more than one execution, so InterpreterCPA is not applicable to it
-    // and must not claim any result.
-    run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "nondeterministic-input.c")
-        .assertIs(Result.UNKNOWN);
-  }
-
-  @Test
-  public void testTerminationIsProvenByExecution() throws Exception {
-    run("config/interpreter--termination.properties", "terminating-loop-true.c").assertIsSafe();
-  }
-
-  @Test
-  public void testPointerToLocalOfCallerNeedsTheSmgAnalysis() throws Exception {
-    run(
-            "config/interpreter-smg.properties",
-            REACHABILITY_SPECIFICATION,
-            "pointer-to-caller-local-true.c")
-        .assertIsSafe();
-  }
-
-  @Test
-  public void testMemorySafetyViolationIsFound() throws Exception {
-    run("config/interpreter--memorysafety.properties", "heap-out-of-bounds-false.i")
-        .assertIsUnsafe();
-  }
-
-  @Test
-  public void testMemorySafetyWithRecursionIsProven() throws Exception {
-    run("config/interpreter--memorysafety.properties", "heap-recursion-true.i").assertIsSafe();
-  }
-
-  // The following tests use the SV-COMP property files, i.e., they check that the execution
-  // configurations give the right answer for the specification that CPAchecker derives from
-  // "--spec <property>.prp".
-
-  @Test
-  public void testUnreachCallProperty() throws Exception {
-    runWithProperty(
-            "config/interpreter.properties", "unreach-call.prp", "recursive-factorial-true.c")
-        .assertIsSafe();
-    runWithProperty(
-            "config/interpreter.properties", "unreach-call.prp", "recursive-factorial-false.c")
-        .assertIsUnsafe();
-  }
-
-  @Test
-  public void testTerminationProperty() throws Exception {
-    runWithProperty(
-            "config/interpreter--termination.properties",
-            "termination.prp",
-            "terminating-loop-true.c")
-        .assertIsSafe();
-    // A non-terminating program cannot be shown to be non-terminating by executing it, so the
-    // analysis must not report FALSE. (It runs into the time limit, hence the small limit here.)
-    Configuration config =
-        configWithProperty("config/interpreter--termination.properties", "termination.prp")
-            .setOption("limits.time.cpu", "10s")
-            .build();
-    IntegrationTestRunner.run(config, PROGRAM_DIR + "nonterminating.c").assertIs(Result.UNKNOWN);
-  }
-
-  @Test
-  public void testNoOverflowProperty() throws Exception {
-    runWithProperty(
-            "config/interpreter--overflow.properties", "no-overflow.prp", "terminating-loop-true.c")
-        .assertIsSafe();
-    runWithProperty(
-            "config/interpreter--overflow.properties", "no-overflow.prp", "signed-overflow-false.c")
-        .assertIsUnsafe();
-  }
-
-  @Test
-  public void testValidMemsafetyProperty() throws Exception {
-    runWithProperty(
-            "config/interpreter--memorysafety.properties",
-            "valid-memsafety.prp",
-            "heap-recursion-true.i")
-        .assertIsSafe();
-    runWithProperty(
-            "config/interpreter--memorysafety.properties",
-            "valid-memsafety.prp",
-            "heap-out-of-bounds-false.i")
-        .assertIsUnsafe();
-  }
-
-  @Test
-  public void testSamplingFindsAViolationThatDependsOnAnInput() throws Exception {
-    // Without sampling these programs are rejected, because their execution depends on an input.
-    runWithProperty(
-            "config/interpreter-sampling.properties",
-            "unreach-call.prp",
-            "nondeterministic-input.c")
-        .assertIsUnsafe();
-    runWithProperty(
-            "config/interpreter-sampling.properties",
-            "unreach-call.prp",
-            "input-error-in-second-branch-false.c")
-        .assertIsUnsafe();
-  }
-
-  @Test
-  public void testSamplingNeverProvesSafety() throws Exception {
-    // Only one of the executions of the program was explored, so TRUE must not be reported even
-    // though this execution did not violate the specification.
-    runWithProperty(
-            "config/interpreter-sampling.properties", "unreach-call.prp", "input-safe-unknown.c")
-        .assertIs(Result.UNKNOWN);
-  }
-
-  @Test
-  public void testSamplingDoesNotAffectDeterministicPrograms() throws Exception {
-    runWithProperty(
-            "config/interpreter-sampling.properties",
-            "unreach-call.prp",
-            "recursive-factorial-true.c")
-        .assertIsSafe();
-  }
-
-  @Test
-  public void testValidMemcleanupProperty() throws Exception {
-    runWithProperty(
-            "config/interpreter--memorycleanup.properties",
-            "valid-memcleanup.prp",
-            "heap-recursion-true.i")
-        .assertIsSafe();
-    runWithProperty(
-            "config/interpreter--memorycleanup.properties",
-            "valid-memcleanup.prp",
-            "heap-leak-false.i")
-        .assertIsUnsafe();
+    IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(task.expected());
   }
 }
