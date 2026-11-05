@@ -425,12 +425,9 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
                 memoryLocation, valueAndType.getValue(), valueAndType.getType()));
 
     // The state has a value analysis as a direct component, cf. the check above, so replacing it
-    // cannot fail. Returning the unchanged state here would silently keep the values of the
-    // callee and thus analyze the caller with the wrong values.
-    return verifyNotNull(
-        InterpreterStates.withValueState(pState, restored).orElse(null),
-        "the value analysis of %s could not be replaced although it is a direct component",
-        pState);
+    // cannot fail. Returning the unchanged state here would silently analyze the caller with the
+    // values of the callee.
+    return InterpreterStates.withValueState(pState, restored).orElseThrow();
   }
 
   private static @Nullable MemoryLocation returnVariable(FunctionEntryNode pEntryNode) {
