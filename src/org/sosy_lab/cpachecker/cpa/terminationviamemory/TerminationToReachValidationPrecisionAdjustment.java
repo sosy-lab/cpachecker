@@ -54,7 +54,6 @@ public class TerminationToReachValidationPrecisionAdjustment
 
   public TerminationToReachValidationPrecisionAdjustment(
       Solver pSolver,
-      TerminationToReachStatistics pStatistics,
       LogManager plogger,
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
@@ -67,7 +66,6 @@ public class TerminationToReachValidationPrecisionAdjustment
       throws InvalidConfigurationException, InterruptedException {
     super(
         pSolver,
-        pStatistics,
         plogger,
         pCFA,
         pBfmgr,
