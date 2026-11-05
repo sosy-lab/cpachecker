@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignmentType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -220,8 +219,11 @@ public class MPORSubstitutionTrackerUtil {
       trackFieldReference(fieldReference, pCallContext, pIsWrite, pTracker);
 
     } else {
+      // Exclude subscript expressions e.g. 'i' from 'arr[i]', because 'arr' is the pointer that is
+      // actually the LHS (individual array indices are not tracked, only the entire array).
       CSimpleDeclaration declaration =
-          pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
+          Iterables.getOnlyElement(
+              SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pLeftHandSide, false));
       // do not consider CFunctionDeclarations
       if (SubstituteUtil.isSubstitutable(declaration)) {
         if (pIsWrite) {

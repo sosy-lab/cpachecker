@@ -415,7 +415,6 @@ public class SeqPointerAliasingUtil {
 
     @Override
     public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression) throws NoException {
-
       return true;
     }
 
@@ -436,45 +435,6 @@ public class SeqPointerAliasingUtil {
 
     @Override
     public Boolean visit(CComplexCastExpression pComplexCastExpression) throws NoException {
-
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-  }
-
-  public static final class CLeftHandSideSimpleDeclarationVisitor
-      implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
-
-    @Override
-    public CSimpleDeclaration visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws NoException {
-
-      CLeftHandSide arrayLeftHandSide =
-          (CLeftHandSide) pArraySubscriptExpression.getArrayExpression();
-      return arrayLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CFieldReference pFieldReference) throws NoException {
-      CLeftHandSide fieldOwnerLeftHandSide = (CLeftHandSide) pFieldReference.getFieldOwner();
-      return fieldOwnerLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CIdExpression pIdExpression) throws NoException {
-      return pIdExpression.getDeclaration();
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CPointerExpression pPointerExpression) throws NoException {
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pPointerExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CComplexCastExpression pComplexCastExpression)
-        throws NoException {
-
       CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
       return operandLeftHandSide.accept(this);
     }
