@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -413,12 +415,47 @@ public class VariableClassificationBuilder implements StatisticsProvider {
                 VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
+    varFieldDependencies = withThreadResults(cfa, varFieldDependencies);
     addressedVariables = varFieldDependencies.computeAddressedVariables();
     addressedFields = varFieldDependencies.computeAddressedFields();
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
         varFieldDependencies.computeRelevantVariablesAndFields();
     relevantVariables = relevant.getFirst();
     relevantFields = relevant.getSecond();
+  }
+
+  /**
+   * Makes the return variables of the start functions of threads relevant, because pthread_join
+   * reads them, although no edge does.
+   */
+  private static VarFieldDependencies withThreadResults(
+      CFA cfa, VarFieldDependencies pDependencies) {
+    Set<String> startFunctions = new HashSet<>();
+    for (CFAEdge edge : CFAUtils.allEdges(cfa)) {
+      if (edge instanceof CStatementEdge statementEdge
+          && statementEdge.getStatement() instanceof CFunctionCall call
+          && call.getFunctionCallExpression().getFunctionNameExpression()
+              instanceof CIdExpression name
+          && name.getName().equals(THREAD_START)
+          && call.getFunctionCallExpression().getParameterExpressions().size() == 4
+          && call.getFunctionCallExpression().getParameterExpressions().get(2)
+              instanceof CUnaryExpression startFunction
+          && startFunction.getOperand() instanceof CIdExpression function) {
+        startFunctions.add(function.getName());
+      }
+    }
+    VarFieldDependencies result = pDependencies;
+    for (FunctionEntryNode entry : cfa.entryNodes()) {
+      if (startFunctions.contains(CFACloner.extractFunctionName(entry.getFunctionName()))
+          && entry.getReturnVariable().isPresent()) {
+        result =
+            result.withDependency(
+                VariableOrField.unknown(),
+                VariableOrField.newVariable(
+                    entry.getReturnVariable().orElseThrow().getQualifiedName()));
+      }
+    }
+    return result;
   }
 
   /**
