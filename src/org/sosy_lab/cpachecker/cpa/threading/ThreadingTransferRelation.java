@@ -354,8 +354,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 return waitAtBarrier(threadingState, activeThread, statement, results, cfaEdge);
               }
               case THREAD_EXIT -> {
-                // this function-call is already handled in the beginning with isLastNodeOfThread.
-                // return exitThread(threadingState, activeThread, results);
+                // the thread terminates on the next edge, cf. exitThreads
+                return keepExitValue(threadingState, activeThread, cfaEdge, statement, results);
               }
               case VERIFIER_ATOMIC_BEGIN -> {
                 if (useAtomicLocks) {
@@ -513,8 +513,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
    */
   private Optional<CVariableDeclaration> getResultVariable(ThreadingState state, String id) {
     if (!useClonedFunctions // otherwise other threads can overwrite the variable
-        // only a return assigns the variable
-        || !isAtExitOfStartFunction(state, id)
         || id.contains(THREAD_ID_SEPARATOR)
         || id.startsWith(ONCE_RUNNER_PREFIX)
         // the identifier denotes a newer thread
@@ -910,6 +908,30 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 .orElse(null);
     return transform(
         results, ts -> ts.removeThreadResultAndCopy(threadId).withResultEdge(resultEdge));
+  }
+
+  /** pthread_exit(v) assigns v to the return variable of the start function, cf. joinThread. */
+  private Collection<ThreadingState> keepExitValue(
+      ThreadingState threadingState,
+      String activeThread,
+      CFAEdge cfaEdge,
+      AStatement statement,
+      Collection<ThreadingState> results) {
+    Optional<CVariableDeclaration> returnVariable =
+        getStartFunctionReturnVariable(threadingState, activeThread);
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    if (returnVariable.isEmpty()
+        || params.size() != 1
+        || !(params.getFirst() instanceof CExpression value)) {
+      return results;
+    }
+    CStatementEdge resultEdge =
+        makeStatementEdge(
+            cfaEdge,
+            makeAssignment(
+                new CIdExpression(cfaEdge.getFileLocation(), returnVariable.orElseThrow()), value));
+    return transform(results, ts -> ts.withResultEdge(resultEdge));
   }
 
   /** Returns {@code pTarget = (T) pValue}, where T is the type of pTarget. */
