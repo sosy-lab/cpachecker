@@ -908,8 +908,6 @@ public class PolicyIterationManager {
           }
           case UNSAT -> throw new CPAException("Unexpected UNSAT");
           case UNDEF -> {
-            logger.log(Level.WARNING, "Solver returned undefined status on the problem: ");
-            logger.log(Level.INFO, optEnvironment.toString());
             throw new CPATransferException("Solver returned undefined status");
           }
         }
