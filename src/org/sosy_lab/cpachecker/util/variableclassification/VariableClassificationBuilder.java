@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
@@ -73,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CReferencedFunctionsCollector;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -407,15 +407,19 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   private void collectVars(CFA cfa) throws UnrecognizedCodeException {
     Collection<CFANode> nodes = cfa.nodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
+    CReferencedFunctionsCollector referencedFunctions = new CReferencedFunctionsCollector();
     for (CFANode node : nodes) {
       for (CFAEdge edge : node.getLeavingEdges()) {
         handleEdge(edge, cfa);
+        referencedFunctions.visitEdge(edge);
         varFieldDependencies =
             varFieldDependencies.withDependencies(
                 VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
-    varFieldDependencies = withThreadResults(cfa, varFieldDependencies);
+    varFieldDependencies =
+        withResultsOfReferencedFunctions(
+            cfa, referencedFunctions.getCollectedFunctions(), varFieldDependencies);
     addressedVariables = varFieldDependencies.computeAddressedVariables();
     addressedFields = varFieldDependencies.computeAddressedFields();
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
@@ -425,29 +429,18 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   /**
-   * Makes the return variables of the start functions of threads relevant, because pthread_join
-   * reads them, although no edge does.
+   * Makes the results of the functions whose address is taken relevant: such a function can run
+   * without a call edge, e.g., as a thread, and the code that runs it can read its result.
    */
-  private static VarFieldDependencies withThreadResults(
-      CFA cfa, VarFieldDependencies pDependencies) {
-    Set<String> startFunctions = new HashSet<>();
-    for (CFAEdge edge : CFAUtils.allEdges(cfa)) {
-      if (edge instanceof CStatementEdge statementEdge
-          && statementEdge.getStatement() instanceof CFunctionCall call
-          && call.getFunctionCallExpression().getFunctionNameExpression()
-              instanceof CIdExpression name
-          && name.getName().equals(THREAD_START)
-          && call.getFunctionCallExpression().getParameterExpressions().size() == 4
-          && call.getFunctionCallExpression().getParameterExpressions().get(2)
-              instanceof CUnaryExpression startFunction
-          && startFunction.getOperand() instanceof CIdExpression function) {
-        startFunctions.add(function.getName());
-      }
-    }
+  private static VarFieldDependencies withResultsOfReferencedFunctions(
+      CFA cfa, Set<String> pReferencedFunctions, VarFieldDependencies pDependencies) {
     VarFieldDependencies result = pDependencies;
     for (FunctionEntryNode entry : cfa.entryNodes()) {
-      if (startFunctions.contains(CFACloner.extractFunctionName(entry.getFunctionName()))
-          && entry.getReturnVariable().isPresent()) {
+      String function = entry.getFunctionName();
+      if (entry.getReturnVariable().isPresent()
+          // a clone runs the code of the function that the reference names
+          && (pReferencedFunctions.contains(function)
+              || pReferencedFunctions.contains(CFACloner.extractFunctionName(function)))) {
         result =
             result.withDependency(
                 VariableOrField.unknown(),
