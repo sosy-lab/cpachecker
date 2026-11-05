@@ -24,13 +24,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * currently active function calls (cf. {@link StackFrame}) and whether the execution still permits
  * a sound proof of safety or a precise counterexample.
  *
- * <p>The stack is needed because a value analysis identifies the local variables of a function by
- * the name of the function (cf. {@link MemoryLocation#isOnFunctionStack(String)}), so all
- * invocations of the same function share the same memory locations: a recursive callee overwrites
- * the local variables of its caller and returning from it discards them. Every frame therefore
- * remembers the values that a recursive call is about to overwrite, so that {@link
- * InterpreterTransferRelation} can restore them when the call returns. Only this CPA does so, the
- * value analysis itself is not affected.
+ * <p>The stack is needed because a value analysis identifies local variables by the name of their
+ * function (cf. {@link MemoryLocation#isOnFunctionStack(String)}), so a recursive call overwrites
+ * the variables of its caller. Every frame remembers the values to restore when the call returns.
  *
  * <p>The status records whether ignored external calls have made the execution unsound or
  * imprecise. A target state may be reported only if the execution is still precise, and termination
