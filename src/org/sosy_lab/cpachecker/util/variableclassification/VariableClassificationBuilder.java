@@ -393,7 +393,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
             });
     str.append("\n---------------------------------\n");
 
-    logger.log(Level.INFO, str.toString());
+    logger.log(Level.INFO, str);
   }
 
   private int countNumberOfRelevantVars(Set<String> ofVars) {

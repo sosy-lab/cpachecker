@@ -451,7 +451,7 @@ public abstract class AbstractExpressionValueVisitor
       case DIVIDE -> {
         if (r.equals(BigInteger.ZERO)) {
           // this matches the behavior of long
-          logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l.toString(), r.toString());
+          logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l, r);
           return BigInteger.ZERO;
         }
         return l.divide(r);

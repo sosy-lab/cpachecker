@@ -103,7 +103,7 @@ public class ExpressionSimplificationVisitor
       }
     }
     if (numericResult != null) {
-      logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult.toString());
+      logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult);
     } else {
       logger.logf(Level.FINE, "Can not handle result of expression, numericResult is null.");
     }

@@ -1715,7 +1715,7 @@ public class AutomatonGraphmlParser {
         if (strictChecking) {
           throw new WitnessParseException(messageBuilder.toString());
         } else {
-          logger.log(Level.WARNING, messageBuilder.toString());
+          logger.log(Level.WARNING, messageBuilder);
         }
       }
 
