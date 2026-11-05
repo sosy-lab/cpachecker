@@ -18,25 +18,13 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-@RunWith(Parameterized.class)
 public class InterpreterVerdictIntegrationTest {
-
-  @Parameters(name = "stepsPerTransfer={0}")
-  public static Object[] stepsPerTransfer() {
-    return new Object[] {-1, 1, 2};
-  }
-
-  @Parameter public int stepsPerTransfer;
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -55,7 +43,6 @@ public class InterpreterVerdictIntegrationTest {
             .setOption("specification", "config/specification/sv-comp-reachability.spc")
             // Keep addressed variables out of the process-wide blacklist for other tests.
             .setOption("analysis.entryFunction", "execution_verdict_test")
-            .setOption("cpa.interpreter.stepsPerTransfer", Integer.toString(stepsPerTransfer))
             .setOptions(pOptions)
             .build();
     return IntegrationTestRunner.run(config, program.toString());

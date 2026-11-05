@@ -51,10 +51,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Transfer relation of the {@link InterpreterCPA}. It executes the program edge by edge and checks
  * after every step that the wrapped CPA produced exactly one or zero successors.
  *
- * <p>Because there is at most one successor, several execution steps can be performed within a
- * single call of this transfer relation. The intermediate states are then never returned and can be
- * garbage collected immediately, which is what makes this analysis use only a constant amount of
- * memory for the state space (cf. {@code cpa.interpreter.stepsPerTransfer}).
+ * <p>Because there is at most one successor, the whole execution is performed within a single call
+ * of this transfer relation. The intermediate states are then never returned and can be garbage
+ * collected immediately, which is what makes this analysis use only a constant amount of memory for
+ * the state space.
  */
 class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation {
 
@@ -65,7 +65,6 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   private final @Nullable InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
   private final boolean collectInvariants;
-  private final int stepsPerTransfer;
 
   InterpreterTransferRelation(
       TransferRelation pWrapped,
@@ -74,8 +73,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       InterpreterStatistics pStats,
       InterpreterWitnessExporter pWitnessExporter,
       @Nullable InterpreterSampler pSampler,
-      @Nullable ValueTransferOptions pValueTransferOptions,
-      int pStepsPerTransfer) {
+      @Nullable ValueTransferOptions pValueTransferOptions) {
     super(pWrapped);
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
@@ -84,7 +82,6 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     sampler = pSampler;
     valueTransferOptions = pValueTransferOptions;
     collectInvariants = pWitnessExporter.collectsInvariants();
-    stepsPerTransfer = pStepsPerTransfer;
   }
 
   @Override
@@ -93,8 +90,8 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       throws CPATransferException, InterruptedException {
 
     InterpreterState current = (InterpreterState) pState;
-    // A negative value of stepsPerTransfer means that the whole program is executed here.
-    for (int steps = 0; stepsPerTransfer < 0 || steps < stepsPerTransfer; steps++) {
+    // The whole remaining execution is performed here, so the loop ends only with the program.
+    while (true) {
       shutdownNotifier.shutdownIfNecessary();
 
       InterpreterState next = executeStep(current, pPrecision);

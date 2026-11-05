@@ -95,19 +95,6 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void everyStateInTheReachedSetGivesTheSameResult() throws Exception {
-    // With stepsPerTransfer=1 the analysis adds every state of the execution to the reached set
-    // instead of executing the whole program within a single call of the transfer relation.
-    Configuration config =
-        TestUtils.configurationForTest()
-            .loadFromFile("config/interpreter.properties")
-            .setOption("specification", REACHABILITY_SPECIFICATION)
-            .setOption("cpa.interpreter.stepsPerTransfer", "1")
-            .build();
-    IntegrationTestRunner.run(config, PROGRAM_DIR + "recursive-factorial-true.c").assertIsSafe();
-  }
-
-  @Test
   public void terminationIsProvenByExecution() throws Exception {
     run("config/interpreter--termination.properties", "terminating-loop-true.c").assertIsSafe();
   }

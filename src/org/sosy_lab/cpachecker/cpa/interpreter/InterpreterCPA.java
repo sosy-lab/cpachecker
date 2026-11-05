@@ -75,17 +75,6 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
   @Option(
       secure = true,
       description =
-          "Number of program steps that are executed within a single call of the transfer relation."
-              + " Intermediate states are not added to the reached set, so the larger this value"
-              + " is, the less memory the analysis needs. Use a value of -1 to execute the whole"
-              + " program within a single call of the transfer relation (most memory efficient),"
-              + " and a value of 1 to add every state to the reached set (needed for a complete"
-              + " ARG, e.g., for exporting counterexamples).")
-  private int stepsPerTransfer = -1;
-
-  @Option(
-      secure = true,
-      description =
           "Execute programs with inputs by asking the SMT solver for one assignment of the inputs"
               + " instead of aborting on the first nondeterministic choice. This needs symbolic"
               + " values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC) and the ConstraintsCPA"
@@ -114,11 +103,6 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
-    if (stepsPerTransfer == 0) {
-      throw new InvalidConfigurationException(
-          "cpa.interpreter.stepsPerTransfer needs to be at least 1 (or -1 for no limit),"
-              + " otherwise the analysis would not make any progress");
-    }
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, logger, pCpa);
@@ -143,8 +127,7 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
         stats,
         witnessExporter,
         sampler,
-        valueTransferOptions,
-        stepsPerTransfer);
+        valueTransferOptions);
   }
 
   @Override

@@ -2309,15 +2309,6 @@ cpa.interpreter.maxSamples = 1000
 # TRUE.
 cpa.interpreter.sampleNondeterministicValues = false
 
-# Number of program steps that are executed within a single call of the
-# transfer relation. Intermediate states are not added to the reached set, so
-# the larger this value is, the less memory the analysis needs. Use a value
-# of -1 to execute the whole program within a single call of the transfer
-# relation (most memory efficient), and a value of 1 to add every state to
-# the reached set (needed for a complete ARG, e.g., for exporting
-# counterexamples).
-cpa.interpreter.stepsPerTransfer = -1
-
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]

@@ -24,9 +24,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * information of the {@link InterpreterState}.
  *
  * <p>Note that this is applied only to the states that the transfer relation actually returns, not
- * to the intermediate states of an execution (cf. {@code cpa.interpreter.stepsPerTransfer}). An
- * execution must not abstract from any information anyway, so the precision adjustment of the
- * wrapped CPA should not change the state.
+ * to the intermediate states of an execution. An execution must not abstract from any information
+ * anyway, so the precision adjustment of the wrapped CPA should not change the state.
  */
 class InterpreterPrecisionAdjustment implements PrecisionAdjustment {
 
