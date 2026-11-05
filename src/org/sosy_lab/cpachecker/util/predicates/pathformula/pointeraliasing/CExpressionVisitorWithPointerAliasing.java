@@ -746,7 +746,9 @@ class CExpressionVisitorWithPointerAliasing
 
         } else if (functionName.equals(THREAD_JOIN)) {
           // pthread_join(t, p) writes the result of thread t to *p. The encoding does not know
-          // this result, so it only makes *p nondeterministic.
+          // this result, so it only makes *p nondeterministic, and the ThreadingCPA provides the
+          // assignment of the result, cf. ThreadingState#resultEdge. The nondeterministic value is
+          // still needed for formulas without that assignment, e.g. in the PathChecker.
           Optional<CFunctionCallExpression> nondetMemory =
               createNondetMemoryCallModellingJoin(e, conv.machineModel);
           if (nondetMemory.isPresent()) {
