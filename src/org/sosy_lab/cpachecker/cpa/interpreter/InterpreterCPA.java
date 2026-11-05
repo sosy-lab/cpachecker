@@ -65,11 +65,9 @@ import org.sosy_lab.cpachecker.util.CPAs;
  *       performs exactly as many steps as the program does.
  * </ul>
  *
- * <p>Developer note: the loop over a chain of single successors also exists in {@link
- * org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA}, but that is
- * all the two have in common. For the compactor a chain is a transparent optimization of an
- * arbitrary analysis, while here a single successor is the defining property, this CPA has a state
- * of its own, and it has to inspect every step, which the compactor hides.
+ * <p>The idea of this CPA is to simulate an abstract execution of the program. Everything else
+ * follows from that idea, in particular the restriction to a single successor and the chain of
+ * steps that one call of the transfer relation performs.
  */
 @Options(prefix = "cpa.interpreter")
 public class InterpreterCPA extends AbstractSingleWrapperCPA {
