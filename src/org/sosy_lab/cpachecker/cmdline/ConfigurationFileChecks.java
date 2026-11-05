@@ -559,7 +559,7 @@ public class ConfigurationFileChecks {
               Path.of("sequentialization-concurrency.properties"),
               // interpret the property itself, so they reject the default specification
               Path.of("orderingConsistency.properties"),
-              Path.of("svcomp27--concurrency-orderingConsistency-opensmt.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency-z3-nla.properties"),
               Path.of("svcomp27--concurrency-orderingConsistency-z3.properties"),
               Path.of("svcomp27--concurrency.properties"),
               Path.of("svcomp27--datarace.properties"));
