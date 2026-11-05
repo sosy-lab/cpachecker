@@ -550,16 +550,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             // They hold for the lasso they were synthesized for, but not necessarily for the
             // program, so only the confirmed ones are exported, see confirmSupportingInvariants.
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-              InvariantEntry supportingInvariantEntry =
-                  TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
+              TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
                       supportingInvariant,
                       loopHead,
                       incomingLoopEdge,
                       cfa.getAstCfaRelation(),
-                      programScope);
-              if (confirmedSupportingInvariants.contains(supportingInvariantEntry)) {
-                entries.add(supportingInvariantEntry);
-              }
+                      programScope)
+                  .filter(confirmedSupportingInvariants::contains)
+                  .ifPresent(entries::add);
             }
           }
         }
@@ -600,13 +598,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       for (CFANode loopHead : loop.getLoopHeads()) {
         for (TerminationArgument argument : terminationArguments.get(loop)) {
           for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-            supportingInvariants.add(
-                TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
+            TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
                     supportingInvariant,
                     loopHead,
                     incomingLoopEdge,
                     cfa.getAstCfaRelation(),
-                    programScope));
+                    programScope)
+                .ifPresent(supportingInvariants::add);
           }
         }
       }
