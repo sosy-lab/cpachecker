@@ -545,20 +545,22 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       // for witness validation we need to produce all possible successors,
       // the witness automaton should then limit their number by checking function-entries..
       final Collection<ThreadingState> newResults = new ArrayList<>();
-      Set<Integer> usedNumbers = threadingState.getThreadNums();
-      for (int i = ThreadingState.MIN_THREAD_NUM; i < maxNumberOfThreads; i++) {
-        if (!usedNumbers.contains(i)) {
-          newResults.addAll(
-              createThreadWithNumber(threadingState, id, cfaEdge, function, threadArg, i, results));
-        }
+      for (int i = threadingState.getNextThreadNum(); i < maxNumberOfThreads; i++) {
+        newResults.addAll(
+            createThreadWithNumber(threadingState, id, cfaEdge, function, threadArg, i, results));
       }
       return newResults;
 
     } else {
       // a default reachability analysis can determine the thread-number on its own.
-      int newThreadNum = threadingState.getSmallestMissingThreadNum();
       return createThreadWithNumber(
-          threadingState, id, cfaEdge, function, threadArg, newThreadNum, results);
+          threadingState,
+          id,
+          cfaEdge,
+          function,
+          threadArg,
+          threadingState.getNextThreadNum(),
+          results);
     }
   }
 
@@ -575,6 +577,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     String functionName = function.getName();
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
+    }
+    if (cfa.getFunctionHead(functionName) == null) {
+      throw new UnsupportedCodeException(
+          "more threads than cloned functions, increase cfa.cfaCloner.numberOfCopies", cfaEdge);
     }
 
     String threadId = getNewThreadId(threadingState, id.getName());
@@ -864,7 +870,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     CIdExpression function = extractInitRoutine(params.get(1), cfaEdge);
 
     // The new thread does not count for maxNumberOfThreads, because the calling thread waits.
-    int newThreadNum = threadingState.getSmallestMissingThreadNum();
+    int newThreadNum = threadingState.getNextThreadNum();
     String functionName = function.getName();
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
@@ -872,7 +878,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (cfa.getFunctionHead(functionName) == null) {
       // without the new thread, the calling thread would wait forever
       throw new UnsupportedCodeException(
-          "pthread_once without a cloned function for a new thread", cfaEdge);
+          "pthread_once without a cloned function for a new thread, increase"
+              + " cfa.cfaCloner.numberOfCopies",
+          cfaEdge);
     }
     String runner = getNewThreadId(threadingState, ONCE_RUNNER_PREFIX + onceId);
     CFunctionCallEdge functionCall =

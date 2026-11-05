@@ -22,12 +22,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -143,6 +141,12 @@ public class ThreadingState
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
+  /**
+   * The number of the next thread. Numbers are never reused: a number selects the cloned functions
+   * of a thread, so a new thread would otherwise overwrite the variables of a terminated thread.
+   */
+  private final int nextThreadNum;
+
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
@@ -155,6 +159,7 @@ public class ThreadingState
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
+    nextThreadNum = MIN_THREAD_NUM;
   }
 
   private ThreadingState(
@@ -168,7 +173,8 @@ public class ThreadingState
       ImmutableList<CExpression> pAssumptions,
       String pActiveThread,
       FunctionCallEdge entryFunction,
-      PersistentMap<String, Integer> pThreadIdsForWitness) {
+      PersistentMap<String, Integer> pThreadIdsForWitness,
+      int pNextThreadNum) {
     threads = pThreads;
     locks = pLocks;
     recursiveMutexes = pRecursiveMutexes;
@@ -180,6 +186,7 @@ public class ThreadingState
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
+    nextThreadNum = pNextThreadNum;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
@@ -194,7 +201,8 @@ public class ThreadingState
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withLocks(
@@ -210,7 +218,8 @@ public class ThreadingState
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withRecursiveMutexAttributes(
@@ -226,7 +235,8 @@ public class ThreadingState
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withOnces(
@@ -242,7 +252,8 @@ public class ThreadingState
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withBarriers(PersistentMap<String, Barrier> pBarriers) {
@@ -257,7 +268,8 @@ public class ThreadingState
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withThreadIdsForWitness(
@@ -273,14 +285,28 @@ public class ThreadingState
         assumptions,
         activeThread,
         entryFunction,
-        pThreadIdsForWitness);
+        pThreadIdsForWitness,
+        nextThreadNum);
   }
 
   public ThreadingState addThreadAndCopy(
       String id, int num, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(!threads.containsKey(id), "thread already exists");
-    return withThreads(threads.putAndCopy(id, new ThreadState(loc, stack, num)));
+    Preconditions.checkArgument(num >= nextThreadNum, "thread number %s is used already", num);
+    return new ThreadingState(
+        threads.putAndCopy(id, new ThreadState(loc, stack, num)),
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
+        barriers,
+        assumptions,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness,
+        num + 1);
   }
 
   public ThreadingState updateLocationAndCopy(String id, AbstractState stack, AbstractState loc) {
@@ -316,23 +342,9 @@ public class ThreadingState
     return (LocationState) Preconditions.checkNotNull(threads.get(id).getLocation());
   }
 
-  Set<Integer> getThreadNums() {
-    SequencedSet<Integer> result = new LinkedHashSet<>();
-    for (ThreadState ts : threads.values()) {
-      result.add(ts.getNum());
-    }
-    Preconditions.checkState(result.size() == threads.size());
-    return result;
-  }
-
-  int getSmallestMissingThreadNum() {
-    int num = MIN_THREAD_NUM;
-    // TODO loop is not efficient for big number of threads
-    final Set<Integer> threadNums = getThreadNums();
-    while (threadNums.contains(num)) {
-      num++;
-    }
-    return num;
+  /** See {@link #nextThreadNum}. */
+  int getNextThreadNum() {
+    return nextThreadNum;
   }
 
   public ThreadingState addLockAndCopy(String threadId, String lockId) {
@@ -507,7 +519,8 @@ public class ThreadingState
         && finishedOnces.equals(ts.finishedOnces)
         && barriers.equals(ts.barriers)
         && Objects.equals(activeThread, ts.activeThread)
-        && threadIdsForWitness.equals(ts.threadIdsForWitness);
+        && threadIdsForWitness.equals(ts.threadIdsForWitness)
+        && nextThreadNum == ts.nextThreadNum;
   }
 
   @Override
@@ -521,7 +534,8 @@ public class ThreadingState
         finishedOnces,
         barriers,
         activeThread,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
@@ -750,7 +764,8 @@ public class ThreadingState
         assumptions,
         pActiveThread,
         entryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   String getActiveThread() {
@@ -770,7 +785,8 @@ public class ThreadingState
         assumptions,
         activeThread,
         pEntryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   /** See {@link #assumptions}. */
@@ -786,7 +802,8 @@ public class ThreadingState
         pAssumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   /**
