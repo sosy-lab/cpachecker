@@ -12,9 +12,11 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.AT_PREFIX;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.AT_PREFIX_NON_C;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
@@ -24,6 +26,8 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -87,6 +92,49 @@ public class TerminationArgumentsToWitnessUtils {
     CSimpleDeclaration variable =
         pScope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(pVariable));
     return variable == null ? pVariable : pScope.createScopedNameOf(variable.getOrigName());
+  }
+
+  /**
+   * Returns the C expression with the names of the input program of a variable of a termination
+   * argument, e.g., (*p) for the heap cell (*int |main::p|) of the heap encoding with UFs. It is
+   * empty if there is none, e.g., for a heap cell at an offset of a pointer.
+   */
+  private static Optional<String> toCExpression(IProgramVar pVariable, Scope pScope) {
+    if (RankVar.getDereferencedPointer(pVariable.getTerm()).isEmpty()) {
+      return Optional.of(toNameInInputProgram(pVariable.toString(), pScope));
+    }
+    return toCExpression(pVariable.getTerm(), pScope);
+  }
+
+  private static Optional<String> toCExpression(Term pTerm, Scope pScope) {
+    Optional<Term> pointer = RankVar.getDereferencedPointer(pTerm);
+    if (pointer.isPresent()) {
+      return toCExpression(pointer.orElseThrow(), pScope).map(p -> "(*" + p + ")");
+    }
+    if (pTerm instanceof ApplicationTerm variable
+        && variable.getParameters().length == 0
+        && !variable.getFunction().isInterpreted()) {
+      return Optional.of(
+          toNameInInputProgram(CharMatcher.is('|').trimFrom(pTerm.toStringDirect()), pScope));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns the C expressions of the given variables of a termination argument by their names, or
+   * empty if a variable has none.
+   */
+  private static Optional<ImmutableMap<String, String>> toCExpressions(
+      Iterable<IProgramVar> pVariables, Scope pScope) {
+    ImmutableMap.Builder<String, String> expressions = ImmutableMap.builder();
+    for (IProgramVar variable : pVariables) {
+      Optional<String> expression = toCExpression(variable, pScope);
+      if (expression.isEmpty()) {
+        return Optional.empty();
+      }
+      expressions.put(variable.toString(), expression.orElseThrow());
+    }
+    return Optional.of(expressions.buildKeepingLast());
   }
 
   /**
@@ -198,11 +246,16 @@ public class TerminationArgumentsToWitnessUtils {
             pProgramScope,
             getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
             pAstCfaRelation);
+    Optional<ImmutableMap<String, String>> names =
+        toCExpressions(pSupportingInvariant.getVariables(), scope);
+    // Weakening an invariant to true keeps it an invariant
     String invariant =
-        wrapTheVariablesWithCastToLongLong(
-            pSupportingInvariant.toString(),
-            pSupportingInvariant.getVariables(),
-            variable -> toNameInInputProgram(variable, scope));
+        names.isEmpty()
+            ? "1"
+            : wrapTheVariablesWithCastToLongLong(
+                pSupportingInvariant.toString(),
+                pSupportingInvariant.getVariables(),
+                names.orElseThrow()::get);
     return new InvariantEntry(
         TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
@@ -235,7 +288,6 @@ public class TerminationArgumentsToWitnessUtils {
             pProgramScope,
             getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
             pAstCfaRelation);
-    Function<String, String> names = variable -> toNameInInputProgram(variable, scope);
     for (TerminationArgument argument : pArguments) {
       RankingFunction rankingFunction = argument.getRankingFunction();
       if (rankingFunction instanceof LexicographicRankingFunction pLexicographicRankingFunction) {
@@ -245,7 +297,7 @@ public class TerminationArgumentsToWitnessUtils {
                   pLexicographicRankingFunction.getComponents()[i].toString(),
                   pLexicographicRankingFunction.getComponents()[i].getVariables(),
                   true,
-                  names);
+                  scope);
           for (int j = 0; j < pLexicographicRankingFunction.getComponents().length; j++) {
             componentConjunction +=
                 "&&"
@@ -253,7 +305,7 @@ public class TerminationArgumentsToWitnessUtils {
                         pLexicographicRankingFunction.getComponents()[j].toString(),
                         pLexicographicRankingFunction.getComponents()[j].getVariables(),
                         false,
-                        names);
+                        scope);
           }
           transitionInvariants.add(componentConjunction);
         }
@@ -265,12 +317,12 @@ public class TerminationArgumentsToWitnessUtils {
                   nestedRankingFunction.toString(),
                   nestedRankingFunction.getVariables(),
                   true,
-                  names));
+                  scope));
         }
       } else {
         transitionInvariants.add(
             constructTransitionInvariantRelation(
-                rankingFunction.toString(), rankingFunction.getVariables(), true, names));
+                rankingFunction.toString(), rankingFunction.getVariables(), true, scope));
       }
     }
     return new InvariantEntry(
@@ -287,13 +339,18 @@ public class TerminationArgumentsToWitnessUtils {
       String rankingFunction,
       Iterable<IProgramVar> variables,
       boolean strictRelation,
-      Function<String, String> pNames) {
+      Scope pScope) {
+    Optional<ImmutableMap<String, String>> names = toCExpressions(variables, pScope);
+    if (names.isEmpty()) {
+      return "0";
+    }
     String prevRank =
         rightSideOfRankingFunction(
-            wrapTheVariablesWithAtAnyPrev(rankingFunction, variables, pNames));
+            wrapTheVariablesWithAtAnyPrev(rankingFunction, variables, names.orElseThrow()::get));
     String currentRank =
         rightSideOfRankingFunction(
-            wrapTheVariablesWithCastToLongLong(rankingFunction, variables, pNames));
+            wrapTheVariablesWithCastToLongLong(
+                rankingFunction, variables, names.orElseThrow()::get));
     if (prevRank.contains(CParserUtils.CPACHECKER_TMP_PREFIX)) {
       return "0";
     }
