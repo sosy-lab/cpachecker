@@ -376,6 +376,10 @@ class CFABuilder extends ASTVisitor {
         ImmutableMap.builder();
     ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
         ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToVisibleLocalVariables =
+        ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToVisibleParameters =
+        ImmutableMap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
 
@@ -396,7 +400,9 @@ class CFABuilder extends ASTVisitor {
             actTypeDefs,
             actVars,
             cfaNodeToAstLocalVariablesInScope,
-            cfaNodeToAstParametersInScope);
+            cfaNodeToAstParametersInScope,
+            cfaNodeToVisibleLocalVariables,
+            cfaNodeToVisibleParameters);
       }
     }
 
@@ -437,7 +443,10 @@ class CFABuilder extends ASTVisitor {
             // We want to explicitly throw an error if a
             // key was added more than once, since this would be a bug
             cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
-            cfaNodeToAstParametersInScope.buildOrThrow());
+            cfaNodeToAstParametersInScope.buildOrThrow(),
+            // A node gets new ones when variables go out of scope at it
+            cfaNodeToVisibleLocalVariables.buildKeepingLast(),
+            cfaNodeToVisibleParameters.buildKeepingLast());
 
     return result;
   }
@@ -451,7 +460,9 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
       ImmutableMap<String, CSimpleDeclaration> globalVars,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope,
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToVisibleLocalVariables,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToVisibleParameters)
       throws InterruptedException {
 
     FunctionScope localScope =
@@ -469,6 +480,8 @@ class CFABuilder extends ASTVisitor {
             checkBinding,
             cfaNodeToAstLocalVariablesInScope,
             cfaNodeToAstParametersInScope,
+            cfaNodeToVisibleLocalVariables,
+            cfaNodeToVisibleParameters,
             unhandledAtomicOccurrences,
             unhandledThreadLocalOccurrences);
 

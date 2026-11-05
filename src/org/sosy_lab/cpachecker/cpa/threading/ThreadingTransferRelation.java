@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -196,7 +197,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private final CallstackCPA callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
-  private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
+  private final GlobalAccessChecker globalAccessChecker;
 
   public ThreadingTransferRelation(Configuration pConfig, CFA pCfa, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -205,6 +206,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
     logger = new LogManagerWithoutDuplicates(pLogger);
+    globalAccessChecker = new GlobalAccessChecker(pCfa);
   }
 
   @Override
@@ -734,21 +736,27 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(params.get(0) instanceof CUnaryExpression cUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
-    CExpression operand = cUnaryExpression.getOperand();
-    if (operand instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      CExpression subscriptExpression = cArraySubscriptExpression.getSubscriptExpression();
-      if (!(subscriptExpression instanceof ALiteralExpression)) {
-        throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
-      }
+    // The lock id is the text of the mutex, so it must always denote the same mutex
+    if (!hasFixedAddress(cUnaryExpression.getOperand())) {
+      throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
     }
-    //  CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-    //  if (!(expr0 instanceof CIdExpression)) {
-    //    throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-    //  }
-    //  String lockId = ((CIdExpression) expr0).getName();
-
     String lockId = cUnaryExpression.getOperand().toString();
     return lockId;
+  }
+
+  private static boolean hasFixedAddress(CExpression pExpression) {
+    return switch (pExpression) {
+      case CIdExpression id ->
+          id.getDeclaration() instanceof CVariableDeclaration variable && variable.isGlobal();
+      case CFieldReference field ->
+          !field.isPointerDereference() && hasFixedAddress(field.getFieldOwner());
+      case CArraySubscriptExpression element ->
+          element.getSubscriptExpression() instanceof ALiteralExpression
+              && element.getArrayExpression().getExpressionType().getCanonicalType()
+                  instanceof CArrayType
+              && hasFixedAddress(element.getArrayExpression());
+      default -> false;
+    };
   }
 
   /** Tracks whether the mutex attribute has the type PTHREAD_MUTEX_RECURSIVE. */

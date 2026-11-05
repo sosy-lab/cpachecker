@@ -750,6 +750,7 @@ public class CoreComponentsFactory {
                 logger,
                 shutdownNotifier,
                 cfa,
+                oldCfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
                 algorithm,
@@ -765,8 +766,7 @@ public class CoreComponentsFactory {
                 config,
                 logger,
                 shutdownNotifier,
-                specification.getPathToSpecificationAutomata().keySet(),
-                specification);
+                specification.getPathToSpecificationAutomata().keySet());
       }
 
       if (checkCounterexamples) {

@@ -187,6 +187,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Sideassignments sideAssignmentStack;
   ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
   ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToVisibleLocalVariables;
+  ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToVisibleParameters;
 
   private boolean encounteredAsm = false;
 
@@ -202,6 +204,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       CheckBindingVisitor pCheckBinding,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters,
       NavigableSet<FileLocation> pUnhandledAtomicOccurrences,
       Set<FileLocation> pUnhandledThreadLocalOccurrences) {
     options = pOptions;
@@ -233,6 +237,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     sideAssignmentStack = pSideAssignmentStack;
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersInScope;
+    cfaNodeToVisibleLocalVariables = pCfaNodeToVisibleLocalVariables;
+    cfaNodeToVisibleParameters = pCfaNodeToVisibleParameters;
   }
 
   FunctionEntryNode getStartNode() {
@@ -917,6 +923,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     for (Collection<CSimpleDeclaration> vars : scope.getVariablesOfMostLocalScopes()) {
       functionExitNode.addOutOfScopeVariables(vars);
     }
+    trackVisibleVariables(functionExitNode, ImmutableSet.of(), ImmutableSet.of());
 
     for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
       if (block.getStartOffset() <= fileloc.getNodeOffset()
@@ -997,8 +1004,7 @@ class CFAFunctionBuilder extends ASTVisitor {
                 locStack.peek()));
       }
 
-      locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-      scope.leaveBlock();
+      leaveBlock(locStack.peek());
 
     } else if (statement instanceof IASTWhileStatement || statement instanceof IASTDoStatement) {
       CFANode prevNode = locStack.pop();
@@ -1052,6 +1058,26 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void trackScopeInformation(CFANode pNode) {
     cfaNodeToAstLocalVariablesInScope.put(pNode, scope.getVariablesInScope());
     cfaNodeToAstParametersInScope.put(pNode, scope.getParameters());
+    trackVisibleVariables(pNode, scope.getVisibleVariablesInScope(), scope.getVisibleParameters());
+  }
+
+  /**
+   * Records the variables and parameters in scope at the node as in the input program. A later call
+   * for the same node replaces them, e.g., when variables go out of scope at the node.
+   */
+  private void trackVisibleVariables(
+      CFANode pNode,
+      Set<AVariableDeclaration> pLocalVariables,
+      Set<AParameterDeclaration> pParameters) {
+    cfaNodeToVisibleLocalVariables.put(pNode, pLocalVariables);
+    cfaNodeToVisibleParameters.put(pNode, pParameters);
+  }
+
+  /** Leaves the innermost block, whose variables go out of scope at the given node. */
+  private void leaveBlock(CFANode pNode) {
+    pNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
+    scope.leaveBlock();
+    trackVisibleVariables(pNode, scope.getVisibleVariablesInScope(), scope.getVisibleParameters());
   }
 
   /**
@@ -1622,6 +1648,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     // on "return" we add the OOSVars after the return edge, because the return can access all vars.
     // on "break" we add the OOSVars before the break edge, because nothing happens along the edge.
     prevNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
+    trackVisibleVariables(
+        prevNode,
+        scope.getVisibleVariablesOfEnclosingBlock(),
+        scope.getVisibleParametersOfEnclosingBlock());
 
     BlankEdge blankEdge =
         new BlankEdge(breakStatement.getRawSignature(), fileloc, prevNode, postLoopNode, "break");
@@ -1739,8 +1769,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       assert loopEnd.equals(loopStart);
     }
 
-    postLoopNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-    scope.leaveBlock();
+    leaveBlock(postLoopNode);
 
     // skip visiting children of loop, because loopbody was handled before
     return PROCESS_SKIP;
@@ -2297,8 +2326,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // If we do not need a return value, last statement is also easy.
     if (tempVar == null) {
       lastStatement.accept(this);
-      locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-      scope.leaveBlock();
+      leaveBlock(locStack.peek());
       IASTFileLocation location = compoundExp.getFileLocation();
       blocks.add(
           new StatementBlock(
@@ -2352,8 +2380,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         createIASTExpressionStatementEdges(
             stmt.toASTString(), stmt.getFileLocation(), middleNode, stmt);
 
-    lastNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-    scope.leaveBlock();
+    leaveBlock(lastNode);
 
     IASTFileLocation location = compoundExp.getFileLocation();
     blocks.add(

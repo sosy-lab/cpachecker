@@ -73,14 +73,15 @@ public class InputRejection {
       throws UnsupportedCodeException {
 
     throw new UnsupportedCodeException(
-        String.format(pMessage.formatMessage(), pCfaEdge.getLineNumber(), pCfaEdge.getCode()),
+        pMessage.formatMessage(
+            pCfaEdge.getFileLocation().getStartingLineInOrigin(), pCfaEdge.getCode()),
         pCfaEdge);
   }
 
   private static void checkLanguageC(CFA pInputCfa) throws UnsupportedCodeException {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      throw new UnsupportedCodeException(InputMessage.LANGUAGE_NOT_C.message, null);
+      throw new UnsupportedCodeException(InputMessage.LANGUAGE_NOT_C.formatMessage(), null);
     }
   }
 
@@ -148,8 +149,7 @@ public class InputRejection {
             SeqPointerAliasingUtil.getAllTypesInType(pointerType, ImmutableSet.of());
         if (innerPointerTypes.stream().anyMatch(t -> t instanceof CFunctionType)) {
           throw new UnsupportedCodeException(
-              InputMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
-              null);
+              InputMessage.FUNCTION_POINTER_ASSIGNMENT.formatMessage(pRightHandSide), null);
         }
       }
     }
@@ -189,8 +189,7 @@ public class InputRejection {
       // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
         throw new UnsupportedCodeException(
-            String.format(
-                InputMessage.RECURSIVE_FUNCTION.formatMessage(),
+            InputMessage.RECURSIVE_FUNCTION.formatMessage(
                 entry.getFunction().getFileLocation().getStartingLineInOrigin(),
                 entry.getFunctionName()),
             null);
@@ -263,9 +262,7 @@ public class InputRejection {
 
     if (pFieldMember.isEmpty()) {
       throw new UnsupportedCodeException(
-          String.format(
-              "%s%s in %s", InputMessage.FIELD_MEMBER_NOT_FOUND.message, pFieldName, pType),
-          null);
+          InputMessage.FIELD_MEMBER_NOT_FOUND.formatMessage(pFieldName, pType), null);
     }
   }
 
@@ -279,7 +276,8 @@ public class InputRejection {
             || !isPointerOrArrayOfPointersType(
                 pLeftHandSide.fieldMember().orElseThrow().getType()))) {
       throw new UnsupportedCodeException(
-          InputMessage.POINTER_ASSIGNMENT_TO_NON_POINTER.message + describe(pLeftHandSide), null);
+          InputMessage.POINTER_ASSIGNMENT_TO_NON_POINTER.formatMessage(describe(pLeftHandSide)),
+          null);
     }
   }
 
@@ -296,7 +294,8 @@ public class InputRejection {
         && (pPointerDereference.fieldMember().isEmpty()
             || !isPointerOrArrayType(pPointerDereference.fieldMember().orElseThrow().getType()))) {
       throw new UnsupportedCodeException(
-          InputMessage.POINTER_DEREFERENCE_OF_NON_POINTER.message + describe(pPointerDereference),
+          InputMessage.POINTER_DEREFERENCE_OF_NON_POINTER.formatMessage(
+              describe(pPointerDereference)),
           null);
     }
 
@@ -312,9 +311,7 @@ public class InputRejection {
     CType targetType = pTargetMemoryLocation.getUnwrappedType();
     if (!areTypesCompatible(dereferenceType, targetType)) {
       throw new UnsupportedCodeException(
-          String.format(
-              "%s%s (%s) -> %s (%s)",
-              InputMessage.POINTER_DEREFERENCE_TYPE_MISMATCH.message,
+          InputMessage.POINTER_DEREFERENCE_TYPE_MISMATCH.formatMessage(
               describe(pPointerDereference),
               dereferenceType,
               describe(pTargetMemoryLocation),
@@ -369,8 +366,7 @@ public class InputRejection {
       if (!pOptions.allowPointerWrites()) {
         if (pWrittenVariable.getExpressionType() instanceof CPointerType) {
           throw new UnsupportedCodeException(
-              String.format(
-                  InputMessage.POINTER_WRITE.formatMessage(),
+              InputMessage.POINTER_WRITE.formatMessage(
                   pWrittenVariable.getFileLocation().getStartingLineInOrigin(),
                   pWrittenVariable.toASTString()),
               null);
@@ -385,8 +381,7 @@ public class InputRejection {
     if (pRightHandSide instanceof CExpression expression) {
       if (expression.accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
-            String.format(
-                InputMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
+            InputMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(
                 pRightHandSide.getFileLocation().getStartingLineInOrigin(),
                 pRightHandSide.toASTString()),
             null);

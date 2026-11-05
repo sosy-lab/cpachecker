@@ -8,12 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.TRANS_INV_KEYWORD;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -22,16 +27,19 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Precision adjustment for the validation of termination witnesses. In addition to the transition
@@ -55,10 +63,61 @@ public class TerminationToReachValidationPrecisionAdjustment
       Configuration pConfiguration,
       ImmutableSet<Loop> pAllLoops,
       ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants)
-      throws InvalidConfigurationException {
-    super(pSolver, plogger, pCFA, pBfmgr, pFmgr, pItpMgr, pConfiguration, pAllLoops);
+      throws InvalidConfigurationException, InterruptedException {
+    super(
+        pSolver,
+        plogger,
+        pCFA,
+        pBfmgr,
+        pFmgr,
+        pItpMgr,
+        pConfiguration,
+        pAllLoops,
+        collectSupportingInvariants(pCandidateInvariants, pFmgr, pPthfmgr, plogger));
     pthfmgr = pPthfmgr;
     candidateInvariants = pCandidateInvariants;
+  }
+
+  /**
+   * Conjoins the (supporting) invariants from the witness at each location. Their variables are
+   * renamed to the variables of the state where the iteration starts. The witness is only used if
+   * these invariants were proven to hold, see {@link TerminationToReachCPA}.
+   */
+  private static ImmutableMap<CFANode, BooleanFormula> collectSupportingInvariants(
+      ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPthfmgr,
+      LogManager pLogger)
+      throws InterruptedException {
+    Map<CFANode, BooleanFormula> invariantsAtLocations = new HashMap<>();
+    for (ExpressionTreeLocationInvariant invariant : pCandidateInvariants) {
+      if (invariant instanceof ExpressionTreeLocationTransitionInvariant
+          || invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
+        continue;
+      }
+      try {
+        invariantsAtLocations.merge(
+            invariant.getLocation(),
+            invariant.getFormula(pFmgr, pPthfmgr, pPthfmgr.makeEmptyPathFormula()),
+            pFmgr.getBooleanFormulaManager()::and);
+      } catch (CPATransferException e) {
+        // Ignoring an invariant only weakens the checks
+        pLogger.logDebugException(e, "Could not convert the supporting invariant " + invariant);
+      }
+    }
+    return ImmutableMap.copyOf(
+        Maps.transformValues(
+            invariantsAtLocations,
+            invariant ->
+                pFmgr.substitute(
+                    invariant,
+                    ImmutableMap.copyOf(
+                        Maps.asMap(
+                            ImmutableSet.copyOf(pFmgr.extractVariables(invariant).values()),
+                            variable ->
+                                pFmgr.makeVariable(
+                                    pFmgr.getFormulaType(variable),
+                                    pFmgr.uninstantiate(variable).toString() + CURR_KEYWORD))))));
   }
 
   /**
@@ -94,6 +153,59 @@ public class TerminationToReachValidationPrecisionAdjustment
   protected ImmutableSet<PartitionedRelationFormula> getTransitionInvariantsWithoutFixPoint(
       ImmutableSet<PartitionedRelationFormula> pInductiveTransitionInvariants) {
     return ImmutableSet.of();
+  }
+
+  /**
+   * The transition invariants from the witness that are inductive are known before computing new
+   * transition invariants. If their conjunction excludes a lasso, the fix-point is reached.
+   */
+  @Override
+  protected Optional<PrecisionAdjustmentResult> checkFixPointWithKnownTransitionInvariants(
+      ImmutableList<BooleanFormula> sameStateFormulas,
+      PartitionedRelationFormula iterationFormula,
+      PathFormula prefixPathFormula,
+      CFANode location,
+      TerminationToReachState terminationState,
+      ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates,
+      ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants,
+      PrecisionAdjustmentResult result)
+      throws InterruptedException {
+    ImmutableSet<PartitionedRelationFormula> knownTransitionInvariants =
+        builderTransitionInvariants.build();
+    if (knownTransitionInvariants.isEmpty()) {
+      return Optional.empty();
+    }
+    // Each of the transition invariants is inductive, so their conjunction is inductive as well
+    PartitionedRelationFormula conjunction =
+        new PartitionedRelationFormula(
+            bfmgr.and(
+                transformedImmutableListCopy(
+                    knownTransitionInvariants, PartitionedRelationFormula::getFormula)),
+            fmgr);
+    try {
+      if (findNonterminatingLoop(
+              sameStateFormulas,
+              true,
+              Optional.of(conjunction),
+              iterationFormula,
+              prefixPathFormula,
+              location)
+          .isPresent()) {
+        return Optional.empty();
+      }
+    } catch (SolverException e) {
+      logger.logDebugException(e);
+      return Optional.empty();
+    }
+    return checkFixPoint(
+        true,
+        conjunction,
+        iterationFormula,
+        location,
+        terminationState,
+        builderTransitionPredicates,
+        builderTransitionInvariants,
+        result);
   }
 
   /**

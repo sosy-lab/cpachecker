@@ -223,6 +223,19 @@ abstract class AbstractBMCAlgorithm
 
   @Option(
       secure = true,
+      description =
+          "Configuration file with options that overwrite the options of the analysis for the"
+              + " induction step case only.\n"
+              + "This allows the step case to merge states that the base case keeps apart, e.g.,"
+              + " with cpa.loopbound.domain=RANGE, which only the step case supports. The options"
+              + " must not make the step case drop paths: a path that is missing in the step case"
+              + " can hide a counterexample to induction and lead to a wrong proof.",
+      name = "bmc.overwriteStepCaseOptions")
+  @FileOption(value = Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path overwriteStepCaseOptions = null;
+
+  @Option(
+      secure = true,
       description = "Propagates the interrupts of the invariant generator.",
       name = "bmc.propagateInvGenInterrupts")
   private boolean propagateInvGenInterrupts = false;
@@ -302,7 +315,6 @@ abstract class AbstractBMCAlgorithm
     algorithm = pAlgorithm;
     cpa = pCPA;
     logger = pLogger;
-    reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
     config = pConfig;
     specification = checkNotNull(pSpecification);
@@ -328,13 +340,38 @@ abstract class AbstractBMCAlgorithm
 
     if (induction) {
       LogManager stepCaseLogger = logger.withComponentName("InductionStepCase");
+      Configuration stepCaseConfiguration = pConfig;
+      if (overwriteStepCaseOptions != null) {
+        try {
+          stepCaseConfiguration =
+              Configuration.builder()
+                  .copyFrom(pConfig)
+                  .loadFromFile(overwriteStepCaseOptions)
+                  .build();
+        } catch (IOException e) {
+          throw new InvalidConfigurationException(
+              String.format("Cannot load configuration from file %s", overwriteStepCaseOptions), e);
+        }
+      }
+      // The reached set of the step case is created by this factory (in KInductionProver), so it
+      // has to be built from the configuration of the step case for options such as
+      // analysis.reachedSet to take effect there.
+      reachedSetFactory =
+          stepCaseConfiguration == pConfig
+              ? pReachedSetFactory
+              : new ReachedSetFactory(stepCaseConfiguration, stepCaseLogger);
       CPABuilder builder =
           new CPABuilder(
-              pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
+              stepCaseConfiguration,
+              stepCaseLogger,
+              pShutdownManager.getNotifier(),
+              reachedSetFactory);
       stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
       stepCaseAlgorithm =
-          CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
+          CPAAlgorithm.create(
+              stepCaseCPA, stepCaseLogger, stepCaseConfiguration, pShutdownManager.getNotifier());
     } else {
+      reachedSetFactory = pReachedSetFactory;
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
