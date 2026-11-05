@@ -245,7 +245,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
-    if (isTerminatingEdge(cfaEdge)) {
+    // A noreturn pthread_exit also leads to a termination node, but it terminates only its thread.
+    if (isTerminatingEdge(cfaEdge) && !isThreadExit(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
       return ImmutableSet.of();
     }
