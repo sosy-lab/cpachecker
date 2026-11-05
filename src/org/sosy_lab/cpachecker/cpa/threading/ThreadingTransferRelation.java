@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -68,9 +70,14 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -1112,6 +1119,75 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return Optional.of(object.toString());
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns the memory to which a call pthread_join(t, p) writes the result of thread t: *p with
+   * the type of the variable that p points to, e.g. int * for (void **) &x with int *x. Returns
+   * nothing for other calls and if p is a null-pointer constant.
+   */
+  public static Optional<CPointerExpression> getJoinResultTarget(AFunctionCallExpression pCall) {
+    if (!(pCall.getFunctionNameExpression() instanceof AIdExpression name
+        && name.getName().equals(THREAD_JOIN)
+        && pCall.getParameterExpressions().size() == 2
+        && pCall.getParameterExpressions().get(1) instanceof CExpression pointer)) {
+      return Optional.empty();
+    }
+    CExpression value = pointer;
+    while (value instanceof CCastExpression cast) {
+      value = cast.getOperand();
+    }
+    if (value instanceof CIntegerLiteralExpression literal && literal.getValue().signum() == 0) {
+      return Optional.empty();
+    }
+    FileLocation loc = pointer.getFileLocation();
+    CExpression target = pointer;
+    while (target instanceof CCastExpression cast && isPointerToObject(cast.getOperand())) {
+      target = cast.getOperand();
+    }
+    if (!isPointerToObject(target)) {
+      target =
+          new CCastExpression(
+              loc, new CPointerType(CTypeQualifiers.NONE, CPointerType.POINTER_TO_VOID), target);
+    }
+    CType targetType = ((CPointerType) target.getExpressionType().getCanonicalType()).getType();
+    return Optional.of(new CPointerExpression(loc, targetType, target));
+  }
+
+  /**
+   * Creates the call {@code __VERIFIER_nondet_memory(p, sizeof(*p))} that overapproximates the
+   * effect of a call pthread_join(t, p), cf. {@link #getJoinResultTarget}.
+   */
+  public static Optional<CFunctionCallExpression> createNondetMemoryCallModellingJoin(
+      AFunctionCallExpression pCall, MachineModel pMachineModel) {
+    return getJoinResultTarget(pCall)
+        .map(
+            target -> {
+              FileLocation loc = target.getFileLocation();
+              CFunctionDeclaration nondetMemory =
+                  new CFunctionDeclaration(
+                      loc,
+                      CFunctionType.functionTypeWithReturnType(CVoidType.VOID),
+                      "__VERIFIER_nondet_memory",
+                      ImmutableList.of(),
+                      ImmutableSet.of());
+              CExpression size =
+                  new CIntegerLiteralExpression(
+                      loc,
+                      pMachineModel.getSizeType(),
+                      pMachineModel.getSizeof(target.getExpressionType()));
+              return new CFunctionCallExpression(
+                  loc,
+                  CVoidType.VOID,
+                  new CIdExpression(loc, nondetMemory),
+                  ImmutableList.of(target.getOperand(), size),
+                  nondetMemory);
+            });
+  }
+
+  private static boolean isPointerToObject(CExpression pExpression) {
+    return pExpression.getExpressionType().getCanonicalType() instanceof CPointerType type
+        && !(type.getType().getCanonicalType() instanceof CVoidType);
   }
 
   /** extract the name of the n-th parameter from a function call. */
