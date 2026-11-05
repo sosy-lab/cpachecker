@@ -287,13 +287,15 @@ public class PthreadFunctionSubstitution {
             new CExpressionAssignmentStatement(
                 FileLocation.DUMMY, condFieldReference, CIntegerLiteralExpression.ZERO));
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
-    return ImmutableList.of(
+    return ImmutableList.<CCompoundStatementElement>builder()
         // the calling thread blocks on the condition variable -> assume(signaled == 1)
-        new CStatementWrapper(
-            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(condFieldReference)),
-        condAssignment,
+        .add(
+            new CStatementWrapper(
+                SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(condFieldReference)))
+        .add(condAssignment)
         // on return, the mutex is locked and owned by the calling thread
-        buildMutexLockAssignment(mutexExpression));
+        .addAll(buildMutexLockFunctionStatements(mutexExpression))
+        .build();
   }
 
   private static CFieldReference buildCondFieldReference(CExpression pCondExpression) {
