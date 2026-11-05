@@ -525,6 +525,15 @@ public class CFAUtils {
    */
   public static Optional<String> computeLoopCondition(
       CFANode pLoopHead, AstCfaRelation pAstCfaRelation) {
+    // The variables are printed with their names in the CFA, unlike ExpressionTree#toString, which
+    // prints their original names
+    return computeLoopConditionTree(pLoopHead, pAstCfaRelation)
+        .map(condition -> condition.accept(new ToCodeVisitor<>(CExpression::toASTString)));
+  }
+
+  /** Computes the condition of the loop like {@link #computeLoopCondition} as expression tree. */
+  public static Optional<ExpressionTree<CExpression>> computeLoopConditionTree(
+      CFANode pLoopHead, AstCfaRelation pAstCfaRelation) {
     Optional<IterationElement> iteration =
         pAstCfaRelation.getTightestIterationStructureForNode(pLoopHead);
     if (iteration.isEmpty() || iteration.orElseThrow().getControllingExpression().isEmpty()) {
@@ -556,9 +565,7 @@ public class CFAUtils {
     if (pathConditions.isEmpty()) {
       return Optional.empty();
     }
-    // The variables are printed with their names in the CFA, unlike ExpressionTree#toString, which
-    // prints their original names
-    return Optional.of(Or.of(pathConditions).accept(new ToCodeVisitor<>(CExpression::toASTString)));
+    return Optional.of(Or.of(pathConditions));
   }
 
   /**

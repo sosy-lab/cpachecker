@@ -285,7 +285,8 @@ public class WitnessInvariantsExtractor {
                   node.orElseThrow(),
                   invariant.getFormula(),
                   toCodeVisitorCache,
-                  pTransitionInvariant.getMapCurrentVarsToPrev());
+                  pTransitionInvariant.getMapCurrentVarsToPrev(),
+                  pTransitionInvariant.getExpressionVariables());
         } else {
           candidateInvariant =
               new ExpressionTreeLocationInvariant(
