@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.createNondetMemoryCallModellingJoin;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
@@ -740,6 +743,20 @@ class CExpressionVisitorWithPointerAliasing
               new MemoryManipulationFunctionHandler(
                   conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
           memoryFunctionHandler.handleNondetMemoryAssignment(e);
+
+        } else if (functionName.equals(THREAD_JOIN)) {
+          // pthread_join(t, p) writes the result of thread t to *p. The encoding does not know
+          // this result, so it only makes *p nondeterministic, and the ThreadingCPA provides the
+          // assignment of the result, cf. ThreadingState#resultEdge. The nondeterministic value is
+          // still needed for formulas without that assignment, e.g. in the PathChecker.
+          Optional<CFunctionCallExpression> nondetMemory =
+              createNondetMemoryCallModellingJoin(e, conv.machineModel);
+          if (nondetMemory.isPresent()) {
+            MemoryManipulationFunctionHandler memoryFunctionHandler =
+                new MemoryManipulationFunctionHandler(
+                    conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
+            memoryFunctionHandler.handleNondetMemoryAssignment(nondetMemory.orElseThrow());
+          }
         }
 
       } catch (InterruptedException exc) {
