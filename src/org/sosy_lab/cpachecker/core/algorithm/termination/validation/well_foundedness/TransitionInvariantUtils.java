@@ -11,10 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_found
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -197,9 +201,14 @@ public class TransitionInvariantUtils {
       // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
       // renamed it, but the scope knows it only as main::i or i__1. The name without the
       // function is unique, since the scope has only the variables in scope at the loop.
+      CSimpleDeclaration declaration = scope.lookupVariable(removeFunctionFromVarsName(var));
+      if (declaration == null) {
+        // E.g., the heap of a heap access, which has no previous variable
+        continue;
+      }
       builder.setIndex(
           var,
-          scope.lookupVariable(removeFunctionFromVarsName(var)).getType(),
+          declaration.getType(),
           isPrevVariable(var, pMapPrevToCurrVars) ? prevIndex : currIndex);
     }
     return builder.build();
@@ -259,6 +268,31 @@ public class TransitionInvariantUtils {
       }
     }
     return equivalence;
+  }
+
+  /**
+   * Replaces the expressions in the given expression by the variables for their values, see {@link
+   * org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ParsedInvariant#expressionVariables()}.
+   */
+  public static CExpression replaceExpressionsByVariables(
+      CExpression pExpression, ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
+    if (pExpressionVariables.isEmpty()) {
+      return pExpression;
+    }
+    Map<String, CSimpleDeclaration> variablesByExpression = new HashMap<>();
+    pExpressionVariables.forEach(
+        (variable, expression) ->
+            variablesByExpression.putIfAbsent(expression.toQualifiedASTString(), variable));
+    return (CExpression)
+        pExpression.accept(
+            new SubstitutingCAstNodeVisitor(
+                node ->
+                    node instanceof CExpression expression
+                            && variablesByExpression.containsKey(expression.toQualifiedASTString())
+                        ? new CIdExpression(
+                            expression.getFileLocation(),
+                            variablesByExpression.get(expression.toQualifiedASTString()))
+                        : null));
   }
 
   public static String removeFunctionFromVarsName(String pFormula) {

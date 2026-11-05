@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 import com.google.common.collect.ImmutableMap;
 import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -21,18 +22,27 @@ public class ExpressionTreeLocationTransitionInvariant extends ExpressionTreeLoc
 
   private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurr;
 
+  private final ImmutableMap<CSimpleDeclaration, CExpression> expressionVariables;
+
   public ExpressionTreeLocationTransitionInvariant(
       String pGroupId,
       CFANode pLocation,
       ExpressionTree<AExpression> pExpressionTree,
       ConcurrentMap<ManagerKey, ToFormulaVisitor> pVisitorCache,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevVarsToCurr) {
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevVarsToCurr,
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
     super(pGroupId, pLocation, pExpressionTree, pVisitorCache);
     mapPrevVarsToCurr = pMapPrevVarsToCurr;
+    expressionVariables = pExpressionVariables;
   }
 
   public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getMapPrevVarsToCurrent() {
     return mapPrevVarsToCurr;
+  }
+
+  /** See {@link ParsedInvariant#expressionVariables()}. */
+  public ImmutableMap<CSimpleDeclaration, CExpression> getExpressionVariables() {
+    return expressionVariables;
   }
 
   @Override
@@ -48,6 +58,7 @@ public class ExpressionTreeLocationTransitionInvariant extends ExpressionTreeLoc
 
     return pObj instanceof ExpressionTreeLocationTransitionInvariant other
         && super.equals(other)
-        && other.mapPrevVarsToCurr.equals(this.mapPrevVarsToCurr);
+        && other.mapPrevVarsToCurr.equals(this.mapPrevVarsToCurr)
+        && other.expressionVariables.equals(this.expressionVariables);
   }
 }
