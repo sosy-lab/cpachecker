@@ -82,38 +82,38 @@ public class InterpreterVerdictIntegrationTest {
   }
 
   @Test
-  public void voidCallWithoutPointerArgumentsPreservesBothVerdicts() throws Exception {
+  public void testVoidCallWithoutPointerArgumentsPreservesBothVerdicts() throws Exception {
     checkVerdicts("extern void external(int);", "external(x);", Result.TRUE, Result.FALSE);
   }
 
   @Test
-  public void overapproximatedReturnValueOnlyPermitsTrue() throws Exception {
+  public void testOverapproximatedReturnValueOnlyPermitsTrue() throws Exception {
     checkVerdicts("extern int external(void);", "external();", Result.TRUE, Result.UNKNOWN);
   }
 
   @Test
-  public void ignoredSideEffectsOnlyPermitFalse() throws Exception {
+  public void testIgnoredSideEffectsOnlyPermitFalse() throws Exception {
     checkVerdicts("extern void external(int *);", "external(&x);", Result.UNKNOWN, Result.FALSE);
   }
 
   @Test
-  public void ignoredSideEffectsAndReturnValuePermitNeitherVerdict() throws Exception {
+  public void testIgnoredSideEffectsAndReturnValuePermitNeitherVerdict() throws Exception {
     checkVerdicts("extern int external(int *);", "external(&x);", Result.UNKNOWN, Result.UNKNOWN);
   }
 
   @Test
-  public void assignedReturnValueOnlyPermitsTrue() throws Exception {
+  public void testAssignedReturnValueOnlyPermitsTrue() throws Exception {
     checkVerdicts("extern int external(void);", "x = external();", Result.TRUE, Result.UNKNOWN);
   }
 
   @Test
-  public void assignmentAlsoTracksIgnoredSideEffects() throws Exception {
+  public void testAssignmentAlsoTracksIgnoredSideEffects() throws Exception {
     checkVerdicts(
         "extern int external(int *);", "x = external(&x);", Result.UNKNOWN, Result.UNKNOWN);
   }
 
   @Test
-  public void restrictionsAccumulateAcrossCallsAndFunctionReturns() throws Exception {
+  public void testRestrictionsAccumulateAcrossCallsAndFunctionReturns() throws Exception {
     String declarations =
         """
         extern int external(void);
@@ -125,7 +125,7 @@ public class InterpreterVerdictIntegrationTest {
   }
 
   @Test
-  public void unexecutedCallsDoNotAffectVerdicts() throws Exception {
+  public void testUnexecutedCallsDoNotAffectVerdicts() throws Exception {
     checkVerdicts(
         "extern int external(int *);",
         "int condition = 0; if (condition) { external(&x); }",
@@ -134,7 +134,7 @@ public class InterpreterVerdictIntegrationTest {
   }
 
   @Test
-  public void modeledBuiltinPreservesPrecision() throws Exception {
+  public void testModeledBuiltinPreservesPrecision() throws Exception {
     checkVerdicts(
         "extern double __builtin_fabs(double);",
         "double y = __builtin_fabs(-1.0);",
@@ -143,7 +143,7 @@ public class InterpreterVerdictIntegrationTest {
   }
 
   @Test
-  public void explicitlyAllowedCallsRespectTheValueAnalysisConfiguration() throws Exception {
+  public void testExplicitlyAllowedCallsRespectTheValueAnalysisConfiguration() throws Exception {
     run(
             "extern int external(int *); int execution_verdict_test(void) { int x = 0;"
                 + " external(&x); return 0; }",
@@ -152,7 +152,7 @@ public class InterpreterVerdictIntegrationTest {
   }
 
   @Test
-  public void strictUnknownCallOptionStillThrowsImmediately() throws Exception {
+  public void testStrictUnknownCallOptionStillThrowsImmediately() throws Exception {
     IntegrationTestResult result =
         run(
             "extern int external(void); int execution_verdict_test(void) { int x = external();"
@@ -163,7 +163,7 @@ public class InterpreterVerdictIntegrationTest {
   }
 
   @Test
-  public void callWithoutSuccessorsStillAffectsSoundness() throws Exception {
+  public void testCallWithoutSuccessorsStillAffectsSoundness() throws Exception {
     IntegrationTestResult result =
         run(
             "extern void external(int *); int execution_verdict_test(void) { int x = 0;"
@@ -174,7 +174,7 @@ public class InterpreterVerdictIntegrationTest {
   }
 
   @Test
-  public void targetOnOverapproximatedCallIsRejected() throws Exception {
+  public void testTargetOnOverapproximatedCallIsRejected() throws Exception {
     IntegrationTestResult result =
         run(
             "extern int external(void); int execution_verdict_test(void) { external(); return 0; }",

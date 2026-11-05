@@ -51,7 +51,7 @@ public class InterpreterPrecisionAdjustmentTest {
   }
 
   @Test
-  public void replacingWrappedStatePreservesVerdictRestrictionsAndStack() throws Exception {
+  public void testReplacingWrappedStatePreservesVerdictRestrictionsAndStack() throws Exception {
     StackFrame stack = StackFrame.initial("main");
     AbstractState replacement =
         new CompositeState(ImmutableList.of(SingletonAbstractState.INSTANCE));
@@ -72,7 +72,7 @@ public class InterpreterPrecisionAdjustmentTest {
   }
 
   @Test
-  public void targetIntroducedByPrecisionAdjustmentNeedsPrecision() {
+  public void testTargetIntroducedByPrecisionAdjustmentNeedsPrecision() {
     InterpreterState state =
         new InterpreterState(
             SingletonAbstractState.INSTANCE, null, AlgorithmStatus.SOUND_AND_IMPRECISE);
@@ -82,7 +82,7 @@ public class InterpreterPrecisionAdjustmentTest {
   }
 
   @Test
-  public void removingUnsoundStateCannotProveSafety() {
+  public void testRemovingUnsoundStateCannotProveSafety() {
     InterpreterState state =
         new InterpreterState(
             SingletonAbstractState.INSTANCE, null, AlgorithmStatus.UNSOUND_AND_PRECISE);
@@ -90,7 +90,7 @@ public class InterpreterPrecisionAdjustmentTest {
   }
 
   @Test
-  public void removingSoundButImpreciseStateIsAllowed() throws Exception {
+  public void testRemovingSoundButImpreciseStateIsAllowed() throws Exception {
     InterpreterState state =
         new InterpreterState(
             SingletonAbstractState.INSTANCE, null, AlgorithmStatus.SOUND_AND_IMPRECISE);

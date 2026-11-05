@@ -102,7 +102,7 @@ public class InterpreterWitnessIntegrationTest {
   }
 
   @Test
-  public void violationOnlyMarksTheTarget() throws Exception {
+  public void testViolationOnlyMarksTheTarget() throws Exception {
     IntegrationTestResult result =
         run(
             config("interpreter"),
@@ -127,7 +127,7 @@ public class InterpreterWitnessIntegrationTest {
   }
 
   @Test
-  public void loopAndFunctionSnapshotsReachBothWitnessVersions() throws Exception {
+  public void testLoopAndFunctionSnapshotsReachBothWitnessVersions() throws Exception {
     IntegrationTestResult result =
         run(
             config("interpreter").setOption("witness.yamlexporter.witnessVersions", "V2,V2d1"),
@@ -176,7 +176,7 @@ public class InterpreterWitnessIntegrationTest {
   }
 
   @Test
-  public void exceedingTheLimitDropsTheWholeInvariant() throws Exception {
+  public void testExceedingTheLimitDropsTheWholeInvariant() throws Exception {
     run(
             config("interpreter")
                 .setOption("cpa.interpreter.maxAssignmentsPerLocation", "2")
@@ -190,7 +190,7 @@ public class InterpreterWitnessIntegrationTest {
   }
 
   @Test
-  public void portfolioExportsTheWinningExecutionWitness() throws Exception {
+  public void testPortfolioExportsTheWinningExecutionWitness() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
             config("simpleChecks").build(),
@@ -202,7 +202,7 @@ public class InterpreterWitnessIntegrationTest {
   }
 
   @Test
-  public void nonterminationExportsOnlyTheReportedLocation() throws Exception {
+  public void testNonterminationExportsOnlyTheReportedLocation() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
             config("simpleRules--termination")
@@ -218,7 +218,7 @@ public class InterpreterWitnessIntegrationTest {
   }
 
   @Test
-  public void unknownDoesNotExportAWitness() throws Exception {
+  public void testUnknownDoesNotExportAWitness() throws Exception {
     IntegrationTestResult result =
         IntegrationTestRunner.run(
             config("interpreter").build(),

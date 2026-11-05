@@ -67,7 +67,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void recursionIsExecutedPrecisely() throws Exception {
+  public void testRecursionIsExecutedPrecisely() throws Exception {
     // The plain value analysis reports a spurious counterexample here, because it loses the
     // values of a caller during a recursive call.
     run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-true.c")
@@ -75,19 +75,19 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void recursionViolationIsFound() throws Exception {
+  public void testRecursionViolationIsFound() throws Exception {
     run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "recursive-factorial-false.c")
         .assertIsUnsafe();
   }
 
   @Test
-  public void mutualRecursionIsExecutedPrecisely() throws Exception {
+  public void testMutualRecursionIsExecutedPrecisely() throws Exception {
     run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "mutual-recursion-true.c")
         .assertIsSafe();
   }
 
   @Test
-  public void nondeterministicProgramIsRejected() throws Exception {
+  public void testNondeterministicProgramIsRejected() throws Exception {
     // The program has more than one execution, so InterpreterCPA is not applicable to it
     // and must not claim any result.
     run("config/interpreter.properties", REACHABILITY_SPECIFICATION, "nondeterministic-input.c")
@@ -95,12 +95,12 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void terminationIsProvenByExecution() throws Exception {
+  public void testTerminationIsProvenByExecution() throws Exception {
     run("config/interpreter--termination.properties", "terminating-loop-true.c").assertIsSafe();
   }
 
   @Test
-  public void pointerToLocalOfCallerNeedsTheSmgAnalysis() throws Exception {
+  public void testPointerToLocalOfCallerNeedsTheSmgAnalysis() throws Exception {
     run(
             "config/interpreter-smg.properties",
             REACHABILITY_SPECIFICATION,
@@ -109,13 +109,13 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void memorySafetyViolationIsFound() throws Exception {
+  public void testMemorySafetyViolationIsFound() throws Exception {
     run("config/interpreter--memorysafety.properties", "heap-out-of-bounds-false.i")
         .assertIsUnsafe();
   }
 
   @Test
-  public void memorySafetyWithRecursionIsProven() throws Exception {
+  public void testMemorySafetyWithRecursionIsProven() throws Exception {
     run("config/interpreter--memorysafety.properties", "heap-recursion-true.i").assertIsSafe();
   }
 
@@ -124,7 +124,7 @@ public class InterpreterCPAIntegrationTest {
   // "--spec <property>.prp".
 
   @Test
-  public void unreachCallProperty() throws Exception {
+  public void testUnreachCallProperty() throws Exception {
     runWithProperty(
             "config/interpreter.properties", "unreach-call.prp", "recursive-factorial-true.c")
         .assertIsSafe();
@@ -134,7 +134,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void terminationProperty() throws Exception {
+  public void testTerminationProperty() throws Exception {
     runWithProperty(
             "config/interpreter--termination.properties",
             "termination.prp",
@@ -150,7 +150,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void noOverflowProperty() throws Exception {
+  public void testNoOverflowProperty() throws Exception {
     runWithProperty(
             "config/interpreter--overflow.properties", "no-overflow.prp", "terminating-loop-true.c")
         .assertIsSafe();
@@ -160,7 +160,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void validMemsafetyProperty() throws Exception {
+  public void testValidMemsafetyProperty() throws Exception {
     runWithProperty(
             "config/interpreter--memorysafety.properties",
             "valid-memsafety.prp",
@@ -174,7 +174,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void samplingFindsAViolationThatDependsOnAnInput() throws Exception {
+  public void testSamplingFindsAViolationThatDependsOnAnInput() throws Exception {
     // Without sampling these programs are rejected, because their execution depends on an input.
     runWithProperty(
             "config/interpreter-sampling.properties",
@@ -189,7 +189,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void samplingNeverProvesSafety() throws Exception {
+  public void testSamplingNeverProvesSafety() throws Exception {
     // Only one of the executions of the program was explored, so TRUE must not be reported even
     // though this execution did not violate the specification.
     runWithProperty(
@@ -198,7 +198,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void samplingDoesNotAffectDeterministicPrograms() throws Exception {
+  public void testSamplingDoesNotAffectDeterministicPrograms() throws Exception {
     runWithProperty(
             "config/interpreter-sampling.properties",
             "unreach-call.prp",
@@ -207,7 +207,7 @@ public class InterpreterCPAIntegrationTest {
   }
 
   @Test
-  public void validMemcleanupProperty() throws Exception {
+  public void testValidMemcleanupProperty() throws Exception {
     runWithProperty(
             "config/interpreter--memorycleanup.properties",
             "valid-memcleanup.prp",

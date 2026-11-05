@@ -57,7 +57,7 @@ public class SimpleChecksIntegrationTest {
   }
 
   @Test
-  public void executionDecidesWhensimpleRulesAbstain() throws Exception {
+  public void testExecutionDecidesWhenSimpleRulesAbstain() throws Exception {
     IntegrationTestResult result =
         run("unreach-call", "simple/interpreter/recursive-factorial-false.c");
     result.assertIsUnsafe();
@@ -65,14 +65,14 @@ public class SimpleChecksIntegrationTest {
   }
 
   @Test
-  public void executionProvesCountedLoopTerminates() throws Exception {
+  public void testExecutionProvesCountedLoopTerminates() throws Exception {
     IntegrationTestResult result = run("termination", "simplerules/counted-loop-unknown.c");
     result.assertIsSafe();
     assertThat(result.log()).contains("interpreter--termination.properties finished successfully");
   }
 
   @Test(timeout = 30000)
-  public void simpleRulesCancelAnEndlessExecution() throws Exception {
+  public void testSimpleRulesCancelAnEndlessExecution() throws Exception {
     IntegrationTestResult result = run("termination", "simplerules/endless-loop-false.c");
     result.assertIsUnsafe();
     assertThat(result.log()).contains("simpleRules--termination.properties finished successfully");
@@ -80,22 +80,22 @@ public class SimpleChecksIntegrationTest {
   }
 
   @Test
-  public void bothAnalysesCanAbstain() throws Exception {
+  public void testBothAnalysesCanAbstain() throws Exception {
     run("unreach-call", "simplerules/error-behind-input-unknown.c").assertIs(Result.UNKNOWN);
   }
 
   @Test
-  public void overflowIsPreservedInTheSharedCfa() throws Exception {
+  public void testOverflowIsPreservedInTheSharedCfa() throws Exception {
     run("no-overflow", "simplerules/constant-overflow-false.c").assertIsUnsafe();
   }
 
   @Test
-  public void memorySafetyUsesTheSmgExecution() throws Exception {
+  public void testMemorySafetyUsesTheSmgExecution() throws Exception {
     run("valid-memsafety", "simple/interpreter/heap-recursion-true.i").assertIsSafe();
   }
 
   @Test
-  public void memoryCleanupCanBeProved() throws Exception {
+  public void testMemoryCleanupCanBeProved() throws Exception {
     run("valid-memcleanup", "simplerules/no-memory-operation-true.c").assertIsSafe();
   }
 }

@@ -76,18 +76,18 @@ public class SimpleRulesAlgorithmIntegrationTest {
   private static final String REACHABILITY_CONFIG = "config/simpleRules.properties";
 
   @Test
-  public void programWithoutErrorCallIsProven() throws Exception {
+  public void testProgramWithoutErrorCallIsProven() throws Exception {
     runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "no-error-call-true.c").assertIsSafe();
   }
 
   @Test
-  public void errorCallInDeadCodeIsProven() throws Exception {
+  public void testErrorCallInDeadCodeIsProven() throws Exception {
     runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "error-in-dead-function-true.c")
         .assertIsSafe();
   }
 
   @Test
-  public void errorCallBehindConstantConditionIsProven() throws Exception {
+  public void testErrorCallBehindConstantConditionIsProven() throws Exception {
     // Needs the values of the variables that are constant in every execution.
     runWithProperty(
             REACHABILITY_CONFIG, "unreach-call.prp", "error-behind-constant-condition-true.c")
@@ -95,13 +95,13 @@ public class SimpleRulesAlgorithmIntegrationTest {
   }
 
   @Test
-  public void errorCallOnEveryExecutionIsRefuted() throws Exception {
+  public void testErrorCallOnEveryExecutionIsRefuted() throws Exception {
     runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "error-called-unconditionally-false.c")
         .assertIsUnsafe();
   }
 
   @Test
-  public void errorCallOnEveryExecutionIsNotProven() throws Exception {
+  public void testErrorCallOnEveryExecutionIsNotProven() throws Exception {
     // The rule that proves unreach-call has to abstain here: a target location is reachable.
     runWithRules(
             REACHABILITY_CONFIG,
@@ -112,7 +112,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
   }
 
   @Test
-  public void errorCallBehindInputIsUndecided() throws Exception {
+  public void testErrorCallBehindInputIsUndecided() throws Exception {
     // Whether the error is reached depends on the input, so every rule has to abstain.
     runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "error-behind-input-unknown.c")
         .assertIs(Result.UNKNOWN);
@@ -125,37 +125,37 @@ public class SimpleRulesAlgorithmIntegrationTest {
   private static final String TERMINATION_CONFIG = "config/simpleRules--termination.properties";
 
   @Test
-  public void loopFreeProgramTerminates() throws Exception {
+  public void testLoopFreeProgramTerminates() throws Exception {
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "loop-free-true.c").assertIsSafe();
   }
 
   @Test
-  public void loopInDeadCodeDoesNotPreventTermination() throws Exception {
+  public void testLoopInDeadCodeDoesNotPreventTermination() throws Exception {
     // The loop is behind a condition that is never true, so no execution reaches it.
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "loop-in-dead-code-true.c")
         .assertIsSafe();
   }
 
   @Test
-  public void endlessLoopOnEveryExecutionIsRefuted() throws Exception {
+  public void testEndlessLoopOnEveryExecutionIsRefuted() throws Exception {
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "endless-loop-false.c").assertIsUnsafe();
   }
 
   @Test
-  public void loopThatDependsOnInputIsUndecided() throws Exception {
+  public void testLoopThatDependsOnInputIsUndecided() throws Exception {
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "input-loop-unknown.c")
         .assertIs(Result.UNKNOWN);
   }
 
   @Test
-  public void countedLoopIsUndecided() throws Exception {
+  public void testCountedLoopIsUndecided() throws Exception {
     // No rule argues about how often a loop runs.
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "counted-loop-unknown.c")
         .assertIs(Result.UNKNOWN);
   }
 
   @Test
-  public void recursionIsUndecided() throws Exception {
+  public void testRecursionIsUndecided() throws Exception {
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "recursion-unknown.c")
         .assertIs(Result.UNKNOWN);
   }
@@ -167,43 +167,43 @@ public class SimpleRulesAlgorithmIntegrationTest {
   private static final String OVERFLOW_CONFIG = "config/simpleRules--overflow.properties";
 
   @Test
-  public void programWithoutArithmeticHasNoOverflow() throws Exception {
+  public void testProgramWithoutArithmeticHasNoOverflow() throws Exception {
     runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "no-arithmetic-true.c").assertIsSafe();
   }
 
   @Test
-  public void boundedArithmeticHasNoOverflow() throws Exception {
+  public void testBoundedArithmeticHasNoOverflow() throws Exception {
     // The operands are narrow enough for every result to fit into an int, and the unsigned
     // arithmetic may wrap around.
     runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "bounded-arithmetic-true.c").assertIsSafe();
   }
 
   @Test
-  public void constantOverflowIsRefuted() throws Exception {
+  public void testConstantOverflowIsRefuted() throws Exception {
     runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "constant-overflow-false.c")
         .assertIsUnsafe();
   }
 
   @Test
-  public void divisionOverflowIsRefuted() throws Exception {
+  public void testDivisionOverflowIsRefuted() throws Exception {
     // INT_MIN / -1 leaves the range of int, just like an addition that is too large.
     runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "division-overflow-false.c")
         .assertIsUnsafe();
   }
 
   @Test
-  public void shiftOverflowIsRefuted() throws Exception {
+  public void testShiftOverflowIsRefuted() throws Exception {
     runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "shift-overflow-false.c").assertIsUnsafe();
   }
 
   @Test
-  public void overflowThatDependsOnInputIsUndecided() throws Exception {
+  public void testOverflowThatDependsOnInputIsUndecided() throws Exception {
     runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "input-overflow-unknown.c")
         .assertIs(Result.UNKNOWN);
   }
 
   @Test
-  public void constantOverflowIsNotFoundIfConstantsAreFolded() throws Exception {
+  public void testConstantOverflowIsNotFoundIfConstantsAreFolded() throws Exception {
     // The parser evaluates the constant expression and puts the value it wrapped around to into
     // the CFA, so the rule that proves the absence of an overflow has to abstain.
     Configuration configuration =
@@ -224,7 +224,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
       "config/simpleRules--memorycleanup.properties";
 
   @Test
-  public void programWithoutMemoryOperationIsSafe() throws Exception {
+  public void testProgramWithoutMemoryOperationIsSafe() throws Exception {
     runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "no-memory-operation-true.c")
         .assertIsSafe();
     runWithProperty(MEMORY_CLEANUP_CONFIG, "valid-memcleanup.prp", "no-memory-operation-true.c")
@@ -232,7 +232,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
   }
 
   @Test
-  public void programWithoutAllocationLeaksNothing() throws Exception {
+  public void testProgramWithoutAllocationLeaksNothing() throws Exception {
     // The program dereferences a pointer, so valid-deref is not proven, but without an allocation
     // there is no block that could be leaked.
     runWithProperty(MEMORY_CLEANUP_CONFIG, "valid-memcleanup.prp", "pointer-to-local-true.c")
@@ -242,32 +242,32 @@ public class SimpleRulesAlgorithmIntegrationTest {
   }
 
   @Test
-  public void arrayAccessInsideBoundsIsSafe() throws Exception {
+  public void testArrayAccessInsideBoundsIsSafe() throws Exception {
     // The type of the index allows only values that are inside the array.
     runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "array-in-bounds-true.c")
         .assertIsSafe();
   }
 
   @Test
-  public void arrayAccessOutsideBoundsIsRefuted() throws Exception {
+  public void testArrayAccessOutsideBoundsIsRefuted() throws Exception {
     runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "array-out-of-bounds-false.c")
         .assertIsUnsafe();
   }
 
   @Test
-  public void arrayAccessThatDependsOnInputIsUndecided() throws Exception {
+  public void testArrayAccessThatDependsOnInputIsUndecided() throws Exception {
     runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "array-index-unknown.c")
         .assertIs(Result.UNKNOWN);
   }
 
   @Test
-  public void freeOfNonHeapObjectIsRefuted() throws Exception {
+  public void testFreeOfNonHeapObjectIsRefuted() throws Exception {
     runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "free-of-local-false.c")
         .assertIsUnsafe();
   }
 
   @Test
-  public void allocationIsUndecided() throws Exception {
+  public void testAllocationIsUndecided() throws Exception {
     // A program that calls free() is not decided by any rule, not even for memcleanup.
     runWithProperty(MEMORY_CLEANUP_CONFIG, "valid-memcleanup.prp", "free-of-local-false.c")
         .assertIs(Result.UNKNOWN);
@@ -280,18 +280,18 @@ public class SimpleRulesAlgorithmIntegrationTest {
   private static final String DATA_RACE_CONFIG = "config/simpleRules--datarace.properties";
 
   @Test
-  public void singleThreadedProgramHasNoDataRace() throws Exception {
+  public void testSingleThreadedProgramHasNoDataRace() throws Exception {
     runWithProperty(DATA_RACE_CONFIG, "no-data-race.prp", "single-threaded-true.c").assertIsSafe();
   }
 
   @Test
-  public void programThatCreatesThreadIsUndecided() throws Exception {
+  public void testProgramThatCreatesThreadIsUndecided() throws Exception {
     runWithProperty(DATA_RACE_CONFIG, "no-data-race.prp", "thread-creation-unknown.c")
         .assertIs(Result.UNKNOWN);
   }
 
   @Test
-  public void programThatDoesNothingSatisfiesEverySpecification() throws Exception {
+  public void testProgramThatDoesNothingSatisfiesEverySpecification() throws Exception {
     runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "empty-main-true.c").assertIsSafe();
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "empty-main-true.c").assertIsSafe();
     runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "empty-main-true.c").assertIsSafe();
@@ -325,7 +325,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
   }
 
   @Test
-  public void correctnessWitnessIsAnEmptyInvariantSet() throws Exception {
+  public void testCorrectnessWitnessIsAnEmptyInvariantSet() throws Exception {
     // A simple rule argues about the program as a whole, so it has no invariant to offer.
     String witness =
         runAndReadWitness(REACHABILITY_CONFIG, "unreach-call.prp", "no-error-call-true.c");
@@ -334,7 +334,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
   }
 
   @Test
-  public void violationWitnessPointsToTheViolatedLocation() throws Exception {
+  public void testViolationWitnessPointsToTheViolatedLocation() throws Exception {
     String witness =
         runAndReadWitness(
             REACHABILITY_CONFIG, "unreach-call.prp", "error-called-unconditionally-false.c");
@@ -344,7 +344,7 @@ public class SimpleRulesAlgorithmIntegrationTest {
   }
 
   @Test
-  public void specificationWithoutPropertyFileIsNotDecided() throws Exception {
+  public void testSpecificationWithoutPropertyFileIsNotDecided() throws Exception {
     // The rules need to know which propositions to settle, which the property file states.
     Configuration configuration =
         config(REACHABILITY_CONFIG)
