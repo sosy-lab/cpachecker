@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -29,10 +31,10 @@ public abstract class RefinablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
+  public boolean isTracking(MemoryLocation pVariable, Type pType, @Nullable CFANode pLocation) {
     checkNotNull(pVariable);
     checkNotNull(pType);
-    checkNotNull(pLocation);
+    checkState(pLocation != null || baseline instanceof NonlocalizedVariableTrackingPrecision);
     return baseline.isTracking(pVariable, pType, pLocation);
   }
 

@@ -57,10 +57,13 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentCPA;
+import org.sosy_lab.cpachecker.cpa.concurrent.ThreadSpecificCPA;
 import org.sosy_lab.cpachecker.cpa.dca.DCACPA;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
 import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
@@ -111,6 +114,13 @@ public class CPAsTest {
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
+    cpas.remove(ConcurrentCPA.class); // wraps CompositeCPA, which itself needs its own children
+    cpas.remove(ThreadSpecificCPA.class); // built by ConcurrentCPA only, so it has no factory()
+
+    // stop() intentionally does not check coverage against the reached set: it only reports
+    // states a prior merge() marked absorbed, since the algorithm merges before checking stop.
+    // stop(s, {s}) is therefore false unless merge(s, s) already ran, unlike every other CPA here.
+    cpas.remove(OrderingConsistencyCPA.class);
 
     return cpas;
   }

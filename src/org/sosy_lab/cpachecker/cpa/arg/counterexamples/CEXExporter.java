@@ -57,7 +57,9 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
@@ -71,6 +73,7 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.OcCounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -162,7 +165,7 @@ public class CEXExporter {
         cexToWitness =
             pSpecification.getProperties().contains(CommonVerificationProperty.TERMINATION)
                 ? new NonterminationCounterexampleToWitness(config, pCFA, pSpecification, pLogger)
-                : createCexToWitness(config, pCFA, pSpecification, pLogger);
+                : createCexToWitness(config, pCFA, pSpecification, pLogger, cpa);
       } else {
         cexToWitness = null;
       }
@@ -180,7 +183,11 @@ public class CEXExporter {
    * if {@code pCfa} was transformed.
    */
   private static CounterexampleToWitness createCexToWitness(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
     ProgramTransformation transformation = pCfa.getMetadata().getTransformation();
@@ -188,6 +195,9 @@ public class CEXExporter {
       CFA originalCfa = transformation.originalCfa();
       return transformation.createCounterexampleToWitness(
           pConfig, originalCfa, pSpecification, pLogger);
+    }
+    if (CPAs.retrieveCPA(pCpa, OrderingConsistencyCPA.class) != null) {
+      return new OcCounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
     }
     return new CounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
   }
@@ -373,21 +383,25 @@ public class CEXExporter {
                   + " export.");
         } else {
           try {
-            final Witness witness =
-                witnessExporter.generateErrorWitness(
-                    rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+            // only the GraphML and DOT outputs are built from this; the YAML export below goes
+            // straight from the counterexample, so skip the work when neither file is wanted
+            if (options.getWitnessFile() != null || options.getWitnessDotFile() != null) {
+              final Witness witness =
+                  witnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-            writeErrorPathFile(
-                options.getWitnessFile(),
-                uniqueId,
-                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-                compressWitness);
+              writeErrorPathFile(
+                  options.getWitnessFile(),
+                  uniqueId,
+                  (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+                  compressWitness);
 
-            writeErrorPathFile(
-                options.getWitnessDotFile(),
-                uniqueId,
-                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
-                compressWitness);
+              writeErrorPathFile(
+                  options.getWitnessDotFile(),
+                  uniqueId,
+                  (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+                  compressWitness);
+            }
 
           } catch (InterruptedException e) {
             logger.logUserException(
