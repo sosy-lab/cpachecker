@@ -135,6 +135,10 @@ public record SeqMemoryLocation(
         && declaration instanceof CVariableDeclaration;
   }
 
+  public boolean isPointerType() {
+    return isDeclarationPointerType() || isFieldMemberPointerType();
+  }
+
   public boolean isDeclarationPointerType() {
     return declaration != null && declaration.getType() instanceof CPointerType;
   }

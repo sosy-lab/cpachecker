@@ -277,35 +277,36 @@ public class SeqInstrumentationBuilder {
     for (SeqPointerAssignment pointerAssignment : pPointerAliasingMap.pointerAssignments) {
       SeqMemoryLocation leftHandSide = pointerAssignment.leftHandSideMemoryLocation();
 
-      // dangling pointers can only be reset
-      // (1) by the thread containing the pointer assignment
-      // (2) for equal call contexts, otherwise pointers of other functions are reset
+      // dangling pointers can only be reset by the thread containing the pointer assignment
       if (pointerAssignment.getThread().id() == pThreadNode.threadId
-          && leftHandSide.callContext().equals(pThreadNode.callContext)
-          && leftHandSide.isDeclarationPointerType()) {
+          && leftHandSide.isPointerType()) {
         ImmutableSet<SeqMemoryLocation> dereferencedRightHandSides =
             SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
                 leftHandSide, pPointerAliasingMap.pointerAssignments);
 
-        for (SeqMemoryLocation rightHandSide : dereferencedRightHandSides) {
-          // only consider stack allocated memory locations, since heap allocations are not dangling
-          if (rightHandSide.isStackAllocated()) {
+        for (SeqMemoryLocation derefRightHandSide : dereferencedRightHandSides) {
+          // use the right-hand side call context, since the left-hand side may be a global variable
+          if (derefRightHandSide.callContext().equals(pThreadNode.callContext)
+              // only consider stack allocation, since heap allocations are not dangling
+              && derefRightHandSide.isStackAllocated()) {
 
             CIdExpression leftHandSideExpression = leftHandSide.toCIdExpression();
-            CType rightHandSideType = Objects.requireNonNull(rightHandSide.declaration()).getType();
-            CExpression rightHandSideExpression =
-                rightHandSideType instanceof CPointerType
-                    ? rightHandSide.toCIdExpression()
+            CType derefRightHandSideType =
+                Objects.requireNonNull(derefRightHandSide.declaration()).getType();
+            CExpression derefRightHandSideExpression =
+                derefRightHandSideType instanceof CPointerType
+                    ? derefRightHandSide.toCIdExpression()
                     : new CUnaryExpression(
                         FileLocation.DUMMY,
-                        new CPointerType(rightHandSideType.getQualifiers(), rightHandSideType),
-                        rightHandSide.toCIdExpression(),
+                        new CPointerType(
+                            derefRightHandSideType.getQualifiers(), derefRightHandSideType),
+                        derefRightHandSide.toCIdExpression(),
                         UnaryOperator.AMPER);
 
             // create the expression 'if (ptr == &local)'
             CBinaryExpression ifExpression =
                 pBinaryExpressionBuilder.buildBinaryExpression(
-                    leftHandSideExpression, rightHandSideExpression, BinaryOperator.EQUALS);
+                    leftHandSideExpression, derefRightHandSideExpression, BinaryOperator.EQUALS);
             CExpressionAssignmentStatement resetAssignmentStatement =
                 new CExpressionAssignmentStatement(
                     FileLocation.DUMMY,
