@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.TRANS_INV_KEYWORD;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -27,7 +28,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -44,13 +50,16 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Precision adjustment for the validation of termination witnesses. In addition to the transition
  * invariants found by {@link TerminationToReachPrecisionAdjustment}, it also uses the transition
- * invariants from the witness if they are inductive.
+ * invariants from the witness. If one of them is not inductive, the analysis stops without a
+ * result, since the witness cannot be confirmed.
  */
 public class TerminationToReachValidationPrecisionAdjustment
     extends TerminationToReachPrecisionAdjustment {
 
   private final PathFormulaManager pthfmgr;
   private final ImmutableSet<ExpressionTreeLocationInvariant> candidateInvariants;
+  // A transition invariant of the witness that is not inductive is not proven to hold
+  private boolean hasUnprovenWitnessTransitionInvariant = false;
 
   public TerminationToReachValidationPrecisionAdjustment(
       Solver pSolver,
@@ -121,6 +130,25 @@ public class TerminationToReachValidationPrecisionAdjustment
   }
 
   /**
+   * Stops the analysis once a transition invariant of the witness is not inductive. Otherwise, the
+   * program could be proven terminating with an invalid witness.
+   */
+  @Override
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState state,
+      Precision precision,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
+    Optional<PrecisionAdjustmentResult> result =
+        super.prec(state, precision, states, stateProjection, fullState);
+    return hasUnprovenWitnessTransitionInvariant
+        ? result.map(adjusted -> adjusted.withAction(Action.BREAK))
+        : result;
+  }
+
+  /**
    * Collects the inductive transition invariants as {@link
    * TerminationToReachPrecisionAdjustment#collectInductiveTransitionInvariants} does, and adds the
    * transition invariant from the witness as well, if it is inductive.
@@ -139,6 +167,13 @@ public class TerminationToReachValidationPrecisionAdjustment
         new PartitionedRelationFormula(collectCandidateTransitionInvariants(location), fmgr);
     if (isInductiveTransitionInvariant(invariantFromWitness, iterationFormula, location)) {
       builderTransitionInvariants.add(invariantFromWitness);
+    } else {
+      logger.logf(
+          Level.INFO,
+          "The transition invariant of the witness at %s is not inductive, so the witness cannot be"
+              + " confirmed.",
+          location);
+      hasUnprovenWitnessTransitionInvariant = true;
     }
     return builderTransitionInvariants;
   }
