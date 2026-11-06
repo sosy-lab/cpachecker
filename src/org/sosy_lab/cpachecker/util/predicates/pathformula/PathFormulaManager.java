@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -26,6 +27,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RightHandSideTerm;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -187,6 +190,23 @@ public interface PathFormulaManager {
    * @return Created formula.
    */
   Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+      throws UnrecognizedCodeException;
+
+  /**
+   * Convert the right-hand side of an assignment to a formula consistent with the current state of
+   * the {@code pFormula} and cast it to the type of the left-hand side.
+   *
+   * <p>This allows to encode an assignment without building an equality between the old and the new
+   * instance of the assigned variable, see {@link
+   * CtoFormulaConverter#buildRightHandSideTermFromPathFormula}.
+   *
+   * @param pFormula Current {@link PathFormula}.
+   * @param pRhs The right-hand side to convert.
+   * @param pLhsType The type of the left-hand side, the right-hand side is cast to it.
+   * @param pEdge The edge containing the assignment.
+   */
+  RightHandSideTerm rightHandSideToFormula(
+      PathFormula pFormula, CRightHandSide pRhs, CType pLhsType, CFAEdge pEdge)
       throws UnrecognizedCodeException;
 
   /**
