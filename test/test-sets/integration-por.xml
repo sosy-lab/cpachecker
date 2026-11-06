@@ -33,6 +33,9 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/c11_mutex_safe.yml</include>
     <include>../programs/por/atomic_swap_safe.yml</include>
     <include>../programs/por/atomic_split_unsafe.yml</include>
+    <include>../programs/por/atomic_two_calls_safe.yml</include>
+    <include>../programs/por/atomic_loop_safe.yml</include>
+    <include>../programs/por/atomic_call_outside_unsafe.yml</include>
     <include>../programs/por/function.yml</include>
     <include>../programs/por/array_handle_safe.yml</include>
     <include>../programs/por/array_handle_unsafe.yml</include>

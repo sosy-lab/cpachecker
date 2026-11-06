@@ -12,14 +12,17 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cpa.composite.StraightLineBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
@@ -29,13 +32,16 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
   private final GlobalMemoryAccesses.Extractor memoryAccessExtractor =
       new GlobalMemoryAccesses.Extractor();
 
+  private final CFA cfa;
   private final ImmutableCollection<CFANode> initializationPhaseNodes;
-  private final ImmutableCollection<CFANode> atomicBlockNodes;
+
+  // Computed on demand: a parallel portfolio creates the CPAs of all analyses in one thread.
+  @LazyInit private @Nullable ImmutableCollection<CFANode> atomicBlockNodes;
 
   SingleGlobalStatementBlockAggregator(ConcurrentCfaClones pCfaClones) {
     super(pCfaClones.getCfa());
+    cfa = pCfaClones.getCfa();
     initializationPhaseNodes = getInitializationPhaseNodes(pCfaClones);
-    atomicBlockNodes = getAtomicBlockNodes(pCfaClones.getCfa());
   }
 
   @Override
@@ -95,7 +101,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
               // anywhere in the chain consumes the single-global-statement budget, so a block can
               // contain at most one critical-section entry and no global statement besides it.
               || MutexFunctions.isLockCall(currentEdge))
-          && !atomicBlockNodes.contains(currentEdge.getPredecessor().getOriginal())) {
+          && !getAtomicBlockNodes().contains(currentEdge.getPredecessor().getOriginal())) {
         if (anyGlobalStatements) {
           return false;
         }
@@ -165,8 +171,15 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
         nodesBeforeAnyThreadStart, node -> pCfaClones.getClonedNode(node, ThreadId.MAIN));
   }
 
-  private ImmutableCollection<CFANode> getAtomicBlockNodes(CFA pCFA) {
-    ImmutableSet.Builder<CFANode> atomicBlockNodesBuilder = ImmutableSet.builder();
+  private ImmutableCollection<CFANode> getAtomicBlockNodes() {
+    if (atomicBlockNodes == null) {
+      atomicBlockNodes = computeAtomicBlockNodes(cfa);
+    }
+    return atomicBlockNodes;
+  }
+
+  private static ImmutableCollection<CFANode> computeAtomicBlockNodes(CFA pCFA) {
+    Set<CFANode> atomicBlockNodesSet = new LinkedHashSet<>();
     for (CFAEdge edge : pCFA.edges()) {
       if (MutexFunctions.isAtomicBegin(edge)) {
         Set<CFANode> nodesToVisit = new LinkedHashSet<>();
@@ -174,16 +187,24 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
         while (!nodesToVisit.isEmpty()) {
           CFANode currentNode = nodesToVisit.iterator().next();
           nodesToVisit.remove(currentNode);
-          atomicBlockNodesBuilder.add(currentNode);
+          if (!atomicBlockNodesSet.add(currentNode)) {
+            continue;
+          }
+          // Stay in the function: a callee or caller may also run outside of the atomic block.
+          if (currentNode.getLeavingSummaryEdge() != null) {
+            nodesToVisit.add(currentNode.getLeavingSummaryEdge().getSuccessor());
+            continue;
+          }
           for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
-            if (!MutexFunctions.isAtomicEnd(leavingEdge)) {
+            if (!(leavingEdge instanceof FunctionReturnEdge)
+                && !MutexFunctions.isAtomicEnd(leavingEdge)) {
               nodesToVisit.add(leavingEdge.getSuccessor());
             }
           }
         }
       }
     }
-    return atomicBlockNodesBuilder.build();
+    return ImmutableSet.copyOf(atomicBlockNodesSet);
   }
 
   private boolean isThreadStart(CFAEdge edge) {
