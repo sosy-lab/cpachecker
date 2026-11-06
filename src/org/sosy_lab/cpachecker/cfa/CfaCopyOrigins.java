@@ -14,8 +14,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * Remembers the element of the program (created by the parser) that each node and edge created by
- * a post-processing stands for. This is unrelated to {@link CFANode#getOriginal()} and {@link
+ * Remembers the element of the program (created by the parser) that each node and edge created by a
+ * post-processing stands for. This is unrelated to {@link CFANode#getOriginal()} and {@link
  * CFAEdge#getOriginal()}, which lead from a per-thread clone back to the CFA.
  *
  * <p>Everything that looks up a node or an edge of the program, for example the relation between

@@ -150,9 +150,8 @@ public final class AstCfaRelation {
   /**
    * The edge of the program that the given edge stands for, which is the edge itself unless a
    * post-processing of the CFA copied it or an analysis cloned it for a thread (cf. {@link
-   * CFAEdge#getOriginal()}). A copy does not have to be of the same kind: an unrolling
-   * replaces the condition of a loop by a blank edge in every iteration, although the program
-   * branches there.
+   * CFAEdge#getOriginal()}). A copy does not have to be of the same kind: an unrolling replaces the
+   * condition of a loop by a blank edge in every iteration, although the program branches there.
    */
   public CFAEdge programEdgeOf(CFAEdge pEdge) {
     return copyOrigins.programEdgeOf(pEdge.getOriginal());

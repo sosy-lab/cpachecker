@@ -405,11 +405,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           return ImmutableList.of();
         }
 
-        if (!iterationElement
-            .getControllingExpression()
-            .orElseThrow()
-            .edges()
-            .contains(cfaEdge)) {
+        if (!iterationElement.getControllingExpression().orElseThrow().edges().contains(cfaEdge)) {
           // In this case we have an assume edge inside the loop which has nothing to do with its
           // controlling expression. This case should be ignored.
           return ImmutableList.of();
