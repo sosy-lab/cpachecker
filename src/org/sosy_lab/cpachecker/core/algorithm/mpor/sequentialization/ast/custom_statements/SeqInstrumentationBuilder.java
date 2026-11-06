@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
@@ -274,39 +275,47 @@ public class SeqInstrumentationBuilder {
     List<CIfStatement> ifStatements = new ArrayList<>();
 
     for (SeqPointerAssignment pointerAssignment : pPointerAliasingMap.pointerAssignments) {
+      SeqMemoryLocation leftHandSide = pointerAssignment.leftHandSideMemoryLocation();
+
       // dangling pointers can only be reset by the thread that contain the pointer assignment
-      if (pointerAssignment.getThread().id() == pThreadNode.threadId) {
+      if (pointerAssignment.getThread().id() == pThreadNode.threadId
+          && pointerAssignment.leftHandSideMemoryLocation().isDeclarationPointerType()) {
+        ImmutableSet<SeqMemoryLocation> dereferencedRightHandSides =
+            SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+                leftHandSide, pPointerAliasingMap.pointerAssignments);
 
-        SeqMemoryLocation leftHandSide = pointerAssignment.leftHandSideMemoryLocation();
-        SeqMemoryLocation rightHandSide = pointerAssignment.rightHandSideMemoryLocation();
-        if (leftHandSide.isDeclarationPointerType() && rightHandSide.isStackAllocated()) {
+        for (SeqMemoryLocation rightHandSide : dereferencedRightHandSides)
+          // only consider stack allocated memory locations, since heap allocations are not dangling
+          if (rightHandSide.isStackAllocated()) {
 
-          CIdExpression leftHandSideExpression =
-              pointerAssignment.leftHandSideMemoryLocation().toCIdExpression();
-          CType rightHandSideType = Objects.requireNonNull(rightHandSide.declaration()).getType();
-          CExpression rightHandSideExpression =
-              rightHandSideType instanceof CPointerType
-                  ? rightHandSide.toCIdExpression()
-                  : new CUnaryExpression(
-                      FileLocation.DUMMY,
-                      new CPointerType(rightHandSideType.getQualifiers(), rightHandSideType),
-                      rightHandSide.toCIdExpression(),
-                      UnaryOperator.AMPER);
+            CIdExpression leftHandSideExpression =
+                pointerAssignment.leftHandSideMemoryLocation().toCIdExpression();
+            CType rightHandSideType = Objects.requireNonNull(rightHandSide.declaration()).getType();
+            CExpression rightHandSideExpression =
+                rightHandSideType instanceof CPointerType
+                    ? rightHandSide.toCIdExpression()
+                    : new CUnaryExpression(
+                        FileLocation.DUMMY,
+                        new CPointerType(rightHandSideType.getQualifiers(), rightHandSideType),
+                        rightHandSide.toCIdExpression(),
+                        UnaryOperator.AMPER);
 
-          // create the expression 'if (ptr == &local)'
-          CBinaryExpression ifExpression =
-              pBinaryExpressionBuilder.buildBinaryExpression(
-                  leftHandSideExpression, rightHandSideExpression, BinaryOperator.EQUALS);
-          CExpressionAssignmentStatement resetAssignmentStatement =
-              new CExpressionAssignmentStatement(
-                  FileLocation.DUMMY, leftHandSideExpression, CCastExpression.POINTER_TO_VOID_CAST);
+            // create the expression 'if (ptr == &local)'
+            CBinaryExpression ifExpression =
+                pBinaryExpressionBuilder.buildBinaryExpression(
+                    leftHandSideExpression, rightHandSideExpression, BinaryOperator.EQUALS);
+            CExpressionAssignmentStatement resetAssignmentStatement =
+                new CExpressionAssignmentStatement(
+                    FileLocation.DUMMY,
+                    leftHandSideExpression,
+                    CCastExpression.POINTER_TO_VOID_CAST);
 
-          // create the statement 'ptr = (void*)0;'
-          ifStatements.add(
-              new CIfStatement(
-                  new CExpressionWrapper(ifExpression),
-                  new CCompoundStatement(new CStatementWrapper(resetAssignmentStatement))));
-        }
+            // create the statement 'ptr = (void*)0;'
+            ifStatements.add(
+                new CIfStatement(
+                    new CExpressionWrapper(ifExpression),
+                    new CCompoundStatement(new CStatementWrapper(resetAssignmentStatement))));
+          }
       }
     }
 
