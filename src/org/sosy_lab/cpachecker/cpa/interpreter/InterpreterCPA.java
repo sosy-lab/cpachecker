@@ -40,33 +40,15 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * CPA that interprets a program concretely instead of abstracting it.
+ * CPA that interprets a program concretely instead of abstracting it, cf. the {@linkplain
+ * org.sosy_lab.cpachecker.cpa.interpreter package documentation}.
  *
- * <p>This CPA wraps another CPA, usually a {@link
- * org.sosy_lab.cpachecker.cpa.composite.CompositeCPA} consisting of {@link
- * org.sosy_lab.cpachecker.cpa.location.LocationCPA}, {@link
- * org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA}, {@link
- * org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA}, and the specification automata. It evaluates
- * the program edge by edge and requires that every state has exactly one or zero successors, i.e.,
- * that the program does not make any nondeterministic choice. If this does not hold, the analysis
- * aborts with an exception and the result is {@code UNKNOWN}.
- *
- * <p>For an exact execution (cf. {@link InterpreterState} for when an execution is exact):
- *
- * <ul>
- *   <li>If a target state is reached, the specification is really violated ({@code FALSE}).
- *   <li>If the analysis terminates without reaching a target state, no execution of the program
- *       violates the specification, because there is only one execution ({@code TRUE}). This holds
- *       for every specification that is expressed by target states, in particular for reachability
- *       and for the memory-safety properties.
- *   <li>Termination of the analysis implies termination of the program, because no abstract state
- *       is ever covered by another one (the stop operator is {@code stop-never}), so the analysis
- *       performs exactly as many steps as the program does.
- * </ul>
- *
- * <p>The idea of this CPA is to simulate an abstract execution of the program. Everything else
- * follows from that idea, in particular the restriction to a single successor and the chain of
- * steps that one call of the transfer relation performs.
+ * <p>It differs from the analysis that it wraps (usually a {@link
+ * org.sosy_lab.cpachecker.cpa.composite.CompositeCPA} with a {@link
+ * org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA}) in that it allows no nondeterministic
+ * choice, i.e., a state with more than one successor aborts the analysis, and in that it never
+ * merges or covers a state, so that the analysis takes exactly the steps that the program takes.
+ * {@link InterpreterState} documents which verdict such an execution allows.
  */
 @Options(prefix = "cpa.interpreter")
 public class InterpreterCPA extends AbstractSingleWrapperCPA {
