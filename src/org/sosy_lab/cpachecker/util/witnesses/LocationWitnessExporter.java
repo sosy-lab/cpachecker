@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
@@ -41,9 +43,16 @@ import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
  * independent snapshots, without parent links. A violation has only the edge identifying the
  * target, not the execution that led there. Neither representation is used to export counterexample
  * traces.
+ *
+ * <p>This class <em>uses</em> {@link ARGStatistics} instead of extending it: it only hands it a
+ * reached set to write witnesses from, and it does not take over what that class reports or exports
+ * otherwise.
  */
-public class LocationWitnessExporter extends ARGStatistics {
+public class LocationWitnessExporter {
 
+  private final ARGStatistics argStatistics;
+  private final ConfigurableProgramAnalysis cpa;
+  private final CFA cfa;
   private final LocationStateFactory locations;
   private final ReachedSetFactory reachedSetFactory;
   private final LocationStatesCollector collector;
@@ -55,25 +64,26 @@ public class LocationWitnessExporter extends ARGStatistics {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, pCpa, pSpecification, pCfa, new LocationStatesCollector());
-  }
-
-  private LocationWitnessExporter(
-      Configuration pConfig,
-      LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa,
-      Specification pSpecification,
-      CFA pCfa,
-      LocationStatesCollector pCollector)
-      throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa, pSpecification, pCfa, pCollector);
-    collector = pCollector;
+    collector = new LocationStatesCollector();
+    argStatistics = new ARGStatistics(pConfig, pLogger, pCpa, pSpecification, pCfa, collector);
+    cpa = pCpa;
+    cfa = pCfa;
     locations = new LocationStateFactory(pCfa, AnalysisDirection.FORWARD, pConfig);
     reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
   }
 
   public ReachedSet createReachedSet() {
     return reachedSetFactory.create(cpa);
+  }
+
+  /** Whether any YAML witness would be written at all. */
+  public boolean isYamlWitnessExportEnabled() {
+    return argStatistics.isYamlWitnessExportEnabled();
+  }
+
+  /** Write the YAML witnesses for the given result from the given prepared reached set. */
+  public void writeYamlWitnesses(Result pResult, UnmodifiableReachedSet pReached) {
+    argStatistics.writeYamlWitnesses(pResult, pReached);
   }
 
   /** Prepare an exhausted reached set containing only a root and the recorded invariant states. */

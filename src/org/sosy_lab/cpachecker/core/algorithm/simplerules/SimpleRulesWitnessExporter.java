@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -34,7 +35,9 @@ import org.sosy_lab.cpachecker.util.witnesses.LocationWitnessExporter;
  * prepared by one of the {@code prepare...} methods; the answer UNKNOWN leaves the reached set
  * empty and there is nothing to export.
  */
-class SimpleRulesWitnessExporter extends LocationWitnessExporter {
+class SimpleRulesWitnessExporter implements Statistics {
+
+  private final LocationWitnessExporter exporter;
 
   private boolean decided = false;
 
@@ -45,27 +48,24 @@ class SimpleRulesWitnessExporter extends LocationWitnessExporter {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa, pSpecification, pCfa);
+    exporter = new LocationWitnessExporter(pConfig, pLogger, pCpa, pSpecification, pCfa);
   }
 
-  @Override
-  public void prepareCorrectnessWitness(
+  void prepareCorrectnessWitness(
       ReachedSet pReached, Multimap<CFANode, ImmutableList<ExpressionTreeReportingState>> pInvars) {
-    super.prepareCorrectnessWitness(pReached, pInvars);
+    exporter.prepareCorrectnessWitness(pReached, pInvars);
     decided = true;
   }
 
-  @Override
-  public void prepareViolationWitness(
-      ReachedSet pReached, CFAEdge pEdge, DummyTargetState pTarget) {
-    super.prepareViolationWitness(pReached, pEdge, pTarget);
+  void prepareViolationWitness(ReachedSet pReached, CFAEdge pEdge, DummyTargetState pTarget) {
+    exporter.prepareViolationWitness(pReached, pEdge, pTarget);
     decided = true;
   }
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-    if (isYamlWitnessExportEnabled() && decided) {
-      writeYamlWitnesses(pResult, pReached);
+    if (decided && exporter.isYamlWitnessExportEnabled()) {
+      exporter.writeYamlWitnesses(pResult, pReached);
     }
   }
 

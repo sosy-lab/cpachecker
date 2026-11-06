@@ -273,8 +273,13 @@ public class ARGStatistics implements Statistics {
                 : ImmutableSet.of()));
   }
 
-  /** Allows analyses without an ARG to supply their recorded invariant states directly. */
-  protected ARGStatistics(
+  /**
+   * Allows analyses without an ARG to supply their recorded invariant states directly. Such an
+   * analysis uses this class instead of extending it, so that it does not take over the export of
+   * the other statistics (cf. {@link
+   * org.sosy_lab.cpachecker.util.witnesses.LocationWitnessExporter}).
+   */
+  public ARGStatistics(
       Configuration config,
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
