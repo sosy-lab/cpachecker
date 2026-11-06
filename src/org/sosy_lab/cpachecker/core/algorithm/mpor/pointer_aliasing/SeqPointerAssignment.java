@@ -18,8 +18,9 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  * An assignment of the memory location {@code rightHandSideMemoryLocation} to the pointer {@code
  * leftHandSideMemoryLocation}.
  *
- * <p>This is not a record so that the constructor can be private, i.e. so that instances can only
- * be created by {@link SeqPointerAssignment#of}, which rejects unsupported input programs.
+ * <p>This class is not a record so that the constructor can reject unsupported input programs (via
+ * {@link UnsupportedCodeException}), and records do not allow checked exceptions in the method
+ * called after construction.
  */
 public final class SeqPointerAssignment {
 
