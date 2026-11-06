@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -50,9 +49,20 @@ public class SvLibScript implements SvLibParsingAstNode {
     return fileLocation;
   }
 
+  /** The commands, each one on a line of its own and those on several lines between empty lines. */
   @Override
   public String toASTString() {
-    return from(commands).transform(SvLibCommand::toASTString).join(Joiner.on("\n"));
+    StringBuilder script = new StringBuilder();
+    boolean previousHasSeveralLines = false;
+    for (String command : from(commands).transform(SvLibCommand::toASTString)) {
+      boolean hasSeveralLines = command.contains("\n");
+      if (!script.isEmpty()) {
+        script.append(hasSeveralLines || previousHasSeveralLines ? "\n\n" : "\n");
+      }
+      script.append(command);
+      previousHasSeveralLines = hasSeveralLines;
+    }
+    return script.append('\n').toString();
   }
 
   @Override

@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSExpression;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 
 public final class SvLibProcedureDefinitionCommand implements SvLibCommand {
@@ -64,7 +66,12 @@ public final class SvLibProcedureDefinitionCommand implements SvLibCommand {
 
   @Override
   public String toASTString() {
-    return "(define-proc " + procedureDeclaration.toASTString() + " " + body.toASTString() + ")";
+    return SvLibSExpression.list(
+            FluentIterable.of(SvLibSExpression.atom("define-proc"))
+                .append(procedureDeclaration.toSExpressions())
+                .append(body.toSExpression())
+                .toList())
+        .format();
   }
 
   @Override

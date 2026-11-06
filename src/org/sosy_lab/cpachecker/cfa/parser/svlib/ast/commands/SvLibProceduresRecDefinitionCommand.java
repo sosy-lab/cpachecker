@@ -10,13 +10,14 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSExpression;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 
 public final class SvLibProceduresRecDefinitionCommand implements SvLibCommand {
@@ -53,15 +54,19 @@ public final class SvLibProceduresRecDefinitionCommand implements SvLibCommand {
 
   @Override
   public String toASTString() {
-    return "(define-procs-rec \n ("
-        + Joiner.on(")\n (")
-            .join(
-                procedureDeclarations.stream()
-                    .map(procedureDeclaration -> procedureDeclaration.toASTString())
-                    .toList())
-        + ")\n ("
-        + Joiner.on(")\n (").join(bodies.stream().map(body -> body.toASTString()).toList())
-        + "))";
+    // Every declaration and every body is a list of its own, see Fig. 9 of the SV-LIB paper
+    // (https://arxiv.org/abs/2511.21509).
+    return SvLibSExpression.list(
+            FluentIterable.of(SvLibSExpression.atom("define-procs-rec"))
+                .append(
+                    FluentIterable.from(procedureDeclarations)
+                        .transform(
+                            declaration -> SvLibSExpression.list(declaration.toSExpressions())))
+                .append(
+                    FluentIterable.from(bodies)
+                        .transform(body -> SvLibSExpression.list(body.toSExpression())))
+                .toList())
+        .format();
   }
 
   @Override
