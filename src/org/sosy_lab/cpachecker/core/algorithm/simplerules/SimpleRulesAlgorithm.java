@@ -96,6 +96,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
       ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    checkRuleNames();
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -174,6 +175,23 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
       stats.totalTime().stop();
     }
     return new Outcome(ImmutableMap.copyOf(proven), null);
+  }
+
+  /**
+   * Reject a name in the option {@code simplerules.rules} that belongs to no rule, because the rule
+   * would silently not be used otherwise.
+   */
+  private void checkRuleNames() throws InvalidConfigurationException {
+    ImmutableSet<String> known =
+        SimpleRules.all().stream().map(SimpleRule::name).collect(toImmutableSet());
+    Set<String> unknown = Sets.difference(rules, known);
+    if (!unknown.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "There is no simple rule named "
+              + COMMA.join(unknown)
+              + ". The rules of this CPAchecker version are: "
+              + COMMA.join(known));
+    }
   }
 
   /** Whether the given rule is selected by the option {@code simplerules.rules}. */
