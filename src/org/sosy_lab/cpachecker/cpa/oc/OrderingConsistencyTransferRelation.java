@@ -2116,11 +2116,16 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
       if (lvalue instanceof CFieldReference field) {
         CExpression owner = field.getFieldOwner();
-        CType ownerType =
-            field.isPointerDereference()
-                ? ((CPointerType) stripCasts(owner).getExpressionType().getCanonicalType())
-                    .getType()
-                : owner.getExpressionType();
+        CType ownerType = owner.getExpressionType();
+        if (field.isPointerDereference()) {
+          // e.g. a null-pointer constant in offsetof, which remains without constant folding
+          if (!(stripCasts(owner).getExpressionType().getCanonicalType()
+              instanceof CPointerType pointer)) {
+            throw new UnsupportedAccessException(
+                "field access through a non-pointer: " + lvalue.toASTString());
+          }
+          ownerType = pointer.getType();
+        }
         if (!(ownerType.getCanonicalType() instanceof CCompositeType composite)) {
           throw new UnsupportedAccessException("field of non-composite: " + lvalue.toASTString());
         }
