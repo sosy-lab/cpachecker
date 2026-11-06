@@ -144,7 +144,7 @@ public final class AstCfaRelation {
    */
   public CFANode programNodeOf(CFANode pNode) {
     // a per-thread clone of the CFA is made after post-processing, so it is resolved first
-    return copyOrigins.originalOf(pNode.getOriginal());
+    return copyOrigins.programNodeOf(pNode.getOriginal());
   }
 
   /**
@@ -155,7 +155,7 @@ public final class AstCfaRelation {
    * branches there.
    */
   public CFAEdge programEdgeOf(CFAEdge pEdge) {
-    return copyOrigins.originalOf(pEdge.getOriginal());
+    return copyOrigins.programEdgeOf(pEdge.getOriginal());
   }
 
   /**

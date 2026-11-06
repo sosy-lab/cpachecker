@@ -14,8 +14,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * Remembers the original element of the program (created by the parser) that each node and edge
- * created by a post-processing stands for.
+ * Remembers the element of the program (created by the parser) that each node and edge created by
+ * a post-processing stands for. This is unrelated to {@link CFANode#getOriginal()} and {@link
+ * CFAEdge#getOriginal()}, which lead from a per-thread clone back to the CFA.
  *
  * <p>Everything that looks up a node or an edge of the program, for example the relation between
  * the CFA and the AST that witnesses are written with, only knows the ones the parser created. This
@@ -29,16 +30,18 @@ public final class CfaCopyOrigins {
 
   /** Remembers that the given node was copied from the given one. */
   public void rememberNode(CFANode pCopy, CFANode pCopiedFrom) {
-    CFANode original = originalOf(pCopiedFrom);
-    assert !nodes.containsKey(original) : "a copy is not an element of the program: " + original;
-    nodes.put(pCopy, original);
+    CFANode programNode = programNodeOf(pCopiedFrom);
+    assert !nodes.containsKey(programNode)
+        : "a copy is not an element of the program: " + programNode;
+    nodes.put(pCopy, programNode);
   }
 
   /** Remembers that the given edge was copied from the given one. */
   public void rememberEdge(CFAEdge pCopy, CFAEdge pCopiedFrom) {
-    CFAEdge original = originalOf(pCopiedFrom);
-    assert !edges.containsKey(original) : "a copy is not an element of the program: " + original;
-    edges.put(pCopy, original);
+    CFAEdge programEdge = programEdgeOf(pCopiedFrom);
+    assert !edges.containsKey(programEdge)
+        : "a copy is not an element of the program: " + programEdge;
+    edges.put(pCopy, programEdge);
   }
 
   /**
@@ -54,7 +57,7 @@ public final class CfaCopyOrigins {
    * The node of the program that the given node stands for, which is the node itself unless a
    * post-processing copied it.
    */
-  public CFANode originalOf(CFANode pNode) {
+  public CFANode programNodeOf(CFANode pNode) {
     return nodes.getOrDefault(pNode, pNode);
   }
 
@@ -62,7 +65,7 @@ public final class CfaCopyOrigins {
    * The edge of the program that the given edge stands for, which is the edge itself unless a
    * post-processing copied it.
    */
-  public CFAEdge originalOf(CFAEdge pEdge) {
+  public CFAEdge programEdgeOf(CFAEdge pEdge) {
     return edges.getOrDefault(pEdge, pEdge);
   }
 
@@ -72,7 +75,7 @@ public final class CfaCopyOrigins {
    * about the CFA says so anymore, because the loop it was the head of is not in there.
    */
   public boolean standsForALoopHead(CFANode pNode) {
-    CFANode programNode = originalOf(pNode);
+    CFANode programNode = programNodeOf(pNode);
     return !programNode.equals(pNode) && programNode.isLoopStart();
   }
 
