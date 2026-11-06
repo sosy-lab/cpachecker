@@ -13,6 +13,7 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public class FloatingPointFormulaManagerViewTest extends SolverViewBasedTest0 {
@@ -33,7 +34,7 @@ public class FloatingPointFormulaManagerViewTest extends SolverViewBasedTest0 {
   @Test
   public void testFromIeeeBitvectorWithIntegerEncoding() throws Exception {
     FloatingPointFormulaManagerView fpmgrv = mgrv.getFloatingPointFormulaManager();
-    FloatingPointType type = FloatingPointType.getSinglePrecisionFloatingPointType();
+    FloatingPointType type = FormulaType.getSinglePrecisionFloatingPointType();
     BitvectorFormula bitsOfOne = mgrv.getBitvectorFormulaManager().makeBitvector(32, 0x3f800000L);
 
     FloatingPointFormula one = fpmgrv.fromIeeeBitvector(bitsOfOne, type);
