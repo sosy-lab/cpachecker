@@ -21,6 +21,9 @@ import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -31,16 +34,21 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.cdt.core.dom.ast.IASTAlignmentSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
+import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
@@ -78,6 +86,8 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.eclipse.cdt.core.dom.ast.IASTToken;
+import org.eclipse.cdt.core.dom.ast.IASTTokenList;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
@@ -88,11 +98,14 @@ import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IProblemType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier;
+import org.eclipse.cdt.core.dom.ast.c.ICASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
+import org.eclipse.cdt.core.parser.IGCCToken;
+import org.eclipse.cdt.core.parser.IToken;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
@@ -2242,9 +2255,18 @@ class ASTConverter {
       throw parseContext.parseError("unknown declaration type " + d.getClass().getSimpleName(), d);
     }
 
-    Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
-    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(sd.getDeclSpecifier(), d);
-    // TODO: add knowledge about sd.DeclSpecifier.alignmentSpecifiers
+    IASTDeclSpecifier declSpecifier = sd.getDeclSpecifier();
+    Pair<CStorageClass, ? extends CType> specifier = convert(declSpecifier);
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(declSpecifier, d);
+    // Attributes of a struct, union, or enum specifier belong to that type.
+    boolean specifiesType =
+        declSpecifier instanceof IASTCompositeTypeSpecifier
+            || declSpecifier instanceof IASTEnumerationSpecifier;
+    boolean packed = !specifiesType && hasPackedAttribute(declSpecifier);
+    int alignment =
+        Math.max(
+            getAlignmentSpecifier(declSpecifier),
+            specifiesType ? 0 : getAlignedAttribute(declSpecifier));
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class inside composite type", d);
     }
@@ -2267,19 +2289,19 @@ class ASTConverter {
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
       CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, null, nofMember);
+          createDeclarationForCompositeType(type, null, nofMember, packed, alignment);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
       CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, declarators[0], nofMember);
+          createDeclarationForCompositeType(type, declarators[0], nofMember, packed, alignment);
       result = Collections.singletonList(newD);
 
     } else {
       result = new ArrayList<>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclarationForCompositeType(type, c, nofMember));
+        result.add(createDeclarationForCompositeType(type, c, nofMember, packed, alignment));
       }
     }
 
@@ -2287,7 +2309,7 @@ class ASTConverter {
   }
 
   private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(
-      CType type, IASTDeclarator d, int nofMember) {
+      CType type, IASTDeclarator d, int nofMember, boolean packed, int alignment) {
     String name = null;
 
     if (d != null) {
@@ -2299,13 +2321,15 @@ class ASTConverter {
 
       type = declarator.type();
       name = declarator.name();
+      packed |= hasPackedAttribute(d);
+      alignment = Math.max(alignment, getAlignedAttribute(d));
     }
 
     if (isNullOrEmpty(name)) {
       name = "__anon_type_member_" + nofMember;
     }
 
-    return new CCompositeTypeMemberDeclaration(type, name);
+    return new CCompositeTypeMemberDeclaration(type, name, packed, alignment);
   }
 
   private Declarator convert(IASTDeclarator d, CType specifier, boolean isFunctionParameter) {
@@ -2538,6 +2562,210 @@ class ASTConverter {
       }
     }
     return type;
+  }
+
+  /** Whether the node has the GCC attribute packed. */
+  private static boolean hasPackedAttribute(IASTAttributeOwner pNode) {
+    return Arrays.stream(pNode.getAttributes())
+        .anyMatch(attribute -> getAttributeString(attribute.getName()).equals("packed"));
+  }
+
+  /**
+   * Return the maximum alignment that the GCC attributes aligned of the node request, or 0 if there
+   * is none. Documentation: https://gcc.gnu.org/onlinedocs/gcc/Common-Type-Attributes.html
+   */
+  private int getAlignedAttribute(IASTAttributeOwner pNode) {
+    int alignment = 0;
+    for (IASTAttribute attribute : pNode.getAttributes()) {
+      if (getAttributeString(attribute.getName()).equals("aligned")) {
+        alignment = Math.max(alignment, evaluateAlignedAttribute(attribute));
+      }
+    }
+    return alignment;
+  }
+
+  /** Return the maximum alignment of the alignment specifiers (C11 § 6.7.5), or 0 if none. */
+  private int getAlignmentSpecifier(IASTDeclSpecifier pDeclSpecifier) {
+    int alignment = 0;
+    if (pDeclSpecifier instanceof ICASTDeclSpecifier cDeclSpecifier) {
+      for (IASTAlignmentSpecifier specifier : cDeclSpecifier.getAlignmentSpecifiers()) {
+        int value =
+            specifier.getTypeId() != null
+                ? machineModel.getAlignof(convert(specifier.getTypeId()))
+                : checkAlignment(
+                    evaluateIntegerConstantExpression(specifier.getExpression()), specifier);
+        alignment = Math.max(alignment, value);
+      }
+    }
+    return alignment;
+  }
+
+  private int checkAlignment(BigInteger pAlignment, IASTNode pNode) {
+    if (pAlignment.signum() < 0 || pAlignment.bitCount() > 1) {
+      throw parseContext.parseError("Alignment " + pAlignment + " is not a power of two", pNode);
+    }
+    return pAlignment.intValueExact();
+  }
+
+  /**
+   * Evaluate the argument of the GCC attribute aligned. CDT provides it only as token sequence, so
+   * we support only integer literals, parentheses, the operators {@code << >> + - * / %}, and
+   * sizeof and alignof of basic types, typedef names, and pointers.
+   */
+  private int evaluateAlignedAttribute(IASTAttribute pAttribute) {
+    IASTToken argument = pAttribute.getArgumentClause();
+    if (argument == null) {
+      // __BIGGEST_ALIGNMENT__ of GCC
+      return switch (machineModel) {
+        case LINUX32, LINUX64, ARM64 -> 16;
+        case ARM -> 8;
+      };
+    }
+    List<IASTToken> tokens = new ArrayList<>();
+    flattenTokens(argument, tokens);
+    PeekingIterator<IASTToken> it = Iterators.peekingIterator(tokens.iterator());
+    BigInteger alignment = evaluateTokens(it, 0, pAttribute);
+    if (it.hasNext()) {
+      throw parseContext.parseError("Unsupported argument of aligned attribute", pAttribute);
+    }
+    return checkAlignment(alignment, pAttribute);
+  }
+
+  private static void flattenTokens(IASTToken pToken, List<IASTToken> pResult) {
+    if (pToken instanceof IASTTokenList tokenList) {
+      for (IASTToken token : tokenList.getTokens()) {
+        flattenTokens(token, pResult);
+      }
+    } else {
+      pResult.add(pToken);
+    }
+  }
+
+  /** Binary operators in attribute arguments, from lowest to highest precedence. */
+  private static final ImmutableList<
+          ImmutableMap<Integer, BiFunction<BigInteger, BigInteger, BigInteger>>>
+      ATTRIBUTE_OPERATORS =
+          ImmutableList.of(
+              ImmutableMap.of(
+                  IToken.tSHIFTL, (a, b) -> a.shiftLeft(b.intValueExact()),
+                  IToken.tSHIFTR, (a, b) -> a.shiftRight(b.intValueExact())),
+              ImmutableMap.of(IToken.tPLUS, BigInteger::add, IToken.tMINUS, BigInteger::subtract),
+              ImmutableMap.of(
+                  IToken.tSTAR, BigInteger::multiply,
+                  IToken.tDIV, BigInteger::divide,
+                  IToken.tMOD, BigInteger::mod));
+
+  /** Evaluate operators of the given precedence level and higher (recursive descent). */
+  private BigInteger evaluateTokens(
+      PeekingIterator<IASTToken> pTokens, int pLevel, IASTAttribute pAttribute) {
+    if (pLevel == ATTRIBUTE_OPERATORS.size()) {
+      return evaluatePrimaryTokens(pTokens, pAttribute);
+    }
+    Map<Integer, BiFunction<BigInteger, BigInteger, BigInteger>> operators =
+        ATTRIBUTE_OPERATORS.get(pLevel);
+    BigInteger result = evaluateTokens(pTokens, pLevel + 1, pAttribute);
+    while (pTokens.hasNext() && operators.containsKey(pTokens.peek().getTokenType())) {
+      BiFunction<BigInteger, BigInteger, BigInteger> operator =
+          operators.get(pTokens.next().getTokenType());
+      result = operator.apply(result, evaluateTokens(pTokens, pLevel + 1, pAttribute));
+    }
+    return result;
+  }
+
+  private BigInteger evaluatePrimaryTokens(
+      PeekingIterator<IASTToken> pTokens, IASTAttribute pAttribute) {
+    IASTToken token = nextToken(pTokens, pAttribute);
+    return switch (token.getTokenType()) {
+      case IToken.tINTEGER ->
+          ((CIntegerLiteralExpression)
+                  literalConverter.parseIntegerLiteral(
+                      getLocation(pAttribute), String.valueOf(token.getTokenCharImage()), token))
+              .getValue();
+      case IToken.tLPAREN -> {
+        BigInteger result = evaluateTokens(pTokens, 0, pAttribute);
+        expectToken(pTokens, IToken.tRPAREN, pAttribute);
+        yield result;
+      }
+      case IToken.t_sizeof -> machineModel.getSizeof(convertTypeTokens(pTokens, pAttribute));
+      case IGCCToken.t___alignof__, IToken.t__Alignof, IToken.t_alignof ->
+          BigInteger.valueOf(machineModel.getAlignof(convertTypeTokens(pTokens, pAttribute)));
+      default -> throw parseContext.parseError("Unsupported argument of aligned attribute", token);
+    };
+  }
+
+  private static final ImmutableMap<Integer, CBasicType> ATTRIBUTE_BASIC_TYPES =
+      ImmutableMap.<Integer, CBasicType>builder()
+          .put(IToken.t_char, CBasicType.CHAR)
+          .put(IToken.t_int, CBasicType.INT)
+          .put(IToken.t_float, CBasicType.FLOAT)
+          .put(IToken.t_double, CBasicType.DOUBLE)
+          .put(IToken.t__Bool, CBasicType.BOOL)
+          .put(IGCCToken.t__int128, CBasicType.INT128)
+          .put(IGCCToken.t__float128, CBasicType.FLOAT128)
+          .buildOrThrow();
+
+  private static final ImmutableSet<Integer> ATTRIBUTE_TYPE_MODIFIERS =
+      ImmutableSet.of(IToken.t_long, IToken.t_short, IToken.t_signed, IToken.t_unsigned);
+
+  /** Convert a parenthesized type name: a pointer, a typedef name, or a basic type. */
+  private CType convertTypeTokens(PeekingIterator<IASTToken> pTokens, IASTAttribute pAttribute) {
+    expectToken(pTokens, IToken.tLPAREN, pAttribute);
+    List<IASTToken> tokens = new ArrayList<>();
+    for (IASTToken token = nextToken(pTokens, pAttribute);
+        token.getTokenType() != IToken.tRPAREN;
+        token = nextToken(pTokens, pAttribute)) {
+      tokens.add(token);
+    }
+    List<Integer> types = Lists.transform(tokens, IASTToken::getTokenType);
+
+    if (types.contains(IToken.tSTAR)) {
+      return CPointerType.POINTER_TO_VOID; // all pointers have the same size and alignment
+    }
+    if (types.equals(ImmutableList.of(IToken.tIDENTIFIER))) {
+      CType type =
+          scope.lookupTypedef(
+              scope.getFileSpecificTypeName(String.valueOf(tokens.getFirst().getTokenCharImage())));
+      if (type != null) {
+        return type;
+      }
+    }
+    if (types.isEmpty()
+        || !types.stream()
+            .allMatch(
+                t ->
+                    ATTRIBUTE_BASIC_TYPES.containsKey(t) || ATTRIBUTE_TYPE_MODIFIERS.contains(t))) {
+      throw parseContext.parseError(
+          "Unsupported type in argument of aligned attribute", pAttribute);
+    }
+    int longs = Collections.frequency(types, IToken.t_long);
+    return new CSimpleType(
+        CTypeQualifiers.NONE,
+        types.stream()
+            .map(ATTRIBUTE_BASIC_TYPES::get)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(CBasicType.UNSPECIFIED),
+        longs == 1,
+        types.contains(IToken.t_short),
+        types.contains(IToken.t_signed),
+        types.contains(IToken.t_unsigned),
+        false,
+        false,
+        longs == 2);
+  }
+
+  private IASTToken nextToken(PeekingIterator<IASTToken> pTokens, IASTAttribute pAttribute) {
+    if (!pTokens.hasNext()) {
+      throw parseContext.parseError("Unsupported argument of aligned attribute", pAttribute);
+    }
+    return pTokens.next();
+  }
+
+  private void expectToken(
+      PeekingIterator<IASTToken> pTokens, int pTokenType, IASTAttribute pAttribute) {
+    if (nextToken(pTokens, pAttribute).getTokenType() != pTokenType) {
+      throw parseContext.parseError("Unsupported argument of aligned attribute", pAttribute);
+    }
   }
 
   /** Return normalized string for a name etc. in an attribute context. */
@@ -2801,6 +3029,25 @@ class ASTConverter {
         }
       }
     }
+
+    // GCC: packed on a struct or union is equivalent to packed on all its members. A minimum
+    // alignment of the type is equivalent to the same minimum alignment of its first member.
+    boolean packed = hasPackedAttribute(d);
+    int alignment = getAlignedAttribute(d);
+    if (alignment > 0 && list.isEmpty()) {
+      throw parseContext.parseError("Unsupported aligned attribute for empty " + kind, d);
+    }
+    for (int i = 0; i < list.size() && (packed || alignment > 0); i++) {
+      CCompositeTypeMemberDeclaration member = list.get(i);
+      list.set(
+          i,
+          new CCompositeTypeMemberDeclaration(
+              member.getType(),
+              member.getName(),
+              packed || member.isPacked(),
+              i == 0 ? Math.max(alignment, member.getAlignment()) : member.getAlignment()));
+    }
+
     CCompositeType compositeType =
         new CCompositeType(typeConverter.convertCTypeQualifiers(d), kind, list, name, origName);
 
@@ -2830,7 +3077,7 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    CSimpleType integerType = getEnumerationType(list);
+    CSimpleType integerType = getEnumerationType(list, hasPackedAttribute(d));
     CEnumType enumType =
         new CEnumType(typeConverter.convertCTypeQualifiers(d), integerType, list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
@@ -2851,6 +3098,17 @@ class ASTConverter {
           CNumericTypes.SIGNED_LONG_LONG_INT,
           CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
+  /** GCC uses the smallest possible type for enumerations with the packed attribute. */
+  private static final ImmutableList<CSimpleType> PACKED_ENUM_REPRESENTATION_CANDIDATE_TYPES =
+      ImmutableList.<CSimpleType>builder()
+          .add(
+              CNumericTypes.SIGNED_CHAR,
+              CNumericTypes.UNSIGNED_CHAR,
+              CNumericTypes.SHORT_INT,
+              CNumericTypes.UNSIGNED_SHORT_INT)
+          .addAll(ENUM_REPRESENTATION_CANDIDATE_TYPES)
+          .build();
+
   /**
    * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
    * if needed.
@@ -2859,14 +3117,15 @@ class ASTConverter {
    * an unsigned integer type. The choice of type is implementation-defined, but shall be capable of
    * representing the values of all the members of the enumeration.
    */
-  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators) {
+  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators, boolean packed) {
     List<BigInteger> enumeratorValues = enumerators.stream().map(CEnumerator::getValue).toList();
 
     Preconditions.checkState(
         !enumeratorValues.isEmpty(), "enumeration does not provide any values");
     final BigInteger minValue = Collections.min(enumeratorValues);
     final BigInteger maxValue = Collections.max(enumeratorValues);
-    for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
+    for (CSimpleType integerType :
+        packed ? PACKED_ENUM_REPRESENTATION_CANDIDATE_TYPES : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
       if (minValue.compareTo(machineModel.getMinimalIntegerValue(integerType)) >= 0
           && maxValue.compareTo(machineModel.getMaximalIntegerValue(integerType)) <= 0) {
         // if all enumeration values are matching into the range, we use it
