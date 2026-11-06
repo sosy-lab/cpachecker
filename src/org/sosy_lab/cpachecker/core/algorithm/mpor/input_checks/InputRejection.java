@@ -309,7 +309,10 @@ public class InputRejection {
     }
     CType dereferenceType = pPointerDereference.getUnwrappedType();
     CType targetType = pTargetMemoryLocation.getUnwrappedType();
-    if (!areTypesCompatible(dereferenceType, targetType)) {
+    if (!areTypesCompatible(dereferenceType, targetType)
+        // do not check pthread types, since these are substituted and may not match
+        && !PthreadUtil.isAnyPthreadObjectType(dereferenceType)
+        && !PthreadUtil.isAnyPthreadObjectType(targetType)) {
       throw new UnsupportedCodeException(
           InputMessage.POINTER_DEREFERENCE_TYPE_MISMATCH.formatMessage(
               describe(pPointerDereference),
