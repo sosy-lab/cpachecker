@@ -232,7 +232,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
    */
   private List<InterpreterStep> computeSteps(
       AbstractState pState,
-      @Nullable StackFrame pCallStack,
+      StackFrame pCallStack,
       AbstractStateWithLocations pLocationState,
       Precision pPrecision,
       boolean pAllowSeveralSuccessors)
@@ -245,7 +245,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     List<InterpreterStep> steps = new ArrayList<>(1);
     for (CFAEdge edge : pLocationState.getOutgoingEdges()) {
       AbstractState predecessor = pState;
-      if (edge instanceof FunctionReturnEdge returnEdge && pCallStack != null) {
+      if (edge instanceof FunctionReturnEdge returnEdge) {
         if (restoredState == null) {
           restoredState = restoreCallerValues(pState, returnEdge, pCallStack);
         }
@@ -307,8 +307,8 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   /**
    * The exception for a state with more than one successor: the execution cannot follow several
    * successors at once, so it stops here unless the inputs are sampled. The code itself is not
-   * unsupported, it is the wrapped transfer relation that produces a state we cannot continue
-   * from, so this is a plain {@link CPATransferException}.
+   * unsupported, it is the wrapped transfer relation that produces a state we cannot continue from,
+   * so this is a plain {@link CPATransferException}.
    */
   private CPATransferException nondeterminismException(
       @Nullable CFAEdge pFirstEdge, CFAEdge pSecondEdge) {
@@ -326,31 +326,30 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   }
 
   /** Push a stack frame for a function call and pop one for a function return. */
-  private @Nullable StackFrame updateCallStack(
+  private StackFrame updateCallStack(
       InterpreterState pState, CFAEdge pEdge, AbstractState pCallerState) {
     final StackFrame callStack = pState.getCallStack();
 
     if (pEdge instanceof FunctionCallEdge callEdge) {
       FunctionEntryNode entryNode = callEdge.getSuccessor();
-      boolean isRecursive = callStack != null && callStack.contains(entryNode.getFunctionName());
+      boolean isRecursive = callStack.contains(entryNode.getFunctionName());
       if (isRecursive) {
         stats.recursiveCalls.inc();
       }
-      // The stack is empty only if the execution has returned from the entry function, which is
-      // possible when that function is called elsewhere in the program.
       StackFrame newFrame =
-          callStack == null
-              ? StackFrame.initial(entryNode.getFunctionName())
-              : StackFrame.push(
-                  callStack,
-                  entryNode.getFunctionName(),
-                  isRecursive ? getShadowedValues(pCallerState, entryNode) : ImmutableMap.of());
+          StackFrame.push(
+              callStack,
+              entryNode.getFunctionName(),
+              isRecursive ? getShadowedValues(pCallerState, entryNode) : ImmutableMap.of());
       stats.maxCallStackDepth.setNextValue(newFrame.depth());
       return newFrame;
     }
 
-    if (pEdge instanceof FunctionReturnEdge && callStack != null) {
-      return callStack.parent();
+    if (pEdge instanceof FunctionReturnEdge) {
+      // The entry function is never left: its frame has no call node that a return edge could
+      // match, so the CallstackCPA of the wrapped analysis gives such an edge no successor and
+      // we never get here for the bottom frame.
+      return verifyNotNull(callStack.parent(), "returned from the entry function");
     }
     return callStack;
   }

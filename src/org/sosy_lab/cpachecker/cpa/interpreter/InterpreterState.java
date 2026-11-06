@@ -35,19 +35,18 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class InterpreterState extends AbstractSingleWrapperState {
 
-  /** Stack of active function calls, {@code null} if no function call is active. */
-  private final @Nullable StackFrame callStack;
+  /** Stack of active function calls, with the frame of the entry function at the bottom. */
+  private final StackFrame callStack;
 
   private final AlgorithmStatus status;
 
-  InterpreterState(AbstractState pWrappedState, @Nullable StackFrame pCallStack) {
+  InterpreterState(AbstractState pWrappedState, StackFrame pCallStack) {
     this(pWrappedState, pCallStack, AlgorithmStatus.SOUND_AND_PRECISE);
   }
 
-  InterpreterState(
-      AbstractState pWrappedState, @Nullable StackFrame pCallStack, AlgorithmStatus pStatus) {
+  InterpreterState(AbstractState pWrappedState, StackFrame pCallStack, AlgorithmStatus pStatus) {
     super(checkNotNull(pWrappedState));
-    callStack = pCallStack;
+    callStack = checkNotNull(pCallStack);
     status = checkNotNull(pStatus);
   }
 
@@ -55,7 +54,7 @@ public class InterpreterState extends AbstractSingleWrapperState {
     return status;
   }
 
-  @Nullable StackFrame getCallStack() {
+  StackFrame getCallStack() {
     return callStack;
   }
 

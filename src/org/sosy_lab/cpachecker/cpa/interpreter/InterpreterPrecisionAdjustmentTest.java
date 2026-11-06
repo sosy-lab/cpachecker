@@ -75,7 +75,9 @@ public class InterpreterPrecisionAdjustmentTest {
   public void testTargetIntroducedByPrecisionAdjustmentNeedsPrecision() {
     InterpreterState state =
         new InterpreterState(
-            SingletonAbstractState.INSTANCE, null, AlgorithmStatus.SOUND_AND_IMPRECISE);
+            SingletonAbstractState.INSTANCE,
+            StackFrame.initial("main"),
+            AlgorithmStatus.SOUND_AND_IMPRECISE);
     assertThrows(
         CPATransferException.class,
         () -> adjust(state, Optional.of(DummyTargetState.withoutTargetInformation())));
@@ -85,7 +87,9 @@ public class InterpreterPrecisionAdjustmentTest {
   public void testRemovingUnsoundStateCannotProveSafety() {
     InterpreterState state =
         new InterpreterState(
-            SingletonAbstractState.INSTANCE, null, AlgorithmStatus.UNSOUND_AND_PRECISE);
+            SingletonAbstractState.INSTANCE,
+            StackFrame.initial("main"),
+            AlgorithmStatus.UNSOUND_AND_PRECISE);
     assertThrows(CPATransferException.class, () -> adjust(state, Optional.empty()));
   }
 
@@ -93,7 +97,9 @@ public class InterpreterPrecisionAdjustmentTest {
   public void testRemovingSoundButImpreciseStateIsAllowed() throws Exception {
     InterpreterState state =
         new InterpreterState(
-            SingletonAbstractState.INSTANCE, null, AlgorithmStatus.SOUND_AND_IMPRECISE);
+            SingletonAbstractState.INSTANCE,
+            StackFrame.initial("main"),
+            AlgorithmStatus.SOUND_AND_IMPRECISE);
     assertThat(adjust(state, Optional.empty())).isEmpty();
   }
 }
