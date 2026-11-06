@@ -1,0 +1,1131 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibUninterpretedScope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibLabelStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+
+class CToSvLibInitializer {
+
+  private final LogManager logger;
+  private final CFA cfa;
+
+  /** The functions of the program that are transformed. */
+  private final ImmutableList<FunctionEntryNode> functions;
+
+  private final SvLibCurrentScope scope;
+  private final FormulaManagerView formulaManager;
+  private final PathFormulaManager pathFormulaManager;
+  private final CtoFormulaConverter converter;
+
+  /**
+   * The context of the formulas of the declarations, which contains the declarations so far: a
+   * declaration like "int *p = &a;" needs the base of a, which cannot be created there if the size
+   * of the type of a is unknown.
+   */
+  private PathFormula declarationContext;
+
+  /** The names of the global variables of the program, which a local variable must not have. */
+  private final ImmutableSet<String> namesOfGlobalVariables;
+
+  CToSvLibInitializer(
+      LogManager pLogger,
+      CFA pCFA,
+      ImmutableList<FunctionEntryNode> pFunctions,
+      SvLibCurrentScope pCurrentScope,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
+      CtoFormulaConverter pConverter) {
+    logger = pLogger;
+    cfa = pCFA;
+    functions = pFunctions;
+    scope = pCurrentScope;
+    formulaManager = pFormulaManager;
+    pathFormulaManager = pPathFormulaManager;
+    converter = pConverter;
+    namesOfGlobalVariables = collectNamesOfGlobalVariables();
+    declarationContext = pathFormulaManager.makeEmptyPathFormula();
+  }
+
+  /**
+   * The names of the global variables of the program.
+   *
+   * <p>The generated program has no scopes, so a local variable of a procedure and a global
+   * variable cannot have the same name in it, and a local variable of the input program that
+   * shadows a global one has to be renamed.
+   */
+  private ImmutableSet<String> collectNamesOfGlobalVariables() {
+    ImmutableSet.Builder<String> names = ImmutableSet.builder();
+    for (CFAEdge edge : cfa.edges()) {
+      if (edge instanceof CDeclarationEdge declarationEdge
+          && declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration
+          && variableDeclaration.isGlobal()) {
+        names.add(variableDeclaration.getName());
+      }
+    }
+    return names.build();
+  }
+
+  /**
+   * Create the declaration of a local variable of a procedure, whose name in the generated program
+   * is the qualified name of the variable if a global variable has the same name.
+   */
+  private SvLibParsingParameterDeclaration createLocalVariable(
+      SvLibType pType, String pName, String pProcedureName) {
+    String qualifiedName = pProcedureName + "::" + pName;
+    String name = namesOfGlobalVariables.contains(pName) ? qualifiedName : pName;
+    return new SvLibParsingParameterDeclaration(
+        FileLocation.DUMMY, pType, name, pProcedureName, qualifiedName);
+  }
+
+  void initialize(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
+      throws UnsupportedOperationException, CPATransferException, InterruptedException {
+    ImmutableSet.Builder<CType> typesOfHeapArraysToBuild = ImmutableSet.builder();
+
+    for (FunctionEntryNode entryNode : functions) {
+      CFunctionEntryNode cEntryNode = (CFunctionEntryNode) entryNode;
+      String procedureName = entryNode.getFunctionName();
+
+      ImmutableList<SvLibParsingParameterDeclaration> inputParameters =
+          collectInputParameters(cEntryNode.getFunctionParameters(), procedureName);
+      ImmutableList<SvLibParsingParameterDeclaration> returnParameter =
+          collectReturnParameter(cEntryNode.getReturnVariable(), procedureName);
+      ImmutableSet.Builder<SvLibParsingParameterDeclaration> localVariablesCollector =
+          ImmutableSet.builder();
+
+      // create (assignable) dummy parameters for (non-assignable) inputParameters
+      for (SvLibParsingParameterDeclaration inputParameter : inputParameters) {
+        localVariablesCollector.add(createDummyForInputParameter(inputParameter));
+      }
+      if (entryNode.equals(cfa.getMainFunction())) {
+        // The parameters of main have arbitrary values, as in the analysis of the C program.
+        for (CParameterDeclaration parameter : cEntryNode.getFunctionParameters()) {
+          localVariablesCollector.add(
+              createLocalVariable(
+                  convertToSvLibSmtLibType(getTypeOfParameter(parameter.getType())),
+                  parameter.getName(),
+                  procedureName));
+        }
+      }
+
+      ImmutableSet.Builder<CFunctionCallExpression> undeclaredFunctionsCollector =
+          ImmutableSet.builder();
+      for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
+        if (edge instanceof CDeclarationEdge declarationEdge) {
+          CDeclaration declaration = declarationEdge.getDeclaration();
+
+          if (declaration instanceof CVariableDeclaration) {
+            // Also a variable whose type has no values can become a base, when its address is
+            // taken, and the later declarations need that base.
+            declarationContext =
+                pathFormulaManager.makeAnd(
+                    pathFormulaManager.makeEmptyPathFormulaWithContext(
+                        declarationContext.getSsa(), declarationContext.getPointerTargetSet()),
+                    edge);
+          }
+          if (declaration instanceof CVariableDeclaration variableDeclaration
+              && hasValues(variableDeclaration.getType())) {
+            SvLibSimpleParsingDeclaration parsingDeclaration =
+                initializeVariableDeclaration(
+                    variableDeclaration,
+                    procedureName,
+                    typesOfHeapArraysToBuild,
+                    pCommandsCollector);
+
+            if (parsingDeclaration
+                instanceof SvLibParsingVariableDeclaration globalVariableDeclaration) {
+              // The declaration of a global variable can be part of the edges of more than one
+              // function, and the variable is only declared once in the generated program.
+              if (!scope.hasVariableForQualifiedName(
+                  globalVariableDeclaration.getQualifiedName())) {
+                scope.addVariable(globalVariableDeclaration);
+                pCommandsCollector.add(
+                    new SvLibVariableDeclarationCommand(
+                        globalVariableDeclaration, FileLocation.DUMMY));
+              }
+            } else if (parsingDeclaration
+                instanceof SvLibParsingParameterDeclaration localVariableDeclaration) {
+              localVariablesCollector.add(localVariableDeclaration);
+            }
+
+          } else if (declaration instanceof CFunctionDeclaration functionDeclaration) {
+            // handle external functions
+            // The same external function may be declared in several functions of the program, but
+            // only one procedure is created for it.
+            boolean isExtern = !cfa.getAllFunctionNames().contains(functionDeclaration.getName());
+            if (isExtern
+                && !isEncodedInFormula(functionDeclaration.getName())
+                && !CToSvLibTransformationConstants.NAMES_OF_TERMINATING_FUNCTIONS.contains(
+                    functionDeclaration.getName())
+                && !scope.hasProcedureDeclaration(functionDeclaration.getName())) {
+              addExternProcedure(
+                  createExternProcedureDefinition(functionDeclaration), pCommandsCollector);
+            }
+          }
+
+        } else if (edge instanceof CStatementEdge cStatementEdge
+            && cStatementEdge.getStatement()
+                instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement
+            && cFunctionCallAssignmentStatement.getRightHandSide().getDeclaration() == null
+            && !isEncodedInFormula(
+                cFunctionCallAssignmentStatement
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString())) {
+          undeclaredFunctionsCollector.add(
+              cFunctionCallAssignmentStatement.getFunctionCallExpression());
+          // The result can be assigned to memory, as for a call through a pointer to a function,
+          // which needs the variable that holds it as well.
+          SvLibType returnValueType =
+              convertToSvLibSmtLibType(
+                  cFunctionCallAssignmentStatement.getRightHandSide().getExpressionType());
+          localVariablesCollector.add(
+              new SvLibParsingParameterDeclaration(
+                  FileLocation.DUMMY,
+                  returnValueType,
+                  CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType),
+                  procedureName));
+
+        } else if (edge instanceof CStatementEdge statementEdgeOfCall
+            && statementEdgeOfCall.getStatement() instanceof CFunctionCallStatement callStatement
+            && callStatement.getFunctionCallExpression().getDeclaration() == null
+            && !isEncodedInFormula(
+                callStatement
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString())) {
+          // A function without a declaration can also be called without its result being used, for
+          // example through a pointer.
+          undeclaredFunctionsCollector.add(callStatement.getFunctionCallExpression());
+
+        } else if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge
+            && pCFunctionSummaryEdge.getExpression() instanceof CFunctionCallStatement functionCall
+            && !(functionCall.getFunctionCallExpression().getExpressionType()
+                instanceof CVoidType)) {
+          // create dummy return parameters for procedure calls for function calls without
+          // assignment and non-void return type
+          SvLibParsingParameterDeclaration dummyReturnParameter =
+              createDummyReturnParameter(functionCall, procedureName);
+          localVariablesCollector.add(dummyReturnParameter);
+
+        } else if (edge instanceof CStatementEdge cStatementEdge
+            && cStatementEdge.getStatement() instanceof CFunctionCallStatement functionCall
+            && !(functionCall.getFunctionCallExpression().getExpressionType()
+                instanceof CVoidType)) {
+          SvLibParsingParameterDeclaration dummyReturnParameter =
+              createDummyReturnParameter(functionCall, procedureName);
+          localVariablesCollector.add(dummyReturnParameter);
+
+        } else if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge
+            && pCFunctionSummaryEdge.getExpression()
+                instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
+
+          // The variable holds the value that the call returns, so it has the type of the return
+          // value of the called procedure and not the type of the assigned memory.
+          SvLibType returnValueType =
+              convertToSvLibSmtLibType(
+                  functionCallAssignmentStatement.getRightHandSide().getExpressionType());
+          SvLibParsingParameterDeclaration tmpHeapAssignVariable =
+              new SvLibParsingParameterDeclaration(
+                  FileLocation.DUMMY,
+                  returnValueType,
+                  CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType),
+                  procedureName);
+          localVariablesCollector.add(tmpHeapAssignVariable);
+
+        } else if (edge instanceof CStatementEdge cStatementEdge
+            && cStatementEdge.getStatement()
+                instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement
+            && functionCallAssignmentStatement.getRightHandSide().getDeclaration() != null) {
+
+          // The variable holds the value that the call returns, so it has the type of the return
+          // value of the called procedure and not the type of the assigned memory.
+          SvLibType returnValueType =
+              convertToSvLibSmtLibType(
+                  functionCallAssignmentStatement.getRightHandSide().getExpressionType());
+          SvLibParsingParameterDeclaration tmpHeapAssignVariable =
+              new SvLibParsingParameterDeclaration(
+                  FileLocation.DUMMY,
+                  returnValueType,
+                  CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType),
+                  procedureName);
+          localVariablesCollector.add(tmpHeapAssignVariable);
+        }
+
+        // A call that allocates memory is encoded in the formula of its edge, which introduces a
+        // base for the allocated memory and a value that decides whether the allocation succeeded.
+        if (edge instanceof CStatementEdge callEdge
+            && callEdge.getStatement() instanceof CFunctionCall functionCall
+            && isEncodedInFormula(
+                functionCall
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString())) {
+          declareVariablesForCallInFormula(
+              functionCall, pCommandsCollector, typesOfHeapArraysToBuild);
+        }
+
+        // A function call whose return value is assigned to a variable of a different type, as in
+        // "int x = f();" where f returns an unsigned char, needs a dummy variable of the type of
+        // the return value, because the value has to be converted before it is assigned.
+        if (edge instanceof CStatementEdge statementEdge
+            && statementEdge.getStatement()
+                instanceof CFunctionCallAssignmentStatement callAssignment
+            && callAssignment.getLeftHandSide() instanceof CIdExpression
+            && !(callAssignment.getRightHandSide().getExpressionType() instanceof CVoidType)
+            && !convertToSvLibSmtLibType(callAssignment.getLeftHandSide().getExpressionType())
+                .equals(
+                    convertToSvLibSmtLibType(
+                        callAssignment.getRightHandSide().getExpressionType()))) {
+          localVariablesCollector.add(
+              createDummyReturnParameter(
+                  callAssignment.getRightHandSide().getExpressionType(), procedureName));
+        }
+      }
+
+      ImmutableSet<CFunctionCallExpression> undeclaredFunctions =
+          undeclaredFunctionsCollector.build();
+      if (!undeclaredFunctions.isEmpty()) {
+        initializeUndeclaredFunctions(undeclaredFunctions, procedureName, pCommandsCollector);
+      }
+
+      SvLibProcedureDeclaration procedureDeclaration =
+          new SvLibProcedureDeclaration(
+              FileLocation.DUMMY,
+              procedureName,
+              inputParameters,
+              returnParameter,
+              localVariablesCollector.build().asList());
+      scope.addProcedureDeclaration(procedureDeclaration);
+    }
+
+    for (CType type : typesOfHeapArraysToBuild.build()) {
+      // for arrays with dimensionality = 2
+      if (type instanceof CArrayType arrayType) {
+        typesOfHeapArraysToBuild.add(arrayType.getCanonicalType().getType());
+      }
+    }
+
+    // Several C types can share one array, for example a type and the same type with a qualifier,
+    // so the arrays are collected by their name.
+    Set<String> createdHeapArrays = new HashSet<>();
+    for (CType heapArrayType : typesOfHeapArraysToBuild.build()) {
+      if (createdHeapArrays.add(getHeapArrayName(heapArrayType))) {
+        SvLibParsingVariableDeclaration heapArrayParsingVariableDeclaration =
+            createArrayDeclarationForHeap(heapArrayType);
+        SvLibVariableDeclarationCommand heapArrayVariableDeclarationCommand =
+            new SvLibVariableDeclarationCommand(
+                heapArrayParsingVariableDeclaration, FileLocation.DUMMY);
+        pCommandsCollector.add(heapArrayVariableDeclarationCommand);
+        scope.addVariable(heapArrayParsingVariableDeclaration);
+      }
+    }
+  }
+
+  private SvLibSimpleParsingDeclaration initializeVariableDeclaration(
+      CVariableDeclaration pVariableDeclaration,
+      String pProcedureName,
+      ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector)
+      throws CPATransferException, InterruptedException {
+
+    PointerTargetSet pointerTargetSetForEdge = declarationContext.getPointerTargetSet();
+    // One edge can make more than one variable part of the heap representation, for example the
+    // declaration "int *p = &a;", so the base of the declared variable is searched for instead of
+    // assuming that it is the only one.
+    for (Entry<PointerBase, CType> baseEntry : pointerTargetSetForEdge.getBases().entrySet()) {
+      if (baseEntry.getKey().name().equals(pVariableDeclaration.getQualifiedName())) {
+        addTypesOfHeapArraysFor(baseEntry.getValue(), pTypesOfHeapArraysToCreate);
+        if (pVariableDeclaration.isGlobal()) {
+          // A global variable is initialized before its address can be taken, so the formulas
+          // refer to the variable itself as well as to the memory that it is part of.
+          declareGlobalVariable(
+              pVariableDeclaration.getName(),
+              convertToSvLibSmtLibType(pVariableDeclaration.getType()),
+              pCommandsCollector);
+        }
+        return createAddressOfVariable(baseEntry.getKey());
+      }
+    }
+
+    return createVariable(pVariableDeclaration, pProcedureName);
+  }
+
+  /**
+   * Does {@link CtoFormulaConverter} encode a call of the function with the given name in the
+   * formula of its edge, so that the transformation must not create a procedure for it?
+   */
+  private boolean isEncodedInFormula(String pFunctionName) {
+    return CToSvLibTransformationConstants.NAMES_OF_MEMORY_ALLOCATION_FUNCTIONS.contains(
+            pFunctionName)
+        || CToSvLibTransformationConstants.NAMES_OF_COMPARISON_FUNCTIONS.contains(pFunctionName)
+        || BuiltinFunctions.isBuiltinFunction(pFunctionName)
+        || CtoFormulaConverter.isSideEffectFunction(pFunctionName);
+  }
+
+  /**
+   * Declare the variables that the formula of a call which that formula encodes needs.
+   *
+   * <p>For a call that allocates memory, the formula contains a base for the allocated memory,
+   * whose address is separated from the addresses of all other objects, and a value that decides
+   * whether the allocation succeeded. That value is named after the called function, and its name
+   * does not contain the function that contains the call, so it is declared globally. The value of
+   * a call whose semantics the converter does not know is declared where the formula that contains
+   * it is transformed, because its name contains an index that is only known then.
+   */
+  private void declareVariablesForCallInFormula(
+      CFunctionCall pAllocationCall,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector,
+      ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate) {
+    // The allocated memory is accessed through the pointer that the result is assigned to, so the
+    // array that models the memory of the type it points to is needed.
+    if (pAllocationCall instanceof CFunctionCallAssignmentStatement assignment
+        && assignment.getLeftHandSide().getExpressionType().getCanonicalType()
+            instanceof CPointerType pointerType) {
+      addTypesOfHeapArraysFor(pointerType.getType(), pTypesOfHeapArraysToCreate);
+    }
+
+    String nameOfFunction =
+        pAllocationCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+    if (!CToSvLibTransformationConstants.NAMES_OF_MEMORY_ALLOCATION_FUNCTIONS.contains(
+        nameOfFunction)) {
+      return;
+    }
+
+    // The value that decides whether the allocation succeeded is named after the called function.
+    declareGlobalVariable(
+        nameOfFunction,
+        convertToSvLibSmtLibType(pAllocationCall.getFunctionCallExpression().getExpressionType()),
+        pCommandsCollector);
+  }
+
+  /** Declare a global variable of the generated program, unless it is already declared. */
+  private void declareGlobalVariable(
+      String pName, SvLibSmtLibType pType, ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    if (scope.hasVariableForQualifiedName(pName)) {
+      return;
+    }
+    SvLibParsingVariableDeclaration declaration =
+        new SvLibParsingVariableDeclaration(
+            FileLocation.DUMMY, true, false, pType, pName, pName, null);
+    scope.addVariable(declaration);
+    pCommandsCollector.add(new SvLibVariableDeclarationCommand(declaration, FileLocation.DUMMY));
+  }
+
+  private SvLibSimpleParsingDeclaration createAddressOfVariable(PointerBase pPointerBase) {
+    String addressName = pPointerBase.formulaEncoding();
+    SvLibSmtLibType addressType = getAddressType();
+
+    // The address of an object is the same wherever the program refers to it, and the formulas of
+    // every procedure are built with all objects of the program in their context, so the address of
+    // a local variable is a variable of the generated program as well: a procedure that only reads
+    // the memory of such an object needs it, too.
+    return new SvLibParsingVariableDeclaration(
+        FileLocation.DUMMY, true, false, addressType, addressName, addressName, null);
+  }
+
+  private SvLibSimpleParsingDeclaration createVariable(
+      CVariableDeclaration pVariableDeclaration, String pProcedureName) {
+    SvLibType type = convertToSvLibSmtLibType(pVariableDeclaration.getType());
+    if (pVariableDeclaration.isGlobal()) {
+      // global variable declaration
+      return createGlobalVariableDeclaration(pVariableDeclaration, type);
+    } else {
+      // local variable declaration
+      return createLocalVariable(type, pVariableDeclaration.getName(), pProcedureName);
+    }
+  }
+
+  private SvLibParsingVariableDeclaration createArrayDeclarationForHeap(CType pElementType) {
+    SvLibSmtLibType indexType = getAddressType();
+    SvLibSmtLibArrayType arrayType =
+        new SvLibSmtLibArrayType(indexType, convertToSvLibSmtLibType(pElementType));
+
+    String heapTypeName = getHeapArrayName(pElementType);
+    return new SvLibParsingVariableDeclaration(
+        FileLocation.DUMMY, true, false, arrayType, heapTypeName, heapTypeName, null);
+  }
+
+  /**
+   * The name of the array that models the memory holding values of the given type.
+   *
+   * <p>The name has to be the one that the formulas use for accesses to that memory, because the
+   * transformation looks the array up by the name of the free variable of such an access.
+   */
+  private @NonNull String getHeapArrayName(CType pElementType) {
+    return pathFormulaManager.getPointerAccessName(pElementType);
+  }
+
+  /**
+   * Does an object of the given type have values, i.e. is its size known and greater than zero?
+   *
+   * <p>A variable of a type without values, such as a structure without members or one that is only
+   * declared, is not declared in the generated program, because the formulas cannot contain a value
+   * of that type either. C forbids reading or writing such a variable, only its address can be
+   * taken.
+   */
+  private boolean hasValues(CType pType) {
+    return pType.hasKnownConstantSize() && cfa.getMachineModel().getSizeof(pType).signum() > 0;
+  }
+
+  /**
+   * The type of an address, which is the one that the formulas use for the value of a pointer and
+   * for an index into an array that models the memory of the heap.
+   */
+  private SvLibSmtLibType getAddressType() {
+    return convertToSvLibSmtLibType(CPointerType.POINTER_TO_VOID);
+  }
+
+  private SvLibParsingParameterDeclaration createDummyReturnParameter(
+      CFunctionCallStatement pFunctionCall, String pProcedureName) {
+    return createDummyReturnParameter(
+        pFunctionCall.getFunctionCallExpression().getExpressionType(), pProcedureName);
+  }
+
+  private SvLibParsingParameterDeclaration createDummyReturnParameter(
+      CType pFunctionReturnType, String pProcedureName) {
+    SvLibSmtLibType returnType = convertToSvLibSmtLibType(pFunctionReturnType);
+    return new SvLibParsingParameterDeclaration(
+        FileLocation.DUMMY,
+        returnType,
+        CToSvLibTransformationConstants.returnDummyVariableName(returnType),
+        pProcedureName);
+  }
+
+  private SvLibSmtLibType convertToSvLibSmtLibType(CType pCType) {
+    if (pCType instanceof CArrayType arrayType && !arrayType.hasKnownConstantSize()) {
+      // TODO probably better recursively but works for 2d
+      if (arrayType.getCanonicalType().getType() instanceof CArrayType nestedArrayType) {
+        CType innerType = nestedArrayType.getCanonicalType().getType();
+        pCType = innerType;
+      } else {
+        pCType = arrayType.getCanonicalType().getType();
+      }
+    }
+
+    FormulaType<?> formulaType = converter.getFormulaTypeFromType(pCType);
+    FormulaType<?> encodedFormulaType = formulaManager.getEncodedFormulaType(formulaType);
+
+    if (encodedFormulaType.isBooleanType()) {
+      return SvLibSmtLibPredefinedType.BOOL;
+    } else if (encodedFormulaType.isIntegerType()) {
+      return SvLibSmtLibPredefinedType.INT;
+    } else if (encodedFormulaType.isStringType()) {
+      return SvLibSmtLibPredefinedType.STRING;
+    } else if (encodedFormulaType.isRationalType()) {
+      return SvLibSmtLibPredefinedType.REAL;
+    } else if (encodedFormulaType.isBitvectorType()) {
+      BitvectorType bitvectorType = (BitvectorType) formulaType;
+      return new SvLibSmtLibBitVectorType(bitvectorType.getSize());
+    } else if (encodedFormulaType.isFloatingPointType()) {
+      FloatingPointType floatingPointType = (FloatingPointType) formulaType;
+      return new SvLibSmtLibFloatingPointType(
+          floatingPointType.getExponentSize(), floatingPointType.getMantissaSizeWithHiddenBit());
+    }
+
+    throw new UnsupportedOperationException(
+        "Transformation to a SvLibType failed for CType " + pCType);
+  }
+
+  /**
+   * Add the types of the arrays that model the memory of an object of the given type.
+   *
+   * <p>The elements of an array and the members of a structure are accessed under the name of their
+   * own type, and the object as a whole, for example when its address is taken or when it is
+   * assigned at once, under the name of its type.
+   */
+  private void addTypesOfHeapArraysFor(
+      CType pType, ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate) {
+    CType type = pType.getCanonicalType();
+    if (!hasValues(type)) {
+      // No value of that type can be read from or written to the memory, so no array is needed.
+      return;
+    }
+    if (type instanceof CArrayType arrayType) {
+      pTypesOfHeapArraysToCreate.add(arrayType);
+      addTypesOfHeapArraysFor(arrayType.getType(), pTypesOfHeapArraysToCreate);
+    } else if (type instanceof CCompositeType compositeType) {
+      pTypesOfHeapArraysToCreate.add(compositeType);
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        addTypesOfHeapArraysFor(memberDeclaration.getType(), pTypesOfHeapArraysToCreate);
+      }
+    } else if (!(type instanceof CVoidType)) {
+      pTypesOfHeapArraysToCreate.add(pType);
+    }
+  }
+
+  /**
+   * The type that a parameter or a returned value of the given C type has in the generated program.
+   *
+   * <p>The value of a pointer is its address, which is as wide as a pointer of the machine model
+   * and independent of the type it points to, so the type of the pointer itself is used. C passes
+   * an array as a pointer to its first element, so an array parameter is one as well.
+   */
+  private CType getTypeOfParameter(CType pType) {
+    CType type = pType.getCanonicalType();
+    if (type instanceof CArrayType arrayType) {
+      return new CPointerType(CTypeQualifiers.NONE, arrayType.getType());
+    }
+    return type;
+  }
+
+  private ImmutableList<SvLibParsingParameterDeclaration> collectInputParameters(
+      ImmutableList<CParameterDeclaration> pParameterDeclarations, String pProcedureName)
+      throws UnsupportedOperationException {
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> parameterCollector =
+        ImmutableList.builder();
+
+    if (pProcedureName.equals(cfa.getMainFunction().getFunctionName())) {
+      // Ignore input parameters of the main function
+      return parameterCollector.build();
+    }
+
+    for (CParameterDeclaration parameter : pParameterDeclarations) {
+      // The type is canonicalized, because a parameter of a type that is defined with typedef has
+      // to be kept as well. A parameter must never be dropped silently, because the argument of
+      // the call would then not be passed.
+      parameterCollector.add(
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY,
+              convertToSvLibSmtLibType(getTypeOfParameter(parameter.getType())),
+              getNameForInputParameterDummy(parameter.getName()),
+              pProcedureName));
+    }
+    return parameterCollector.build();
+  }
+
+  private ImmutableList<SvLibParsingParameterDeclaration> collectReturnParameter(
+      Optional<CVariableDeclaration> pReturnVariable, String pProcedureName)
+      throws UnsupportedOperationException {
+    if (pReturnVariable.isEmpty()) {
+      return ImmutableList.of();
+    }
+    CType returnType = pReturnVariable.orElseThrow().getType().getCanonicalType();
+    if (returnType instanceof CVoidType) {
+      return ImmutableList.of();
+    }
+    // The type is canonicalized, because a return type that is defined with typedef has to be kept
+    // as well. It must never be dropped silently, because the formulas refer to the variable that
+    // holds the returned value.
+    return ImmutableList.of(
+        new SvLibParsingParameterDeclaration(
+            FileLocation.DUMMY,
+            convertToSvLibSmtLibType(getTypeOfParameter(returnType)),
+            pReturnVariable.orElseThrow().getName(),
+            pProcedureName));
+  }
+
+  private SvLibParsingParameterDeclaration createDummyForInputParameter(
+      SvLibParsingParameterDeclaration pInputParameter) {
+    return createLocalVariable(
+        pInputParameter.getType(),
+        nameOfInputParameterDummy(pInputParameter.getName()),
+        pInputParameter.getProcedureName());
+  }
+
+  private String getNameForInputParameterDummy(String pOriginalName) {
+    return CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX + pOriginalName;
+  }
+
+  private String nameOfInputParameterDummy(String pDummyName) {
+    if (pDummyName.startsWith(CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX)) {
+      // return the name without the prefix
+      return pDummyName.substring(CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX.length());
+    }
+    throw new IllegalArgumentException(
+        "Cannot remove prefix "
+            + CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX
+            + " from name "
+            + pDummyName);
+  }
+
+  private ImmutableList<CFAEdge> getAllRelevantEdges(FunctionEntryNode pEntryNode) {
+    final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pEntryNode, edgeCollector);
+    return ImmutableList.copyOf(edgeCollector.getVisitedEdges());
+  }
+
+  private SvLibParsingVariableDeclaration createGlobalVariableDeclaration(
+      CVariableDeclaration pVariableDeclaration, SvLibType pType) {
+    String name = pVariableDeclaration.getName();
+    return new SvLibParsingVariableDeclaration(
+        FileLocation.DUMMY,
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getType().isConst(),
+        pType,
+        name,
+        name,
+        null);
+  }
+
+  private SvLibProcedureDefinitionCommand createExternProcedureDefinition(
+      CFunctionDeclaration pFunctionDeclaration) throws CPATransferException, InterruptedException {
+    if (CToSvLibTransformationConstants.NAMES_OF_ASSERT_FUNCTIONS.contains(
+        pFunctionDeclaration.getName())) {
+      // Special handling of a set of external __assert functions that have char* input parameters
+      // in the C program, since Transformation via the FormulaToSvlibVisitor cannot yet handle
+      // pathFormulas with strings.
+      // Therefore, dummy procedures with no parameters and (assert fail) as body are created for
+      // these functions.
+      return escapeExternalAssertWithString(pFunctionDeclaration);
+    } else if (CToSvLibTransformationConstants.NAMES_OF_UNSUPPORTED_STDLIB_EXTERNAL_FUNCTIONS
+        .contains(pFunctionDeclaration.getName())) {
+      return escapeExternalAssertWithString(pFunctionDeclaration);
+    } else if (CToSvLibTransformationConstants.NAMES_OF_UNSUPPORTED_NONDET_FUNCTIONS.contains(
+        pFunctionDeclaration.getName())) {
+      return escapeExternalAssertWithString(pFunctionDeclaration);
+    } else {
+      SvLibProcedureDeclaration externProcedureDeclaration =
+          createProcedureDeclarationForExternFunction(pFunctionDeclaration);
+      CType cReturnType = pFunctionDeclaration.getType().getReturnType();
+      SvLibStatement externProcedureBody =
+          createBodyForExternProcedure(externProcedureDeclaration, cReturnType);
+      return new SvLibProcedureDefinitionCommand(
+          FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
+    }
+  }
+
+  private SvLibProcedureDefinitionCommand escapeExternalAssertWithString(
+      CFunctionDeclaration pFunctionDeclaration) {
+    SvLibProcedureDeclaration procedureDeclaration =
+        new SvLibProcedureDeclaration(
+            FileLocation.DUMMY,
+            pFunctionDeclaration.getName(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableList.of());
+
+    SvLibStatement procedureBody = createBodyForNoReturnProcedure(pFunctionDeclaration.getName());
+
+    return new SvLibProcedureDefinitionCommand(
+        FileLocation.DUMMY, procedureDeclaration, procedureBody);
+  }
+
+  private void initializeUndeclaredFunctions(
+      ImmutableSet<CFunctionCallExpression> pUndeclaredFunctions,
+      String pCallingFunction,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector)
+      throws CPATransferException, InterruptedException {
+    // Several calls of the same function are different expressions, and the same function may be
+    // called from several functions of the program, so only one procedure is created per name.
+    for (CFunctionCallExpression functionCallExpression : pUndeclaredFunctions) {
+      String functionName =
+          CToSvLibTransformationConstants.procedureNameOfCall(
+              functionCallExpression, pCallingFunction);
+      if (scope.hasProcedureDeclaration(functionName)
+          || CToSvLibTransformationConstants.NAMES_OF_TERMINATING_FUNCTIONS.contains(
+              functionCallExpression.getFunctionNameExpression().toASTString())) {
+        continue;
+      }
+      CType expressionType = functionCallExpression.getExpressionType();
+      addExternProcedure(
+          createProcedureDefinitionForUndeclaredFunction(functionName, expressionType),
+          pCommandsCollector);
+    }
+  }
+
+  /**
+   * An external function whose call only yields a nondeterministic value of its type, or nothing,
+   * like the analysis of the C program treats a function without a body.
+   *
+   * @param returnValues the variables that the procedure for the function would return
+   * @param bounds the condition that the returned values fulfill, if there is one
+   */
+  record NondeterministicFunction(
+      ImmutableList<SvLibParsingParameterDeclaration> returnValues, Optional<SvLibTerm> bounds) {}
+
+  /** The external functions whose calls are transformed without a procedure, by their name. */
+  private final Map<String, NondeterministicFunction> nondeterministicFunctions =
+      new LinkedHashMap<>();
+
+  ImmutableMap<String, NondeterministicFunction> getNondeterministicFunctions() {
+    return ImmutableMap.copyOf(nondeterministicFunctions);
+  }
+
+  /**
+   * Declare the given procedure of an external function and define it, unless the function only
+   * yields a nondeterministic value.
+   *
+   * <p>A call of such a function is transformed into a havoc of the assigned variables instead of a
+   * call of a procedure, because the analysis of the generated program abstracts at the entry of
+   * every procedure and the analysis of the C program has no entry for a function without a body. A
+   * function that a property refers to keeps its procedure, which that property annotates.
+   */
+  private void addExternProcedure(
+      SvLibProcedureDefinitionCommand pDefinition,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    SvLibProcedureDeclaration declaration = pDefinition.getProcedureDeclaration();
+    scope.addProcedureDeclaration(declaration);
+    Optional<SvLibTerm> bounds = Optional.empty();
+    boolean onlyYieldsValues =
+        !CToSvLibTransformationConstants.NAMES_OF_FUNCTIONS_THAT_PROPERTIES_REFER_TO.contains(
+            declaration.getName());
+    if (onlyYieldsValues && pDefinition.getBody() instanceof SvLibSequenceStatement body) {
+      for (SvLibStatement statement : body.getStatements()) {
+        if (statement instanceof SvLibAssumeStatement assumption && bounds.isEmpty()) {
+          bounds = Optional.of(assumption.getTerm());
+        } else if (!(statement instanceof SvLibHavocStatement)) {
+          onlyYieldsValues = false;
+        }
+      }
+    } else {
+      onlyYieldsValues = false;
+    }
+    if (onlyYieldsValues) {
+      nondeterministicFunctions.put(
+          declaration.getProcedureName(),
+          new NondeterministicFunction(declaration.getReturnValues(), bounds));
+    } else {
+      pCommandsCollector.add(pDefinition);
+    }
+  }
+
+  private SvLibProcedureDefinitionCommand createProcedureDefinitionForUndeclaredFunction(
+      String pFunctionName, CType pReturnType) throws CPATransferException, InterruptedException {
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> returnParameterCollector =
+        ImmutableList.builder();
+    if (!(pReturnType.getCanonicalType() instanceof CVoidType)) {
+      SvLibType returnType = convertToSvLibSmtLibType(getTypeOfParameter(pReturnType));
+      returnParameterCollector.add(
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY,
+              returnType,
+              CToSvLibTransformationConstants.returnValueName(returnType),
+              pFunctionName));
+    }
+    SvLibProcedureDeclaration procedureDeclarationForUndeclaredFunction =
+        new SvLibProcedureDeclaration(
+            FileLocation.DUMMY,
+            pFunctionName,
+            ImmutableList.of(),
+            returnParameterCollector.build(),
+            ImmutableList.of());
+    SvLibStatement body =
+        createBodyForExternProcedure(procedureDeclarationForUndeclaredFunction, pReturnType);
+    return new SvLibProcedureDefinitionCommand(
+        FileLocation.DUMMY, procedureDeclarationForUndeclaredFunction, body);
+  }
+
+  private SvLibProcedureDeclaration createProcedureDeclarationForExternFunction(
+      CFunctionDeclaration pCFunctionDeclaration) {
+    String functionName = pCFunctionDeclaration.getName();
+
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> returnParameterCollector =
+        ImmutableList.builder();
+    CType originalCReturnType = pCFunctionDeclaration.getType().getReturnType();
+    if (!(originalCReturnType.getCanonicalType() instanceof CVoidType)) {
+      SvLibType convertedReturnType =
+          convertToSvLibSmtLibType(getTypeOfParameter(originalCReturnType));
+      SvLibParsingParameterDeclaration returnParameterDeclaration =
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY,
+              convertedReturnType,
+              CToSvLibTransformationConstants.returnValueName(convertedReturnType),
+              functionName);
+      returnParameterCollector.add(returnParameterDeclaration);
+    }
+
+    ImmutableList<CParameterDeclaration> inputParameters = pCFunctionDeclaration.getParameters();
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> convertedInputParametersCollector =
+        ImmutableList.builder();
+    for (int i = 0; i < inputParameters.size(); i++) {
+      CParameterDeclaration inputParameter = inputParameters.get(i);
+      String inputParameterName =
+          !inputParameter.getName().isEmpty()
+              ? inputParameter.getName()
+              : "inputDummy_" + i + "_extern";
+      SvLibParsingParameterDeclaration convertedInputParameter =
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY,
+              convertToSvLibSmtLibType(getTypeOfParameter(inputParameter.getType())),
+              inputParameterName,
+              functionName);
+      convertedInputParametersCollector.add(convertedInputParameter);
+    }
+
+    return new SvLibProcedureDeclaration(
+        FileLocation.DUMMY,
+        functionName,
+        convertedInputParametersCollector.build(),
+        returnParameterCollector.build(),
+        ImmutableList.of());
+  }
+
+  /**
+   * The body of a procedure for a C function that never returns, such as {@code abort} or {@code
+   * __assert_fail}.
+   *
+   * <p>The body assumes false, because the function does not return, but it starts with a label so
+   * that the tag of the body is attached to a location that is actually reached. A body that only
+   * assumes false would make the tag unobservable, and a specification that forbids reaching this
+   * function (which is how the reachability of an error is encoded, see {@link
+   * CToSvLibPropertyEncoder}) would never be violated.
+   */
+  private SvLibStatement createBodyForNoReturnProcedure(String pProcedureName) {
+    return new SvLibSequenceStatement(
+        ImmutableList.of(
+            new SvLibLabelStatement(
+                FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of(), pProcedureName),
+            new SvLibAssumeStatement(
+                FileLocation.DUMMY,
+                new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+                ImmutableList.of(),
+                ImmutableList.of())),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of(new SvLibTagReference(pProcedureName, FileLocation.DUMMY)));
+  }
+
+  private SvLibStatement createBodyForExternProcedure(
+      SvLibProcedureDeclaration pProcedureDeclaration, CType pCReturnType)
+      throws CPATransferException, InterruptedException {
+    String procedureName = pProcedureDeclaration.getProcedureName();
+
+    if (procedureName.equals("abort") || procedureName.equals("exit")) {
+      return createBodyForNoReturnProcedure(procedureName);
+    }
+
+    if (procedureName.startsWith("__VERIFIER_nondet_memory")) {
+      // The body of a procedure cannot make the memory that a pointer argument points to arbitrary.
+      throw new UnsupportedOperationException(
+          "Transformation of programs that include extern function __VERIFIER_nondet_memory() is"
+              + " not supported.");
+    }
+
+    if (!pProcedureDeclaration.getReturnValues().isEmpty()) {
+      return createHavocWithBounds(pProcedureDeclaration, pCReturnType);
+    }
+    // empty sequence statement for external, void functions
+    return new SvLibSequenceStatement(
+        ImmutableList.of(),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)));
+  }
+
+  private SvLibSequenceStatement createHavocWithBounds(
+      SvLibProcedureDeclaration pProcedureDeclaration, CType pCReturnType)
+      throws CPATransferException, InterruptedException {
+    SvLibHavocStatement havocStatement =
+        new SvLibHavocStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
+
+    SvLibAssumeStatement assumeStatement;
+    // The bounds of the type are only assumed if the values of that type are represented by
+    // bitvectors, where they hold anyway. With the representation by integers the analysis of the C
+    // program does not bound the value either, and it does not wrap the arithmetic around, so
+    // bounding it here would make paths of the C program disappear from the generated one. Bounds
+    // that every value of the bitvector fulfills, as for an int, are left out.
+    if (pCReturnType instanceof CSimpleType simpleReturnType
+        && simpleReturnType.getType().isIntegerType()
+        && pProcedureDeclaration.getReturnValues().getFirst().getType()
+            instanceof SvLibSmtLibBitVectorType bitVectorType
+        && !coversAllValues(
+            bitVectorType.getSize(),
+            cfa.getMachineModel().getMinimalIntegerValue(simpleReturnType),
+            cfa.getMachineModel().getMaximalIntegerValue(simpleReturnType))) {
+
+      assumeStatement =
+          createAssumeBounds(
+              pProcedureDeclaration,
+              pCReturnType,
+              cfa.getMachineModel().getMinimalIntegerValue(simpleReturnType),
+              cfa.getMachineModel().getMaximalIntegerValue(simpleReturnType));
+      return new SvLibSequenceStatement(
+          ImmutableList.of(havocStatement, assumeStatement),
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(
+              new SvLibTagReference(pProcedureDeclaration.getName(), FileLocation.DUMMY)));
+    } else {
+      // TODO log that no assume statement for bounds was created?
+      return new SvLibSequenceStatement(
+          ImmutableList.of(havocStatement),
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(
+              new SvLibTagReference(pProcedureDeclaration.getName(), FileLocation.DUMMY)));
+    }
+  }
+
+  /** Are the given bounds those of all signed or of all unsigned bitvectors of the given size? */
+  private static boolean coversAllValues(int pSize, BigInteger pMinimum, BigInteger pMaximum) {
+    BigInteger values = BigInteger.TWO.pow(pSize);
+    return (pMinimum.signum() == 0 && pMaximum.equals(values.subtract(BigInteger.ONE)))
+        || (pMinimum.equals(values.shiftRight(1).negate())
+            && pMaximum.equals(values.shiftRight(1).subtract(BigInteger.ONE)));
+  }
+
+  private SvLibAssumeStatement createAssumeBounds(
+      SvLibProcedureDeclaration pProcedureDeclaration,
+      CType pCReturnType,
+      BigInteger pMinValue,
+      BigInteger pMaxValue)
+      throws CPATransferException, InterruptedException {
+
+    String variableName = pProcedureDeclaration.getReturnValues().getFirst().getName();
+    CIdExpression variableExpression =
+        new CIdExpression(
+            FileLocation.DUMMY,
+            pCReturnType,
+            variableName,
+            getDummyVariableDeclaration(variableName, pCReturnType));
+    CAssumeEdge minValueDummyAssumeEdge =
+        createAssumeEdgeForBound(variableExpression, pCReturnType, pMinValue, true);
+    CAssumeEdge maxValueDummyAssumeEdge =
+        createAssumeEdgeForBound(variableExpression, pCReturnType, pMaxValue, false);
+
+    SvLibTerm combinedBoundsTerm =
+        transformToSvLibTerm(minValueDummyAssumeEdge, maxValueDummyAssumeEdge);
+    return new SvLibAssumeStatement(
+        FileLocation.DUMMY, combinedBoundsTerm, ImmutableList.of(), ImmutableList.of());
+  }
+
+  private CAssumeEdge createAssumeEdgeForBound(
+      CIdExpression pVariableExpression,
+      CType pCReturnType,
+      BigInteger pBoundValue,
+      Boolean isLowerLimit)
+      throws UnrecognizedCodeException {
+    CIntegerLiteralExpression limitLiteral =
+        new CIntegerLiteralExpression(FileLocation.DUMMY, pCReturnType, pBoundValue);
+    BinaryOperator operator =
+        isLowerLimit ? BinaryOperator.GREATER_EQUAL : BinaryOperator.LESS_EQUAL;
+    CBinaryExpressionBuilder expressionBuilder =
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+    CBinaryExpression limitAssumption =
+        expressionBuilder.buildBinaryExpression(pVariableExpression, limitLiteral, operator);
+    return new CAssumeEdge(
+        limitAssumption.toASTString(),
+        FileLocation.DUMMY,
+        CFANode.newDummyCFANode(),
+        CFANode.newDummyCFANode(),
+        limitAssumption,
+        true);
+  }
+
+  private @NonNull SvLibTerm transformToSvLibTerm(CFAEdge pEdge1, CFAEdge pEdge2)
+      throws CPATransferException, InterruptedException {
+    PathFormula edgeFormula = pathFormulaManager.makeEmptyPathFormula();
+    edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge1);
+    edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge2);
+    return formulaManager.visit(
+        edgeFormula.getFormula(),
+        new FormulaToSvLibVisitor(formulaManager, new SvLibUninterpretedScope()));
+  }
+
+  private CVariableDeclaration getDummyVariableDeclaration(String pVariableName, CType pCType) {
+    return new CVariableDeclaration(
+        FileLocation.DUMMY,
+        false,
+        CStorageClass.AUTO,
+        pCType,
+        pVariableName,
+        pVariableName,
+        pVariableName,
+        null,
+        false);
+  }
+
+  private ImmutableList<SvLibSimpleParsingDeclaration> castListToSimpleParsingDeclaration(
+      ImmutableList<SvLibParsingParameterDeclaration> pParameters) {
+
+    ImmutableList.Builder<SvLibSimpleParsingDeclaration> simpleDeclarations =
+        ImmutableList.builder();
+    if (!pParameters.isEmpty()) {
+      for (SvLibParsingParameterDeclaration parameterDeclaration : pParameters) {
+        simpleDeclarations.add(parameterDeclaration);
+      }
+    }
+    return simpleDeclarations.build();
+  }
+}

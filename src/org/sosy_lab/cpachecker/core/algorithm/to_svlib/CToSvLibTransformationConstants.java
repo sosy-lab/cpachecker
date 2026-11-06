@@ -1,0 +1,215 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
+
+import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+
+final class CToSvLibTransformationConstants {
+  static final String INPUT_VAR_DUMMY_PREFIX = "__originalInput_";
+
+  /**
+   * The name of the procedure for a function without a body that the given call calls.
+   *
+   * <p>A call through a pointer, whose function the CFA does not know, names the procedure after
+   * the expression of the pointer. The same expression can denote pointers to functions of
+   * different types in different functions, for example a temporary variable of CIL, so such a
+   * procedure belongs to the function that contains the call.
+   */
+  static String procedureNameOfCall(CFunctionCallExpression pCall, String pCallingFunction) {
+    CExpression function = pCall.getFunctionNameExpression();
+    boolean callsFunctionByName =
+        function instanceof CIdExpression id
+            && !(id.getDeclaration() instanceof CVariableDeclaration)
+            && !(id.getDeclaration() instanceof CParameterDeclaration);
+    return callsFunctionByName
+        ? function.toASTString()
+        : pCallingFunction + "::" + function.toASTString();
+  }
+
+  /**
+   * The variable that holds the address above all memory that has been allocated so far, which is
+   * where the next allocation starts.
+   */
+  static final String HIGHEST_ALLOCATED_ADDRESS = "__transformationHighestAllocatedAddress";
+
+  /**
+   * The variable that holds the address at which the memory that the program allocates begins. The
+   * objects that exist without being allocated lie below it.
+   */
+  static final String FIRST_ALLOCATED_ADDRESS = "__transformationFirstAllocatedAddress";
+
+  private static final String RETURN_VAR_DUMMY_PREFIX = "__transformationDummyReturn_";
+  private static final String TMP_VAR_ASSIGNMENT = "__Transformation_TMP_VariableAssignment_";
+
+  /**
+   * The name of the variable that holds the value that a procedure of an external function returns.
+   *
+   * <p>The name contains the type of the value, because the analysis of the generated program does
+   * not distinguish the variables of two procedures by the name of the procedure, and two variables
+   * of the same name must not have different types.
+   */
+  static String returnValueName(SvLibType pReturnType) {
+    return "_retval_" + nameOfType(pReturnType);
+  }
+
+  /**
+   * The name of the global variable that holds the value that a procedure returns, for a call in a
+   * procedure for which no dummy of that type was declared.
+   *
+   * <p>It differs from the name of the dummy that a procedure declares, because a global variable
+   * and a variable of a procedure must not have the same name.
+   */
+  static String globalReturnDummyVariableName(SvLibType pReturnType) {
+    return "__transformationGlobalDummyReturn_" + nameOfType(pReturnType);
+  }
+
+  /**
+   * The name of the variable that holds the return value of a procedure call whose result is not
+   * assigned to a variable of the generated program.
+   */
+  static String returnDummyVariableName(SvLibType pReturnType) {
+    return RETURN_VAR_DUMMY_PREFIX + nameOfType(pReturnType);
+  }
+
+  /**
+   * The name of the variable that holds the return value of a procedure call before it is stored in
+   * the array that models the heap.
+   */
+  static String tmpVariableNameForAssignment(SvLibType pReturnType) {
+    return TMP_VAR_ASSIGNMENT + nameOfType(pReturnType);
+  }
+
+  /**
+   * A representation of the given type that is usable as part of a variable name.
+   *
+   * <p>The types do not implement {@link Object#toString()}, so their default representation
+   * contains an identity hash code, which differs between two instances of the same type and can
+   * therefore not be used to build a name that several parts of the transformation agree on.
+   */
+  private static String nameOfType(SvLibType pType) {
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      return "bv" + bitVectorType.getSize();
+    }
+    if (pType instanceof SvLibSmtLibFloatingPointType floatingPointType) {
+      return "fp"
+          + floatingPointType.getExponentSize()
+          + "_"
+          + floatingPointType.getSignificandSize();
+    }
+    if (pType instanceof SvLibSmtLibPredefinedType predefinedType) {
+      return predefinedType.toString();
+    }
+    throw new UnsupportedOperationException(
+        "Cannot create a variable name for the type " + pType.toASTString());
+  }
+
+  /**
+   * Functions that allocate memory on the heap.
+   *
+   * <p>Their call is transformed through the formula of the whole edge, which contains the base
+   * address of the allocated block and the constraints that separate it from the objects that
+   * already exist. Those constraints are the same for every execution of the statement, so the
+   * transformation additionally separates the block from the blocks that earlier executions
+   * allocated, see {@link #HIGHEST_ALLOCATED_ADDRESS}.
+   */
+  static final ImmutableSet<String> NAMES_OF_MEMORY_ALLOCATION_FUNCTIONS =
+      ImmutableSet.of(
+          "malloc",
+          "calloc",
+          "realloc",
+          "kzalloc",
+          "kmalloc",
+          "__kmalloc",
+          "alloca",
+          "__builtin_alloca");
+
+  /**
+   * Functions that compare memory, whose results the formulas constrain by the compared characters
+   * up to a bound, see {@link
+   * org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CExpressionVisitorWithPointerAliasing}.
+   * Their calls are therefore transformed through the formulas of their edges, as the one of {@code
+   * strlen}, which is a builtin function.
+   */
+  static final ImmutableSet<String> NAMES_OF_COMPARISON_FUNCTIONS =
+      ImmutableSet.of("memcmp", "strcmp", "strncmp");
+
+  /**
+   * Functions whose procedures a property of the specification can annotate, see {@link
+   * CToSvLibPropertyEncoder}, so that a call of them has to stay a call of their procedure.
+   */
+  static final ImmutableSet<String> NAMES_OF_FUNCTIONS_THAT_PROPERTIES_REFER_TO =
+      ImmutableSet.of("reach_error", "__VERIFIER_error", "__assert_fail", "__assert_func");
+
+  /** Functions that end the execution of the program, which the parser of C knows as such. */
+  static final ImmutableSet<String> NAMES_OF_TERMINATING_FUNCTIONS =
+      ImmutableSet.of("abort", "exit");
+
+  static final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS =
+      ImmutableSet.of("__assert_fail", "__assert_perror_fail", "__assert");
+  static final ImmutableSet<String> NAMES_OF_UNSUPPORTED_STDLIB_EXTERNAL_FUNCTIONS =
+      ImmutableSet.of(
+          "atof",
+          "strtof",
+          "strtold",
+          "strtod",
+          "strtol",
+          "strtoul",
+          "strtoq",
+          "strtouq",
+          "strtoll",
+          "strtoull",
+          "initstate",
+          "setstate",
+          "drand48",
+          "erand48",
+          "drand48_r",
+          "erand48_r",
+          "nrand48_r",
+          "mrand48_r",
+          "jrand48_r",
+          "srand48_r",
+          "seed48_r",
+          "lcong48_r",
+          "atexit",
+          "at_quick_exit",
+          // A jump back to a setjmp is control flow that the generated program cannot have.
+          "longjmp",
+          "_longjmp",
+          "siglongjmp",
+          "onexit",
+          "getenv",
+          "mktemp",
+          "mkdtemp",
+          "realpath",
+          "bsearch",
+          "ecvt",
+          "fcvt",
+          "gcvt",
+          "qecvt",
+          "qfcvt",
+          "qgcvt",
+          "ecvt_r",
+          "fcvt_r",
+          "qecvt_r",
+          "qfcvt_r");
+  static final ImmutableSet<String> NAMES_OF_UNSUPPORTED_NONDET_FUNCTIONS = ImmutableSet.of();
+
+  private CToSvLibTransformationConstants() {
+    throw new AssertionError("Cannot instantiate TransformationConstants");
+  }
+}

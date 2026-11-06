@@ -21,13 +21,28 @@ public final class SvLibParsingParameterDeclaration implements SvLibSimpleParsin
   private final SvLibType type;
   private final String name;
   private final String procedureName;
+  private final String qualifiedName;
 
   public SvLibParsingParameterDeclaration(
       FileLocation pFileLocation, SvLibType pType, String pName, String pProcedureName) {
+    this(pFileLocation, pType, pName, pProcedureName, pProcedureName + "::" + pName);
+  }
+
+  /**
+   * Create a declaration whose qualified name is not the one that its name and the name of its
+   * procedure form, which a variable needs that was renamed to keep its name unique.
+   */
+  public SvLibParsingParameterDeclaration(
+      FileLocation pFileLocation,
+      SvLibType pType,
+      String pName,
+      String pProcedureName,
+      String pQualifiedName) {
     fileLocation = pFileLocation;
     type = pType;
     name = pName;
     procedureName = pProcedureName;
+    qualifiedName = pQualifiedName;
   }
 
   @Override
@@ -54,7 +69,7 @@ public final class SvLibParsingParameterDeclaration implements SvLibSimpleParsin
   }
 
   public String getQualifiedName() {
-    return procedureName + "::" + name;
+    return qualifiedName;
   }
 
   public String getName() {
@@ -84,7 +99,8 @@ public final class SvLibParsingParameterDeclaration implements SvLibSimpleParsin
     return pO instanceof SvLibParsingParameterDeclaration other
         && type.equals(other.type)
         && name.equals(other.name)
-        && procedureName.equals(other.procedureName);
+        && procedureName.equals(other.procedureName)
+        && qualifiedName.equals(other.qualifiedName);
   }
 
   @Override
@@ -94,6 +110,7 @@ public final class SvLibParsingParameterDeclaration implements SvLibSimpleParsin
     result = prime * result + type.hashCode();
     result = prime * result + name.hashCode();
     result = prime * result + procedureName.hashCode();
+    result = prime * result + qualifiedName.hashCode();
     return result;
   }
 }
