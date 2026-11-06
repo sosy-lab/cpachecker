@@ -74,6 +74,22 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/por/atomic_struct_datarace_safe.yml</include>
   </tasks>
 
+  <tasks name="no-overflow">
+    <option name="--orderingConsistency"/>
+    <propertyfile>../../config/properties/no-overflow.prp</propertyfile>
+
+    <include>../programs/por/overflow_safe.yml</include>
+    <include>../programs/por/overflow_unsafe.yml</include>
+    <include>../programs/por/overflow_after_join_unsafe.yml</include>
+    <include>../programs/por/overflow_stale_lookahead_unsafe.yml</include>
+    <include>../programs/por/oc_overflow_interleaving_safe.yml</include>
+    <include>../programs/por/oc_overflow_interleaving_unsafe.yml</include>
+    <include>../programs/por/oc_overflow_condition_unsafe.yml</include>
+    <include>../programs/por/oc_overflow_mutex_safe.yml</include>
+    <include>../programs/por/oc_overflow_check_then_act_unsafe.yml</include>
+    <include>../programs/por/oc_overflow_reach_error_safe.yml</include>
+  </tasks>
+
   <columns>
     <column title="#reached">Size of reached set</column>
   </columns>
