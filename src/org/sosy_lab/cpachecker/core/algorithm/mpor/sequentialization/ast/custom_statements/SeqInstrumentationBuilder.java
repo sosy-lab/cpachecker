@@ -277,9 +277,12 @@ public class SeqInstrumentationBuilder {
     for (SeqPointerAssignment pointerAssignment : pPointerAliasingMap.pointerAssignments) {
       SeqMemoryLocation leftHandSide = pointerAssignment.leftHandSideMemoryLocation();
 
-      // dangling pointers can only be reset by the thread that contain the pointer assignment
+      // dangling pointers can only be reset
+      // (1) by the thread containing the pointer assignment
+      // (2) for equal call contexts, otherwise pointers of other functions are reset
       if (pointerAssignment.getThread().id() == pThreadNode.threadId
-          && pointerAssignment.leftHandSideMemoryLocation().isDeclarationPointerType()) {
+          && leftHandSide.callContext().equals(pThreadNode.callContext)
+          && leftHandSide.isDeclarationPointerType()) {
         ImmutableSet<SeqMemoryLocation> dereferencedRightHandSides =
             SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
                 leftHandSide, pPointerAliasingMap.pointerAssignments);
@@ -288,8 +291,7 @@ public class SeqInstrumentationBuilder {
           // only consider stack allocated memory locations, since heap allocations are not dangling
           if (rightHandSide.isStackAllocated()) {
 
-            CIdExpression leftHandSideExpression =
-                pointerAssignment.leftHandSideMemoryLocation().toCIdExpression();
+            CIdExpression leftHandSideExpression = leftHandSide.toCIdExpression();
             CType rightHandSideType = Objects.requireNonNull(rightHandSide.declaration()).getType();
             CExpression rightHandSideExpression =
                 rightHandSideType instanceof CPointerType

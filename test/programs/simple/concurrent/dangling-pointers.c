@@ -49,12 +49,38 @@ void *global_dangling_ptr(void *arg) {
 void *non_dangling_local_ptr(void *arg) {
   // heap allocated, local_ptr is not dangling on return
   int *local_ptr = (int*) malloc(sizeof(int));
+  if (local_ptr == (void*)0) {
+    abort(); // safe malloc
+  }
   return local_ptr;
 }
 void *non_dangling_global_ptr(void *arg) {
   // heap allocated, local_ptr is not dangling on return
   global_ptr = (int*) malloc(sizeof(int));
+  if (global_ptr == (void*)0) {
+    abort(); // safe malloc
+  }
   return global_ptr;
+}
+void *dangling_with_function_call(void* arg) {
+  // stack allocated, local_ptr is dangling on return
+  int local_var = 0;
+  int *local_ptr = &local_var;
+  if (local_ptr == (void*)0) {
+    abort(); // safe malloc
+  }
+
+  // only the dangling pointers of the called function should be reset, so local_ptr remains valid
+  called_function();
+  if (local_ptr == (void*)0) {
+    reach_error();
+  }
+  return local_ptr;
+}
+void called_function() {
+  // stack allocated, local_ptr is dangling on return
+  int local_var = 0;
+  int *local_ptr = &local_var;
 }
 
 int main() {
@@ -85,6 +111,13 @@ int main() {
   pthread_create(&t4, 0, non_dangling_global_ptr, 0);
   pthread_join(t4, &local_result);
   if (local_result == (void*)0) {
+    reach_error();
+  }
+
+  pthread_t t5;
+  pthread_create(&t5, 0, dangling_with_function_call, 0);
+  pthread_join(t5, &local_result);
+  if (local_result != (void*)0) {
     reach_error();
   }
 
