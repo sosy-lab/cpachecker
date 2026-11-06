@@ -218,6 +218,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public String getPointerAccessName(CType pType) {
+    return delegate.getPointerAccessName(pType);
+  }
+
+  @Override
   public RightHandSideTerm rightHandSideToFormula(
       PathFormula pFormula, CRightHandSide pRhs, CType pLhsType, CFAEdge pEdge)
       throws UnrecognizedCodeException {

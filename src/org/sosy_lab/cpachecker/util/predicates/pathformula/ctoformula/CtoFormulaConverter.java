@@ -243,6 +243,14 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         .containsEntry(compositeType, fieldName);
   }
 
+  /**
+   * Does the formula of a call of the function with the given name contain the effect of that call
+   * on the memory of the program, as it does for {@code memset}?
+   */
+  public static boolean isSideEffectFunction(final String pFunctionName) {
+    return SIDE_EFFECT_FUNCTIONS.contains(pFunctionName);
+  }
+
   protected boolean isRelevantLeftHandSide(
       final CLeftHandSide lhs, final Optional<CRightHandSide> rhs) {
     if (rhs.isPresent()

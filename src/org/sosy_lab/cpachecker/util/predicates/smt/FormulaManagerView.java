@@ -1094,6 +1094,11 @@ public class FormulaManagerView {
     return manager.getFormulaType(pFormula);
   }
 
+  /** The type that the solver uses for a formula of the given type, e.g., Int for a bitvector. */
+  public FormulaType<?> getEncodedFormulaType(FormulaType<?> pType) {
+    return wrappingHandler.unwrapType(pType);
+  }
+
   public <T extends Formula> BooleanFormula assignment(T left, T right) {
     FormulaType<?> lformulaType = getFormulaType(left);
     FormulaType<?> rformulaType = getFormulaType(right);

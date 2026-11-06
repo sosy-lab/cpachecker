@@ -868,6 +868,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return assignmentHandler.assign(ImmutableList.of(assignment));
   }
 
+  /**
+   * The name of the variable that represents the memory holding values of the given type, i.e. the
+   * name that the free variables for accesses to that memory have in the created formulas.
+   */
+  public String getPointerAccessNameForType(final CType pType) {
+    return typeHandler.getPointerAccessNameForType(pType);
+  }
+
   /** Is the left-hand-side an array and do we allow to assign a value to it? */
   private boolean isArrayAssignment(final CLeftHandSide lhs, final CType lhsType) {
     if (lhs instanceof CIdExpression cIdExpression && lhsType instanceof CArrayType) {
