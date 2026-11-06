@@ -11,15 +11,16 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 public enum SeqInstrumentationType {
   BIT_VECTOR_UPDATE(true, true),
   BLOCK_LABEL(false, false),
+  EXECUTE_UNTIL_CONFLICT_REDUCTION(true, false),
   GOTO_BLOCK_LABEL(false, false),
   GUARDED_GOTO(true, true),
   ONCE_UNLOCK(false, false),
   PREV_BIT_VECTOR_UPDATE(true, true),
   PREV_THREAD_UPDATE(true, true),
   PROGRAM_COUNTER_UPDATE(false, false),
+  RESET_OUT_OF_SCOPE_POINTER(false, false),
   THREAD_COUNT_UPDATE(false, false),
-  THREAD_SYNC_UPDATE(true, false),
-  EXECUTE_UNTIL_CONFLICT_REDUCTION(true, false);
+  THREAD_SYNC_UPDATE(true, false);
 
   /**
    * Whether this statement type can be pruned from its owning {@link SeqThreadStatement} if it

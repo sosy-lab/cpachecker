@@ -159,7 +159,8 @@ public record SeqThreadStatement(
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
                 data.getThreadId(), targetGoto.orElseThrow(), instrumentation);
     ImmutableList<CExportStatement> instrumentationExportStatements =
-        transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
+        transformedImmutableListCopy(
+            preparedInstrumentation, i -> checkNotNull(i).exportStatement());
 
     // add the instrumentation after the actual export statements that carry input program semantics
     return ImmutableList.<CCompoundStatementElement>builder()
