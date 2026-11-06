@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cpa.composite.StraightLineBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
@@ -189,8 +190,14 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
           if (!atomicBlockNodesSet.add(currentNode)) {
             continue;
           }
+          // Stay in the function: a callee or caller may also run outside of the atomic block.
+          if (currentNode.getLeavingSummaryEdge() != null) {
+            nodesToVisit.add(currentNode.getLeavingSummaryEdge().getSuccessor());
+            continue;
+          }
           for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
-            if (!MutexFunctions.isAtomicEnd(leavingEdge)) {
+            if (!(leavingEdge instanceof FunctionReturnEdge)
+                && !MutexFunctions.isAtomicEnd(leavingEdge)) {
               nodesToVisit.add(leavingEdge.getSuccessor());
             }
           }
