@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution.isPthreadObjectType;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -239,6 +241,15 @@ public class PthreadUtil {
   }
 
   // boolean helpers ===============================================================================
+
+  public static boolean isAnyPthreadObjectType(CType pType) {
+    for (PthreadObjectType objectType : PthreadObjectType.values()) {
+      if (isPthreadObjectType(pType, objectType)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   /**
    * Returns {@code true} if {@code pCfaEdge} is a call to {@code pFunctionType} and {@code false}
