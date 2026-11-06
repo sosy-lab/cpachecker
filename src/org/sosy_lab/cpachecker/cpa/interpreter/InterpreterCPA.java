@@ -49,8 +49,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA}, and the specification automata. It evaluates
  * the program edge by edge and requires that every state has exactly one or zero successors, i.e.,
  * that the program does not make any nondeterministic choice. If this does not hold, the analysis
- * aborts with an {@link org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException} and the result
- * is {@code UNKNOWN}.
+ * aborts with an exception and the result is {@code UNKNOWN}.
  *
  * <p>For an exact execution (cf. {@link InterpreterState} for when an execution is exact):
  *
