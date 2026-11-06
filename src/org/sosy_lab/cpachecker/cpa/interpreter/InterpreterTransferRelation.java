@@ -115,7 +115,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
    * Execute a single program step.
    *
    * @return the successor state, or {@code null} if the execution ends at the given state
-   * @throws UnsupportedCodeException if the given state has more than one successor
+   * @throws CPATransferException if the given state has more than one successor
    */
   private @Nullable InterpreterState executeStep(InterpreterState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
@@ -209,10 +209,10 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   /**
    * Fix the nondeterministic values of the given state such that only one successor is left.
    *
-   * @throws UnsupportedCodeException if no assignment of the inputs could be computed
+   * @throws CPATransferException if no assignment of the inputs could be computed
    */
   private AbstractState sampleInputs(AbstractState pState, List<InterpreterStep> pSteps)
-      throws UnsupportedCodeException {
+      throws CPATransferException {
     verifyNotNull(sampler, "there is more than one successor only if the inputs are sampled");
     AbstractState sampledState = sampler.sample(pState, pSteps);
     if (sampledState == null) {
@@ -227,7 +227,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
    *
    * @param pAllowSeveralSuccessors whether to return all successors instead of aborting as soon as
    *     a second one is found
-   * @throws UnsupportedCodeException if there is more than one successor and {@code
+   * @throws CPATransferException if there is more than one successor and {@code
    *     pAllowSeveralSuccessors} is false
    */
   private List<InterpreterStep> computeSteps(
@@ -306,20 +306,23 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
 
   /**
    * The exception for a state with more than one successor: the execution cannot follow several
-   * successors at once, so it stops here unless the inputs are sampled.
+   * successors at once, so it stops here unless the inputs are sampled. The code itself is not
+   * unsupported, it is the wrapped transfer relation that produces a state we cannot continue
+   * from, so this is a plain {@link CPATransferException}.
    */
-  private UnsupportedCodeException nondeterminismException(
+  private CPATransferException nondeterminismException(
       @Nullable CFAEdge pFirstEdge, CFAEdge pSecondEdge) {
     String reason =
         pFirstEdge == pSecondEdge
             ? String.format("the edge \"%s\" has more than one successor", pSecondEdge)
             : String.format(
                 "both of the edges \"%s\" and \"%s\" have a successor", pFirstEdge, pSecondEdge);
-    return new UnsupportedCodeException(
-        "nondeterministic choice ("
+    return new CPATransferException(
+        "nondeterministic choice at "
+            + pSecondEdge.getFileLocation()
+            + " ("
             + reason
-            + "); InterpreterCPA always requires a single successor state",
-        pSecondEdge);
+            + "); InterpreterCPA always requires a single successor state");
   }
 
   /** Push a stack frame for a function call and pop one for a function return. */
