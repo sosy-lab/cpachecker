@@ -26,21 +26,18 @@ final class ConcurrencyRules {
    * The calls after which a program may have more than one thread. {@link
    * ThreadingTransferRelation#FUNCTIONS_REQUIRING_THREADING} is the set of calls whose semantics
    * only an analysis with the ThreadingCPA models ({@code pthread_create}, {@code pthread_once} and
-   * {@code pthread_barrier_wait}), i.e. the calls that make a program concurrent for CPAchecker.
-   * Two names are added to it: {@code pthread_create_N} is what the CFA construction puts in place
-   * of {@code pthread_create} (cf. option {@code cfa.threads.threadCreate}), and {@code
-   * thrd_create} creates a thread in the threads of C11 (ISO/IEC 9899:2011, 7.26.5.1), which no
-   * analysis of CPAchecker models.
+   * {@code pthread_barrier_wait}), i.e., the calls that make a program concurrent for CPAchecker.
+   * One name is added to it: {@code pthread_create_N} is what the CFA construction puts in place of
+   * {@code pthread_create} (cf. option {@code cfa.threads.threadCreate}).
    *
    * <p>A call of a function without a body already makes this rule abstain, so this set is what
-   * catches the calls that do have one: the definition that the CFA construction inserts for a
-   * replaced thread operation, and a definition that the program brings along itself.
+   * catches the calls that do have one, which is the definition that the CFA construction inserts
+   * for a replaced thread operation.
    */
   private static final ImmutableSet<String> CONCURRENCY_FUNCTIONS =
       ImmutableSet.<String>builder()
           .addAll(ThreadingTransferRelation.FUNCTIONS_REQUIRING_THREADING)
           .add(ThreadingTransferRelation.THREAD_START + "_N")
-          .add("thrd_create")
           .build();
 
   static ImmutableList<SimpleRule> rules() {
