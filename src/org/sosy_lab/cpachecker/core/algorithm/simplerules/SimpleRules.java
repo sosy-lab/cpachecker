@@ -17,7 +17,11 @@ final class SimpleRules {
 
   private SimpleRules() {}
 
-  /** All rules, in the order in which they are checked. */
+  /**
+   * All rules, in the order in which they are checked. Every class of this package that provides
+   * rules declares a static method {@code rules()} and has to be listed here; {@code
+   * SimpleRulesTest} fails if one of them is missing.
+   */
   static ImmutableList<SimpleRule> all() {
     return ImmutableList.<SimpleRule>builder()
         .addAll(ReachabilityRules.rules())
