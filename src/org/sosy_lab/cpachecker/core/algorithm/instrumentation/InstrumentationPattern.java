@@ -372,7 +372,7 @@ public class InstrumentationPattern {
       MachineModel pMachineModel) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
-      CExpression expression = LoopInfoUtils.extractExpression(astNode);
+      CExpression expression = LoopInfoUtils.extractExpression(astNode, true);
       if (expression instanceof CUnaryExpression pCUnaryExpression
           && pCUnaryExpression.getOperator().equals(pOperator)) {
         CExpression operand = pCUnaryExpression.getOperand();
@@ -417,7 +417,7 @@ public class InstrumentationPattern {
       MachineModel pMachineModel) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
-      CExpression expression = LoopInfoUtils.extractExpression(astNode);
+      CExpression expression = LoopInfoUtils.extractExpression(astNode, true);
       if (expression instanceof CBinaryExpression pCBinaryExpression
           && pCBinaryExpression.getOperator().equals(pOperator)) {
         CExpression operand1 = pCBinaryExpression.getOperand1();

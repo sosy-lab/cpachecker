@@ -43,17 +43,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -187,6 +192,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       reachlist.add(currentPair);
       CFANode currentNode = currentPair.getFirst();
       InstrumentationState currentState = currentPair.getSecond();
+
+      // Functions started as threads are not reachable by the edges of the CFA,
+      // so they are searched from the state in which the thread is created
+      for (CFANode threadEntry : getEntriesOfStartedThreads(currentNode)) {
+        isThePairNew(threadEntry, currentState, waitlist, reachlist);
+      }
 
       // Handling a trivial case, when the state does not match the node
       assert currentState != null;
@@ -411,7 +422,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return true;
     }
 
-    CExpression expression = LoopInfoUtils.extractExpression(astNode);
+    // Operators are matched also inside casts, pointer patterns are not
+    boolean isPointerPattern = pTransition.getPattern().toString().startsWith("ptr_");
+    CExpression expression = LoopInfoUtils.extractExpression(astNode, !isPointerPattern);
     CExpression operand1;
     CExpression operand2;
 
@@ -662,6 +675,44 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Returns the entry nodes of the functions that the leaving edges of the node start as threads,
+   * e.g., of {@code t_fun} for {@code pthread_create(&id, NULL, t_fun, NULL)}. The CFA has no edges
+   * into these functions, because pthread_create is an external function.
+   */
+  private ImmutableSet<CFANode> getEntriesOfStartedThreads(CFANode pCFANode) {
+    ImmutableSet.Builder<CFANode> threadEntries = ImmutableSet.builder();
+    for (CFAEdge edge : pCFANode.getLeavingEdges()) {
+      if (edge.getRawAST().isPresent()
+          && edge.getRawAST().orElseThrow() instanceof CFunctionCall cFunctionCall
+          && cFunctionCall.getFunctionCallExpression().getFunctionNameExpression()
+              instanceof CIdExpression cFunctionName
+          && cFunctionName.getName().equals(ThreadingTransferRelation.THREAD_START)) {
+        List<CExpression> parameters =
+            cFunctionCall.getFunctionCallExpression().getParameterExpressions();
+        if (parameters.size() < 3) {
+          continue;
+        }
+        // The start routine is the third parameter, usually '&t_fun' in the CFA
+        CExpression startRoutine = parameters.get(2);
+        while (startRoutine instanceof CCastExpression cCastExpression) {
+          startRoutine = cCastExpression.getOperand();
+        }
+        if (startRoutine instanceof CUnaryExpression cUnaryExpression
+            && cUnaryExpression.getOperator() == UnaryOperator.AMPER) {
+          startRoutine = cUnaryExpression.getOperand();
+        }
+        if (startRoutine instanceof CIdExpression cIdExpression) {
+          FunctionEntryNode threadEntry = cfa.getFunctionHead(cIdExpression.getName());
+          if (threadEntry != null) {
+            threadEntries.add(threadEntry);
+          }
+        }
+      }
+    }
+    return threadEntries.build();
   }
 
   private Set<CFANode> getSuccessorsOfANode(CFANode pCFANode) {

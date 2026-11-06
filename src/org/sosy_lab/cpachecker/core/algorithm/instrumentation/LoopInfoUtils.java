@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Splitter;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -166,11 +168,23 @@ public class LoopInfoUtils {
 
   @Nullable
   public static CExpression extractExpression(AAstNode pAAstNode) {
+    return extractExpression(pAAstNode, false);
+  }
+
+  /**
+   * Extracts the expression that the instrumentation patterns are matched against.
+   *
+   * @param pIgnoreCasts whether casts around the expression are skipped, e.g., to extract the
+   *     multiplication from {@code calloc(1, (size_t) (a * b))}. This is needed for operators that
+   *     can overflow, because a cast of the result does not prevent the overflow of the operation.
+   */
+  @Nullable
+  public static CExpression extractExpression(AAstNode pAAstNode, boolean pIgnoreCasts) {
     if (pAAstNode instanceof CReturnStatement pCReturnStatement) {
       // return statement
       Optional<CExpression> optionalCExpression = pCReturnStatement.getReturnValue();
       if (optionalCExpression.isPresent()) {
-        CExpression cExpression = optionalCExpression.orElseThrow();
+        CExpression cExpression = removeCasts(optionalCExpression.orElseThrow(), pIgnoreCasts);
         if (cExpression instanceof CBinaryExpression) {
           return cExpression;
         } else if (cExpression instanceof CUnaryExpression) {
@@ -180,17 +194,13 @@ public class LoopInfoUtils {
     } else if (pAAstNode instanceof CAssignment pCAssignment) {
       // assignment
       ARightHandSide rightHandSide = pCAssignment.getRightHandSide();
+      if (rightHandSide instanceof CExpression cExpression) {
+        rightHandSide = removeCasts(cExpression, pIgnoreCasts);
+      }
       if (rightHandSide instanceof CFunctionCallExpression pCFunctionCallExpression) {
         // function call expression
-        List<CExpression> parameterExpressions = pCFunctionCallExpression.getParameterExpressions();
-        for (CExpression expression : parameterExpressions) {
-          if (expression instanceof CBinaryExpression) {
-            return expression;
-          }
-          if (expression instanceof CUnaryExpression) {
-            return expression;
-          }
-        }
+        return extractExpressionFromParameters(
+            pCFunctionCallExpression.getParameterExpressions(), pIgnoreCasts);
       } else if (rightHandSide instanceof CBinaryExpression pCBinaryExpression) {
         return pCBinaryExpression;
       } else if (rightHandSide instanceof CUnaryExpression pCUnaryExpression) {
@@ -201,12 +211,31 @@ public class LoopInfoUtils {
       return pCBinaryExpression;
     } else if (pAAstNode instanceof CExpressionStatement pCExpressionStatement) {
       // binary expression
-      return pCExpressionStatement.getExpression();
+      return removeCasts(pCExpressionStatement.getExpression(), pIgnoreCasts);
     } else if (pAAstNode instanceof CFunctionCall pFunctionCall) {
       // function call
       CFunctionCallExpression cFunctionCallExpression = pFunctionCall.getFunctionCallExpression();
-      List<CExpression> parameterExpressions = cFunctionCallExpression.getParameterExpressions();
-      for (CExpression expression : parameterExpressions) {
+      return extractExpressionFromParameters(
+          cFunctionCallExpression.getParameterExpressions(), pIgnoreCasts);
+    } else if (pAAstNode instanceof CVariableDeclaration pCVariableDeclaration) {
+      // variable declaration
+      CInitializer cInitializer = pCVariableDeclaration.getInitializer();
+      if (cInitializer instanceof CInitializerExpression pCInitializerExpression) {
+        CExpression cExpression =
+            removeCasts(pCInitializerExpression.getExpression(), pIgnoreCasts);
+        if (cExpression instanceof CBinaryExpression) {
+          return cExpression;
+        }
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private static CExpression extractExpressionFromParameters(
+      List<CExpression> pParameterExpressions, boolean pIgnoreCasts) {
+    if (!pIgnoreCasts) {
+      for (CExpression expression : pParameterExpressions) {
         if (expression instanceof CBinaryExpression) {
           return expression;
         }
@@ -214,17 +243,32 @@ public class LoopInfoUtils {
           return expression;
         }
       }
-    } else if (pAAstNode instanceof CVariableDeclaration pCVariableDeclaration) {
-      // variable declaration
-      CInitializer cInitializer = pCVariableDeclaration.getInitializer();
-      if (cInitializer instanceof CInitializerExpression pCInitializerExpression) {
-        CExpression cExpression = pCInitializerExpression.getExpression();
-        if (cExpression instanceof CBinaryExpression) {
-          return cExpression;
-        }
+      return null;
+    }
+    // Prefer a binary expression, because there is a pattern for every binary operator, so the call
+    // is matched and then decomposed into its parameters, which are all matched separately.
+    // Otherwise, a cast parameter like (void *) &x could hide a later parameter like n * 4.
+    List<CExpression> parameters =
+        transformedImmutableListCopy(pParameterExpressions, p -> removeCasts(p, true));
+    for (CExpression expression : parameters) {
+      if (expression instanceof CBinaryExpression) {
+        return expression;
+      }
+    }
+    for (CExpression expression : parameters) {
+      if (expression instanceof CUnaryExpression) {
+        return expression;
       }
     }
     return null;
+  }
+
+  private static CExpression removeCasts(CExpression pExpression, boolean pIgnoreCasts) {
+    CExpression expression = pExpression;
+    while (pIgnoreCasts && expression instanceof CCastExpression pCCastExpression) {
+      expression = pCCastExpression.getOperand();
+    }
+    return expression;
   }
 
   public static ImmutableSet<NormalLoopInfo> includeAllTheOuterLiveVariablesInNestedLoop(
