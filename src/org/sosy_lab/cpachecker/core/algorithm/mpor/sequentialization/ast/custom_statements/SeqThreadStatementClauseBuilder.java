@@ -366,12 +366,13 @@ public record SeqThreadStatementClauseBuilder(
             pThread.id(), pLabelPc, isLoopHead, pStatements, pNextThreadLabel);
     return new SeqThreadStatementClause(
         options,
-        block.withRequiredInstrumentation(
-            substitutions.get(pThread.id()),
-            substituteEdges,
-            pThreadNode,
-            pointerAliasingMap,
-            astCfaRelation,
-            utils.binaryExpressionBuilder()));
+        ImmutableList.of(
+            block.withRequiredInstrumentation(
+                substitutions.get(pThread.id()),
+                substituteEdges,
+                pThreadNode,
+                pointerAliasingMap,
+                astCfaRelation,
+                utils.binaryExpressionBuilder())));
   }
 }

@@ -116,7 +116,7 @@ public class SeqPointerAliasingUtil {
                       rightHandSideVisitResult.declaration(),
                       rightHandSideVisitResult.fieldMember());
               return Optional.of(
-                  SeqPointerAssignment.of(
+                  new SeqPointerAssignment(
                       pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
@@ -130,7 +130,7 @@ public class SeqPointerAliasingUtil {
                       Optional.empty(),
                       Optional.of(functionCallExpression));
               return Optional.of(
-                  SeqPointerAssignment.of(
+                  new SeqPointerAssignment(
                       pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }

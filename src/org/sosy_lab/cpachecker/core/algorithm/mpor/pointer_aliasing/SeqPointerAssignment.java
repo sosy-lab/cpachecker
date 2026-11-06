@@ -31,23 +31,7 @@ public final class SeqPointerAssignment {
 
   private final SeqMemoryLocation rightHandSideMemoryLocation;
 
-  private SeqPointerAssignment(
-      MPORThread pThread,
-      SeqPointerAssignmentType pType,
-      SeqMemoryLocation pLeftHandSideMemoryLocation,
-      SeqMemoryLocation pRightHandSideMemoryLocation) {
-
-    thread = pThread;
-    type = pType;
-    leftHandSideMemoryLocation = pLeftHandSideMemoryLocation;
-    rightHandSideMemoryLocation = pRightHandSideMemoryLocation;
-  }
-
-  /**
-   * Creates a {@link SeqPointerAssignment} after checking that the left-hand side is actually a
-   * pointer.
-   */
-  public static SeqPointerAssignment of(
+  SeqPointerAssignment(
       MPORThread pThread,
       SeqPointerAssignmentType pType,
       SeqMemoryLocation pLeftHandSideMemoryLocation,
@@ -55,8 +39,10 @@ public final class SeqPointerAssignment {
       throws UnsupportedCodeException {
 
     InputRejection.checkPointerAssignmentLeftHandSide(pLeftHandSideMemoryLocation);
-    return new SeqPointerAssignment(
-        pThread, pType, pLeftHandSideMemoryLocation, pRightHandSideMemoryLocation);
+    thread = pThread;
+    type = pType;
+    leftHandSideMemoryLocation = pLeftHandSideMemoryLocation;
+    rightHandSideMemoryLocation = pRightHandSideMemoryLocation;
   }
 
   public MPORThread getThread() {
