@@ -162,18 +162,47 @@ public final class CCompositeType implements CComplexType {
 
   /**
    * This is the declaration of a member of a composite type. It contains a type and an optional
-   * name.
+   * name, and the GCC attributes packed and aligned, which affect the layout of the composite type.
+   * Packed or aligned attributes of the composite type itself are stored in its members as well.
    */
   public static final class CCompositeTypeMemberDeclaration implements Serializable {
 
     @Serial private static final long serialVersionUID = 8647666228796784933L;
     private final CType type;
     private final String name;
+    private final boolean packed;
+    private final int alignment;
 
     public CCompositeTypeMemberDeclaration(CType pType, String pName) {
+      this(pType, pName, false, 0);
+    }
 
+    /**
+     * @param pPacked whether the member is packed, i.e., its alignment is 1 instead of the
+     *     alignment of its type
+     * @param pAlignment the minimum alignment of the member from an aligned attribute or an
+     *     alignment specifier, or 0 if none
+     */
+    public CCompositeTypeMemberDeclaration(
+        CType pType, String pName, boolean pPacked, int pAlignment) {
+      checkArgument(pAlignment == 0 || Integer.bitCount(pAlignment) == 1);
       type = checkNotNull(pType);
       name = pName;
+      packed = pPacked;
+      alignment = pAlignment;
+    }
+
+    /** Return a copy of this member with a different type. */
+    public CCompositeTypeMemberDeclaration withType(CType pType) {
+      return new CCompositeTypeMemberDeclaration(pType, name, packed, alignment);
+    }
+
+    /** Return this member without the attributes packed and aligned. */
+    public CCompositeTypeMemberDeclaration withoutAttributes() {
+      if (!packed && alignment == 0) {
+        return this;
+      }
+      return new CCompositeTypeMemberDeclaration(type, name);
     }
 
     @Override
@@ -182,6 +211,8 @@ public final class CCompositeType implements CComplexType {
       int result = 7;
       result = prime * result + Objects.hashCode(name);
       result = prime * result + Objects.hashCode(type);
+      result = prime * result + Boolean.hashCode(packed);
+      result = prime * result + alignment;
       return result;
     }
 
@@ -195,6 +226,8 @@ public final class CCompositeType implements CComplexType {
       }
       CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
       return Objects.equals(name, other.name)
+          && packed == other.packed
+          && alignment == other.alignment
           && type.getCanonicalType().equals(other.type.getCanonicalType());
     }
 
@@ -204,6 +237,15 @@ public final class CCompositeType implements CComplexType {
 
     public String getName() {
       return name;
+    }
+
+    public boolean isPacked() {
+      return packed;
+    }
+
+    /** Return the minimum alignment from an aligned attribute or alignment specifier, or 0. */
+    public int getAlignment() {
+      return alignment;
     }
 
     /**
@@ -216,7 +258,15 @@ public final class CCompositeType implements CComplexType {
     }
 
     public String toASTString() {
-      return getType().toASTString(Strings.nullToEmpty(getName())) + ";";
+      String attributes = "";
+      if (packed && alignment > 0) {
+        attributes = " __attribute__((packed, aligned(" + alignment + ")))";
+      } else if (packed) {
+        attributes = " __attribute__((packed))";
+      } else if (alignment > 0) {
+        attributes = " __attribute__((aligned(" + alignment + ")))";
+      }
+      return getType().toASTString(Strings.nullToEmpty(getName())) + attributes + ";";
     }
 
     @Override

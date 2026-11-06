@@ -734,6 +734,12 @@ public enum MachineModel {
     return alignof;
   }
 
+  /** Return the alignment of a member within its composite type (GCC semantics). */
+  public int getAlignof(CCompositeTypeMemberDeclaration pMember) {
+    int alignof = pMember.isPacked() ? 1 : getAlignof(pMember.getType());
+    return Math.max(alignof, pMember.getAlignment());
+  }
+
   private int getAlignofNonAtomic(CType type) {
     return switch (type) {
       case CArrayType pArrayType ->
@@ -744,10 +750,8 @@ public enum MachineModel {
           switch (pCompositeType.getKind()) {
             case STRUCT, UNION -> {
               int alignof = 1;
-              // TODO: Take possible padding into account
               for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-                int alignOfType = getAlignof(decl.getType());
-                alignof = Math.max(alignof, alignOfType);
+                alignof = Math.max(alignof, getAlignof(decl));
               }
               yield alignof;
             }
@@ -768,7 +772,7 @@ public enum MachineModel {
             "Cannot compute alignment of incomplete type " + pElaboratedType);
       }
 
-      case CEnumType pEnumType -> getAlignofInt(); // enums are always ints
+      case CEnumType pEnumType -> getAlignof(pEnumType.getCompatibleType());
 
       case CFunctionType pFunctionType ->
           1; // function types have per definition the value 1 if compiled with gcc
@@ -881,7 +885,7 @@ public enum MachineModel {
     // On the other hand, in 'struct s { char a: 7; int b: 26; };', the 25 remaining
     // bits int the first integer alignment of 'struct s' are padded and 'b' is pushed
     // to the next integer-aligned unit, resulting in 'struct s' having 8 bytes size.
-    BigInteger paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
+    BigInteger paddingBitSpace = getPaddingInBits(pBitFieldOffset, getAlignof(pType), pSizeOfByte);
 
     if (paddingBitSpace.compareTo(pBitFieldLength) < 0) {
       pBitFieldOffset = pBitFieldOffset.add(paddingBitSpace);
@@ -895,21 +899,32 @@ public enum MachineModel {
       BigInteger pSizeOfConsecutiveBitFields,
       CType pType,
       long pSizeOfByte) {
+    return calculatePaddedBitsize(
+        pBitOffset, pSizeOfConsecutiveBitFields, getAlignof(pType), pSizeOfByte);
+  }
+
+  BigInteger calculatePaddedBitsize(
+      BigInteger pBitOffset,
+      BigInteger pSizeOfConsecutiveBitFields,
+      int pAlignof,
+      long pSizeOfByte) {
     pBitOffset = pBitOffset.add(pSizeOfConsecutiveBitFields);
     // once pad the bits to full bytes, then pad bytes to the
     // alignment of the current type
     pBitOffset = sizeofVisitor.calculateByteSize(pBitOffset);
 
-    return pBitOffset.add(getPadding(pBitOffset, pType)).multiply(BigInteger.valueOf(pSizeOfByte));
+    return pBitOffset
+        .add(getPaddingInBits(pBitOffset, pAlignof, 1L))
+        .multiply(BigInteger.valueOf(pSizeOfByte));
   }
 
   @Deprecated // should be private in BaseSizeofVisitor
   public BigInteger getPadding(BigInteger pOffset, CType pType) {
-    return getPaddingInBits(pOffset, pType, 1L);
+    return getPaddingInBits(pOffset, getAlignof(pType), 1L);
   }
 
-  private BigInteger getPaddingInBits(BigInteger pOffset, CType pType, long pSizeOfByte) {
-    BigInteger alignof = BigInteger.valueOf(getAlignof(pType) * pSizeOfByte);
+  private BigInteger getPaddingInBits(BigInteger pOffset, int pAlignof, long pSizeOfByte) {
+    BigInteger alignof = BigInteger.valueOf(pAlignof * pSizeOfByte);
     BigInteger padding = alignof.subtract(pOffset.mod(alignof));
     if (padding.compareTo(alignof) < 0) {
       return padding;

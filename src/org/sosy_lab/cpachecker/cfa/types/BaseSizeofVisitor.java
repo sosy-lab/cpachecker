@@ -106,12 +106,14 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
   private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) throws X {
     BigInteger size = BigInteger.ZERO;
     BigInteger sizeOfType = BigInteger.ZERO;
-    // TODO: Take possible padding into account
     for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
       sizeOfType = decl.getType().accept(this);
       size = size.max(sizeOfType);
     }
-    return size;
+    // Round up to the alignment of the union.
+    // Use the non-atomic alignment for the same reason as at the end of the struct case.
+    BigInteger alignof = BigInteger.valueOf(model.getAlignof(pCompositeType.withoutAtomic()));
+    return size.add(alignof).subtract(BigInteger.ONE).divide(alignof).multiply(alignof);
   }
 
   @Override
@@ -272,14 +274,17 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
                     bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
             sizeOfConsecutiveBitFields = BigInteger.ZERO;
           } else {
-            sizeOfConsecutiveBitFields =
-                model
-                    .calculateNecessaryBitfieldOffset(
-                        sizeOfConsecutiveBitFields.add(bitOffset),
-                        innerType,
-                        sizeOfByte,
-                        fieldSizeInBits)
-                    .subtract(bitOffset);
+            if (!typeMember.isPacked()) {
+              // packed bit fields are placed directly after their predecessor
+              sizeOfConsecutiveBitFields =
+                  model
+                      .calculateNecessaryBitfieldOffset(
+                          sizeOfConsecutiveBitFields.add(bitOffset),
+                          innerType,
+                          sizeOfByte,
+                          fieldSizeInBits)
+                      .subtract(bitOffset);
+            }
             sizeOfConsecutiveBitFields = sizeOfConsecutiveBitFields.add(fieldSizeInBits);
           }
 
@@ -290,7 +295,8 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
           }
         } else {
           bitOffset =
-              model.calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, type, sizeOfByte);
+              model.calculatePaddedBitsize(
+                  bitOffset, sizeOfConsecutiveBitFields, model.getAlignof(typeMember), sizeOfByte);
           sizeOfConsecutiveBitFields = BigInteger.ZERO;
 
           if (typeMember.getName().equals(pFieldName)) {
