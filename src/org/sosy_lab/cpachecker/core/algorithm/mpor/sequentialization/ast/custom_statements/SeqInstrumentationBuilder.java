@@ -22,6 +22,9 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -29,12 +32,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -48,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread.BlockType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -231,13 +241,92 @@ public class SeqInstrumentationBuilder {
   }
 
   /**
+   * Returns the {@link SeqInstrumentation} where dangling pointers after the leaving edges of
+   * {@code pThreadNode} are executed. If no pointers are dangling, then {@link Optional#empty()} is
+   * returned.
+   *
+   * <p>For example the pointer {@code ptr} has to be reset if it still points to any local stack
+   * address after {@code function} returns:
+   *
+   * <pre>{@code
+   * int* ptr;
+   * void function() {
+   *    int local = 0;
+   *    ptr = & local;
+   *    // sequentialization needs to inject the following here:
+   *    // if (ptr == & local) {
+   *    //    ptr = (void*)0;
+   *    // }
+   * }
+   * }</pre>
+   */
+  static Optional<SeqInstrumentation> tryBuildResetDanglingPointerInstrumentation(
+      CFANodeForThread pThreadNode,
+      SeqPointerAliasingMap pPointerAliasingMap,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CFANode cfaNode = pThreadNode.getCfaNode();
+    if (!MPORUtil.requiresPointerResets(cfaNode)) {
+      return Optional.empty();
+    }
+
+    List<CIfStatement> ifStatements = new ArrayList<>();
+
+    for (SeqPointerAssignment pointerAssignment : pPointerAliasingMap.pointerAssignments) {
+      // dangling pointers can only be reset by the thread that contain the pointer assignment
+      if (pointerAssignment.getThread().id() == pThreadNode.threadId) {
+
+        SeqMemoryLocation leftHandSide = pointerAssignment.leftHandSideMemoryLocation();
+        SeqMemoryLocation rightHandSide = pointerAssignment.rightHandSideMemoryLocation();
+        if (leftHandSide.isDeclarationPointerType() && rightHandSide.isStackAllocated()) {
+
+          CIdExpression leftHandSideExpression =
+              pointerAssignment.leftHandSideMemoryLocation().toCIdExpression();
+          CType rightHandSideType = Objects.requireNonNull(rightHandSide.declaration()).getType();
+          CExpression rightHandSideExpression =
+              rightHandSideType instanceof CPointerType
+                  ? rightHandSide.toCIdExpression()
+                  : new CUnaryExpression(
+                      FileLocation.DUMMY,
+                      new CPointerType(rightHandSideType.getQualifiers(), rightHandSideType),
+                      rightHandSide.toCIdExpression(),
+                      UnaryOperator.AMPER);
+
+          // create the expression 'if (ptr == &local)'
+          CBinaryExpression ifExpression =
+              pBinaryExpressionBuilder.buildBinaryExpression(
+                  leftHandSideExpression, rightHandSideExpression, BinaryOperator.EQUALS);
+          CExpressionAssignmentStatement resetAssignmentStatement =
+              new CExpressionAssignmentStatement(
+                  FileLocation.DUMMY, leftHandSideExpression, CCastExpression.POINTER_TO_VOID_CAST);
+
+          // create the statement 'ptr = (void*)0;'
+          ifStatements.add(
+              new CIfStatement(
+                  new CExpressionWrapper(ifExpression),
+                  new CCompoundStatement(new CStatementWrapper(resetAssignmentStatement))));
+        }
+      }
+    }
+
+    if (ifStatements.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new SeqInstrumentation(
+            SeqInstrumentationType.RESET_DANGLING_POINTER,
+            new CCompoundStatement(ImmutableList.copyOf(ifStatements))));
+  }
+
+  /**
    * Returns the {@link SeqInstrumentation} where pointers that go out of scope after the leaving
    * edges of {@code pThreadNode} are executed. If no pointers go out of scope, then {@link
    * Optional#empty()} is returned.
    *
    * <p>For example the local pointer {@code ptr} has to be reset after {@code function} returns.
-   * All functions are inlined and {@code ptr} is global, so it is not reset implicitly but has to
-   * be reset explicitly:
+   * All functions are inlined and {@code ptr} becomes global in the sequentialization, so it is not
+   * reset implicitly but has to be reset explicitly:
    *
    * <pre>{@code
    * void function() {
@@ -251,66 +340,66 @@ public class SeqInstrumentationBuilder {
       CFANodeForThread pThreadNode,
       AstCfaRelation pAstCfaRelation) {
 
-    List<CCompoundStatementElement> assignments = new ArrayList<>();
     CFANode cfaNode = pThreadNode.getCfaNode();
+    if (!MPORUtil.requiresPointerResets(cfaNode)) {
+      return Optional.empty();
+    }
+
+    List<CCompoundStatementElement> resetAssignments = new ArrayList<>();
 
     // All local pointer variables need to be reset when inlining, for example:
     // void function() {
     //    int* ptr = malloc(sizeof(int));
     // }
-    if (MPORUtil.requiresPointerResets(cfaNode)) {
-      ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
-          localVariableSubstituteTable = pSubstitution.getLocalVariableSubstituteTable();
-      ImmutableSet<AVariableDeclaration> localVariablesInScope =
-          pAstCfaRelation.getDeclaredLocalVariablesByCfaNode(cfaNode);
+    ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+        localVariableSubstituteTable = pSubstitution.getLocalVariableSubstituteTable();
+    ImmutableSet<AVariableDeclaration> localVariablesInScope =
+        pAstCfaRelation.getDeclaredLocalVariablesByCfaNode(cfaNode);
 
-      for (AVariableDeclaration localVariableInScope : localVariablesInScope) {
-        if (localVariableInScope.getType() instanceof CPointerType) {
+    for (AVariableDeclaration localVariableInScope : localVariablesInScope) {
+      if (localVariableInScope.getType() instanceof CPointerType) {
 
-          LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
-              Objects.requireNonNull(
-                  localVariableSubstituteTable.get(
-                      pThreadNode.callContext, (CVariableDeclaration) localVariableInScope));
+        LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
+            Objects.requireNonNull(
+                localVariableSubstituteTable.get(
+                    pThreadNode.callContext, (CVariableDeclaration) localVariableInScope));
+        CExpressionAssignmentStatement assignmentStatement =
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY,
+                localVariableDeclarationSubstitute.idExpression(),
+                CCastExpression.POINTER_TO_VOID_CAST);
+        resetAssignments.add(new CStatementWrapper(assignmentStatement));
+      }
+    }
+
+    // All pointer parameters need to be reset when inlining, for example:
+    // void function(int* ptr) {
+    //    ptr = malloc(sizeof(int));
+    // }
+    for (AParameterDeclaration parameterInScope :
+        pAstCfaRelation.getDeclaredParametersByCfaNode(cfaNode)) {
+      if (parameterInScope.getType() instanceof CPointerType
+          && pThreadNode.callContext.cfaEdgeForThread().isPresent()) {
+
+        ImmutableList<CIdExpression> parameterSubstitutes =
+            pSubstitution.getAllParameterIdExpressions(
+                pThreadNode.callContext, (CParameterDeclaration) parameterInScope);
+
+        for (CIdExpression parameterIdExpression : parameterSubstitutes) {
           CExpressionAssignmentStatement assignmentStatement =
               new CExpressionAssignmentStatement(
-                  FileLocation.DUMMY,
-                  localVariableDeclarationSubstitute.idExpression(),
-                  CCastExpression.POINTER_TO_VOID_CAST);
-          assignments.add(new CStatementWrapper(assignmentStatement));
-        }
-      }
-
-      // All pointer parameters need to be reset when inlining, for example:
-      // void function(int* ptr) {
-      //    ptr = malloc(sizeof(int));
-      // }
-      for (AParameterDeclaration parameterInScope :
-          pAstCfaRelation.getDeclaredParametersByCfaNode(cfaNode)) {
-        if (parameterInScope.getType() instanceof CPointerType
-            && pThreadNode.callContext.cfaEdgeForThread().isPresent()) {
-
-          ImmutableList<CIdExpression> parameterSubstitutes =
-              pSubstitution.getAllParameterIdExpressions(
-                  pThreadNode.callContext, (CParameterDeclaration) parameterInScope);
-
-          for (CIdExpression parameterIdExpression : parameterSubstitutes) {
-            CExpressionAssignmentStatement assignmentStatement =
-                new CExpressionAssignmentStatement(
-                    FileLocation.DUMMY,
-                    parameterIdExpression,
-                    CCastExpression.POINTER_TO_VOID_CAST);
-            assignments.add(new CStatementWrapper(assignmentStatement));
-          }
+                  FileLocation.DUMMY, parameterIdExpression, CCastExpression.POINTER_TO_VOID_CAST);
+          resetAssignments.add(new CStatementWrapper(assignmentStatement));
         }
       }
     }
 
-    if (assignments.isEmpty()) {
+    if (resetAssignments.isEmpty()) {
       return Optional.empty();
     }
     return Optional.of(
         new SeqInstrumentation(
             SeqInstrumentationType.RESET_OUT_OF_SCOPE_POINTER,
-            new CCompoundStatement(ImmutableList.copyOf(assignments))));
+            new CCompoundStatement(ImmutableList.copyOf(resetAssignments))));
   }
 }

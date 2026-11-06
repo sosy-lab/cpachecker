@@ -137,7 +137,10 @@ public record SeqFunctionStatementBuilder(
                 parameterSubstitutes.get(j), callContextSubstitute.getArguments().get(i + j));
         rAssignments.add(
             new SeqFunctionParameterAssignment(
-                expressionAssignmentStatement, pCallContext, pCfaEdgeForThread.callContext));
+                pSubstitution.getThread(),
+                expressionAssignmentStatement,
+                pCallContext,
+                pCfaEdgeForThread.callContext));
       }
     }
     return rAssignments.build();
@@ -202,7 +205,10 @@ public record SeqFunctionStatementBuilder(
                   cell.getValue(), rightHandSideSubstitute);
           SeqFunctionParameterAssignment startRoutineArgAssignment =
               new SeqFunctionParameterAssignment(
-                  expressionAssignmentStatement, callContext, cfaEdgeForThread.callContext);
+                  pSubstitution.getThread(),
+                  expressionAssignmentStatement,
+                  callContext,
+                  cfaEdgeForThread.callContext);
           rAssignments.put(cfaEdgeForThread, startRoutineArgAssignment);
         }
       }
@@ -242,7 +248,7 @@ public record SeqFunctionStatementBuilder(
           if (functionSummaryEdge.isPresent()) {
             Optional<SeqFunctionReturnValueAssignment> assignment =
                 tryBuildReturnValueAssignment(
-                    functionSummaryEdge.orElseThrow(), returnStatementEdge);
+                    pThread, functionSummaryEdge.orElseThrow(), returnStatementEdge);
             if (assignment.isPresent()) {
               rReturnStatements.put(threadEdge, assignment.orElseThrow());
             }
@@ -291,7 +297,9 @@ public record SeqFunctionStatementBuilder(
   }
 
   private Optional<SeqFunctionReturnValueAssignment> tryBuildReturnValueAssignment(
-      SubstituteEdge pFunctionSummaryEdge, CReturnStatementEdge pReturnStatementEdge) {
+      MPORThread pThread,
+      SubstituteEdge pFunctionSummaryEdge,
+      CReturnStatementEdge pReturnStatementEdge) {
 
     CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) pFunctionSummaryEdge.cfaEdge;
     // if the summary edge is of the form value = func(); (i.e. an assignment)
@@ -308,6 +316,7 @@ public record SeqFunctionStatementBuilder(
                 pReturnStatementEdge.getExpression().orElseThrow());
         return Optional.of(
             new SeqFunctionReturnValueAssignment(
+                pThread,
                 assignmentStatement,
                 pFunctionSummaryEdge.getCallContext(),
                 new SeqCallContext(Optional.of(pFunctionSummaryEdge.getThreadEdge()))));
@@ -353,7 +362,10 @@ public record SeqFunctionStatementBuilder(
                 pThread.startRoutineExitVariable(), rightHandSide);
         SeqFunctionReturnValueAssignment returnValueAssignment =
             new SeqFunctionReturnValueAssignment(
-                assignmentStatement, cfaEdgeForThread.callContext, substituteEdge.getCallContext());
+                pThread,
+                assignmentStatement,
+                cfaEdgeForThread.callContext,
+                substituteEdge.getCallContext());
         rStartRoutineExitAssignments.put(threadEdge, returnValueAssignment);
       }
 
@@ -372,6 +384,7 @@ public record SeqFunctionStatementBuilder(
                   substituteReturnStatementEdge.getExpression().orElseThrow());
           SeqFunctionReturnValueAssignment returnValueAssignment =
               new SeqFunctionReturnValueAssignment(
+                  pThread,
                   assignmentStatement,
                   cfaEdgeForThread.callContext,
                   substituteEdge.getCallContext());

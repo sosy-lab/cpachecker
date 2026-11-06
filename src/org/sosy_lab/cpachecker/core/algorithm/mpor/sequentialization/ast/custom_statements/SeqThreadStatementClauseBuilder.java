@@ -351,7 +351,8 @@ public record SeqThreadStatementClauseBuilder(
       Optional<CLabelStatement> pNextThreadLabel,
       CFANodeForThread pThreadNode,
       int pLabelPc,
-      ImmutableList<SeqThreadStatement> pStatements) {
+      ImmutableList<SeqThreadStatement> pStatements)
+      throws UnrecognizedCodeException {
 
     ImmutableSet<CFANodeForThread> loopHeads = pThread.cfa().getLoopHeads();
     boolean isLoopHead =
@@ -366,6 +367,11 @@ public record SeqThreadStatementClauseBuilder(
     return new SeqThreadStatementClause(
         options,
         block.withRequiredInstrumentation(
-            substitutions.get(pThread.id()), substituteEdges, pThreadNode, astCfaRelation));
+            substitutions.get(pThread.id()),
+            substituteEdges,
+            pThreadNode,
+            pointerAliasingMap,
+            astCfaRelation,
+            utils.binaryExpressionBuilder()));
   }
 }

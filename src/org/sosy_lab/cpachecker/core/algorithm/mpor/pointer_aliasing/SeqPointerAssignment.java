@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
@@ -22,6 +23,8 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  */
 public final class SeqPointerAssignment {
 
+  private final MPORThread thread;
+
   private final SeqPointerAssignmentType type;
 
   private final SeqMemoryLocation leftHandSideMemoryLocation;
@@ -29,10 +32,12 @@ public final class SeqPointerAssignment {
   private final SeqMemoryLocation rightHandSideMemoryLocation;
 
   private SeqPointerAssignment(
+      MPORThread pThread,
       SeqPointerAssignmentType pType,
       SeqMemoryLocation pLeftHandSideMemoryLocation,
       SeqMemoryLocation pRightHandSideMemoryLocation) {
 
+    thread = pThread;
     type = pType;
     leftHandSideMemoryLocation = pLeftHandSideMemoryLocation;
     rightHandSideMemoryLocation = pRightHandSideMemoryLocation;
@@ -43,6 +48,7 @@ public final class SeqPointerAssignment {
    * pointer.
    */
   public static SeqPointerAssignment of(
+      MPORThread pThread,
       SeqPointerAssignmentType pType,
       SeqMemoryLocation pLeftHandSideMemoryLocation,
       SeqMemoryLocation pRightHandSideMemoryLocation)
@@ -50,7 +56,11 @@ public final class SeqPointerAssignment {
 
     InputRejection.checkPointerAssignmentLeftHandSide(pLeftHandSideMemoryLocation);
     return new SeqPointerAssignment(
-        pType, pLeftHandSideMemoryLocation, pRightHandSideMemoryLocation);
+        pThread, pType, pLeftHandSideMemoryLocation, pRightHandSideMemoryLocation);
+  }
+
+  public MPORThread getThread() {
+    return thread;
   }
 
   public SeqPointerAssignmentType type() {

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignmentType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -155,6 +156,7 @@ public class MPORSubstitutionTrackerUtil {
   // Pointer Assignments ===========================================================================
 
   static void trackPointerAssignment(
+      MPORThread pThread,
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
       SeqCallContext pCallContext,
@@ -164,6 +166,7 @@ public class MPORSubstitutionTrackerUtil {
 
     Optional<SeqPointerAssignment> pointerAssignment =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            pThread,
             pLeftHandSide,
             pRightHandSide,
             // since all raw assignments from the input program are not across a function (e.g.
@@ -180,6 +183,7 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   static void trackPointerAssignmentInVariableDeclaration(
+      MPORThread pThread,
       CVariableDeclaration pVariableDeclaration,
       CIdExpression pIdExpression,
       SeqCallContext pCallContext,
@@ -193,7 +197,12 @@ public class MPORSubstitutionTrackerUtil {
     if (pVariableDeclaration.getInitializer()
         instanceof CInitializerExpression initializerExpression) {
       trackPointerAssignment(
-          pIdExpression, initializerExpression.getExpression(), pCallContext, pInputCfa, pTracker);
+          pThread,
+          pIdExpression,
+          initializerExpression.getExpression(),
+          pCallContext,
+          pInputCfa,
+          pTracker);
     }
   }
 

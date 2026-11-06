@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -63,6 +64,7 @@ public class SeqPointerAliasingUtil {
    *     CPointerType}.
    */
   public static Optional<SeqPointerAssignment> tryBuildPointerAssignment(
+      MPORThread pThread,
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
       SeqCallContext pLeftHandSideCallContext,
@@ -115,7 +117,7 @@ public class SeqPointerAliasingUtil {
                       rightHandSideVisitResult.fieldMember());
               return Optional.of(
                   SeqPointerAssignment.of(
-                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                      pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
           case CFunctionCallExpression functionCallExpression -> {
@@ -129,7 +131,7 @@ public class SeqPointerAliasingUtil {
                       Optional.of(functionCallExpression));
               return Optional.of(
                   SeqPointerAssignment.of(
-                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                      pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
         }

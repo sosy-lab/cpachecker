@@ -17,13 +17,16 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -147,34 +150,36 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
       MPORSubstitution pSubstitution,
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       CFANodeForThread pThreadNode,
-      AstCfaRelation pAstCfaRelation) {
+      SeqPointerAliasingMap pPointerAliasingMap,
+      AstCfaRelation pAstCfaRelation,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     List<SeqInstrumentation> requiredInstrumentation = new ArrayList<>();
 
-    // required instrumentation when exiting an init_routine specified in a call to pthread_once
-    Optional<SeqInstrumentation> pthreadOnceEdge =
+    // instrument when exiting an init_routine specified in a call to pthread_once
+    Optional<SeqInstrumentation> onceUnlockInstrumentation =
         SeqInstrumentationBuilder.tryBuildOnceUnlockInstrumentation(pSubstituteEdges, statements);
-    if (pthreadOnceEdge.isPresent()) {
-      requiredInstrumentation.add(pthreadOnceEdge.orElseThrow());
+    if (onceUnlockInstrumentation.isPresent()) {
+      requiredInstrumentation.add(onceUnlockInstrumentation.orElseThrow());
     }
 
-    // required instrumentation when exiting a function or terminating a thread (pointer resets)
-    Optional<SeqInstrumentation> resetPointerInstrumentation =
+    // instrument when a pointer points to a local stack variable on function return
+    Optional<SeqInstrumentation> resetDanglingPointerInstrumentation =
+        SeqInstrumentationBuilder.tryBuildResetDanglingPointerInstrumentation(
+            pThreadNode, pPointerAliasingMap, pBinaryExpressionBuilder);
+    if (resetDanglingPointerInstrumentation.isPresent()) {
+      checkIsValidPointerReset(statements);
+      requiredInstrumentation.add(resetDanglingPointerInstrumentation.orElseThrow());
+    }
+
+    // instrument when exiting a function or terminating a thread (pointer resets)
+    Optional<SeqInstrumentation> resetOutOfScopePointerInstrumentation =
         SeqInstrumentationBuilder.tryBuildResetOutOfScopePointerInstrumentation(
             pSubstitution, pThreadNode, pAstCfaRelation);
-    if (resetPointerInstrumentation.isPresent()) {
-      SeqThreadStatement statement = Iterables.getOnlyElement(statements);
-      checkState(
-          statement
-              .data()
-              .getType()
-              .in(
-                  SeqThreadStatementType.GHOST_ONLY,
-                  SeqThreadStatementType.FUNCTION_EXIT,
-                  SeqThreadStatementType.THREAD_EXIT),
-          "Cannot append pointer resets to a statement of type %s",
-          statement.data().getType());
-      requiredInstrumentation.add(resetPointerInstrumentation.orElseThrow());
+    if (resetOutOfScopePointerInstrumentation.isPresent()) {
+      checkIsValidPointerReset(statements);
+      requiredInstrumentation.add(resetOutOfScopePointerInstrumentation.orElseThrow());
     }
 
     if (!requiredInstrumentation.isEmpty()) {
@@ -190,6 +195,20 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
           nextThreadLabel);
     }
     return this;
+  }
+
+  private static void checkIsValidPointerReset(ImmutableList<SeqThreadStatement> pStatements) {
+    SeqThreadStatement statement = Iterables.getOnlyElement(pStatements);
+    checkState(
+        statement
+            .data()
+            .getType()
+            .in(
+                SeqThreadStatementType.GHOST_ONLY,
+                SeqThreadStatementType.FUNCTION_EXIT,
+                SeqThreadStatementType.THREAD_EXIT),
+        "Cannot append pointer resets to a statement of type %s",
+        statement.data().getType());
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */

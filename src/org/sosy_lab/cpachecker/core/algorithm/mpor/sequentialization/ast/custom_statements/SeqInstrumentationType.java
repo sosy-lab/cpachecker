@@ -18,6 +18,7 @@ public enum SeqInstrumentationType {
   PREV_BIT_VECTOR_UPDATE(true, true),
   PREV_THREAD_UPDATE(true, true),
   PROGRAM_COUNTER_UPDATE(false, false),
+  RESET_DANGLING_POINTER(false, false),
   RESET_OUT_OF_SCOPE_POINTER(false, false),
   THREAD_COUNT_UPDATE(false, false),
   THREAD_SYNC_UPDATE(true, false);
