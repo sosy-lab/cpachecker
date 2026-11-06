@@ -58,15 +58,15 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
 public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
 
-  private final FormulaManagerView fmgr;
-  private final SvLibScope scope;
+  protected final FormulaManagerView fmgr;
+  protected final SvLibScope scope;
 
   public FormulaToSvLibVisitor(FormulaManagerView pFmgr, SvLibScope pScope) {
     fmgr = pFmgr;
     scope = pScope;
   }
 
-  private SvLibSmtLibType formulaTypeToSvLibType(FormulaType<?> formulaType) {
+  protected SvLibSmtLibType formulaTypeToSvLibType(FormulaType<?> formulaType) {
     if (formulaType.equals(FormulaType.BooleanType)) {
       return SvLibSmtLibPredefinedType.BOOL;
     } else if (formulaType.equals(FormulaType.IntegerType)) {
