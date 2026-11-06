@@ -23,15 +23,25 @@ final class ConcurrencyRules {
       ImmutableSet.of(CommonVerificationProperty.DATA_RACE, CommonVerificationProperty.DEADLOCK);
 
   /**
-   * The functions that create a thread. {@code pthread_create_N} is the name that the CFA
-   * construction uses after it has replaced the thread operations (cf. option {@code
-   * cfa.threads.threadCreate}).
+   * The calls after which a program may have more than one thread. {@link
+   * ThreadingTransferRelation#FUNCTIONS_REQUIRING_THREADING} is the set of calls whose semantics
+   * only an analysis with the ThreadingCPA models ({@code pthread_create}, {@code pthread_once} and
+   * {@code pthread_barrier_wait}), i.e. the calls that make a program concurrent for CPAchecker.
+   * Two names are added to it: {@code pthread_create_N} is what the CFA construction puts in place
+   * of {@code pthread_create} (cf. option {@code cfa.threads.threadCreate}), and {@code
+   * thrd_create} creates a thread in the threads of C11 (ISO/IEC 9899:2011, 7.26.5.1), which no
+   * analysis of CPAchecker models.
+   *
+   * <p>A call of a function without a body already makes this rule abstain, so this set is what
+   * catches the calls that do have one: the definition that the CFA construction inserts for a
+   * replaced thread operation, and a definition that the program brings along itself.
    */
-  private static final ImmutableSet<String> THREAD_CREATION_FUNCTIONS =
-      ImmutableSet.of(
-          ThreadingTransferRelation.THREAD_START,
-          ThreadingTransferRelation.THREAD_START + "_N",
-          "thrd_create");
+  private static final ImmutableSet<String> CONCURRENCY_FUNCTIONS =
+      ImmutableSet.<String>builder()
+          .addAll(ThreadingTransferRelation.FUNCTIONS_REQUIRING_THREADING)
+          .add(ThreadingTransferRelation.THREAD_START + "_N")
+          .add("thrd_create")
+          .build();
 
   static ImmutableList<SimpleRule> rules() {
     return ImmutableList.of(
@@ -49,12 +59,12 @@ final class ConcurrencyRules {
       // A function without a body could create a thread.
       return RuleVerdict.abstained();
     }
-    if (pFacts.callsAnyOf(THREAD_CREATION_FUNCTIONS)) {
+    if (pFacts.callsAnyOf(CONCURRENCY_FUNCTIONS)) {
       return RuleVerdict.abstained();
     }
     return RuleVerdict.proven(
         "no reachable edge of the program ("
             + pFacts.reachableEdges().size()
-            + " edges) creates a thread");
+            + " edges) calls a function that could make the program concurrent");
   }
 }
