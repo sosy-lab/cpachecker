@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -120,6 +121,23 @@ public class CToSvLibTransformationTest {
     String text = script.toASTString();
     SvLibToAstParser.parseScript(text);
     return text;
+  }
+
+  @Test
+  public void testShortenedAssignmentsOfInitializedArray() throws Exception {
+    String script =
+        transformAndParse(
+            Path.of("test", "programs", "to_svlib_transformation", "initialized-array.c")
+                .toAbsolutePath(),
+            "mathsat5",
+            ENCODE_BITVECTORS_AS_BITVECTORS,
+            // As in the configurations, so that the assignments of a block are consecutive.
+            ImmutableMap.of("analysis.algorithm.toSvLib.useLargeBlockEncoding", "true"));
+
+    // The stores read the address of the array from a variable, and the constants are assigned
+    // at once.
+    assertThat(script).contains("(assign (" + CToSvLibTransformationConstants.BASE_OF_STORES + " ");
+    assertThat(script).contains("(assign (a (_ bv1 32)) (b (_ bv2 32)) (c (_ bv3 32)))");
   }
 
   @Test
