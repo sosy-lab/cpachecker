@@ -284,7 +284,7 @@ public class SeqInstrumentationBuilder {
             SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
                 leftHandSide, pPointerAliasingMap.pointerAssignments);
 
-        for (SeqMemoryLocation rightHandSide : dereferencedRightHandSides)
+        for (SeqMemoryLocation rightHandSide : dereferencedRightHandSides) {
           // only consider stack allocated memory locations, since heap allocations are not dangling
           if (rightHandSide.isStackAllocated()) {
 
@@ -316,6 +316,7 @@ public class SeqInstrumentationBuilder {
                     new CExpressionWrapper(ifExpression),
                     new CCompoundStatement(new CStatementWrapper(resetAssignmentStatement))));
           }
+        }
       }
     }
 
@@ -370,8 +371,7 @@ public class SeqInstrumentationBuilder {
 
         LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
             Objects.requireNonNull(
-                localVariableSubstituteTable.get(
-                    pThreadNode.callContext, (CVariableDeclaration) localVariableInScope));
+                localVariableSubstituteTable.get(pThreadNode.callContext, localVariableInScope));
         CExpressionAssignmentStatement assignmentStatement =
             new CExpressionAssignmentStatement(
                 FileLocation.DUMMY,
