@@ -1157,8 +1157,9 @@ cfa.callgraph.export = true
 cfa.callgraph.file = "functionCalls.dot"
 cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
-# how often do we clone a function?
-cfa.cfaCloner.numberOfCopies = 5
+# how often do we clone a function? The ThreadingCPA uses one copy per
+# created thread.
+cfa.cfaCloner.numberOfCopies = 10
 
 # while this option is activated, before each use of a PointerExpression, or
 # a dereferenced field access the expression is checked if it is 0
@@ -4154,8 +4155,8 @@ cpa.thread.supportSelfCreation = false
 cpa.threading.allowMultipleLHS = false
 
 # the maximal number of parallel threads, -1 for infinite. When combined with
-# 'useClonedFunctions=true', we need at least N cloned functions. The option
-# 'cfa.cfaCloner.numberOfCopies' should be set to N.
+# 'useClonedFunctions=true', each created thread gets new cloned functions,
+# thus 'cfa.cfaCloner.numberOfCopies' limits the number of created threads.
 cpa.threading.maxNumberOfThreads = 5
 
 # stop state-space-exploration once main is left. Setting this option to true
