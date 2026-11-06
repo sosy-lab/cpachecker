@@ -15,8 +15,14 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.Test;
 
 /** Tests for {@link SimpleRules}, the registry that decides which rules the analysis runs. */
@@ -71,5 +77,34 @@ public class SimpleRulesTest {
   @Test
   public void testRuleNamesAreUnique() {
     assertThat(namesOf(SimpleRules.all())).containsNoDuplicates();
+  }
+
+  private static final Path ALGORITHM_SOURCE =
+      Path.of("src/org/sosy_lab/cpachecker/core/algorithm/simplerules/SimpleRulesAlgorithm.java");
+
+  private static final Pattern DEFAULT_OF_RULES_OPTION =
+      Pattern.compile("private Set<String> rules =(.*?);", Pattern.DOTALL);
+
+  /**
+   * The default of {@code simplerules.rules} lists every rule, so that {@code
+   * doc/ConfigurationOptions.txt} shows which rules exist. That list has to be written out in the
+   * source, because OptionCollector documents the source text of the initializer, and this test is
+   * what keeps it in sync with {@link SimpleRules#all()}.
+   */
+  @Test
+  public void testDefaultOfTheRulesOptionListsEveryRule() throws IOException {
+    String source = Files.readString(ALGORITHM_SOURCE, StandardCharsets.UTF_8);
+    Matcher declaration = DEFAULT_OF_RULES_OPTION.matcher(source);
+    assertWithMessage(
+            "the option simplerules.rules is not declared as expected in %s", ALGORITHM_SOURCE)
+        .that(declaration.find())
+        .isTrue();
+
+    ImmutableList.Builder<String> names = ImmutableList.builder();
+    Matcher literal = Pattern.compile("\"([^\"]*)\"").matcher(declaration.group(1));
+    while (literal.find()) {
+      names.add(literal.group(1));
+    }
+    assertThat(names.build()).containsExactlyElementsIn(namesOf(SimpleRules.all()));
   }
 }

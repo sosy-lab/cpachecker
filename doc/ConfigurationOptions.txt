@@ -5733,10 +5733,26 @@ sampling.random.samplesToBeGenerated = 10
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
 
-# Use only the simple rules with these names, e.g. to measure a single rule.
-# Leave empty to use all rules that can decide a proposition of the
-# specification. The names of the rules are printed in the statistics.
-simplerules.rules = {}
+# The simple rules to use, by name. The default lists every rule of this
+# CPAchecker version, so switching a rule off or measuring a single rule
+# means removing the others from this list. A rule is applied only if it can
+# decide a proposition of the specification, and the statistics report which
+# rules were applied. A new rule has to be added here as well, which
+# SimpleRulesTest checks.
+simplerules.rules = {
+          "no-reachable-target-location",
+          "violation-on-every-execution",
+          "no-reachable-loop",
+          "endless-loop-on-every-execution",
+          "no-signed-overflow-possible",
+          "signed-overflow-on-every-execution",
+          "no-memory-operation",
+          "no-heap-allocation",
+          "all-accesses-inside-their-object",
+          "access-outside-object-on-every-execution",
+          "free-of-non-heap-object-on-every-execution",
+          "single-threaded",
+          "program-does-nothing"}
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"

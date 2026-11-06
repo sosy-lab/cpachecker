@@ -59,10 +59,26 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
   @Option(
       secure = true,
       description =
-          "Use only the simple rules with these names, e.g. to measure a single rule. Leave empty"
-              + " to use all rules that can decide a proposition of the specification. The names of"
-              + " the rules are printed in the statistics.")
-  private Set<String> rules = ImmutableSet.of();
+          "The simple rules to use, by name. The default lists every rule of this CPAchecker"
+              + " version, so switching a rule off or measuring a single rule means removing the"
+              + " others from this list. A rule is applied only if it can decide a proposition of"
+              + " the specification, and the statistics report which rules were applied. A new"
+              + " rule has to be added here as well, which SimpleRulesTest checks.")
+  private Set<String> rules =
+      ImmutableSet.of(
+          "no-reachable-target-location",
+          "violation-on-every-execution",
+          "no-reachable-loop",
+          "endless-loop-on-every-execution",
+          "no-signed-overflow-possible",
+          "signed-overflow-on-every-execution",
+          "no-memory-operation",
+          "no-heap-allocation",
+          "all-accesses-inside-their-object",
+          "access-outside-object-on-every-execution",
+          "free-of-non-heap-object-on-every-execution",
+          "single-threaded",
+          "program-does-nothing");
 
   private static final Joiner COMMA = Joiner.on(", ");
 
@@ -196,7 +212,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
 
   /** Whether the given rule is selected by the option {@code simplerules.rules}. */
   private boolean isEnabled(SimpleRule pRule) {
-    return rules.isEmpty() || rules.contains(pRule.name());
+    return rules.contains(pRule.name());
   }
 
   /** Report all propositions of the given rule that the specification asks about. */
