@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+
+<!--
+Integration test for the analyses that decide a task without reasoning about an abstraction of
+the program: the simple rules, the interpreter, and the portfolio of both. They are meant to
+answer within seconds or to abstain, so the time limit is deliberately small: a task that needs
+longer would never help the portfolio it is a part of.
+-->
+<benchmark tool="cpachecker" timelimit="30 s" hardtimelimit="60 s" memlimit="3 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
+
+  <rundefinition name="simpleChecks">
+    <option name="--simpleChecks"/>
+  </rundefinition>
+
+  <rundefinition name="simpleRules">
+    <option name="--simpleRules"/>
+  </rundefinition>
+
+  <rundefinition name="interpreter">
+    <option name="--interpreter"/>
+  </rundefinition>
+
+  <!-- The configuration for the property of the task is selected by the property file itself. -->
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/termination.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/no-data-race.prp</propertyfile>
+  </tasks>
+</benchmark>

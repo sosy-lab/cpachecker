@@ -1,0 +1,456 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.interpreter;
+
+import static com.google.common.base.Verify.verifyNotNull;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+/**
+ * Transfer relation of the {@link InterpreterCPA}. It executes the program edge by edge and checks
+ * after every step that the wrapped CPA produced exactly one or zero successors.
+ *
+ * <p>Because there is at most one successor, the whole execution is performed within a single call
+ * of this transfer relation. The intermediate states are then never returned and can be garbage
+ * collected immediately, which is what makes this analysis use only a constant amount of memory for
+ * the state space.
+ */
+class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation {
+
+  private final ShutdownNotifier shutdownNotifier;
+  private final LogManagerWithoutDuplicates logger;
+  private final InterpreterStatistics stats;
+  private final InterpreterWitnessExporter witnessExporter;
+  private final @Nullable InterpreterSampler sampler;
+  private final @Nullable ValueTransferOptions valueTransferOptions;
+  private final boolean collectInvariants;
+
+  InterpreterTransferRelation(
+      TransferRelation pWrapped,
+      ShutdownNotifier pShutdownNotifier,
+      LogManagerWithoutDuplicates pLogger,
+      InterpreterStatistics pStats,
+      InterpreterWitnessExporter pWitnessExporter,
+      @Nullable InterpreterSampler pSampler,
+      @Nullable ValueTransferOptions pValueTransferOptions) {
+    super(pWrapped);
+    shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
+    stats = pStats;
+    witnessExporter = pWitnessExporter;
+    sampler = pSampler;
+    valueTransferOptions = pValueTransferOptions;
+    collectInvariants = pWitnessExporter.collectsInvariants();
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+
+    InterpreterState current = (InterpreterState) pState;
+    // The whole remaining execution is performed here, so the loop ends only with the program.
+    while (true) {
+      shutdownNotifier.shutdownIfNecessary();
+
+      InterpreterState next = executeStep(current, pPrecision);
+      if (next == null) {
+        // The program ends here (or the specification excludes this path),
+        // so this execution has no successor at all.
+        return ImmutableList.of();
+      }
+      current = next;
+
+      if (AbstractStates.isTargetState(current)) {
+        // Stop here such that the target state is added to the reached set
+        // and the analysis reports a property violation.
+        break;
+      }
+    }
+    return ImmutableList.of(current);
+  }
+
+  /**
+   * Execute a single program step.
+   *
+   * @return the successor state, or {@code null} if the execution ends at the given state
+   * @throws CPATransferException if the given state has more than one successor
+   */
+  private @Nullable InterpreterState executeStep(InterpreterState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+
+    final AbstractState wrappedState = pState.getWrappedState();
+    final StackFrame callStack = pState.getCallStack();
+    final AbstractStateWithLocations locationState = locationsOf(wrappedState);
+
+    if (collectInvariants) {
+      // Remember the assignments of this execution for the invariants of a correctness witness.
+      for (CFANode location : locationState.getLocationNodes()) {
+        witnessExporter.observe(location, wrappedState);
+      }
+    }
+
+    AbstractState state = wrappedState;
+    AlgorithmStatus status = statusAfterUnhandledCalls(pState.getStatus(), locationState);
+    List<InterpreterStep> steps =
+        computeSteps(
+            state,
+            callStack,
+            locationState,
+            pPrecision,
+            /* pAllowSeveralSuccessors= */ sampler != null);
+
+    if (steps.size() > 1) {
+      // The execution depends on an input of the program. Choose values for the inputs and
+      // continue with the successor that these values determine.
+      state = sampleInputs(state, steps);
+      status = status.withSound(false);
+      steps =
+          computeSteps(
+              state, callStack, locationState, pPrecision, /* pAllowSeveralSuccessors= */ false);
+    }
+
+    if (steps.isEmpty()) {
+      new InterpreterState(wrappedState, callStack, status).checkMayProveSafety();
+      return null;
+    }
+    InterpreterStep step = steps.getFirst();
+    InterpreterState successor =
+        new InterpreterState(step.successor(), updateCallStack(pState, step.edge(), state), status);
+    if (AbstractStates.isTargetState(successor)) {
+      successor.checkMayReportViolation();
+      // Remember where the specification was violated for the violation witness.
+      witnessExporter.reportViolation(step.edge());
+    }
+    stats.executedSteps.inc();
+    return successor;
+  }
+
+  /** The component of the given state that tracks the program location. */
+  private static AbstractStateWithLocations locationsOf(AbstractState pState)
+      throws CPATransferException {
+    AbstractStateWithLocations locationState =
+        AbstractStates.extractStateByType(pState, AbstractStateWithLocations.class);
+    if (locationState == null) {
+      throw new CPATransferException(
+          "InterpreterCPA needs a CPA that tracks the program location, e.g., LocationCPA");
+    }
+    return locationState;
+  }
+
+  /**
+   * Account for the calls that the value analysis does not handle: their side effects are ignored
+   * and the value they return is over-approximated, which makes the execution unsound or imprecise.
+   * Every leaving edge is accounted for, even if the specification subsequently removes its
+   * successors.
+   */
+  private AlgorithmStatus statusAfterUnhandledCalls(
+      AlgorithmStatus pStatus, AbstractStateWithLocations pLocationState)
+      throws UnsupportedCodeException {
+
+    if (valueTransferOptions == null) {
+      return pStatus;
+    }
+    AlgorithmStatus status = pStatus;
+    for (CFAEdge edge : pLocationState.getOutgoingEdges()) {
+      if (edge instanceof CStatementEdge statementEdge
+          && !(edge instanceof CFunctionSummaryStatementEdge)
+          && statementEdge.getStatement() instanceof CFunctionCall functionCall) {
+        status =
+            status.update(
+                ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls(
+                    statementEdge, functionCall, valueTransferOptions, logger));
+      }
+    }
+    return status;
+  }
+
+  /**
+   * Fix the nondeterministic values of the given state such that only one successor is left.
+   *
+   * @throws CPATransferException if no assignment of the inputs could be computed
+   */
+  private AbstractState sampleInputs(AbstractState pState, List<InterpreterStep> pSteps)
+      throws CPATransferException {
+    verifyNotNull(sampler, "there is more than one successor only if the inputs are sampled");
+    AbstractState sampledState = sampler.sample(pState, pSteps);
+    if (sampledState == null) {
+      throw nondeterminismException(pSteps.getFirst().edge(), pSteps.get(1).edge());
+    }
+    return sampledState;
+  }
+
+  /**
+   * Compute the successors of the given state by evaluating each of the edges that leave its
+   * location.
+   *
+   * @param pAllowSeveralSuccessors whether to return all successors instead of aborting as soon as
+   *     a second one is found
+   * @throws CPATransferException if there is more than one successor and {@code
+   *     pAllowSeveralSuccessors} is false
+   */
+  private List<InterpreterStep> computeSteps(
+      AbstractState pState,
+      StackFrame pCallStack,
+      AbstractStateWithLocations pLocationState,
+      Precision pPrecision,
+      boolean pAllowSeveralSuccessors)
+      throws CPATransferException, InterruptedException {
+
+    // The state whose function-scoped values were restored, computed on demand
+    // because this is necessary only when returning from a recursive function call.
+    AbstractState restoredState = null;
+
+    List<InterpreterStep> steps = new ArrayList<>(1);
+    for (CFAEdge edge : pLocationState.getOutgoingEdges()) {
+      AbstractState predecessor = pState;
+      if (edge instanceof FunctionReturnEdge returnEdge) {
+        if (restoredState == null) {
+          restoredState = restoreCallerValues(pState, returnEdge, pCallStack);
+        }
+        predecessor = restoredState;
+      }
+
+      for (AbstractState newState :
+          transferRelation.getAbstractSuccessorsForEdge(predecessor, pPrecision, edge)) {
+        if (isNewSuccessor(steps, newState)) {
+          if (!steps.isEmpty() && !pAllowSeveralSuccessors) {
+            throw nondeterminismException(steps.getFirst().edge(), edge);
+          }
+          steps.add(new InterpreterStep(edge, newState));
+        }
+      }
+    }
+    return steps;
+  }
+
+  private static boolean isNewSuccessor(List<InterpreterStep> pSteps, AbstractState pState) {
+    for (InterpreterStep step : pSteps) {
+      if (isSameState(step.successor(), pState)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Whether two successors represent the same state.
+   *
+   * <p>The transfer relation of a CPA returns a <em>set</em> of successors, but {@link
+   * CompositeState} does not implement {@link Object#equals(Object)}, so the same successor can be
+   * contained more than once. (For example {@link org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA}
+   * creates one state per leaving edge of the successor node, and these states are equal if the
+   * edges have the same assumptions.) We therefore compare composite states component-wise, such
+   * that duplicates are not mistaken for a nondeterministic choice.
+   */
+  private static boolean isSameState(AbstractState pState, AbstractState pOther) {
+    if (pState.equals(pOther)) {
+      return true;
+    }
+    if (pState instanceof CompositeState state && pOther instanceof CompositeState other) {
+      List<AbstractState> components = state.getWrappedStates();
+      List<AbstractState> otherComponents = other.getWrappedStates();
+      if (components.size() != otherComponents.size()) {
+        return false;
+      }
+      for (int i = 0; i < components.size(); i++) {
+        if (!isSameState(components.get(i), otherComponents.get(i))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * The exception for a state with more than one successor: the execution cannot follow several
+   * successors at once, so it stops here unless the inputs are sampled. The code itself is not
+   * unsupported, it is the wrapped transfer relation that produces a state we cannot continue from,
+   * so this is a plain {@link CPATransferException}.
+   */
+  private CPATransferException nondeterminismException(
+      @Nullable CFAEdge pFirstEdge, CFAEdge pSecondEdge) {
+    String reason =
+        pFirstEdge == pSecondEdge
+            ? String.format("the edge \"%s\" has more than one successor", pSecondEdge)
+            : String.format(
+                "both of the edges \"%s\" and \"%s\" have a successor", pFirstEdge, pSecondEdge);
+    return new CPATransferException(
+        "nondeterministic choice at "
+            + pSecondEdge.getFileLocation()
+            + " ("
+            + reason
+            + "); InterpreterCPA always requires a single successor state");
+  }
+
+  /** Push a stack frame for a function call and pop one for a function return. */
+  private StackFrame updateCallStack(
+      InterpreterState pState, CFAEdge pEdge, AbstractState pCallerState) {
+    final StackFrame callStack = pState.getCallStack();
+
+    if (pEdge instanceof FunctionCallEdge callEdge) {
+      FunctionEntryNode entryNode = callEdge.getSuccessor();
+      boolean isRecursive = callStack.contains(entryNode.getFunctionName());
+      if (isRecursive) {
+        stats.recursiveCalls.inc();
+      }
+      StackFrame newFrame =
+          StackFrame.push(
+              callStack,
+              entryNode.getFunctionName(),
+              isRecursive ? getShadowedValues(pCallerState, entryNode) : ImmutableMap.of());
+      stats.maxCallStackDepth.setNextValue(newFrame.depth());
+      return newFrame;
+    }
+
+    if (pEdge instanceof FunctionReturnEdge) {
+      // The entry function is never left: its frame has no call node that a return edge could
+      // match, so the CallstackCPA of the wrapped analysis gives such an edge no successor and
+      // we never get here for the bottom frame.
+      return verifyNotNull(callStack.parent(), "returned from the entry function");
+    }
+    return callStack;
+  }
+
+  /**
+   * The values of the given state that lie in the scope of the given function, i.e. the values that
+   * a call of that function is about to overwrite. Computing them costs one iteration over the
+   * state of the value analysis.
+   *
+   * <p>Note that the value analysis cannot distinguish the memory locations of two invocations of
+   * the same function, so a callee that writes to a local variable of a recursive caller through a
+   * pointer is still analyzed imprecisely. Use the SMG analysis for such programs, it models the
+   * stack frames explicitly.
+   *
+   * @return the values to restore when the call returns, empty if nothing needs to be restored
+   */
+  private ImmutableMap<MemoryLocation, ValueAndType> getShadowedValues(
+      AbstractState pCallerState, FunctionEntryNode pEntryNode) {
+
+    ValueAnalysisState valueState =
+        AbstractStates.extractStateByType(pCallerState, ValueAnalysisState.class);
+    if (valueState == null) {
+      // Analyses that model the function stack explicitly (e.g., the SMG analysis)
+      // do not need any help here.
+      return ImmutableMap.of();
+    }
+    final String function = pEntryNode.getFunctionName();
+
+    final MemoryLocation returnVariable = returnVariable(pEntryNode);
+    ImmutableMap.Builder<MemoryLocation, ValueAndType> shadowed = ImmutableMap.builder();
+    for (Entry<MemoryLocation, ValueAndType> entry : valueState.getConstants()) {
+      MemoryLocation memoryLocation = entry.getKey();
+      if (memoryLocation.isOnFunctionStack(function) && !memoryLocation.equals(returnVariable)) {
+        shadowed.put(memoryLocation, entry.getValue());
+      }
+    }
+    return shadowed.buildOrThrow();
+  }
+
+  /**
+   * Replace the frame of the returning function by the frame of its caller. This is the counterpart
+   * of {@link #getShadowedValues} and is applied to the state at the exit node of the function,
+   * i.e., before the return value is assigned to the left-hand side of the function call.
+   */
+  private AbstractState restoreCallerValues(
+      AbstractState pState, FunctionReturnEdge pEdge, StackFrame pFrame) {
+
+    final ImmutableMap<MemoryLocation, ValueAndType> shadowed = pFrame.shadowedValues();
+    if (shadowed.isEmpty()
+        || !pFrame.functionName().equals(pEdge.getFunctionEntry().getFunctionName())) {
+      // Nothing was overwritten by this call, or the call stack of this CPA does not match the
+      // returning function (which can happen only if the analysis does not start at a function
+      // entry). In both cases the state of the value analysis is already correct.
+      return pState;
+    }
+    Optional<ValueAnalysisState> valueState = InterpreterStates.valueState(pState);
+    if (valueState.isEmpty()) {
+      logRestoringNotPossible();
+      return pState;
+    }
+
+    final String function = pFrame.functionName();
+    final MemoryLocation returnVariable = returnVariable(pEdge.getFunctionEntry());
+    final ValueAnalysisState restored = ValueAnalysisState.copyOf(valueState.orElseThrow());
+    // Drop the frame of the callee ...
+    for (MemoryLocation memoryLocation : restored.getTrackedMemoryLocations()) {
+      if (memoryLocation.isOnFunctionStack(function) && !memoryLocation.equals(returnVariable)) {
+        restored.forget(memoryLocation);
+      }
+    }
+    // ... and put the frame of the caller back in place.
+    shadowed.forEach(
+        (memoryLocation, valueAndType) ->
+            restored.assignConstant(
+                memoryLocation, valueAndType.getValue(), valueAndType.getType()));
+
+    // The state has a value analysis as a direct component, cf. the check above, so replacing it
+    // cannot fail. Returning the unchanged state here would silently analyze the caller with the
+    // values of the callee.
+    return InterpreterStates.withValueState(pState, restored).orElseThrow();
+  }
+
+  private static @Nullable MemoryLocation returnVariable(FunctionEntryNode pEntryNode) {
+    return pEntryNode
+        .getReturnVariable()
+        .map((AVariableDeclaration declaration) -> MemoryLocation.forDeclaration(declaration))
+        .orElse(null);
+  }
+
+  private void logRestoringNotPossible() {
+    logger.logOnce(
+        Level.WARNING,
+        "Could not find the value analysis for restoring the values of a recursive function call."
+            + " InterpreterCPA needs to wrap a CompositeCPA that contains ValueAnalysisCPA"
+            + " directly, otherwise recursive functions are analyzed imprecisely.");
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+    throw new UnsupportedOperationException(
+        "InterpreterCPA does not support the computation of successors for a single edge");
+  }
+}

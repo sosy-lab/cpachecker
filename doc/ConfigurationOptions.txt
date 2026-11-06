@@ -539,6 +539,12 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
+# decide the specification with simple rules, i.e., with arguments that need
+# no reasoning about what the program computes. This replaces the analysis
+# that would otherwise run, so use a portfolio to combine the rules with
+# another analysis.
+analysis.algorithm.simpleRules = false
+
 # Use termination algorithm to prove (non-)termination. This needs the
 # TerminationCPA as root CPA and an automaton CPA with
 # termination_as_reach.spc in the tree of CPAs.
@@ -2310,6 +2316,28 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# Maximum number of different assignments to collect per location for the
+# invariants of a correctness witness. If a location has more assignments
+# than this, no invariant is exported for it, because an incomplete
+# disjunction would be unsound. Use -1 for no limit (which needs memory
+# proportional to the length of the execution).
+cpa.interpreter.maxAssignmentsPerLocation = 100
+
+# Maximum number of assignments that are sampled during one execution.
+# Sampling is intended for programs whose inputs are read outside of any
+# loop, where the number of inputs is bounded by the program. This limit
+# protects against the unbounded number of solver calls that a program with
+# inputs in a loop would need. Use -1 for no limit.
+cpa.interpreter.maxSamples = 1000
+
+# Execute programs with inputs by asking the SMT solver for one assignment of
+# the inputs instead of aborting on the first nondeterministic choice. This
+# needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
+# and the ConstraintsCPA in the CPA configuration. Only one of the possible
+# executions is explored, so the analysis can then only report FALSE, never
+# TRUE.
+cpa.interpreter.sampleNondeterministicValues = false
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -5776,6 +5804,27 @@ sampling.random.samplesToBeGenerated = 10
 # Stop after finding the first counterexample. This is useful when using this
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
+
+# The simple rules to use, by name. The default lists every rule of this
+# CPAchecker version, so switching a rule off or measuring a single rule
+# means removing the others from this list. A rule is applied only if it can
+# decide a proposition of the specification, and the statistics report which
+# rules were applied. A new rule has to be added here as well, which
+# SimpleRulesTest checks.
+simplerules.rules = {
+          "no-reachable-target-location",
+          "violation-on-every-execution",
+          "no-reachable-loop",
+          "endless-loop-on-every-execution",
+          "no-signed-overflow-possible",
+          "signed-overflow-on-every-execution",
+          "no-memory-operation",
+          "no-heap-allocation",
+          "all-accesses-inside-their-object",
+          "access-outside-object-on-every-execution",
+          "free-of-non-heap-object-on-every-execution",
+          "single-threaded",
+          "program-does-nothing"}
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"

@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentCPA;
 import org.sosy_lab.cpachecker.cpa.concurrent.ThreadSpecificCPA;
 import org.sosy_lab.cpachecker.cpa.dca.DCACPA;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
@@ -106,6 +107,7 @@ public class CPAsTest {
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
     cpas.remove(SingleSuccessorCompactorCPA.class);
+    cpas.remove(InterpreterCPA.class);
     cpas.remove(PowerSetCPA.class);
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);

@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.simplerules.SimpleRulesAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
@@ -363,6 +364,15 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.simpleRules",
+      description =
+          "decide the specification with simple rules, i.e., with arguments that need no reasoning"
+              + " about what the program computes. This replaces the analysis that would otherwise"
+              + " run, so use a portfolio to combine the rules with another analysis.")
+  private boolean useSimpleRules = false;
+
+  @Option(
+      secure = true,
       name = "extractRequirements.customInstruction",
       description =
           "do analysis and then extract pre- and post conditions for custom instruction from"
@@ -581,6 +591,9 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useSimpleRules) {
+      logger.log(Level.INFO, "Using the simple rules");
+      algorithm = new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
@@ -975,6 +988,7 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
+        || useSimpleRules
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
