@@ -269,7 +269,8 @@ public class SeqInstrumentationBuilder {
 
           LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
               Objects.requireNonNull(
-                  localVariableSubstituteTable.get(pThreadNode.callContext, localVariableInScope));
+                  localVariableSubstituteTable.get(
+                      pThreadNode.callContext, (CVariableDeclaration) localVariableInScope));
           CExpressionAssignmentStatement assignmentStatement =
               new CExpressionAssignmentStatement(
                   FileLocation.DUMMY,
