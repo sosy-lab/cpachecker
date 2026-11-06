@@ -646,16 +646,16 @@ public final class AstCfaRelation {
    */
   public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
       CFANode pNode) {
-    CFANode originalNode = pNode.getOriginal();
-    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)
-        || !cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
+    CFANode programNode = programNodeOf(pNode);
+    if (!cfaNodeToAstParametersInScope.containsKey(programNode)
+        || !cfaNodeToAstLocalVariablesInScope.containsKey(programNode)) {
       return Optional.empty();
     }
 
     Set<AVariableDeclaration> localVariables =
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode));
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(programNode));
     Set<AParameterDeclaration> parameters =
-        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode));
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(programNode));
     ImmutableSet<String> localNames =
         FluentIterable.concat(localVariables, parameters)
             .transform(AbstractSimpleDeclaration::getOrigName)
@@ -784,21 +784,21 @@ public final class AstCfaRelation {
   }
 
   public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
-    CFANode originalNode = pCfaNode.getOriginal();
-    if (!cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
+    CFANode programNode = programNodeOf(pCfaNode);
+    if (!cfaNodeToAstLocalVariablesInScope.containsKey(programNode)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode)));
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(programNode)));
   }
 
   public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
-    CFANode originalNode = pCfaNode.getOriginal();
-    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)) {
+    CFANode programNode = programNodeOf(pCfaNode);
+    if (!cfaNodeToAstParametersInScope.containsKey(programNode)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode)));
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(programNode)));
   }
 
   /**
