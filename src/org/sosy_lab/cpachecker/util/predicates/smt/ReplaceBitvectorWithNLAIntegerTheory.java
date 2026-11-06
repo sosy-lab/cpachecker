@@ -59,7 +59,7 @@ import org.sosy_lab.java_smt.api.UFManager;
  * integer representation and a signed interpretation when required by specific operators.
  */
 @Options(prefix = "cpa.predicate")
-class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
+final class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     implements BitvectorFormulaManager {
 
   private final BooleanFormulaManager booleanFormulaManager;

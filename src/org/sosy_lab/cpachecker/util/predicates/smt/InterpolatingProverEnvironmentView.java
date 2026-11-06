@@ -15,7 +15,7 @@ import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Model wrapping for InterpolatingProverEnvironment */
-class InterpolatingProverEnvironmentView<E> extends BasicProverEnvironmentView<E>
+final class InterpolatingProverEnvironmentView<E> extends BasicProverEnvironmentView<E>
     implements InterpolatingProverEnvironment<E> {
 
   private final InterpolatingProverEnvironment<E> delegate;

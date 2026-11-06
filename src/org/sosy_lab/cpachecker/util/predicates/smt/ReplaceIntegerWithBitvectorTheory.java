@@ -26,7 +26,8 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-class ReplaceIntegerWithBitvectorTheory extends BaseManagerView implements IntegerFormulaManager {
+final class ReplaceIntegerWithBitvectorTheory extends BaseManagerView
+    implements IntegerFormulaManager {
 
   private final BitvectorFormulaManager bvFormulaManager;
   private final BooleanFormulaManager booleanFormulaManager;

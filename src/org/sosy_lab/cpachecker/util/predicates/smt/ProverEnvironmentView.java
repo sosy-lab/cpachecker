@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 
 /** Wrapping handler for ProverEnvironment. */
-class ProverEnvironmentView extends BasicProverEnvironmentView<Void> implements ProverEnvironment {
+final class ProverEnvironmentView extends BasicProverEnvironmentView<Void>
+    implements ProverEnvironment {
 
   public ProverEnvironmentView(
       ProverEnvironment pDelegate, FormulaWrappingHandler pWrappingHandler) {

@@ -20,9 +20,12 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 
-public class NumeralFormulaManagerView<
+public sealed class NumeralFormulaManagerView<
         ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
-    extends BaseManagerView implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
+    extends BaseManagerView implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType>
+    permits IntegerFormulaManagerView,
+        IntegerNonLinearUFNumeralFormulaManager,
+        RationalFormulaManagerView {
 
   protected final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 

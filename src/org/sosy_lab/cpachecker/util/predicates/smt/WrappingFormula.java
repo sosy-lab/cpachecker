@@ -19,7 +19,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @Immutable
-abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
+abstract sealed class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
 
   private final TWrap wrapped;
   private final FormulaType<TOut> type;

@@ -14,7 +14,7 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /** Replacing non-linear arithmetics with UF for formulas over integers. */
-class IntegerNonLinearUFNumeralFormulaManager
+final class IntegerNonLinearUFNumeralFormulaManager
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
     implements IntegerFormulaManager {
 

@@ -29,7 +29,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.StringFormula;
 
 /** Wrapping for models. */
-class ModelView implements Model {
+final class ModelView implements Model {
 
   private static final Pattern Z3_IRRELEVANT_MODEL_TERM_PATTERN = Pattern.compile(".*![0-9]+");
 

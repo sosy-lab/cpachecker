@@ -41,8 +41,8 @@ import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.UFManager;
 
 @Options(prefix = "cpa.predicate")
-class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> extends BaseManagerView
-    implements BitvectorFormulaManager {
+final class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
+    extends BaseManagerView implements BitvectorFormulaManager {
 
   private final BooleanFormulaManager booleanFormulaManager;
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;

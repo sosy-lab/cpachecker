@@ -20,7 +20,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class QuantifiedFormulaManagerView extends BaseManagerView
+public final class QuantifiedFormulaManagerView extends BaseManagerView
     implements QuantifiedFormulaManager {
 
   private final QuantifiedFormulaManager manager;

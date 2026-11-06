@@ -15,7 +15,7 @@ import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula. */
-class OptimizationProverEnvironmentView extends BasicProverEnvironmentView<Void>
+final class OptimizationProverEnvironmentView extends BasicProverEnvironmentView<Void>
     implements OptimizationProverEnvironment {
 
   private final OptimizationProverEnvironment delegate;

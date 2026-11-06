@@ -102,7 +102,7 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
  * <p>The method {@link #parseName(String)} is also related to this, but should not be used!
  */
 @Options(prefix = "cpa.predicate")
-public class FormulaManagerView {
+public final class FormulaManagerView {
 
   enum Theory {
     UNSUPPORTED,

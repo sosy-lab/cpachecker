@@ -13,7 +13,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.RationalFormulaManager;
 
-public class RationalFormulaManagerView
+public final class RationalFormulaManagerView
     extends NumeralFormulaManagerView<NumeralFormula, RationalFormula>
     implements RationalFormulaManager {
   RationalFormulaManagerView(

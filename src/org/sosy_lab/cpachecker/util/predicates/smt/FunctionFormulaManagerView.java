@@ -21,7 +21,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.UFManager;
 
-public class FunctionFormulaManagerView extends BaseManagerView implements UFManager {
+public final class FunctionFormulaManagerView extends BaseManagerView implements UFManager {
 
   private final UFManager manager;
 

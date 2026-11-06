@@ -20,7 +20,10 @@ import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E> {
+public sealed class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E>
+    permits InterpolatingProverEnvironmentView,
+        OptimizationProverEnvironmentView,
+        ProverEnvironmentView {
 
   private final BasicProverEnvironment<E> delegate;
   private final FormulaWrappingHandler wrappingHandler;

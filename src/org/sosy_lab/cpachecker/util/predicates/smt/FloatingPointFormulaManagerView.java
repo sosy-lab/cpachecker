@@ -29,7 +29,7 @@ import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.UFManager;
 
-public class FloatingPointFormulaManagerView extends BaseManagerView
+public final class FloatingPointFormulaManagerView extends BaseManagerView
     implements FloatingPointFormulaManager {
 
   private final FloatingPointFormulaManager manager;

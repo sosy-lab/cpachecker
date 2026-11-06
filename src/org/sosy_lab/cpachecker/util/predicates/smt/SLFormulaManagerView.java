@@ -13,7 +13,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SLFormulaManager;
 
-public class SLFormulaManagerView extends BaseManagerView implements SLFormulaManager {
+public final class SLFormulaManagerView extends BaseManagerView implements SLFormulaManager {
 
   private final SLFormulaManager manager;
 

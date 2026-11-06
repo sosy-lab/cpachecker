@@ -16,7 +16,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 
 /** Implements some methods for easier interaction with the formula manager for array formulas. */
-public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFormulaManager {
+public final class ArrayFormulaManagerView extends BaseManagerView implements ArrayFormulaManager {
 
   private final ArrayFormulaManager manager;
 

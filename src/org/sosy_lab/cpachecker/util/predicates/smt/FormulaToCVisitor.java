@@ -36,7 +36,7 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  * <p>Warning: Usage of this class can be exponentially expensive, because formulas are unfolded
  * into C code. For formulas with several shared subtrees this leads to bad performance.
  */
-public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
+public final class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
   /** The unsigned C types that we can use for casting a bitvector, cf. {@link #unsignedTypeOf}. */
   private static final ImmutableList<CSimpleType> UNSIGNED_TYPES =

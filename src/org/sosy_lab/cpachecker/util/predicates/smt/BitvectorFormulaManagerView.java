@@ -21,7 +21,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-public class BitvectorFormulaManagerView extends BaseManagerView
+public final class BitvectorFormulaManagerView extends BaseManagerView
     implements BitvectorFormulaManager {
 
   private final BitvectorFormulaManager manager;

@@ -19,7 +19,8 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
-public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
+public final class BooleanFormulaManagerView extends BaseManagerView
+    implements BooleanFormulaManager {
 
   private final BooleanFormulaManager manager;
 

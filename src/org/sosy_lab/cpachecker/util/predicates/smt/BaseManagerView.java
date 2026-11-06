@@ -18,7 +18,19 @@ import org.sosy_lab.java_smt.api.FormulaType;
  * Abstract helper class that does nothing more than providing access to the methods from {@link
  * FormulaWrappingHandler} with less typing.
  */
-abstract class BaseManagerView {
+abstract sealed class BaseManagerView
+    permits ArrayFormulaManagerView,
+        BitvectorFormulaManagerView,
+        BooleanFormulaManagerView,
+        FloatingPointFormulaManagerView,
+        FunctionFormulaManagerView,
+        NumeralFormulaManagerView,
+        QuantifiedFormulaManagerView,
+        ReplaceBitvectorWithNLAIntegerTheory,
+        ReplaceBitvectorWithNumeralAndFunctionTheory,
+        ReplaceFloatingPointWithNumeralAndFunctionTheory,
+        ReplaceIntegerWithBitvectorTheory,
+        SLFormulaManagerView {
 
   private final FormulaWrappingHandler wrappingHandler;
 

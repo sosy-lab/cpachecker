@@ -33,7 +33,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.UFManager;
 
-class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
+final class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     extends BaseManagerView implements FloatingPointFormulaManager {
 
   private final BooleanFormulaManager booleanManager;

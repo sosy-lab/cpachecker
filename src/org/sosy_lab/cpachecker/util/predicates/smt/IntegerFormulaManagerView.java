@@ -15,7 +15,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-public class IntegerFormulaManagerView
+public final class IntegerFormulaManagerView
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
     implements IntegerFormulaManager {
   private final IntegerFormulaManager integerFormulaManager;
