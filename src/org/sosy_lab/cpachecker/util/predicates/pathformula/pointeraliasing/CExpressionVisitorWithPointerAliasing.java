@@ -775,9 +775,12 @@ class CExpressionVisitorWithPointerAliasing
         Formula f = asValueFormula(overflows, CNumericTypes.BOOL);
 
         if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(functionName)) {
-          CLeftHandSide lhs =
-              new CPointerExpression(
-                  FileLocation.DUMMY, ((CPointerType) var3.getExpressionType()).getType(), var3);
+          CType resultPointerType = var3.getExpressionType().getCanonicalType();
+          CType resultType =
+              resultPointerType instanceof CArrayType arrayType
+                  ? arrayType.getType()
+                  : ((CPointerType) resultPointerType).getType();
+          CLeftHandSide lhs = new CPointerExpression(FileLocation.DUMMY, resultType, var3);
           CRightHandSide rhs =
               BuiltinOverflowFunctions.handleOverflowSideeffects(
                   ofmgr, var1, var2, var3, functionName);

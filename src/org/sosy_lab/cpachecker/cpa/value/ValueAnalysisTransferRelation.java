@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -126,6 +128,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions.OverflowFunctionResult;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -871,11 +874,7 @@ public class ValueAnalysisTransferRelation
           return handleCallToFree(functionCall);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
-          if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
-            if (isUnsupportedFunction(func)) {
-              throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
-            }
-          }
+          return handleBuiltinOverflowFunction(functionCall, cfaEdge);
         } else if (expression
             instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
@@ -918,6 +917,83 @@ public class ValueAnalysisTransferRelation
   private boolean isUnsupportedFunction(String nameOfFunction) {
     return !(IGNORED_UNSUPPORTED_FUNCTIONS.contains(nameOfFunction)
         || options.isUserDefinedAllowedUnsupportedFunction(nameOfFunction));
+  }
+
+  /**
+   * Handles a call to one of the GCC builtin overflow functions like {@code
+   * __builtin_add_overflow(a, b, &res)}. Functions with side effects store the result of the
+   * operation (wrapped around in case of an overflow) in the object their third argument points to.
+   * Afterwards, the overflow flag is assigned to the left-hand side of the call (if any). Both
+   * values are computed from the state before the call.
+   */
+  private ValueAnalysisState handleBuiltinOverflowFunction(
+      CFunctionCall pFunctionCall, CFAEdge pCfaEdge) throws UnrecognizedCodeException {
+    CFunctionCallExpression functionCallExp = pFunctionCall.getFunctionCallExpression();
+    String calledFunctionName =
+        ((CIdExpression) functionCallExp.getFunctionNameExpression()).getName();
+    List<CExpression> parameters = functionCallExp.getParameterExpressions();
+    if (parameters.size() != 3) {
+      throw new UnrecognizedCodeException(
+          calledFunctionName + " expects exactly three arguments", pCfaEdge, functionCallExp);
+    }
+
+    OverflowFunctionResult result =
+        BuiltinOverflowFunctions.evaluateFunctionCallWithResult(
+            functionCallExp, getVisitor(), machineModel, logger);
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+
+    if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(calledFunctionName)) {
+      CLeftHandSide resultTarget = getPointerTarget(parameters.get(2), pCfaEdge);
+      assignValue(newElement, resultTarget, result.result());
+    }
+
+    if (pFunctionCall instanceof CFunctionCallAssignmentStatement assignment) {
+      assignValue(newElement, assignment.getLeftHandSide(), result.overflow());
+    }
+
+    return newElement;
+  }
+
+  /**
+   * Returns the left-hand side {@code *pPointer}, simplified to {@code x} for {@code &x} and to
+   * {@code a[0]} for an array {@code a}.
+   */
+  private static CLeftHandSide getPointerTarget(CExpression pPointer, CFAEdge pCfaEdge)
+      throws UnrecognizedCodeException {
+    if (pPointer instanceof CUnaryExpression unaryExpression
+        && unaryExpression.getOperator() == UnaryOperator.AMPER
+        && unaryExpression.getOperand() instanceof CLeftHandSide target) {
+      return target;
+    }
+    return switch (pPointer.getExpressionType().getCanonicalType()) {
+      case CPointerType pointerType ->
+          new CPointerExpression(pPointer.getFileLocation(), pointerType.getType(), pPointer);
+      case CArrayType arrayType ->
+          new CArraySubscriptExpression(
+              pPointer.getFileLocation(),
+              arrayType.getType(),
+              pPointer,
+              CIntegerLiteralExpression.ZERO);
+      default ->
+          throw new UnrecognizedCodeException(
+              "Expected a pointer as result argument", pCfaEdge, pPointer);
+    };
+  }
+
+  /** Assigns the value to the left-hand side in the given state, or forgets it if unknown. */
+  private void assignValue(ValueAnalysisState pState, CLeftHandSide pLeftSide, Value pValue)
+      throws UnrecognizedCodeException {
+    final ExpressionValueVisitor evv = getVisitor();
+    final CType leftSideType = pLeftSide.getExpressionType();
+    final Optional<MemoryLocation> memLoc = getMemoryLocation(pLeftSide, pValue, evv);
+
+    if (memLoc.isPresent()) {
+      if (!pValue.isUnknown()) {
+        pState.assignConstant(memLoc.orElseThrow(), pValue, leftSideType);
+      } else {
+        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, pState, evv);
+      }
+    }
   }
 
   private ValueAnalysisState handleFunctionAssignment(
