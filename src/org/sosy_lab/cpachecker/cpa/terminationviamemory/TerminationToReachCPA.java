@@ -18,8 +18,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -27,6 +29,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker.InvariantCheckResult;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 
 /**
  * CPA for termination analysis of C programs. Abstract states represent a memory, where we can
@@ -70,6 +75,15 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
 
   @Option(secure = true, description = "Enables use of transition predicates from the witness.")
   private boolean useTransitionPredicatesFromWitness = false;
+
+  @Option(
+      secure = true,
+      description =
+          "configuration of the analysis that checks whether the supporting invariants of the"
+              + " witness are invariants of the program before they are used, see"
+              + " useTransitionPredicatesFromWitness")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path supportingInvariantsConfig = null;
 
   public TerminationToReachCPA(
       LogManager pLogger,
@@ -130,7 +144,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         useTransitionPredicatesFromWitness
             ? new TerminationToReachValidationPrecisionAdjustment(
                 solver,
-                statistics,
                 logger,
                 cfa,
                 bfmgr,
@@ -142,7 +155,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
                 collectCandidateTransitionInvariants())
             : new TerminationToReachPrecisionAdjustment(
                 solver,
-                statistics,
                 logger,
                 cfa,
                 bfmgr,
@@ -187,7 +199,27 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         WitnessInvariantsExtractor invariantsExtractor =
             new WitnessInvariantsExtractor(
                 configuration, logger, cfa, shutdownNotifier, witnessPath);
-        invariants.addAll(invariantsExtractor.extractInvariantsFromReachedSet());
+        Set<ExpressionTreeLocationInvariant> witnessInvariants =
+            invariantsExtractor.extractInvariantsFromReachedSet();
+        // The supporting invariants strengthen the checks of the transition invariants, so they
+        // have to be proven to be invariants of the program first.
+        if (witnessInvariants.stream()
+            .anyMatch(
+                invariant -> !(invariant instanceof ExpressionTreeLocationTransitionInvariant))) {
+          if (supportingInvariantsConfig == null) {
+            throw new InvalidConfigurationException(
+                "The witness contains supporting invariants, but the option"
+                    + " cpa.terminationviamemory.supportingInvariantsConfig is not set.");
+          }
+          InvariantCheckResult result =
+              SupportingInvariantsChecker.checkInvariants(
+                  supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier);
+          if (result != InvariantCheckResult.VALID) {
+            throw new CPAException(
+                "The supporting invariants of the witness could not be confirmed (" + result + ")");
+          }
+        }
+        invariants.addAll(witnessInvariants);
       }
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);

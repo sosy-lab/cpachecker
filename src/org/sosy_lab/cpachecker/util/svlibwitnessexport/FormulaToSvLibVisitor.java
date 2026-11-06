@@ -194,12 +194,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
     ImmutableList<SvLibType> argumentTypes = ImmutableList.copyOf(pArgTypes);
     scope.addFunctionDeclaration(
         new SvLibSmtFunctionDeclaration(FileLocation.DUMMY, pName, argumentTypes, pReturnType));
-    return new SvLibFunctionDeclaration(
-        FileLocation.DUMMY,
-        new SvLibFunctionType(argumentTypes, pReturnType),
-        pName,
-        pName,
-        ImmutableList.of());
+    return SvLibFunctionDeclaration.uninterpretedFunction(
+        FileLocation.DUMMY, new SvLibFunctionType(argumentTypes, pReturnType), pName);
   }
 
   /**

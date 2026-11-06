@@ -101,12 +101,10 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/Hardness.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
-
     <tasks name="C.unreach-call.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
-
     <tasks name="C.unreach-call.SoftwareSystems-AWS-C-Common">
       <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -185,7 +183,6 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     </tasks>
-
     <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -203,7 +200,6 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     </tasks>
-
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -211,32 +207,38 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP27_no-overflow">
-    <tasks name="C.no-overflow.Main">
+    <tasks name="C.no-overflow.Recursive">
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.Memory">
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.Bitvectors">
       <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
       <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
       <includesfile>../programs/benchmarks/ECA.set</includesfile>
       <includesfile>../programs/benchmarks/Floats.set</includesfile>
-      <includesfile>../programs/benchmarks/Heap.set</includesfile>
-      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
-      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
-      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
-      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
       <includesfile>../programs/benchmarks/XCSP.set</includesfile>
-      <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
-      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
     <tasks name="C.no-overflow.Juliet">
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
-
     <tasks name="C.no-overflow.SoftwareSystems-BusyBox">
       <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
@@ -249,7 +251,14 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
-
+    <tasks name="C.no-overflow.SoftwareSystems-AWS-C-Common">
+      <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+    <tasks name="C.no-overflow.SoftwareSystems-DeviceDriversLinux64">
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
     <tasks name="C.no-overflow.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
@@ -280,6 +289,7 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
       <includesfile>../programs/benchmarks/Recursive.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
     <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
@@ -292,18 +302,22 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP27_correct-tags">
-    <tasks name="SV-LIB.correct-tags.CoreVerification">
+  <rundefinition name="SV-COMP27_correct-annotations">
+    <tasks name="SV-LIB.correct-annotations.CoreVerification">
       <includesfile>../programs/svlib-benchmarks/CoreVerification.set</includesfile>
-      <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+      <propertyfile>../programs/svlib-benchmarks/properties/correct-annotations.prp</propertyfile>
     </tasks>
-    <tasks name="SV-LIB.correct-tags.CoreValidation">
+    <tasks name="SV-LIB.correct-annotations.CoreValidation">
       <includesfile>../programs/svlib-benchmarks/CoreValidation.set</includesfile>
-      <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+      <propertyfile>../programs/svlib-benchmarks/properties/correct-annotations.prp</propertyfile>
     </tasks>
-    <tasks name="SV-LIB.correct-tags.CTranslated">
+    <tasks name="SV-LIB.correct-annotations.CTranslated">
       <includesfile>../programs/svlib-benchmarks/CTranslated.set</includesfile>
-      <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+      <propertyfile>../programs/svlib-benchmarks/properties/correct-annotations.prp</propertyfile>
+    </tasks>
+    <tasks name="SV-LIB.correct-annotations.Loops">
+      <includesfile>../programs/svlib-benchmarks/Loops.set</includesfile>
+      <propertyfile>../programs/svlib-benchmarks/properties/correct-annotations.prp</propertyfile>
     </tasks>
   </rundefinition>
 
@@ -312,7 +326,6 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
-
   </rundefinition>
 
   <rundefinition name="SV-COMP27_no-data-race_demo">

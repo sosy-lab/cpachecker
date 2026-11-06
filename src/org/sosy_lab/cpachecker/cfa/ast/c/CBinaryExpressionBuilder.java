@@ -676,7 +676,10 @@ public class CBinaryExpressionBuilder {
   /** only for logging or exceptions */
   private static CBinaryExpression getDummyBinExprForLogging(
       final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) {
-    return new CBinaryExpression(op1.getFileLocation(), null, null, op1, op2, pBinOperator);
+    // CBinaryExpression rejects null types
+    CType dummyType = new CProblemType("dummy type for logging");
+    return new CBinaryExpression(
+        op1.getFileLocation(), dummyType, dummyType, op1, op2, pBinOperator);
   }
 
   private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e)

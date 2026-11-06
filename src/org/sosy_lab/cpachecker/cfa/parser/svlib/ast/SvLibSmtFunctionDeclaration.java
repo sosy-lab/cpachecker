@@ -29,20 +29,36 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
   private final String name;
   private final ImmutableList<SvLibType> inputTypes;
   private final SvLibType returnType;
+  // Set for a function of `define-fun`
+  private final boolean hasBeenDefined;
 
   public SvLibSmtFunctionDeclaration(
       FileLocation pFileLocation,
       String pName,
       List<SvLibType> pInputTypes,
       SvLibType pReturnType) {
+    this(pFileLocation, pName, pInputTypes, pReturnType, false);
+  }
+
+  public SvLibSmtFunctionDeclaration(
+      FileLocation pFileLocation,
+      String pName,
+      List<SvLibType> pInputTypes,
+      SvLibType pReturnType,
+      boolean pHasBeenDefined) {
     fileLocation = pFileLocation;
     name = pName;
     inputTypes = ImmutableList.copyOf(pInputTypes);
     returnType = pReturnType;
+    hasBeenDefined = pHasBeenDefined;
   }
 
   public String getName() {
     return name;
+  }
+
+  public boolean hasBeenDefined() {
+    return hasBeenDefined;
   }
 
   @Override
@@ -80,7 +96,7 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
 
   @Override
   public int hashCode() {
-    return name.hashCode() * 31 + getType().hashCode();
+    return (name.hashCode() * 31 + getType().hashCode()) * 31 + Boolean.hashCode(hasBeenDefined);
   }
 
   @Override
@@ -91,6 +107,7 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
 
     return pO instanceof SvLibSmtFunctionDeclaration other
         && name.equals(other.name)
-        && getType().equals(other.getType());
+        && getType().equals(other.getType())
+        && hasBeenDefined == other.hasBeenDefined;
   }
 }

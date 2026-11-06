@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibIndexedSymbol;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
@@ -89,7 +90,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     }
 
     // The rounding modes of the theory of floating point numbers are constants as well
-    if (SvLibRoundingModeConstantTerm.isRoundingMode(identifier)) {
+    if (SvLibRoundingModeConstantTerm.isRoundingMode(identifier)
+        && logicContains(SmtLibLogic::containsFloatingPointOperations)) {
       return new SvLibRoundingModeConstantTerm(
           SvLibRoundingModeConstantTerm.fromName(identifier), fileLocation);
     }
@@ -125,7 +127,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
   /** The constant that an indexed identifier denotes, e.g. the bitvector (_ bv5 32). */
   private SvLibTerm indexedConstant(IdentifierContext ctx) {
-    if (ctx.index().size() == 1) {
+    if (ctx.index().size() == 1 && logicContains(SmtLibLogic::containsBitvectorOperations)) {
       Verify.verify(ctx.index().size() == 1, "BitVec should have exactly one index");
       BigInteger bitvectorSize = new BigInteger(ctx.index(0).getText());
       String valueString = ctx.symbol().getText();
@@ -146,8 +148,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           bitvectorValue, bitvectorSize.intValueExact(), fileLocationFromContext(ctx));
     }
 
-    throw new UnsupportedOperationException(
-        "Underscore identifiers apart from bitvectors are not yet implemented");
+    throw new UnsupportedOperationException("Unsupported indexed constant: " + ctx.getText());
   }
 
   @Override
@@ -156,13 +157,15 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     if (specConstantContext.numeral() != null) {
       return new SvLibIntegerConstantTerm(
           new BigInteger(specConstantContext.numeral().getText()), fileLocationFromContext(ctx));
-    } else if (specConstantContext.hexadecimal() != null) {
+    } else if (specConstantContext.hexadecimal() != null
+        && logicContains(SmtLibLogic::containsBitvectorOperations)) {
       return new SvLibBitVectorConstantTerm(
           new BigInteger(specConstantContext.hexadecimal().getText().substring(2), 16),
           (specConstantContext.hexadecimal().getText().length() - 2) * 4,
           SvLibBitVectorConstantTerm.Notation.HEXADECIMAL,
           fileLocationFromContext(ctx));
-    } else if (specConstantContext.binary() != null) {
+    } else if (specConstantContext.binary() != null
+        && logicContains(SmtLibLogic::containsBitvectorOperations)) {
       return new SvLibBitVectorConstantTerm(
           new BigInteger(specConstantContext.binary().getText().substring(2), 2),
           specConstantContext.binary().getText().length() - 2,
@@ -183,7 +186,9 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
     // A literal of the theory of floating point numbers is written as an application of "fp" to its
     // three parts, but it denotes a constant and not an application of an operator.
-    if (functionSymbolContext.GRW_As() == null && nameOf(functionSymbolContext).equals("fp")) {
+    if (functionSymbolContext.GRW_As() == null
+        && nameOf(functionSymbolContext).equals("fp")
+        && logicContains(SmtLibLogic::containsFloatingPointOperations)) {
       return createFloatingPointConstant(arguments, fileLocationFromContext(ctx));
     }
 
@@ -193,7 +198,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       declaration =
           getVariableDeclarationForIndexedSymbol(functionSymbolContext.identifier(), arguments);
     } else if (functionSymbolContext.GRW_As() != null
-        && nameOf(functionSymbolContext.identifier()).equals("const")) {
+        && nameOf(functionSymbolContext.identifier()).equals("const")
+        && logicContains(SmtLibLogic::containsArrayOperations)) {
       // The qualified identifier (as const (Array K V)) applied to a default element denotes a
       // constant array.
       SvLibType sort = new SvLibSortToAstTypeConverter(scope).visit(functionSymbolContext.sort());
@@ -265,7 +271,9 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
             .filter(SvLibSmtLibFloatingPointType.class::isInstance)
             .map(SvLibSmtLibFloatingPointType.class::cast)
             .findFirst();
-    if (floatingPointOperand.isPresent()) {
+    boolean floatingPoints =
+        FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsFloatingPointOperations);
+    if (floatingPoints && floatingPointOperand.isPresent()) {
       SvLibSmtLibFloatingPointType operandType = floatingPointOperand.orElseThrow();
       switch (pSymbol) {
         case "fp.add" -> {
@@ -340,7 +348,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
     // The equality of the core theory of SMT-LIB is generic over the type of its arguments, so it
     // is resolved for floating point numbers here and for the other types in their theory below.
-    if (pSymbol.equals("=")
+    if (floatingPoints
+        && pSymbol.equals("=")
         && pArguments.size() == 2
         && pArguments.getFirst().getExpressionType()
             instanceof SvLibSmtLibFloatingPointType floatingPointType) {
@@ -352,42 +361,49 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     // bitvector follows from the type of the argument.
     switch (pSymbol) {
       case "sbv_to_int", "ubv_to_int" -> {
-        Verify.verify(pArguments.size() == 1);
-        Verify.verify(
-            pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType,
-            "%s is not applied to a bitvector",
-            pSymbol);
-        return SmtLibTheoryDeclarations.bitVectorToInt(
-            pSymbol.equals("sbv_to_int"),
-            ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize());
+        if (logicContains(SmtLibLogic::containsBitvectorOperations)
+            && logicContains(SmtLibLogic::containsIntegerArithmetic)) {
+          Verify.verify(pArguments.size() == 1);
+          Verify.verify(
+              pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType,
+              "%s is not applied to a bitvector",
+              pSymbol);
+          return SmtLibTheoryDeclarations.bitVectorToInt(
+              pSymbol.equals("sbv_to_int"),
+              ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize());
+        }
       }
       case "fp.to_ieee_bv" -> {
-        Verify.verify(pArguments.size() == 1);
-        Verify.verify(
-            pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibFloatingPointType,
-            "fp.to_ieee_bv is not applied to a floating point number");
-        return SmtLibTheoryDeclarations.floatingPointAsBitVector(
-            (SvLibSmtLibFloatingPointType) pArguments.getFirst().getExpressionType());
+        if (floatingPoints) {
+          Verify.verify(pArguments.size() == 1);
+          Verify.verify(
+              pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibFloatingPointType,
+              "fp.to_ieee_bv is not applied to a floating point number");
+          return SmtLibTheoryDeclarations.floatingPointAsBitVector(
+              (SvLibSmtLibFloatingPointType) pArguments.getFirst().getExpressionType());
+        }
       }
       default -> {}
     }
 
-    // A declared function is uninterpreted, so it is not part of any theory and is resolved from
-    // the scope instead.
+    // A declared or defined function is not part of any theory and is resolved from the scope.
+    // Only a function of declare-fun needs a logic with uninterpreted functions.
     if (scope.hasFunctionDeclaration(pSymbol)) {
       SvLibSmtFunctionDeclaration declaration = scope.getFunctionDeclaration(pSymbol);
-      Verify.verify(
-          declaration.getType().getParameters().size() == pArguments.size(),
-          "The function %s is applied to %s arguments instead of %s",
-          pSymbol,
-          pArguments.size(),
-          declaration.getType().getParameters().size());
-      return new SvLibFunctionDeclaration(
-          declaration.getFileLocation(),
-          declaration.getType(),
-          pSymbol,
-          pSymbol,
-          ImmutableList.of());
+      if (declaration.hasBeenDefined()
+          || FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsUninterpretedFunctions)) {
+        Verify.verify(
+            declaration.getType().getParameters().size() == pArguments.size(),
+            "The function %s is applied to %s arguments instead of %s",
+            pSymbol,
+            pArguments.size(),
+            declaration.getType().getParameters().size());
+        return declaration.hasBeenDefined()
+            ? SvLibFunctionDeclaration.definedFunction(
+                declaration.getFileLocation(), declaration.getType(), pSymbol, ImmutableList.of())
+            : SvLibFunctionDeclaration.uninterpretedFunction(
+                declaration.getFileLocation(), declaration.getType(), pSymbol);
+      }
     }
 
     // Match Integer Arithmetic logic
@@ -431,12 +447,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_MULTIPLICATION;
         }
-      }
-    }
-
-    // Match Non-Linear Integer Arithmetic logic
-    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsNonLinearIntegerArithmetic)) {
-      switch (pSymbol) {
+        // LIA allows them only with a numeral as divisor, which we do not check either
         case "mod" -> {
           Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_MOD;
@@ -488,35 +499,37 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     }
 
     // Match all array stuff
-    switch (pSymbol) {
-      case "select" -> {
-        Verify.verify(pArguments.size() == 2);
-        if (pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibArrayType arrayType) {
+    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsArrayOperations)) {
+      switch (pSymbol) {
+        case "select" -> {
+          Verify.verify(pArguments.size() == 2);
+          if (pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibArrayType arrayType) {
 
-          return SmtLibTheoryDeclarations.arraySelect(
-              arrayType.getKeysType(), arrayType.getValuesType());
-        } else if (pArguments.getFirst().getExpressionType().equals(new SvLibAnyType())) {
-          return SmtLibTheoryDeclarations.arraySelect(new SvLibAnyType(), new SvLibAnyType());
+            return SmtLibTheoryDeclarations.arraySelect(
+                arrayType.getKeysType(), arrayType.getValuesType());
+          } else if (pArguments.getFirst().getExpressionType().equals(new SvLibAnyType())) {
+            return SmtLibTheoryDeclarations.arraySelect(new SvLibAnyType(), new SvLibAnyType());
+          }
+
+          throw new IllegalArgumentException(
+              "The first argument of 'select' must be of array type, but was: "
+                  + pArguments.getFirst().getExpressionType());
         }
-
-        throw new IllegalArgumentException(
-            "The first argument of 'select' must be of array type, but was: "
-                + pArguments.getFirst().getExpressionType());
-      }
-      case "store" -> {
-        Verify.verify(pArguments.size() == 3);
-        return SmtLibTheoryDeclarations.arrayStore(
-            (SvLibSmtLibType) pArguments.get(1).getExpressionType(),
-            (SvLibSmtLibType) pArguments.get(2).getExpressionType());
-      }
-      case "=" -> {
-        // Equality is only handled here if the arguments are arrays, other types are resolved
-        // in their respective theory.
-        if (pArguments.size() == 2
-            && pArguments.getFirst().getExpressionType()
-                instanceof SvLibSmtLibArrayType arrayType) {
-          return SmtLibTheoryDeclarations.arrayEquality(
-              arrayType.getKeysType(), arrayType.getValuesType());
+        case "store" -> {
+          Verify.verify(pArguments.size() == 3);
+          return SmtLibTheoryDeclarations.arrayStore(
+              (SvLibSmtLibType) pArguments.get(1).getExpressionType(),
+              (SvLibSmtLibType) pArguments.get(2).getExpressionType());
+        }
+        case "=" -> {
+          // Equality is only handled here if the arguments are arrays, other types are resolved
+          // in their respective theory.
+          if (pArguments.size() == 2
+              && pArguments.getFirst().getExpressionType()
+                  instanceof SvLibSmtLibArrayType arrayType) {
+            return SmtLibTheoryDeclarations.arrayEquality(
+                arrayType.getKeysType(), arrayType.getValuesType());
+          }
         }
       }
     }
@@ -744,6 +757,11 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         "Unsupported logic for the resolution of symbol: " + pSymbol);
   }
 
+  /** Does a logic of the script contain the given theory? */
+  private boolean logicContains(Predicate<SmtLibLogic> pTheory) {
+    return scope.getLogics().stream().anyMatch(pTheory);
+  }
+
   /** Resolves indexed identifiers like {@code (_ extract 31 31)} applied to arguments. */
   private SvLibFunctionDeclaration getVariableDeclarationForIndexedSymbol(
       IdentifierContext pCtx, List<SvLibTerm> pArguments) {
@@ -753,71 +771,79 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
             transformedImmutableListCopy(pCtx.index(), index -> Integer.parseInt(index.getText())));
     ImmutableList<SvLibType> argumentTypes =
         transformedImmutableListCopy(pArguments, SvLibTerm::getExpressionType);
-    return switch (symbol.symbol()) {
-      case "extract" -> {
-        Verify.verify(symbol.indices().size() == 2);
-        yield SmtLibTheoryDeclarations.bitVectorExtract(
-            bitVectorSizeOfOnlyArgument(argumentTypes), symbol.index(0), symbol.index(1));
-      }
-      case "repeat" -> {
-        Verify.verify(symbol.indices().size() == 1);
-        yield SmtLibTheoryDeclarations.bitVectorRepeat(
-            bitVectorSizeOfOnlyArgument(argumentTypes), symbol.index(0));
-      }
-      case "zero_extend" -> {
-        Verify.verify(symbol.indices().size() == 1);
-        int sourceSize = bitVectorSizeOfOnlyArgument(argumentTypes);
-        yield SmtLibTheoryDeclarations.bitVectorZeroExtend(
-            sourceSize, sourceSize + symbol.index(0));
-      }
-      case "sign_extend" -> {
-        Verify.verify(symbol.indices().size() == 1);
-        int sourceSize = bitVectorSizeOfOnlyArgument(argumentTypes);
-        yield SmtLibTheoryDeclarations.bitVectorSignExtend(
-            sourceSize, sourceSize + symbol.index(0));
-      }
-      case "int_to_bv" -> {
-        Verify.verify(symbol.indices().size() == 1);
-        Verify.verify(argumentTypes.size() == 1);
-        yield SmtLibTheoryDeclarations.intToBitVector(symbol.index(0));
-      }
-      case "to_fp" -> {
-        Verify.verify(symbol.indices().size() == 2);
-        SvLibSmtLibFloatingPointType targetType =
-            new SvLibSmtLibFloatingPointType(symbol.index(0), symbol.index(1));
-        if (argumentTypes.size() == 1) {
-          // A conversion of the bits of the representation of IEEE 754 loses no information and
-          // therefore does not round.
-          Verify.verify(
-              argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType,
-              "to_fp without a rounding mode reads the bits of a bitvector");
-          yield SmtLibTheoryDeclarations.floatingPointFromBitVector(
-              (SvLibSmtLibBitVectorType) argumentTypes.getFirst(), targetType);
+    // The indexed operators convert floating point numbers or operate on bitvectors
+    if (logicContains(
+        symbol.symbol().startsWith("to_fp") || symbol.symbol().startsWith("fp.")
+            ? SmtLibLogic::containsFloatingPointOperations
+            : SmtLibLogic::containsBitvectorOperations)) {
+      switch (symbol.symbol()) {
+        case "extract" -> {
+          Verify.verify(symbol.indices().size() == 2);
+          return SmtLibTheoryDeclarations.bitVectorExtract(
+              bitVectorSizeOfOnlyArgument(argumentTypes), symbol.index(0), symbol.index(1));
         }
-        Verify.verify(
-            argumentTypes.size() == 2, "A conversion into a floating point number rounds");
-        yield SmtLibTheoryDeclarations.toFloatingPoint(false, argumentTypes.get(1), targetType);
+        case "repeat" -> {
+          Verify.verify(symbol.indices().size() == 1);
+          return SmtLibTheoryDeclarations.bitVectorRepeat(
+              bitVectorSizeOfOnlyArgument(argumentTypes), symbol.index(0));
+        }
+        case "zero_extend" -> {
+          Verify.verify(symbol.indices().size() == 1);
+          int sourceSize = bitVectorSizeOfOnlyArgument(argumentTypes);
+          return SmtLibTheoryDeclarations.bitVectorZeroExtend(
+              sourceSize, sourceSize + symbol.index(0));
+        }
+        case "sign_extend" -> {
+          Verify.verify(symbol.indices().size() == 1);
+          int sourceSize = bitVectorSizeOfOnlyArgument(argumentTypes);
+          return SmtLibTheoryDeclarations.bitVectorSignExtend(
+              sourceSize, sourceSize + symbol.index(0));
+        }
+        case "int_to_bv" -> {
+          Verify.verify(symbol.indices().size() == 1);
+          Verify.verify(argumentTypes.size() == 1);
+          return SmtLibTheoryDeclarations.intToBitVector(symbol.index(0));
+        }
+        case "to_fp" -> {
+          Verify.verify(symbol.indices().size() == 2);
+          SvLibSmtLibFloatingPointType targetType =
+              new SvLibSmtLibFloatingPointType(symbol.index(0), symbol.index(1));
+          if (argumentTypes.size() == 1) {
+            // A conversion of the bits of the representation of IEEE 754 loses no information and
+            // therefore does not round.
+            Verify.verify(
+                argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType,
+                "to_fp without a rounding mode reads the bits of a bitvector");
+            return SmtLibTheoryDeclarations.floatingPointFromBitVector(
+                (SvLibSmtLibBitVectorType) argumentTypes.getFirst(), targetType);
+          }
+          Verify.verify(
+              argumentTypes.size() == 2, "A conversion into a floating point number rounds");
+          return SmtLibTheoryDeclarations.toFloatingPoint(false, argumentTypes.get(1), targetType);
+        }
+        case "to_fp_unsigned" -> {
+          Verify.verify(symbol.indices().size() == 2);
+          Verify.verify(
+              argumentTypes.size() == 2, "A conversion into a floating point number rounds");
+          return SmtLibTheoryDeclarations.toFloatingPoint(
+              true,
+              argumentTypes.get(1),
+              new SvLibSmtLibFloatingPointType(symbol.index(0), symbol.index(1)));
+        }
+        case "fp.to_sbv", "fp.to_ubv" -> {
+          Verify.verify(symbol.indices().size() == 1);
+          Verify.verify(
+              argumentTypes.size() == 2, "A conversion of a floating point number rounds");
+          Verify.verify(argumentTypes.get(1) instanceof SvLibSmtLibFloatingPointType);
+          return SmtLibTheoryDeclarations.floatingPointToBitVector(
+              symbol.symbol().equals("fp.to_sbv"),
+              (SvLibSmtLibFloatingPointType) argumentTypes.get(1),
+              new SvLibSmtLibBitVectorType(symbol.index(0)));
+        }
+        default -> {}
       }
-      case "to_fp_unsigned" -> {
-        Verify.verify(symbol.indices().size() == 2);
-        Verify.verify(
-            argumentTypes.size() == 2, "A conversion into a floating point number rounds");
-        yield SmtLibTheoryDeclarations.toFloatingPoint(
-            true,
-            argumentTypes.get(1),
-            new SvLibSmtLibFloatingPointType(symbol.index(0), symbol.index(1)));
-      }
-      case "fp.to_sbv", "fp.to_ubv" -> {
-        Verify.verify(symbol.indices().size() == 1);
-        Verify.verify(argumentTypes.size() == 2, "A conversion of a floating point number rounds");
-        Verify.verify(argumentTypes.get(1) instanceof SvLibSmtLibFloatingPointType);
-        yield SmtLibTheoryDeclarations.floatingPointToBitVector(
-            symbol.symbol().equals("fp.to_sbv"),
-            (SvLibSmtLibFloatingPointType) argumentTypes.get(1),
-            new SvLibSmtLibBitVectorType(symbol.index(0)));
-      }
-      default -> throw new IllegalArgumentException("Unsupported indexed symbol: " + symbol);
-    };
+    }
+    throw new IllegalArgumentException("Unsupported indexed symbol: " + symbol);
   }
 
   private static int bitVectorSizeOfOnlyArgument(List<SvLibType> pArgumentTypes) {

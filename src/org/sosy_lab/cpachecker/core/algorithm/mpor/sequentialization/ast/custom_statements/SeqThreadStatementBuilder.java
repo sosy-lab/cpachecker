@@ -18,6 +18,7 @@ import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -30,15 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
@@ -156,9 +154,8 @@ public record SeqThreadStatementBuilder(
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
-    CFANode successor = pThreadEdge.getSuccessor().getCfaNode();
 
-    if (resultsInBlankStatement(pSubstituteEdge, successor)) {
+    if (resultsInBlankStatement(pSubstituteEdge)) {
       return ImmutableList.of(
           buildGhostOnlyStatement(
               thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, targetPc));
@@ -383,13 +380,28 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildReturnValueAssignmentStatement(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
-    // returning from non-start-routine function: assign return value to return vars
+    // return from non start_routine function: assign return value to return vars
     if (functionStatements.returnValueAssignments().containsKey(pThreadEdge)) {
       SeqFunctionReturnValueAssignment assignment =
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
       SeqThreadStatementData data =
           SeqThreadStatementData.of(
               SeqThreadStatementType.FUNCTION_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
+      return SeqThreadStatement.of(
+          data,
+          pTargetPc,
+          ImmutableList.of(new CStatementWrapper(assignment.expressionAssignmentStatement())));
+    }
+
+    // return from start_routine, but exclude pthread_exit because it is handled separately.
+    if (!PthreadUtil.isCallToPthreadFunction(pThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)
+        && functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge)) {
+
+      SeqFunctionReturnValueAssignment assignment =
+          Objects.requireNonNull(functionStatements.startRoutineExitAssignments().get(pThreadEdge));
+      SeqThreadStatementData data =
+          SeqThreadStatementData.of(
+              SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
       return SeqThreadStatement.of(
           data,
           pTargetPc,
@@ -592,33 +604,29 @@ public record SeqThreadStatementBuilder(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                 pcVariables.getThreadInactiveExpression(targetThread.id())));
 
-    CExpression parameter =
+    CExpression returnVariableExpression =
         PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
             pFunctionCall, PthreadObjectType.RETURN_VALUE);
-    if (!MPORUtil.isVoidPointer(parameter)) {
-      if (targetThread.startRoutineExitVariable().isPresent()) {
-        CStatementWrapper returnValueRead =
-            new CStatementWrapper(
-                buildReturnValueRead(
-                    targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
-        return SeqThreadStatement.of(
-            data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
-      }
+    if (!(returnVariableExpression instanceof CCastExpression)
+        && !(returnVariableExpression instanceof CLiteralExpression)) {
+      CStatementWrapper returnValueRead =
+          new CStatementWrapper(
+              buildReturnValueAssignmentStatement(
+                  targetThread.startRoutineExitVariable(),
+                  returnVariableExpression,
+                  pSubstituteEdge));
+      return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
     }
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall));
   }
 
-  private static CStatement buildReturnValueRead(
-      CIdExpression pJoinedThreadExitVariable, SubstituteEdge pSubstituteEdge)
+  private static CExpressionAssignmentStatement buildReturnValueAssignmentStatement(
+      CIdExpression pJoinedThreadExitVariable,
+      CExpression pReturnVariableExpression,
+      SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
-    int returnValueIndex =
-        PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
-    CFunctionCall functionCall =
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
-    CExpression returnValueParameter =
-        functionCall.getFunctionCallExpression().getParameterExpressions().get(returnValueIndex);
-    if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
+    if (pReturnVariableExpression instanceof CUnaryExpression unaryExpression) {
       // extract retval from unary expression &retval
       if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
         if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
@@ -629,7 +637,7 @@ public record SeqThreadStatementBuilder(
     }
     throw new UnsupportedCodeException(
         "pthread_join retval could not be extracted from the following expression: "
-            + returnValueParameter,
+            + pReturnVariableExpression,
         pSubstituteEdge.cfaEdge);
   }
 
@@ -806,15 +814,10 @@ public record SeqThreadStatementBuilder(
    *       handled.
    * </ul>
    */
-  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor)
+  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
-    // exiting start_routine of thread -> blank, just set pc = EXIT_PC;
-    if (pSuccessor instanceof FunctionExitNode
-        && pSuccessor.getFunction().equals(thread.startRoutine())) {
-      return true;
-
-    } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge
+    if (pSubstituteEdge.cfaEdge instanceof BlankEdge
         && !pSubstituteEdge.cfaEdge.getPredecessor().isLoopStart()) {
       // blank edges have no code
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();

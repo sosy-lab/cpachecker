@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
+import org.sosy_lab.cpachecker.core.algorithm.oc.OrderingConsistencyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -163,6 +164,14 @@ public class CoreComponentsFactory {
           "use a BMC like algorithm that checks for satisfiability "
               + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.OrderingConsistency",
+      description =
+          "use the ordering-consistency algorithm for concurrent programs, "
+              + "works only with the OrderingConsistencyCPA")
+  private boolean useOrderingConsistency = false;
 
   @Option(
       secure = true,
@@ -713,6 +722,12 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
+      if (useOrderingConsistency) {
+        algorithm =
+            new OrderingConsistencyAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa, specification);
+      }
+
       if (useIMC) {
         verifyNotNull(shutdownManager);
         algorithm =
@@ -750,6 +765,7 @@ public class CoreComponentsFactory {
                 logger,
                 shutdownNotifier,
                 cfa,
+                oldCfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
                 algorithm,
@@ -765,8 +781,7 @@ public class CoreComponentsFactory {
                 config,
                 logger,
                 shutdownNotifier,
-                specification.getPathToSpecificationAutomata().keySet(),
-                specification);
+                specification.getPathToSpecificationAutomata().keySet());
       }
 
       if (checkCounterexamples) {
@@ -967,6 +982,20 @@ public class CoreComponentsFactory {
         || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
+    }
+
+    if (useOrderingConsistency) {
+      // The ordering-consistency analysis does its own, built-in target detection (it reads the
+      // property from the specification directly, see OrderingConsistencyAlgorithm). It has no
+      // CompositeCPA to hold a specification automaton, so the automata that a property file would
+      // otherwise contribute must not be inserted into its CPA; build it from the property-free
+      // specification, and let the algorithm interpret the property.
+      // keep the properties: the CPA gets no automaton from them, but the witness export
+      // needs them, e.g. to emit both racing accesses of a data race
+      return cpaFactory.buildCPAs(
+          cfa,
+          Specification.alwaysSatisfied().withAdditionalProperties(pSpecification.getProperties()),
+          aggregatedReachedSets);
     }
 
     return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);

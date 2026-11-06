@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -39,6 +40,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -51,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
@@ -129,6 +132,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -137,7 +141,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -145,8 +151,14 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.ToCodeVisitor;
 
 public class CFAUtils {
 
@@ -478,13 +490,13 @@ public class CFAUtils {
             optionalIterationElement.orElseThrow().getIterationExpression();
         FileLocation location;
         if (optionalControlExpression.isPresent()
-            && optionalControlExpression.orElseThrow().edges().contains(pEdge)) {
+            && optionalControlExpression.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalControlExpression.orElseThrow().location();
         } else if (optionalInitClause.isPresent()
-            && optionalInitClause.orElseThrow().edges().contains(pEdge)) {
+            && optionalInitClause.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalInitClause.orElseThrow().location();
         } else if (optionalIterationExpression.isPresent()
-            && optionalIterationExpression.orElseThrow().edges().contains(pEdge)) {
+            && optionalIterationExpression.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalIterationExpression.orElseThrow().location();
         } else {
           return Optional.empty();
@@ -502,6 +514,99 @@ public class CFAUtils {
     // generated. This means that when we take a look at the next possible expression we get the
     // closest full expression to it
     return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(pEdge.getFileLocation());
+  }
+
+  /**
+   * Computes the condition under which the body of the loop with the given loop head is entered, as
+   * a C expression. It is the disjunction over all paths through the controlling expression of the
+   * loop from the loop head to the body of the conjunction of the assumptions on the path.
+   *
+   * @param pLoopHead the loop head of the loop
+   * @param pAstCfaRelation the relation between the AST and the CFA
+   * @return the condition of the loop, or {@link Optional#empty()} if it cannot be computed, e.g.,
+   *     for loops without a controlling expression like for(;;) or for conditions with side effects
+   */
+  public static Optional<String> computeLoopCondition(
+      CFANode pLoopHead, AstCfaRelation pAstCfaRelation) {
+    Optional<IterationElement> iteration =
+        pAstCfaRelation.getTightestIterationStructureForNode(pLoopHead);
+    if (iteration.isEmpty() || iteration.orElseThrow().getControllingExpression().isEmpty()) {
+      return Optional.empty();
+    }
+    ImmutableSet<CFAEdge> conditionEdges =
+        iteration.orElseThrow().getControllingExpression().orElseThrow().edges();
+    ImmutableSet<CFANode> bodyEntries;
+    try {
+      bodyEntries = iteration.orElseThrow().getNodesBetweenConditionAndBody();
+    } catch (BoundaryNodesComputationFailed e) {
+      return Optional.empty();
+    }
+    ImmutableSet<CFANode> successorsInCondition =
+        transformedImmutableSetCopy(conditionEdges, CFAEdge::getSuccessor);
+    ImmutableSet<CFANode> conditionEntries =
+        FluentIterable.from(conditionEdges)
+            .transform(CFAEdge::getPredecessor)
+            .filter(node -> !successorsInCondition.contains(node))
+            .toSet();
+
+    List<ExpressionTree<CExpression>> pathConditions = new ArrayList<>();
+    for (CFANode entry : conditionEntries) {
+      if (!collectPathConditions(
+          entry, conditionEdges, bodyEntries, PersistentLinkedList.of(), pathConditions)) {
+        return Optional.empty();
+      }
+    }
+    if (pathConditions.isEmpty()) {
+      return Optional.empty();
+    }
+    // The variables are printed with their names in the CFA, unlike ExpressionTree#toString, which
+    // prints their original names
+    return Optional.of(Or.of(pathConditions).accept(new ToCodeVisitor<>(CExpression::toASTString)));
+  }
+
+  /**
+   * Collects the conjunctions of the assumptions on all paths from the given node through the
+   * condition edges to a node of the body.
+   *
+   * @param pReversedPath the assumptions on the path to the given node, in reversed order
+   * @return false if the condition of a path cannot be expressed as a C expression
+   */
+  private static boolean collectPathConditions(
+      CFANode pNode,
+      ImmutableSet<CFAEdge> pConditionEdges,
+      ImmutableSet<CFANode> pBodyEntries,
+      PersistentLinkedList<ExpressionTree<CExpression>> pReversedPath,
+      List<ExpressionTree<CExpression>> pPathConditions) {
+    if (pBodyEntries.contains(pNode)) {
+      pPathConditions.add(And.of(pReversedPath.reversed()));
+      return true;
+    }
+    if (pReversedPath.size() > pConditionEdges.size()) {
+      // The condition edges contain a cycle
+      return false;
+    }
+    for (CFAEdge edge : pNode.getLeavingEdges()) {
+      if (!pConditionEdges.contains(edge)) {
+        continue;
+      }
+      PersistentLinkedList<ExpressionTree<CExpression>> reversedPath = pReversedPath;
+      if (edge instanceof CAssumeEdge assumeEdge) {
+        CExpression expression = assumeEdge.getExpression();
+        if (expression.toASTString().contains("__CPAchecker_TMP")) {
+          // The condition has side effects, which are not part of the generated program
+          return false;
+        }
+        reversedPath =
+            pReversedPath.with(LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+      } else if (!(edge instanceof BlankEdge)) {
+        return false;
+      }
+      if (!collectPathConditions(
+          edge.getSuccessor(), pConditionEdges, pBodyEntries, reversedPath, pPathConditions)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -559,7 +664,10 @@ public class CFAUtils {
   /**
    * This method allows to select from a set of variables all local variables from a given function.
    * This requires that the given set contains the qualified names of each variable as returned by
-   * {@link AbstractSimpleDeclaration#getQualifiedName()}.
+   * {@link AbstractSimpleDeclaration#getQualifiedName()}. This function should be removed as part
+   * of <a href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a> and is
+   * closely related to {@link #getFunctionAndVariableNameFromQualifiedVariableName(String)} and
+   * should be removed together with it.
    *
    * @param variables Set of qualified names of variables.
    * @param function A function name.
@@ -577,6 +685,42 @@ public class CFAUtils {
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
+  }
+
+  /**
+   * This record is used to store the function name and the variable name of a qualified variable
+   * name. It is used in the method {@link
+   * #getFunctionAndVariableNameFromQualifiedVariableName(String)} to return the function name and
+   * variable name as a pair. It should also be deleted as part of <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a>.
+   *
+   * @param functionName the function name of the qualified variable name. It is optional, since the
+   *     variable may be global.
+   * @param variableName the variable name of the qualified variable name.
+   */
+  public record FunctionAndVariableName(Optional<String> functionName, String variableName) {}
+
+  /**
+   * This method allows to split a qualified name of a variable into the function name and the
+   * variable name. This requires that the qualified name is in the format returned by {@link
+   * AbstractSimpleDeclaration#getQualifiedName()}. This function should be removed as part of <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1799">1799</a> It is also
+   * closely related to {@link #filterVariablesOfFunction(NavigableSet, String)} and should be
+   * removed together with it.
+   *
+   * @param qualifiedName A qualified name of a variable.
+   * @return A pair of the function name and the variable name. The function name is optional, since
+   *     the variable may be global.
+   */
+  public static FunctionAndVariableName getFunctionAndVariableNameFromQualifiedVariableName(
+      String qualifiedName) {
+    int index = qualifiedName.indexOf("::");
+    if (index == -1) {
+      return new FunctionAndVariableName(Optional.empty(), qualifiedName);
+    } else {
+      return new FunctionAndVariableName(
+          Optional.of(qualifiedName.substring(0, index)), qualifiedName.substring(index + 2));
+    }
   }
 
   /**
@@ -644,27 +788,28 @@ public class CFAUtils {
   public static ImmutableList<ImmutableList<CFAEdge>> getMaximalPaths(
       Set<CFAEdge> pEdges, Set<CFANode> pStartNodes, Set<CFANode> pEndNodes) {
     ImmutableList.Builder<ImmutableList<CFAEdge>> maximalPaths = ImmutableList.builder();
-    Queue<ImmutableList<CFAEdge>> waitlist = new ArrayDeque<>();
+    // paths are stored in reverse order, so that extending a path shares its prefix
+    Queue<PersistentLinkedList<CFAEdge>> waitlist = new ArrayDeque<>();
     for (CFANode startNode : pStartNodes) {
-      for (CFAEdge edge : startNode.getAllLeavingEdges().filter(pEdges::contains).toSet()) {
-        waitlist.offer(ImmutableList.of(edge));
+      for (CFAEdge edge : startNode.getAllLeavingEdges().filter(pEdges::contains)) {
+        waitlist.offer(PersistentLinkedList.of(edge));
       }
     }
     while (!waitlist.isEmpty()) {
-      ImmutableList<CFAEdge> path = waitlist.poll();
-      CFANode pathSucc = path.getLast().getSuccessor();
+      PersistentLinkedList<CFAEdge> reversedPath = waitlist.poll();
+      CFANode pathSucc = reversedPath.head().getSuccessor();
       ImmutableSet<CFAEdge> leavingEdges =
           pEndNodes.contains(pathSucc)
               ? ImmutableSet.of()
               : pathSucc
                   .getAllLeavingEdges()
-                  .filter(edge -> pEdges.contains(edge) && !path.contains(edge))
+                  .filter(edge -> pEdges.contains(edge) && !reversedPath.contains(edge))
                   .toSet();
       if (leavingEdges.isEmpty()) {
-        maximalPaths.add(path);
+        maximalPaths.add(ImmutableList.copyOf(reversedPath).reverse());
       }
       for (CFAEdge leavingEdge : leavingEdges) {
-        waitlist.offer(listAndElement(path, leavingEdge));
+        waitlist.offer(reversedPath.with(leavingEdge));
       }
     }
     return maximalPaths.build();
@@ -859,6 +1004,21 @@ public class CFAUtils {
   public static FluentIterable<AExpression> traverseLeftHandSideRecursively(ALeftHandSide root) {
     return (FluentIterable<AExpression>)
         (FluentIterable<?>) FluentIterable.from(AST_LHS_TRAVERSER.depthFirstPreOrder(root));
+  }
+
+  /** Returns the function name from a CFA edge if it contains a function call, or empty. */
+  public static Optional<String> getFunctionCallName(CFAEdge edge) {
+    if (edge instanceof CFunctionCallEdge callEdge) {
+      return Optional.of(callEdge.getSuccessor().getFunctionName());
+    }
+    if (edge instanceof AStatementEdge sEdge
+        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
+      AExpression funcNameExpr = funcCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (funcNameExpr instanceof AIdExpression funcName) {
+        return Optional.of(funcName.getName());
+      }
+    }
+    return Optional.empty();
   }
 
   private static final Traverser<AAstNode> AST_LHS_TRAVERSER =

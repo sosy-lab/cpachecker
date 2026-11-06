@@ -1,0 +1,1100 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.oc;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimaps;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cpa.oc.EventKind;
+import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
+import org.sosy_lab.cpachecker.cpa.oc.OcExplorationRegistry;
+import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+
+/**
+ * Turns the exploration registry into the ordering-consistency SMT encoding: per-instance
+ * linearized program order with create/join cross edges, full event guards (creation guard of the
+ * instance and path guard), read-from and write-serialization Booleans with their value
+ * constraints, mutual-exclusion constraints for critical sections, and the error property.
+ */
+final class OcEncoder {
+
+  /**
+   * Upper bound on every object's end address in the flat memory layout (see the base-address
+   * constraints in {@code getBaseConstraints}). Chosen well below the signed-overflow point of the
+   * pointer type on every supported machine model (2^31 for a 32-bit pointer), and applied to the
+   * <em>base</em> (as {@code base <= LAYOUT_CEILING - size}) rather than to {@code base + size} —
+   * bounding the sum directly would be useless, since a wrapped-around negative sum still compares
+   * below the ceiling. With the base bounded, {@code base + size} cannot overflow, so the layout
+   * genuinely keeps objects in disjoint ranges. Still leaves room for far more objects than any
+   * realistic program has.
+   */
+  private static final long LAYOUT_CEILING = 1L << 30;
+
+  private static final String EXECUTED_VARIABLE_PREFIX = "__oc_exec_";
+
+  /** The clock value of the event that ends the program, if any (see {@link #endsProgram}). */
+  private static final String PROGRAM_END_CLOCK_VARIABLE = "__oc_clk_end";
+
+  private static final String CLOCK_VARIABLE_PREFIX = "__oc_clk_";
+  private static final String READ_FROM_VARIABLE_PREFIX = "__oc_rf_";
+
+  private static final String INDETERMINATE_READ_VARIABLE_PREFIX = "__oc_undef_";
+  private static final String WRITE_SERIALIZATION_VARIABLE_PREFIX = "__oc_ws_";
+
+  /** A read-from pair with its Boolean selector variable. */
+  record RfPair(MemoryEvent write, MemoryEvent read, BooleanFormula variable) {}
+
+  /** An unordered same-location write pair with one selector per direction. */
+  record WsPair(
+      MemoryEvent write1, MemoryEvent write2, BooleanFormula var12, BooleanFormula var21) {}
+
+  /**
+   * A critical section: a LOCK event and its end — the matching UNLOCK event below it, or the last
+   * event of a path that ends (e.g. at the error location) while still holding the lock.
+   *
+   * <p>{@code closeCondition} is the extra premise under which this particular end is the real end
+   * of the section. It is {@code true} for a section closed by a syntactically matching unlock.
+   * When an ambiguous unlock (one whose target object is not statically fixed, see {@code
+   * OcExplorationRegistry#isAmbiguousUnlock}) might release this lock, the BFS forks: one section
+   * ends at that unlock guarded by {@code address(unlock) == address(lock)}, and the continuation
+   * (and any later end) carries the negation, so exactly one of them is the true section on each
+   * path. Callers must add this condition to the section-exclusion premise.
+   */
+  record Section(MemoryEvent lock, MemoryEvent unlock, BooleanFormula closeCondition) {}
+
+  /**
+   * Two same-mutex sections of different instances; {@code var12} orders section 1 completely
+   * before section 2 (unlock1 before lock2), {@code var21} the other way.
+   */
+  record CsPair(Section section1, Section section2, BooleanFormula var12, BooleanFormula var21) {}
+
+  /**
+   * A create/join ordering edge that only holds when its create/join event is enabled (the same
+   * thread instance may be created or joined from mutually exclusive branches, so these edges must
+   * not be unconditional).
+   */
+  record CrossPoEdge(MemoryEvent from, MemoryEvent to, MemoryEvent guardEvent) {}
+
+  /** An edge of the program order, from the earlier event to the later one. */
+  record PoEdge(MemoryEvent from, MemoryEvent to) {}
+
+  sealed interface CellKey {
+    record Location(MemoryLocation value) implements CellKey {}
+
+    record Region(String value) implements CellKey {}
+  }
+
+  private final OcExplorationRegistry registry;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final boolean withOrderingBooleans;
+  private final ShutdownNotifier shutdownNotifier;
+
+  private final ImmutableList<MemoryEvent> events;
+
+  /** Whether the event's thread instance is created and its path passes through the event. */
+  private final ImmutableMap<MemoryEvent, BooleanFormula> enabledGuards;
+
+  /**
+   * Whether the event is executed: one Boolean variable per event, constrained by {@link
+   * #executionConstraints} to an enabled, program-order-closed prefix of each thread instance.
+   */
+  private final ImmutableMap<MemoryEvent, BooleanFormula> fullGuards;
+
+  private final ImmutableList<BooleanFormula> executionConstraints;
+  private final List<PoEdge> poEdges = new ArrayList<>();
+  private final List<CrossPoEdge> crossPoEdges = new ArrayList<>();
+  private final BitSet[] definiteReach;
+  private final ImmutableList<RfPair> rfPairs;
+  private final ImmutableList<WsPair> wsPairs;
+  private final ImmutableList<CsPair> csPairs;
+
+  OcEncoder(
+      OcExplorationRegistry pRegistry,
+      FormulaManagerView pFmgr,
+      boolean pWithOrderingBooleans,
+      ShutdownNotifier pShutdownNotifier)
+      throws CPAException, InterruptedException {
+    registry = pRegistry;
+    fmgr = pFmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
+    withOrderingBooleans = pWithOrderingBooleans;
+    shutdownNotifier = pShutdownNotifier;
+    events = pRegistry.getEvents();
+
+    ImmutableListMultimap<Integer, MemoryEvent> childrenByParent = buildChildren();
+    ImmutableMap<Integer, List<MemoryEvent>> linearizations = buildLinearizations(childrenByParent);
+    buildPoEdges(linearizations, childrenByParent);
+    definiteReach = computeReachability(buildDefiniteOrderEdges(childrenByParent));
+    checkProgramOrderAcyclic();
+    enabledGuards = computeEnabledGuards();
+    fullGuards = computeExecutedVariables();
+    executionConstraints = buildExecutionConstraints();
+    rfPairs = buildRfPairs();
+    wsPairs = withOrderingBooleans ? buildWsPairs() : ImmutableList.of();
+    csPairs = buildCsPairs(childrenByParent);
+  }
+
+  ImmutableList<MemoryEvent> getEvents() {
+    return events;
+  }
+
+  /**
+   * The events that are enabled in the given model, i.e. whose full guard the model satisfies. The
+   * encoder owns the guards, so callers ask it rather than re-evaluating them.
+   */
+  ImmutableSet<MemoryEvent> enabledIn(Model pModel) {
+    ImmutableSet.Builder<MemoryEvent> enabled = ImmutableSet.builder();
+    for (MemoryEvent event : events) {
+      if (Boolean.TRUE.equals(pModel.evaluate(getFullGuard(event)))) {
+        enabled.add(event);
+      }
+    }
+    return enabled.build();
+  }
+
+  /**
+   * The real program-order DAG edges (predecessor to event), as opposed to {@link #getPoEdges()}
+   * which are consecutive pairs of an arbitrary linearization and therefore also connect
+   * mutually-exclusive branch events. The consistency checker must use these so it never treats two
+   * events that are never co-enabled as ordered.
+   */
+  ImmutableList<PoEdge> getProgramOrderDagEdges() {
+    ImmutableList.Builder<PoEdge> edges = ImmutableList.builder();
+    for (MemoryEvent event : events) {
+      for (int predecessorId : registry.getPoPredecessors().get(event.id())) {
+        edges.add(new PoEdge(registry.getEvent(predecessorId), event));
+      }
+    }
+    return edges.build();
+  }
+
+  ImmutableList<PoEdge> getPoEdges() {
+    return ImmutableList.copyOf(poEdges);
+  }
+
+  List<CrossPoEdge> getCrossPoEdges() {
+    return crossPoEdges;
+  }
+
+  BooleanFormula getFullGuard(MemoryEvent pEvent) {
+    return fullGuards.get(pEvent);
+  }
+
+  ImmutableList<RfPair> getRfPairs() {
+    return rfPairs;
+  }
+
+  ImmutableList<WsPair> getWsPairs() {
+    return wsPairs;
+  }
+
+  ImmutableList<CsPair> getCsPairs() {
+    return csPairs;
+  }
+
+  /** Whether pFirst precedes pSecond in every execution in which both are enabled. */
+  boolean poBefore(MemoryEvent pFirst, MemoryEvent pSecond) {
+    return definiteReach[pFirst.id()].get(pSecond.id());
+  }
+
+  /**
+   * A join completes only if the joined instance terminated normally (THREAD_EXIT); paths that
+   * abort the program or are cut at the loop bound have no such event and cannot be joined. An
+   * ERROR in the joined instance also satisfies the join: the run is already violating, so the
+   * (hypothetical) continuation must not make the model inconsistent.
+   *
+   * <p>These are COMPLETION facts and must be asserted only for the violation check. The unwinding
+   * assertion asks about executions that were deliberately cut short; assuming there that joined
+   * threads finished within the bound would contradict the cut guards by construction and unsoundly
+   * "prove" the bound sufficient.
+   */
+  ImmutableList<BooleanFormula> getJoinConstraints() {
+    List<BooleanFormula> constraints = new ArrayList<>();
+    ImmutableListMultimap<Integer, MemoryEvent> exitsByInstance =
+        events.stream()
+            .filter(e -> e.kind() == EventKind.THREAD_EXIT || e.kind() == EventKind.ERROR)
+            .collect(
+                ImmutableListMultimap.toImmutableListMultimap(MemoryEvent::instanceId, e -> e));
+    for (MemoryEvent join : events) {
+      if (join.kind() == EventKind.JOIN) {
+        List<BooleanFormula> exitGuards =
+            exitsByInstance.get(join.otherInstanceId()).stream()
+                .map(this::getFullGuard)
+                .collect(ImmutableList.toImmutableList());
+        constraints.add(bfmgr.implication(getFullGuard(join), bfmgr.or(exitGuards)));
+      }
+    }
+    return ImmutableList.copyOf(constraints);
+  }
+
+  /** The error property: some error event is enabled. Asserted only for the violation check. */
+  BooleanFormula getErrorConstraint() {
+    List<BooleanFormula> errorGuards = new ArrayList<>();
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.ERROR) {
+        errorGuards.add(getFullGuard(event));
+      }
+    }
+    return bfmgr.or(errorGuards);
+  }
+
+  /**
+   * An unordered pair of conflicting accesses of different thread instances to the same memory
+   * cell, at least one of them a write. These are the candidates for a data race; {@link
+   * #getDataRaceConstraint} asks whether any of them can occur without an ordering between them.
+   */
+  record RacePair(MemoryEvent access1, MemoryEvent access2) {}
+
+  /** All conflicting cross-instance access pairs (see {@link RacePair}). */
+  ImmutableList<RacePair> getRacePairs() {
+    List<MemoryEvent> accesses = new ArrayList<>();
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.READ || event.kind() == EventKind.WRITE) {
+        accesses.add(event);
+      }
+    }
+    ImmutableList.Builder<RacePair> result = ImmutableList.builder();
+    for (int i = 0; i < accesses.size(); i++) {
+      for (int j = i + 1; j < accesses.size(); j++) {
+        MemoryEvent a = accesses.get(i);
+        MemoryEvent b = accesses.get(j);
+        if (a.instanceId() != b.instanceId()
+            && (a.kind() == EventKind.WRITE || b.kind() == EventKind.WRITE)
+            && cellKey(a).equals(cellKey(b))
+            // a data race needs at least one non-atomic access; two _Atomic accesses never race
+            && !(registry.isAtomicAccess(a.id()) && registry.isAtomicAccess(b.id()))
+            // the synthetic thread-id bookkeeping for pthread_create/join handles is not program
+            // memory and must never be reported as a race candidate
+            && !registry.isThreadHandleAccess(a.id())
+            && !registry.isThreadHandleAccess(b.id())) {
+          result.add(new RacePair(a, b));
+        }
+      }
+    }
+    return result.build();
+  }
+
+  /**
+   * The data-race property (CLOCKS encoding only): some conflicting cross-instance pair (see {@link
+   * #getRacePairs}) can occur at adjacent clock values, i.e. with no event forced between them. Two
+   * conflicting accesses that must be ordered — because they are mutex- or atomic-block-protected
+   * (the critical-section constraints then push a LOCK/UNLOCK between them) or otherwise
+   * happens-before ordered — cannot become adjacent, so they are not flagged. Reads reading
+   * directly from a concurrent write, however, stay adjacent and are (correctly) a race. Asserted,
+   * together with the clock constraints, only for the violation check.
+   */
+  BooleanFormula getDataRaceConstraint() throws InterruptedException {
+    var imgr = fmgr.getIntegerFormulaManager();
+    IntegerFormula one = imgr.makeNumber(1);
+    List<BooleanFormula> disjuncts = new ArrayList<>();
+    for (RacePair pair : getRacePairs()) {
+      shutdownNotifier.shutdownIfNecessary();
+      IntegerFormula clock1 = imgr.makeVariable(CLOCK_VARIABLE_PREFIX + pair.access1().id());
+      IntegerFormula clock2 = imgr.makeVariable(CLOCK_VARIABLE_PREFIX + pair.access2().id());
+      BooleanFormula adjacent =
+          bfmgr.or(
+              imgr.equal(clock1, imgr.add(clock2, one)), imgr.equal(clock2, imgr.add(clock1, one)));
+      BooleanFormula both = bfmgr.and(getFullGuard(pair.access1()), getFullGuard(pair.access2()));
+      if (pair.access1().isRegionAccess()) {
+        both = bfmgr.and(both, sameAddress(pair.access1(), pair.access2()));
+      }
+      disjuncts.add(bfmgr.and(both, adjacent));
+    }
+    return bfmgr.or(disjuncts);
+  }
+
+  /**
+   * Guards of the loop-bound cut points; if none of them is feasible, no real execution was cut and
+   * a safe verdict is sound despite the structural truncation (unwinding assertion).
+   */
+  ImmutableList<BooleanFormula> getTruncationGuards() {
+    ImmutableList.Builder<BooleanFormula> guards = ImmutableList.builder();
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.TRUNCATED) {
+        guards.add(getFullGuard(event));
+      }
+    }
+    return guards.build();
+  }
+
+  /** Constraints shared by both solving modes. */
+  ImmutableList<BooleanFormula> getBaseConstraints() throws InterruptedException {
+    List<BooleanFormula> constraints = new ArrayList<>(registry.getPathConstraints());
+    constraints.addAll(executionConstraints);
+
+    for (RfPair rf : rfPairs) {
+      shutdownNotifier.shutdownIfNecessary();
+      BooleanFormula sameValue = fmgr.makeEqual(rf.write().variable(), rf.read().variable());
+      BooleanFormula condition =
+          bfmgr.and(sameValue, getFullGuard(rf.write()), getFullGuard(rf.read()));
+      if (rf.write().isRegionAccess()) {
+        condition = bfmgr.and(condition, sameAddress(rf.write(), rf.read()));
+      }
+      constraints.add(bfmgr.implication(rf.variable(), condition));
+    }
+
+    ImmutableListMultimap<Integer, RfPair> rfByRead =
+        rfPairs.stream()
+            .collect(ImmutableListMultimap.toImmutableListMultimap(p -> p.read().id(), p -> p));
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.READ) {
+        shutdownNotifier.shutdownIfNecessary();
+        List<BooleanFormula> candidates = new ArrayList<>();
+        rfByRead.get(event.id()).forEach(rf -> candidates.add(rf.variable()));
+        if (hasIndeterminateInitialValue(event)) {
+          candidates.add(readsIndeterminateValue(event));
+        }
+        constraints.add(bfmgr.implication(getFullGuard(event), bfmgr.or(candidates)));
+      }
+    }
+
+    // Flat memory layout: every object (address-taken variable, heap cell) occupies a byte range
+    // [base, base + size) and the ranges are laid out consecutively and disjointly, so a full
+    // address `base + offset` (offset < size) identifies a cell uniquely across all objects and an
+    // interior pointer (&a[i], &s.field) aliases exactly. Same idea as
+    // PointerTargetSetManager.makeBaseAddressConstraints, but as a bounded ascending chain: objects
+    // are placed one after another starting just above address 0, and every range end is kept below
+    // LAYOUT_CEILING, itself well below the signed-overflow point. The ceiling is what makes this
+    // sound on bitvector addresses -- without it the solver could pick a base near the maximum so
+    // that `base + size` wraps around, spuriously satisfying disjointness and colliding two
+    // objects.
+    ImmutableList<OcExplorationRegistry.AddressBase> bases = registry.getAddressBases();
+    Formula previousEnd = null;
+    for (OcExplorationRegistry.AddressBase base : bases) {
+      Formula term = base.term();
+      FormulaType<Formula> type = fmgr.getFormulaType(term);
+      // this object begins at or after the end of the previous one (the first just above address 0)
+      Formula start = previousEnd == null ? fmgr.makeNumber(type, 1L) : previousEnd;
+      constraints.add(fmgr.makeGreaterOrEqual(term, start, true));
+      // and its base is bounded so that base + size stays below the ceiling and cannot overflow
+      constraints.add(
+          fmgr.makeLessOrEqual(term, fmgr.makeNumber(type, LAYOUT_CEILING - base.size()), true));
+      previousEnd = fmgr.makePlus(term, fmgr.makeNumber(type, base.size()));
+    }
+
+    if (withOrderingBooleans) {
+      for (WsPair ws : wsPairs) {
+        shutdownNotifier.shutdownIfNecessary();
+        BooleanFormula bothEnabled =
+            bfmgr.and(getFullGuard(ws.write1()), getFullGuard(ws.write2()));
+        if (ws.write1().isRegionAccess()) {
+          bothEnabled = bfmgr.and(bothEnabled, sameAddress(ws.write1(), ws.write2()));
+        }
+        constraints.add(bfmgr.implication(ws.var12(), bothEnabled));
+        constraints.add(bfmgr.implication(ws.var21(), bothEnabled));
+        constraints.add(bfmgr.implication(bothEnabled, bfmgr.or(ws.var12(), ws.var21())));
+      }
+      // two executed locks of the same mutex exclude each other: one of their sections must be
+      // ordered first, which it can only be if it is really released (see getClockConstraints)
+      for (List<CsPair> group : Multimaps.asMap(csPairsByLocks()).values()) {
+        List<BooleanFormula> orders = new ArrayList<>();
+        for (CsPair cs : group) {
+          shutdownNotifier.shutdownIfNecessary();
+          BooleanFormula both = bothLocked(cs);
+          constraints.add(
+              bfmgr.implication(
+                  cs.var12(),
+                  bfmgr.and(both, releases(cs.section1()), cs.section1().closeCondition())));
+          constraints.add(
+              bfmgr.implication(
+                  cs.var21(),
+                  bfmgr.and(both, releases(cs.section2()), cs.section2().closeCondition())));
+          orders.add(cs.var12());
+          orders.add(cs.var21());
+        }
+        constraints.add(bfmgr.implication(bothLocked(group.getFirst()), bfmgr.or(orders)));
+      }
+    }
+    return ImmutableList.copyOf(constraints);
+  }
+
+  /**
+   * Whether the read may see the indeterminate initial content of its cell instead of a write. Only
+   * a heap object allocated through a {@code void *} has no initial write (its cells get a type
+   * only when accessed through a typed pointer), so this is allowed for every region read whose
+   * cell no executed write precedes (see {@link #getClockConstraints}); every other object's cells
+   * are written before they can be read, by their declaration or allocation, which rules it out
+   * there. The REFINEMENT mode has no clocks to state this with and keeps requiring a write.
+   */
+  private boolean hasIndeterminateInitialValue(MemoryEvent pRead) {
+    return !withOrderingBooleans && pRead.isRegionAccess();
+  }
+
+  private BooleanFormula readsIndeterminateValue(MemoryEvent pRead) {
+    return bfmgr.makeVariable(INDETERMINATE_READ_VARIABLE_PREFIX + pRead.id());
+  }
+
+  /** Eager integer-clock ordering constraints (used by the CLOCKS mode). */
+  ImmutableList<BooleanFormula> getClockConstraints() throws InterruptedException {
+    var imgr = fmgr.getIntegerFormulaManager();
+    Map<MemoryEvent, IntegerFormula> clocks = new LinkedHashMap<>();
+    for (MemoryEvent event : events) {
+      clocks.put(event, imgr.makeVariable(CLOCK_VARIABLE_PREFIX + event.id()));
+    }
+
+    List<BooleanFormula> constraints = new ArrayList<>();
+    for (PoEdge edge : poEdges) {
+      constraints.add(imgr.lessThan(clocks.get(edge.from()), clocks.get(edge.to())));
+    }
+    for (CrossPoEdge cross : crossPoEdges) {
+      constraints.add(
+          bfmgr.implication(
+              getFullGuard(cross.guardEvent()),
+              imgr.lessThan(clocks.get(cross.from()), clocks.get(cross.to()))));
+    }
+
+    ImmutableListMultimap<CellKey, MemoryEvent> writesByCell = writesByCell();
+    for (MemoryEvent read : events) {
+      if (read.kind() != EventKind.READ || !hasIndeterminateInitialValue(read)) {
+        continue;
+      }
+      shutdownNotifier.shutdownIfNecessary();
+      // a read of the indeterminate initial content comes before every executed write of its cell
+      for (MemoryEvent write : writesByCell.get(cellKey(read))) {
+        constraints.add(
+            bfmgr.implication(
+                bfmgr.and(
+                    readsIndeterminateValue(read), getFullGuard(write), sameAddress(write, read)),
+                imgr.lessThan(clocks.get(read), clocks.get(write))));
+      }
+    }
+    for (RfPair rf : rfPairs) {
+      shutdownNotifier.shutdownIfNecessary();
+      constraints.add(
+          bfmgr.implication(
+              rf.variable(), imgr.lessThan(clocks.get(rf.write()), clocks.get(rf.read()))));
+      for (MemoryEvent other : writesByCell.get(cellKey(rf.write()))) {
+        if (other.id() == rf.write().id()) {
+          continue;
+        }
+        // no other enabled write to the cell read may fall between an rf-related write and read
+        // (compared with the read, not the write: a fill write covers its whole object, so a write
+        // to another cell of that object does not overwrite the cell the read reads)
+        BooleanFormula premise = bfmgr.and(rf.variable(), getFullGuard(other));
+        if (rf.write().isRegionAccess()) {
+          premise = bfmgr.and(premise, sameAddress(other, rf.read()));
+        }
+        constraints.add(
+            bfmgr.implication(
+                premise,
+                bfmgr.or(
+                    imgr.lessThan(clocks.get(other), clocks.get(rf.write())),
+                    imgr.lessThan(clocks.get(rf.read()), clocks.get(other)))));
+      }
+    }
+
+    // two executed locks of the same mutex (equal addresses): one of them must be released before
+    // the other is taken, by an executed unlock that really ends its section (closeCondition —
+    // non-trivial only when an ambiguous unlock made the end address-conditional)
+    for (List<CsPair> group : Multimaps.asMap(csPairsByLocks()).values()) {
+      Set<BooleanFormula> releasedFirst = new LinkedHashSet<>();
+      for (CsPair cs : group) {
+        shutdownNotifier.shutdownIfNecessary();
+        releasedFirst.add(
+            bfmgr.and(
+                releases(cs.section1()),
+                cs.section1().closeCondition(),
+                imgr.lessThan(
+                    clocks.get(cs.section1().unlock()), clocks.get(cs.section2().lock()))));
+        releasedFirst.add(
+            bfmgr.and(
+                releases(cs.section2()),
+                cs.section2().closeCondition(),
+                imgr.lessThan(
+                    clocks.get(cs.section2().unlock()), clocks.get(cs.section1().lock()))));
+      }
+      constraints.add(bfmgr.implication(bothLocked(group.getFirst()), bfmgr.or(releasedFirst)));
+    }
+
+    // nothing executes after the program ended: every executed event lies before the end
+    IntegerFormula end = imgr.makeVariable(PROGRAM_END_CLOCK_VARIABLE);
+    for (MemoryEvent event : events) {
+      if (endsProgram(event)) {
+        constraints.add(bfmgr.implication(getFullGuard(event), imgr.equal(clocks.get(event), end)));
+      } else {
+        constraints.add(
+            bfmgr.implication(getFullGuard(event), imgr.lessThan(clocks.get(event), end)));
+      }
+    }
+    return ImmutableList.copyOf(constraints);
+  }
+
+  /**
+   * Program-order successor multimap, built by inverting the authoritative predecessor multimap of
+   * the registry (an event right after a DAG merge point has several predecessors, and thus is a
+   * successor of several parents).
+   */
+  private ImmutableListMultimap<Integer, MemoryEvent> buildChildren() {
+    ImmutableListMultimap.Builder<Integer, MemoryEvent> result = ImmutableListMultimap.builder();
+    for (Map.Entry<Integer, Integer> entry : registry.getPoPredecessors().entries()) {
+      result.put(entry.getValue(), events.get(entry.getKey()));
+    }
+    return result.build();
+  }
+
+  /**
+   * A deterministic total order per instance, computed as a Kahn topological sort of the instance's
+   * program-order DAG: nodes with no remaining predecessors become ready, and the smallest-id ready
+   * event is always picked next. DAG-parallel events of one instance have mutually exclusive
+   * guards, so any topological linearization is a sound total program order.
+   */
+  private ImmutableMap<Integer, List<MemoryEvent>> buildLinearizations(
+      ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
+    ImmutableMap.Builder<Integer, List<MemoryEvent>> result = ImmutableMap.builder();
+    for (ThreadInstance instance : registry.getInstances()) {
+      List<MemoryEvent> instanceEvents =
+          events.stream()
+              .filter(e -> e.instanceId() == instance.getId())
+              .collect(ImmutableList.toImmutableList());
+      Map<Integer, Integer> indegree = new HashMap<>();
+      PriorityQueue<MemoryEvent> ready =
+          new PriorityQueue<>(Comparator.comparingInt(MemoryEvent::id));
+      for (MemoryEvent event : instanceEvents) {
+        int degree = predecessors.get(event.id()).size();
+        indegree.put(event.id(), degree);
+        if (degree == 0) {
+          ready.add(event);
+        }
+      }
+      List<MemoryEvent> linear = new ArrayList<>();
+      while (!ready.isEmpty()) {
+        MemoryEvent event = ready.poll();
+        linear.add(event);
+        for (MemoryEvent child : pChildren.get(event.id())) {
+          int remaining = indegree.merge(child.id(), -1, Integer::sum);
+          if (remaining == 0) {
+            ready.add(child);
+          }
+        }
+      }
+      result.put(instance.getId(), linear);
+    }
+    return result.buildOrThrow();
+  }
+
+  /**
+   * Builds the per-instance linearization edges (consecutive pairs, used only by the eager CLOCKS
+   * encoding) and the create/join cross edges.
+   *
+   * <p>A create/join cross edge must connect to <em>every</em> root (respectively sink) of the
+   * other instance's real program-order DAG, not just one of them: a DAG merge can be missed (the
+   * merge operator never merges into an already-expanded state, so two branches that reconverge at
+   * the same program point after unequal exploration depths — e.g. the arms of a nested ternary —
+   * can end up as siblings instead of merging), leaving the instance with several mutually
+   * exclusive terminal (or initial) events. Anchoring the cross edge on a single, arbitrarily
+   * chosen linearization endpoint (as opposed to all of them) would silently drop the ordering edge
+   * whenever a model's actually-enabled root/sink is a different one: the checker builds its
+   * happens-before graph only from enabled events, so with no edge at all from the created/joined
+   * instance to the create/join event, a required order (e.g. "the joined thread's write happens
+   * before the joining read") becomes unreachable in the graph and a real conflict goes undetected.
+   * The eager CLOCKS encoding does not strictly need this (its unconditional per-instance clock
+   * chain already relates every sibling event, enabled or not, so the ordering leaks through
+   * transitively), but asserting it there too is sound and harmless (redundant, already implied).
+   */
+  private void buildPoEdges(
+      ImmutableMap<Integer, List<MemoryEvent>> pLinearizations,
+      ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
+    for (List<MemoryEvent> linear : pLinearizations.values()) {
+      for (int i = 0; i + 1 < linear.size(); i++) {
+        poEdges.add(new PoEdge(linear.get(i), linear.get(i + 1)));
+      }
+    }
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.CREATE || event.kind() == EventKind.JOIN) {
+        List<MemoryEvent> other = pLinearizations.get(event.otherInstanceId());
+        if (other == null || other.isEmpty()) {
+          continue;
+        }
+        if (event.kind() == EventKind.CREATE) {
+          for (MemoryEvent root : other) {
+            if (predecessors.get(root.id()).isEmpty()) {
+              crossPoEdges.add(new CrossPoEdge(event, root, event));
+            }
+          }
+        } else {
+          for (MemoryEvent sink : other) {
+            if (pChildren.get(sink.id()).isEmpty()) {
+              crossPoEdges.add(new CrossPoEdge(sink, event, event));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Edges of the "definite" order, which holds in every execution in which both endpoints are
+   * enabled: the program-order DAG edges within an instance, the single create event before all
+   * roots of an instance that has exactly one create event (instances with several creates only
+   * lose optional rf/ws pruning, not correctness), and all sinks of an instance before every join
+   * of that instance.
+   */
+  private List<PoEdge> buildDefiniteOrderEdges(
+      ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
+    List<PoEdge> edges = new ArrayList<>();
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
+    for (MemoryEvent event : events) {
+      for (int predecessorId : predecessors.get(event.id())) {
+        edges.add(new PoEdge(registry.getEvent(predecessorId), event));
+      }
+    }
+    for (ThreadInstance instance : registry.getInstances()) {
+      List<MemoryEvent> instanceEvents =
+          events.stream()
+              .filter(e -> e.instanceId() == instance.getId())
+              .collect(ImmutableList.toImmutableList());
+      if (instanceEvents.isEmpty()) {
+        continue;
+      }
+      if (instance.getCreateEventIds().size() == 1) {
+        int createEventId = instance.getCreateEventIds().getFirst();
+        for (MemoryEvent root : instanceEvents) {
+          if (predecessors.get(root.id()).isEmpty()) {
+            edges.add(new PoEdge(registry.getEvent(createEventId), root));
+          }
+        }
+      }
+      for (MemoryEvent sink : instanceEvents) {
+        if (pChildren.get(sink.id()).isEmpty()) {
+          for (MemoryEvent join : events) {
+            if (join.kind() == EventKind.JOIN && join.otherInstanceId() == instance.getId()) {
+              edges.add(new PoEdge(sink, join));
+            }
+          }
+        }
+      }
+    }
+    return edges;
+  }
+
+  private BitSet[] computeReachability(List<PoEdge> pEdges) throws InterruptedException {
+    int n = events.size();
+    BitSet[] reach = new BitSet[n];
+    for (int i = 0; i < n; i++) {
+      reach[i] = new BitSet(n);
+    }
+    for (PoEdge edge : pEdges) {
+      reach[edge.from().id()].set(edge.to().id());
+    }
+    boolean changed = true;
+    while (changed) {
+      shutdownNotifier.shutdownIfNecessary();
+      changed = false;
+      for (PoEdge edge : pEdges) {
+        BitSet source = reach[edge.from().id()];
+        int before = source.cardinality();
+        source.or(reach[edge.to().id()]);
+        if (source.cardinality() != before) {
+          changed = true;
+        }
+      }
+    }
+    return reach;
+  }
+
+  private void checkProgramOrderAcyclic() throws CPAException {
+    for (MemoryEvent event : events) {
+      if (definiteReach[event.id()].get(event.id())) {
+        throw new CPAException("program order of the ordering-consistency encoding is cyclic");
+      }
+    }
+  }
+
+  private ImmutableMap<MemoryEvent, BooleanFormula> computeEnabledGuards() {
+    ImmutableList<ThreadInstance> instances = registry.getInstances();
+    BooleanFormula[] creationGuards = new BooleanFormula[instances.size()];
+    ImmutableMap.Builder<MemoryEvent, BooleanFormula> guards = ImmutableMap.builder();
+    for (ThreadInstance instance : instances) {
+      if (instance.getId() == ThreadInstance.MAIN_INSTANCE_ID) {
+        creationGuards[instance.getId()] = bfmgr.makeTrue();
+      } else {
+        List<BooleanFormula> createGuards = new ArrayList<>();
+        for (int createEventId : instance.getCreateEventIds()) {
+          MemoryEvent create = registry.getEvent(createEventId);
+          // creators always have smaller instance ids, so their guard is already computed
+          createGuards.add(bfmgr.and(creationGuards[create.instanceId()], create.pathGuard()));
+        }
+        creationGuards[instance.getId()] = bfmgr.or(createGuards);
+      }
+      for (MemoryEvent event : events) {
+        if (event.instanceId() == instance.getId()) {
+          guards.put(event, bfmgr.and(creationGuards[instance.getId()], event.pathGuard()));
+        }
+      }
+    }
+    return guards.buildOrThrow();
+  }
+
+  private ImmutableMap<MemoryEvent, BooleanFormula> computeExecutedVariables() {
+    ImmutableMap.Builder<MemoryEvent, BooleanFormula> executed = ImmutableMap.builder();
+    for (MemoryEvent event : events) {
+      executed.put(event, bfmgr.makeVariable(EXECUTED_VARIABLE_PREFIX + event.id()));
+    }
+    return executed.buildOrThrow();
+  }
+
+  /**
+   * The executed events form a prefix of an execution: every thread instance executes a
+   * program-order prefix of one of its enabled paths, and only after one of its create events was
+   * executed. A thread may stop anywhere, as it does when it blocks forever (on a mutex that is
+   * never released, or on a join of a thread that never terminates) or when another thread ends the
+   * program; every prefix of an execution is itself one, so a violation found on a prefix is real,
+   * and requiring complete executions instead would both miss such violations and run threads past
+   * points they can never pass.
+   */
+  private ImmutableList<BooleanFormula> buildExecutionConstraints() {
+    List<BooleanFormula> constraints = new ArrayList<>();
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
+    for (MemoryEvent event : events) {
+      BooleanFormula executed = getFullGuard(event);
+      constraints.add(bfmgr.implication(executed, enabledGuards.get(event)));
+      // required of every event, not only of those without predecessors: the predecessors of a
+      // thread's first executed event may all lie on branches that were not taken
+      if (event.instanceId() != ThreadInstance.MAIN_INSTANCE_ID) {
+        List<BooleanFormula> creates = new ArrayList<>();
+        for (int createEventId :
+            registry.getInstances().get(event.instanceId()).getCreateEventIds()) {
+          creates.add(getFullGuard(registry.getEvent(createEventId)));
+        }
+        constraints.add(bfmgr.implication(executed, bfmgr.or(creates)));
+      }
+      for (int predecessorId : predecessors.get(event.id())) {
+        MemoryEvent predecessor = registry.getEvent(predecessorId);
+        // after a branch merge only the predecessor on the taken path is enabled
+        constraints.add(
+            bfmgr.implication(
+                bfmgr.and(executed, enabledGuards.get(predecessor)), getFullGuard(predecessor)));
+      }
+    }
+    return ImmutableList.copyOf(constraints);
+  }
+
+  /**
+   * Whether the event ends the whole program: a call such as {@code abort} or {@code exit}, or the
+   * return of {@code main} (a THREAD_EXIT of the main instance without an edge; {@code
+   * pthread_exit} in main has one and ends only the main thread).
+   */
+  private static boolean endsProgram(MemoryEvent pEvent) {
+    return pEvent.kind() == EventKind.ABORT
+        || (pEvent.kind() == EventKind.THREAD_EXIT
+            && pEvent.instanceId() == ThreadInstance.MAIN_INSTANCE_ID
+            && pEvent.edge() == null);
+  }
+
+  /**
+   * Whether a section really releases its mutex when its end event is executed: only an unlock
+   * does. A section that ends at the last event of a path (the thread exits, the program ends, or
+   * the path is cut) still holds the mutex there, and keeps holding it forever.
+   */
+  private BooleanFormula releases(Section pSection) {
+    return pSection.unlock().kind() == EventKind.UNLOCK
+        ? getFullGuard(pSection.unlock())
+        : bfmgr.makeFalse();
+  }
+
+  /**
+   * The critical-section pairs grouped by their two lock events. A lock with branches below it has
+   * one section per path end, and which of them is taken cannot be read off the guards of the ends:
+   * an end that is not executed may depend on values that were never read. Exclusion is therefore
+   * stated per pair of executed locks: one of them must have been released (by an executed unlock
+   * of one of its sections) before the other was taken.
+   */
+  private ImmutableListMultimap<List<Integer>, CsPair> csPairsByLocks() {
+    return Multimaps.index(
+        csPairs, cs -> ImmutableList.of(cs.section1().lock().id(), cs.section2().lock().id()));
+  }
+
+  /** The premise of a lock pair's exclusion: both locks are executed and are the same mutex. */
+  private BooleanFormula bothLocked(CsPair pPair) {
+    return bfmgr.and(
+        getFullGuard(pPair.section1().lock()),
+        getFullGuard(pPair.section2().lock()),
+        sameMutex(pPair.section1().lock(), pPair.section2().lock()));
+  }
+
+  /**
+   * The key under which events may access the same memory cell: the variable itself for accesses
+   * that can never be aliased, the whole alias region otherwise (there, address-equality
+   * constraints decide cell identity precisely).
+   */
+  static CellKey cellKey(MemoryEvent pEvent) {
+    return pEvent.isRegionAccess()
+        ? new CellKey.Region(checkNotNull(pEvent.regionId()))
+        : new CellKey.Location(checkNotNull(pEvent.memoryLocation()));
+  }
+
+  /**
+   * Same-cell test of two events of the same region, in the flat memory layout: their full byte
+   * addresses {@code base + offset} are equal. Because objects occupy disjoint address ranges (see
+   * the base constraints), two accesses with different bases collide only if one reaches out of its
+   * object's bounds, and for in-bounds accesses this is exact — including an interior pointer whose
+   * value is {@code base + k} aliasing a direct access at offset {@code k} of the same object. A
+   * fill write covers its whole object {@code [base, base + size)}, so any access with the same
+   * base is covered; base equality is the exact test there.
+   */
+  BooleanFormula sameAddress(MemoryEvent pFirst, MemoryEvent pSecond) {
+    if (pFirst.fill() && pSecond.fill()) {
+      // two whole-object fills alias iff they are the same object, i.e. share a base
+      return fmgr.makeEqual(pFirst.addressTerm(), pSecond.addressTerm());
+    }
+    if (pFirst.fill()) {
+      return covers(pFirst, fullAddress(pSecond));
+    }
+    if (pSecond.fill()) {
+      return covers(pSecond, fullAddress(pFirst));
+    }
+    return fmgr.makeEqual(fullAddress(pFirst), fullAddress(pSecond));
+  }
+
+  /** The full byte address of a region access: its object base plus its byte offset (if any). */
+  private Formula fullAddress(MemoryEvent pEvent) {
+    Formula base = pEvent.addressTerm();
+    Formula offset = pEvent.offsetTerm();
+    return offset == null ? base : fmgr.makePlus(base, offset);
+  }
+
+  /**
+   * Whether {@code pAddress} falls inside the object a fill write covers, {@code [base, base +
+   * size)}. A fill stands for the whole object, so it aliases any access into it — including one
+   * reached through an interior pointer, whose address is the combined {@code base + offset} rather
+   * than a base/offset pair, which a plain base equality would miss.
+   */
+  private BooleanFormula covers(MemoryEvent pFill, Formula pAddress) {
+    Formula base = pFill.addressTerm();
+    FormulaType<Formula> type = fmgr.getFormulaType(base);
+    Formula end = fmgr.makePlus(base, fmgr.makeNumber(type, pFill.fillSizeBytes()));
+    return bfmgr.and(
+        fmgr.makeLessOrEqual(base, pAddress, true), fmgr.makeLessThan(pAddress, end, true));
+  }
+
+  /**
+   * Whether two lock events could ever be the same mutex (a cheap static filter used when building
+   * critical-section pairs). Real mutexes share one alias region and are distinguished by address,
+   * so any two of them are candidates; an atomic-block pseudo-mutex matches only by its id.
+   */
+  private static boolean canBeSameMutex(MemoryEvent pFirst, MemoryEvent pSecond) {
+    if (pFirst.isRegionAccess() && pSecond.isRegionAccess()) {
+      return cellKey(pFirst).equals(cellKey(pSecond));
+    }
+    return pFirst.mutexId().equals(pSecond.mutexId());
+  }
+
+  /**
+   * The condition under which two lock events act on the same mutex: equal addresses for real
+   * mutexes (so {@code &(p->lock)} in two threads is the same mutex exactly when {@code p} agrees),
+   * unconditionally true for the atomic-block pseudo-mutex (which has no address).
+   */
+  private BooleanFormula sameMutex(MemoryEvent pFirst, MemoryEvent pSecond) {
+    return pFirst.isRegionAccess() ? sameAddress(pFirst, pSecond) : bfmgr.makeTrue();
+  }
+
+  ImmutableListMultimap<CellKey, MemoryEvent> writesByCell() {
+    return events.stream()
+        .filter(e -> e.kind() == EventKind.WRITE)
+        .collect(ImmutableListMultimap.toImmutableListMultimap(OcEncoder::cellKey, e -> e));
+  }
+
+  private ImmutableList<RfPair> buildRfPairs() throws InterruptedException {
+    ImmutableListMultimap<CellKey, MemoryEvent> writes = writesByCell();
+    ImmutableList.Builder<RfPair> result = ImmutableList.builder();
+    for (MemoryEvent read : events) {
+      if (read.kind() != EventKind.READ) {
+        continue;
+      }
+      shutdownNotifier.shutdownIfNecessary();
+      for (MemoryEvent write : writes.get(cellKey(read))) {
+        if (definiteReach[read.id()].get(write.id())) {
+          continue; // the write is in program order after the read
+        }
+        result.add(
+            new RfPair(
+                write,
+                read,
+                bfmgr.makeVariable(READ_FROM_VARIABLE_PREFIX + write.id() + "_" + read.id())));
+      }
+    }
+    return result.build();
+  }
+
+  private ImmutableList<WsPair> buildWsPairs() throws InterruptedException {
+    ImmutableListMultimap<CellKey, MemoryEvent> writes = writesByCell();
+    ImmutableList.Builder<WsPair> result = ImmutableList.builder();
+    for (List<MemoryEvent> sameLocation : Multimaps.asMap(writes).values()) {
+      for (int i = 0; i < sameLocation.size(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
+        for (int j = i + 1; j < sameLocation.size(); j++) {
+          MemoryEvent w1 = sameLocation.get(i);
+          MemoryEvent w2 = sameLocation.get(j);
+          if (w1.instanceId() == w2.instanceId()
+              || definiteReach[w1.id()].get(w2.id())
+              || definiteReach[w2.id()].get(w1.id())) {
+            continue;
+          }
+          result.add(
+              new WsPair(
+                  w1,
+                  w2,
+                  bfmgr.makeVariable(WRITE_SERIALIZATION_VARIABLE_PREFIX + w1.id() + "_" + w2.id()),
+                  bfmgr.makeVariable(
+                      WRITE_SERIALIZATION_VARIABLE_PREFIX + w2.id() + "_" + w1.id())));
+        }
+      }
+    }
+    return result.build();
+  }
+
+  private ImmutableList<CsPair> buildCsPairs(ImmutableListMultimap<Integer, MemoryEvent> pChildren)
+      throws InterruptedException {
+    List<Section> sections = new ArrayList<>();
+    for (MemoryEvent lock : events) {
+      if (lock.kind() != EventKind.LOCK) {
+        continue;
+      }
+      shutdownNotifier.shutdownIfNecessary();
+      // find the matching unlock (same mutex, nesting depth zero) reachable from the lock in the
+      // DAG; a path that ends while still holding the lock keeps it to its last event. Nesting
+      // depth at a DAG node is path-independent (states with different lock depths never merge),
+      // so a plain visited set (one visit per node) suffices instead of per-path revisits.
+      //
+      // `cond` accumulates the address-alias case-split of ambiguous unlocks passed on the way (see
+      // below); it is TRUE on a path that has not passed any. For a lock with an internal branch
+      // whose ambiguous unlocks reconverge, the first visit's `cond` wins — a conservative
+      // approximation that at worst falls back to the old (section-extends) behaviour, never adding
+      // a serialization that could hide a real race.
+      record Item(MemoryEvent event, int depth, BooleanFormula cond) {}
+      Deque<Item> queue = new ArrayDeque<>();
+      Set<Integer> visited = new HashSet<>();
+      for (MemoryEvent child : pChildren.get(lock.id())) {
+        if (visited.add(child.id())) {
+          queue.addLast(new Item(child, 1, bfmgr.makeTrue()));
+        }
+      }
+      if (pChildren.get(lock.id()).isEmpty()) {
+        sections.add(new Section(lock, lock, bfmgr.makeTrue()));
+      }
+      while (!queue.isEmpty()) {
+        Item item = queue.pollFirst();
+        int depth = item.depth();
+        MemoryEvent event = item.event();
+        BooleanFormula cond = item.cond();
+        if (lock.mutexId().equals(event.mutexId())) {
+          if (event.kind() == EventKind.LOCK) {
+            depth++;
+          } else if (event.kind() == EventKind.UNLOCK) {
+            depth--;
+            if (depth == 0) {
+              sections.add(new Section(lock, event, cond));
+              continue; // this branch is done
+            }
+          }
+        } else if (event.kind() == EventKind.UNLOCK
+            && depth == 1
+            && registry.isAmbiguousUnlock(event.id())
+            && lock.isRegionAccess()
+            && event.isRegionAccess()) {
+          // An unlock through a non-static target (e.g. unlock(m) or unlock(&arr[i])) whose
+          // syntactic nesting key differs from this lock's may still release THIS lock, on the
+          // paths where their addresses coincide. Fork: this lock's section ends here when the
+          // addresses agree; otherwise the lock stays held and the section continues to its real
+          // (matching-key or leaf) end. Exactly one of the two is the true section on each path.
+          BooleanFormula aliases = sameAddress(lock, event);
+          sections.add(new Section(lock, event, bfmgr.and(cond, aliases)));
+          cond = bfmgr.and(cond, bfmgr.not(aliases));
+        }
+        List<MemoryEvent> children = pChildren.get(event.id());
+        if (children.isEmpty()) {
+          sections.add(new Section(lock, event, cond));
+        }
+        for (MemoryEvent child : children) {
+          if (visited.add(child.id())) {
+            queue.addLast(new Item(child, depth, cond));
+          }
+        }
+      }
+    }
+
+    ImmutableList.Builder<CsPair> result = ImmutableList.builder();
+    for (int i = 0; i < sections.size(); i++) {
+      shutdownNotifier.shutdownIfNecessary();
+      for (int j = i + 1; j < sections.size(); j++) {
+        Section s1 = sections.get(i);
+        Section s2 = sections.get(j);
+        if (s1.lock().instanceId() == s2.lock().instanceId()
+            || !canBeSameMutex(s1.lock(), s2.lock())) {
+          continue;
+        }
+        if (registry.isReadLock(s1.lock().id()) && registry.isReadLock(s2.lock().id())) {
+          // two read-locked (rwlock rdlock) sections of the same lock may overlap; only pairs
+          // involving a write-locked section exclude each other
+          continue;
+        }
+        // The selector atom names must include the section-END (unlock) ids, not just the
+        // lock ids: a single lock can yield multiple mutually-exclusive Section objects (e.g.
+        // an internal branch or an early error-exit before the matching unlock). If two such
+        // sections of the same lock-pair shared an atom name, getBaseConstraints() would force
+        // that atom to imply BOTH sections' (mutually exclusive) unlock guards, making cs-total
+        // unsatisfiable and the whole query wrongly UNSAT (reported as safe/TRUE).
+        result.add(
+            new CsPair(
+                s1,
+                s2,
+                bfmgr.makeVariable(
+                    "__oc_cs_"
+                        + s1.lock().id()
+                        + "_"
+                        + s1.unlock().id()
+                        + "__"
+                        + s2.lock().id()
+                        + "_"
+                        + s2.unlock().id()),
+                bfmgr.makeVariable(
+                    "__oc_cs_"
+                        + s2.lock().id()
+                        + "_"
+                        + s2.unlock().id()
+                        + "__"
+                        + s1.lock().id()
+                        + "_"
+                        + s1.unlock().id())));
+      }
+    }
+    return result.build();
+  }
+}

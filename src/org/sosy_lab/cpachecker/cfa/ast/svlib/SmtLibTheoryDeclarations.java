@@ -25,7 +25,7 @@ public class SmtLibTheoryDeclarations {
   /* Integer stuff */
 
   public static SvLibFunctionDeclaration INT_EQUALITY =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -36,7 +36,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration INT_LESS_THAN =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -46,7 +46,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration INT_LESS_EQUAL_THAN =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -56,7 +56,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration INT_GREATER_THAN =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -66,7 +66,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration INT_GREATER_EQUAL_THAN =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -77,7 +77,7 @@ public class SmtLibTheoryDeclarations {
 
   public static SvLibFunctionDeclaration intSubtraction(int amountArguments) {
     Verify.verify(amountArguments == 1 || amountArguments == 2);
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.copyOf(
@@ -89,7 +89,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration INT_MULTIPLICATION =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -99,7 +99,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration intAddition(int amountArguments) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.copyOf(
@@ -111,7 +111,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration INT_DIV =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -123,7 +123,7 @@ public class SmtLibTheoryDeclarations {
   /* Non-Linear Integer stuff */
 
   public static SvLibFunctionDeclaration INT_MOD =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
@@ -135,7 +135,7 @@ public class SmtLibTheoryDeclarations {
   /* Boolean stuff */
 
   public static SvLibFunctionDeclaration BOOL_EQUALITY =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.BOOL, SvLibSmtLibPredefinedType.BOOL),
@@ -151,7 +151,7 @@ public class SmtLibTheoryDeclarations {
    */
   public static SvLibFunctionDeclaration distinct(SvLibType pArgumentType, int amountArguments) {
     Verify.verify(amountArguments >= 2);
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.copyOf(Collections.nCopies(amountArguments, pArgumentType)),
@@ -162,7 +162,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration BOOL_NEGATION =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.BOOL), SvLibSmtLibPredefinedType.BOOL),
@@ -171,7 +171,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration boolDisjunction(int amountArguments) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.copyOf(
@@ -183,7 +183,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration boolConjunction(int amountArguments) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.copyOf(
@@ -195,7 +195,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration boolImplication(int amountArguments) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.copyOf(
@@ -207,7 +207,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration ite(SvLibType pReturnType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(SvLibSmtLibPredefinedType.BOOL, pReturnType, pReturnType),
@@ -221,7 +221,7 @@ public class SmtLibTheoryDeclarations {
 
   /** The floor of a real, which SMT-LIB calls {@code to_int}. */
   public static SvLibFunctionDeclaration REAL_TO_INT =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.REAL), SvLibSmtLibPredefinedType.INT),
@@ -230,7 +230,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration INT_TO_REAL =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.INT), SvLibSmtLibPredefinedType.REAL),
@@ -239,7 +239,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration REAL_MINUS =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.REAL, SvLibSmtLibPredefinedType.REAL),
@@ -249,7 +249,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration REAL_MULTIPLICATION =
-      new SvLibFunctionDeclaration(
+      SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.REAL, SvLibSmtLibPredefinedType.REAL),
@@ -259,7 +259,7 @@ public class SmtLibTheoryDeclarations {
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration realAddition(int amountArguments) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.copyOf(
@@ -274,7 +274,7 @@ public class SmtLibTheoryDeclarations {
 
   public static SvLibFunctionDeclaration arraySelect(
       SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibArrayType(indexType, elementType), indexType),
@@ -286,7 +286,7 @@ public class SmtLibTheoryDeclarations {
 
   public static SvLibFunctionDeclaration arrayStore(
       SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -303,7 +303,7 @@ public class SmtLibTheoryDeclarations {
    */
   public static SvLibFunctionDeclaration arrayConst(
       SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(elementType), new SvLibSmtLibArrayType(indexType, elementType)),
@@ -314,7 +314,7 @@ public class SmtLibTheoryDeclarations {
 
   public static SvLibFunctionDeclaration arrayEquality(
       SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -329,7 +329,7 @@ public class SmtLibTheoryDeclarations {
   /* Bit Vector stuff */
 
   public static SvLibFunctionDeclaration bitVectorConcat(int pLeftSize, int pRightSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -343,7 +343,7 @@ public class SmtLibTheoryDeclarations {
   /** The extraction {@code (_ extract pMsb pLsb)} of the bits from pMsb down to pLsb. */
   public static SvLibFunctionDeclaration bitVectorExtract(int pSourceSize, int pMsb, int pLsb) {
     Verify.verify(pSourceSize > pMsb && pMsb >= pLsb && pLsb >= 0);
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
@@ -352,7 +352,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorBitwiseNegation(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)),
@@ -363,7 +363,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorComplementNegation(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)),
@@ -374,7 +374,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorEquality(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -386,7 +386,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorAnd(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -398,7 +398,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorNand(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -410,7 +410,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorOr(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -422,7 +422,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorAddition(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -434,7 +434,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorMul(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -446,7 +446,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorUnsignedDivision(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -458,7 +458,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorUnsignedRemainder(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -470,7 +470,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorShiftLeft(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -482,7 +482,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorLogicalShiftRight(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -496,7 +496,7 @@ public class SmtLibTheoryDeclarations {
   /* Bit Vector stuff not in the SMT-LIB FixedSizeBitVector theory but used by Z3 */
 
   public static SvLibFunctionDeclaration bitVectorArithmeticShiftRight(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -509,7 +509,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Reduction xor as used by btor2 and Z3: xor of all bits of the argument. */
   public static SvLibFunctionDeclaration bitVectorReductionXor(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), new SvLibSmtLibBitVectorType(1)),
@@ -520,7 +520,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Reduction or as used by btor2 and Z3: or of all bits of the argument. */
   public static SvLibFunctionDeclaration bitVectorReductionOr(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), new SvLibSmtLibBitVectorType(1)),
@@ -531,7 +531,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Reduction and as used by btor2 and Z3: and of all bits of the argument. */
   public static SvLibFunctionDeclaration bitVectorReductionAnd(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), new SvLibSmtLibBitVectorType(1)),
@@ -542,7 +542,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Equality returning a bitvector of size 1 instead of a boolean. */
   public static SvLibFunctionDeclaration bitVectorComparison(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -554,7 +554,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorXnor(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -568,7 +568,7 @@ public class SmtLibTheoryDeclarations {
   /** The operation {@code (_ repeat pCount)}, which concatenates pCount copies of its argument. */
   public static SvLibFunctionDeclaration bitVectorRepeat(int pSourceSize, int pCount) {
     Verify.verify(pSourceSize > 0 && pCount > 0);
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
@@ -577,7 +577,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorXor(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -589,7 +589,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorUnsignedLessEqual(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -601,7 +601,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorUnsignedLessThan(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -613,7 +613,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorUnsignedGreaterEqual(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -625,7 +625,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorUnsignedGreaterThan(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -637,7 +637,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorSignedGreaterEqual(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -649,7 +649,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorSignedGreaterThan(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -662,7 +662,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Used by Z3 */
   public static SvLibFunctionDeclaration bitVectorSignedLessEqual(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -675,7 +675,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Used by Z3 */
   public static SvLibFunctionDeclaration bitVectorSignedLessThan(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -688,7 +688,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Used by Z3 */
   public static SvLibFunctionDeclaration bitVectorSignedDivision(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -701,7 +701,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Used by Z3 */
   public static SvLibFunctionDeclaration bitVectorSignedRemainder(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -714,7 +714,7 @@ public class SmtLibTheoryDeclarations {
 
   /** Used by Z3 */
   public static SvLibFunctionDeclaration bitVectorSubstraction(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(
@@ -737,7 +737,7 @@ public class SmtLibTheoryDeclarations {
   private static SvLibFunctionDeclaration bitVectorExtend(
       String pOperator, int pSourceSize, int pTargetSize) {
     Verify.verify(pTargetSize >= pSourceSize);
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
@@ -884,7 +884,7 @@ public class SmtLibTheoryDeclarations {
     for (int argument = 0; argument < pArity; argument++) {
       argumentTypes.add(pType);
     }
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(argumentTypes.build(), pType),
         pOperator,
@@ -902,7 +902,7 @@ public class SmtLibTheoryDeclarations {
     for (int argument = 0; argument < pArity; argument++) {
       argumentTypes.add(pType);
     }
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(argumentTypes.build(), pReturnType),
         pOperator,
@@ -916,7 +916,7 @@ public class SmtLibTheoryDeclarations {
    */
   public static SvLibFunctionDeclaration toFloatingPoint(
       boolean pFromUnsigned, SvLibType pSourceType, SvLibSmtLibFloatingPointType pTargetType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(SvLibSmtLibPredefinedType.ROUNDING_MODE, pSourceType), pTargetType),
@@ -932,7 +932,7 @@ public class SmtLibTheoryDeclarations {
    */
   public static SvLibFunctionDeclaration bitVectorToInt(boolean pSigned, int pSize) {
     String name = pSigned ? "sbv_to_int" : "ubv_to_int";
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), SvLibSmtLibPredefinedType.INT),
@@ -946,7 +946,7 @@ public class SmtLibTheoryDeclarations {
    * whose index is the size of the bitvector.
    */
   public static SvLibFunctionDeclaration intToBitVector(int pSize) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(SvLibSmtLibPredefinedType.INT), new SvLibSmtLibBitVectorType(pSize)),
@@ -960,7 +960,7 @@ public class SmtLibTheoryDeclarations {
   public static SvLibFunctionDeclaration floatingPointAsBitVector(
       SvLibSmtLibFloatingPointType pSourceType) {
     String name = "fp.to_ieee_bv";
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(pSourceType),
@@ -977,7 +977,7 @@ public class SmtLibTheoryDeclarations {
    */
   public static SvLibFunctionDeclaration floatingPointFromBitVector(
       SvLibSmtLibBitVectorType pSourceType, SvLibSmtLibFloatingPointType pTargetType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(ImmutableList.of(pSourceType), pTargetType),
         SmtLibIndexedSymbol.of(
@@ -992,7 +992,7 @@ public class SmtLibTheoryDeclarations {
       boolean pSigned,
       SvLibSmtLibFloatingPointType pSourceType,
       SvLibSmtLibBitVectorType pTargetType) {
-    return new SvLibFunctionDeclaration(
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(SvLibSmtLibPredefinedType.ROUNDING_MODE, pSourceType), pTargetType),

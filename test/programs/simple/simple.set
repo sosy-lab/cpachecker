@@ -18,6 +18,7 @@ arrays/*.yml
 *.yml
 nested_operators/*.yml
 builtin_overflow_functions/*.yml
+string_literals/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
 witness_output/*.yml

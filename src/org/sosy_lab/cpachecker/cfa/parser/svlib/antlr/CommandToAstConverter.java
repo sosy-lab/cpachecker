@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -130,22 +131,18 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
   @Override
   public SvLibCommand visitDeclareConstCommand(DeclareConstCommandContext ctx) {
-    String variableName = nameOf(ctx.cmd_declareConst().symbol());
+    return declareConstant(
+        fileLocationFromContext(ctx),
+        nameOf(ctx.cmd_declareConst().symbol()),
+        sortToAstTypeConverter.visit(ctx.cmd_declareConst().sort()));
+  }
 
-    SvLibType variableType = sortToAstTypeConverter.visit(ctx.cmd_declareConst().sort());
+  private SvLibDeclareConstCommand declareConstant(
+      FileLocation pFileLocation, String pName, SvLibType pType) {
     SvLibParsingVariableDeclaration variableDeclaration =
-        new SvLibParsingVariableDeclaration(
-            fileLocationFromContext(ctx),
-            true,
-            true,
-            variableType,
-            variableName,
-            variableName,
-            null);
-
+        new SvLibParsingVariableDeclaration(pFileLocation, true, true, pType, pName, pName, null);
     scope.addVariable(variableDeclaration);
-
-    return new SvLibDeclareConstCommand(variableDeclaration, fileLocationFromContext(ctx));
+    return new SvLibDeclareConstCommand(variableDeclaration, pFileLocation);
   }
 
   private List<SvLibParsingParameterDeclaration> createParameterDeclarations(
@@ -188,16 +185,6 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
                         nameOf(sortedVarContext.symbol()),
                         functionName)));
 
-    scope.addVariable(
-        new SvLibParsingVariableDeclaration(
-            fileLocationFromContext(ctx),
-            true,
-            false,
-            functionDeclaration.getType(),
-            functionName,
-            functionName,
-            null));
-
     // The parameters of the function have to be in the scope while its body is converted, because
     // the body refers to them.
     scope.enterProcedure(functionDeclaration.getParameters());
@@ -206,6 +193,22 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
       body = termConverter.visit(functionDefContext.term());
     } finally {
       scope.leaveProcedure();
+    }
+
+    // As in SMT-LIB, a function without parameters is a constant, which is used like a variable
+    if (functionDeclaration.getParameters().isEmpty()) {
+      scope.addVariable(
+          SvLibParsingVariableDeclaration.definedConstant(
+              fileLocationFromContext(ctx), functionDeclaration.getReturnType(), functionName));
+    } else {
+      scope.addFunctionDeclaration(
+          new SvLibSmtFunctionDeclaration(
+              fileLocationFromContext(ctx),
+              functionName,
+              transformedImmutableListCopy(
+                  functionDeclaration.getParameters(), SvLibParsingParameterDeclaration::getType),
+              functionDeclaration.getReturnType(),
+              true));
     }
 
     return new SmtLibDefineFunCommand(functionDeclaration, body, fileLocationFromContext(ctx));
@@ -365,6 +368,11 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             functionDecContext.sort(), sort -> sortToAstTypeConverter.visit(sort));
     SvLibType returnType = allTypes.getLast();
     List<SvLibType> parameterTypes = allTypes.subList(0, allTypes.size() - 1);
+
+    // In SMT-LIB, (declare-const c T) is an abbreviation of (declare-fun c () T)
+    if (parameterTypes.isEmpty()) {
+      return declareConstant(fileLocationFromContext(pContext), functionName, returnType);
+    }
 
     SvLibSmtFunctionDeclaration functionDeclaration =
         new SvLibSmtFunctionDeclaration(

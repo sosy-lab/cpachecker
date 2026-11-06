@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -56,6 +58,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -67,9 +72,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -196,7 +208,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private final CallstackCPA callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
-  private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
+  private final GlobalAccessChecker globalAccessChecker;
 
   public ThreadingTransferRelation(Configuration pConfig, CFA pCfa, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -205,6 +217,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
     logger = new LogManagerWithoutDuplicates(pLogger);
+    globalAccessChecker = new GlobalAccessChecker(pCfa);
   }
 
   @Override
@@ -243,7 +256,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
-    if (isTerminatingEdge(cfaEdge)) {
+    // A noreturn pthread_exit also leads to a termination node, but it terminates only its thread.
+    if (isTerminatingEdge(cfaEdge) && !isThreadExit(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
       return ImmutableSet.of();
     }
@@ -328,7 +342,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 return initMutex(threadingState, statement, results);
               }
               case THREAD_JOIN -> {
-                return joinThread(threadingState, statement, results);
+                return joinThread(threadingState, cfaEdge, statement, results);
               }
               case THREAD_ONCE -> {
                 return callOnce(threadingState, activeThread, statement, results, cfaEdge);
@@ -340,8 +354,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 return waitAtBarrier(threadingState, activeThread, statement, results, cfaEdge);
               }
               case THREAD_EXIT -> {
-                // this function-call is already handled in the beginning with isLastNodeOfThread.
-                // return exitThread(threadingState, activeThread, results);
+                // the thread terminates on the next edge, cf. exitThreads
+                return keepExitValue(threadingState, activeThread, cfaEdge, statement, results);
               }
               case VERIFIER_ATOMIC_BEGIN -> {
                 if (useAtomicLocks) {
@@ -483,10 +497,42 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     for (String id : tmp.getThreadIds()) {
       if (isLastNodeOfThread(tmp.getThreadLocation(id).getLocationNode())
           || isAtExitOfStartFunction(tmp, id)) {
+        Optional<CVariableDeclaration> result = getResultVariable(tmp, id);
+        if (result.isPresent()) {
+          tmp = tmp.addThreadResultAndCopy(id, result.orElseThrow());
+        }
         tmp = removeThreadId(tmp, id);
       }
     }
     return tmp;
+  }
+
+  /**
+   * Returns the variable that holds the result of a terminating thread, if pthread_join can refer
+   * to the thread by its identifier.
+   */
+  private Optional<CVariableDeclaration> getResultVariable(ThreadingState state, String id) {
+    if (!useClonedFunctions // otherwise other threads can overwrite the variable
+        || id.contains(THREAD_ID_SEPARATOR)
+        || id.startsWith(ONCE_RUNNER_PREFIX)
+        // the identifier denotes a newer thread
+        || Iterables.any(
+            state.getThreadIds(), other -> other.startsWith(id + THREAD_ID_SEPARATOR))) {
+      return Optional.empty();
+    }
+    return getStartFunctionReturnVariable(state, id);
+  }
+
+  /** Returns the return variable of the function that the thread started with. */
+  private Optional<CVariableDeclaration> getStartFunctionReturnVariable(
+      ThreadingState state, String id) {
+    CallstackState callstack = (CallstackState) state.getThreadCallstack(id);
+    while (callstack.getPreviousState() != null) {
+      callstack = callstack.getPreviousState();
+    }
+    return cfa.getFunctionHead(callstack.getCurrentFunction()) instanceof CFunctionEntryNode entry
+        ? entry.getReturnVariable()
+        : Optional.empty();
   }
 
   /**
@@ -543,20 +589,22 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       // for witness validation we need to produce all possible successors,
       // the witness automaton should then limit their number by checking function-entries..
       final Collection<ThreadingState> newResults = new ArrayList<>();
-      Set<Integer> usedNumbers = threadingState.getThreadNums();
-      for (int i = ThreadingState.MIN_THREAD_NUM; i < maxNumberOfThreads; i++) {
-        if (!usedNumbers.contains(i)) {
-          newResults.addAll(
-              createThreadWithNumber(threadingState, id, cfaEdge, function, threadArg, i, results));
-        }
+      for (int i = threadingState.getNextThreadNum(); i < maxNumberOfThreads; i++) {
+        newResults.addAll(
+            createThreadWithNumber(threadingState, id, cfaEdge, function, threadArg, i, results));
       }
       return newResults;
 
     } else {
       // a default reachability analysis can determine the thread-number on its own.
-      int newThreadNum = threadingState.getSmallestMissingThreadNum();
       return createThreadWithNumber(
-          threadingState, id, cfaEdge, function, threadArg, newThreadNum, results);
+          threadingState,
+          id,
+          cfaEdge,
+          function,
+          threadArg,
+          threadingState.getNextThreadNum(),
+          results);
     }
   }
 
@@ -573,6 +621,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     String functionName = function.getName();
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
+    }
+    if (cfa.getFunctionHead(functionName) == null) {
+      throw new UnsupportedCodeException(
+          "more threads than cloned functions, increase cfa.cfaCloner.numberOfCopies", cfaEdge);
     }
 
     String threadId = getNewThreadId(threadingState, id.getName());
@@ -734,21 +786,27 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(params.get(0) instanceof CUnaryExpression cUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
-    CExpression operand = cUnaryExpression.getOperand();
-    if (operand instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      CExpression subscriptExpression = cArraySubscriptExpression.getSubscriptExpression();
-      if (!(subscriptExpression instanceof ALiteralExpression)) {
-        throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
-      }
+    // The lock id is the text of the mutex, so it must always denote the same mutex
+    if (!hasFixedAddress(cUnaryExpression.getOperand())) {
+      throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
     }
-    //  CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-    //  if (!(expr0 instanceof CIdExpression)) {
-    //    throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-    //  }
-    //  String lockId = ((CIdExpression) expr0).getName();
-
     String lockId = cUnaryExpression.getOperand().toString();
     return lockId;
+  }
+
+  private static boolean hasFixedAddress(CExpression pExpression) {
+    return switch (pExpression) {
+      case CIdExpression id ->
+          id.getDeclaration() instanceof CVariableDeclaration variable && variable.isGlobal();
+      case CFieldReference field ->
+          !field.isPointerDereference() && hasFixedAddress(field.getFieldOwner());
+      case CArraySubscriptExpression element ->
+          element.getSubscriptExpression() instanceof ALiteralExpression
+              && element.getArrayExpression().getExpressionType().getCanonicalType()
+                  instanceof CArrayType
+              && hasFixedAddress(element.getArrayExpression());
+      default -> false;
+    };
   }
 
   /** Tracks whether the mutex attribute has the type PTHREAD_MUTEX_RECURSIVE. */
@@ -822,15 +880,76 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private Collection<ThreadingState> joinThread(
-      ThreadingState threadingState, AStatement statement, Collection<ThreadingState> results)
+      ThreadingState threadingState,
+      CFAEdge cfaEdge,
+      AStatement statement,
+      Collection<ThreadingState> results)
       throws UnrecognizedCodeException {
 
-    if (threadingState.getThreadIds().contains(extractParamName(statement, 0))) {
+    String threadId = extractParamName(statement, 0);
+    if (threadingState.getThreadIds().contains(threadId)) {
       // we wait for an active thread -> nothing to do
       return ImmutableSet.of();
     }
 
-    return results;
+    // pthread_join(t, p) writes the result of thread t to *p. The encoding makes *p
+    // nondeterministic, and the predicate analysis assigns the result if it is known.
+    CVariableDeclaration result = threadingState.getThreadResult(threadId);
+    CStatementEdge resultEdge =
+        result == null
+            ? null
+            : getJoinResultTarget(((AFunctionCall) statement).getFunctionCallExpression())
+                .map(
+                    target ->
+                        makeStatementEdge(
+                            cfaEdge,
+                            makeAssignment(
+                                target, new CIdExpression(cfaEdge.getFileLocation(), result))))
+                .orElse(null);
+    return transform(
+        results, ts -> ts.removeThreadResultAndCopy(threadId).withResultEdge(resultEdge));
+  }
+
+  /** pthread_exit(v) assigns v to the return variable of the start function, cf. joinThread. */
+  private Collection<ThreadingState> keepExitValue(
+      ThreadingState threadingState,
+      String activeThread,
+      CFAEdge cfaEdge,
+      AStatement statement,
+      Collection<ThreadingState> results) {
+    Optional<CVariableDeclaration> returnVariable =
+        getStartFunctionReturnVariable(threadingState, activeThread);
+    List<? extends AExpression> params =
+        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+    if (returnVariable.isEmpty()
+        || params.size() != 1
+        || !(params.getFirst() instanceof CExpression value)) {
+      return results;
+    }
+    CStatementEdge resultEdge =
+        makeStatementEdge(
+            cfaEdge,
+            makeAssignment(
+                new CIdExpression(cfaEdge.getFileLocation(), returnVariable.orElseThrow()), value));
+    return transform(results, ts -> ts.withResultEdge(resultEdge));
+  }
+
+  /** Returns {@code pTarget = (T) pValue}, where T is the type of pTarget. */
+  private static CExpressionAssignmentStatement makeAssignment(
+      CLeftHandSide pTarget, CExpression pValue) {
+    FileLocation loc = pValue.getFileLocation();
+    return new CExpressionAssignmentStatement(
+        loc, pTarget, new CCastExpression(loc, pTarget.getExpressionType(), pValue));
+  }
+
+  /** Returns an edge with the given statement and the nodes of the given edge. */
+  private static CStatementEdge makeStatementEdge(CFAEdge pEdge, CStatement pStatement) {
+    return new CStatementEdge(
+        pStatement.toASTString(),
+        pStatement,
+        pEdge.getFileLocation(),
+        pEdge.getPredecessor(),
+        pEdge.getSuccessor());
   }
 
   /**
@@ -856,7 +975,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     CIdExpression function = extractInitRoutine(params.get(1), cfaEdge);
 
     // The new thread does not count for maxNumberOfThreads, because the calling thread waits.
-    int newThreadNum = threadingState.getSmallestMissingThreadNum();
+    int newThreadNum = threadingState.getNextThreadNum();
     String functionName = function.getName();
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
@@ -864,7 +983,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (cfa.getFunctionHead(functionName) == null) {
       // without the new thread, the calling thread would wait forever
       throw new UnsupportedCodeException(
-          "pthread_once without a cloned function for a new thread", cfaEdge);
+          "pthread_once without a cloned function for a new thread, increase"
+              + " cfa.cfaCloner.numberOfCopies",
+          cfaEdge);
     }
     String runner = getNewThreadId(threadingState, ONCE_RUNNER_PREFIX + onceId);
     CFunctionCallEdge functionCall =
@@ -1097,6 +1218,75 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return Optional.empty();
   }
 
+  /**
+   * Returns the memory to which a call pthread_join(t, p) writes the result of thread t: *p with
+   * the type of the variable that p points to, e.g. int * for (void **) &x with int *x. Returns
+   * nothing for other calls and if p is a null-pointer constant.
+   */
+  public static Optional<CPointerExpression> getJoinResultTarget(AFunctionCallExpression pCall) {
+    if (!(pCall.getFunctionNameExpression() instanceof AIdExpression name
+        && name.getName().equals(THREAD_JOIN)
+        && pCall.getParameterExpressions().size() == 2
+        && pCall.getParameterExpressions().get(1) instanceof CExpression pointer)) {
+      return Optional.empty();
+    }
+    CExpression value = pointer;
+    while (value instanceof CCastExpression cast) {
+      value = cast.getOperand();
+    }
+    if (value instanceof CIntegerLiteralExpression literal && literal.getValue().signum() == 0) {
+      return Optional.empty();
+    }
+    FileLocation loc = pointer.getFileLocation();
+    CExpression target = pointer;
+    while (target instanceof CCastExpression cast && isPointerToObject(cast.getOperand())) {
+      target = cast.getOperand();
+    }
+    if (!isPointerToObject(target)) {
+      target =
+          new CCastExpression(
+              loc, new CPointerType(CTypeQualifiers.NONE, CPointerType.POINTER_TO_VOID), target);
+    }
+    CType targetType = ((CPointerType) target.getExpressionType().getCanonicalType()).getType();
+    return Optional.of(new CPointerExpression(loc, targetType, target));
+  }
+
+  /**
+   * Creates the call {@code __VERIFIER_nondet_memory(p, sizeof(*p))} that overapproximates the
+   * effect of a call pthread_join(t, p), cf. {@link #getJoinResultTarget}.
+   */
+  public static Optional<CFunctionCallExpression> createNondetMemoryCallModellingJoin(
+      AFunctionCallExpression pCall, MachineModel pMachineModel) {
+    return getJoinResultTarget(pCall)
+        .map(
+            target -> {
+              FileLocation loc = target.getFileLocation();
+              CFunctionDeclaration nondetMemory =
+                  new CFunctionDeclaration(
+                      loc,
+                      CFunctionType.functionTypeWithReturnType(CVoidType.VOID),
+                      "__VERIFIER_nondet_memory",
+                      ImmutableList.of(),
+                      ImmutableSet.of());
+              CExpression size =
+                  new CIntegerLiteralExpression(
+                      loc,
+                      pMachineModel.getSizeType(),
+                      pMachineModel.getSizeof(target.getExpressionType()));
+              return new CFunctionCallExpression(
+                  loc,
+                  CVoidType.VOID,
+                  new CIdExpression(loc, nondetMemory),
+                  ImmutableList.of(target.getOperand(), size),
+                  nondetMemory);
+            });
+  }
+
+  private static boolean isPointerToObject(CExpression pExpression) {
+    return pExpression.getExpressionType().getCanonicalType() instanceof CPointerType type
+        && !(type.getType().getCanonicalType() instanceof CVoidType);
+  }
+
   /** extract the name of the n-th parameter from a function call. */
   static String extractParamName(AStatement statement, int n) throws UnrecognizedCodeException {
     // first check for some possible errors and unsupported parts
@@ -1181,7 +1371,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // delete temporary information from the state, cf. JavaDoc of the called methods
-    return Optionals.asSet(results.map(ts -> ts.withActiveThread(null).withEntryFunction(null)));
+    return Optionals.asSet(
+        results.map(ts -> ts.withActiveThread(null).withEntryFunction(null).withResultEdge(null)));
   }
 
   /**
