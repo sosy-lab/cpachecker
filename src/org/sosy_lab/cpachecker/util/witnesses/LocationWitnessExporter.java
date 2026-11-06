@@ -9,154 +9,130 @@
 package org.sosy_lab.cpachecker.util.witnesses;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.LocationInvariantsToCorrectnessWitness;
 
 /**
- * Adapts location summaries to the standard YAML witness exporters. Correctness states are
- * independent snapshots, without parent links. A violation has only the edge identifying the
- * target, not the execution that led there. Neither representation is used to export counterexample
- * traces.
+ * Writes the YAML witnesses of an analysis that records its proof as the states it reaches at
+ * program locations, and a violation as the edge whose execution violates the specification.
  *
- * <p>This class <em>uses</em> {@link ARGStatistics} instead of extending it: it only hands it a
- * reached set to write witnesses from, and it does not take over what that class reports or exports
- * otherwise.
+ * <p>Neither representation is an ARG: a recorded state is an independent snapshot without parent
+ * links, and a violation has only the edge that identifies the target, not the execution that led
+ * there. The standard exporters are therefore used directly, each with the data it needs, instead
+ * of through {@link org.sosy_lab.cpachecker.cpa.arg.ARGStatistics}, which reads both from an ARG.
  */
 public class LocationWitnessExporter {
 
-  private final ARGStatistics argStatistics;
-  private final ConfigurableProgramAnalysis cpa;
-  private final CFA cfa;
+  private final LocationInvariantsToCorrectnessWitness correctnessWitness;
+  private final CounterexampleToWitness violationWitness;
+  private final CEXExportOptions violationWitnessOptions;
   private final LocationStateFactory locations;
-  private final ReachedSetFactory reachedSetFactory;
-  private final LocationStatesCollector collector;
+  private final LogManager logger;
+
+  /** Whether the witness formats can describe the analyzed program at all. */
+  private final boolean isC;
 
   public LocationWitnessExporter(
-      Configuration pConfig,
-      LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa,
-      Specification pSpecification,
-      CFA pCfa)
+      Configuration pConfig, LogManager pLogger, Specification pSpecification, CFA pCfa)
       throws InvalidConfigurationException {
-    collector = new LocationStatesCollector();
-    argStatistics = new ARGStatistics(pConfig, pLogger, pCpa, pSpecification, pCfa, collector);
-    cpa = pCpa;
-    cfa = pCfa;
+    correctnessWitness =
+        new LocationInvariantsToCorrectnessWitness(pConfig, pCfa, pSpecification, pLogger);
+    violationWitness = new CounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
+    violationWitnessOptions = new CEXExportOptions(pConfig);
     locations = new LocationStateFactory(pCfa, AnalysisDirection.FORWARD, pConfig);
-    reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
-  }
-
-  public ReachedSet createReachedSet() {
-    return reachedSetFactory.create(cpa);
+    logger = pLogger;
+    isC = pCfa.getMetadata().getInputLanguage() == Language.C;
+    if (!isC) {
+      pLogger.log(
+          Level.WARNING, "Cannot export witnesses in YAML format for languages other than C.");
+    }
   }
 
   /** Whether any YAML witness would be written at all. */
   public boolean isYamlWitnessExportEnabled() {
-    return argStatistics.isYamlWitnessExportEnabled();
+    return isCorrectnessWitnessEnabled() || isViolationWitnessEnabled();
   }
 
-  /** Write the YAML witnesses for the given result from the given prepared reached set. */
-  public void writeYamlWitnesses(Result pResult, UnmodifiableReachedSet pReached) {
-    argStatistics.writeYamlWitnesses(pResult, pReached);
+  private boolean isCorrectnessWitnessEnabled() {
+    return isC && correctnessWitness.isExportEnabled();
   }
 
-  /** Prepare an exhausted reached set containing only a root and the recorded invariant states. */
-  public void prepareCorrectnessWitness(
-      ReachedSet pReached,
-      Multimap<CFANode, ImmutableList<ExpressionTreeReportingState>> pInvariants) {
-    pReached.clear();
-    collector.states.clear();
-    pReached.add(
-        new ARGState(locations.getState(cfa.getMainFunction()), null),
-        SingletonPrecision.getInstance());
-    for (var entry : pInvariants.entries()) {
-      ARGState snapshot =
-          new ARGState(
-              new CompositeState(
-                  ImmutableList.<AbstractState>builder()
-                      .add(locations.getState(entry.getKey()))
-                      .addAll(entry.getValue())
-                      .build()),
-              null);
-      pReached.add(snapshot, SingletonPrecision.getInstance());
-      collector.states.put(entry.getKey(), snapshot);
+  private boolean isViolationWitnessEnabled() {
+    return isC && violationWitnessOptions.hasYamlWitnessExport();
+  }
+
+  /**
+   * Write the correctness witness for the given invariants.
+   *
+   * @param pInvariants the recorded states of each location; the disjunction of the states of a
+   *     location has to hold whenever the program is at that location
+   * @param pReached the reached set of the analysis, used only to report the likely quality of the
+   *     witness
+   */
+  public void writeCorrectnessWitness(
+      Multimap<CFANode, ImmutableList<ExpressionTreeReportingState>> pInvariants,
+      UnmodifiableReachedSet pReached) {
+    if (!isCorrectnessWitnessEnabled()) {
+      return;
     }
-    // Use add() to also populate indexes of partitioned reached sets, then mark them exhausted.
-    pReached.clearWaitlist();
+    try {
+      correctnessWitness.exportInvariants(pInvariants, pReached);
+    } catch (IOException | ReportingMethodNotImplementedException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not export the YAML correctness witness of the analysis.");
+    } catch (InterruptedException e) {
+      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+    }
   }
 
-  /** Prepare a target marker with its source location, without recovering any preceding path. */
-  public void prepareViolationWitness(
-      ReachedSet pReached, CFAEdge pEdge, DummyTargetState pTarget) {
-    pReached.clear();
-    collector.states.clear();
-    ARGState root = new ARGState(locations.getState(pEdge.getPredecessor()), null);
+  /**
+   * Write the violation witness for an execution that violates the specification while it takes the
+   * given edge. The witness holds this edge as the only step of the counterexample, because the
+   * analysis does not keep the execution that led there.
+   */
+  public void writeViolationWitness(CFAEdge pViolatingEdge, DummyTargetState pTarget) {
+    if (!isViolationWitnessEnabled()) {
+      return;
+    }
+    ARGState root = new ARGState(locations.getState(pViolatingEdge.getPredecessor()), null);
     ARGState target =
         new ARGState(
-            new CompositeState(ImmutableList.of(locations.getState(pEdge.getSuccessor()), pTarget)),
+            new CompositeState(
+                ImmutableList.of(locations.getState(pViolatingEdge.getSuccessor()), pTarget)),
             root);
-    target.addCounterexampleInformation(
+    CounterexampleInfo counterexample =
         CounterexampleInfo.feasibleImprecise(
-            new ARGPath(ImmutableList.of(root, target), ImmutableList.of(pEdge))));
-    pReached.add(root, SingletonPrecision.getInstance());
-    pReached.add(target, SingletonPrecision.getInstance());
-    pReached.clearWaitlist();
-  }
-
-  /** Collect from the location map, because the snapshots deliberately have no ARG edges. */
-  private static class LocationStatesCollector implements RelevantArgStatesCollector {
-
-    private final Multimap<CFANode, ARGState> states = LinkedHashMultimap.create();
-
-    @Override
-    public CollectedARGStates getRelevantStates(ARGState pRootState) {
-      ImmutableListMultimap.Builder<CFANode, ARGState> loops = ImmutableListMultimap.builder();
-      ImmutableListMultimap.Builder<CFANode, ARGState> calls = ImmutableListMultimap.builder();
-      ImmutableListMultimap.Builder<FunctionEntryNode, ARGState> entries =
-          ImmutableListMultimap.builder();
-      for (var entry : states.entries()) {
-        CFANode node = entry.getKey();
-        if (node.isLoopStart()) {
-          loops.put(node, entry.getValue());
-        }
-        if (node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof FunctionCallEdge) {
-          calls.put(node, entry.getValue());
-        }
-        if (node instanceof FunctionEntryNode functionEntry) {
-          // Function contracts are not part of every witness version and are not exported by
-          // default, so the entry is also reported as a location invariant at the function body.
-          calls.put(node, entry.getValue());
-          entries.put(functionEntry, entry.getValue());
-        }
-      }
-      return new CollectedARGStates(
-          loops.build(), calls.build(), entries.build(), ImmutableListMultimap.of());
+            new ARGPath(ImmutableList.of(root, target), ImmutableList.of(pViolatingEdge)));
+    try {
+      violationWitness.export(
+          counterexample,
+          violationWitnessOptions.getYamlWitnessPathTemplate(),
+          counterexample.getUniqueId());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not export the YAML violation witness of the analysis.");
     }
   }
 }

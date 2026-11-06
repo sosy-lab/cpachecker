@@ -29,10 +29,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -71,15 +69,11 @@ class InterpreterWitnessExporter implements Statistics {
   private @Nullable CFAEdge violatingEdge = null;
 
   InterpreterWitnessExporter(
-      Configuration pConfig,
-      CFA pCfa,
-      Specification pSpecification,
-      LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa)
+      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
-    exporter = new LocationWitnessExporter(pConfig, pLogger, pCpa, pSpecification, pCfa);
+    exporter = new LocationWitnessExporter(pConfig, pLogger, pSpecification, pCfa);
   }
 
   /** Whether {@link #observe} needs to be called at all. */
@@ -128,7 +122,6 @@ class InterpreterWitnessExporter implements Statistics {
     if (!exporter.isYamlWitnessExportEnabled()) {
       return;
     }
-    ReachedSet witnessReached = exporter.createReachedSet();
     switch (pResult) {
       case TRUE -> {
         if (!abandonedLocations.isEmpty()) {
@@ -140,7 +133,7 @@ class InterpreterWitnessExporter implements Statistics {
               maxAssignmentsPerLocation,
               "different assignments there.");
         }
-        exporter.prepareCorrectnessWitness(witnessReached, invariants);
+        exporter.writeCorrectnessWitness(invariants, pReached);
       }
       case FALSE -> {
         if (violatingEdge == null) {
@@ -149,14 +142,10 @@ class InterpreterWitnessExporter implements Statistics {
               "Cannot export a violation witness because the violated location is unknown.");
           return;
         }
-        exporter.prepareViolationWitness(
-            witnessReached, violatingEdge, DummyTargetState.withoutTargetInformation());
+        exporter.writeViolationWitness(violatingEdge, DummyTargetState.withoutTargetInformation());
       }
-      default -> {
-        return;
-      }
+      default -> {}
     }
-    exporter.writeYamlWitnesses(pResult, witnessReached);
   }
 
   @Override

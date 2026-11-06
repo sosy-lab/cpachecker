@@ -593,8 +593,7 @@ public class CoreComponentsFactory {
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useSimpleRules) {
       logger.log(Level.INFO, "Using the simple rules");
-      algorithm =
-          new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification, cpa);
+      algorithm = new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere

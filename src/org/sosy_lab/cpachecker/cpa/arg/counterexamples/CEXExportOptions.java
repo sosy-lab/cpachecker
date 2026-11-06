@@ -249,7 +249,7 @@ public final class CEXExportOptions {
     return exportWitness ? errorPathWitnessFile : null;
   }
 
-  @Nullable PathTemplate getYamlWitnessPathTemplate() {
+  public @Nullable PathTemplate getYamlWitnessPathTemplate() {
     if (!exportErrorPath) {
       return null;
     }

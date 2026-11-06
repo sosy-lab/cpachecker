@@ -86,7 +86,7 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
     pConfig.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
-    witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, logger, pCpa);
+    witnessExporter = new InterpreterWitnessExporter(pConfig, pCfa, pSpecification, logger);
     sampler =
         sampleNondeterministicValues ? new InterpreterSampler(pConfig, pCfa, logger, stats) : null;
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);

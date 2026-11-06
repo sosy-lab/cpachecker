@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.simplerules;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -31,7 +30,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -108,8 +106,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      Specification pSpecification,
-      ConfigurableProgramAnalysis pCpa)
+      Specification pSpecification)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     checkRuleNames();
@@ -122,7 +119,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
         pSpecification.getProperties().stream()
             .filter(Property::isVerification)
             .collect(toImmutableSet());
-    witnessExporter = new SimpleRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa);
+    witnessExporter = new SimpleRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger);
   }
 
   @Override
@@ -238,7 +235,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.logf(
         Level.INFO, "Simple rule %s: %s", pViolation.rule().name(), pViolation.verdict().reason());
-    witnessExporter.prepareViolationWitness(
+    witnessExporter.recordViolation(
         pReachedSet,
         pViolation.verdict().violatingEdgeOrThrow(),
         DummyTargetState.withSimpleTargetInformation(targetDescription(pViolation)));
@@ -253,8 +250,7 @@ public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
           entry.getValue().name(),
           SimpleRules.nameOf(entry.getKey()));
     }
-    // No rule reasons about the state of the program, so there is no invariant to offer.
-    witnessExporter.prepareCorrectnessWitness(pReachedSet, ImmutableListMultimap.of());
+    witnessExporter.recordProof(pReachedSet);
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
