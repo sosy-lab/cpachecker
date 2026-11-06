@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_founde
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.NestedLoopSummarizer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -133,7 +132,6 @@ public class TerminationWitnessValidator implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
-  private final Specification specification;
   private final NestedLoopSummarizer nestedLoopSummarizer;
   // The scope of the program, which is created in run()
   private CProgramScope programScope;
@@ -156,8 +154,7 @@ public class TerminationWitnessValidator implements Algorithm {
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final ImmutableSet<Path> pWitnessPath,
-      final Specification pSpecification)
+      final ImmutableSet<Path> pWitnessPath)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
@@ -168,7 +165,6 @@ public class TerminationWitnessValidator implements Algorithm {
       throw new InvalidConfigurationException(
           "The validation of termination witnesses does not support other language than C.");
     }
-    specification = pSpecification;
 
     @SuppressWarnings("resource")
     PredicateCPA predCpa =
@@ -351,16 +347,21 @@ public class TerminationWitnessValidator implements Algorithm {
    * that CPAchecker renamed, e.g., to i__1, and the __PREV variables of the loop.
    */
   private void useScopeOfLoop(
-      Loop pLoop, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+      Loop pLoop, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      throws CPAException {
     CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
     loopScope =
         TerminationArgumentsToWitnessUtils.getScopeAtNode(
                 programScope, loopHead, cfa.getAstCfaRelation())
             .withAdditionalDeclarations(pMapPrevToCurrVars.keySet());
     if (checkWithInfiniteSpace) {
-      wellFoundednessChecker =
-          new ImplicitRankingChecker(
-              fmgr, bfmgr, logger, config, shutdownNotifier, specification, loopScope, cfa);
+      try {
+        wellFoundednessChecker =
+            new ImplicitRankingChecker(
+                fmgr, bfmgr, logger, config, shutdownNotifier, loopScope, cfa);
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Invalid configuration of the well-foundedness check", e);
+      }
     } else {
       wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, loopScope);
     }

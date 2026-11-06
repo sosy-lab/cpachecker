@@ -472,6 +472,10 @@ analysis.algorithm.MPOR.validateProgramCounters = true
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
+# use the ordering-consistency algorithm for concurrent programs, works only
+# with the OrderingConsistencyCPA
+analysis.algorithm.OrderingConsistency = false
+
 # use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -798,7 +802,7 @@ analysis.traversal.useLoopstack = false
 analysis.traversal.useNumberOfHeapObjects = false
 
 # handle abstract states with fewer running threads first? (needs
-# ThreadingCPA)
+# AbstractStateWithThreads)
 analysis.traversal.useNumberOfThreads = false
 
 # Use an implementation of postorder strategy that allows to select a
@@ -2127,6 +2131,32 @@ cpa.composite.inCPAEnabledAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
+# Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore
+# certain variables during dependency calculation if there is no information
+# about them in the precision (e.g., no predicates referring to them).
+cpa.concurrent.abstractionAware = false
+
+# Aggregate basic blocks to MultiEdges. Similar to basic block aggregation
+# inthe CompositeCPA transfer relation, but only one global statement (i.e.,
+# astatement that accesses a global variable or uses heap memory) is included
+# in aMultiEdge, so that all concurrent thread interleavings are explored.
+cpa.concurrent.aggregateBasicBlocks = false
+
+# Merge operator: SEP never merges states; JOIN delegates to the wrapped
+# merge operator when thread states are compatible.
+cpa.concurrent.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR
+cpa.concurrent.partialOrderReductionAlgorithm = "SPOR"
+
+# Seed for the pseudo-random shuffling of the enabled threads in the
+# source-set heuristic. A single random-number generator is shared by
+# reference across all states of one analysis run, so successive shuffles
+# draw fresh values instead of every state restarting the same sequence; the
+# seed is fixed only to keep runs reproducible.
+cpa.concurrent.randomSeed = 0
+
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
@@ -2574,6 +2604,9 @@ cpa.monitor.pathcomputationlimit = 0
 # keep tracking nondeterministically-assigned variables even if they are used
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
+
+# calls to these functions are the reachability targets
+cpa.oc.errorFunctions = {"reach_error"}
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -5263,6 +5296,45 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
+# write every collected memory event before solving (debugging aid)
+oc.dumpEvents = false
+
+# write the enabled events and read-from choices of a found violation model
+oc.dumpViolationModel = false
+
+# how the ordering constraints are decided
+oc.encoding = CLOCKS
+  enum:     [REFINEMENT, CLOCKS]
+
+# file for the collected memory-event dump
+oc.eventsDumpFile = "OrderingConsistency-events.txt"
+
+# file for the violation execution graph (DOT/graphviz)
+oc.executionGraphFile = "executionGraph.dot"
+
+# export the found violation as an execution graph in DOT/graphviz format
+oc.exportExecutionGraph = true
+
+# export the found violation as a sequentialized counterexample: the enabled
+# events in a consistent execution order, with their CFA edges
+oc.exportSequentializedCounterexample = true
+
+# give up when the loop bound exceeds this value; a negative value deepens
+# without bound
+oc.finalLoopBound = -1
+
+# loop bound of the first exploration round
+oc.initialLoopBound = 5
+
+# loop bound increase between iterative-deepening rounds
+oc.loopBoundStep = 5
+
+# file for the sequentialized counterexample trace
+oc.sequentializedCounterexampleFile = "Counterexample.oc.txt"
+
+# file for the violation-model dump
+oc.violationModelFile = "OrderingConsistency-model.txt"
+
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false
 
@@ -5891,8 +5963,10 @@ termination.config = no default value
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
 
-# export supporting invariants in the witness
-termination.exportSupportingInvariantsInWitness = false
+# Export supporting invariants in the witness. Only the supporting invariants
+# that are proven to be invariants of the program are exported, see
+# termination.supportingInvariantsCheckConfig.
+termination.exportSupportingInvariantsInWitness = true
 
 # Consider variables with unsigned types in ranking function synthesis.This
 # can lead to unsound results as LassoRanker assumes infinite domain for
@@ -5950,6 +6024,11 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
 
+# configuration of the analysis that checks whether the supporting invariants
+# are invariants of the program before they are exported into the witness.
+# Without it, no supporting invariants are exported.
+termination.supportingInvariantsCheckConfig = no default value
+
 # consider counterexamples for loops for which only pointer variables are
 # relevant or which check that pointer is unequal to null pointer to be
 # imprecise
@@ -5970,6 +6049,11 @@ termination.validation.maxInductionDepth = -1
 # configuration of the analysis that checks whether the supporting invariants
 # of the witness are invariants of the program
 termination.validation.supportingInvariantsConfig = no default value
+
+# configuration of the termination analysis that proves the well-foundedness
+# of the transition invariants by proving the termination of an
+# overapproximating program
+termination.validation.wellFoundednessConfig = no default value
 
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"

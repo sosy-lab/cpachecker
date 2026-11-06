@@ -432,8 +432,15 @@ class AutomatonTransition {
               if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
                 AExpression functionNameExpression =
                     functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
+                // a per-thread clone of the CFA renames the called function, but keeps its
+                // original name in the declaration
                 if (functionNameExpression instanceof AIdExpression aIdExpression
-                    && aIdExpression.getName().equals(functionName)) {
+                    && (aIdExpression.getName().equals(functionName)
+                        || (aIdExpression.getDeclaration() != null
+                            && aIdExpression
+                                .getDeclaration()
+                                .getOrigName()
+                                .equals(functionName)))) {
                   return (CExpression) functionCallAssignment.getLeftHandSide();
                 }
               }

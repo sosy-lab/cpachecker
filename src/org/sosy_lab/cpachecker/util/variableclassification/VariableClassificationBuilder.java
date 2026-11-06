@@ -72,6 +72,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CReferencedFunctionsCollector;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -405,20 +407,48 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   private void collectVars(CFA cfa) throws UnrecognizedCodeException {
     Collection<CFANode> nodes = cfa.nodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
+    CReferencedFunctionsCollector referencedFunctions = new CReferencedFunctionsCollector();
     for (CFANode node : nodes) {
       for (CFAEdge edge : node.getLeavingEdges()) {
         handleEdge(edge, cfa);
+        referencedFunctions.visitEdge(edge);
         varFieldDependencies =
             varFieldDependencies.withDependencies(
                 VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
+    varFieldDependencies =
+        withResultsOfReferencedFunctions(
+            cfa, referencedFunctions.getCollectedFunctions(), varFieldDependencies);
     addressedVariables = varFieldDependencies.computeAddressedVariables();
     addressedFields = varFieldDependencies.computeAddressedFields();
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
         varFieldDependencies.computeRelevantVariablesAndFields();
     relevantVariables = relevant.getFirst();
     relevantFields = relevant.getSecond();
+  }
+
+  /**
+   * Makes the results of the functions whose address is taken relevant: such a function can run
+   * without a call edge, e.g., as a thread, and the code that runs it can read its result.
+   */
+  private static VarFieldDependencies withResultsOfReferencedFunctions(
+      CFA cfa, Set<String> pReferencedFunctions, VarFieldDependencies pDependencies) {
+    VarFieldDependencies result = pDependencies;
+    for (FunctionEntryNode entry : cfa.entryNodes()) {
+      String function = entry.getFunctionName();
+      if (entry.getReturnVariable().isPresent()
+          // a clone runs the code of the function that the reference names
+          && (pReferencedFunctions.contains(function)
+              || pReferencedFunctions.contains(CFACloner.extractFunctionName(function)))) {
+        result =
+            result.withDependency(
+                VariableOrField.unknown(),
+                VariableOrField.newVariable(
+                    entry.getReturnVariable().orElseThrow().getQualifiedName()));
+      }
+    }
+    return result;
   }
 
   /**

@@ -155,6 +155,7 @@ public class ConfigurationFileChecks {
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
           "invariantGeneration.kInduction.terminateOnCounterexample",
+          "termination.validation.wellFoundednessConfig",
           "counterexample.export.allowImpreciseCounterexamples", // refactor BMCAlgorithm for this
           // irrelevant if other solver is used
           "solver.z3.requireProofs",
@@ -559,7 +560,13 @@ public class ConfigurationFileChecks {
               Path.of("sequentializeProgram.properties"),
               Path.of("sequentialization-concurrency--memorysafety.properties"),
               Path.of("sequentialization-concurrency--overflow.properties"),
-              Path.of("sequentialization-concurrency.properties"));
+              Path.of("sequentialization-concurrency.properties"),
+              // interpret the property itself, so they reject the default specification
+              Path.of("orderingConsistency.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency-z3-nla.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency.properties"),
+              Path.of("svcomp27--concurrency.properties"),
+              Path.of("svcomp27--datarace.properties"));
     }
 
     CPAcheckerResult result;

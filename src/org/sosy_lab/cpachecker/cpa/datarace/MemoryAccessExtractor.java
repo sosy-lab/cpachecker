@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getJoinResultTarget;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -172,6 +174,8 @@ public class MemoryAccessExtractor {
             for (AExpression expression : functionCallExpression.getParameterExpressions()) {
               readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
             }
+            addJoinResult(
+                functionCallExpression, statementEdge, writeLocationBuilder, readLocationBuilder);
           }
           case AFunctionCallStatement functionCallStatement -> {
             String functionName = getFunctionName(functionCallStatement);
@@ -183,6 +187,11 @@ public class MemoryAccessExtractor {
                 functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
               readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
             }
+            addJoinResult(
+                functionCallStatement.getFunctionCallExpression(),
+                statementEdge,
+                writeLocationBuilder,
+                readLocationBuilder);
           }
           default -> {}
         }
@@ -306,6 +315,15 @@ public class MemoryAccessExtractor {
       pWrites.add(visitor.getMemoryLocation(leftHandSide));
       pReads.addAll(visitor.getAddressReads(leftHandSide));
     }
+  }
+
+  /** pthread_join(t, p) writes the result of thread t to *p. */
+  private void addJoinResult(
+      AFunctionCallExpression pCall,
+      CFAEdge pEdge,
+      Set<OverapproximatingMemoryLocation> pWrites,
+      Set<OverapproximatingMemoryLocation> pReads) {
+    getJoinResultTarget(pCall).ifPresent(target -> addLeftHandSide(target, pEdge, pWrites, pReads));
   }
 
   private MemoryLocationExtractingVisitor newVisitor(CFAEdge pEdge) {

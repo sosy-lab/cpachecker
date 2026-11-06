@@ -46,12 +46,12 @@ enum HandledFunction {
   NONDET_INPUT(Context.ANY),
 
   /**
-   * A call of one of the builtin overflow functions, evaluated by {@link
-   * AbstractExpressionValueVisitor}. A call that stores its result through a pointer is handled
-   * only as an assignment, so {@link ValueAnalysisTransferRelation} checks the other calls against
-   * the unsupported functions.
+   * A call of one of the builtin overflow functions. {@link ValueAnalysisTransferRelation} stores
+   * the result of such a call through its pointer argument and assigns the overflow flag, and
+   * {@link AbstractExpressionValueVisitor} evaluates the flag where the call appears inside an
+   * expression.
    */
-  BUILTIN_OVERFLOW(Context.ASSIGNMENT),
+  BUILTIN_OVERFLOW(Context.ANY),
 
   /**
    * A call of one of the popcount functions, evaluated by {@link AbstractExpressionValueVisitor}.
