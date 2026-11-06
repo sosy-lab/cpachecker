@@ -71,6 +71,8 @@ public class CPAcheckerIntegrationTest {
       "test/programs/sv-lib/loop-simple-unsafe.svlib";
   private static final String UNSAFE_PROGRAM_TWO_CALLS_SvLib =
       "test/programs/sv-lib/witnesses/two-calls-unassigned-output-unsafe.svlib";
+  private static final String UNSAFE_NESTED_ARRAY_PROGRAM_SvLib =
+      "test/programs/sv-lib/arrays/nested-array-unsafe.svlib";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -180,6 +182,19 @@ public class CPAcheckerIntegrationTest {
         getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib)
             .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+  }
+
+  @Test
+  public void testRunForUnsafeSvLibProgramWithNestedArray() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib)
+            .build();
+    IntegrationTestResult result =
+        IntegrationTestRunner.run(config, UNSAFE_NESTED_ARRAY_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
 
