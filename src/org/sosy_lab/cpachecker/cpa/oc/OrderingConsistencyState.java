@@ -54,6 +54,8 @@ public final class OrderingConsistencyState
       SimpleTargetInformation.singleton("unreach-call: error function called");
   private static final ImmutableSet<TargetInformation> RACE_TARGET_INFORMATION =
       SimpleTargetInformation.singleton("no-data-race: data race");
+  private static final ImmutableSet<TargetInformation> OVERFLOW_TARGET_INFORMATION =
+      SimpleTargetInformation.singleton("no-overflow: integer overflow");
 
   private final int instanceId;
   private final LocationState locationState;
@@ -78,6 +80,9 @@ public final class OrderingConsistencyState
   // set after the fact when this state carries a racing access of a found no-data-race violation;
   // makes the state a target so the verdict is FALSE, mirroring the exploration-time error target
   private boolean raceTarget = false;
+
+  // the target is an overflow instead of an error-function call
+  private boolean overflowTarget = false;
 
   OrderingConsistencyState(
       int pInstanceId,
@@ -204,13 +209,24 @@ public final class OrderingConsistencyState
     raceTarget = true;
   }
 
+  void markOverflowTarget() {
+    overflowTarget = true;
+  }
+
+  boolean isOverflowTarget() {
+    return overflowTarget;
+  }
+
   public void clearTarget() {
     target = false;
   }
 
   @Override
   public ImmutableSet<TargetInformation> getTargetInformation() {
-    return raceTarget ? RACE_TARGET_INFORMATION : TARGET_INFORMATION;
+    if (raceTarget) {
+      return RACE_TARGET_INFORMATION;
+    }
+    return overflowTarget ? OVERFLOW_TARGET_INFORMATION : TARGET_INFORMATION;
   }
 
   @Override

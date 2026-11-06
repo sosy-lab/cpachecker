@@ -123,6 +123,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     UNREACH_CALL,
     /** Two conflicting concurrent accesses (SV-COMP no-data-race). Requires the CLOCKS encoding. */
     DATA_RACE,
+    /**
+     * An overflow of a signed integer operation (SV-COMP no-overflow). The exploration adds an
+     * error event for every operation that can overflow, so this is checked like unreach-call.
+     */
+    NO_OVERFLOW,
   }
 
   private final TargetProperty targetProperty;
@@ -220,8 +225,8 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
                 () ->
                     new InvalidConfigurationException(
                         "the ordering-consistency analysis cannot interpret the given"
-                            + " specification; it needs a property file stating unreach-call or"
-                            + " no-data-race"));
+                            + " specification; it needs a property file stating unreach-call,"
+                            + " no-data-race, or no-overflow"));
     if (targetProperty == TargetProperty.DATA_RACE && encoding != EncodingMode.CLOCKS) {
       throw new InvalidConfigurationException(
           "the ordering-consistency data-race check needs the CLOCKS encoding (set"
@@ -241,9 +246,9 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * Maps the properties of the {@code --spec} specification to the built-in target the analysis can
    * decide. The ordering-consistency analysis does not use specification automata; it interprets
    * the property itself. An empty specification (no {@code --spec}) yields an empty result.
-   * Properties the analysis cannot decide (overflow, memory safety/cleanup, deadlock, termination)
-   * are rejected rather than silently mis-verified, since an unsound "safe" verdict would be worse
-   * than an error.
+   * Properties the analysis cannot decide (memory safety/cleanup, deadlock, termination) are
+   * rejected rather than silently mis-verified, since an unsound "safe" verdict would be worse than
+   * an error.
    *
    * <p>The target must therefore come from a {@code .prp} property file: {@link
    * Specification#getProperties()} reports only those. Any other specification file (an automaton
@@ -258,7 +263,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
             "the ordering-consistency analysis does not support specification automata or"
                 + " witnesses, but got "
                 + specFile
-                + "; it needs a property file stating unreach-call or no-data-race");
+                + "; it needs a property file stating unreach-call, no-data-race, or no-overflow");
       }
     }
     EnumSet<TargetProperty> targets = EnumSet.noneOf(TargetProperty.class);
@@ -268,11 +273,12 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
           case REACHABILITY, REACHABILITY_ERROR, REACHABILITY_LABEL ->
               targets.add(TargetProperty.UNREACH_CALL);
           case DATA_RACE -> targets.add(TargetProperty.DATA_RACE);
+          case OVERFLOW -> targets.add(TargetProperty.NO_OVERFLOW);
           default ->
               throw new InvalidConfigurationException(
                   "the ordering-consistency analysis does not support the property '"
                       + common
-                      + "'; supported: unreach-call, no-data-race");
+                      + "'; supported: unreach-call, no-data-race, no-overflow");
         }
       } else {
         throw new InvalidConfigurationException(
@@ -397,7 +403,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     // and without a truncated path the round is trivially safe
     boolean hasCandidates =
         switch (targetProperty) {
-          case UNREACH_CALL ->
+          case UNREACH_CALL, NO_OVERFLOW ->
               registry.getEvents().stream().anyMatch(e -> e.kind() == EventKind.ERROR);
           case DATA_RACE -> !encoder.getRacePairs().isEmpty();
         };
@@ -406,7 +412,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
     BooleanFormula violationConstraint =
         switch (targetProperty) {
-          case UNREACH_CALL -> encoder.getErrorConstraint();
+          case UNREACH_CALL, NO_OVERFLOW -> encoder.getErrorConstraint();
           case DATA_RACE -> encoder.getDataRaceConstraint();
         };
 
@@ -764,7 +770,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    */
   MemoryEvent terminalViolationEvent(Model pModel, OcEncoder pEncoder) {
     return switch (targetProperty) {
-      case UNREACH_CALL -> {
+      case UNREACH_CALL, NO_OVERFLOW -> {
         MemoryEvent errorEvent = null;
         for (MemoryEvent event : pEncoder.getEvents()) {
           if (event.kind() == EventKind.ERROR

@@ -93,6 +93,17 @@ final class OrderingConsistencyCounterexampleExtractor {
         if (earlierAccess != null && event.id() == earlierAccess.id()) {
           earlierAccessPassed = true;
         }
+        if (event.id() == terminalEvent.id()
+            && endsAtOwnEdge(pAlgorithm, event, chainToEdgeIndex)) {
+          // the overflow happens when its edge executes: the path ends there
+          int end = chainToEdgeIndex.get(parentChain(pAlgorithm, event)) + 1;
+          edges.subList(end, edges.size()).clear();
+          edgeInstances.subList(end, edgeInstances.size()).clear();
+          edgeCreatedInstances.subList(end, edgeCreatedInstances.size()).clear();
+          edgeAssumptions.subList(end, edgeAssumptions.size()).clear();
+          edges.set(end - 1, event.edge());
+          break;
+        }
         if (event.edge() != null) {
           CFAEdge edge = pAlgorithm.displayEdge(event, model);
           // collapse events of one execution of an edge, which other threads' events may separate:
@@ -233,6 +244,28 @@ final class OrderingConsistencyCounterexampleExtractor {
         }
       }
     }
+  }
+
+  /**
+   * Whether the error event of an overflow follows the accesses of its own edge, which are already
+   * on the path.
+   */
+  private static boolean endsAtOwnEdge(
+      OrderingConsistencyAlgorithm pAlgorithm,
+      MemoryEvent pEvent,
+      Map<Integer, Integer> pChainToEdgeIndex) {
+    if (pEvent.kind() != EventKind.ERROR
+        || pEvent.edge() == null
+        || pEvent.poParentId() == MemoryEvent.NO_EVENT) {
+      return false;
+    }
+    MemoryEvent parent = pAlgorithm.getOcCpa().getRegistry().getEvent(pEvent.poParentId());
+    return parent.edge() == pEvent.edge()
+        && pChainToEdgeIndex.containsKey(parentChain(pAlgorithm, pEvent));
+  }
+
+  private static int parentChain(OrderingConsistencyAlgorithm pAlgorithm, MemoryEvent pEvent) {
+    return pAlgorithm.getOcCpa().getRegistry().chainTerminalEventId(pEvent.poParentId());
   }
 
   /** The unique root of a thread instance's exploration DAG, if it has one. */
