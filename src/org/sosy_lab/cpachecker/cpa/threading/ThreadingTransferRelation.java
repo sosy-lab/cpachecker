@@ -118,8 +118,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   @Option(
       description =
           "the maximal number of parallel threads, -1 for infinite. When combined with"
-              + " 'useClonedFunctions=true', we need at least N cloned functions. The option"
-              + " 'cfa.cfaCloner.numberOfCopies' should be set to N.",
+              + " 'useClonedFunctions=true', each created thread gets new cloned functions, thus"
+              + " 'cfa.cfaCloner.numberOfCopies' limits the number of created threads.",
       secure = true)
   private int maxNumberOfThreads = 5;
 
