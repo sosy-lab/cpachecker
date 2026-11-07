@@ -635,7 +635,7 @@ class PointerTargetSetManager {
     } else {
       for (Formula oldAddress : pHighestAllocatedAddresses) {
         pConstraints.addConstraint(
-            formulaManager.makeGreaterThan(newBaseFormula, oldAddress, true));
+            formulaManager.makeGreaterThan(newBaseFormula, oldAddress, false));
       }
     }
     // this should probably only be given if
@@ -679,10 +679,9 @@ class PointerTargetSetManager {
     // There are also cases where both sizes are given but different, for example in cases like
     // "int* p = malloc(i);", where pType is "int" and pAllocationSize contains "i".
     // But if both are the same, we can optimize one away.
-    // We also need to ensure that the highest allocated address (both variants) is greater than
-    // zero to prevent overflows with bitvector arithmetic.
+    // Addresses are unsigned, and a block must not wrap around the address space.
 
-    pConstraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+    pConstraints.addConstraint(makeNoWrapAround(newBaseFormula, newBasePlusTypeSize));
     pConstraints.addConstraint(
         formulaManager.makeDomainRangeConstraint(newBasePlusTypeSize, false));
     PersistentList<Formula> highestAllocatedAddresses =
@@ -690,7 +689,11 @@ class PointerTargetSetManager {
 
     if (pAllocationSize != null && !pAllocationSize.equals(typeSizeF)) {
       Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, pAllocationSize);
-      pConstraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+      // A dynamic allocation may fail, so DynamicMemoryHandler constrains only its success.
+      pConstraints.addConstraint(
+          pIsDynamicAllocation
+              ? makeGreaterZero(basePlusAllocationSize)
+              : makeNoWrapAround(newBaseFormula, basePlusAllocationSize));
       pConstraints.addConstraint(
           formulaManager.makeDomainRangeConstraint(basePlusAllocationSize, false));
 
@@ -702,7 +705,11 @@ class PointerTargetSetManager {
 
   private BooleanFormula makeGreaterZero(Formula f) {
     return formulaManager.makeGreaterThan(
-        f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
+        f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), false);
+  }
+
+  private BooleanFormula makeNoWrapAround(Formula base, Formula end) {
+    return formulaManager.makeGreaterOrEqual(end, base, false);
   }
 
   /**

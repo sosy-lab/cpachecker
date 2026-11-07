@@ -170,18 +170,17 @@ public final class DynamicMemoryHandler {
             ? conv.options.getSuccessfulZallocFunctionName()
             : conv.options.getSuccessfulAllocFunctionName();
 
-    Formula successfulAllocation =
-        handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e);
-
     if (conv.options.memoryAllocationFunctionSucceeds(functionName)) {
-      return successfulAllocation;
+      return handleSuccessfulMemoryAllocation(
+          delegateFunctionName, allocationSize, e, conv.bfmgr.makeTrue());
 
     } else {
       final Formula nondet =
           conv.makeFreshVariable(functionName, CPointerType.POINTER_TO_VOID, ssa);
+      final BooleanFormula succeeds = conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer));
       return conv.bfmgr.ifThenElse(
-          conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
-          successfulAllocation,
+          succeeds,
+          handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e, succeeds),
           conv.nullPointer);
     }
   }
@@ -193,12 +192,16 @@ public final class DynamicMemoryHandler {
    * @param functionName The name of the memory allocation function.
    * @param parameter The one parameter with the allocation size.
    * @param e The function call expression.
+   * @param succeeds The condition under which the allocation succeeds.
    * @return A formula for the function call.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   private Formula handleSuccessfulMemoryAllocation(
-      final String functionName, final CExpression parameter, final CFunctionCallExpression e)
+      final String functionName,
+      final CExpression parameter,
+      final CFunctionCallExpression e,
+      final BooleanFormula succeeds)
       throws UnrecognizedCodeException, InterruptedException {
     // e.getFunctionNameExpression() should not be used
     // as it might refer to another function if this method is called from handleMemoryAllocation()
@@ -278,8 +281,14 @@ public final class DynamicMemoryHandler {
       address = conv.makeConstant(newBase.formulaEncoding(), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
           conv.fmgr.makeGreaterThan(
-              address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), true));
+              address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), false));
     }
+
+    // A block that wraps around the address space would overlap other blocks.
+    constraints.addConstraint(
+        conv.bfmgr.implication(
+            succeeds,
+            conv.fmgr.makeGreaterOrEqual(conv.fmgr.makePlus(address, sizeExp), address, false)));
 
     if (errorConditions.isEnabled()) {
       // Constraint is only necessary for correct error conditions
