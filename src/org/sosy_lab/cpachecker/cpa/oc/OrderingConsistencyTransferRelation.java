@@ -25,6 +25,8 @@ import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -53,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -117,6 +120,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final MachineModel machineModel;
+  // folds constants that remain in the CFA without cfa.simplifyConstExpressions, e.g. enumerators
+  private final ExpressionSimplificationVisitor constantFolder;
 
   /**
    * The program's {@code __thread} variables, scanned once: every spawned instance's private copy
@@ -135,6 +140,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     fmgr = pCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     machineModel = pCpa.getCfa().getMachineModel();
+    constantFolder =
+        new ExpressionSimplificationVisitor(
+            machineModel, new LogManagerWithoutDuplicates(LogManager.createNullLogManager()));
     threadLocalGlobals = ThreadFunctions.threadLocalGlobals(pCpa.getCfa());
   }
 
@@ -254,6 +262,13 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       List<AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
     Optional<String> callee = getFunctionCallName(pEdge);
+    if (callee.isPresent()
+        && isModeledCall(callee.orElseThrow())
+        && cpa.getOverflowAssumptionBuilder().isPresent()
+        && !overflowAssumptions(pEdge).isEmpty()) {
+      throw new UnsupportedCodeException(
+          "overflow check of the arguments of " + callee.orElseThrow(), pEdge);
+    }
     if (callee.isPresent() && cpa.getErrorFunctions().contains(callee.orElseThrow())) {
       handleError(pState, pEdge, pSuccessors);
       return;
@@ -326,6 +341,19 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
           callee.orElseThrow() + " is not modeled by the ordering-consistency analysis", pEdge);
     }
     handleRegularEdge(pState, pPrecision, pEdge, pSuccessors);
+  }
+
+  /** Whether a call of this function is modeled by an event instead of the regular edge. */
+  private static boolean isModeledCall(String pFunction) {
+    return PROGRAM_EXIT_FUNCTIONS.contains(pFunction)
+        || ThreadFunctions.isThreadExitFunction(pFunction)
+        || ThreadFunctions.isCreateFunction(pFunction)
+        || ThreadFunctions.isJoinFunction(pFunction)
+        || MutexFunctions.isLockFunction(pFunction)
+        || MutexFunctions.isUnlockFunction(pFunction)
+        || MutexFunctions.isTrylockFunction(pFunction)
+        || MutexFunctions.isInitFunction(pFunction)
+        || MutexFunctions.isDestroyFunction(pFunction);
   }
 
   /** Whether the call on this edge takes the address of a global variable as an argument. */
@@ -761,7 +789,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
    * A path formula and the chained READ/WRITE events produced by cloning one (possibly synthetic)
    * CFA edge; see {@link #cloneAndChain}.
    */
-  private record ChainedEdge(PathFormula edgeFormula, ImmutableList<Integer> lastEventIds) {}
+  private record ChainedEdge(
+      PathFormula edgeFormula, ImmutableList<Integer> lastEventIds, CFAEdge rewrittenEdge) {}
 
   private ChainedEdge cloneAndChain(OrderingConsistencyState pState, CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
@@ -779,9 +808,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       OrderingConsistencyState pState, CollectingRenamer pRenamer, CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
     PathFormula edgeFormula;
+    CFAEdge rewritten;
     try {
       CFAEdge edgeToClone = BuiltinIoFunctions.rewriteFscanfCall(pEdge);
-      CFAEdge rewritten =
+      rewritten =
           ConcurrentEdgeCloner.cloneSingleEdge(
               edgeToClone, new ThreadId(pState.getInstanceId()), pRenamer);
       edgeFormula =
@@ -796,15 +826,82 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     // instances because every instance explores from an empty SSA context; prefix them with the
     // instance id, otherwise e.g. two threads' mallocs are forced to return the same pointer,
     // which contradicts heap-base distinctness and makes the whole violation query unsatisfiable.
-    formula =
-        fmgr.renameFreeVariablesAndUFs(
-            formula,
-            name -> name.indexOf('!') >= 0 ? "T" + pState.getInstanceId() + "_" + name : name);
+    formula = prefixFreshSymbols(formula, pState.getInstanceId());
     if (!bfmgr.isTrue(formula)) {
       registry.addPathConstraint(bfmgr.implication(pState.getGuard(), formula));
     }
     ImmutableList<Integer> lastEventIds = chainAccessEvents(pState, pRenamer, edgeFormula, pEdge);
-    return new ChainedEdge(edgeFormula, lastEventIds);
+    return new ChainedEdge(edgeFormula, lastEventIds, rewritten);
+  }
+
+  private BooleanFormula prefixFreshSymbols(BooleanFormula pFormula, int pInstanceId) {
+    return fmgr.renameFreeVariablesAndUFs(
+        pFormula, name -> name.indexOf('!') >= 0 ? "T" + pInstanceId + "_" + name : name);
+  }
+
+  /**
+   * The condition under which an arithmetic operation of the rewritten edge overflows, in the
+   * context before the edge; false if the property is not no-overflow. The rewritten edge reads the
+   * same symbols as the edge's READ events, so the check uses the values the edge reads.
+   */
+  private BooleanFormula overflowCondition(OrderingConsistencyState pState, CFAEdge pRewrittenEdge)
+      throws CPATransferException, InterruptedException {
+    if (cpa.getOverflowAssumptionBuilder().isEmpty()) {
+      return bfmgr.makeFalse();
+    }
+    List<CExpression> assumptions = overflowAssumptions(pRewrittenEdge);
+    if (assumptions.isEmpty()) {
+      return bfmgr.makeFalse();
+    }
+    PathFormula context =
+        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula());
+    List<BooleanFormula> noOverflow = new ArrayList<>();
+    for (CExpression assumption : assumptions) {
+      CAssumeEdge assumeEdge =
+          new CAssumeEdge(
+              "",
+              FileLocation.DUMMY,
+              pRewrittenEdge.getPredecessor(),
+              pRewrittenEdge.getSuccessor(),
+              assumption,
+              true);
+      noOverflow.add(pathFormulaManager.makeAnd(context, assumeEdge).getFormula());
+    }
+    return prefixFreshSymbols(bfmgr.not(bfmgr.and(noOverflow)), pState.getInstanceId());
+  }
+
+  /** The no-overflow assumptions of the edge, without those that are constantly true. */
+  private List<CExpression> overflowAssumptions(CFAEdge pEdge) throws CPATransferException {
+    List<CExpression> assumptions = new ArrayList<>();
+    for (CExpression assumption :
+        cpa.getOverflowAssumptionBuilder().orElseThrow().assumptionsForEdge(pEdge)) {
+      if (!(assumption instanceof CIntegerLiteralExpression literal
+          && literal.getValue().signum() != 0)) {
+        assumptions.add(assumption);
+      }
+    }
+    return assumptions;
+  }
+
+  /**
+   * Adds the overflow of an edge as an error branch after the edge's events and returns the guard
+   * of the paths without overflow.
+   */
+  private BooleanFormula branchOnOverflow(
+      OrderingConsistencyState pState,
+      CFAEdge pEdge,
+      BooleanFormula pOverflow,
+      ImmutableList<Integer> pLastEventIds,
+      List<AbstractState> pSuccessors) {
+    if (bfmgr.isFalse(pOverflow)) {
+      return pState.getGuard();
+    }
+    handleError(
+        withGuardAndEvents(pState, bfmgr.and(pState.getGuard(), pOverflow), pLastEventIds),
+        pEdge,
+        pSuccessors);
+    ((OrderingConsistencyState) pSuccessors.getLast()).markOverflowTarget();
+    return bfmgr.and(pState.getGuard(), bfmgr.not(pOverflow));
   }
 
   /**
@@ -1087,6 +1184,13 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     PathFormula edgeFormula = chained.edgeFormula();
     ImmutableList<Integer> lastEventIds =
         handleMallocIfAny(pState, pEdge, renamer, edgeFormula, chained.lastEventIds());
+    BooleanFormula guard =
+        branchOnOverflow(
+            pState,
+            pEdge,
+            overflowCondition(pState, chained.rewrittenEdge()),
+            lastEventIds,
+            pSuccessors);
 
     addSuccessor(
         pSuccessors,
@@ -1094,7 +1198,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pEdge.getSuccessor(),
         nextCallstack,
         edgeFormula,
-        pState.getGuard(),
+        guard,
         lastEventIds,
         pState.getCreateCounts(),
         pState.getLiveInstanceIds(),
@@ -1143,6 +1247,14 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         firstReadId,
         registry.nextEventId(),
         new OcExplorationRegistry.AssumeBranch(firstFormula.getFormula(), pFirst, pSecond));
+    // both edges have the same condition, so one check covers the pair
+    BooleanFormula guard =
+        branchOnOverflow(
+            pState,
+            pFirst,
+            overflowCondition(pState, rewrittenFirst),
+            sharedLastEventIds,
+            pSuccessors);
     PathFormula secondFormula =
         pathFormulaManager.makeAnd(
             pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
@@ -1154,7 +1266,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pFirst.getSuccessor(),
         pState.getCallstackState(),
         firstFormula,
-        bfmgr.and(pState.getGuard(), firstFormula.getFormula()),
+        bfmgr.and(guard, firstFormula.getFormula()),
         sharedLastEventIds,
         pState.getCreateCounts(),
         pState.getLiveInstanceIds(),
@@ -1165,7 +1277,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pSecond.getSuccessor(),
         pState.getCallstackState(),
         secondFormula,
-        bfmgr.and(pState.getGuard(), secondFormula.getFormula()),
+        bfmgr.and(guard, secondFormula.getFormula()),
         sharedLastEventIds,
         pState.getCreateCounts(),
         pState.getLiveInstanceIds(),
@@ -1707,9 +1819,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     throw new UnsupportedCodeException("unsupported aggregate initializer target", pEdge);
   }
 
-  private static BigInteger literalValueOf(
-      CExpressionAssignmentStatement pAssignment, CFAEdge pEdge) throws UnsupportedCodeException {
-    if (stripCasts(pAssignment.getRightHandSide()) instanceof CIntegerLiteralExpression literal) {
+  private BigInteger literalValueOf(CExpressionAssignmentStatement pAssignment, CFAEdge pEdge)
+      throws UnsupportedCodeException {
+    if (stripCasts(pAssignment.getRightHandSide().accept(constantFolder))
+        instanceof CIntegerLiteralExpression literal) {
       return literal.getValue();
     }
     throw new UnsupportedCodeException("non-literal aggregate initializer value", pEdge);
@@ -2003,11 +2116,16 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
       if (lvalue instanceof CFieldReference field) {
         CExpression owner = field.getFieldOwner();
-        CType ownerType =
-            field.isPointerDereference()
-                ? ((CPointerType) stripCasts(owner).getExpressionType().getCanonicalType())
-                    .getType()
-                : owner.getExpressionType();
+        CType ownerType = owner.getExpressionType();
+        if (field.isPointerDereference()) {
+          // e.g. a null-pointer constant in offsetof, which remains without constant folding
+          if (!(stripCasts(owner).getExpressionType().getCanonicalType()
+              instanceof CPointerType pointer)) {
+            throw new UnsupportedAccessException(
+                "field access through a non-pointer: " + lvalue.toASTString());
+          }
+          ownerType = pointer.getType();
+        }
         if (!(ownerType.getCanonicalType() instanceof CCompositeType composite)) {
           throw new UnsupportedAccessException("field of non-composite: " + lvalue.toASTString());
         }

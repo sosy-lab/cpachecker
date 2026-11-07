@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,10 +35,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
+import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -58,6 +62,8 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   private Set<String> errorFunctions = ImmutableSet.of("reach_error");
 
   private final CFA cfa;
+  // present iff the specification is no-overflow; then error-function calls are no targets
+  private final Optional<ArithmeticOverflowAssumptionBuilder> overflowAssumptionBuilder;
   private final ImmutableSet<String> addressedVariables;
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
@@ -75,10 +81,18 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   }
 
   public OrderingConsistencyCPA(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     super("sep", "never", null);
     pConfig.inject(this);
+    overflowAssumptionBuilder =
+        pSpecification.getProperties().contains(CommonVerificationProperty.OVERFLOW)
+            ? Optional.of(new ArithmeticOverflowAssumptionBuilder(pCfa, pLogger, pConfig))
+            : Optional.empty();
     // memory is modeled by OC's own address events, so the encoding must not use the
     // pointer-aliasing (heap/pointer-target-set) encoding, which is on by default
     Configuration pathFormulaConfig =
@@ -180,19 +194,24 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
     ImmutableList<Integer> lastEvents =
         ImmutableSet.copyOf(Iterables.concat(s1.getLastEventIds(), s2.getLastEventIds())).asList();
     s1.markAbsorbed(); // the stop operator covers s1, only the merged state continues
-    return new OrderingConsistencyState(
-        s2.getInstanceId(),
-        s2.getLocationState(),
-        s2.getCallstackState(),
-        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(merged),
-        mergedGuard,
-        lastEvents,
-        s2.getCreateCounts(),
-        s2.getLiveInstanceIds(),
-        s2.getLoopCounts(),
-        s2.getLockDepths(),
-        // equal for both states, it is part of the merge key
-        s2.isTarget());
+    OrderingConsistencyState mergedState =
+        new OrderingConsistencyState(
+            s2.getInstanceId(),
+            s2.getLocationState(),
+            s2.getCallstackState(),
+            pathFormulaManager.makeEmptyPathFormulaWithContextFrom(merged),
+            mergedGuard,
+            lastEvents,
+            s2.getCreateCounts(),
+            s2.getLiveInstanceIds(),
+            s2.getLoopCounts(),
+            s2.getLockDepths(),
+            // equal for both states, it is part of the merge key
+            s2.isTarget());
+    if (s1.isOverflowTarget() || s2.isOverflowTarget()) {
+      mergedState.markOverflowTarget();
+    }
+    return mergedState;
   }
 
   public Solver getSolver() {
@@ -251,7 +270,11 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   }
 
   Set<String> getErrorFunctions() {
-    return errorFunctions;
+    return overflowAssumptionBuilder.isPresent() ? ImmutableSet.of() : errorFunctions;
+  }
+
+  Optional<ArithmeticOverflowAssumptionBuilder> getOverflowAssumptionBuilder() {
+    return overflowAssumptionBuilder;
   }
 
   @Override
