@@ -78,9 +78,9 @@ public final class AcslAtTerm implements AcslTerm {
   public int hashCode() {
     final int prime = 37;
     int result = 2;
-    result = prime * result + Objects.hashCode(fileLocation);
-    result = prime * result + Objects.hashCode(term);
-    result = prime * result + Objects.hashCode(label);
+    result = prime * result + fileLocation.hashCode();
+    result = prime * result + term.hashCode();
+    result = prime * result + label.hashCode();
     return result;
   }
 

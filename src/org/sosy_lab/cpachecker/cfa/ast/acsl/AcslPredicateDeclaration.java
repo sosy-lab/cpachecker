@@ -87,7 +87,7 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
     final int prime = 5;
     int result = 8;
     result = prime * result + super.hashCode();
-    result = prime * result + Objects.hashCode(polymorphicTypes);
+    result = prime * result + polymorphicTypes.hashCode();
     return result;
   }
 

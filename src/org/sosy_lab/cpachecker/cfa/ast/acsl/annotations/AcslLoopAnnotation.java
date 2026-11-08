@@ -49,8 +49,8 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash * Objects.hashCode(loopInvariants);
-    hash = prime * hash * Objects.hashCode(loopAssigns);
+    hash = prime * hash * loopInvariants.hashCode();
+    hash = prime * hash * loopAssigns.hashCode();
     return hash;
   }
 

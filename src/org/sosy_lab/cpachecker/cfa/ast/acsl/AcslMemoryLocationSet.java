@@ -45,8 +45,8 @@ public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
   public int hashCode() {
     final int prime = 37;
     int result = 8;
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + Objects.hashCode(fileLocation);
+    result = prime * result + type.hashCode();
+    result = prime * result + fileLocation.hashCode();
     return result;
   }
 

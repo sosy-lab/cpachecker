@@ -52,9 +52,9 @@ public abstract sealed class AcslLogicDefinition implements AcslAstNode
   public int hashCode() {
     final int prime = 37;
     int result = 8;
-    result = prime * result + Objects.hashCode(body);
-    result = prime * result + Objects.hashCode(declaration);
-    result = prime * result + Objects.hashCode(fileLocation);
+    result = prime * result + body.hashCode();
+    result = prime * result + declaration.hashCode();
+    result = prime * result + fileLocation.hashCode();
     return result;
   }
 

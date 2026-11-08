@@ -65,9 +65,9 @@ public final class AcslFunctionContract extends AAcslAnnotation {
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash + Objects.hashCode(ensuresClauses);
-    hash = prime * hash + Objects.hashCode(assignsClauses);
-    hash = prime * hash + Objects.hashCode(requiresClauses);
+    hash = prime * hash + ensuresClauses.hashCode();
+    hash = prime * hash + assignsClauses.hashCode();
+    hash = prime * hash + requiresClauses.hashCode();
     return hash;
   }
 

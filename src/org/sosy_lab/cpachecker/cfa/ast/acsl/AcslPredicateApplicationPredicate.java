@@ -14,7 +14,6 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
@@ -120,8 +119,8 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash * Objects.hashCode(predicateDeclaration);
-    hash = hash * prime * Objects.hashCode(parameters);
+    hash = prime * hash * predicateDeclaration.hashCode();
+    hash = hash * prime * parameters.hashCode();
     return hash;
   }
 }

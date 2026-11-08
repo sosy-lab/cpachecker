@@ -100,9 +100,9 @@ public final class AcslTernaryTerm implements AcslTerm {
   public int hashCode() {
     final int prime = 35;
     int result = -1;
-    result = prime * result + Objects.hashCode(condition);
-    result = prime * result + Objects.hashCode(resultIfTrue);
-    result = prime * result + Objects.hashCode(resultIfFalse);
+    result = prime * result + condition.hashCode();
+    result = prime * result + resultIfTrue.hashCode();
+    result = prime * result + resultIfFalse.hashCode();
     return result;
   }
 

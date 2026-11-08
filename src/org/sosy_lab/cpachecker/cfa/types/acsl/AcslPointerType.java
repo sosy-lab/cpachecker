@@ -37,7 +37,7 @@ public final class AcslPointerType implements AcslType {
   public int hashCode() {
     final int prime = 5;
     int result = 7;
-    result = prime * result + Objects.hashCode(type);
+    result = prime * result + type.hashCode();
     return result;
   }
 

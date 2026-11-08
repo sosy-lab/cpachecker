@@ -38,7 +38,7 @@ public final class AcslPolymorphicType implements AcslLogicType {
   public int hashCode() {
     final int prime = 5;
     int result = 7;
-    result = prime * result + Objects.hashCode(name);
+    result = prime * result + name.hashCode();
     return result;
   }
 

@@ -56,8 +56,8 @@ public final class AcslProgramLabel implements AcslLabel {
   public int hashCode() {
     final int prime = 37;
     int result = 2;
-    result = prime * result + Objects.hashCode(location);
-    result = prime * result + Objects.hashCode(label);
+    result = prime * result + location.hashCode();
+    result = prime * result + label.hashCode();
     return result;
   }
 

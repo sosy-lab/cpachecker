@@ -37,7 +37,7 @@ public final class AcslSetType implements AcslType {
   public int hashCode() {
     final int prime = 12;
     int result = 8;
-    result = prime * result + Objects.hashCode(elementType);
+    result = prime * result + elementType.hashCode();
     return result;
   }
 

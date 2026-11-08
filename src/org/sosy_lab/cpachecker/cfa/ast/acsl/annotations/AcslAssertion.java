@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import com.google.common.base.Preconditions;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
@@ -50,7 +49,7 @@ public final class AcslAssertion extends AAcslAnnotation {
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash * Objects.hashCode(predicate);
+    hash = prime * hash * predicate.hashCode();
     return hash;
   }
 }

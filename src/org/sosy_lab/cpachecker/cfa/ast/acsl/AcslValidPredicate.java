@@ -86,9 +86,9 @@ public final class AcslValidPredicate implements AcslPredicate {
   public int hashCode() {
     final int prime = 37;
     int result = 8;
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + Objects.hashCode(fileLocation);
-    result = prime * result + Objects.hashCode(memoryLocationSet);
+    result = prime * result + type.hashCode();
+    result = prime * result + fileLocation.hashCode();
+    result = prime * result + memoryLocationSet.hashCode();
     result = prime * result + Objects.hashCode(optionalLabel);
     return result;
   }
