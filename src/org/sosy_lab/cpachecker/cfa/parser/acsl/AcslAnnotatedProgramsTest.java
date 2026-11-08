@@ -27,11 +27,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-/** Checks the number of ACSL annotations in programs that the old ACSL parser was tested on. */
+/**
+ * Checks the number of ACSL annotations in programs, including statement contracts and behaviors.
+ */
 @RunWith(Parameterized.class)
 public class AcslAnnotatedProgramsTest {
 
-  private static final String TEST_DIR = "test/programs/acslDeprecated/";
+  private static final String TEST_DIR = "test/programs/acsl/";
 
   /** Marks programs with invalid annotations, for which the creation of the CFA fails. */
   private static final int INVALID = -1;
@@ -42,7 +44,7 @@ public class AcslAnnotatedProgramsTest {
     // Function contracts that refer to local variables of the function
     b.add(task("abs.c", INVALID));
     b.add(task("simple.c", INVALID));
-    b.add(task("badVariable.c", INVALID));
+    b.add(task("badVariableStatementContract.c", INVALID));
     // Assertions in dead code or empty blocks have no CFA node
     b.add(task("traps.c", INVALID));
     b.add(task("empty.c", INVALID));

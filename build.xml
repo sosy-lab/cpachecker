@@ -104,7 +104,6 @@ SPDX-License-Identifier: Apache-2.0
         <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/acsl/antlr/AntlrParser.xml" target="clean" inheritAll="false"/>
-        <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
     </target>
 
     <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
@@ -164,7 +163,6 @@ SPDX-License-Identifier: Apache-2.0
             <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" inheritAll="false"/>
             <echo message="Generate ACSL parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/acsl/antlr/AntlrParser.xml" inheritAll="false"/>
-            <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLParserBuild.xml" inheritAll="false"/>
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>

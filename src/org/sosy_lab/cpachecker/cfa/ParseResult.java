@@ -19,7 +19,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
@@ -44,7 +43,6 @@ public record ParseResult(
     List<Path> fileNames,
     Optional<AstCfaRelation> astStructure,
     Optional<List<AcslComment>> acslComments,
-    Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
     // Like the two above, but as in the input program: without the variables and parameters that go
@@ -71,29 +69,6 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
-        Optional.empty());
-  }
-
-  public ParseResult(
-      NavigableMap<String, FunctionEntryNode> pFunctions,
-      TreeMultimap<String, CFANode> pCfaNodes,
-      List<Pair<ADeclaration, String>> pGlobalDeclarations,
-      List<Path> pFileNames,
-      List<AcslComment> pAcslComments,
-      List<SyntacticBlock> pBlocks) {
-    this(
-        pFunctions,
-        pCfaNodes,
-        pGlobalDeclarations,
-        pFileNames,
-        Optional.empty(),
-        Optional.of(pAcslComments),
-        Optional.of(pBlocks),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
         Optional.empty());
   }
 
@@ -108,7 +83,6 @@ public record ParseResult(
         pCfaNodes,
         pGlobalDeclarations,
         pFileNames,
-        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -131,7 +105,6 @@ public record ParseResult(
         fileNames,
         Optional.of(pAstCfaRelation),
         acslComments,
-        blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
         cfaNodeToVisibleLocalVariables,
@@ -155,7 +128,6 @@ public record ParseResult(
         fileNames,
         astStructure,
         acslComments,
-        blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope),
         Optional.of(pCfaNodeToVisibleLocalVariables),
@@ -171,7 +143,6 @@ public record ParseResult(
         pFileNames,
         astStructure,
         acslComments,
-        blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
         cfaNodeToVisibleLocalVariables,
@@ -179,8 +150,7 @@ public record ParseResult(
         svLibCfaMetadata);
   }
 
-  public ParseResult withAcslComments(
-      List<AcslComment> pAcslComments, List<SyntacticBlock> pBlocks) {
+  public ParseResult withAcslComments(List<AcslComment> pAcslComments) {
     return new ParseResult(
         functions,
         cfaNodes,
@@ -188,7 +158,6 @@ public record ParseResult(
         fileNames,
         astStructure,
         Optional.of(pAcslComments),
-        Optional.of(pBlocks),
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
         cfaNodeToVisibleLocalVariables,

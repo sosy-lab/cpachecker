@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -52,7 +51,6 @@ import org.eclipse.cdt.core.dom.ast.IASTDoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTForStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
@@ -78,9 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.FunctionBlock;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.StatementBlock;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -173,10 +168,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   // because we move some declarations to the global scope (e.g., static variables)
   private final List<Pair<ADeclaration, String>> globalDeclarations = new ArrayList<>();
 
-  // Data structures to collect blocks as defined by ACSL
-  private final List<SyntacticBlock> blocks = new ArrayList<>();
-  private final Deque<CFANode> blockStarts = new ArrayDeque<>();
-
   private final FunctionScope scope;
   private final ASTConverter astCreator;
   private final ParseContext parseContext;
@@ -260,10 +251,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   List<Pair<ADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
-  }
-
-  List<SyntacticBlock> getBlocks() {
-    return blocks;
   }
 
   /** This method is called after parsing and checks if we left everything clean. */
@@ -502,7 +489,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     returnNode.setEntryNode(startNode);
     cfa = startNode;
-    blocks.add(new FunctionBlock(startNode));
 
     final CFANode nextNode = newCFANode();
     locStack.add(nextNode);
@@ -651,8 +637,6 @@ class CFAFunctionBuilder extends ASTVisitor {
         if (property == IGNUASTCompoundStatementExpression.STATEMENT) {
           // IGNUASTCompoundStatementExpression content is already handled
           return PROCESS_SKIP;
-        } else if (property == IASTCompoundStatement.NESTED_STATEMENT) {
-          blockStarts.push(locStack.peek());
         }
         scope.enterBlock();
         // Do nothing, just continue visiting
@@ -824,16 +808,6 @@ class CFAFunctionBuilder extends ASTVisitor {
               labelNode,
               labelName);
       addToCFA(gotoEdge);
-
-      FileLocation gotoLocation = gotoInfo.location();
-      for (StatementBlock block :
-          FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
-        if (block.getStartOffset() <= gotoLocation.getNodeOffset()
-            && gotoLocation.getNodeOffset() + gotoLocation.getNodeLength()
-                <= block.getEndOffset()) {
-          block.addEndNode(labelNode);
-        }
-      }
     }
     gotoLabelNeeded.removeAll(labelName);
 
@@ -871,14 +845,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     if (labelNode != null) {
       BlankEdge gotoEdge = createGotoEdge(gotoStatement, fileloc, prevNode, labelNode, labelName);
-
-      for (StatementBlock block :
-          FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
-        if (block.getStartOffset() <= fileloc.getNodeOffset()
-            && fileloc.getNodeOffset() + fileloc.getNodeLength() <= block.getEndOffset()) {
-          block.addEndNode(labelNode);
-        }
-      }
 
       /* labelNode was analyzed before, so it is in the labelMap,
        * then there can be a jump backwards and this can create a loop.
@@ -924,13 +890,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       functionExitNode.addOutOfScopeVariables(vars);
     }
     trackVisibleVariables(functionExitNode, ImmutableSet.of(), ImmutableSet.of());
-
-    for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
-      if (block.getStartOffset() <= fileloc.getNodeOffset()
-          && fileloc.getNodeOffset() + fileloc.getNodeLength() <= block.getEndOffset()) {
-        block.addEndNode(functionExitNode);
-      }
-    }
 
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
     prevNode = handleAllSideEffects(prevNode, fileloc, returnStatement.getRawSignature(), true);
@@ -992,16 +951,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       if (property == IGNUASTCompoundStatementExpression.STATEMENT) {
         // IGNUASTCompoundStatementExpression content is already handled
         return PROCESS_SKIP;
-      } else if (property == IASTCompoundStatement.NESTED_STATEMENT) {
-        CFANode blockStart = blockStarts.pop();
-        IASTFileLocation location = statement.getFileLocation();
-        blocks.add(
-            new StatementBlock(
-                location.getNodeOffset(),
-                location.getNodeOffset() + location.getNodeLength(),
-                false,
-                blockStart,
-                locStack.peek()));
       }
 
       leaveBlock(locStack.peek());
@@ -1016,15 +965,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
       CFANode nextNode = loopNextStack.pop();
       assert nextNode.equals(locStack.peek());
-
-      IASTFileLocation location = statement.getFileLocation();
-      blocks.add(
-          new StatementBlock(
-              location.getNodeOffset(),
-              location.getNodeOffset() + location.getNodeLength(),
-              true,
-              startNode,
-              nextNode));
     }
     return PROCESS_CONTINUE;
   }
@@ -1236,15 +1176,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode thenNode = newCFANode();
     locStack.push(thenNode);
-
-    IASTFileLocation location = ifStatement.getFileLocation();
-    blocks.add(
-        new StatementBlock(
-            location.getNodeOffset(),
-            location.getNodeOffset() + location.getNodeLength(),
-            false,
-            prevNode,
-            postIfNode));
 
     CFANode elseNode;
     // elseNode is the start of the else branch,
@@ -1723,15 +1654,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode postLoopNode = newCFANode();
     loopNextStack.push(postLoopNode);
 
-    IASTFileLocation location = forStatement.getFileLocation();
-    blocks.add(
-        new StatementBlock(
-            location.getNodeOffset(),
-            location.getNodeOffset() + location.getNodeLength(),
-            true,
-            firstLoopNode,
-            postLoopNode));
-
     // inverse order here!
     locStack.push(postLoopNode);
     locStack.push(firstLoopNode);
@@ -1888,15 +1810,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode postSwitchNode = newCFANode();
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
-
-    IASTFileLocation location = statement.getFileLocation();
-    blocks.add(
-        new StatementBlock(
-            location.getNodeOffset(),
-            location.getNodeOffset() + location.getNodeLength(),
-            false,
-            firstSwitchNode,
-            postSwitchNode));
 
     locStack.push(new CFANode(cfa.getFunction()));
     trackScopeInformation(locStack.peek());
@@ -2327,14 +2240,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (tempVar == null) {
       lastStatement.accept(this);
       leaveBlock(locStack.peek());
-      IASTFileLocation location = compoundExp.getFileLocation();
-      blocks.add(
-          new StatementBlock(
-              location.getNodeOffset(),
-              location.getNodeOffset() + location.getNodeLength(),
-              false,
-              rootNode,
-              locStack.peek()));
       return locStack.pop();
     }
 
@@ -2381,15 +2286,6 @@ class CFAFunctionBuilder extends ASTVisitor {
             stmt.toASTString(), stmt.getFileLocation(), middleNode, stmt);
 
     leaveBlock(lastNode);
-
-    IASTFileLocation location = compoundExp.getFileLocation();
-    blocks.add(
-        new StatementBlock(
-            location.getNodeOffset(),
-            location.getNodeOffset() + location.getNodeLength(),
-            false,
-            rootNode,
-            lastNode));
     return lastNode;
   }
 

@@ -13,14 +13,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.acsl.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
@@ -47,7 +44,6 @@ public final class CfaMetadata {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
-  private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
   private final @Nullable AcslMetadata acslMetadata;
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
@@ -64,7 +60,6 @@ public final class CfaMetadata {
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables,
-      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
       @Nullable ProgramTransformation pProgramTransformation,
       @Nullable AcslMetadata pAcslMetadata) {
@@ -79,7 +74,6 @@ public final class CfaMetadata {
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
-    edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
     transformation = pProgramTransformation;
     acslMetadata = pAcslMetadata;
@@ -121,7 +115,6 @@ public final class CfaMetadata {
         null,
         null,
         null,
-        null,
         null);
   }
 
@@ -148,7 +141,6 @@ public final class CfaMetadata {
             loopStructure,
             variableClassification,
             liveVariables,
-            edgesToAnnotations,
             svLibCfaMetadata,
             pTransformation,
             acslMetadata);
@@ -216,7 +208,6 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations,
         svLibCfaMetadata,
         transformation,
         acslMetadata);
@@ -250,7 +241,6 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations,
         svLibCfaMetadata,
         transformation,
         acslMetadata);
@@ -297,7 +287,6 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations,
         svLibCfaMetadata,
         transformation,
         acslMetadata);
@@ -335,7 +324,6 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations,
         pSvLibCfaMetadata,
         transformation,
         acslMetadata);
@@ -360,7 +348,6 @@ public final class CfaMetadata {
         pLoopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations,
         svLibCfaMetadata,
         transformation,
         acslMetadata);
@@ -397,7 +384,6 @@ public final class CfaMetadata {
         loopStructure,
         pVariableClassification,
         liveVariables,
-        edgesToAnnotations,
         svLibCfaMetadata,
         transformation,
         acslMetadata);
@@ -433,47 +419,6 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         pLiveVariables,
-        edgesToAnnotations,
-        svLibCfaMetadata,
-        transformation,
-        acslMetadata);
-  }
-
-  /**
-   * Returns the map from edges to ACSL annotations for the CFA, if the information is stored in
-   * this metadata instance.
-   *
-   * @return If this metadata instance contains the map from edges to ACSL annotations for the CFA,
-   *     an optional containing the map is returned. Otherwise, if this metadata instance doesn't
-   *     contain the map for the CFA, an empty optional is returned.
-   */
-  public Optional<ImmutableListMultimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
-    return Optional.ofNullable(edgesToAnnotations);
-  }
-
-  /**
-   * Returns a copy of this metadata instance, but with the specified map from edges to ACSL
-   * annotations.
-   *
-   * @param pedgesToAnnotations the map to store in the returned metadata instance (use {@code null}
-   *     to create an instance without map)
-   * @return a copy of this metadata instance, but with the specified map from edges to ACSL
-   *     annotations
-   */
-  public CfaMetadata withEdgesToAnnotations(
-      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pedgesToAnnotations) {
-    return new CfaMetadata(
-        machineModel,
-        cfaLanguage,
-        inputLanguage,
-        fileNames,
-        mainFunctionEntry,
-        connectedness,
-        astCFARelation,
-        loopStructure,
-        variableClassification,
-        liveVariables,
-        pedgesToAnnotations,
         svLibCfaMetadata,
         transformation,
         acslMetadata);
@@ -498,7 +443,6 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations,
         svLibCfaMetadata,
         transformation,
         pAcslMetadata);
@@ -520,7 +464,6 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations,
         svLibCfaMetadata,
         transformation);
   }
@@ -540,7 +483,6 @@ public final class CfaMetadata {
         && Objects.equals(loopStructure, other.loopStructure)
         && Objects.equals(variableClassification, other.variableClassification)
         && Objects.equals(liveVariables, other.liveVariables)
-        && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
         && Objects.equals(astCFARelation, other.astCFARelation)
         && Objects.equals(svLibCfaMetadata, other.svLibCfaMetadata)
         && Objects.equals(transformation, other.transformation);
@@ -558,7 +500,6 @@ public final class CfaMetadata {
         .add("loopStructure", loopStructure)
         .add("variableClassification", variableClassification)
         .add("liveVariables", liveVariables)
-        .add("edgesToAnnotations", edgesToAnnotations)
         .add("transformation", transformation)
         .toString();
   }

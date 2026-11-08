@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -104,7 +103,6 @@ class CFABuilder extends ASTVisitor {
   private final NavigableSet<FileLocation> unhandledThreadLocalOccurrences = new TreeSet<>();
 
   private final List<AcslComment> acslComments = new ArrayList<>();
-  private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -429,9 +427,7 @@ class CFABuilder extends ASTVisitor {
                   unhandledThreadLocalOccurrences.getFirst()));
     }
 
-    ParseResult result;
-
-    result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
 
     result =
         result.withInScopeInformation(
@@ -443,7 +439,7 @@ class CFABuilder extends ASTVisitor {
             cfaNodeToVisibleLocalVariables.buildKeepingLast(),
             cfaNodeToVisibleParameters.buildKeepingLast());
     if (options.shouldCollectACSLAnnotations()) {
-      result = result.withAcslComments(acslComments, blocks);
+      result = result.withAcslComments(acslComments);
     }
 
     return result;
@@ -509,7 +505,6 @@ class CFABuilder extends ASTVisitor {
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();
-    blocks.addAll(functionBuilder.getBlocks());
     functionBuilder.finish();
   }
 
