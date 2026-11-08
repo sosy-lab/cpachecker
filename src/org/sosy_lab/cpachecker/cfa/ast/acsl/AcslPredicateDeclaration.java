@@ -15,7 +15,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
@@ -99,6 +98,6 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
 
     return obj instanceof AcslPredicateDeclaration other
         && super.equals(other)
-        && Objects.equals(other.polymorphicTypes, polymorphicTypes);
+        && other.polymorphicTypes.equals(polymorphicTypes);
   }
 }

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
@@ -32,8 +31,8 @@ public final class AcslTernaryPredicate implements AcslPredicate {
       AcslPredicate pResultIfFalse) {
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
-    assert Objects.equals(pResultIfFalse.getExpressionType(), pResultIfTrue.getExpressionType());
-    assert Objects.equals(pResultIfFalse.getExpressionType(), AcslBuiltinLogicType.BOOLEAN);
+    assert pResultIfFalse.getExpressionType().equals(pResultIfTrue.getExpressionType());
+    assert pResultIfFalse.getExpressionType().equals(AcslBuiltinLogicType.BOOLEAN);
     fileLocation = pFileLocation;
     condition = pCondition;
     resultIfTrue = pResultIfTrue;
@@ -113,9 +112,9 @@ public final class AcslTernaryPredicate implements AcslPredicate {
     }
 
     return obj instanceof AcslTernaryPredicate other
-        && Objects.equals(other.fileLocation, fileLocation)
-        && Objects.equals(other.condition, condition)
-        && Objects.equals(other.resultIfTrue, resultIfTrue)
-        && Objects.equals(other.resultIfFalse, resultIfFalse);
+        && other.fileLocation.equals(fileLocation)
+        && other.condition.equals(condition)
+        && other.resultIfTrue.equals(resultIfTrue)
+        && other.resultIfFalse.equals(resultIfFalse);
   }
 }

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -41,8 +40,8 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
       return true;
     }
     return pO instanceof AcslLoopAnnotation other
-        && Objects.equals(loopInvariants, other.loopInvariants)
-        && Objects.equals(loopAssigns, other.loopAssigns);
+        && loopInvariants.equals(other.loopInvariants)
+        && loopAssigns.equals(other.loopAssigns);
   }
 
   @Override

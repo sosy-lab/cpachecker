@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import java.io.Serial;
 import java.util.List;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
@@ -84,9 +83,9 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
     }
 
     return obj instanceof AcslQuantifiedPredicate other
-        && Objects.equals(other.getClass(), getClass())
-        && Objects.equals(other.fileLocation, fileLocation)
-        && Objects.equals(other.binders, binders)
-        && Objects.equals(other.predicate, predicate);
+        && other.getClass().equals(getClass())
+        && other.fileLocation.equals(fileLocation)
+        && other.binders.equals(binders)
+        && other.predicate.equals(predicate);
   }
 }

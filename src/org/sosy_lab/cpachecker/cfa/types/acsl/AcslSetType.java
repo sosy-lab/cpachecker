@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.types.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 
 public final class AcslSetType implements AcslType {
 
@@ -47,6 +46,6 @@ public final class AcslSetType implements AcslType {
       return true;
     }
 
-    return obj instanceof AcslSetType other && Objects.equals(other.elementType, elementType);
+    return obj instanceof AcslSetType other && other.elementType.equals(elementType);
   }
 }

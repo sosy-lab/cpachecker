@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
@@ -72,7 +71,7 @@ public final class AcslResultTerm implements AcslTerm, AExpression {
     }
 
     return obj instanceof AcslResultTerm other
-        && Objects.equals(fileLocation, other.fileLocation)
-        && Objects.equals(type, other.type);
+        && fileLocation.equals(other.fileLocation)
+        && type.equals(other.type);
   }
 }

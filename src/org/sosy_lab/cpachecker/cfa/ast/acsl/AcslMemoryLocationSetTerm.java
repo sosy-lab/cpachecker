@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslSetType;
 
@@ -69,6 +68,6 @@ public final class AcslMemoryLocationSetTerm extends AcslMemoryLocationSet {
 
     return obj instanceof AcslMemoryLocationSetTerm other
         && super.equals(obj)
-        && Objects.equals(other.term, term);
+        && other.term.equals(term);
   }
 }

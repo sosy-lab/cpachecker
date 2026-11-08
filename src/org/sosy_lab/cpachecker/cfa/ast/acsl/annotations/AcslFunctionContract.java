@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -56,9 +55,9 @@ public final class AcslFunctionContract extends AAcslAnnotation {
       return true;
     }
     return pO instanceof AcslFunctionContract other
-        && Objects.equals(assignsClauses, other.assignsClauses)
-        && Objects.equals(ensuresClauses, other.ensuresClauses)
-        && Objects.equals(requiresClauses, other.requiresClauses);
+        && assignsClauses.equals(other.assignsClauses)
+        && ensuresClauses.equals(other.ensuresClauses)
+        && requiresClauses.equals(other.requiresClauses);
   }
 
   @Override

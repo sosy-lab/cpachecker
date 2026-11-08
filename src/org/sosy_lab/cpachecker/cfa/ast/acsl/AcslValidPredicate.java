@@ -100,9 +100,9 @@ public final class AcslValidPredicate implements AcslPredicate {
     }
 
     return obj instanceof AcslValidPredicate other
-        && Objects.equals(other.type, type)
-        && Objects.equals(other.fileLocation, fileLocation)
-        && Objects.equals(other.memoryLocationSet, memoryLocationSet)
+        && other.type.equals(type)
+        && other.fileLocation.equals(fileLocation)
+        && other.memoryLocationSet.equals(memoryLocationSet)
         && Objects.equals(other.optionalLabel, optionalLabel);
   }
 }

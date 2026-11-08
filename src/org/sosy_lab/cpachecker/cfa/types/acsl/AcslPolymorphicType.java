@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.types.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 
 public final class AcslPolymorphicType implements AcslLogicType {
 
@@ -48,6 +47,6 @@ public final class AcslPolymorphicType implements AcslLogicType {
       return true;
     }
 
-    return obj instanceof AcslPolymorphicType other && Objects.equals(name, other.name);
+    return obj instanceof AcslPolymorphicType other && name.equals(other.name);
   }
 }

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslProgramLabel implements AcslLabel {
@@ -68,7 +67,7 @@ public final class AcslProgramLabel implements AcslLabel {
     }
 
     return obj instanceof AcslProgramLabel other
-        && Objects.equals(other.label, label)
-        && Objects.equals(other.location, location);
+        && other.label.equals(label)
+        && other.location.equals(location);
   }
 }

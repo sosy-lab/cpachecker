@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class AcslLogicDefinition implements AcslAstNode
@@ -65,8 +64,8 @@ public abstract sealed class AcslLogicDefinition implements AcslAstNode
     }
 
     return obj instanceof AcslLogicDefinition other
-        && Objects.equals(other.declaration, declaration)
-        && Objects.equals(other.body, body)
-        && Objects.equals(other.fileLocation, fileLocation);
+        && other.declaration.equals(declaration)
+        && other.body.equals(body)
+        && other.fileLocation.equals(fileLocation);
   }
 }
