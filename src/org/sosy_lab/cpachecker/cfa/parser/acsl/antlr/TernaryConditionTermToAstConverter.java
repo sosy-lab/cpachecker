@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class TernaryConditionTermToAstConverter extends AbstractAntlrToAstConverter<AcslTerm> {
+class TernaryConditionTermToAstConverter extends AbstractAntlrToAstConverter<AcslTerm> {
 
   private final LabelToAstConverter labelConverter;
 
-  protected TernaryConditionTermToAstConverter(
+  TernaryConditionTermToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
     labelConverter = new LabelToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);

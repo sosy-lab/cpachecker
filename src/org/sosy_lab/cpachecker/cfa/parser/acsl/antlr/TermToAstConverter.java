@@ -53,7 +53,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<AcslTerm> {
   private final LabelToAstConverter labelConverter;
   private final TernaryConditionPredicateToAstConverter ternaryConditionConverter;
 
-  protected TermToAstConverter(
+  TermToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
     labelConverter = new LabelToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);

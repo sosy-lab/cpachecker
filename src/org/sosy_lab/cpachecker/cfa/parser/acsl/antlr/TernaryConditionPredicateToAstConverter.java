@@ -28,12 +28,11 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ParenthesesTermPredTernaryConditionContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.UnaryTermPredTernaryConditionContext;
 
-public class TernaryConditionPredicateToAstConverter
-    extends AbstractAntlrToAstConverter<AcslPredicate> {
+class TernaryConditionPredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate> {
 
   private final TernaryConditionTermToAstConverter termConverter;
 
-  protected TernaryConditionPredicateToAstConverter(
+  TernaryConditionPredicateToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
     termConverter =

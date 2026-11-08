@@ -63,7 +63,7 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
   private final LabelToAstConverter labelConverter;
   private final TypeToAstConverter typeConverter;
 
-  protected PredicateToAstConverter(
+  PredicateToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
     termConverter = new TermToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);

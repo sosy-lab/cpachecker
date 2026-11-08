@@ -43,13 +43,13 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.RequiresClauseContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.SimpleClauseContext;
 
-public class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotation> {
+class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotation> {
   private final PredicateToAstConverter predicateConverter;
   private final MemoryLocationSetToAstConverter memoryLocationSetConverter;
   private final LogicDefinitionToAstConverter logicDefinitionConverter;
   private final FileLocation fileLocation;
 
-  protected AnnotationToAstConverter(
+  AnnotationToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
     fileLocation = pInitialFileLocation;

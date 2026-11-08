@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 
 class LabelToAstConverter extends AbstractAntlrToAstConverter<AcslLabel> {
 
-  protected LabelToAstConverter(
+  LabelToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
   }

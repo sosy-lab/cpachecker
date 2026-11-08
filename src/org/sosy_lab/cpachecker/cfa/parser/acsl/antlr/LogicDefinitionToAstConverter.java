@@ -36,13 +36,12 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public class LogicDefinitionToAstConverter
-    extends AbstractAntlrToAstConverter<AcslLogicDefinition> {
+class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogicDefinition> {
   private final TermToAstConverter termConverter;
   private final TypeToAstConverter typeConverter;
   private final PredicateToAstConverter predicateConverter;
 
-  protected LogicDefinitionToAstConverter(AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+  LogicDefinitionToAstConverter(AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(CProgramScope.empty(), pAcslScope, pInitialFileLocation);
     termConverter =
         new TermToAstConverter(getCProgramScope(), getAcslScope(), pInitialFileLocation);

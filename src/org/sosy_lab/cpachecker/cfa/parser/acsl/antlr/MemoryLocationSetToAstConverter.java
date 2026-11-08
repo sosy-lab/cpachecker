@@ -17,12 +17,11 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TsetEmptyContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TsetTermContext;
 
-public class MemoryLocationSetToAstConverter
-    extends AbstractAntlrToAstConverter<AcslMemoryLocationSet> {
+class MemoryLocationSetToAstConverter extends AbstractAntlrToAstConverter<AcslMemoryLocationSet> {
 
   private final TermToAstConverter termConverter;
 
-  protected MemoryLocationSetToAstConverter(
+  MemoryLocationSetToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
     termConverter = new TermToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
