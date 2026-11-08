@@ -32,8 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
@@ -530,13 +529,14 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslValidPredicate(
             FileLocation.DUMMY,
-            new AcslMemoryLocationSetTerm(
+            new AcslMemoryLocationSet(
                 FileLocation.DUMMY,
-                new AcslIdTerm(
-                    FileLocation.DUMMY,
-                    new AcslCVariableDeclaration(
-                        (CVariableDeclaration)
-                            Objects.requireNonNull(cProgramScope.lookupVariable("x"))))));
+                ImmutableList.of(
+                    new AcslIdTerm(
+                        FileLocation.DUMMY,
+                        new AcslCVariableDeclaration(
+                            (CVariableDeclaration)
+                                Objects.requireNonNull(cProgramScope.lookupVariable("x")))))));
     String input = "\\valid(x)";
 
     testPredicateParsing(input, output);
@@ -546,7 +546,7 @@ public class AcslParserPredicateTest {
   public void parseSimpleEmptyValidPredicate() throws AcslParseException {
     AcslPredicate output =
         new AcslValidPredicate(
-            FileLocation.DUMMY, new AcslMemoryLocationSetEmpty(FileLocation.DUMMY));
+            FileLocation.DUMMY, new AcslMemoryLocationSet(FileLocation.DUMMY, ImmutableList.of()));
     String input = "\\valid(\\empty)";
 
     testPredicateParsing(input, output);

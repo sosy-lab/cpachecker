@@ -85,8 +85,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
@@ -1621,15 +1620,8 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(
-        AcslMemoryLocationSetEmpty pAcslMemoryLocationSetEmpty) {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(
-        AcslMemoryLocationSetTerm pAcslMemoryLocationSetTerm) {
-      return ImmutableList.of(pAcslMemoryLocationSetTerm.getTerm());
+    public Iterable<? extends AAstNode> visit(AcslMemoryLocationSet pMemoryLocationSet) {
+      return pMemoryLocationSet.getTerms();
     }
 
     @Override

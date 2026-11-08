@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TsetEmptyContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TsetTermContext;
@@ -29,12 +28,12 @@ class MemoryLocationSetToAstConverter extends AbstractAntlrToAstConverter<AcslMe
 
   @Override
   public AcslMemoryLocationSet visitTsetEmpty(TsetEmptyContext ctx) {
-    return new AcslMemoryLocationSetEmpty(FileLocation.DUMMY);
+    return new AcslMemoryLocationSet(fileLocationFromContext(ctx), ImmutableList.of());
   }
 
   @Override
   public AcslMemoryLocationSet visitTsetTerm(TsetTermContext ctx) {
     AcslTerm term = termConverter.visit(ctx.term());
-    return new AcslMemoryLocationSetTerm(FileLocation.DUMMY, term);
+    return new AcslMemoryLocationSet(fileLocationFromContext(ctx), ImmutableList.of(term));
   }
 }

@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
@@ -41,12 +43,8 @@ public final class AcslAssigns extends AAcslAnnotation {
 
   @Override
   public String toAstString() {
-    StringBuilder astString = new StringBuilder("assigns ");
-    for (AcslMemoryLocationSet l : locations) {
-      astString.append(l.toASTString());
-      astString.append(", ".repeat(Math.max(0, locations.size() - 2)));
-    }
-    astString.append(";");
-    return astString.toString();
+    return "assigns "
+        + Joiner.on(", ").join(Collections2.transform(locations, l -> l.toASTString()))
+        + ";";
   }
 }
