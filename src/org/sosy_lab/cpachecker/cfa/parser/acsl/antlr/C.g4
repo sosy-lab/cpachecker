@@ -1,5 +1,8 @@
-// This file is part of ANTLR grammars
-// https://github.com/antlr/grammars-v4/blob/master/c/C.g4
+// This file is part of ANTLR grammars-v4, a collection of grammars for ANTLR v4:
+// https://github.com/antlr/grammars-v4
+//
+// It is c/C.g4 at commit 753536777d827ccc0c9b108531ea67375c2039ac, in which IntegerConstant and
+// FloatingConstant are tokens instead of fragments and DecimalConstant allows leading zeros.
 //
 // SPDX-FileCopyrightText: 2013-2025 Sam Harwell
 //
