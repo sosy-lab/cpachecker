@@ -88,8 +88,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<AcslTerm> {
       arguments.add(visit(ctx.getChild(i)));
     }
 
-    AcslFunctionDeclaration functionDeclaration =
-        Objects.requireNonNull(getAcslScope().lookupFunction(functionName));
+    AcslFunctionDeclaration functionDeclaration = getFunctionDeclarationForName(functionName);
 
     return new AcslFunctionCallTerm(
         fileLocationFromContext(ctx),

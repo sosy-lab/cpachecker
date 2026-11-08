@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLogicDefinitionAnnot
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
-import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AcslStatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AssertionContext;
@@ -165,7 +164,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
 
   @Override
   protected AAcslAnnotation defaultResult() {
-    throw new AntlrToInternalNotImplementedException(
+    throw new AcslParseRuntimeException(
         "Parsing of the Annotation at : "
             + fileLocation
             + " failed. Only 'assert', 'ensures', 'assigns' and 'loop invariant' are supported.");

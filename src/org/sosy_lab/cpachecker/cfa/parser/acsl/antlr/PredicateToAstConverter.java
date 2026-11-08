@@ -13,7 +13,6 @@ import static com.google.common.base.Verify.verify;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
-import java.util.Objects;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
-import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.BinaryPredicateContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.BinderContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.BindersContext;
@@ -201,7 +199,7 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
   @Override
   public AcslPredicate visitPredicateApplicationPred(PredicateApplicationPredContext ctx) {
     String name = ctx.ident().getText();
-    AcslPredicateDeclaration declaration = getAcslScope().lookupPredicate(name);
+    AcslPredicateDeclaration declaration = getPredicateDeclarationForName(name);
     ImmutableList.Builder<AcslTerm> termBuilder = ImmutableList.builder();
     for (TermContext t : ctx.term()) {
       AcslTerm term = termConverter.visit(t);
@@ -209,7 +207,7 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
     }
     ImmutableList<AcslTerm> parameters = termBuilder.build();
     return new AcslPredicateApplicationPredicate(
-        fileLocationFromContext(ctx), Objects.requireNonNull(declaration), parameters);
+        fileLocationFromContext(ctx), declaration, parameters);
   }
 
   private AcslPredicate handleQuantifiedPredicate(
@@ -229,7 +227,7 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
             || variableName.contains("*")
             || variableName.contains("(")
             || variableName.contains(")")) {
-          throw new AntlrToInternalNotImplementedException(
+          throw new AcslParseRuntimeException(
               "Pointer or array types are not supported in the binders list yes");
         }
 

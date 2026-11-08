@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AbstractDeclaratorContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.BuiltInLogicTypeContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LogicTypeExprContext;
@@ -38,7 +36,7 @@ class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
   @Override
   public AcslType visitTypeVar(TypeVarContext ctx) {
     String typeName = ctx.getText();
-    AcslType type = Objects.requireNonNull(getAcslScope().lookupType(typeName));
+    AcslType type = getTypeForName(typeName);
     return type;
   }
 
@@ -54,8 +52,7 @@ class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
       return typedefNameContext.accept(this);
     }
 
-    throw new AntlrToInternalNotImplementedException(
-        "TypeSpecifierContext is not fully implemented yet");
+    throw new AcslParseRuntimeException("TypeSpecifierContext is not fully implemented yet");
   }
 
   @Override
@@ -67,7 +64,7 @@ class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
       }
     }
 
-    throw new AntlrToInternalNotImplementedException(
+    throw new AcslParseRuntimeException(
         "SpecifierQualifierListContext is not fully implemented yet");
   }
 
@@ -86,8 +83,7 @@ class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
       return new AcslPointerType(nestedType);
     }
 
-    throw new AntlrToInternalNotImplementedException(
-        "AbstractDeclaratorContext is not fully implemented yet");
+    throw new AcslParseRuntimeException("AbstractDeclaratorContext is not fully implemented yet");
   }
 
   @Override
@@ -96,8 +92,7 @@ class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
       return ctx.getChild(0).accept(this);
     }
 
-    throw new AntlrToInternalNotImplementedException(
-        "LogicTypeExprContext is not fully implemented yet");
+    throw new AcslParseRuntimeException("LogicTypeExprContext is not fully implemented yet");
   }
 
   @Override
@@ -106,7 +101,6 @@ class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
       return ctx.getChild(0).accept(this);
     }
 
-    throw new AntlrToInternalNotImplementedException(
-        "TypeExprContext is not fully implemented yet");
+    throw new AcslParseRuntimeException("TypeExprContext is not fully implemented yet");
   }
 }

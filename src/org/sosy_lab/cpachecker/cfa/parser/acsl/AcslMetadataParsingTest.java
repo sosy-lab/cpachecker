@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.acsl.AcslMetadata;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslMetadataException.AcslMetadataCreationException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslMetadataException.AcslNodeMappingException;
-import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AntlrToInternalNotImplementedException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
@@ -328,8 +328,7 @@ public class AcslMetadataParsingTest {
     } else if (programName.equals("maxArray.c")) {
       assertThrows(
           // ToDo: Implement TypeSpecifierContext
-          AntlrToInternalNotImplementedException.class,
-          () -> cfaCreator.parseFileAndCreateCFA(files));
+          AcslMetadataCreationException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else if (programName.equals("annotation_at_wrong_location.c")) {
       AcslNodeMappingException expected =
           assertThrows(
@@ -367,8 +366,7 @@ public class AcslMetadataParsingTest {
     } else if (programName.equals("maxArray.c")) {
       assertThrows(
           // ToDo: Implement TypeSpecifierContext
-          AntlrToInternalNotImplementedException.class,
-          () -> cfaCreator.parseFileAndCreateCFA(files));
+          AcslMetadataCreationException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else if (programName.equals("annotation_at_wrong_location.c")) {
       AcslNodeMappingException expected =
           assertThrows(
@@ -406,8 +404,7 @@ public class AcslMetadataParsingTest {
     } else if (programName.equals("maxArray.c")) {
       assertThrows(
           // ToDo: Implement TypeSpecifierContext
-          AntlrToInternalNotImplementedException.class,
-          () -> cfaCreator.parseFileAndCreateCFA(files));
+          AcslMetadataCreationException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else if (programName.equals("annotation_at_wrong_location.c")) {
       // The wrong type of annotation at the wrong file location should raise an exception!
       AcslNodeMappingException expected =

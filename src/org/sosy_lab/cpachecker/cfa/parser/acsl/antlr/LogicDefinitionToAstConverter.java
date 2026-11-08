@@ -110,7 +110,8 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
 
     for (AcslTypeVariableDeclaration polymorphicType : polymorphicTypes) {
       if (!getAcslScope().registerTypeDeclaration(polymorphicType)) {
-        throw new RuntimeException("Polymorphic type " + polymorphicType + " already exists");
+        throw new AcslParseRuntimeException(
+            "Polymorphic type " + polymorphicType + " already exists");
       }
     }
 
@@ -152,7 +153,8 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
 
     for (AcslTypeVariableDeclaration polymorphicType : polymorphicTypes) {
       if (!getAcslScope().registerTypeDeclaration(polymorphicType)) {
-        throw new RuntimeException("Polymorphic type " + polymorphicType + " already exists");
+        throw new AcslParseRuntimeException(
+            "Polymorphic type " + polymorphicType + " already exists");
       }
     }
 

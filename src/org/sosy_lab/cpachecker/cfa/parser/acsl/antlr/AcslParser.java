@@ -84,7 +84,11 @@ public class AcslParser {
         new PredicateToAstConverter(
             pCProgramScope, AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
 
-    return converter.visit(tree);
+    try {
+      return converter.visit(tree);
+    } catch (AcslParseRuntimeException e) {
+      throw new AcslParseException(e.getMessage(), e);
+    }
   }
 
   public static AcslLogicDefinition parseLogicalDefinition(
@@ -96,7 +100,12 @@ public class AcslParser {
     LogicDefinitionToAstConverter converter =
         new LogicDefinitionToAstConverter(AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
 
-    AcslLogicDefinition definition = converter.visit(tree);
+    AcslLogicDefinition definition;
+    try {
+      definition = converter.visit(tree);
+    } catch (AcslParseRuntimeException e) {
+      throw new AcslParseException(e.getMessage(), e);
+    }
 
     return definition;
   }
@@ -121,7 +130,11 @@ public class AcslParser {
     ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
     AnnotationToAstConverter parser =
         new AnnotationToAstConverter(pCProgramScope, pAcslScope, pFileLocation);
-    return parser.visit(tree);
+    try {
+      return parser.visit(tree);
+    } catch (AcslParseRuntimeException e) {
+      throw new AcslParseException(e.getMessage(), e);
+    }
   }
 
   /**
@@ -177,14 +190,6 @@ public class AcslParser {
 
     public AcslParseException(String pMsg, Throwable pCause) {
       super(checkNotNull(pMsg), checkNotNull(pCause));
-    }
-  }
-
-  public static class AntlrToInternalNotImplementedException extends RuntimeException {
-    private static final long serialVersionUID = 14291283541286835L;
-
-    public AntlrToInternalNotImplementedException(String message) {
-      super(message);
     }
   }
 }

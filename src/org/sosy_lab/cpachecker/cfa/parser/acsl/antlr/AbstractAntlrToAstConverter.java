@@ -17,7 +17,9 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
@@ -84,18 +86,42 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
       } else if (cVariableDeclaration instanceof CParameterDeclaration var) {
         return new AcslCVariableDeclaration(var.asVariableDeclaration());
       } else {
-        throw new RuntimeException(
+        throw new AcslParseRuntimeException(
             "Expected a C variable declaration, but got: " + cVariableDeclaration);
       }
     } else if (acslVariableDeclaration != null && cVariableDeclaration == null) {
       return acslVariableDeclaration;
     } else if (cVariableDeclaration != null && acslVariableDeclaration != null) {
-      throw new RuntimeException(
+      throw new AcslParseRuntimeException(
           "Variable " + pName + " is declared in both the Acsl and the C scope");
     }
 
-    throw new RuntimeException(
+    throw new AcslParseRuntimeException(
         "Variable " + pName + " is not declared in neither the C program nor the ACSL scope.");
+  }
+
+  AcslFunctionDeclaration getFunctionDeclarationForName(String pName) {
+    AcslFunctionDeclaration declaration = acslScope.lookupFunction(pName);
+    if (declaration == null) {
+      throw new AcslParseRuntimeException("Logic function " + pName + " is not declared");
+    }
+    return declaration;
+  }
+
+  AcslPredicateDeclaration getPredicateDeclarationForName(String pName) {
+    AcslPredicateDeclaration declaration = acslScope.lookupPredicate(pName);
+    if (declaration == null) {
+      throw new AcslParseRuntimeException("Predicate " + pName + " is not declared");
+    }
+    return declaration;
+  }
+
+  AcslType getTypeForName(String pName) {
+    AcslType type = acslScope.lookupType(pName);
+    if (type == null) {
+      throw new AcslParseRuntimeException("Type " + pName + " is not declared");
+    }
+    return type;
   }
 
   AcslTerm getConstantForString(String pStringValue) {
@@ -113,7 +139,7 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
       } catch (NumberFormatException e2) {
         // This is a character constant
         if (pStringValue.length() != 1) {
-          throw new RuntimeException(
+          throw new AcslParseRuntimeException(
               "Character constant should be of length 1, but was: " + pStringValue);
         }
         return new AcslCharLiteralTerm(
@@ -137,7 +163,7 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
           // We need to get the type of the element
           resultType = new AcslCType(pArrayType.getType());
         } else {
-          throw new RuntimeException(
+          throw new AcslParseRuntimeException(
               "Expected a pointer dereference operator, but got: "
                   + operator
                   + " for type: "
@@ -148,7 +174,7 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
           // We need to get the type of the element
           resultType = new AcslCType(pPointerType.getType());
         } else {
-          throw new RuntimeException(
+          throw new AcslParseRuntimeException(
               "Expected a pointer dereference operator, but got: "
                   + operator
                   + " for type: "
@@ -159,11 +185,11 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
           // We need to get the type of the element
           resultType = new AcslCType(pSimpleType);
         } else {
-          throw new RuntimeException(
+          throw new AcslParseRuntimeException(
               "Expected a unary operator, but got: " + operator + " for type: " + cType);
         }
       } else {
-        throw new RuntimeException(
+        throw new AcslParseRuntimeException(
             "Expected a unary operator, but got: " + operator + " for type: " + cType);
       }
     } else if (expressionType instanceof AcslLogicType) {
@@ -177,7 +203,7 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
       Verify.verify(operator == AcslUnaryTermOperator.POINTER_DEREFERENCE);
       resultType = pPointerType.getType();
     } else {
-      throw new RuntimeException(
+      throw new AcslParseRuntimeException(
           "Expected a unary operator, but got: " + operator + " for type: " + expressionType);
     }
     return resultType;
