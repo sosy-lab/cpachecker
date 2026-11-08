@@ -18,6 +18,8 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.OptionalInt;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -86,21 +88,46 @@ record SliceExpression(
    * objects with equal fields. Here, an instance stands for a unique slice variable.
    */
   static class SliceVariable {
-    private final CExpression sliceSize;
+    private final @Nullable CExpression sliceSize;
+    private final @Nullable Formula sliceSizeFormula;
+    private final OptionalInt unrollingBound;
 
     SliceVariable(CExpression pSliceSize) {
-      checkNotNull(pSliceSize);
-      sliceSize = pSliceSize;
+      sliceSize = checkNotNull(pSliceSize);
+      sliceSizeFormula = null;
+      unrollingBound = OptionalInt.empty();
     }
 
-    CExpression getSliceSize() {
+    /**
+     * Creates a variable for a slice whose size is a formula of the pointer-sized unsigned integer
+     * type. If the variable is unrolled, at most {@code pUnrollingBound} indices are assigned.
+     */
+    SliceVariable(Formula pSliceSizeFormula, int pUnrollingBound) {
+      sliceSize = null;
+      sliceSizeFormula = checkNotNull(pSliceSizeFormula);
+      unrollingBound = OptionalInt.of(pUnrollingBound);
+    }
+
+    /** Returns the size, or null if it is only given as formula. */
+    @Nullable CExpression getSliceSize() {
       return sliceSize;
+    }
+
+    @Nullable Formula getSliceSizeFormula() {
+      return sliceSizeFormula;
+    }
+
+    OptionalInt getUnrollingBound() {
+      return unrollingBound;
     }
 
     @Override
     public String toString() {
       // make sure toString() of distinct variables is distinct
-      return super.toString() + " [size=" + sliceSize + "]";
+      return super.toString()
+          + " [size="
+          + (sliceSize != null ? sliceSize : sliceSizeFormula)
+          + "]";
     }
   }
 

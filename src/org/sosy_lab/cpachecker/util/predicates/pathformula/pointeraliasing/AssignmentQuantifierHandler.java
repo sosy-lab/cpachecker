@@ -427,7 +427,10 @@ class AssignmentQuantifierHandler {
   /** Create a formula that represents the slice size of the given slice variable. */
   private Formula createSlizeSiceFormula(final SliceVariable variableToQuantify)
       throws UnrecognizedCodeException {
-    final CExpression sliceSize = variableToQuantify.getSliceSize();
+    if (variableToQuantify.getSliceSizeFormula() != null) {
+      return variableToQuantify.getSliceSizeFormula();
+    }
+    final CExpression sliceSize = checkNotNull(variableToQuantify.getSliceSize());
     // cast it to unsigned type capable of storing all pointer values to get a proper formula
     final CExpression sliceSizeCastToCapableType =
         new CCastExpression(FileLocation.DUMMY, pointerAsUnsignedIntType, sliceSize);
@@ -549,7 +552,7 @@ class AssignmentQuantifierHandler {
     } else {
       // non-literal slice size expression, always potentially unsound
       // warn just once for all non-literal unrollings to avoid polluting the output
-      unrollingSize = options.defaultArrayLength();
+      unrollingSize = variableToUnroll.getUnrollingBound().orElse(options.defaultArrayLength());
       conv.logger.logfOnce(
           Level.WARNING,
           "Limiting unrolling of non-literal-length slice assignment to %s, soundness may be lost",

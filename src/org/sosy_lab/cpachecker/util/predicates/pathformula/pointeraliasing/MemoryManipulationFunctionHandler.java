@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Verify.verify;
+import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -21,16 +23,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -41,10 +47,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Assig
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentOptions.ConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 /**
- * Handles memory manipulation functions {@code memset}, {@code memcpy}, {@code memmove}. These
- * functions perform assignments to/from memory blocks.
+ * Handles memory manipulation functions {@code memset}, {@code memcpy}, {@code memmove}, {@code
+ * strcpy}. These functions perform assignments to/from memory blocks.
  *
  * <p>The memory functions are encoded into slice assignments internally.
  *
@@ -159,6 +166,72 @@ class MemoryManipulationFunctionHandler {
     return destination;
   }
 
+  /**
+   * Handles {@code strcpy}, which copies the string at the source including its terminating null
+   * character to the destination. Characters after the first {@code
+   * cpa.predicate.maxPreciseStrFunctionSize} characters are not copied (unsound).
+   *
+   * @return The return value of the function, which is the destination argument.
+   */
+  CExpression handleStrcpyFunction(final CFunctionCallExpression functionCall)
+      throws UnrecognizedCodeException, InterruptedException {
+    final List<CExpression> arguments = functionCall.getParameterExpressions();
+    if (arguments.size() != 2) {
+      throw new UnrecognizedCodeException("Expected 2 arguments for strcpy", edge);
+    }
+    final CExpression destination = arguments.getFirst();
+    final CExpression source = arguments.get(1);
+
+    final CExpression processedDestination = processPointerLikeArgument(destination, true);
+    final CExpression processedSource = processPointerLikeArgument(source, false);
+    final CPointerType destinationType =
+        (CPointerType)
+            CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(processedDestination));
+    final CPointerType sourceType =
+        (CPointerType)
+            CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(processedSource));
+    if (typeHandler.getExactSizeof(destinationType.getType()) != 1
+        || typeHandler.getExactSizeof(sourceType.getType()) != 1) {
+      throw new UnrecognizedCodeException("Expected character arguments for strcpy", edge);
+    }
+
+    // copy strlen(source) characters and the terminating null character
+    final CType sizeType = conv.machineModel.getPointerAsUnsignedIntType();
+    final CFunctionDeclaration strlen =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            CFunctionType.functionTypeWithReturnType(sizeType),
+            "strlen",
+            ImmutableList.of(
+                new CParameterDeclaration(
+                    FileLocation.DUMMY,
+                    new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR),
+                    "s")),
+            ImmutableSet.of());
+    final CFunctionCallExpression strlenCall =
+        new CFunctionCallExpression(
+            FileLocation.DUMMY,
+            sizeType,
+            new CIdExpression(FileLocation.DUMMY, strlen),
+            ImmutableList.of(source),
+            strlen);
+    final CExpressionVisitorWithPointerAliasing visitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+    final Formula length = verifyNotNull(visitor.visit(strlenCall).getValue());
+    pts.addEssentialFields(visitor.getInitializedFields());
+    pts.addEssentialFields(visitor.getUsedFields());
+    final Formula size =
+        conv.fmgr.makePlus(length, conv.fmgr.makeNumber(conv.getFormulaTypeFromType(sizeType), 1));
+
+    copyElements(
+        processedDestination,
+        processedSource,
+        destinationType,
+        new SliceVariable(size, conv.options.maxPreciseStrFunctionSize() + 1));
+    return destination;
+  }
+
   void handleNondetMemoryAssignment(final CFunctionCallExpression pNondetMemoryCall)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -234,9 +307,23 @@ class MemoryManipulationFunctionHandler {
     final CExpression sizeInElements =
         convertSizeInBytesToSizeInElements(sizeInBytes, adjustedDestinationType);
 
-    // the memcopy just indexes the destination and source with the same index
-    // i.e. lhs[i] = rhs[i] for 0 <= i < sizeInElements
-    SliceVariable sliceIndex = new SliceVariable(sizeInElements);
+    copyElements(
+        processedDestination,
+        processedSource,
+        adjustedDestinationType,
+        new SliceVariable(sizeInElements));
+  }
+
+  /**
+   * Assigns {@code destination[i] = source[i]} for all indices {@code i} of the given slice
+   * variable. The arguments must be processed by {@link #processPointerLikeArgument}.
+   */
+  private void copyElements(
+      final CExpression processedDestination,
+      final CExpression processedSource,
+      final CPointerType adjustedDestinationType,
+      final SliceVariable sliceIndex)
+      throws UnrecognizedCodeException, InterruptedException {
     SliceExpression lhs = new SliceExpression(processedDestination).withIndex(sliceIndex);
     SliceExpression rhs = new SliceExpression(processedSource).withIndex(sliceIndex);
 

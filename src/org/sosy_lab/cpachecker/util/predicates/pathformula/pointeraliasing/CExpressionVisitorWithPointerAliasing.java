@@ -738,6 +738,13 @@ class CExpressionVisitorWithPointerAliasing
           Formula destinationFormula = destinationAsAliasedLocation.getAddress();
           return Value.ofValue(destinationFormula);
 
+        } else if (functionName.equals("strcpy")) {
+          MemoryManipulationFunctionHandler memoryFunctionHandler =
+              new MemoryManipulationFunctionHandler(
+                  conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+          CExpression destination = memoryFunctionHandler.handleStrcpyFunction(e);
+          return Value.ofValue(dereference(destination, destination.accept(this)).getAddress());
+
         } else if (functionName.equals("__VERIFIER_nondet_memory")) {
           MemoryManipulationFunctionHandler memoryFunctionHandler =
               new MemoryManipulationFunctionHandler(
