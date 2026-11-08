@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.acsl;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser;
 
 public record AcslComment(FileLocation fileLocation, String commentString) {
 
@@ -18,7 +19,7 @@ public record AcslComment(FileLocation fileLocation, String commentString) {
 
   @Override
   public String toString() {
-    return "'" + commentString + "'" + " at " + fileLocation;
+    return "'" + AcslParser.blankCommentMarkers(commentString).strip() + "' at " + fileLocation;
   }
 
   public enum AcslCommentType {

@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Function;
 import java.io.Serial;
 import java.util.Objects;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
@@ -33,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser;
 
 public class AcslParser {
+
+  private static final Pattern LEADING_AT_SIGNS = Pattern.compile("(?m)^(\\s*)@");
 
   /** Reports syntax errors with an exception, because ANTLR only prints them by default. */
   private static final class ThrowingErrorListener extends BaseErrorListener {
@@ -118,7 +119,7 @@ public class AcslParser {
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     ParseTree tree =
-        generateParseTree(stripCommentMarker(pInput), pParser -> pParser.acslComment());
+        generateParseTree(blankCommentMarkers(pInput), pParser -> pParser.acslComment());
     try {
       return new AnnotationToAstConverter(pCProgramScope, pAcslScope, pFileLocation).visit(tree);
     } catch (AcslParseRuntimeException e) {
@@ -139,33 +140,30 @@ public class AcslParser {
    */
   public static AcslCommentType acslCommentToCommentType(String pInput) throws AcslParseException {
     ParseTree tree =
-        generateParseTree(stripCommentMarker(pInput), pParser -> pParser.acslComment());
+        generateParseTree(blankCommentMarkers(pInput), pParser -> pParser.acslComment());
     return new CommentTypeVisitor().visit(tree);
   }
 
   /**
-   * Removes the comment markers from an acsl comment, if they are present
+   * Replaces the comment markers of an ACSL comment and the at-signs at the beginning of its lines,
+   * which ACSL treats as blanks, with blanks. The offsets in the result are thus the same as in the
+   * comment.
    *
-   * @param pCommentString An acsl comment string that might contain acsl comment markers
-   * @return the acsl comment string without comment markers
+   * @param pComment An ACSL comment, which may contain the comment markers
+   * @return the content of the comment, with blanks instead of the comment markers
    */
-  public static String stripCommentMarker(String pCommentString) {
-    String commentString = pCommentString;
-    if (pCommentString.startsWith("//@")) {
-      Pattern pattern = Pattern.compile("(//@(\\s)*)(?<content>.*)");
-      Matcher matcher = pattern.matcher(pCommentString);
-      if (matcher.matches()) {
-        commentString = matcher.group("content");
-      }
-    } else if (pCommentString.startsWith("/*@")) {
-      Pattern pattern = Pattern.compile("/\\*@\\s*(?<content>(.*\\s*)*)\\*/");
-      Matcher matcher = pattern.matcher(commentString);
-      if (matcher.matches()) {
-        commentString = matcher.group("content");
-      }
+  public static String blankCommentMarkers(String pComment) {
+    if (pComment.startsWith("//@")) {
+      return "   " + pComment.substring(3);
     }
-
-    return commentString;
+    if (!pComment.startsWith("/*@")) {
+      return pComment;
+    }
+    String content = "   " + pComment.substring(3);
+    if (content.endsWith("*/")) {
+      content = content.substring(0, content.length() - 2) + "  ";
+    }
+    return LEADING_AT_SIGNS.matcher(content).replaceAll(match -> match.group(1) + " ");
   }
 
   public static final class AcslParseException extends Exception {

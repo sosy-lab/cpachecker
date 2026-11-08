@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslComment;
-import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -197,9 +196,7 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslComments.add(
-              new AcslComment(
-                  astCreator.getLocation(comment), AcslParser.stripCommentMarker(commentString)));
+          acslComments.add(new AcslComment(astCreator.getLocation(comment), commentString));
         }
       }
     }

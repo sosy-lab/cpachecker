@@ -437,31 +437,15 @@ ensures x <= 10;
   }
 
   @Test
-  public void testStripCommentMarker() {
-    String lineComment = "//@ assert a == 20;";
-    String lineCommentExpected = "assert a == 20;";
-    String lineCommentStripped = AcslParser.stripCommentMarker(lineComment);
-    assertThat(lineCommentStripped).isEqualTo(lineCommentExpected);
+  public void testBlankLineCommentMarker() {
+    assertThat(AcslParser.blankCommentMarkers("//@ assert a == 20;"))
+        .isEqualTo("    assert a == 20;");
   }
 
   @Test
-  public void testStripBlockComment() {
-    String blockComment =
-        """
-        /*@
-        ensures x = 0;
-        assumes \\true;
-        ensures !(x < 0);
-        */\
-        """;
-    String blockCommentExpected =
-        """
-        ensures x = 0;
-        assumes \\true;
-        ensures !(x < 0);
-        """;
-
-    String blockCommentStripped = AcslParser.stripCommentMarker(blockComment);
-    assertThat(blockCommentStripped).isEqualTo(blockCommentExpected);
+  public void testBlankBlockCommentMarker() {
+    String blockComment = "/*@ ensures x == 0;\n  @ ensures !(x < 0);\n  @*/";
+    assertThat(AcslParser.blankCommentMarkers(blockComment))
+        .isEqualTo("    ensures x == 0;\n    ensures !(x < 0);\n     ");
   }
 }

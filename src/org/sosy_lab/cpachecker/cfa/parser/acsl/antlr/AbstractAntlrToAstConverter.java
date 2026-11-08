@@ -12,6 +12,7 @@ import com.google.common.base.Verify;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -59,22 +60,44 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
     return cProgramScope;
   }
 
+  /**
+   * Returns the location of the given context in the program. The parsed text must have the same
+   * offsets as the comment that starts at the initial file location.
+   */
   protected FileLocation fileLocationFromContext(ParserRuleContext pContext) {
-    if (initialFileLocation.equals(FileLocation.DUMMY)) {
-      return FileLocation.DUMMY;
+    if (!initialFileLocation.isRealLocation()) {
+      return initialFileLocation;
     }
+
+    Token start = pContext.getStart();
+    Token stop = pContext.getStop();
+    int startOffset = start.getStartIndex();
+    int endOffset = stop.getStopIndex() + 1;
+    // Lines of tokens start at 1, columns at 0, and only the first line of the comment is indented
+    int startLine = start.getLine() - 1;
+    int endLine = stop.getLine() - 1;
+    int startColumn =
+        (startLine == 0 ? initialFileLocation.getStartColumnInLine() : 1)
+            + start.getCharPositionInLine();
+    int endColumn =
+        (endLine == 0 ? initialFileLocation.getStartColumnInLine() : 1)
+            + stop.getCharPositionInLine()
+            + stop.getStopIndex()
+            - stop.getStartIndex()
+            + 1;
 
     return new FileLocation(
         initialFileLocation.getFileName(),
-        initialFileLocation.getNodeOffset() + pContext.getStart().getStartIndex(),
-        pContext.getStop().getStartIndex() - pContext.getStart().getStartIndex(),
-        initialFileLocation.getStartingLineNumber() + pContext.getStart().getLine(),
-        initialFileLocation.getStartingLineNumber() + pContext.getStop().getLine(),
-        initialFileLocation.getStartColumnInLine() + pContext.getStart().getCharPositionInLine(),
-        pContext.getStart().getLine() == pContext.getStop().getLine()
-            ? initialFileLocation.getStartColumnInLine()
-                + pContext.getStop().getCharPositionInLine()
-            : pContext.getStop().getCharPositionInLine());
+        initialFileLocation.getNiceFileName(),
+        initialFileLocation.getNodeOffset() + startOffset,
+        endOffset - startOffset,
+        initialFileLocation.getStartingLineNumber() + startLine,
+        initialFileLocation.getStartingLineNumber() + endLine,
+        startColumn,
+        endColumn,
+        initialFileLocation.getStartingLineInOrigin() + startLine,
+        initialFileLocation.getStartingLineInOrigin() + endLine,
+        initialFileLocation.isOffsetRelatedToOrigin());
   }
 
   AcslSimpleDeclaration getVariableDeclarationForName(String pName) {

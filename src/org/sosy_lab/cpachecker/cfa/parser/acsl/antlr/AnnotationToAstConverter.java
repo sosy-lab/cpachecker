@@ -72,7 +72,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
   @Override
   public AcslAssertion visitAssertion(AssertionContext ctx) {
     AcslPredicate predicate = predicateConverter.visit(ctx.pred());
-    return new AcslAssertion(fileLocation, predicate);
+    return new AcslAssertion(fileLocationFromContext(ctx), predicate);
   }
 
   @Override
@@ -84,7 +84,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
 
     FluentIterable<AAcslAnnotation> annotations = FluentIterable.from(as);
     return new AcslFunctionContract(
-        fileLocation,
+        fileLocationFromContext(ctx),
         annotations.filter(a -> a instanceof AcslRequires).transform(a -> (AcslRequires) a).toSet(),
         annotations.filter(a -> a instanceof AcslEnsures).transform(a -> (AcslEnsures) a).toSet(),
         annotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a).toSet());
@@ -98,7 +98,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
     }
     FluentIterable<AAcslAnnotation> annotations = FluentIterable.from(ls);
     return new AcslLoopAnnotation(
-        fileLocation,
+        fileLocationFromContext(ctx),
         annotations
             .filter(a -> a instanceof AcslLoopInvariant)
             .transform(a -> (AcslLoopInvariant) a)
@@ -114,19 +114,19 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
   @Override
   public AcslLoopInvariant visitLoopInvariant(LoopInvariantContext ctx) {
     AcslPredicate predicate = predicateConverter.visit(ctx.pred());
-    return new AcslLoopInvariant(fileLocation, predicate);
+    return new AcslLoopInvariant(fileLocationFromContext(ctx), predicate);
   }
 
   @Override
   public AcslEnsures visitEnsuresClause(EnsuresClauseContext ctx) {
     AcslPredicate predicate = predicateConverter.visit(ctx.pred());
-    return new AcslEnsures(fileLocation, predicate);
+    return new AcslEnsures(fileLocationFromContext(ctx), predicate);
   }
 
   @Override
   public AcslRequires visitRequiresClause(RequiresClauseContext ctx) {
     AcslPredicate predicate = predicateConverter.visit(ctx.pred());
-    return new AcslRequires(fileLocation, predicate);
+    return new AcslRequires(fileLocationFromContext(ctx), predicate);
   }
 
   @Override
@@ -136,7 +136,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
       AcslMemoryLocationSet memLocation = memoryLocationSetConverter.visit(loc.tset());
       locationSetBuilder.add(memLocation);
     }
-    return new AcslAssigns(fileLocation, locationSetBuilder.build());
+    return new AcslAssigns(fileLocationFromContext(ctx), locationSetBuilder.build());
   }
 
   @Override
@@ -147,7 +147,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
   @Override
   public AAcslAnnotation visitLogicDef(LogicDefContext ctx) {
     AcslLogicDefinition definition = logicDefinitionConverter.visit(ctx);
-    return new AcslLogicDefinitionAnnotation(fileLocation, definition);
+    return new AcslLogicDefinitionAnnotation(fileLocationFromContext(ctx), definition);
   }
 
   @Override
@@ -157,7 +157,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
       AcslMemoryLocationSet memLocation = memoryLocationSetConverter.visit(loc.tset());
       locationSetBuilder.add(memLocation);
     }
-    return new AcslAssigns(fileLocation, locationSetBuilder.build());
+    return new AcslAssigns(fileLocationFromContext(ctx), locationSetBuilder.build());
   }
 
   @Override
