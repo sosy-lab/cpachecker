@@ -181,14 +181,10 @@ public class AcslParser {
     return commentString;
   }
 
-  public static class AcslParseException extends Exception {
+  public static final class AcslParseException extends Exception {
     @Serial private static final long serialVersionUID = -8907490123042996735L;
 
-    public AcslParseException(String pMsg) {
-      super(checkNotNull(pMsg));
-    }
-
-    public AcslParseException(String pMsg, Throwable pCause) {
+    private AcslParseException(String pMsg, Throwable pCause) {
       super(checkNotNull(pMsg), checkNotNull(pCause));
     }
   }
