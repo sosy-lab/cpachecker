@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types.acsl;
 
-import static org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUtils.anyPermutationOf;
-
+import java.util.function.BiPredicate;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -21,6 +20,12 @@ public sealed interface AcslType extends Type
         AcslPointerType,
         AcslPredicateType,
         AcslSetType {
+
+  /** Whether the relation holds for the two values in any order. */
+  private static boolean anyPermutationOf(
+      BiPredicate<AcslType, AcslType> f, AcslType a, AcslType b) {
+    return f.test(a, b) || f.test(b, a);
+  }
 
   private static boolean canBePromotedToInteger(AcslCType pCType) {
     return pCType.getType() instanceof CSimpleType pSimpleType
