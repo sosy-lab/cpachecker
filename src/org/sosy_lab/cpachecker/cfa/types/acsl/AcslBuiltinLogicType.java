@@ -14,11 +14,6 @@ public enum AcslBuiltinLogicType implements AcslLogicType {
   BOOLEAN("boolean"),
   INTEGER("integer"),
   REAL("real"),
-  // Not part of the ACSL spec, but necessary to represent
-  // the type of an empty set, when we do not
-  // know what it contains
-  // DO NOT USE UNDER ANY CIRCUMSTANCE EXCEPT THAN WITH AN EMPTY SET
-  ANY("any"),
   ;
 
   private final String type;

@@ -122,7 +122,6 @@ public class AcslTypeHelper {
                   case BOOLEAN -> FormulaType.BooleanType;
                   case INTEGER -> FormulaType.IntegerType;
                   case REAL -> FormulaType.RationalType;
-                  case ANY -> throw new UnsupportedOperationException("Not yet implemented");
                 };
             case AcslPolymorphicType polyType ->
                 throw new UnsupportedOperationException("Not yet implemented");
