@@ -84,7 +84,7 @@ class TernaryConditionTermToAstConverter extends AbstractAntlrToAstConverter<Acs
 
     return new AcslFunctionCallTerm(
         fileLocationFromContext(ctx),
-        (AcslType) functionDeclaration.getType().getReturnType(),
+        functionDeclaration.getType().getReturnType(),
         new AcslIdTerm(fileLocationFromContext(ctx), functionDeclaration),
         arguments.build(),
         functionDeclaration);

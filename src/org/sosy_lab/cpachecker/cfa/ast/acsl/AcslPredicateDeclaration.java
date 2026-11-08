@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +52,12 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
   @Override
   public AcslPredicateType getType() {
     return (AcslPredicateType) super.getType();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public ImmutableList<AcslParameterDeclaration> getParameters() {
+    return (ImmutableList<AcslParameterDeclaration>) super.getParameters();
   }
 
   @Override

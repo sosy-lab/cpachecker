@@ -259,7 +259,7 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
 
     AcslFunctionDeclaration declaration = pAcslFunctionCallTerm.getDeclaration();
     FormulaType<?> returnType =
-        typeHelper.acslTypeToFormulaType((AcslType) declaration.getType().getReturnType());
+        typeHelper.acslTypeToFormulaType(declaration.getType().getReturnType());
 
     String functionName = "ACSL#" + declaration.getQualifiedName();
 

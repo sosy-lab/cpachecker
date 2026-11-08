@@ -268,8 +268,7 @@ public class AcslPredicateToFormulaVisitor
     int i = 0;
     for (AcslTerm param : pAcslPredicateApplicationPredicate.getParameters()) {
       Formula f = param.accept(termVisitor);
-      AcslParameterDeclaration paramDecl =
-          (AcslParameterDeclaration) declaration.getParameters().get(i);
+      AcslParameterDeclaration paramDecl = declaration.getParameters().get(i);
 
       // Check if a parameter of a different type was passed and try to cast it (e.g. an Int instead
       // of a Bitvector)

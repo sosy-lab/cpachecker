@@ -42,7 +42,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
     for (int i = 0; i < pParameters.size(); i++) {
       AcslType providedType = pParameters.get(i).getExpressionType();
-      AcslType expectedType = (AcslType) pPredicateDeclaration.getType().getParameters().get(i);
+      AcslType expectedType = pPredicateDeclaration.getType().getParameters().get(i);
       Verify.verify(
           providedTypeMatchesExpectedType(providedType, expectedType),
           "Provided parameter %s is not of the expected type.",

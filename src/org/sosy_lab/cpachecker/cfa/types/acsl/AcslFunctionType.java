@@ -10,18 +10,29 @@ package org.sosy_lab.cpachecker.cfa.types.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class AcslFunctionType extends AbstractFunctionType implements AcslType {
 
   @Serial private static final long serialVersionUID = -81455024380112316L;
 
-  public AcslFunctionType(Type pReturnType, List<AcslType> pParameters, boolean pTakesVarArgs) {
+  public AcslFunctionType(AcslType pReturnType, List<AcslType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
     checkNotNull(pReturnType);
     checkNotNull(pParameters);
+  }
+
+  @Override
+  public AcslType getReturnType() {
+    return (AcslType) super.getReturnType();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public ImmutableList<AcslType> getParameters() {
+    return (ImmutableList<AcslType>) super.getParameters();
   }
 }

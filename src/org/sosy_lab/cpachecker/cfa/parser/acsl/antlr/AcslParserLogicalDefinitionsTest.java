@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
-import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public class AcslParserLogicalDefinitionsTest {
 
@@ -129,7 +128,7 @@ public class AcslParserLogicalDefinitionsTest {
                             new AcslIdTerm(FileLocation.DUMMY, inputIndex)),
                         new AcslFunctionCallTerm(
                             FileLocation.DUMMY,
-                            (AcslType) maxArrayDeclaration.getType().getReturnType(),
+                            maxArrayDeclaration.getType().getReturnType(),
                             new AcslIdTerm(FileLocation.DUMMY, maxArrayDeclaration),
                             ImmutableList.of(
                                 new AcslIdTerm(FileLocation.DUMMY, inputArray),
@@ -153,7 +152,7 @@ public class AcslParserLogicalDefinitionsTest {
                     // False branch
                     new AcslFunctionCallTerm(
                         FileLocation.DUMMY,
-                        (AcslType) maxArrayDeclaration.getType().getReturnType(),
+                        maxArrayDeclaration.getType().getReturnType(),
                         new AcslIdTerm(FileLocation.DUMMY, maxArrayDeclaration),
                         ImmutableList.of(
                             new AcslIdTerm(FileLocation.DUMMY, inputArray),
@@ -240,7 +239,7 @@ public class AcslParserLogicalDefinitionsTest {
                             new AcslIdTerm(FileLocation.DUMMY, inputIndex)),
                         new AcslFunctionCallTerm(
                             FileLocation.DUMMY,
-                            (AcslType) minArrayDeclaration.getType().getReturnType(),
+                            minArrayDeclaration.getType().getReturnType(),
                             new AcslIdTerm(FileLocation.DUMMY, minArrayDeclaration),
                             ImmutableList.of(
                                 new AcslIdTerm(FileLocation.DUMMY, inputArray),
@@ -264,7 +263,7 @@ public class AcslParserLogicalDefinitionsTest {
                     // False branch
                     new AcslFunctionCallTerm(
                         FileLocation.DUMMY,
-                        (AcslType) minArrayDeclaration.getType().getReturnType(),
+                        minArrayDeclaration.getType().getReturnType(),
                         new AcslIdTerm(FileLocation.DUMMY, minArrayDeclaration),
                         ImmutableList.of(
                             new AcslIdTerm(FileLocation.DUMMY, inputArray),
@@ -349,7 +348,7 @@ public class AcslParserLogicalDefinitionsTest {
                         new AcslIdTerm(FileLocation.DUMMY, inputIndex)),
                     new AcslFunctionCallTerm(
                         FileLocation.DUMMY,
-                        (AcslType) sumArrayDeclaration.getType().getReturnType(),
+                        sumArrayDeclaration.getType().getReturnType(),
                         new AcslIdTerm(FileLocation.DUMMY, sumArrayDeclaration),
                         ImmutableList.of(
                             new AcslIdTerm(FileLocation.DUMMY, inputArray),
@@ -413,10 +412,10 @@ public class AcslParserLogicalDefinitionsTest {
                 // False branch
                 new AcslBinaryTerm(
                     FileLocation.DUMMY,
-                    (AcslType) fibDeclaration.getType().getReturnType(),
+                    fibDeclaration.getType().getReturnType(),
                     new AcslFunctionCallTerm(
                         FileLocation.DUMMY,
-                        (AcslType) fibDeclaration.getType().getReturnType(),
+                        fibDeclaration.getType().getReturnType(),
                         new AcslIdTerm(FileLocation.DUMMY, fibDeclaration),
                         ImmutableList.of(
                             new AcslBinaryTerm(
@@ -428,7 +427,7 @@ public class AcslParserLogicalDefinitionsTest {
                         fibDeclaration),
                     new AcslFunctionCallTerm(
                         FileLocation.DUMMY,
-                        (AcslType) fibDeclaration.getType().getReturnType(),
+                        fibDeclaration.getType().getReturnType(),
                         new AcslIdTerm(FileLocation.DUMMY, fibDeclaration),
                         ImmutableList.of(
                             new AcslBinaryTerm(

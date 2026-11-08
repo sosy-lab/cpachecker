@@ -59,7 +59,7 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
 
   @Override
   public AcslType getExpressionType() {
-    return (AcslType) getDeclaration().getType().getReturnType();
+    return getDeclaration().getType().getReturnType();
   }
 
   @Override
