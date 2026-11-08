@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslCVariableDeclaration extends AVariableDeclaration
     implements AcslDeclaration {

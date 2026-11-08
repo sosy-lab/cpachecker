@@ -19,11 +19,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslComment;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 

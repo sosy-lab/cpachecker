@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 

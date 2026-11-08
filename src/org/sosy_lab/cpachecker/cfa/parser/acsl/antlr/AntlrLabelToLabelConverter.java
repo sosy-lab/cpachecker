@@ -1,0 +1,37 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
+
+import com.google.common.collect.FluentIterable;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LabelIdContext;
+
+class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLabel> {
+
+  protected AntlrLabelToLabelConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
+  }
+
+  @Override
+  public AcslLabel visitLabelId(LabelIdContext ctx) {
+    String identifierName = ctx.getText();
+    if (FluentIterable.from(AcslBuiltinLabel.values())
+        .transform(AcslBuiltinLabel::getLabel)
+        .anyMatch(label -> label.equals(identifierName))) {
+      return AcslBuiltinLabel.of(identifierName);
+    }
+
+    return new AcslProgramLabel(identifierName, fileLocationFromContext(ctx));
+  }
+}

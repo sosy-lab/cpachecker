@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public sealed interface AcslSimpleDeclaration extends ASimpleDeclaration, AcslAstNode
     permits AcslDeclaration, AcslParameterDeclaration {

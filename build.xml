@@ -103,7 +103,7 @@ SPDX-License-Identifier: Apache-2.0
         <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" target="clean" inheritAll="false"/>
-        <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/parser/AntlrParser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/acsl/antlr/AntlrParser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
     </target>
 
@@ -163,7 +163,7 @@ SPDX-License-Identifier: Apache-2.0
             <echo message="Generate SV-LIB parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/AntlrParser.xml" inheritAll="false"/>
             <echo message="Generate ACSL parser if necessary" level="info"/>
-            <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/parser/AntlrParser.xml" inheritAll="false"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cfa/parser/acsl/antlr/AntlrParser.xml" inheritAll="false"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLParserBuild.xml" inheritAll="false"/>
     </target>
 

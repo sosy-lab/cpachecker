@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
     permits AcslExistsPredicate, AcslForallPredicate {

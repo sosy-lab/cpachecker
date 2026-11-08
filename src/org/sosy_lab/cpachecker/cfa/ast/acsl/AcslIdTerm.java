@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslIdTerm extends AIdExpression implements AcslTerm {
 

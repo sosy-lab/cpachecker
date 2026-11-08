@@ -14,6 +14,7 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 /**
  * Formally this differs from the ACSL syntax, since there a literal can only be contained in a term

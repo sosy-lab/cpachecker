@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
 
 // Formally a predicate is not a function, but it can be expressed as a function which returns
 // booleans

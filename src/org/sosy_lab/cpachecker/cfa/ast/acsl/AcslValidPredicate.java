@@ -16,6 +16,8 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslValidPredicate implements AcslPredicate {
   @Serial private static final long serialVersionUID = -69678901611906290L;

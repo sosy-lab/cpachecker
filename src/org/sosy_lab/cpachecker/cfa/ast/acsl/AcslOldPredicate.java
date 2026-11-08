@@ -15,6 +15,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslOldPredicate extends AbstractExpression implements AcslPredicate {
 

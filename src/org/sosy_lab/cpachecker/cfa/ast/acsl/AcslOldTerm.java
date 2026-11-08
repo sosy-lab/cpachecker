@@ -14,6 +14,7 @@ import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslOldTerm implements AcslTerm, AExpression {
 

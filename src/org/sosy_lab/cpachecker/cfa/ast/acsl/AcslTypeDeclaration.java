@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public abstract sealed class AcslTypeDeclaration extends AbstractDeclaration
     implements AcslDeclaration permits AcslTypeVariableDeclaration {

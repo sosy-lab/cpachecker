@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslSetType;
 
 public final class AcslMemoryLocationSetEmpty extends AcslMemoryLocationSet {
 

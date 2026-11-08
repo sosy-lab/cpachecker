@@ -72,8 +72,8 @@ src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLSymbols.java
 /src/org/sosy_lab/cpachecker/util/ltl/generated/
 /src/org/sosy_lab/cpachecker/cfa/parser/svlib/antlr/generated/
 
-# /src/org/sosy_lab/cpachecker/cfa/ast/acsl/generated/
-/src/org/sosy_lab/cpachecker/cfa/ast/acsl/parser/generated/
+# /src/org/sosy_lab/cpachecker/cfa/parser/acsl/antlr/
+/src/org/sosy_lab/cpachecker/cfa/parser/acsl/antlr/generated/
 
 # /test/programs/
 /test/programs/benchmarks

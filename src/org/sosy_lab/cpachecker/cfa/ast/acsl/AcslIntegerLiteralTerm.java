@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslIntegerLiteralTerm extends AcslLiteralTerm {
 

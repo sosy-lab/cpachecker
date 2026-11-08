@@ -8,16 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSetType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPointerType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslSetType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;

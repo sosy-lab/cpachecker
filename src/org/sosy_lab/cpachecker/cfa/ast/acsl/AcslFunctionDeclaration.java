@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslFunctionType;
 
 public final class AcslFunctionDeclaration extends AFunctionDeclaration
     implements AcslLogicDeclaration {
