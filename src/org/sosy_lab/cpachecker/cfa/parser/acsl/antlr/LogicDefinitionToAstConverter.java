@@ -37,17 +37,21 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogicDefinition> {
-  private final TermToAstConverter termConverter;
-  private final TypeToAstConverter typeConverter;
-  private final PredicateToAstConverter predicateConverter;
 
   LogicDefinitionToAstConverter(AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(CProgramScope.empty(), pAcslScope, pInitialFileLocation);
-    termConverter =
-        new TermToAstConverter(getCProgramScope(), getAcslScope(), pInitialFileLocation);
-    typeConverter = new TypeToAstConverter(getCProgramScope(), getAcslScope());
-    predicateConverter =
-        new PredicateToAstConverter(getCProgramScope(), getAcslScope(), pInitialFileLocation);
+  }
+
+  /** Returns the scope with the type variables of a definition, in which its types are parsed. */
+  private AcslScope scopeWithTypeVariables(List<AcslTypeVariableDeclaration> pTypeVariables) {
+    if (FluentIterable.from(pTypeVariables)
+            .transform(AcslTypeVariableDeclaration::getName)
+            .toSet()
+            .size()
+        != pTypeVariables.size()) {
+      throw new AcslParseRuntimeException("A type variable is declared twice in " + pTypeVariables);
+    }
+    return getAcslScope().withDeclarations(pTypeVariables);
   }
 
   private String parsePolyIdName(PolyIdContext ctx) {
@@ -76,7 +80,7 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
   }
 
   private List<@NonNull AcslParameterDeclaration> parseParameters(
-      ParametersContext ctx, String functionName) {
+      ParametersContext ctx, String functionName, TypeToAstConverter typeConverter) {
     return FluentIterable.from(ctx.children)
         .filter(
             elem ->
@@ -103,17 +107,13 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
     List<@NonNull AcslTypeVariableDeclaration> polymorphicTypes = parsePolyTypes(polyIdContext);
     String functionName = parsePolyIdName(polyIdContext);
 
-    for (AcslTypeVariableDeclaration polymorphicType : polymorphicTypes) {
-      if (!getAcslScope().registerTypeDeclaration(polymorphicType)) {
-        throw new AcslParseRuntimeException(
-            "Polymorphic type " + polymorphicType + " already exists");
-      }
-    }
+    AcslScope typeScope = scopeWithTypeVariables(polymorphicTypes);
 
     // Solving this through a visitor would be nicer, but seems like overkill
     ParametersContext parametersContext = ctx.parameters();
     List<@NonNull AcslParameterDeclaration> parameters =
-        parseParameters(parametersContext, functionName);
+        parseParameters(
+            parametersContext, functionName, new TypeToAstConverter(getCProgramScope(), typeScope));
 
     AcslPredicateDeclaration predicateDeclaration =
         new AcslPredicateDeclaration(
@@ -125,13 +125,13 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
             polymorphicTypes,
             parameters);
 
-    for (AcslParameterDeclaration parameter : parameters) {
-      getAcslScope().registerDeclaration(parameter);
-    }
-
-    getAcslScope().registerDeclaration(predicateDeclaration);
-
-    AcslPredicate body = predicateConverter.visit(ctx.pred());
+    // The parameters and the predicate itself, for recursion, are visible in the body
+    AcslPredicate body =
+        new PredicateToAstConverter(
+                getCProgramScope(),
+                typeScope.withDeclarations(parameters).withDeclaration(predicateDeclaration),
+                getInitialFileLocation())
+            .visit(ctx.pred());
     return new AcslLogicPredicateDefinition(
         fileLocationFromContext(ctx), predicateDeclaration, body);
   }
@@ -146,19 +146,15 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
     List<@NonNull AcslTypeVariableDeclaration> polymorphicTypes = parsePolyTypes(polyIdContext);
     String functionName = parsePolyIdName(polyIdContext);
 
-    for (AcslTypeVariableDeclaration polymorphicType : polymorphicTypes) {
-      if (!getAcslScope().registerTypeDeclaration(polymorphicType)) {
-        throw new AcslParseRuntimeException(
-            "Polymorphic type " + polymorphicType + " already exists");
-      }
-    }
+    AcslScope typeScope = scopeWithTypeVariables(polymorphicTypes);
+    TypeToAstConverter typeConverter = new TypeToAstConverter(getCProgramScope(), typeScope);
 
     AcslType returnType = typeConverter.visit(ctx.typeExpr());
 
     // Solving this through a visitor would be nicer, but seems like overkill
     ParametersContext parametersContext = ctx.parameters();
     List<@NonNull AcslParameterDeclaration> parameters =
-        parseParameters(parametersContext, functionName);
+        parseParameters(parametersContext, functionName, typeConverter);
 
     AcslFunctionDeclaration functionDeclaration =
         new AcslFunctionDeclaration(
@@ -172,13 +168,13 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
             polymorphicTypes,
             parameters);
 
-    for (AcslParameterDeclaration parameter : parameters) {
-      getAcslScope().registerDeclaration(parameter);
-    }
-
-    getAcslScope().registerDeclaration(functionDeclaration);
-
-    AcslTerm body = termConverter.visit(ctx.term());
+    // The parameters and the function itself, for recursion, are visible in the body
+    AcslTerm body =
+        new TermToAstConverter(
+                getCProgramScope(),
+                typeScope.withDeclarations(parameters).withDeclaration(functionDeclaration),
+                getInitialFileLocation())
+            .visit(ctx.term());
     return new AcslLogicFunctionDefinition(fileLocationFromContext(ctx), functionDeclaration, body);
   }
 }

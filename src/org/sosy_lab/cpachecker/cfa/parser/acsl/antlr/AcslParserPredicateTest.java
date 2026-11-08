@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -643,5 +644,24 @@ public class AcslParserPredicateTest {
                 .filter(AcslIdTerm.class)
                 .transform(term -> term.getDeclaration().getName()))
         .containsExactly("ax", "x", "y", "z");
+  }
+
+  @Test
+  public void bindersAreOnlyVisibleInTheirQuantifier() throws AcslParseException {
+    assertThat(
+            AcslParser.parsePredicate(
+                "\\forall integer k; k == k",
+                getCProgramScope(),
+                getAcslScope(),
+                FileLocation.DUMMY))
+        .isInstanceOf(AcslQuantifiedPredicate.class);
+    assertThrows(
+        AcslParseException.class,
+        () ->
+            AcslParser.parsePredicate(
+                "(\\forall integer k; k == k) && k == 0",
+                getCProgramScope(),
+                getAcslScope(),
+                FileLocation.DUMMY));
   }
 }

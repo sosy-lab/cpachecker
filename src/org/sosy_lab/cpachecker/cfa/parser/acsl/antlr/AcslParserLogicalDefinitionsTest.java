@@ -50,9 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
 public class AcslParserLogicalDefinitionsTest {
 
   private AcslScope getAcslScope() {
-    AcslScope scope = AcslScope.mutableCopy(AcslScope.empty());
-
-    return scope;
+    return AcslScope.empty();
   }
 
   private void testLogicalFunctionParsing(String input, AcslAstNode output)

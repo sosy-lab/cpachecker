@@ -8,110 +8,95 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 /**
- * Symbol table for the logic declarations of ACSL annotations. It is independent of the C scope.
+ * Immutable symbol table for the logic declarations of ACSL annotations. It is independent of the C
+ * scope.
  */
-public class AcslScope {
+public final class AcslScope {
 
-  private final Multimap<String, AcslFunctionDeclaration> functionDeclarations;
+  private static final AcslScope EMPTY =
+      new AcslScope(
+          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of());
 
-  private final Multimap<String, AcslPredicateDeclaration> predicateDeclarations;
-
-  private final Multimap<String, AcslSimpleDeclaration> simpleDeclarations;
-
-  private final Multimap<String, AcslPolymorphicType> polymorphicTypeDeclarations;
+  private final PersistentMap<String, AcslFunctionDeclaration> functionDeclarations;
+  private final PersistentMap<String, AcslPredicateDeclaration> predicateDeclarations;
+  private final PersistentMap<String, AcslSimpleDeclaration> variableDeclarations;
+  private final PersistentMap<String, AcslType> typeVariables;
 
   private AcslScope(
-      Multimap<String, AcslFunctionDeclaration> pFunctionDeclarations,
-      Multimap<String, AcslPredicateDeclaration> pPredicateDeclarations,
-      Multimap<String, AcslSimpleDeclaration> pSimpleDeclarations,
-      Multimap<String, AcslPolymorphicType> pPolymorphicTypeDeclarations) {
+      PersistentMap<String, AcslFunctionDeclaration> pFunctionDeclarations,
+      PersistentMap<String, AcslPredicateDeclaration> pPredicateDeclarations,
+      PersistentMap<String, AcslSimpleDeclaration> pVariableDeclarations,
+      PersistentMap<String, AcslType> pTypeVariables) {
     functionDeclarations = pFunctionDeclarations;
     predicateDeclarations = pPredicateDeclarations;
-    simpleDeclarations = pSimpleDeclarations;
-    polymorphicTypeDeclarations = pPolymorphicTypeDeclarations;
+    variableDeclarations = pVariableDeclarations;
+    typeVariables = pTypeVariables;
   }
 
   public static AcslScope empty() {
-    return new AcslScope(
-        ImmutableListMultimap.of(),
-        ImmutableListMultimap.of(),
-        ImmutableListMultimap.of(),
-        ImmutableListMultimap.of());
-  }
-
-  public static AcslScope mutableCopy(AcslScope pScope) {
-    return new AcslScope(
-        LinkedListMultimap.create(pScope.functionDeclarations),
-        LinkedListMultimap.create(pScope.predicateDeclarations),
-        LinkedListMultimap.create(pScope.simpleDeclarations),
-        LinkedListMultimap.create(pScope.polymorphicTypeDeclarations));
-  }
-
-  public @Nullable AcslSimpleDeclaration lookupVariable(String name) {
-    if (simpleDeclarations.containsKey(name)) {
-      return simpleDeclarations.get(name).iterator().next();
-    }
-
-    return null;
-  }
-
-  public @Nullable AcslFunctionDeclaration lookupFunction(String name) {
-    if (functionDeclarations.containsKey(name)) {
-      return functionDeclarations.get(name).iterator().next();
-    }
-
-    return null;
-  }
-
-  public @Nullable AcslPredicateDeclaration lookupPredicate(String name) {
-    if (predicateDeclarations.containsKey(name)) {
-      return predicateDeclarations.get(name).iterator().next();
-    }
-
-    return null;
-  }
-
-  public @Nullable AcslType lookupType(String name) {
-    if (polymorphicTypeDeclarations.containsKey(name)) {
-      return polymorphicTypeDeclarations.get(name).iterator().next();
-    }
-
-    return null;
-  }
-
-  public void registerDeclaration(AcslSimpleDeclaration declaration) {
-    if (declaration instanceof AcslFunctionDeclaration pFunctionDeclaration) {
-      functionDeclarations.put(pFunctionDeclaration.getName(), pFunctionDeclaration);
-    } else if (declaration instanceof AcslPredicateDeclaration pPredicateDeclaration) {
-      predicateDeclarations.put(pPredicateDeclaration.getName(), pPredicateDeclaration);
-    } else {
-      simpleDeclarations.put(declaration.getName(), declaration);
-    }
+    return EMPTY;
   }
 
   /**
-   * Register a type declaration.
-   *
-   * @return True if the type was registered, False if it is not a polymorphic type.
+   * Returns a scope that additionally contains the given declarations. A declaration hides a
+   * declaration of the same kind with the same name, e.g., a binder of a quantifier hides a
+   * parameter of a logic function.
    */
-  public boolean registerTypeDeclaration(AcslTypeVariableDeclaration declaration) {
-    if (declaration.getType() instanceof AcslPolymorphicType pPolymorphicType) {
-      polymorphicTypeDeclarations.put(declaration.getName(), pPolymorphicType);
-      return true;
+  public AcslScope withDeclarations(Iterable<? extends AcslSimpleDeclaration> pDeclarations) {
+    PersistentMap<String, AcslFunctionDeclaration> functions = functionDeclarations;
+    PersistentMap<String, AcslPredicateDeclaration> predicates = predicateDeclarations;
+    PersistentMap<String, AcslSimpleDeclaration> variables = variableDeclarations;
+    PersistentMap<String, AcslType> types = typeVariables;
+    for (AcslSimpleDeclaration declaration : pDeclarations) {
+      switch (declaration) {
+        case AcslFunctionDeclaration function ->
+            functions = functions.putAndCopy(function.getName(), function);
+        case AcslPredicateDeclaration predicate ->
+            predicates = predicates.putAndCopy(predicate.getName(), predicate);
+        case AcslTypeVariableDeclaration typeVariable ->
+            types = types.putAndCopy(typeVariable.getName(), typeVariable.getType());
+        case AcslParameterDeclaration parameter ->
+            variables = variables.putAndCopy(parameter.getName(), parameter);
+        case AcslCVariableDeclaration variable ->
+            variables = variables.putAndCopy(variable.getName(), variable);
+      }
     }
+    return new AcslScope(functions, predicates, variables, types);
+  }
 
-    return false;
+  public AcslScope withDeclaration(AcslSimpleDeclaration pDeclaration) {
+    return withDeclarations(ImmutableList.of(pDeclaration));
+  }
+
+  public @Nullable AcslSimpleDeclaration lookupVariable(String name) {
+    return variableDeclarations.get(name);
+  }
+
+  public @Nullable AcslFunctionDeclaration lookupFunction(String name) {
+    return functionDeclarations.get(name);
+  }
+
+  public @Nullable AcslPredicateDeclaration lookupPredicate(String name) {
+    return predicateDeclarations.get(name);
+  }
+
+  public @Nullable AcslType lookupType(String name) {
+    return typeVariables.get(name);
   }
 }

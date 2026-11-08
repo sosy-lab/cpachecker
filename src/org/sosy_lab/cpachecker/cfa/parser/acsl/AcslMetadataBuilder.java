@@ -73,7 +73,7 @@ public final class AcslMetadataBuilder {
                 .filter(CVariableDeclaration.class)
                 .toSet());
 
-    AcslScope acslScope = AcslScope.mutableCopy(AcslScope.empty());
+    AcslScope acslScope = AcslScope.empty();
     ImmutableList<AcslComment> allComments =
         ImmutableList.copyOf(
             pResult
@@ -228,8 +228,11 @@ public final class AcslMetadataBuilder {
               entry.getFunctionName(),
               Lists.transform(pFunctionContract.getBehaviors(), AcslBehavior::getName));
         }
-        case AcslLogicDefinitionAnnotation pLogicDef ->
-            globalDeclarationBuilder.add(pLogicDef.getDeclaration());
+        case AcslLogicDefinitionAnnotation pLogicDef -> {
+          globalDeclarationBuilder.add(pLogicDef.getDeclaration());
+          // The later annotations can use the logic definition
+          acslScope = acslScope.withDeclaration(pLogicDef.getDeclaration());
+        }
         case null ->
             throw new AcslMetadataCreationException(
                 "Annotation for acsl comment " + comment + " is null.");

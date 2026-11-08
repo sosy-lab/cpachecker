@@ -237,11 +237,13 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
     }
 
     List<AcslParameterDeclaration> binders = parameters.build();
-    for (AcslParameterDeclaration binder : binders) {
-      getAcslScope().registerDeclaration(binder);
-    }
-
-    AcslPredicate predicate = visit(pPredicate);
+    // The binders are only visible in the quantified predicate
+    AcslPredicate predicate =
+        new PredicateToAstConverter(
+                getCProgramScope(),
+                getAcslScope().withDeclarations(binders),
+                getInitialFileLocation())
+            .visit(pPredicate);
 
     return new AcslQuantifiedPredicate(
         fileLocationFromContext(pBindersContext),

@@ -56,6 +56,10 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
     return acslScope;
   }
 
+  protected FileLocation getInitialFileLocation() {
+    return initialFileLocation;
+  }
+
   public CProgramScope getCProgramScope() {
     return cProgramScope;
   }

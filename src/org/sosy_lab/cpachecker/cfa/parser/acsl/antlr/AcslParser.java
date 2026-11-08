@@ -80,8 +80,7 @@ public class AcslParser {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
     try {
-      return new PredicateToAstConverter(
-              pCProgramScope, AcslScope.mutableCopy(pAcslScope), pInitialFileLocation)
+      return new PredicateToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation)
           .visit(tree);
     } catch (AcslParseRuntimeException e) {
       throw new AcslParseException(e.getMessage(), e);
@@ -94,9 +93,7 @@ public class AcslParser {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.logicDef());
     try {
-      return new LogicDefinitionToAstConverter(
-              AcslScope.mutableCopy(pAcslScope), pInitialFileLocation)
-          .visit(tree);
+      return new LogicDefinitionToAstConverter(pAcslScope, pInitialFileLocation).visit(tree);
     } catch (AcslParseRuntimeException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
