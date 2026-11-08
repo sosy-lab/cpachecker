@@ -12,6 +12,7 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,6 +24,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -64,6 +66,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   private final InterpreterWitnessExporter witnessExporter;
   private final @Nullable InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
+  private final ImmutableSet<String> allocationsThatCannotFail;
   private final boolean collectInvariants;
 
   InterpreterTransferRelation(
@@ -73,7 +76,8 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       InterpreterStatistics pStats,
       InterpreterWitnessExporter pWitnessExporter,
       @Nullable InterpreterSampler pSampler,
-      @Nullable ValueTransferOptions pValueTransferOptions) {
+      @Nullable ValueTransferOptions pValueTransferOptions,
+      ImmutableSet<String> pAllocationsThatCannotFail) {
     super(pWrapped);
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
@@ -81,6 +85,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     witnessExporter = pWitnessExporter;
     sampler = pSampler;
     valueTransferOptions = pValueTransferOptions;
+    allocationsThatCannotFail = pAllocationsThatCannotFail;
     collectInvariants = pWitnessExporter.collectsInvariants();
   }
 
@@ -132,7 +137,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     }
 
     AbstractState state = wrappedState;
-    AlgorithmStatus status = statusAfterUnhandledCalls(pState.getStatus(), locationState);
+    AlgorithmStatus status = statusAfterCalls(pState.getStatus(), locationState);
     List<InterpreterStep> steps =
         computeSteps(
             state,
@@ -180,30 +185,47 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   }
 
   /**
-   * Account for the calls that the value analysis does not handle: their side effects are ignored
-   * and the value they return is over-approximated, which makes the execution unsound or imprecise.
-   * Every leaving edge is accounted for, even if the specification subsequently removes its
-   * successors.
+   * Account for the calls whose effect the wrapped analysis does not execute exactly: a call that
+   * the value analysis does not handle has its side effects ignored and its return value
+   * over-approximated, and an allocation that the analysis models as always successful hides the
+   * execution in which it fails. Both make the execution unsound or imprecise. Every leaving edge
+   * is accounted for, even if the specification subsequently removes its successors.
    */
-  private AlgorithmStatus statusAfterUnhandledCalls(
+  private AlgorithmStatus statusAfterCalls(
       AlgorithmStatus pStatus, AbstractStateWithLocations pLocationState)
       throws UnsupportedCodeException {
 
-    if (valueTransferOptions == null) {
-      return pStatus;
-    }
     AlgorithmStatus status = pStatus;
     for (CFAEdge edge : pLocationState.getOutgoingEdges()) {
       if (edge instanceof CStatementEdge statementEdge
           && !(edge instanceof CFunctionSummaryStatementEdge)
           && statementEdge.getStatement() instanceof CFunctionCall functionCall) {
-        status =
-            status.update(
-                ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls(
-                    statementEdge, functionCall, valueTransferOptions, logger));
+        if (valueTransferOptions != null) {
+          status =
+              status.update(
+                  ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls(
+                      statementEdge, functionCall, valueTransferOptions, logger));
+        }
+        if (isAllocationThatCannotFail(functionCall)) {
+          logger.logfOnce(
+              Level.WARNING,
+              "The execution assumes that the allocation in %s succeeds, so it cannot prove that"
+                  + " the program is safe. It can still report a property violation.",
+              statementEdge.getFileLocation());
+          status = status.withSound(false);
+        }
       }
     }
     return status;
+  }
+
+  /** Whether the given call allocates memory and the wrapped analysis lets it never fail. */
+  private boolean isAllocationThatCannotFail(CFunctionCall pFunctionCall) {
+    if (allocationsThatCannotFail.isEmpty()) {
+      return false;
+    }
+    CFunctionDeclaration declaration = pFunctionCall.getFunctionCallExpression().getDeclaration();
+    return declaration != null && allocationsThatCannotFail.contains(declaration.getName());
   }
 
   /**

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -69,6 +71,7 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
   private final InterpreterWitnessExporter witnessExporter;
   private final @Nullable InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
+  private final ImmutableSet<String> allocationsThatCannotFail;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(InterpreterCPA.class);
@@ -91,6 +94,23 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
         sampleNondeterministicValues ? new InterpreterSampler(pConfig, pCfa, logger, stats) : null;
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();
+    allocationsThatCannotFail = allocationsThatCannotFail(CPAs.retrieveCPA(pCpa, SMGCPA.class));
+  }
+
+  /**
+   * The allocation functions whose call the wrapped analysis models as always successful. An
+   * execution that calls one of them is only the execution in which the allocation succeeds, so it
+   * cannot prove that the program is safe (cf. {@link InterpreterState}). If the wrapped analysis
+   * models a failing allocation, the call has two successors and the execution ends there instead.
+   */
+  private static ImmutableSet<String> allocationsThatCannotFail(@Nullable SMGCPA pSmg) {
+    if (pSmg == null || pSmg.getSMGOptions().isEnableMallocFailure()) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.<String>builder()
+        .addAll(pSmg.getSMGOptions().getMemoryAllocationFunctions())
+        .addAll(pSmg.getSMGOptions().getArrayAllocationFunctions())
+        .build();
   }
 
   @Override
@@ -108,7 +128,8 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
         stats,
         witnessExporter,
         sampler,
-        valueTransferOptions);
+        valueTransferOptions,
+        allocationsThatCannotFail);
   }
 
   @Override
