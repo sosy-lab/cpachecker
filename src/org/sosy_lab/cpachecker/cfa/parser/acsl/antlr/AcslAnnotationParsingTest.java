@@ -19,7 +19,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
@@ -352,7 +352,7 @@ ensures x <= 10;
                     declaration),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-                AcslBinaryTermExpressionOperator.EQUALS));
+                AcslBinaryTermPredicateOperator.EQUALS));
     String input = "assert is_positive(a) == 1;";
     AAcslAnnotation parsed =
         AcslParser.parseAcslComment(input, FileLocation.DUMMY, scope, acslScope);
@@ -372,7 +372,7 @@ ensures x <= 10;
                         Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-            AcslBinaryTermExpressionOperator.EQUALS));
+            AcslBinaryTermPredicateOperator.EQUALS));
   }
 
   private AcslLoopInvariant getLoopInvariant() {
@@ -388,7 +388,7 @@ ensures x <= 10;
                         Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-            AcslBinaryTermExpressionOperator.LESS_EQUAL));
+            AcslBinaryTermPredicateOperator.LESS_EQUAL));
   }
 
   private AcslEnsures getEnsures() {
@@ -404,7 +404,7 @@ ensures x <= 10;
                         Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-            AcslBinaryTermExpressionOperator.LESS_EQUAL));
+            AcslBinaryTermPredicateOperator.LESS_EQUAL));
   }
 
   private AcslRequires getRequires() {
@@ -420,7 +420,7 @@ ensures x <= 10;
                         Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-            AcslBinaryTermExpressionOperator.EQUALS));
+            AcslBinaryTermPredicateOperator.EQUALS));
   }
 
   private AcslFunctionContract getFunctionContract() {

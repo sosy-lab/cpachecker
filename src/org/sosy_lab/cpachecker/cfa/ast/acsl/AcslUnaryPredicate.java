@@ -20,7 +20,7 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
   @Serial private static final long serialVersionUID = -6073836890768425L;
 
   public AcslUnaryPredicate(
-      FileLocation pFileLocation, AcslPredicate pOperand, AcslUnaryExpressionOperator pOperator) {
+      FileLocation pFileLocation, AcslPredicate pOperand, AcslUnaryPredicateOperator pOperator) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand, pOperator);
     checkNotNull(pFileLocation);
     checkNotNull(pOperand);
@@ -43,8 +43,8 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
   }
 
   @Override
-  public AcslUnaryExpressionOperator getOperator() {
-    return (AcslUnaryExpressionOperator) super.getOperator();
+  public AcslUnaryPredicateOperator getOperator() {
+    return (AcslUnaryPredicateOperator) super.getOperator();
   }
 
   @Override
@@ -64,18 +64,18 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
     return obj instanceof AcslUnaryPredicate && super.equals(obj);
   }
 
-  public enum AcslUnaryExpressionOperator implements AUnaryOperator {
+  public enum AcslUnaryPredicateOperator implements AUnaryOperator {
     NEGATION("!"),
     ;
 
     private final String operator;
 
-    AcslUnaryExpressionOperator(String pOperator) {
+    AcslUnaryPredicateOperator(String pOperator) {
       operator = pOperator;
     }
 
-    public static AcslUnaryExpressionOperator of(String pOperator) {
-      for (AcslUnaryExpressionOperator op : values()) {
+    public static AcslUnaryPredicateOperator of(String pOperator) {
+      for (AcslUnaryPredicateOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }

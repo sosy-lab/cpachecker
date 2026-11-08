@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
@@ -178,7 +178,7 @@ public class AcslParserPredicateTest {
                         Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-            AcslBinaryTermExpressionOperator.EQUALS);
+            AcslBinaryTermPredicateOperator.EQUALS);
     String input = "x == 10";
 
     testPredicateParsing(input, output);
@@ -199,8 +199,8 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-                AcslBinaryTermExpressionOperator.EQUALS),
-            AcslUnaryExpressionOperator.NEGATION);
+                AcslBinaryTermPredicateOperator.EQUALS),
+            AcslUnaryPredicateOperator.NEGATION);
     String input = "!(x == 10)";
 
     testPredicateParsing(input, output);
@@ -231,7 +231,7 @@ public class AcslParserPredicateTest {
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(2)),
                 AcslBinaryTermOperator.MINUS),
-            AcslBinaryTermExpressionOperator.EQUALS);
+            AcslBinaryTermPredicateOperator.EQUALS);
     String input = "x + 1 == 10 - 2";
 
     testPredicateParsing(input, output);
@@ -254,7 +254,7 @@ public class AcslParserPredicateTest {
                 AcslUnaryTermOperator.MINUS),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
-            AcslBinaryTermExpressionOperator.EQUALS);
+            AcslBinaryTermPredicateOperator.EQUALS);
     String input = "-x == 5";
 
     testPredicateParsing(input, output);
@@ -276,7 +276,7 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-                AcslBinaryTermExpressionOperator.LESS_THAN),
+                AcslBinaryTermPredicateOperator.LESS_THAN),
             // second operator
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
@@ -287,7 +287,7 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                AcslBinaryTermExpressionOperator.GREATER_THAN),
+                AcslBinaryTermPredicateOperator.GREATER_THAN),
             AcslBinaryPredicateOperator.AND);
     String input = "x < 10 && x > 0";
 
@@ -309,7 +309,7 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x"))))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-            AcslBinaryTermExpressionOperator.LESS_THAN);
+            AcslBinaryTermPredicateOperator.LESS_THAN);
     String input = "\\old(x) < 0";
 
     testPredicateParsing(input, output);
@@ -330,7 +330,7 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(-1)),
-                AcslBinaryTermExpressionOperator.LESS_EQUAL));
+                AcslBinaryTermPredicateOperator.LESS_EQUAL));
     String input = "\\old(x <= -1)";
 
     testPredicateParsing(input, output);
@@ -350,7 +350,7 @@ public class AcslParserPredicateTest {
                         .getReturnType())),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-            AcslBinaryTermExpressionOperator.GREATER_THAN);
+            AcslBinaryTermPredicateOperator.GREATER_THAN);
     String input = "\\result > 1";
 
     testPredicateParsing(input, output);
@@ -372,7 +372,7 @@ public class AcslParserPredicateTest {
                 AcslBuiltinLabel.PRE),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-            AcslBinaryTermExpressionOperator.GREATER_THAN);
+            AcslBinaryTermPredicateOperator.GREATER_THAN);
     String input = "\\at(x, Pre) > 1";
 
     testPredicateParsing(input, output);
@@ -397,7 +397,7 @@ public class AcslParserPredicateTest {
                 AcslBinaryTermOperator.PLUS),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-            AcslBinaryTermExpressionOperator.EQUALS);
+            AcslBinaryTermPredicateOperator.EQUALS);
     String input = "x + 1";
 
     testPredicateParsing(input, output);
@@ -419,7 +419,7 @@ public class AcslParserPredicateTest {
                 new AcslProgramLabel("a", FileLocation.DUMMY)),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-            AcslBinaryTermExpressionOperator.GREATER_THAN);
+            AcslBinaryTermPredicateOperator.GREATER_THAN);
     String input = "\\at(x, a) > 1";
 
     testPredicateParsing(input, output);
@@ -441,7 +441,7 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                AcslBinaryTermExpressionOperator.EQUALS),
+                AcslBinaryTermPredicateOperator.EQUALS),
             // If true operator
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
@@ -452,7 +452,7 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("y")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                AcslBinaryTermExpressionOperator.GREATER_THAN),
+                AcslBinaryTermPredicateOperator.GREATER_THAN),
             // If false operator
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
@@ -463,7 +463,7 @@ public class AcslParserPredicateTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("z")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                AcslBinaryTermExpressionOperator.LESS_THAN));
+                AcslBinaryTermPredicateOperator.LESS_THAN));
     String input = "x == 0 ? y > 0 : z < 0";
 
     testPredicateParsing(input, output);
@@ -488,7 +488,7 @@ public class AcslParserPredicateTest {
                                 Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                     new AcslIntegerLiteralTerm(
                         FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                    AcslBinaryTermExpressionOperator.EQUALS),
+                    AcslBinaryTermPredicateOperator.EQUALS),
                 // If true operator
                 new AcslBinaryTerm(
                     FileLocation.DUMMY,
@@ -517,7 +517,7 @@ public class AcslParserPredicateTest {
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(-1)),
             // Operator
-            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+            AcslBinaryTermPredicateOperator.NOT_EQUALS);
     String input = "(x == 0 ? y + 1 : z - 2) != -1";
 
     testPredicateParsing(input, output);
@@ -565,7 +565,7 @@ public class AcslParserPredicateTest {
                 FileLocation.DUMMY,
                 new AcslIdTerm(FileLocation.DUMMY, x),
                 new AcslIdTerm(FileLocation.DUMMY, y),
-                AcslBinaryTermExpressionOperator.EQUALS));
+                AcslBinaryTermPredicateOperator.EQUALS));
     String input = "\\forall integer ax, real ay ; ax == ay";
 
     testPredicateParsing(input, output);
@@ -585,7 +585,7 @@ public class AcslParserPredicateTest {
                 FileLocation.DUMMY,
                 new AcslIdTerm(FileLocation.DUMMY, x),
                 new AcslIdTerm(FileLocation.DUMMY, y),
-                AcslBinaryTermExpressionOperator.EQUALS));
+                AcslBinaryTermPredicateOperator.EQUALS));
     String input = "\\forall integer ax, ay ; ax == ay";
 
     testPredicateParsing(input, output);
@@ -605,7 +605,7 @@ public class AcslParserPredicateTest {
                 FileLocation.DUMMY,
                 new AcslIdTerm(FileLocation.DUMMY, x),
                 new AcslIdTerm(FileLocation.DUMMY, y),
-                AcslBinaryTermExpressionOperator.EQUALS));
+                AcslBinaryTermPredicateOperator.EQUALS));
     String input = "\\exists integer ax, real ay ; ax == ay";
 
     testPredicateParsing(input, output);

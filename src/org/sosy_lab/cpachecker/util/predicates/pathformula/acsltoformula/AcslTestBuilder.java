@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -54,7 +54,7 @@ public class AcslTestBuilder {
   }
 
   private AcslPredicate binaryTermPred(
-      AcslTerm left, AcslTerm right, AcslBinaryTermExpressionOperator op) {
+      AcslTerm left, AcslTerm right, AcslBinaryTermPredicateOperator op) {
 
     return new AcslBinaryTermPredicate(DUMMY_LOC, left, right, op);
   }
@@ -104,27 +104,27 @@ public class AcslTestBuilder {
 
   // Predicates
   public AcslPredicate eq(AcslTerm left, AcslTerm right) {
-    return binaryTermPred(left, right, AcslBinaryTermExpressionOperator.EQUALS);
+    return binaryTermPred(left, right, AcslBinaryTermPredicateOperator.EQUALS);
   }
 
   public AcslPredicate neq(AcslTerm left, AcslTerm right) {
-    return binaryTermPred(left, right, AcslBinaryTermExpressionOperator.NOT_EQUALS);
+    return binaryTermPred(left, right, AcslBinaryTermPredicateOperator.NOT_EQUALS);
   }
 
   public AcslPredicate leq(AcslTerm left, AcslTerm right) {
-    return binaryTermPred(left, right, AcslBinaryTermExpressionOperator.LESS_EQUAL);
+    return binaryTermPred(left, right, AcslBinaryTermPredicateOperator.LESS_EQUAL);
   }
 
   public AcslPredicate lt(AcslTerm left, AcslTerm right) {
-    return binaryTermPred(left, right, AcslBinaryTermExpressionOperator.LESS_THAN);
+    return binaryTermPred(left, right, AcslBinaryTermPredicateOperator.LESS_THAN);
   }
 
   public AcslPredicate geq(AcslTerm left, AcslTerm right) {
-    return binaryTermPred(left, right, AcslBinaryTermExpressionOperator.GREATER_EQUAL);
+    return binaryTermPred(left, right, AcslBinaryTermPredicateOperator.GREATER_EQUAL);
   }
 
   public AcslPredicate gt(AcslTerm left, AcslTerm right) {
-    return binaryTermPred(left, right, AcslBinaryTermExpressionOperator.GREATER_THAN);
+    return binaryTermPred(left, right, AcslBinaryTermPredicateOperator.GREATER_THAN);
   }
 
   public AcslPredicate and(AcslPredicate left, AcslPredicate right) {
@@ -144,7 +144,7 @@ public class AcslTestBuilder {
   }
 
   public AcslPredicate not(AcslPredicate pred) {
-    return new AcslUnaryPredicate(DUMMY_LOC, pred, AcslUnaryExpressionOperator.NEGATION);
+    return new AcslUnaryPredicate(DUMMY_LOC, pred, AcslUnaryPredicateOperator.NEGATION);
   }
 
   public AcslPredicate ite(

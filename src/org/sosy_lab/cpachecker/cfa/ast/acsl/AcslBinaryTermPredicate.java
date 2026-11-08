@@ -24,7 +24,7 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
       FileLocation pFileLocation,
       AcslTerm pOperand1,
       AcslTerm pOperand2,
-      AcslBinaryTermExpressionOperator pOperator) {
+      AcslBinaryTermPredicateOperator pOperator) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
     checkNotNull(pFileLocation);
     checkNotNull(pOperand1);
@@ -53,8 +53,8 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
   }
 
   @Override
-  public AcslBinaryTermExpressionOperator getOperator() {
-    return (AcslBinaryTermExpressionOperator) super.getOperator();
+  public AcslBinaryTermPredicateOperator getOperator() {
+    return (AcslBinaryTermPredicateOperator) super.getOperator();
   }
 
   @Override
@@ -62,7 +62,7 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     return (AcslType) super.getExpressionType();
   }
 
-  public enum AcslBinaryTermExpressionOperator implements ABinaryOperator {
+  public enum AcslBinaryTermPredicateOperator implements ABinaryOperator {
     EQUALS("=="),
     NOT_EQUALS("!="),
     LESS_EQUAL("<="),
@@ -75,12 +75,12 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
 
     private final String operator;
 
-    AcslBinaryTermExpressionOperator(String pOperator) {
+    AcslBinaryTermPredicateOperator(String pOperator) {
       operator = pOperator;
     }
 
-    public static AcslBinaryTermExpressionOperator of(String pOperator) {
-      for (AcslBinaryTermExpressionOperator op : values()) {
+    public static AcslBinaryTermPredicateOperator of(String pOperator) {
+      for (AcslBinaryTermPredicateOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }

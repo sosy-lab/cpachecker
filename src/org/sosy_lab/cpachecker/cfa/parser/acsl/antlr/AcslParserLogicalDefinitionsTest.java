@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslFunctionType;
@@ -107,7 +107,7 @@ public class AcslParserLogicalDefinitionsTest {
                     new AcslIdTerm(FileLocation.DUMMY, inputIndex),
                     new AcslIntegerLiteralTerm(
                         FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                    AcslBinaryTermExpressionOperator.EQUALS),
+                    AcslBinaryTermPredicateOperator.EQUALS),
                 // True branch
                 new AcslArraySubscriptTerm(
                     FileLocation.DUMMY,
@@ -142,7 +142,7 @@ public class AcslParserLogicalDefinitionsTest {
                                         BigInteger.valueOf(1)),
                                     AcslBinaryTermOperator.MINUS)),
                             maxArrayDeclaration),
-                        AcslBinaryTermExpressionOperator.GREATER_THAN),
+                        AcslBinaryTermPredicateOperator.GREATER_THAN),
                     // True branch
                     new AcslArraySubscriptTerm(
                         FileLocation.DUMMY,
@@ -218,7 +218,7 @@ public class AcslParserLogicalDefinitionsTest {
                     new AcslIdTerm(FileLocation.DUMMY, inputIndex),
                     new AcslIntegerLiteralTerm(
                         FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                    AcslBinaryTermExpressionOperator.EQUALS),
+                    AcslBinaryTermPredicateOperator.EQUALS),
                 // True branch
                 new AcslArraySubscriptTerm(
                     FileLocation.DUMMY,
@@ -253,7 +253,7 @@ public class AcslParserLogicalDefinitionsTest {
                                         BigInteger.valueOf(1)),
                                     AcslBinaryTermOperator.MINUS)),
                             minArrayDeclaration),
-                        AcslBinaryTermExpressionOperator.LESS_THAN),
+                        AcslBinaryTermPredicateOperator.LESS_THAN),
                     // True branch
                     new AcslArraySubscriptTerm(
                         FileLocation.DUMMY,
@@ -329,7 +329,7 @@ public class AcslParserLogicalDefinitionsTest {
                     new AcslIdTerm(FileLocation.DUMMY, inputIndex),
                     new AcslIntegerLiteralTerm(
                         FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                    AcslBinaryTermExpressionOperator.EQUALS),
+                    AcslBinaryTermPredicateOperator.EQUALS),
                 // True branch
                 new AcslArraySubscriptTerm(
                     FileLocation.DUMMY,
@@ -400,12 +400,12 @@ public class AcslParserLogicalDefinitionsTest {
                         FileLocation.DUMMY,
                         new AcslIdTerm(FileLocation.DUMMY, inputValue),
                         AcslIntegerLiteralTerm.ZERO,
-                        AcslBinaryTermExpressionOperator.EQUALS),
+                        AcslBinaryTermPredicateOperator.EQUALS),
                     new AcslBinaryTermPredicate(
                         FileLocation.DUMMY,
                         new AcslIdTerm(FileLocation.DUMMY, inputValue),
                         AcslIntegerLiteralTerm.ONE,
-                        AcslBinaryTermExpressionOperator.EQUALS),
+                        AcslBinaryTermPredicateOperator.EQUALS),
                     AcslBinaryPredicateOperator.OR),
                 // True branch
                 new AcslIdTerm(FileLocation.DUMMY, inputValue),
@@ -501,19 +501,19 @@ public class AcslParserLogicalDefinitionsTest {
                             FileLocation.DUMMY,
                             new AcslIdTerm(FileLocation.DUMMY, secondIterator),
                             new AcslIdTerm(FileLocation.DUMMY, upperLimit),
-                            AcslBinaryTermExpressionOperator.LESS_EQUAL),
+                            AcslBinaryTermPredicateOperator.LESS_EQUAL),
                         new AcslBinaryPredicate(
                             FileLocation.DUMMY,
                             new AcslBinaryTermPredicate(
                                 FileLocation.DUMMY,
                                 new AcslIdTerm(FileLocation.DUMMY, firstIterator),
                                 new AcslIdTerm(FileLocation.DUMMY, secondIterator),
-                                AcslBinaryTermExpressionOperator.LESS_THAN),
+                                AcslBinaryTermPredicateOperator.LESS_THAN),
                             new AcslBinaryTermPredicate(
                                 FileLocation.DUMMY,
                                 new AcslIdTerm(FileLocation.DUMMY, lowerLimit),
                                 new AcslIdTerm(FileLocation.DUMMY, firstIterator),
-                                AcslBinaryTermExpressionOperator.LESS_EQUAL),
+                                AcslBinaryTermPredicateOperator.LESS_EQUAL),
                             AcslBinaryPredicateOperator.AND),
                         AcslBinaryPredicateOperator.AND),
                     // This is the implied condition
@@ -530,7 +530,7 @@ public class AcslParserLogicalDefinitionsTest {
                             polymorphicType,
                             new AcslIdTerm(FileLocation.DUMMY, inputArray),
                             new AcslIdTerm(FileLocation.DUMMY, secondIterator)),
-                        AcslBinaryTermExpressionOperator.LESS_THAN),
+                        AcslBinaryTermPredicateOperator.LESS_THAN),
                     AcslBinaryPredicateOperator.IMPLICATION)));
     String input =
         "Sorted<T>(T* a, integer i, integer j) = \\forall integer k, l ; i <= k < l <= j ==> a[k] <"
@@ -561,7 +561,7 @@ public class AcslParserLogicalDefinitionsTest {
             new AcslIdTerm(FileLocation.DUMMY, i),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-            AcslBinaryTermExpressionOperator.GREATER_EQUAL);
+            AcslBinaryTermPredicateOperator.GREATER_EQUAL);
     AcslLogicPredicateDefinition output =
         new AcslLogicPredicateDefinition(FileLocation.DUMMY, declaration, body);
     String input = "predicate is_positive(integer i) = i >= 0;";
@@ -603,8 +603,8 @@ public class AcslParserLogicalDefinitionsTest {
                 FileLocation.DUMMY,
                 new AcslIdTerm(FileLocation.DUMMY, p),
                 new AcslBooleanLiteralTerm(FileLocation.DUMMY, true),
-                AcslBinaryTermExpressionOperator.EQUALS),
-            AcslUnaryExpressionOperator.NEGATION);
+                AcslBinaryTermPredicateOperator.EQUALS),
+            AcslUnaryPredicateOperator.NEGATION);
     AcslLogicPredicateDefinition expected =
         new AcslLogicPredicateDefinition(FileLocation.DUMMY, declaration, body);
     testLogicalFunctionParsing(definition, expected);
@@ -638,7 +638,7 @@ public class AcslParserLogicalDefinitionsTest {
                 new AcslIdTerm(FileLocation.DUMMY, i),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                AcslBinaryTermExpressionOperator.GREATER_EQUAL),
+                AcslBinaryTermPredicateOperator.GREATER_EQUAL),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
             new AcslIntegerLiteralTerm(

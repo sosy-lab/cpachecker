@@ -15,13 +15,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.BinaryTermPredTernaryConditionContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ComparisonTermPredTernaryConditionContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LogicalFalseTermPredTernaryConditionContext;
@@ -71,8 +71,7 @@ class TernaryConditionPredicateToAstConverter extends AbstractAntlrToAstConverte
   @Override
   public AcslPredicate visitUnaryTermPredTernaryCondition(
       UnaryTermPredTernaryConditionContext ctx) {
-    AcslUnaryExpressionOperator operator =
-        AcslUnaryExpressionOperator.of(ctx.getChild(0).getText());
+    AcslUnaryPredicateOperator operator = AcslUnaryPredicateOperator.of(ctx.getChild(0).getText());
     AcslPredicate expression = visit(ctx.getChild(1));
 
     return new AcslUnaryPredicate(fileLocationFromContext(ctx), expression, operator);
@@ -104,8 +103,8 @@ class TernaryConditionPredicateToAstConverter extends AbstractAntlrToAstConverte
           "Unexpected number of children when creating comparison operator");
 
       AcslTerm leftTerm = termConverter.visit(ctx.getChild(i));
-      AcslBinaryTermExpressionOperator operator =
-          AcslBinaryTermExpressionOperator.of(ctx.getChild(i + 1).getText());
+      AcslBinaryTermPredicateOperator operator =
+          AcslBinaryTermPredicateOperator.of(ctx.getChild(i + 1).getText());
       AcslTerm righTerm = termConverter.visit(ctx.getChild(i + 2));
 
       AcslPredicate newComparison =
