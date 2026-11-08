@@ -15,8 +15,11 @@ import java.io.Serial;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
@@ -31,26 +34,42 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 
 public class AcslParser {
 
+  /** Reports syntax errors with an exception, because ANTLR only prints them by default. */
+  private static final class ThrowingErrorListener extends BaseErrorListener {
+
+    private static final ThrowingErrorListener INSTANCE = new ThrowingErrorListener();
+
+    @Override
+    public void syntaxError(
+        Recognizer<?, ?> pRecognizer,
+        Object pOffendingSymbol,
+        int pLine,
+        int pCharPositionInLine,
+        String pMsg,
+        RecognitionException pException) {
+      throw new ParseCancellationException(
+          "line " + pLine + ":" + pCharPositionInLine + " " + pMsg, pException);
+    }
+  }
+
   private static ParseTree generateParseTree(
       String pInput, Function<@NonNull AcslGrammarParser, ParseTree> pRuleToBeApplied)
       throws AcslParseException {
     checkNotNull(pInput);
 
-    ParseTree tree;
+    AcslGrammarLexer lexer = new AcslGrammarLexer(CharStreams.fromString(pInput));
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(ThrowingErrorListener.INSTANCE);
+    AcslGrammarParser parser = new AcslGrammarParser(new CommonTokenStream(lexer));
+    parser.removeErrorListeners();
+    parser.addErrorListener(ThrowingErrorListener.INSTANCE);
+
     try {
-      // create a lexer that feeds off of input CharStream
-      AcslGrammarLexer lexer = new AcslGrammarLexer(CharStreams.fromString(pInput));
-      // create a buffer of tokens pulled from the lexer
-      CommonTokenStream tokens = new CommonTokenStream(lexer);
-      // create a parser that feeds off the tokens buffer
-      AcslGrammarParser parser = new AcslGrammarParser(tokens);
-
-      tree = pRuleToBeApplied.apply(parser);
-
+      return Objects.requireNonNull(pRuleToBeApplied.apply(parser));
     } catch (ParseCancellationException e) {
-      throw new AcslParseException(e.getMessage(), e);
+      throw new AcslParseException(
+          "Syntax error in ACSL annotation '" + pInput + "': " + e.getMessage(), e);
     }
-    return Objects.requireNonNull(tree);
   }
 
   public static AcslPredicate parsePredicate(

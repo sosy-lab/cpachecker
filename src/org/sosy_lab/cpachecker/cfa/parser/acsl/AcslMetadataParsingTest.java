@@ -343,7 +343,7 @@ public class AcslMetadataParsingTest {
     } else if (programName.equals("empty_comment.c")) {
       AcslMetadataException exception =
           assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
-      assertThat(exception.getMessage()).contains("is of unknown type.");
+      assertThat(exception.getMessage()).contains("Syntax error");
     } else {
 
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
@@ -388,7 +388,7 @@ public class AcslMetadataParsingTest {
     } else if (programName.equals("empty_comment.c")) {
       AcslMetadataException exception =
           assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
-      assertThat(exception.getMessage()).contains("is of unknown type.");
+      assertThat(exception.getMessage()).contains("Syntax error");
     } else {
       CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata acslMetadata = cfa.getAcslMetadata();
@@ -434,7 +434,7 @@ public class AcslMetadataParsingTest {
     } else if (programName.equals("empty_comment.c")) {
       AcslMetadataException exception =
           assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
-      assertThat(exception.getMessage()).contains("is of unknown type.");
+      assertThat(exception.getMessage()).contains("Syntax error");
     } else {
       ImmutableCFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata metadata = cfa.getAcslMetadata();
