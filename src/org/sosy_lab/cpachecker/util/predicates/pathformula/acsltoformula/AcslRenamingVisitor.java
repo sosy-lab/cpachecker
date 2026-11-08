@@ -68,7 +68,7 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslPredicate visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
+  public AcslPredicate visit(AcslBinaryPredicate pBinaryExpression) {
     return new AcslBinaryPredicate(
         pBinaryExpression.getFileLocation(),
         pBinaryExpression.getOperand1().accept(this),
@@ -77,7 +77,7 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslPredicate visit(AcslUnaryPredicate pAcslUnaryPredicate) throws NoException {
+  public AcslPredicate visit(AcslUnaryPredicate pAcslUnaryPredicate) {
     return new AcslUnaryPredicate(
         pAcslUnaryPredicate.getFileLocation(),
         pAcslUnaryPredicate.getOperand().accept(this),
@@ -85,12 +85,12 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslPredicate visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
+  public AcslPredicate visit(AcslIdPredicate pAcslIdPredicate) {
     return pAcslIdPredicate;
   }
 
   @Override
-  public AcslPredicate visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
+  public AcslPredicate visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
     return new AcslBinaryTermPredicate(
         pAcslBinaryTermPredicate.getFileLocation(),
         pAcslBinaryTermPredicate.getOperand1().accept(this),
@@ -99,19 +99,18 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslPredicate visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
+  public AcslPredicate visit(AcslOldPredicate pAcslOldPredicate) {
     return new AcslOldPredicate(
         pAcslOldPredicate.getFileLocation(), pAcslOldPredicate.getExpression().accept(this));
   }
 
   @Override
-  public AcslPredicate visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate)
-      throws NoException {
+  public AcslPredicate visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) {
     return pAcslBooleanLiteralPredicate;
   }
 
   @Override
-  public AcslPredicate visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
+  public AcslPredicate visit(AcslTernaryPredicate pAcslTernaryPredicate) {
     return new AcslTernaryPredicate(
         pAcslTernaryPredicate.getFileLocation(),
         pAcslTernaryPredicate.getCondition().accept(this),
@@ -120,12 +119,12 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslPredicate visit(AcslValidPredicate pAcslValidPredicate) throws NoException {
+  public AcslPredicate visit(AcslValidPredicate pAcslValidPredicate) {
     return pAcslValidPredicate;
   }
 
   @Override
-  public AcslPredicate visit(AcslQuantifiedPredicate pQuantifiedPredicate) throws NoException {
+  public AcslPredicate visit(AcslQuantifiedPredicate pQuantifiedPredicate) {
     return new AcslQuantifiedPredicate(
         pQuantifiedPredicate.getFileLocation(),
         pQuantifiedPredicate.getQuantifier(),
@@ -134,8 +133,7 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslPredicate visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
-      throws NoException {
+  public AcslPredicate visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
     return new AcslPredicateApplicationPredicate(
         pAcslPredicateApplicationPredicate.getFileLocation(),
         pAcslPredicateApplicationPredicate.getPredicateDeclaration(),
@@ -145,7 +143,7 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslTerm visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
+  public AcslTerm visit(AcslUnaryTerm pAcslUnaryTerm) {
     return new AcslUnaryTerm(
         pAcslUnaryTerm.getFileLocation(),
         pAcslUnaryTerm.getExpressionType(),
@@ -154,22 +152,22 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslTerm visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
+  public AcslTerm visit(AcslStringLiteralTerm pAcslStringLiteralTerm) {
     return pAcslStringLiteralTerm;
   }
 
   @Override
-  public AcslTerm visit(AcslRealLiteralTerm pAcslRealLiteralTerm) throws NoException {
+  public AcslTerm visit(AcslRealLiteralTerm pAcslRealLiteralTerm) {
     return pAcslRealLiteralTerm;
   }
 
   @Override
-  public AcslTerm visit(AcslCharLiteralTerm pAcslCharLiteralTerm) throws NoException {
+  public AcslTerm visit(AcslCharLiteralTerm pAcslCharLiteralTerm) {
     return pAcslCharLiteralTerm;
   }
 
   @Override
-  public AcslTerm visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) throws NoException {
+  public AcslTerm visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) {
     return pAcslIntegerLiteralTerm;
   }
 
@@ -179,7 +177,7 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslTerm visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
+  public AcslTerm visit(AcslBinaryTerm pAcslBinaryTerm) {
     return new AcslBinaryTerm(
         pAcslBinaryTerm.getFileLocation(),
         pAcslBinaryTerm.getExpressionType(),
@@ -189,30 +187,30 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslTerm visit(AcslIdTerm pAcslIdTerm) throws NoException {
+  public AcslTerm visit(AcslIdTerm pAcslIdTerm) {
     AcslSimpleDeclaration declaration = pAcslIdTerm.getDeclaration();
     AcslSimpleDeclaration renamed = renamingMap.getOrDefault(declaration, declaration);
     return new AcslIdTerm(pAcslIdTerm.getFileLocation(), renamed);
   }
 
   @Override
-  public AcslTerm visit(AcslOldTerm pAcslOldTerm) throws NoException {
+  public AcslTerm visit(AcslOldTerm pAcslOldTerm) {
     return new AcslOldTerm(pAcslOldTerm.getFileLocation(), pAcslOldTerm.getTerm().accept(this));
   }
 
   @Override
-  public AcslTerm visit(AcslResultTerm pAcslResultTerm) throws NoException {
+  public AcslTerm visit(AcslResultTerm pAcslResultTerm) {
     return pAcslResultTerm;
   }
 
   @Override
-  public AcslTerm visit(AcslAtTerm pAcslAtTerm) throws NoException {
+  public AcslTerm visit(AcslAtTerm pAcslAtTerm) {
     return new AcslAtTerm(
         pAcslAtTerm.getFileLocation(), pAcslAtTerm.getTerm().accept(this), pAcslAtTerm.getLabel());
   }
 
   @Override
-  public AcslTerm visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
+  public AcslTerm visit(AcslTernaryTerm pAcslTernaryTerm) {
     return new AcslTernaryTerm(
         pAcslTernaryTerm.getFileLocation(),
         pAcslTernaryTerm.getCondition().accept(this),
@@ -221,7 +219,7 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslTerm visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
+  public AcslTerm visit(AcslFunctionCallTerm pAcslFunctionCallTerm) {
     return new AcslFunctionCallTerm(
         pAcslFunctionCallTerm.getFileLocation(),
         pAcslFunctionCallTerm.getExpressionType(),
@@ -233,7 +231,7 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslTerm visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
+  public AcslTerm visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) {
     return new AcslArraySubscriptTerm(
         pAcslArraySubscriptTerm.getFileLocation(),
         pAcslArraySubscriptTerm.getExpressionType(),

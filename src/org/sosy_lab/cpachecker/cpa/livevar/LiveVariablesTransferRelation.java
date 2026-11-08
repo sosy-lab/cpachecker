@@ -857,44 +857,42 @@ public class LiveVariablesTransferRelation
     }
 
     @Override
-    public Boolean visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
+    public Boolean visit(AcslIdPredicate pAcslIdPredicate) {
       return false;
     }
 
     @Override
-    public Boolean visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
+    public Boolean visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
       return false;
     }
 
     @Override
-    public Boolean visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
+    public Boolean visit(AcslOldPredicate pAcslOldPredicate) {
       return false;
     }
 
     @Override
-    public Boolean visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate)
-        throws NoException {
+    public Boolean visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) {
       return false;
     }
 
     @Override
-    public Boolean visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
+    public Boolean visit(AcslTernaryPredicate pAcslTernaryPredicate) {
       return false;
     }
 
     @Override
-    public Boolean visit(AcslValidPredicate pAcslValidPredicate) throws NoException {
+    public Boolean visit(AcslValidPredicate pAcslValidPredicate) {
       return false;
     }
 
     @Override
-    public Boolean visit(AcslQuantifiedPredicate pQuantifiedPredicate) throws NoException {
+    public Boolean visit(AcslQuantifiedPredicate pQuantifiedPredicate) {
       return false;
     }
 
     @Override
-    public Boolean visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
-        throws NoException {
+    public Boolean visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
       return false;
     }
   }

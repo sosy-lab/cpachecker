@@ -1209,14 +1209,12 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslFunctionDeclaration pAcslFunctionDeclaration)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslFunctionDeclaration pAcslFunctionDeclaration) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslParameterDeclaration pAcslParameterDeclaration)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslParameterDeclaration pAcslParameterDeclaration) {
       return ImmutableList.of();
     }
 
@@ -1503,17 +1501,17 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslOldTerm pAcslOldTerm) throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslOldTerm pAcslOldTerm) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslResultTerm pAcslResultTerm) throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslResultTerm pAcslResultTerm) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslAtTerm pAcslAtTerm) throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslAtTerm pAcslAtTerm) {
       return ImmutableList.of();
     }
 
@@ -1548,14 +1546,12 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslBuiltinLabel pAcslBuiltinLabel)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslBuiltinLabel pAcslBuiltinLabel) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslProgramLabel pAcslProgramLabel)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslProgramLabel pAcslProgramLabel) {
       return ImmutableList.of();
     }
 
@@ -1565,37 +1561,33 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslOldPredicate pAcslOldPredicate)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslOldPredicate pAcslOldPredicate) {
       return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) throws NoException {
+        AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslTernaryTerm pAcslTernaryTerm) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslFunctionCallTerm pAcslFunctionCallTerm)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslFunctionCallTerm pAcslFunctionCallTerm) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) {
       return ImmutableList.of();
     }
 
@@ -1605,50 +1597,47 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslTernaryPredicate pAcslTernaryPredicate)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslTernaryPredicate pAcslTernaryPredicate) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslValidPredicate pAcslValidPredicate)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslValidPredicate pAcslValidPredicate) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslQuantifiedPredicate pQuantifiedPredicate)
-        throws NoException {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(
-        AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslQuantifiedPredicate pQuantifiedPredicate) {
       return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        AcslMemoryLocationSetEmpty pAcslMemoryLocationSetEmpty) throws NoException {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(AcslMemoryLocationSetTerm pAcslMemoryLocationSetTerm)
-        throws NoException {
+        AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
       return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        AcslLogicFunctionDefinition pAcslLogicFunctionDefinition) throws NoException {
+        AcslMemoryLocationSetEmpty pAcslMemoryLocationSetEmpty) {
       return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        AcslLogicPredicateDefinition pAcslLogicPredicateDefinition) throws NoException {
+        AcslMemoryLocationSetTerm pAcslMemoryLocationSetTerm) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslLogicFunctionDefinition pAcslLogicFunctionDefinition) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslLogicPredicateDefinition pAcslLogicPredicateDefinition) {
       return ImmutableList.of();
     }
   }

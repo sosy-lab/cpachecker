@@ -144,7 +144,7 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
+  public BooleanFormula visit(AcslBinaryPredicate pBinaryExpression) {
     BooleanFormula operand1Formula = pBinaryExpression.getOperand1().accept(this);
     BooleanFormula operand2Formula = pBinaryExpression.getOperand2().accept(this);
 
@@ -157,7 +157,7 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslUnaryPredicate pAcslUnaryPredicate) throws NoException {
+  public BooleanFormula visit(AcslUnaryPredicate pAcslUnaryPredicate) {
     BooleanFormula operandFormula = pAcslUnaryPredicate.getOperand().accept(this);
 
     return switch (pAcslUnaryPredicate.getOperator()) {
@@ -166,13 +166,13 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
+  public BooleanFormula visit(AcslIdPredicate pAcslIdPredicate) {
     AcslPredicateDeclaration declaration = pAcslIdPredicate.getDeclaration();
     return bfmgr.makeVariable(declaration.getName());
   }
 
   @Override
-  public BooleanFormula visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
+  public BooleanFormula visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
     AcslType operand1Type = pAcslBinaryTermPredicate.getOperand1().getExpressionType();
     AcslType operand2Type = pAcslBinaryTermPredicate.getOperand2().getExpressionType();
     AcslType termType = pAcslBinaryTermPredicate.getExpressionType();
@@ -199,7 +199,7 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
+  public BooleanFormula visit(AcslOldPredicate pAcslOldPredicate) {
     if (functionEntrySsa.isEmpty()) {
       throw new UnsupportedOperationException(
           "\\old is not available without a SSA map at function entry");
@@ -219,13 +219,12 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate)
-      throws NoException {
+  public BooleanFormula visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) {
     return bfmgr.makeBoolean(pAcslBooleanLiteralPredicate.getValue());
   }
 
   @Override
-  public BooleanFormula visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
+  public BooleanFormula visit(AcslTernaryPredicate pAcslTernaryPredicate) {
     BooleanFormula conditionFormula = pAcslTernaryPredicate.getCondition().accept(this);
     BooleanFormula ifTrueFormula = pAcslTernaryPredicate.getResultIfTrue().accept(this);
     BooleanFormula ifFalseFormula = pAcslTernaryPredicate.getResultIfFalse().accept(this);
@@ -234,12 +233,12 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslValidPredicate pAcslValidPredicate) throws NoException {
+  public BooleanFormula visit(AcslValidPredicate pAcslValidPredicate) {
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
-  public BooleanFormula visit(AcslQuantifiedPredicate pQuantifiedPredicate) throws NoException {
+  public BooleanFormula visit(AcslQuantifiedPredicate pQuantifiedPredicate) {
     QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
     QuantifierData data = handleQuantifier(pQuantifiedPredicate);
     return switch (pQuantifiedPredicate.getQuantifier()) {
@@ -249,8 +248,8 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
-      throws NoException {
+  public BooleanFormula visit(
+      AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
     AcslPredicateDeclaration declaration =
         pAcslPredicateApplicationPredicate.getPredicateDeclaration();
 

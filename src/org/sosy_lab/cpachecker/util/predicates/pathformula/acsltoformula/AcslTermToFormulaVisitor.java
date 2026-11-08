@@ -123,7 +123,7 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
+  public Formula visit(AcslUnaryTerm pAcslUnaryTerm) {
     // TODO check negation vs bitwise complementation according to ACSL standard, see Issue #1640
     Formula operandFormula = pAcslUnaryTerm.getOperand().accept(this);
 
@@ -142,22 +142,22 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
+  public Formula visit(AcslStringLiteralTerm pAcslStringLiteralTerm) {
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
-  public Formula visit(AcslRealLiteralTerm pAcslRealLiteralTerm) throws NoException {
+  public Formula visit(AcslRealLiteralTerm pAcslRealLiteralTerm) {
     return fmgr.getRationalFormulaManager().makeNumber(pAcslRealLiteralTerm.getValue());
   }
 
   @Override
-  public Formula visit(AcslCharLiteralTerm pAcslCharLiteralTerm) throws NoException {
+  public Formula visit(AcslCharLiteralTerm pAcslCharLiteralTerm) {
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
-  public Formula visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) throws NoException {
+  public Formula visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) {
     return fmgr.getIntegerFormulaManager().makeNumber(pAcslIntegerLiteralTerm.getValue());
   }
 
@@ -167,7 +167,7 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
+  public Formula visit(AcslBinaryTerm pAcslBinaryTerm) {
     AcslType operand1Type = pAcslBinaryTerm.getOperand1().getExpressionType();
     AcslType operand2Type = pAcslBinaryTerm.getOperand2().getExpressionType();
     AcslType termType = pAcslBinaryTerm.getExpressionType();
@@ -202,7 +202,7 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslIdTerm pAcslIdTerm) throws NoException {
+  public Formula visit(AcslIdTerm pAcslIdTerm) {
     AcslSimpleDeclaration variable = pAcslIdTerm.getDeclaration();
     String varName = variable.getName();
     // Quantifier variables do not need tracking in the SSA map, use index 1 for them
@@ -213,7 +213,7 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslOldTerm pAcslOldTerm) throws NoException {
+  public Formula visit(AcslOldTerm pAcslOldTerm) {
     if (functionEntrySsa.isEmpty()) {
       throw new UnsupportedOperationException(
           "\\old is not available without a SSA map at function entry");
@@ -233,17 +233,17 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslResultTerm pAcslResultTerm) throws NoException {
+  public Formula visit(AcslResultTerm pAcslResultTerm) {
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
-  public Formula visit(AcslAtTerm pAcslAtTerm) throws NoException {
+  public Formula visit(AcslAtTerm pAcslAtTerm) {
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
-  public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
+  public Formula visit(AcslTernaryTerm pAcslTernaryTerm) {
     AcslPredicateToFormulaVisitor predicateVisitor =
         new AcslPredicateToFormulaVisitor(
             fmgr, this, functionEntrySsa, ctoFormulaConverter, machineModel, ptsb, constraints);
@@ -255,7 +255,7 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
+  public Formula visit(AcslFunctionCallTerm pAcslFunctionCallTerm) {
 
     AcslFunctionDeclaration declaration = pAcslFunctionCallTerm.getDeclaration();
     FormulaType<?> returnType =
@@ -275,7 +275,7 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   }
 
   @Override
-  public Formula visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
+  public Formula visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) {
     throw new UnsupportedOperationException("Not yet implemented, use AcslCExpression instead");
   }
 
