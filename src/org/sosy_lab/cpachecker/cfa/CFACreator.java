@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
@@ -871,7 +871,7 @@ public class CFACreator {
                         new AcslMetadataCreationException(
                             "The parse result has no acsl comments.")));
 
-    ImmutableSet.Builder<AcslDeclaration> globalDeclarationBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<AcslLogicDeclaration> globalDeclarationBuilder = ImmutableSet.builder();
     ImmutableSetMultimap.Builder<@NonNull CFANode, AcslAssertion> assertionBuilder =
         ImmutableSetMultimap.builder();
     ImmutableSetMultimap.Builder<@NonNull CFANode, AcslLoopAnnotation> loopAnnotationBuilder =
@@ -973,7 +973,7 @@ public class CFACreator {
       }
     }
 
-    ImmutableSet<AcslDeclaration> globalDeclarations = globalDeclarationBuilder.build();
+    ImmutableSet<AcslLogicDeclaration> globalDeclarations = globalDeclarationBuilder.build();
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions = assertionBuilder.build();
     ImmutableSetMultimap<CFANode, AcslLoopAnnotation> loopAnnotations =
         loopAnnotationBuilder.build();

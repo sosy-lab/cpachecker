@@ -14,8 +14,6 @@ public interface AcslAstNodeVisitor<R, X extends Exception>
         AcslTermVisitor<R, X>,
         AcslLogicDefinitionVisitor<R, X> {
 
-  R visit(AcslInitializerExpression pInitializerExpression) throws X;
-
   R visit(AcslMemoryLocationSet pMemoryLocationSet) throws X;
 
   R visit(AcslBuiltinLabel pAcslBuiltinLabel) throws X;

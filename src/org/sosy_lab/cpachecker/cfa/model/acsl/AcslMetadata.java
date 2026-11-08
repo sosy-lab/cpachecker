@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.model.acsl;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  *     §2.3.5)
  */
 public record AcslMetadata(
-    ImmutableSet<AcslDeclaration> globalAcslDeclarations,
+    ImmutableSet<AcslLogicDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopAnnotation> loopAnnotations,
     ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts) {

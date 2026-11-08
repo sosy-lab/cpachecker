@@ -15,7 +15,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
@@ -106,7 +106,7 @@ public class AcslScope {
    *
    * @return True if the type was registered, False if it is not a polymorphic type.
    */
-  public boolean registerTypeDeclaration(AcslTypeDeclaration declaration) {
+  public boolean registerTypeDeclaration(AcslTypeVariableDeclaration declaration) {
     if (declaration.getType() instanceof AcslPolymorphicType pPolymorphicType) {
       polymorphicTypeDeclarations.put(declaration.getName(), pPolymorphicType);
       return true;

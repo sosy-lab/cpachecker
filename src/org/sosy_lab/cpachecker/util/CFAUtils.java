@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
@@ -1219,11 +1218,6 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(AcslParameterDeclaration pNode) {
       return visit((AParameterDeclaration) pNode);
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(AcslInitializerExpression pNode) {
-      return ImmutableList.of(pNode.getExpression());
     }
 
     @Override

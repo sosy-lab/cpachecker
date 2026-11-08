@@ -12,8 +12,6 @@ public interface AcslSimpleDeclarationVisitor<R, X extends Exception> {
 
   R visit(AcslCVariableDeclaration pDecl) throws X;
 
-  R visit(AcslVariableDeclaration pDecl) throws X;
-
   R visit(AcslFunctionDeclaration pDecl) throws X;
 
   R visit(AcslPredicateDeclaration pDecl) throws X;
