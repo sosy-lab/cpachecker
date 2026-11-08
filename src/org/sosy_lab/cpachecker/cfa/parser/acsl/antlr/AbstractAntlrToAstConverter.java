@@ -150,62 +150,33 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
 
   AcslType findResultTypeAfterUnaryOperation(
       AcslUnaryTermOperator operator, AcslType expressionType) {
-    // Find out the correct type after the operation
     // TODO: Look at this function `private CAstNode convert(final IASTUnaryExpression e) {` in the
     //  class ASTConverter to see if this code can be improved/stuff from there can be reused
-    AcslType resultType;
     if (expressionType instanceof AcslCType pCType) {
       CType cType = pCType.getType();
       if (operator == AcslUnaryTermOperator.ADDRESS_OF) {
-        resultType = new AcslCType(new CPointerType(cType.getQualifiers(), cType));
-      } else if (cType instanceof CArrayType pArrayType) {
-        if (operator == AcslUnaryTermOperator.POINTER_DEREFERENCE) {
-          // We need to get the type of the element
-          resultType = new AcslCType(pArrayType.getType());
-        } else {
-          throw new AcslParseRuntimeException(
-              "Expected a pointer dereference operator, but got: "
-                  + operator
-                  + " for type: "
-                  + cType);
-        }
-      } else if (cType instanceof CPointerType pPointerType) {
-        if (operator == AcslUnaryTermOperator.POINTER_DEREFERENCE) {
-          // We need to get the type of the element
-          resultType = new AcslCType(pPointerType.getType());
-        } else {
-          throw new AcslParseRuntimeException(
-              "Expected a pointer dereference operator, but got: "
-                  + operator
-                  + " for type: "
-                  + cType);
-        }
-      } else if (cType instanceof CSimpleType pSimpleType) {
-        if (operator == AcslUnaryTermOperator.MINUS || operator == AcslUnaryTermOperator.PLUS) {
-          // We need to get the type of the element
-          resultType = new AcslCType(pSimpleType);
-        } else {
-          throw new AcslParseRuntimeException(
-              "Expected a unary operator, but got: " + operator + " for type: " + cType);
-        }
-      } else {
-        throw new AcslParseRuntimeException(
-            "Expected a unary operator, but got: " + operator + " for type: " + cType);
+        return new AcslCType(new CPointerType(cType.getQualifiers(), cType));
+      } else if (cType instanceof CArrayType pArrayType
+          && operator == AcslUnaryTermOperator.POINTER_DEREFERENCE) {
+        return new AcslCType(pArrayType.getType());
+      } else if (cType instanceof CPointerType pPointerType
+          && operator == AcslUnaryTermOperator.POINTER_DEREFERENCE) {
+        return new AcslCType(pPointerType.getType());
+      } else if (cType instanceof CSimpleType pSimpleType
+          && (operator == AcslUnaryTermOperator.MINUS || operator == AcslUnaryTermOperator.PLUS)) {
+        return new AcslCType(pSimpleType);
       }
     } else if (expressionType instanceof AcslLogicType) {
-      // We are dealing with a logic type, so we just return the same type
       Verify.verify(
           operator == AcslUnaryTermOperator.MINUS
               || operator == AcslUnaryTermOperator.PLUS
               || operator == AcslUnaryTermOperator.NEGATION);
-      resultType = expressionType;
+      return expressionType;
     } else if (expressionType instanceof AcslPointerType pPointerType) {
       Verify.verify(operator == AcslUnaryTermOperator.POINTER_DEREFERENCE);
-      resultType = pPointerType.getType();
-    } else {
-      throw new AcslParseRuntimeException(
-          "Expected a unary operator, but got: " + operator + " for type: " + expressionType);
+      return pPointerType.getType();
     }
-    return resultType;
+    throw new AcslParseRuntimeException(
+        "Unary operator " + operator + " is not supported for type " + expressionType);
   }
 }

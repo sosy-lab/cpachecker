@@ -56,25 +56,23 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
 
   private List<@NonNull AcslTypeVariableDeclaration> parsePolyTypes(PolyIdContext ctx) {
     TypeVarBindersContext typeVarBindersContext = ctx.typeVarBinders();
-    List<@NonNull AcslTypeVariableDeclaration> polymorphicTypes = ImmutableList.of();
-    if (typeVarBindersContext != null) {
-      polymorphicTypes =
-          FluentIterable.from(typeVarBindersContext.children)
-              .skip(1)
-              .limit(typeVarBindersContext.getChildCount() - 2)
-              .transform(
-                  child -> {
-                    String typeName = Objects.requireNonNull(child).getText();
-                    return new AcslTypeVariableDeclaration(
-                        fileLocationFromContext(ctx),
-                        false,
-                        new AcslPolymorphicType(typeName),
-                        typeName,
-                        typeName);
-                  })
-              .toList();
+    if (typeVarBindersContext == null) {
+      return ImmutableList.of();
     }
-    return polymorphicTypes;
+    return FluentIterable.from(typeVarBindersContext.children)
+        .skip(1)
+        .limit(typeVarBindersContext.getChildCount() - 2)
+        .transform(
+            child -> {
+              String typeName = Objects.requireNonNull(child).getText();
+              return new AcslTypeVariableDeclaration(
+                  fileLocationFromContext(ctx),
+                  false,
+                  new AcslPolymorphicType(typeName),
+                  typeName,
+                  typeName);
+            })
+        .toList();
   }
 
   private List<@NonNull AcslParameterDeclaration> parseParameters(
