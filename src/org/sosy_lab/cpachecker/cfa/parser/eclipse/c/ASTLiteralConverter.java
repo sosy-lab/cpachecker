@@ -74,10 +74,18 @@ class ASTLiteralConverter {
           new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
       case IASTLiteralExpression.lk_integer_constant -> parseIntegerLiteral(fileLoc, valueStr, e);
       case IASTLiteralExpression.lk_float_constant -> parseFloatLiteral(fileLoc, type, valueStr, e);
-      case IASTLiteralExpression.lk_string_literal ->
-          new CStringLiteralExpression(fileLoc, valueStr);
+      case IASTLiteralExpression.lk_string_literal -> parseStringLiteral(fileLoc, valueStr, e);
       default -> throw parseContext.parseError("Unknown literal", e);
     };
+  }
+
+  private CStringLiteralExpression parseStringLiteral(
+      FileLocation fileLoc, String valueStr, IASTLiteralExpression e) {
+    try {
+      return new CStringLiteralExpression(fileLoc, valueStr);
+    } catch (IllegalArgumentException ex) {
+      throw parseContext.parseError(ex.getMessage(), e);
+    }
   }
 
   private CImaginaryLiteralExpression handleImaginaryNumber(

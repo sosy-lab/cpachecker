@@ -2495,6 +2495,7 @@ class ASTConverter {
       return new CArrayType(arrayType.getQualifiers(), arrayType.getType(), lengthExp);
 
     } else if (initializer instanceof CASTLiteralExpression literalExpression
+        && literalExpression.getKind() == IASTLiteralExpression.lk_string_literal
         && (arrayType.getType().equals(CNumericTypes.CHAR)
             || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
             || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
@@ -2503,10 +2504,12 @@ class ASTConverter {
       // Example: char a[] = "abc";
       // will be converted as char a[4] = "abc";
 
-      int length = literalExpression.getLength() - 1;
+      FileLocation loc = getLocation(initializer);
+      int length =
+          ((CStringLiteralExpression) literalConverter.convert(literalExpression, arrayType, loc))
+              .getSize();
       CExpression lengthExp =
-          new CIntegerLiteralExpression(
-              getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+          new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(length));
 
       return new CArrayType(arrayType.getQualifiers(), arrayType.getType(), lengthExp);
 

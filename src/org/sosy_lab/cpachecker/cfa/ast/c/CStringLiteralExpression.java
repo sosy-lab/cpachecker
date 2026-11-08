@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verify;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.Serial;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
@@ -80,18 +83,90 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * one would use {@link #getContentWithNullTerminator()} instead, use this only in special cases.
    */
   public String getContentWithoutNullTerminator() {
-    String literal = getValue();
-    verify(literal.charAt(0) == '"');
-    verify(literal.charAt(literal.length() - 1) == '"');
-    return literal.substring(1, literal.length() - 1);
+    return decodeContent(getValue());
   }
 
   /** Returns the size in bytes of the represented string. */
   public int getSize() {
-    // without quotes but plus null terminator
-    int value = getValue().length() - 2 + 1;
-    assert value == getContentWithNullTerminator().length();
-    return value;
+    return getContentWithNullTerminator().length();
+  }
+
+  private static String decodeContent(String literal) {
+    verify(literal.charAt(0) == '"');
+    verify(literal.charAt(literal.length() - 1) == '"');
+    return decodeEscapeSequences(literal.substring(1, literal.length() - 1));
+  }
+
+  /**
+   * Replaces the escape sequences (C11 § 6.4.4.4) in the given body of a string literal by the
+   * characters they denote. Characters from escape sequences are bytes (universal character names
+   * are encoded in UTF-8).
+   *
+   * @throws IllegalArgumentException if an escape sequence is invalid
+   */
+  @VisibleForTesting
+  static String decodeEscapeSequences(String s) {
+    if (s.indexOf('\\') < 0) {
+      return s;
+    }
+    StringBuilder result = new StringBuilder(s.length());
+    int i = 0;
+    while (i < s.length()) {
+      char c = s.charAt(i++);
+      if (c != '\\') {
+        result.append(c);
+        continue;
+      }
+      checkArgument(i < s.length(), "Incomplete escape sequence in string literal \"%s\"", s);
+      c = s.charAt(i++);
+      switch (c) {
+        case 'a' -> result.append((char) 7);
+        case 'b' -> result.append('\b');
+        case 'e', 'E' -> result.append((char) 27); // GNU extension
+        case 'f' -> result.append('\f');
+        case 'n' -> result.append('\n');
+        case 'r' -> result.append('\r');
+        case 't' -> result.append('\t');
+        case 'v' -> result.append((char) 11);
+        case '0', '1', '2', '3', '4', '5', '6', '7' -> {
+          int start = i - 1;
+          while (i < s.length() && i - start < 3 && s.charAt(i) >= '0' && s.charAt(i) <= '7') {
+            i++;
+          }
+          int value = Integer.parseInt(s.substring(start, i), 8);
+          checkArgument(value <= 0xFF, "Octal escape sequence out of range in \"%s\"", s);
+          result.append((char) value);
+        }
+        case 'x' -> {
+          int start = i;
+          while (i < s.length() && Character.digit(s.charAt(i), 16) >= 0) {
+            i++;
+          }
+          checkArgument(i > start, "Hex escape sequence without digits in \"%s\"", s);
+          BigInteger value = new BigInteger(s.substring(start, i), 16);
+          checkArgument(
+              value.compareTo(BigInteger.valueOf(0xFF)) <= 0,
+              "Hex escape sequence out of range in \"%s\"",
+              s);
+          result.append((char) value.intValue());
+        }
+        case 'u', 'U' -> {
+          int digits = c == 'u' ? 4 : 8;
+          checkArgument(
+              i + digits <= s.length(), "Incomplete universal character name in \"%s\"", s);
+          int codePoint = Integer.parseUnsignedInt(s.substring(i, i + digits), 16);
+          checkArgument(
+              Character.isValidCodePoint(codePoint), "Invalid universal character in \"%s\"", s);
+          i += digits;
+          for (byte b : Character.toString(codePoint).getBytes(StandardCharsets.UTF_8)) {
+            result.append((char) (b & 0xFF));
+          }
+        }
+        // \', \", \?, \\, and unknown escape sequences (for which GCC keeps the character)
+        default -> result.append(c);
+      }
+    }
+    return result.toString();
   }
 
   @Override
@@ -145,9 +220,13 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
   }
 
   private static CArrayType computeType(String astString, FileLocation pFileLocation) {
+    // literals with an encoding prefix like L"..." are not supported, keep their raw length
+    int size =
+        astString.startsWith("\"")
+            ? decodeContent(astString).length() + 1
+            : astString.length() - 2 + 1;
     CExpression length =
-        new CIntegerLiteralExpression(
-            pFileLocation, CNumericTypes.INT, BigInteger.valueOf(astString.length() - 2 + 1));
+        new CIntegerLiteralExpression(pFileLocation, CNumericTypes.INT, BigInteger.valueOf(size));
     return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);
   }
 }
