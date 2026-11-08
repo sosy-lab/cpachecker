@@ -76,12 +76,9 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
         + " "
         + getName()
         + "<"
-        + FluentIterable.from(getPolymorphicTypes())
-            .transform(t -> Objects.requireNonNull(t).toString())
+        + FluentIterable.from(getPolymorphicTypes()).transform(t -> t.toString())
         + ">("
-        + FluentIterable.from(getParameters())
-            .transform(e -> Objects.requireNonNull(e).toASTString())
-            .join(Joiner.on(", "))
+        + FluentIterable.from(getParameters()).transform(e -> e.toASTString()).join(Joiner.on(", "))
         + ")";
   }
 

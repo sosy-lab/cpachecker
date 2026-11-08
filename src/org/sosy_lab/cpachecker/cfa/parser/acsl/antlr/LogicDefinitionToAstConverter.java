@@ -64,7 +64,7 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
         .limit(typeVarBindersContext.getChildCount() - 2)
         .transform(
             child -> {
-              String typeName = Objects.requireNonNull(child).getText();
+              String typeName = child.getText();
               return new AcslTypeVariableDeclaration(
                   fileLocationFromContext(ctx),
                   false,

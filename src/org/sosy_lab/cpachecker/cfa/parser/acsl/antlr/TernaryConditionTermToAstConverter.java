@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
@@ -157,9 +156,7 @@ class TernaryConditionTermToAstConverter extends AbstractAntlrToAstConverter<Acs
     // We need to find out the type of the result, for which we need to be inside a function
     String currentFunction = getCProgramScope().getCurrentFunctionName();
     CType functionResultType =
-        Objects.requireNonNull(getCProgramScope().lookupFunction(currentFunction))
-            .getType()
-            .getReturnType();
+        getCProgramScope().lookupFunction(currentFunction).getType().getReturnType();
     return new AcslResultTerm(fileLocationFromContext(ctx), new AcslCType(functionResultType));
   }
 
