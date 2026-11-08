@@ -205,7 +205,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     int useIndex = varName.startsWith("ACSL#q") ? 1 : getIndex(varName, variable.getType());
 
     return fmgr.makeVariable(
-        typeHelper.acslTypeToFormulaType(pAcslIdTerm.getExpressionType()), varName, useIndex);
+        typeHelper.acslTypeToFormulaType(pAcslIdTerm.getExpressionType()), variable.getQualifiedName(), useIndex);
   }
 
   @Override
