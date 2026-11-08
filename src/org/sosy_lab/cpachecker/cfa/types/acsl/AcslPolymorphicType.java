@@ -25,7 +25,7 @@ public final class AcslPolymorphicType implements AcslLogicType {
 
   @Override
   public String toASTString(String declarator) {
-    return name;
+    return (name + " " + declarator).trim();
   }
 
   @Override

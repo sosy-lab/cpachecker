@@ -610,4 +610,19 @@ public class AcslParserPredicateTest {
 
     testPredicateParsing(input, output);
   }
+
+  @Test
+  public void printQuantifiedPredicates() throws AcslParseException {
+    for (String input :
+        ImmutableList.of(
+            "\\exists integer ax, real ay; ax == ay", "\\forall integer ax; ax <= (ax + 1)")) {
+      AcslPredicate parsed =
+          AcslParser.parsePredicate(input, getCProgramScope(), getAcslScope(), FileLocation.DUMMY);
+      assertThat(parsed.toASTString()).isEqualTo(input);
+      assertThat(
+              AcslParser.parsePredicate(
+                  parsed.toASTString(), getCProgramScope(), getAcslScope(), FileLocation.DUMMY))
+          .isEqualTo(parsed);
+    }
+  }
 }

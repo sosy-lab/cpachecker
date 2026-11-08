@@ -29,7 +29,7 @@ public final class AcslPointerType implements AcslType {
 
   @Override
   public String toASTString(String declarator) {
-    return type.toASTString(declarator) + "*";
+    return type.toASTString("*" + declarator);
   }
 
   @Override

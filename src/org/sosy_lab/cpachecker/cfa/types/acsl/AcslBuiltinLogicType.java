@@ -39,6 +39,6 @@ public enum AcslBuiltinLogicType implements AcslLogicType {
 
   @Override
   public String toASTString(String declarator) {
-    return type;
+    return (type + " " + declarator).trim();
   }
 }

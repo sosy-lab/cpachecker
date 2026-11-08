@@ -39,12 +39,7 @@ public final class AcslForallPredicate extends AcslQuantifiedPredicate {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toString("\\forall");
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toString("\\forall");
+  String getQuantifier() {
+    return "\\forall";
   }
 }

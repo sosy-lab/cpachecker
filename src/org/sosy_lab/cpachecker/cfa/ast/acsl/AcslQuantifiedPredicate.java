@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
@@ -42,14 +43,16 @@ public abstract sealed class AcslQuantifiedPredicate extends AbstractExpression
     return predicate;
   }
 
-  String toString(String quantifier) {
-    StringBuilder sb = new StringBuilder();
-    sb.append(quantifier);
-    sb.append(" ");
-    sb.append(Joiner.on(", ").join(binders));
-    sb.append(": ");
-    sb.append(predicate);
-    return sb.toString();
+  abstract String getQuantifier();
+
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return getQuantifier()
+        + " "
+        + Joiner.on(", ")
+            .join(Lists.transform(binders, binder -> binder.toASTString(pAAstNodeRepresentation)))
+        + "; "
+        + predicate.toASTString(pAAstNodeRepresentation);
   }
 
   @Override

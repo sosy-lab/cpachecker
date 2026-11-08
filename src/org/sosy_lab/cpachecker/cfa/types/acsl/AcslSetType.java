@@ -29,7 +29,7 @@ public final class AcslSetType implements AcslType {
 
   @Override
   public String toASTString(String declarator) {
-    return "Set<" + elementType.toASTString(declarator) + ">";
+    return ("set<" + elementType.toASTString("") + "> " + declarator).trim();
   }
 
   @Override

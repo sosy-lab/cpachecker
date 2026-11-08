@@ -39,12 +39,7 @@ public final class AcslExistsPredicate extends AcslQuantifiedPredicate {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toString("\\exists");
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toString("\\exists");
+  String getQuantifier() {
+    return "\\exists";
   }
 }
