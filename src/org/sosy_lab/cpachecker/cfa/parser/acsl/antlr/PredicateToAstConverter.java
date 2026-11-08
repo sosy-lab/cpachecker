@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
-import com.google.common.collect.FluentIterable;
+import static com.google.common.base.Verify.verify;
+
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
@@ -136,14 +137,13 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
       // We are in the case: [\valid, '(', term, ')']
       AcslMemoryLocationSet memoryLocationSet = memoryLocationSetConverter.visit(ctx.getChild(2));
       return new AcslValidPredicate(fileLocationFromContext(ctx), memoryLocationSet);
-    } else if (ctx.getChildCount() == 5) {
-      // We are in the case: [\valid, ['{', label, '}'],  '(', term, ')']
-      AcslLabel label = labelConverter.visit(ctx.getChild(1).getChild(1));
-      AcslMemoryLocationSet memoryLocationSet = memoryLocationSetConverter.visit(ctx.getChild(3));
-      return new AcslValidPredicate(fileLocationFromContext(ctx), memoryLocationSet, label);
-    } else {
-      throw new RuntimeException("Unexpected number of children when creating a valid predicate");
     }
+    // We are in the case: [\valid, ['{', label, '}'],  '(', term, ')']
+    verify(
+        ctx.getChildCount() == 5, "Unexpected number of children when creating a valid predicate");
+    AcslLabel label = labelConverter.visit(ctx.getChild(1).getChild(1));
+    AcslMemoryLocationSet memoryLocationSet = memoryLocationSetConverter.visit(ctx.getChild(3));
+    return new AcslValidPredicate(fileLocationFromContext(ctx), memoryLocationSet, label);
   }
 
   @Override
@@ -165,10 +165,9 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
     int amountOfChildren = ctx.getChildCount();
     int i;
     for (i = 0; i + 1 < amountOfChildren; i += 2) {
-      if (i + 3 > amountOfChildren) {
-        throw new RuntimeException(
-            "Unexpected number of children when creating comparison operator");
-      }
+      verify(
+          i + 3 <= amountOfChildren,
+          "Unexpected number of children when creating comparison operator");
 
       AcslTerm leftTerm = termConverter.visit(ctx.getChild(i));
       AcslBinaryTermExpressionOperator operator =
@@ -190,14 +189,11 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
       }
     }
 
-    if (currentExpression == null) {
-      throw new RuntimeException("Expected at least one comparison for a comparison predicate");
-    }
-
-    if (i + 1 != amountOfChildren) {
-      throw new RuntimeException(
-          "Not all children were considered during parsing a comparison predicate");
-    }
+    verify(
+        currentExpression != null, "Expected at least one comparison for a comparison predicate");
+    verify(
+        i + 1 == amountOfChildren,
+        "Not all children were considered during parsing a comparison predicate");
 
     return currentExpression;
   }
@@ -221,32 +217,24 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
     // The parsing gives the following structure:
     // [quantifier, binders, ';', predicate ]
 
-    // TODO: A visitor would clearly be better here, but it is probably too much overhead and I'm
-    // still unsure where else I will need something like this to make a refactoring feasible
     ImmutableList.Builder<AcslParameterDeclaration> parameters = ImmutableList.builder();
-    for (ParseTree tree :
-        FluentIterable.from(pBindersContext.children)
-            .filter(node -> !Objects.equals(node.getText(), ","))) {
-      if (tree instanceof BinderContext binder) {
-        AcslType type = typeConverter.visit(binder.getChild(0));
-        for (int i = 1; i < binder.getChildCount(); i += 2) {
-          // TODO: This currently does not handle cases where the variables have pointers or square
-          // brackets
-          String variableName = binder.getChild(i).getText();
-          if (variableName.contains("[")
-              || variableName.contains("]")
-              || variableName.contains("*")
-              || variableName.contains("(")
-              || variableName.contains(")")) {
-            throw new AntlrToInternalNotImplementedException(
-                "Pointer or array types are not supported in the binders list yes");
-          }
-
-          parameters.add(
-              new AcslParameterDeclaration(fileLocationFromContext(binder), type, variableName));
+    for (BinderContext binder : pBindersContext.binder()) {
+      AcslType type = typeConverter.visit(binder.getChild(0));
+      for (int i = 1; i < binder.getChildCount(); i += 2) {
+        // TODO: This currently does not handle cases where the variables have pointers or square
+        // brackets
+        String variableName = binder.getChild(i).getText();
+        if (variableName.contains("[")
+            || variableName.contains("]")
+            || variableName.contains("*")
+            || variableName.contains("(")
+            || variableName.contains(")")) {
+          throw new AntlrToInternalNotImplementedException(
+              "Pointer or array types are not supported in the binders list yes");
         }
-      } else {
-        throw new RuntimeException("Expected a binder in the binders list");
+
+        parameters.add(
+            new AcslParameterDeclaration(fileLocationFromContext(binder), type, variableName));
       }
     }
 

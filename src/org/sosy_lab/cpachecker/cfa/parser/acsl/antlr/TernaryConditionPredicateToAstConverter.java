@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
+import static com.google.common.base.Verify.verify;
+
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
@@ -97,10 +99,9 @@ class TernaryConditionPredicateToAstConverter extends AbstractAntlrToAstConverte
     int amountOfChildren = ctx.getChildCount();
     int i;
     for (i = 0; i + 1 < amountOfChildren; i += 2) {
-      if (i + 3 < amountOfChildren) {
-        throw new RuntimeException(
-            "Unexpected number of children when creating comparison operator");
-      }
+      verify(
+          i + 3 <= amountOfChildren,
+          "Unexpected number of children when creating comparison operator");
 
       AcslTerm leftTerm = termConverter.visit(ctx.getChild(i));
       AcslBinaryTermExpressionOperator operator =
@@ -122,14 +123,11 @@ class TernaryConditionPredicateToAstConverter extends AbstractAntlrToAstConverte
       }
     }
 
-    if (currentExpression == null) {
-      throw new RuntimeException("Expected at least one comparison for a comparison predicate");
-    }
-
-    if (i + 1 != amountOfChildren) {
-      throw new RuntimeException(
-          "Not all children were considered during parsing a comparison predicate");
-    }
+    verify(
+        currentExpression != null, "Expected at least one comparison for a comparison predicate");
+    verify(
+        i + 1 == amountOfChildren,
+        "Not all children were considered during parsing a comparison predicate");
 
     return currentExpression;
   }
