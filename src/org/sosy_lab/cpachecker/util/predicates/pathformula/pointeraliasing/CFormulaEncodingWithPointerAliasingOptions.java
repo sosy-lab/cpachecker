@@ -109,7 +109,7 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
           "When a string literal initializer is encountered, initialize the contents of the char"
               + " array with the contents of the string literal instead of just assigning a fresh"
               + " non-det address to it")
-  private boolean handleStringLiteralInitializers = false;
+  private boolean handleStringLiteralInitializers = true;
 
   @Option(
       secure = true,
