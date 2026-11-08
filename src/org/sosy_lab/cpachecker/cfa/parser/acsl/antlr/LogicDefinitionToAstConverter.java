@@ -36,22 +36,19 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public class AntlrLogicalDefinitionToLogicalDefinitionConverter
-    extends AntlrToInternalAbstractConverter<AcslLogicDefinition> {
-  private final AntlrTermToTermConverter antlrTermToTermConverter;
-  private final AntrlTypeExpressionToTypeConverter antrlTypeExpressionToTypeConverter;
-  private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
+public class LogicDefinitionToAstConverter
+    extends AbstractAntlrToAstConverter<AcslLogicDefinition> {
+  private final TermToAstConverter termConverter;
+  private final TypeToAstConverter typeConverter;
+  private final PredicateToAstConverter predicateConverter;
 
-  protected AntlrLogicalDefinitionToLogicalDefinitionConverter(
-      AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+  protected LogicDefinitionToAstConverter(AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(CProgramScope.empty(), pAcslScope, pInitialFileLocation);
-    antlrTermToTermConverter =
-        new AntlrTermToTermConverter(getCProgramScope(), getAcslScope(), pInitialFileLocation);
-    antrlTypeExpressionToTypeConverter =
-        new AntrlTypeExpressionToTypeConverter(getCProgramScope(), getAcslScope());
-    antlrPredicateToPredicateConverter =
-        new AntlrPredicateToPredicateConverter(
-            getCProgramScope(), getAcslScope(), pInitialFileLocation);
+    termConverter =
+        new TermToAstConverter(getCProgramScope(), getAcslScope(), pInitialFileLocation);
+    typeConverter = new TypeToAstConverter(getCProgramScope(), getAcslScope());
+    predicateConverter =
+        new PredicateToAstConverter(getCProgramScope(), getAcslScope(), pInitialFileLocation);
   }
 
   private String parsePolyIdName(PolyIdContext ctx) {
@@ -93,7 +90,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
             .transform(
                 parameter -> {
                   String variableName = parameter.getChild(1).getText();
-                  AcslType type = antrlTypeExpressionToTypeConverter.visit(parameter.getChild(0));
+                  AcslType type = typeConverter.visit(parameter.getChild(0));
                   return new AcslParameterDeclaration(
                       fileLocationFromContext(ctx), type, variableName, functionName);
                 })
@@ -139,7 +136,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
 
     getAcslScope().registerDeclaration(predicateDeclaration);
 
-    AcslPredicate body = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    AcslPredicate body = predicateConverter.visit(ctx.pred());
     return new AcslLogicPredicateDefinition(
         fileLocationFromContext(ctx), predicateDeclaration, body);
   }
@@ -160,7 +157,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
       }
     }
 
-    AcslType returnType = antrlTypeExpressionToTypeConverter.visit(ctx.typeExpr());
+    AcslType returnType = typeConverter.visit(ctx.typeExpr());
 
     // Solving this through a visitor would be nicer, but seems like overkill
     ParametersContext parametersContext = ctx.parameters();
@@ -185,7 +182,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
 
     getAcslScope().registerDeclaration(functionDeclaration);
 
-    AcslTerm body = antlrTermToTermConverter.visit(ctx.term());
+    AcslTerm body = termConverter.visit(ctx.term());
     return new AcslLogicFunctionDefinition(fileLocationFromContext(ctx), functionDeclaration, body);
   }
 }

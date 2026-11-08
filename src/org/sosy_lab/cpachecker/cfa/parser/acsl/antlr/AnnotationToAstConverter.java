@@ -43,23 +43,21 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.RequiresClauseContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.SimpleClauseContext;
 
-public class AntlrAnnotationToAnnotationVisitor
-    extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
-  private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
-  private final AntlrTsetToMemorySetConverter antlrTsetToMemorySetConverter;
-  private final AntlrLogicalDefinitionToLogicalDefinitionConverter logicalDefinitionConverter;
+public class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotation> {
+  private final PredicateToAstConverter predicateConverter;
+  private final MemoryLocationSetToAstConverter memoryLocationSetConverter;
+  private final LogicDefinitionToAstConverter logicDefinitionConverter;
   private final FileLocation fileLocation;
 
-  protected AntlrAnnotationToAnnotationVisitor(
+  protected AnnotationToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
     fileLocation = pInitialFileLocation;
-    antlrPredicateToPredicateConverter =
-        new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
-    antlrTsetToMemorySetConverter =
-        new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
-    logicalDefinitionConverter =
-        new AntlrLogicalDefinitionToLogicalDefinitionConverter(pAcslScope, pInitialFileLocation);
+    predicateConverter =
+        new PredicateToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    memoryLocationSetConverter =
+        new MemoryLocationSetToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    logicDefinitionConverter = new LogicDefinitionToAstConverter(pAcslScope, pInitialFileLocation);
   }
 
   @Override
@@ -74,7 +72,7 @@ public class AntlrAnnotationToAnnotationVisitor
 
   @Override
   public AcslAssertion visitAssertion(AssertionContext ctx) {
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    AcslPredicate predicate = predicateConverter.visit(ctx.pred());
     return new AcslAssertion(fileLocation, predicate);
   }
 
@@ -116,19 +114,19 @@ public class AntlrAnnotationToAnnotationVisitor
 
   @Override
   public AcslLoopInvariant visitLoopInvariant(LoopInvariantContext ctx) {
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    AcslPredicate predicate = predicateConverter.visit(ctx.pred());
     return new AcslLoopInvariant(fileLocation, predicate);
   }
 
   @Override
   public AcslEnsures visitEnsuresClause(EnsuresClauseContext ctx) {
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    AcslPredicate predicate = predicateConverter.visit(ctx.pred());
     return new AcslEnsures(fileLocation, predicate);
   }
 
   @Override
   public AcslRequires visitRequiresClause(RequiresClauseContext ctx) {
-    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(ctx.pred());
+    AcslPredicate predicate = predicateConverter.visit(ctx.pred());
     return new AcslRequires(fileLocation, predicate);
   }
 
@@ -136,7 +134,7 @@ public class AntlrAnnotationToAnnotationVisitor
   public AcslAssigns visitAssignsClause(AssignsClauseContext ctx) {
     ImmutableSet.Builder<AcslMemoryLocationSet> locationSetBuilder = ImmutableSet.builder();
     for (LocationContext loc : ctx.locations().location()) {
-      AcslMemoryLocationSet memLocation = antlrTsetToMemorySetConverter.visit(loc.tset());
+      AcslMemoryLocationSet memLocation = memoryLocationSetConverter.visit(loc.tset());
       locationSetBuilder.add(memLocation);
     }
     ImmutableSet<AcslMemoryLocationSet> locationsSet = locationSetBuilder.build();
@@ -150,7 +148,7 @@ public class AntlrAnnotationToAnnotationVisitor
 
   @Override
   public AAcslAnnotation visitLogicDef(LogicDefContext ctx) {
-    AcslLogicDefinition definition = logicalDefinitionConverter.visit(ctx);
+    AcslLogicDefinition definition = logicDefinitionConverter.visit(ctx);
     return new AcslLogicDefinitionAnnotation(fileLocation, definition);
   }
 
@@ -158,7 +156,7 @@ public class AntlrAnnotationToAnnotationVisitor
   public AAcslAnnotation visitLoopAssigns(LoopAssignsContext ctx) {
     ImmutableSet.Builder<AcslMemoryLocationSet> locationSetBuilder = ImmutableSet.builder();
     for (LocationContext loc : ctx.locations().location()) {
-      AcslMemoryLocationSet memLocation = antlrTsetToMemorySetConverter.visit(loc.tset());
+      AcslMemoryLocationSet memLocation = memoryLocationSetConverter.visit(loc.tset());
       locationSetBuilder.add(memLocation);
     }
     ImmutableSet<AcslMemoryLocationSet> locationsSet = locationSetBuilder.build();

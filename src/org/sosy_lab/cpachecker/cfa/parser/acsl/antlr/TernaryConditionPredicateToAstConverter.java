@@ -28,18 +28,16 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ParenthesesTermPredTernaryConditionContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.UnaryTermPredTernaryConditionContext;
 
-public class AntlrTermPredTernaryConditionToPredicateConverter
-    extends AntlrToInternalAbstractConverter<AcslPredicate> {
+public class TernaryConditionPredicateToAstConverter
+    extends AbstractAntlrToAstConverter<AcslPredicate> {
 
-  private final AntlrTermTernaryConditionBodyToTermConverter
-      antrlTermTernaryConditionToTermConverter;
+  private final TernaryConditionTermToAstConverter termConverter;
 
-  protected AntlrTermPredTernaryConditionToPredicateConverter(
+  protected TernaryConditionPredicateToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
-    antrlTermTernaryConditionToTermConverter =
-        new AntlrTermTernaryConditionBodyToTermConverter(
-            pCProgramScope, pAcslScope, pInitialFileLocation);
+    termConverter =
+        new TernaryConditionTermToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override
@@ -105,10 +103,10 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
             "Unexpected number of children when creating comparison operator");
       }
 
-      AcslTerm leftTerm = antrlTermTernaryConditionToTermConverter.visit(ctx.getChild(i));
+      AcslTerm leftTerm = termConverter.visit(ctx.getChild(i));
       AcslBinaryTermExpressionOperator operator =
           AcslBinaryTermExpressionOperator.of(ctx.getChild(i + 1).getText());
-      AcslTerm righTerm = antrlTermTernaryConditionToTermConverter.visit(ctx.getChild(i + 2));
+      AcslTerm righTerm = termConverter.visit(ctx.getChild(i + 2));
 
       AcslPredicate newComparison =
           new AcslBinaryTermPredicate(fileLocationFromContext(ctx), leftTerm, righTerm, operator);

@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public class AntrlTypeExpressionToTypeConverter extends AntlrToInternalAbstractConverter<AcslType> {
-  protected AntrlTypeExpressionToTypeConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
+public class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
+  protected TypeToAstConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
     super(pCProgramScope, pAcslScope, FileLocation.DUMMY);
   }
 

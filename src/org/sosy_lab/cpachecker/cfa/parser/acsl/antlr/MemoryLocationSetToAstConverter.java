@@ -17,16 +17,15 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TsetEmptyContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TsetTermContext;
 
-public class AntlrTsetToMemorySetConverter
-    extends AntlrToInternalAbstractConverter<AcslMemoryLocationSet> {
+public class MemoryLocationSetToAstConverter
+    extends AbstractAntlrToAstConverter<AcslMemoryLocationSet> {
 
-  private final AntlrTermToTermConverter antrlToTermConverter;
+  private final TermToAstConverter termConverter;
 
-  protected AntlrTsetToMemorySetConverter(
+  protected MemoryLocationSetToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
-    antrlToTermConverter =
-        new AntlrTermToTermConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    termConverter = new TermToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override
@@ -36,7 +35,7 @@ public class AntlrTsetToMemorySetConverter
 
   @Override
   public AcslMemoryLocationSet visitTsetTerm(TsetTermContext ctx) {
-    AcslTerm term = antrlToTermConverter.visit(ctx.term());
+    AcslTerm term = termConverter.visit(ctx.term());
     return new AcslMemoryLocationSetTerm(FileLocation.DUMMY, term);
   }
 }

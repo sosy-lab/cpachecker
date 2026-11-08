@@ -56,24 +56,21 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverter<AcslPredicate> {
+class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate> {
 
-  private final AntlrTermToTermConverter antrlToTermConverter;
-  private final AntlrTsetToMemorySetConverter antrlTsetToMemorySetConverter;
-  private final AntlrLabelToLabelConverter labelConverter;
-  private final AntrlTypeExpressionToTypeConverter antrlTypeExpressionToTypeConverter;
+  private final TermToAstConverter termConverter;
+  private final MemoryLocationSetToAstConverter memoryLocationSetConverter;
+  private final LabelToAstConverter labelConverter;
+  private final TypeToAstConverter typeConverter;
 
-  protected AntlrPredicateToPredicateConverter(
+  protected PredicateToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
-    antrlToTermConverter =
-        new AntlrTermToTermConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
-    antrlTsetToMemorySetConverter =
-        new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
-    labelConverter =
-        new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
-    antrlTypeExpressionToTypeConverter =
-        new AntrlTypeExpressionToTypeConverter(getCProgramScope(), getAcslScope());
+    termConverter = new TermToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    memoryLocationSetConverter =
+        new MemoryLocationSetToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    labelConverter = new LabelToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    typeConverter = new TypeToAstConverter(getCProgramScope(), getAcslScope());
   }
 
   @Override
@@ -122,7 +119,7 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
 
   @Override
   public AcslPredicate visitPredicateTerm(PredicateTermContext ctx) {
-    AcslTerm term = antrlToTermConverter.visit(ctx.getChild(0));
+    AcslTerm term = termConverter.visit(ctx.getChild(0));
     return new AcslBinaryTermPredicate(
         fileLocationFromContext(ctx),
         term,
@@ -137,14 +134,12 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     // [\valid, '(', term, ')'] or [\valid, label,  '(', term, ')']
     if (ctx.getChildCount() == 4) {
       // We are in the case: [\valid, '(', term, ')']
-      AcslMemoryLocationSet memoryLocationSet =
-          antrlTsetToMemorySetConverter.visit(ctx.getChild(2));
+      AcslMemoryLocationSet memoryLocationSet = memoryLocationSetConverter.visit(ctx.getChild(2));
       return new AcslValidPredicate(fileLocationFromContext(ctx), memoryLocationSet);
     } else if (ctx.getChildCount() == 5) {
       // We are in the case: [\valid, ['{', label, '}'],  '(', term, ')']
       AcslLabel label = labelConverter.visit(ctx.getChild(1).getChild(1));
-      AcslMemoryLocationSet memoryLocationSet =
-          antrlTsetToMemorySetConverter.visit(ctx.getChild(3));
+      AcslMemoryLocationSet memoryLocationSet = memoryLocationSetConverter.visit(ctx.getChild(3));
       return new AcslValidPredicate(fileLocationFromContext(ctx), memoryLocationSet, label);
     } else {
       throw new RuntimeException("Unexpected number of children when creating a valid predicate");
@@ -175,10 +170,10 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
             "Unexpected number of children when creating comparison operator");
       }
 
-      AcslTerm leftTerm = antrlToTermConverter.visit(ctx.getChild(i));
+      AcslTerm leftTerm = termConverter.visit(ctx.getChild(i));
       AcslBinaryTermExpressionOperator operator =
           AcslBinaryTermExpressionOperator.of(ctx.getChild(i + 1).getText());
-      AcslTerm righTerm = antrlToTermConverter.visit(ctx.getChild(i + 2));
+      AcslTerm righTerm = termConverter.visit(ctx.getChild(i + 2));
 
       AcslPredicate newComparison =
           new AcslBinaryTermPredicate(fileLocationFromContext(ctx), leftTerm, righTerm, operator);
@@ -213,7 +208,7 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     AcslPredicateDeclaration declaration = getAcslScope().lookupPredicate(name);
     ImmutableList.Builder<AcslTerm> termBuilder = ImmutableList.builder();
     for (TermContext t : ctx.term()) {
-      AcslTerm term = antrlToTermConverter.visit(t);
+      AcslTerm term = termConverter.visit(t);
       termBuilder.add(term);
     }
     ImmutableList<AcslTerm> parameters = termBuilder.build();
@@ -233,7 +228,7 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
         FluentIterable.from(pBindersContext.children)
             .filter(node -> !Objects.equals(node.getText(), ","))) {
       if (tree instanceof BinderContext binder) {
-        AcslType type = antrlTypeExpressionToTypeConverter.visit(binder.getChild(0));
+        AcslType type = typeConverter.visit(binder.getChild(0));
         for (int i = 1; i < binder.getChildCount(); i += 2) {
           // TODO: This currently does not handle cases where the variables have pointers or square
           // brackets

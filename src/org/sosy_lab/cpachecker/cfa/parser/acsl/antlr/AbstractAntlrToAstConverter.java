@@ -36,13 +36,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisitor<T> {
+abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> {
 
   private final CProgramScope cProgramScope;
   private final AcslScope acslScope;
   private final FileLocation initialFileLocation;
 
-  protected AntlrToInternalAbstractConverter(
+  protected AbstractAntlrToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     cProgramScope = pCProgramScope;
     acslScope = pAcslScope;

@@ -16,9 +16,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LabelIdContext;
 
-class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLabel> {
+class LabelToAstConverter extends AbstractAntlrToAstConverter<AcslLabel> {
 
-  protected AntlrLabelToLabelConverter(
+  protected LabelToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
   }

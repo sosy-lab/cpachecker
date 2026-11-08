@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LoopAnnotContext;
 
-public class AntrlAcslCommentToCommentTypeVisitor extends AcslGrammarBaseVisitor<AcslCommentType> {
+public class CommentTypeVisitor extends AcslGrammarBaseVisitor<AcslCommentType> {
 
   @Override
   public AcslCommentType visitAcslComment(AcslCommentContext ctx) {

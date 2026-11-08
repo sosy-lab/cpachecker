@@ -61,8 +61,8 @@ public class AcslParser {
       throws AcslParseException {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
-    AntlrPredicateToPredicateConverter converter =
-        new AntlrPredicateToPredicateConverter(
+    PredicateToAstConverter converter =
+        new PredicateToAstConverter(
             pCProgramScope, AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
 
     return converter.visit(tree);
@@ -74,9 +74,8 @@ public class AcslParser {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.logicDef());
 
-    AntlrLogicalDefinitionToLogicalDefinitionConverter converter =
-        new AntlrLogicalDefinitionToLogicalDefinitionConverter(
-            AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
+    LogicDefinitionToAstConverter converter =
+        new LogicDefinitionToAstConverter(AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
 
     AcslLogicDefinition definition = converter.visit(tree);
 
@@ -101,8 +100,8 @@ public class AcslParser {
       throws AcslParseException {
     String comment = stripCommentMarker(pInput);
     ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
-    AntlrAnnotationToAnnotationVisitor parser =
-        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
+    AnnotationToAstConverter parser =
+        new AnnotationToAstConverter(pCProgramScope, pAcslScope, pFileLocation);
     return parser.visit(tree);
   }
 
@@ -120,7 +119,7 @@ public class AcslParser {
   public static AcslCommentType acslCommentToCommentType(String pInput) throws AcslParseException {
     String comment = stripCommentMarker(pInput);
     ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
-    AntrlAcslCommentToCommentTypeVisitor converter = new AntrlAcslCommentToCommentTypeVisitor();
+    CommentTypeVisitor converter = new CommentTypeVisitor();
     AcslCommentType type = converter.visit(tree);
     return type;
   }

@@ -48,19 +48,17 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm> {
+class TermToAstConverter extends AbstractAntlrToAstConverter<AcslTerm> {
 
-  private final AntlrLabelToLabelConverter labelConverter;
-  private final AntlrTermPredTernaryConditionToPredicateConverter
-      termPredTernaryConditionToExpressionConverter;
+  private final LabelToAstConverter labelConverter;
+  private final TernaryConditionPredicateToAstConverter ternaryConditionConverter;
 
-  protected AntlrTermToTermConverter(
+  protected TermToAstConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     super(pCProgramScope, pAcslScope, pInitialFileLocation);
-    labelConverter =
-        new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
-    termPredTernaryConditionToExpressionConverter =
-        new AntlrTermPredTernaryConditionToPredicateConverter(
+    labelConverter = new LabelToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+    ternaryConditionConverter =
+        new TernaryConditionPredicateToAstConverter(
             pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
@@ -174,7 +172,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     // The parsing gives the following structure:
     // [cond, '?', if_true, ':', if_false]
 
-    AcslPredicate condition = termPredTernaryConditionToExpressionConverter.visit(ctx.getChild(0));
+    AcslPredicate condition = ternaryConditionConverter.visit(ctx.getChild(0));
     AcslTerm ifTrue = visit(ctx.getChild(2));
     AcslTerm ifFalse = visit(ctx.getChild(4));
 
