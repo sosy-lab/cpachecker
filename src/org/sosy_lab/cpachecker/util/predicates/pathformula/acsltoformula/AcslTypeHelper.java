@@ -75,7 +75,11 @@ public class AcslTypeHelper {
   public Formula convertFormulaType(Formula f, AcslType commonType) {
     FormulaType<Formula> ftype = fmgr.getFormulaType(f);
     switch (commonType) {
-      case AcslBuiltinLogicType.INTEGER -> {
+      // Qualified enum constants in a pattern switch lead to class files that Ant cannot read
+      case AcslBuiltinLogicType builtinType -> {
+        if (builtinType != AcslBuiltinLogicType.INTEGER) {
+          throw new UnsupportedOperationException("Not yet implemented");
+        }
         if (ftype.isIntegerType()) {
           return f;
         } else if (ftype.isBitvectorType()) {
@@ -85,10 +89,6 @@ public class AcslTypeHelper {
           throw new UnsupportedOperationException("Not yet implemented");
         }
       }
-      case AcslBuiltinLogicType.REAL ->
-          throw new UnsupportedOperationException("Not yet implemented");
-      case AcslBuiltinLogicType.BOOLEAN ->
-          throw new UnsupportedOperationException("Not yet implemented");
       case AcslCType ctype -> {
         if (ctype.getType() instanceof CSimpleType
             && ((CSimpleType) ctype.getType()).getType().isIntegerType()) {
