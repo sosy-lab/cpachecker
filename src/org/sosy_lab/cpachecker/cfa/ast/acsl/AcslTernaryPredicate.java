@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
@@ -31,8 +31,14 @@ public final class AcslTernaryPredicate extends AbstractExpression implements Ac
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
-    assert Objects.equals(pResultIfFalse.getExpressionType(), pResultIfTrue.getExpressionType());
-    assert Objects.equals(pResultIfFalse.getExpressionType(), AcslBuiltinLogicType.BOOLEAN);
+    checkArgument(
+        pResultIfFalse.getExpressionType().equals(pResultIfTrue.getExpressionType()),
+        "The branches of %s have different types",
+        pCondition);
+    checkArgument(
+        pResultIfFalse.getExpressionType().equals(AcslBuiltinLogicType.BOOLEAN),
+        "The branches of %s are no predicates",
+        pCondition);
     condition = checkNotNull(pCondition);
     resultIfTrue = pResultIfTrue;
     resultIfFalse = pResultIfFalse;

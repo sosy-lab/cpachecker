@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -30,7 +31,10 @@ public final class AcslTernaryTerm extends AbstractExpression implements AcslTer
     super(pFileLocation, pResultIfTrue.getExpressionType());
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
-    assert pResultIfFalse.getExpressionType() == pResultIfTrue.getExpressionType();
+    checkArgument(
+        pResultIfFalse.getExpressionType().equals(pResultIfTrue.getExpressionType()),
+        "The branches of %s have different types",
+        pCondition);
     condition = checkNotNull(pCondition);
     resultIfTrue = pResultIfTrue;
     resultIfFalse = pResultIfFalse;
