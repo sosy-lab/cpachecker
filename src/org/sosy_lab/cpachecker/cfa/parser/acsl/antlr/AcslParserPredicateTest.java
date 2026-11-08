@@ -397,7 +397,7 @@ public class AcslParserPredicateTest {
                 AcslBinaryTermOperator.PLUS),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-            AcslBinaryTermPredicateOperator.EQUALS);
+            AcslBinaryTermPredicateOperator.NOT_EQUALS);
     String input = "x + 1";
 
     testPredicateParsing(input, output);

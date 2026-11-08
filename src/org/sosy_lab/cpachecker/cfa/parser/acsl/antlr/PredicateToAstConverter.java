@@ -117,13 +117,14 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
 
   @Override
   public AcslPredicate visitPredicateTerm(PredicateTermContext ctx) {
+    // As in C, a term as predicate holds if it is not zero
     AcslTerm term = termConverter.visit(ctx.getChild(0));
     return new AcslBinaryTermPredicate(
         fileLocationFromContext(ctx),
         term,
         new AcslIntegerLiteralTerm(
             fileLocationFromContext(ctx), AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-        AcslBinaryTermPredicateOperator.EQUALS);
+        AcslBinaryTermPredicateOperator.NOT_EQUALS);
   }
 
   @Override
