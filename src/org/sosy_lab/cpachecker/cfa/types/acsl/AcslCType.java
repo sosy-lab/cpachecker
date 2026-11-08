@@ -20,8 +20,7 @@ public final class AcslCType implements AcslType {
   private final CType type;
 
   public AcslCType(CType pType) {
-    type = pType;
-    checkNotNull(pType);
+    type = checkNotNull(pType);
   }
 
   public CType getType() {

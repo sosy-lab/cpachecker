@@ -24,11 +24,12 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
       AcslPredicate pOperand1,
       AcslPredicate pOperand2,
       AcslBinaryPredicateOperator pOperator) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pOperand1);
-    checkNotNull(pOperand2);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        AcslBuiltinLogicType.BOOLEAN,
+        checkNotNull(pOperand1),
+        checkNotNull(pOperand2),
+        checkNotNull(pOperator));
   }
 
   @Override

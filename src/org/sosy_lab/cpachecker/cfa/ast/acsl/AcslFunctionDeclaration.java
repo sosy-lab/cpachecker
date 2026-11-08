@@ -32,14 +32,13 @@ public final class AcslFunctionDeclaration extends AFunctionDeclaration
       String pOrigName,
       List<AcslTypeVariableDeclaration> pPolymorphicTypes,
       List<AcslParameterDeclaration> pParameters) {
-    super(pFileLocation, pType, pName, pOrigName, pParameters);
-    polymorphicTypes = pPolymorphicTypes;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pName);
-    checkNotNull(pOrigName);
-    checkNotNull(pParameters);
-    checkNotNull(pPolymorphicTypes);
+    super(
+        checkNotNull(pFileLocation),
+        checkNotNull(pType),
+        checkNotNull(pName),
+        checkNotNull(pOrigName),
+        checkNotNull(pParameters));
+    polymorphicTypes = checkNotNull(pPolymorphicTypes);
   }
 
   public List<AcslTypeVariableDeclaration> getPolymorphicTypes() {

@@ -19,9 +19,7 @@ public final class AcslInitializerExpression extends AInitializerExpression impl
   @Serial private static final long serialVersionUID = -814550243123276L;
 
   public AcslInitializerExpression(FileLocation pFileLocation, AcslPredicate pExpression) {
-    super(pFileLocation, pExpression);
-    checkNotNull(pFileLocation);
-    checkNotNull(pExpression);
+    super(checkNotNull(pFileLocation), checkNotNull(pExpression));
   }
 
   @Override

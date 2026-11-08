@@ -27,12 +27,8 @@ public abstract sealed class AcslTypeDeclaration extends AbstractDeclaration
       AcslType pType,
       String pName,
       String pQualifiedName) {
-    super(pFileLocation, pIsGlobal, pType, pName, pName);
-    qualifiedName = pQualifiedName;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pName);
-    checkNotNull(pQualifiedName);
+    super(checkNotNull(pFileLocation), pIsGlobal, checkNotNull(pType), checkNotNull(pName), pName);
+    qualifiedName = checkNotNull(pQualifiedName);
   }
 
   @Override

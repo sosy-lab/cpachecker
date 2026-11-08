@@ -20,10 +20,8 @@ public final class AcslCharLiteralTerm extends AcslLiteralTerm {
   private final char character;
 
   public AcslCharLiteralTerm(FileLocation pFileLocation, AcslType pType, char pCharacter) {
-    super(pFileLocation, pType);
+    super(checkNotNull(pFileLocation), checkNotNull(pType));
     character = pCharacter;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
   }
 
   @Override

@@ -27,13 +27,14 @@ public final class AcslVariableDeclaration extends AVariableDeclaration implemen
       String pOrigName,
       String pQualifiedName,
       AcslInitializerExpression pInitializer) {
-    super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pQualifiedName, pInitializer);
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pName);
-    checkNotNull(pOrigName);
-    checkNotNull(pQualifiedName);
-    checkNotNull(pInitializer);
+    super(
+        checkNotNull(pFileLocation),
+        pIsGlobal,
+        checkNotNull(pType),
+        checkNotNull(pName),
+        checkNotNull(pOrigName),
+        checkNotNull(pQualifiedName),
+        checkNotNull(pInitializer));
   }
 
   public AcslVariableDeclaration(
@@ -43,12 +44,14 @@ public final class AcslVariableDeclaration extends AVariableDeclaration implemen
       String pName,
       String pOrigName,
       String pQualifiedName) {
-    super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pQualifiedName, null);
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pName);
-    checkNotNull(pOrigName);
-    checkNotNull(pQualifiedName);
+    super(
+        checkNotNull(pFileLocation),
+        pIsGlobal,
+        checkNotNull(pType),
+        checkNotNull(pName),
+        checkNotNull(pOrigName),
+        checkNotNull(pQualifiedName),
+        null);
   }
 
   @Override

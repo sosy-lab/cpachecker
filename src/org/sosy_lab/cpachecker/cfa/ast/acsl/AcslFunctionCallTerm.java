@@ -27,12 +27,12 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
       AcslTerm pFunctionName,
       List<AcslTerm> pParameters,
       AcslFunctionDeclaration pDeclaration) {
-    super(pLocation, pType, pFunctionName, pParameters, pDeclaration);
-    checkNotNull(pLocation);
-    checkNotNull(pType);
-    checkNotNull(pFunctionName);
-    checkNotNull(pParameters);
-    checkNotNull(pDeclaration);
+    super(
+        checkNotNull(pLocation),
+        checkNotNull(pType),
+        checkNotNull(pFunctionName),
+        checkNotNull(pParameters),
+        checkNotNull(pDeclaration));
   }
 
   @Override

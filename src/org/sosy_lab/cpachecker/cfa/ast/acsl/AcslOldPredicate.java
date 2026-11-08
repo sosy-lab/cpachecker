@@ -23,11 +23,9 @@ public final class AcslOldPredicate extends AbstractExpression implements AcslPr
   private AcslPredicate expression;
 
   public AcslOldPredicate(FileLocation pLocation, AcslPredicate pExpression) {
-    super(pLocation, pExpression.getExpressionType());
+    super(checkNotNull(pLocation), pExpression.getExpressionType());
     assert pExpression.getExpressionType().equals(AcslBuiltinLogicType.BOOLEAN);
-    checkNotNull(pExpression);
-    checkNotNull(pLocation);
-    expression = pExpression;
+    expression = checkNotNull(pExpression);
   }
 
   public AcslPredicate getExpression() {

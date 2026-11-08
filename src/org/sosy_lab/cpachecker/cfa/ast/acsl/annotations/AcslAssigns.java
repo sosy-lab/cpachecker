@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -21,8 +22,7 @@ public final class AcslAssigns extends AAcslAnnotation {
 
   public AcslAssigns(FileLocation pFileLocation, ImmutableSet<AcslMemoryLocationSet> pLocations) {
     super(pFileLocation);
-    Preconditions.checkNotNull(pLocations);
-    locations = pLocations;
+    locations = checkNotNull(pLocations);
   }
 
   @Override

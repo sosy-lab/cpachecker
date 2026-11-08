@@ -19,8 +19,7 @@ public final class AcslPointerType implements AcslType {
   private final AcslType type;
 
   public AcslPointerType(AcslType pType) {
-    type = pType;
-    checkNotNull(pType);
+    type = checkNotNull(pType);
   }
 
   public AcslType getType() {

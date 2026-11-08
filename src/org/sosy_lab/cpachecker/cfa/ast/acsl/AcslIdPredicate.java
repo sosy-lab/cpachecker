@@ -19,9 +19,7 @@ public final class AcslIdPredicate extends AIdExpression implements AcslPredicat
   @Serial private static final long serialVersionUID = -814550123151276L;
 
   public AcslIdPredicate(FileLocation pFileLocation, AcslPredicateDeclaration pDeclaration) {
-    super(pFileLocation, pDeclaration);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
+    super(checkNotNull(pFileLocation), checkNotNull(pDeclaration));
   }
 
   @Override

@@ -21,10 +21,11 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
 
   public AcslUnaryPredicate(
       FileLocation pFileLocation, AcslPredicate pOperand, AcslUnaryPredicateOperator pOperator) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pOperand);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        AcslBuiltinLogicType.BOOLEAN,
+        checkNotNull(pOperand),
+        checkNotNull(pOperator));
   }
 
   @Override

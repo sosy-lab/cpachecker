@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -41,12 +42,9 @@ public final class AcslFunctionContract extends AAcslAnnotation {
       ImmutableSet<AcslEnsures> pEnsuresClauses,
       ImmutableSet<AcslAssigns> pAssignsClauses) {
     super(pFileLocation);
-    Preconditions.checkNotNull(pRequiresClauses);
-    Preconditions.checkNotNull(pEnsuresClauses);
-    Preconditions.checkNotNull(pAssignsClauses);
-    requiresClauses = pRequiresClauses;
-    ensuresClauses = pEnsuresClauses;
-    assignsClauses = pAssignsClauses;
+    requiresClauses = checkNotNull(pRequiresClauses);
+    ensuresClauses = checkNotNull(pEnsuresClauses);
+    assignsClauses = checkNotNull(pAssignsClauses);
   }
 
   @Override

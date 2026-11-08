@@ -21,11 +21,11 @@ public final class AcslArraySubscriptTerm extends AArraySubscriptExpression impl
 
   public AcslArraySubscriptTerm(
       FileLocation pLocation, AcslType pType, AcslTerm pArrayTerm, AcslTerm pSubscriptTerm) {
-    super(pLocation, pType, pArrayTerm, pSubscriptTerm);
-    checkNotNull(pLocation);
-    checkNotNull(pType);
-    checkNotNull(pArrayTerm);
-    checkNotNull(pSubscriptTerm);
+    super(
+        checkNotNull(pLocation),
+        checkNotNull(pType),
+        checkNotNull(pArrayTerm),
+        checkNotNull(pSubscriptTerm));
   }
 
   @Override

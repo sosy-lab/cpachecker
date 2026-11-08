@@ -32,9 +32,7 @@ public abstract sealed class AcslLiteralTerm extends ALiteralExpression implemen
   @Serial private static final long serialVersionUID = -81455251151276L;
 
   protected AcslLiteralTerm(FileLocation pLocation, AcslType pType) {
-    super(pLocation, pType);
-    checkNotNull(pLocation);
-    checkNotNull(pType);
+    super(checkNotNull(pLocation), checkNotNull(pType));
   }
 
   @Override

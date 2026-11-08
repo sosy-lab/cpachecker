@@ -32,8 +32,7 @@ public final class AcslCVariableDeclaration extends AVariableDeclaration
         pCVariableDeclaration.getOrigName(),
         pCVariableDeclaration.getQualifiedName(),
         pCVariableDeclaration.getInitializer());
-    variableDeclaration = pCVariableDeclaration;
-    checkNotNull(pCVariableDeclaration);
+    variableDeclaration = checkNotNull(pCVariableDeclaration);
   }
 
   @Override

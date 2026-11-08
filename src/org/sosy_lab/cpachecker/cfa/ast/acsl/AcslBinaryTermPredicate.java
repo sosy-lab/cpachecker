@@ -25,11 +25,12 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
       AcslTerm pOperand1,
       AcslTerm pOperand2,
       AcslBinaryTermPredicateOperator pOperator) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pOperand1);
-    checkNotNull(pOperand2);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        AcslBuiltinLogicType.BOOLEAN,
+        checkNotNull(pOperand1),
+        checkNotNull(pOperand2),
+        checkNotNull(pOperator));
   }
 
   @Override

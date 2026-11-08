@@ -24,17 +24,15 @@ public final class AcslIdTerm extends AIdExpression implements AcslTerm {
       AcslType pType,
       final String pName,
       final AcslSimpleDeclaration pDeclaration) {
-    super(pFileLocation, pType, pName, pDeclaration);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pType);
-    checkNotNull(pName);
+    super(
+        checkNotNull(pFileLocation),
+        checkNotNull(pType),
+        checkNotNull(pName),
+        checkNotNull(pDeclaration));
   }
 
   public AcslIdTerm(FileLocation pFileLocation, AcslSimpleDeclaration pDeclaration) {
     this(pFileLocation, pDeclaration.getType(), pDeclaration.getName(), pDeclaration);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
   }
 
   @Override

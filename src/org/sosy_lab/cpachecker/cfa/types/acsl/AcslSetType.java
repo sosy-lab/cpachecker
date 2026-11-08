@@ -19,8 +19,7 @@ public final class AcslSetType implements AcslType {
   private AcslType elementType;
 
   public AcslSetType(AcslType pElementType) {
-    elementType = pElementType;
-    checkNotNull(pElementType);
+    elementType = checkNotNull(pElementType);
   }
 
   public AcslType getElementType() {

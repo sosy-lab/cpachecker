@@ -20,8 +20,7 @@ public final class AcslPredicateType extends AbstractFunctionType implements Acs
   @Serial private static final long serialVersionUID = -814550244571276L;
 
   public AcslPredicateType(List<AcslType> pParameters, boolean pTakesVarArgs) {
-    super(AcslBuiltinLogicType.BOOLEAN, pParameters, pTakesVarArgs);
-    checkNotNull(pParameters);
+    super(AcslBuiltinLogicType.BOOLEAN, checkNotNull(pParameters), pTakesVarArgs);
   }
 
   @Override

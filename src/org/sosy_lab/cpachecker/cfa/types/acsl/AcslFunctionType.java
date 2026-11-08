@@ -20,9 +20,7 @@ public final class AcslFunctionType extends AbstractFunctionType implements Acsl
   @Serial private static final long serialVersionUID = -81455024380112316L;
 
   public AcslFunctionType(AcslType pReturnType, List<AcslType> pParameters, boolean pTakesVarArgs) {
-    super(pReturnType, pParameters, pTakesVarArgs);
-    checkNotNull(pReturnType);
-    checkNotNull(pParameters);
+    super(checkNotNull(pReturnType), checkNotNull(pParameters), pTakesVarArgs);
   }
 
   @Override

@@ -21,11 +21,8 @@ public final class AcslStringLiteralTerm extends AcslLiteralTerm {
   private final String value;
 
   public AcslStringLiteralTerm(FileLocation pFileLocation, AcslType pType, String pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pValue);
+    super(checkNotNull(pFileLocation), checkNotNull(pType));
+    value = checkNotNull(pValue);
   }
 
   @Override

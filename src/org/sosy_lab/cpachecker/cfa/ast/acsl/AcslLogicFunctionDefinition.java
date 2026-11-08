@@ -19,10 +19,7 @@ public final class AcslLogicFunctionDefinition extends AcslLogicDefinition {
 
   public AcslLogicFunctionDefinition(
       FileLocation pFileLocation, AcslFunctionDeclaration pDeclaration, AcslTerm pBody) {
-    super(pFileLocation, pDeclaration, pBody);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pBody);
+    super(checkNotNull(pFileLocation), checkNotNull(pDeclaration), checkNotNull(pBody));
   }
 
   @Override

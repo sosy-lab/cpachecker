@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -28,10 +29,8 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
       ImmutableSet<AcslLoopInvariant> pLoopInvariants,
       ImmutableSet<AcslAssigns> pLoopAssigns) {
     super(pFileLocation);
-    Preconditions.checkNotNull(pLoopInvariants);
-    Preconditions.checkNotNull(pLoopAssigns);
-    loopInvariants = pLoopInvariants;
-    loopAssigns = pLoopAssigns;
+    loopInvariants = checkNotNull(pLoopInvariants);
+    loopAssigns = checkNotNull(pLoopAssigns);
   }
 
   @Override

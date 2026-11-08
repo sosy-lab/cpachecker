@@ -23,11 +23,8 @@ public final class AcslIntegerLiteralTerm extends AcslLiteralTerm {
   private final BigInteger value;
 
   public AcslIntegerLiteralTerm(FileLocation pFileLocation, AcslType pType, BigInteger pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
-    checkNotNull(pFileLocation);
-    checkNotNull(pValue);
-    checkNotNull(pType);
+    super(checkNotNull(pFileLocation), checkNotNull(pType));
+    value = checkNotNull(pValue);
   }
 
   public static final AcslIntegerLiteralTerm ZERO =

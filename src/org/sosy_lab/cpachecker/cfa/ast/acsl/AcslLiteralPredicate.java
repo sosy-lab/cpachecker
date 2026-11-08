@@ -21,8 +21,7 @@ public abstract sealed class AcslLiteralPredicate extends ALiteralExpression
   @Serial private static final long serialVersionUID = -8145502432341276L;
 
   protected AcslLiteralPredicate(FileLocation pFileLocation) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
-    checkNotNull(pFileLocation);
+    super(checkNotNull(pFileLocation), AcslBuiltinLogicType.BOOLEAN);
   }
 
   @Override

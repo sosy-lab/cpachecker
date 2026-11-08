@@ -26,9 +26,8 @@ public enum AcslBuiltinLabel implements AcslLabel {
   private final FileLocation location;
 
   AcslBuiltinLabel(String pLabel) {
-    label = pLabel;
+    label = checkNotNull(pLabel);
     location = FileLocation.DUMMY;
-    checkNotNull(pLabel);
   }
 
   public static AcslBuiltinLabel of(String pLabel) {

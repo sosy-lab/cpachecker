@@ -55,9 +55,7 @@ public class AcslParser {
   private static ParseTree generateParseTree(
       String pInput, Function<@NonNull AcslGrammarParser, ParseTree> pRuleToBeApplied)
       throws AcslParseException {
-    checkNotNull(pInput);
-
-    AcslGrammarLexer lexer = new AcslGrammarLexer(CharStreams.fromString(pInput));
+    AcslGrammarLexer lexer = new AcslGrammarLexer(CharStreams.fromString(checkNotNull(pInput)));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowingErrorListener.INSTANCE);
     AcslGrammarParser parser = new AcslGrammarParser(new CommonTokenStream(lexer));

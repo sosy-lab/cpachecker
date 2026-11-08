@@ -19,10 +19,7 @@ public final class AcslLogicPredicateDefinition extends AcslLogicDefinition {
 
   public AcslLogicPredicateDefinition(
       FileLocation pFileLocation, AcslPredicateDeclaration pDeclaration, AcslPredicate pBody) {
-    super(pFileLocation, pDeclaration, pBody);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pBody);
+    super(checkNotNull(pFileLocation), checkNotNull(pDeclaration), checkNotNull(pBody));
   }
 
   @Override

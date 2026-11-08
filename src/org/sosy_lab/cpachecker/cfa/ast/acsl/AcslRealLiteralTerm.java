@@ -22,11 +22,8 @@ public final class AcslRealLiteralTerm extends AcslLiteralTerm {
   private final BigDecimal value;
 
   public AcslRealLiteralTerm(FileLocation pFileLocation, AcslType pType, BigDecimal pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pValue);
+    super(checkNotNull(pFileLocation), checkNotNull(pType));
+    value = checkNotNull(pValue);
   }
 
   @Override

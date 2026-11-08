@@ -19,8 +19,7 @@ public final class AcslPolymorphicType implements AcslLogicType {
   private final String name;
 
   public AcslPolymorphicType(String pName) {
-    name = pName;
-    checkNotNull(pName);
+    name = checkNotNull(pName);
   }
 
   @Override

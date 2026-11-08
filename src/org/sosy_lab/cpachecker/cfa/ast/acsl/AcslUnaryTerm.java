@@ -24,11 +24,11 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
       AcslType pType,
       AcslTerm pOperand,
       AcslUnaryTermOperator pOperator) {
-    super(pFileLocation, pType, pOperand, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pOperand);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        checkNotNull(pType),
+        checkNotNull(pOperand),
+        checkNotNull(pOperator));
   }
 
   @Override

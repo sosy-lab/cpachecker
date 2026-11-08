@@ -25,12 +25,12 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
       AcslTerm pOperand1,
       AcslTerm pOperand2,
       AcslBinaryTermOperator pOperator) {
-    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pOperand1);
-    checkNotNull(pOperand2);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        checkNotNull(pType),
+        checkNotNull(pOperand1),
+        checkNotNull(pOperand2),
+        checkNotNull(pOperator));
   }
 
   @Override

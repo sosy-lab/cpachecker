@@ -19,8 +19,7 @@ public enum AcslBuiltinLogicType implements AcslLogicType {
   private final String type;
 
   AcslBuiltinLogicType(String pType) {
-    type = pType;
-    checkNotNull(pType);
+    type = checkNotNull(pType);
   }
 
   public static AcslType of(String pText) {
