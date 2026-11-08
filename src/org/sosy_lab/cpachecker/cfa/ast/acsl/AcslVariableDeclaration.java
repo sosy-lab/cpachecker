@@ -26,7 +26,7 @@ public final class AcslVariableDeclaration extends AVariableDeclaration implemen
       String pName,
       String pOrigName,
       String pQualifiedName,
-      AcslInitializer pInitializer) {
+      AcslInitializerExpression pInitializer) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pQualifiedName, pInitializer);
     checkNotNull(pFileLocation);
     checkNotNull(pType);

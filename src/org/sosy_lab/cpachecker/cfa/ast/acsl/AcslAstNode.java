@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 public sealed interface AcslAstNode extends AAstNode
-    permits AcslInitializer,
+    permits AcslInitializerExpression,
         AcslLabel,
         AcslLogicDefinition,
         AcslMemoryLocationSet,

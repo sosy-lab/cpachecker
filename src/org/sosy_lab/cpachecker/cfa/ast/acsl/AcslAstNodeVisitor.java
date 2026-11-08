@@ -11,10 +11,11 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 public interface AcslAstNodeVisitor<R, X extends Exception>
     extends AcslPredicateVisitor<R, X>,
         AcslSimpleDeclarationVisitor<R, X>,
-        AcslInitializerVisitor<R, X>,
         AcslTermVisitor<R, X>,
         AcslMemoryLocationSetVisitor<R, X>,
         AcslLogicDefinitionVisitor<R, X> {
+
+  R visit(AcslInitializerExpression pInitializerExpression) throws X;
 
   R visit(AcslBuiltinLabel pAcslBuiltinLabel) throws X;
 

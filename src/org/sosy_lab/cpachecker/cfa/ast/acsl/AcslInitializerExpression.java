@@ -14,8 +14,7 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslInitializerExpression extends AInitializerExpression
-    implements AcslInitializer {
+public final class AcslInitializerExpression extends AInitializerExpression implements AcslAstNode {
 
   @Serial private static final long serialVersionUID = -814550243123276L;
 
@@ -28,11 +27,6 @@ public final class AcslInitializerExpression extends AInitializerExpression
   @Override
   public AcslPredicate getExpression() {
     return (AcslPredicate) super.getExpression();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(AcslInitializerVisitor<R, X> pV) throws X {
-    return pV.visit(this);
   }
 
   @Override
