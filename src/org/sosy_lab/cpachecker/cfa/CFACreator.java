@@ -75,9 +75,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLogicDefinitionAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslStatementContract;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLParser;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -374,14 +371,6 @@ public class CFACreator {
 
   @Option(
       secure = true,
-      name = "cfa.withAcslMetadata",
-      description =
-          "With this option set to true, ACSL anntations from the source file will be added to the"
-              + " CFA metadata.")
-  private boolean withAcslMetadata = false;
-
-  @Option(
-      secure = true,
       description =
           "Programming language of the input program. If not given explicitly, auto-detection"
               + " will occur. LLVM IR is currently unsupported as input (cf."
@@ -393,8 +382,6 @@ public class CFACreator {
   private Language inputLanguage = Language.C;
 
   // data structures for parsing ACSL annotations
-  private final List<FileLocation> commentPositions = new ArrayList<>();
-  private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final LogManager logger;
   private final Parser parser;
@@ -644,18 +631,7 @@ public class CFACreator {
         default -> throw new AssertionError();
       }
 
-      ImmutableCFA cfa = createCFA(c, mainFunction);
-
-      if (!commentPositions.isEmpty()) {
-        SyntacticBlockStructureBuilder blockStructureBuilder =
-            new SyntacticBlockStructureBuilder(cfa);
-        blockStructureBuilder.addAll(blocks);
-        cfa =
-            ACSLParser.parseACSLAnnotations(
-                sourceFiles, cfa, logger, commentPositions, blockStructureBuilder.build());
-      }
-
-      return cfa;
+      return createCFA(c, mainFunction);
 
     } finally {
       stats.totalTime.stop();
@@ -808,15 +784,6 @@ public class CFACreator {
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
-    if (pParseResult.blocks().isPresent()
-        && pParseResult.acslComments().isPresent()
-        && !withAcslMetadata) {
-      for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
-        commentPositions.add(comment.fileLocation());
-      }
-      blocks.addAll(pParseResult.blocks().orElseThrow());
-    }
-
     // check the super CFA starting at the main function
     stats.checkTime.start();
     assert CFACheck.check(mainFunction, null, machineModel);
@@ -840,7 +807,7 @@ public class CFACreator {
     }
 
     // The mapping of ACSL annotations to CFA nodes needs the edges of the AstCfaRelation
-    if (withAcslMetadata) {
+    if (pParseResult.acslComments().isPresent()) {
       AcslMetadata acslMetadata = createAcslMetadata(immutableCFA, pParseResult);
       return immutableCFA.copyWithMetadata(
           immutableCFA.getMetadata().withAcslMetadata(acslMetadata));

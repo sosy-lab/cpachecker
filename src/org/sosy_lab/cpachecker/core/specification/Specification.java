@@ -243,7 +243,14 @@ public final class Specification {
 
     } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
       logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
-      CFACreator cfaCreator = new CFACreator(config, logger, pShutdownNotifier);
+      CFACreator cfaCreator =
+          new CFACreator(
+              Configuration.builder()
+                  .copyFrom(config)
+                  .setOption("parser.collectACSLAnnotations", "true")
+                  .build(),
+              logger,
+              pShutdownNotifier);
       CFA annotatedCFA;
       try {
         annotatedCFA = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
@@ -252,10 +259,12 @@ public final class Specification {
             "Could not load automaton from file: " + e.getMessage(), e);
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
-      assert acslParser.areIsomorphicCFAs(cfa)
-          : "CFAs of task program and annotated program differ, "
-              + "annotated program is probably unrelated to this task";
-      automata = ImmutableList.of(acslParser.parseAsAutomaton());
+      if (!acslParser.areIsomorphicCFAs(cfa)) {
+        throw new InvalidConfigurationException(
+            "CFAs of task program and annotated program differ, "
+                + "annotated program is probably unrelated to this task");
+      }
+      automata = ImmutableList.of(acslParser.parseAsAutomaton(cfa));
     } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(specFile)) {
       AutomatonWitnessV2Parser yamlParser =
           new AutomatonWitnessV2Parser(config, logger, pShutdownNotifier, cfa);

@@ -1312,10 +1312,6 @@ cfa.variableClassification.printStatsOnStartup = false
 # Dump variable type mapping to a file.
 cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 
-# With this option set to true, ACSL anntations from the source file will be
-# added to the CFA metadata.
-cfa.withAcslMetadata = false
-
 # Output an input file, with invariants embedded as assume constraints.
 cinvariants.export = false
 
@@ -5455,7 +5451,7 @@ parser.clang = "clang-" + LlvmUtils.extractVersionNumberFromLlvmJ() + " -S -emit
 # Whether to dump the results of the preprocessor to disk.
 parser.clang.dumpResults = true
 
-# Whether to collect ACSL annotations if present
+# Whether to add the ACSL annotations of the program to the CFA metadata
 parser.collectACSLAnnotations = false
 
 # C dialect for parser

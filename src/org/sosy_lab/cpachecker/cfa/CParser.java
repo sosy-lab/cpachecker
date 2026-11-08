@@ -155,7 +155,9 @@ public interface CParser extends Parser {
     @Option(secure = true, description = "C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
-    @Option(secure = true, description = "Whether to collect ACSL annotations if present")
+    @Option(
+        secure = true,
+        description = "Whether to add the ACSL annotations of the program to the CFA metadata")
     private boolean collectACSLAnnotations = false;
 
     @Option(

@@ -21,7 +21,7 @@ public final class AcslCVariableDeclaration extends AVariableDeclaration
 
   @Serial private static final long serialVersionUID = -814550243801231276L;
 
-  private CVariableDeclaration variableDeclaration;
+  private final CVariableDeclaration variableDeclaration;
 
   public AcslCVariableDeclaration(CVariableDeclaration pCVariableDeclaration) {
     super(
@@ -33,6 +33,10 @@ public final class AcslCVariableDeclaration extends AVariableDeclaration
         pCVariableDeclaration.getQualifiedName(),
         pCVariableDeclaration.getInitializer());
     variableDeclaration = checkNotNull(pCVariableDeclaration);
+  }
+
+  public CVariableDeclaration getCVariableDeclaration() {
+    return variableDeclaration;
   }
 
   @Override

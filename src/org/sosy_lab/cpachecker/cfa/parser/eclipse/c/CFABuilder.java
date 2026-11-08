@@ -442,7 +442,9 @@ class CFABuilder extends ASTVisitor {
             // A node gets new ones when variables go out of scope at it
             cfaNodeToVisibleLocalVariables.buildKeepingLast(),
             cfaNodeToVisibleParameters.buildKeepingLast());
-    result = result.withAcslComments(acslComments, blocks);
+    if (options.shouldCollectACSLAnnotations()) {
+      result = result.withAcslComments(acslComments, blocks);
+    }
 
     return result;
   }

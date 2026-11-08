@@ -18,9 +18,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicateToExpressionTreeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -38,18 +36,18 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeReportingState {
 
-  private final ImmutableSet<ACSLAnnotation> annotations;
-  private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
+  private final ImmutableSet<AcslPredicate> annotations;
+  private final AcslToExpressionTreeConverter converter;
   private final ToCExpressionVisitor expressionTreeVisitor;
   private final LogManager logger;
 
-  public ACSLState(
-      Set<ACSLAnnotation> pAnnotations,
-      ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
+  ACSLState(
+      Set<AcslPredicate> pAnnotations,
+      AcslToExpressionTreeConverter pConverter,
       ToCExpressionVisitor pExpressionTreeVisitor,
       LogManager pLogManager) {
     annotations = ImmutableSet.copyOf(pAnnotations);
-    acslVisitor = pACSLVisitor;
+    converter = pConverter;
     expressionTreeVisitor = pExpressionTreeVisitor;
     logger = pLogManager;
   }
@@ -58,21 +56,20 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
-    return toExpressionTree();
+    try {
+      return toExpressionTree();
+    } catch (UnrecognizedCodeException e) {
+      throw new TranslationToExpressionTreeFailedException(e.getMessage());
+    }
   }
 
-  private ExpressionTree<Object> toExpressionTree() {
+  private ExpressionTree<Object> toExpressionTree() throws UnrecognizedCodeException {
     if (annotations.isEmpty()) {
       return ExpressionTrees.getTrue();
     }
     List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
-    for (ACSLAnnotation annotation : annotations) {
-      ACSLPredicate predicate = annotation.getPredicateRepresentation();
-      try {
-        representations.add(predicate.accept(acslVisitor));
-      } catch (UnrecognizedCodeException e) {
-        throw new AssertionError("Could not convert predicate to expression tree: " + predicate);
-      }
+    for (AcslPredicate predicate : annotations) {
+      representations.add(converter.convert(predicate));
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     return factory.and(representations);

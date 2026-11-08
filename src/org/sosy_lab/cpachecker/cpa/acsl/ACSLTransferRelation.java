@@ -8,62 +8,24 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLBuiltinCollectingVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
-  private final CFA cfa;
-  private final LogManager logger;
-  private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
-  private final ToCExpressionVisitor expressionTreeVisitor;
-  private final boolean usePureExpressionsOnly;
+  private final ACSLCPA cpa;
 
-  public ACSLTransferRelation(
-      CFA pCFA,
-      LogManager pLogManager,
-      ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
-      ToCExpressionVisitor pExpressionTreeVisitor,
-      boolean pUsePureExpressionsOnly) {
-    cfa = pCFA;
-    logger = pLogManager;
-    acslVisitor = pACSLVisitor;
-    expressionTreeVisitor = pExpressionTreeVisitor;
-    usePureExpressionsOnly = pUsePureExpressionsOnly;
+  ACSLTransferRelation(ACSLCPA pCpa) {
+    cpa = pCpa;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
-      throws CPATransferException, InterruptedException {
-    Set<ACSLAnnotation> annotationsForEdge =
-        ImmutableSet.copyOf(
-            cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(cfaEdge));
-    if (usePureExpressionsOnly) {
-      ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
-      Set<ACSLAnnotation> annotations =
-          FluentIterable.from(annotationsForEdge)
-              .filter(x -> x.getPredicateRepresentation().accept(visitor).isEmpty())
-              .toSet();
-      return ImmutableList.of(
-          new ACSLState(annotations, acslVisitor, expressionTreeVisitor, logger));
-    }
-    return ImmutableList.of(
-        new ACSLState(annotationsForEdge, acslVisitor, expressionTreeVisitor, logger));
+      AbstractState state, Precision precision, CFAEdge cfaEdge) {
+    return ImmutableList.of(cpa.getStateForNode(cfaEdge.getSuccessor()));
   }
 }
