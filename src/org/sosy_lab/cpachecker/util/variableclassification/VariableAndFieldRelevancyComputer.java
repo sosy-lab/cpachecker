@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -484,16 +486,23 @@ final class VariableAndFieldRelevancyComputer {
         // Heuristic: for external function calls
         // r = f(a); // r depends on f and a, BUT
         // f(a); // f and a are always relevant
+        // r = memcpy(a, ...); // a is always relevant, because memcpy writes through it
         if (statement instanceof CAssignment assignment) {
           final CRightHandSide rhs = assignment.getRightHandSide();
           final Pair<VariableOrField, VarFieldDependencies> r =
               assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
           if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
+            final VariableOrField dependent =
+                rhs instanceof CFunctionCallExpression call
+                        && call.getFunctionNameExpression() instanceof CIdExpression function
+                        && BuiltinFunctions.writesThroughPointerArguments(function.getName())
+                    ? VariableOrField.unknown()
+                    : r.getFirst();
             result =
                 result.withDependencies(
                     r.getSecond()
                         .withDependencies(
-                            rhs.accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
+                            rhs.accept(CollectingRHSVisitor.create(pCfa, dependent))));
           } else {
             throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
           }
