@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.junit.Test;
@@ -30,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
@@ -38,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
@@ -105,6 +110,43 @@ public class AcslParserPredicateTest {
     AcslAstNode parsed =
         AcslParser.parsePredicate(input, cProgramScope, acslScope, FileLocation.DUMMY);
     assert parsed.equals(output) : "Parsed object does not match expected object";
+  }
+
+  private Object parseConstant(String pConstant) throws AcslParseException {
+    AcslPredicate parsed =
+        AcslParser.parsePredicate(
+            "x == " + pConstant, getCProgramScope(), getAcslScope(), FileLocation.DUMMY);
+    assertThat(parsed).isInstanceOf(AcslBinaryTermPredicate.class);
+    AcslTerm constant = ((AcslBinaryTermPredicate) parsed).getOperand2();
+    assertThat(constant).isInstanceOf(AcslLiteralTerm.class);
+    return ((AcslLiteralTerm) constant).getValue();
+  }
+
+  @Test
+  public void parseIntegerConstants() throws AcslParseException {
+    assertThat(parseConstant("42")).isEqualTo(BigInteger.valueOf(42));
+    assertThat(parseConstant("42UL")).isEqualTo(BigInteger.valueOf(42));
+    assertThat(parseConstant("0x2a")).isEqualTo(BigInteger.valueOf(42));
+    assertThat(parseConstant("0X2Allu")).isEqualTo(BigInteger.valueOf(42));
+    assertThat(parseConstant("052")).isEqualTo(BigInteger.valueOf(42));
+    assertThat(parseConstant("0")).isEqualTo(BigInteger.ZERO);
+  }
+
+  @Test
+  public void parseFloatingConstants() throws AcslParseException {
+    assertThat(parseConstant("1.5")).isEqualTo(new BigDecimal("1.5"));
+    assertThat(parseConstant("1.5e3f")).isEqualTo(new BigDecimal("1.5e3"));
+    assertThat(parseConstant("2.")).isEqualTo(new BigDecimal("2."));
+    assertThat(parseConstant("0x1.8p1")).isEqualTo(new BigDecimal("3"));
+  }
+
+  @Test
+  public void parseCharacterConstants() throws AcslParseException {
+    assertThat(parseConstant("'a'")).isEqualTo('a');
+    assertThat(parseConstant("'\\n'")).isEqualTo('\n');
+    assertThat(parseConstant("'\\''")).isEqualTo('\'');
+    assertThat(parseConstant("'\\101'")).isEqualTo('A');
+    assertThat(parseConstant("L'\\x41'")).isEqualTo('A');
   }
 
   @Test

@@ -106,8 +106,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<AcslTerm> {
 
   @Override
   public AcslTerm visitCConstant(CConstantContext ctx) {
-    String stringValue = ctx.getText();
-    return getConstantForString(stringValue);
+    return convertCConstant(ctx.getText(), fileLocationFromContext(ctx));
   }
 
   @Override
