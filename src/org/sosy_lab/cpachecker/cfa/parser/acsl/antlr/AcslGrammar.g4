@@ -2,12 +2,14 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2018-2019 Maxim Menshchikov
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0 AND CC-BY-4.0
 //
-// It is based on a project by Maxim Menshchikov cf. https://github.com/interpretica-io/acsl-grammar
-// which is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0) License
+// It is based on the ACSL grammar by Maxim Menshchikov, file ACSL.g4 at commit
+// 8c09dbdda16ee7ecce23d8bcfa2ef52618fabe6c of https://github.com/interpretica-io/acsl-grammar,
+// which is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0)
 // cf. http://creativecommons.org/licenses/by/4.0/
 
 grammar AcslGrammar;
