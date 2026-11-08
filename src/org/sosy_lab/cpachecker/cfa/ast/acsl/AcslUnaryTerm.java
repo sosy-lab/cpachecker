@@ -56,7 +56,7 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
     return v.visit(this);
   }
 
-  public enum AcslUnaryTermOperator implements AUnaryOperator, AcslAstNode {
+  public enum AcslUnaryTermOperator implements AUnaryOperator {
     SIZEOF("sizeof"),
     PLUS("+"),
     MINUS("-"),
@@ -66,11 +66,9 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
     ;
 
     private final String operator;
-    private final FileLocation fileLocation;
 
     AcslUnaryTermOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
     public static AcslUnaryTermOperator of(String pOperator) {
@@ -91,26 +89,6 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
     @Override
     public String getOperator() {
       return operator;
-    }
-
-    @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

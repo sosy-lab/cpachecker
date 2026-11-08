@@ -64,16 +64,14 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
     return obj instanceof AcslUnaryPredicate && super.equals(obj);
   }
 
-  public enum AcslUnaryExpressionOperator implements AUnaryOperator, AcslAstNode {
+  public enum AcslUnaryExpressionOperator implements AUnaryOperator {
     NEGATION("!"),
     ;
 
     private final String operator;
-    private final FileLocation fileLocation;
 
     AcslUnaryExpressionOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
     public static AcslUnaryExpressionOperator of(String pOperator) {
@@ -94,26 +92,6 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
     @Override
     public String getOperator() {
       return operator;
-    }
-
-    @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

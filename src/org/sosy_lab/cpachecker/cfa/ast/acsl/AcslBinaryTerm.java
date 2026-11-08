@@ -63,7 +63,7 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     return v.visit(this);
   }
 
-  public enum AcslBinaryTermOperator implements ABinaryExpression.ABinaryOperator, AcslAstNode {
+  public enum AcslBinaryTermOperator implements ABinaryExpression.ABinaryOperator {
     BINARY_AND("&"),
     BINARY_OR("|"),
     BINARY_IMPLICATION("-->"),
@@ -78,11 +78,9 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     SHIFT_RIGHT(">>");
 
     private final String operator;
-    private final FileLocation fileLocation;
 
     AcslBinaryTermOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
     public static AcslBinaryTermOperator of(String pOperator) {
@@ -116,11 +114,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     }
 
     @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
     public String toString() {
       return operator;
     }
@@ -134,21 +127,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     @Override
     public boolean isLogicalOperator() {
       return false;
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

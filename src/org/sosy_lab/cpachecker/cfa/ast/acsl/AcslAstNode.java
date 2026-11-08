@@ -9,28 +9,18 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 public sealed interface AcslAstNode extends AAstNode
-    permits AcslBinaryPredicateOperator,
-        AcslBinaryTermOperator,
-        AcslBinaryTermExpressionOperator,
-        AcslInitializer,
+    permits AcslInitializer,
         AcslLabel,
         AcslLogicDefinition,
         AcslMemoryLocationSet,
         AcslPredicate,
         AcslSimpleDeclaration,
-        AcslTerm,
-        AcslUnaryExpressionOperator,
-        AcslUnaryTermOperator {
+        AcslTerm {
 
   <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X;
 

@@ -62,7 +62,7 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     return (AcslType) super.getExpressionType();
   }
 
-  public enum AcslBinaryTermExpressionOperator implements ABinaryOperator, AcslAstNode {
+  public enum AcslBinaryTermExpressionOperator implements ABinaryOperator {
     EQUALS("=="),
     NOT_EQUALS("!="),
     LESS_EQUAL("<="),
@@ -74,11 +74,9 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     @Serial private static final long serialVersionUID = 70136361956900L;
 
     private final String operator;
-    private final FileLocation fileLocation;
 
     AcslBinaryTermExpressionOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
     public static AcslBinaryTermExpressionOperator of(String pOperator) {
@@ -104,26 +102,6 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     @Override
     public boolean isLogicalOperator() {
       return true;
-    }
-
-    @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }
