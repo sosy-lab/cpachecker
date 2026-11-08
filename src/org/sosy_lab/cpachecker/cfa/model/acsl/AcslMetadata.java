@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslStatementContract;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
@@ -38,22 +39,33 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  *     declarations with contracts. Those contracts are seen as a single contract with the union of
  *     the requires clauses and behaviors." (see ANSI/ISO C Specification Language Version 1.23
  *     §2.3.5)
+ * @param statementContracts A mapping of the Cfa Nodes at which the statements start to their Acsl
+ *     statement contracts (§ 2.4.4 of the Acsl Standard v.1.23)
+ * @param statementContractEnds A mapping of the Cfa Nodes at which the statements end to their Acsl
+ *     statement contracts
  */
 public record AcslMetadata(
     ImmutableSet<AcslLogicDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopAnnotation> loopAnnotations,
-    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts) {
+    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts,
+    ImmutableSetMultimap<CFANode, AcslStatementContract> statementContracts,
+    ImmutableSetMultimap<CFANode, AcslStatementContract> statementContractEnds) {
 
   public static AcslMetadata empty() {
     return new AcslMetadata(
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of());
   }
 
   public int numOfAnnotaniots() {
-    return assertions.size() + loopAnnotations.size() + functionContracts.size();
+    return assertions.size()
+        + loopAnnotations.size()
+        + functionContracts.size()
+        + ImmutableSet.copyOf(statementContracts.values()).size();
   }
 }

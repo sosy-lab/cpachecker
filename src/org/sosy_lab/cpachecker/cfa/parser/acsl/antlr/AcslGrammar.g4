@@ -223,6 +223,12 @@ variableIdent
 // fn_behavior.tex
 functionContract
     : (requiresClause|simpleClause)+ terminatesClause? decreasesClause? namedBehavior* completenessClause*
+    | namedBehavior+ completenessClause*
+    ;
+
+// A statement contract that only holds for some behaviors of the enclosing contracts
+forBehaviorsContract
+    : 'for' id (',' id)* ':' functionContract
     ;
 
 requiresClause
@@ -275,8 +281,8 @@ assumesClause
     ;
 
 completenessClause
-    : 'complete' 'behaviors' (id ',' (',' id)*)? ';'
-    | 'disjoint' 'behaviors' (id ',' (',' id)*)? ';'
+    : 'complete' 'behaviors' (id (',' id)*)? ';'
+    | 'disjoint' 'behaviors' (id (',' id)*)? ';'
     ;
 
 // loc.tex
@@ -469,5 +475,5 @@ acslStatement
 
 
 acslComment
-    :  assertion | loopAnnot | functionContract | logicDef
+    :  assertion | loopAnnot | functionContract | forBehaviorsContract | logicDef
     ;

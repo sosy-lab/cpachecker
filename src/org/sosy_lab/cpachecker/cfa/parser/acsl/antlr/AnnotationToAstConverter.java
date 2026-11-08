@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
@@ -21,24 +23,33 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssumes;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslBehavior;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslCompletenessClause;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLogicDefinitionAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslStatementContract;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AcslStatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AssignsClauseContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AssumesClauseContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.CompletenessClauseContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.EnsuresClauseContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ForBehaviorsContractContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.FunctionContractContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.IdContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LocationContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LoopAnnotContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LoopAssignsContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LoopClauseContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LoopInvariantContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.NamedBehaviorContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.RequiresClauseContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.SimpleClauseContext;
 
@@ -77,17 +88,57 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
 
   @Override
   public AcslFunctionContract visitFunctionContract(FunctionContractContext ctx) {
-    List<AAcslAnnotation> as = new ArrayList<>();
-    for (ParseTree c : ctx.children) {
-      as.add(super.visit(c));
-    }
-
-    FluentIterable<AAcslAnnotation> annotations = FluentIterable.from(as);
+    FluentIterable<AAcslAnnotation> clauses = visitClauses(ctx.children);
     return new AcslFunctionContract(
         fileLocationFromContext(ctx),
-        annotations.filter(a -> a instanceof AcslRequires).transform(a -> (AcslRequires) a).toSet(),
-        annotations.filter(a -> a instanceof AcslEnsures).transform(a -> (AcslEnsures) a).toSet(),
-        annotations.filter(a -> a instanceof AcslAssigns).transform(a -> (AcslAssigns) a).toSet());
+        clauses.filter(AcslRequires.class).toSet(),
+        clauses.filter(AcslEnsures.class).toSet(),
+        clauses.filter(AcslAssigns.class).toSet(),
+        clauses.filter(AcslBehavior.class).toList(),
+        clauses.filter(AcslCompletenessClause.class).toList());
+  }
+
+  @Override
+  public AcslStatementContract visitForBehaviorsContract(ForBehaviorsContractContext ctx) {
+    return new AcslStatementContract(
+        fileLocationFromContext(ctx),
+        FluentIterable.from(ctx.id()).transform(IdContext::getText).toList(),
+        visitFunctionContract(ctx.functionContract()));
+  }
+
+  @Override
+  public AcslBehavior visitNamedBehavior(NamedBehaviorContext ctx) {
+    FluentIterable<AAcslAnnotation> clauses = visitClauses(ctx.behaviorBody().children);
+    return new AcslBehavior(
+        fileLocationFromContext(ctx),
+        ctx.id().getText(),
+        clauses.filter(AcslAssumes.class).toSet(),
+        clauses.filter(AcslRequires.class).toSet(),
+        clauses.filter(AcslEnsures.class).toSet(),
+        clauses.filter(AcslAssigns.class).toSet());
+  }
+
+  @Override
+  public AcslAssumes visitAssumesClause(AssumesClauseContext ctx) {
+    return new AcslAssumes(fileLocationFromContext(ctx), predicateConverter.visit(ctx.pred()));
+  }
+
+  @Override
+  public AcslCompletenessClause visitCompletenessClause(CompletenessClauseContext ctx) {
+    return new AcslCompletenessClause(
+        fileLocationFromContext(ctx),
+        ctx.getChild(0).getText().equals("complete")
+            ? AcslCompletenessClause.Kind.COMPLETE
+            : AcslCompletenessClause.Kind.DISJOINT,
+        FluentIterable.from(ctx.id()).transform(IdContext::getText).toList());
+  }
+
+  private FluentIterable<AAcslAnnotation> visitClauses(@Nullable List<ParseTree> pClauses) {
+    List<AAcslAnnotation> clauses = new ArrayList<>();
+    for (ParseTree clause : pClauses == null ? ImmutableList.<ParseTree>of() : pClauses) {
+      clauses.add(super.visit(clause));
+    }
+    return FluentIterable.from(clauses);
   }
 
   @Override

@@ -33,7 +33,11 @@ public abstract sealed class AAcslAnnotation
         AcslRequires,
         AcslEnsures,
         AcslAssigns,
-        AcslLogicDefinitionAnnotation {
+        AcslLogicDefinitionAnnotation,
+        AcslAssumes,
+        AcslBehavior,
+        AcslCompletenessClause,
+        AcslStatementContract {
 
   private final FileLocation fileLocation;
 

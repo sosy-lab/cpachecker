@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslComment.AcslCommentType;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AcslCommentContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.AssertionContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ForBehaviorsContractContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.FunctionContractContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LogicDefContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LoopAnnotContext;
@@ -40,6 +41,11 @@ class CommentTypeVisitor extends AcslGrammarBaseVisitor<AcslCommentType> {
   @Override
   public AcslCommentType visitFunctionContract(FunctionContractContext ctx) {
     return AcslCommentType.FUNCTION_CONTRACT;
+  }
+
+  @Override
+  public AcslCommentType visitForBehaviorsContract(ForBehaviorsContractContext ctx) {
+    return AcslCommentType.STATEMENT_CONTRACT;
   }
 
   @Override

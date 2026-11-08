@@ -19,10 +19,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -36,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -66,9 +70,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslBehavior;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLogicDefinitionAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslStatementContract;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlockStructureBuilder;
@@ -101,6 +107,7 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslMetadataException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslMetadataException.AcslMetadataCreationException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslMetadataException.AcslNodeMappingException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslNodeMappingUtils;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslNodeMappingUtils.StatementNodes;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslScope;
@@ -878,6 +885,13 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
     ImmutableSetMultimap.Builder<@NonNull CFANode, AcslFunctionContract> functionContractBuilder =
         ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<@NonNull CFANode, AcslStatementContract> statementContractBuilder =
+        ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<@NonNull CFANode, AcslStatementContract>
+        statementContractEndBuilder = ImmutableSetMultimap.builder();
+    // The behaviors that statement contracts can refer to with "for"
+    SetMultimap<String, String> behaviorsOfFunctions = HashMultimap.create();
+    SetMultimap<FileLocation, String> behaviorsOfStatements = HashMultimap.create();
 
     for (AcslComment comment : allComments) {
       CProgramScope scopeForNode = globalScope;
@@ -914,9 +928,21 @@ public class CFACreator {
         Optional<FluentIterable<AbstractSimpleDeclaration>> variablesInScope =
             pCFA.getAstCfaRelation().getVariablesAndParametersInScope(currentNode);
         if (variablesInScope.isPresent()) {
-          scopeForNode =
-              programScope.withVariablesInScope(
-                  variablesInScope.orElseThrow().filter(CSimpleDeclaration.class).toSet());
+          FluentIterable<CSimpleDeclaration> visibleVariables =
+              variablesInScope.orElseThrow().filter(CSimpleDeclaration.class);
+          if (commentType == AcslCommentType.STATEMENT_CONTRACT
+              || (commentType == AcslCommentType.FUNCTION_CONTRACT
+                  && AcslNodeMappingUtils.isInsideFunction(comment, pCFA))) {
+            // A statement contract can also refer to the variables that its statement declares
+            visibleVariables =
+                visibleVariables.append(
+                    FluentIterable.from(
+                            AcslNodeMappingUtils.nodesForStatementContract(comment, pCFA).edges())
+                        .filter(CDeclarationEdge.class)
+                        .transform(CDeclarationEdge::getDeclaration)
+                        .filter(CVariableDeclaration.class));
+          }
+          scopeForNode = programScope.withVariablesInScope(visibleVariables.toSet());
         } else {
           logger.log(
               Level.WARNING,
@@ -937,7 +963,41 @@ public class CFACreator {
             "Could not parse acsl annotation " + comment + ": " + e);
       }
 
+      if (annotation instanceof AcslFunctionContract contract
+          && AcslNodeMappingUtils.isInsideFunction(comment, pCFA)) {
+        annotation =
+            new AcslStatementContract(contract.getFileLocation(), ImmutableList.of(), contract);
+      }
+
       switch (annotation) {
+        case AcslStatementContract pStatementContract -> {
+          StatementNodes nodes = AcslNodeMappingUtils.nodesForStatementContract(comment, pCFA);
+          String functionName = nodes.startNodes().iterator().next().getFunctionName();
+          Set<String> declaredBehaviors =
+              FluentIterable.from(behaviorsOfStatements.entries())
+                  .filter(entry -> contains(entry.getKey(), comment.fileLocation()))
+                  .transform(Entry::getValue)
+                  .append(behaviorsOfFunctions.get(functionName))
+                  .toSet();
+          if (!declaredBehaviors.containsAll(pStatementContract.getEnclosingBehaviors())) {
+            logger.log(
+                Level.WARNING,
+                "Ignoring ACSL statement contract",
+                comment,
+                "because it refers to behaviors that are not declared by enclosing contracts.");
+            continue;
+          }
+          for (CFANode start : nodes.startNodes()) {
+            statementContractBuilder.put(start, pStatementContract);
+          }
+          for (CFANode end : nodes.endNodes()) {
+            statementContractEndBuilder.put(end, pStatementContract);
+          }
+          behaviorsOfStatements.putAll(
+              nodes.statementLocation(),
+              Lists.transform(
+                  pStatementContract.getContract().getBehaviors(), AcslBehavior::getName));
+        }
         case AcslAssertion pAssertion ->
             assertionBuilder.put(
                 n.orElseThrow(
@@ -952,13 +1012,17 @@ public class CFACreator {
                         new AcslMetadataCreationException(
                             "Annotation at " + comment.fileLocation() + " has no CFA node.")),
                 pLoopAnnotation);
-        case AcslFunctionContract pFunctionContract ->
-            functionContractBuilder.put(
-                n.orElseThrow(
-                    () ->
-                        new AcslMetadataCreationException(
-                            "Annotation at " + comment.fileLocation() + " has no CFA node.")),
-                pFunctionContract);
+        case AcslFunctionContract pFunctionContract -> {
+          CFANode entry =
+              n.orElseThrow(
+                  () ->
+                      new AcslMetadataCreationException(
+                          "Annotation at " + comment.fileLocation() + " has no CFA node."));
+          functionContractBuilder.put(entry, pFunctionContract);
+          behaviorsOfFunctions.putAll(
+              entry.getFunctionName(),
+              Lists.transform(pFunctionContract.getBehaviors(), AcslBehavior::getName));
+        }
         case AcslLogicDefinitionAnnotation pLogicDef ->
             globalDeclarationBuilder.add(pLogicDef.getDeclaration());
         case null ->
@@ -968,8 +1032,8 @@ public class CFACreator {
             throw new AcslMetadataCreationException(
                 "Unexpected annotation type: "
                     + comment
-                    + ". Only assertions, loop annotations and function contracts are"
-                    + " supported.");
+                    + ". Only assertions, loop annotations, function contracts, and"
+                    + " statement contracts are supported.");
       }
     }
 
@@ -980,7 +1044,19 @@ public class CFACreator {
     ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts =
         functionContractBuilder.build();
 
-    return new AcslMetadata(globalDeclarations, assertions, loopAnnotations, functionContracts);
+    return new AcslMetadata(
+        globalDeclarations,
+        assertions,
+        loopAnnotations,
+        functionContracts,
+        statementContractBuilder.build(),
+        statementContractEndBuilder.build());
+  }
+
+  /** Whether the location of a statement contains the given location. */
+  private static boolean contains(FileLocation pOuter, FileLocation pInner) {
+    return pOuter.getNodeOffset() <= pInner.getNodeOffset()
+        && pInner.getNodeOffset() < pOuter.getNodeOffset() + pOuter.getNodeLength();
   }
 
   /**

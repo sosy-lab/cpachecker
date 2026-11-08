@@ -13,6 +13,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.junit.Test;
@@ -31,11 +32,14 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslBehavior;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslCompletenessClause;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslStatementContract;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -447,5 +451,61 @@ ensures x <= 10;
     String blockComment = "/*@ ensures x == 0;\n  @ ensures !(x < 0);\n  @*/";
     assertThat(AcslParser.blankCommentMarkers(blockComment))
         .isEqualTo("    ensures x == 0;\n    ensures !(x < 0);\n     ");
+  }
+
+  @Test
+  public void parseContractWithBehaviors() throws AcslParseException {
+    String input =
+        "/*@ requires x > 0;\n  @ behavior pos:\n  @   assumes y > 0;\n  @   ensures z > 0;\n"
+            + "  @ complete behaviors pos;\n  @ disjoint behaviors; */";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isInstanceOf(AcslFunctionContract.class);
+    AcslFunctionContract contract = (AcslFunctionContract) parsed;
+    assertThat(contract.getRequiresClauses()).hasSize(1);
+    AcslBehavior behavior = Iterables.getOnlyElement(contract.getBehaviors());
+    assertThat(behavior.getName()).isEqualTo("pos");
+    assertThat(behavior.getAssumesClauses()).hasSize(1);
+    assertThat(behavior.getEnsuresClauses()).hasSize(1);
+    assertThat(contract.getCompletenessClauses())
+        .containsExactly(
+            new AcslCompletenessClause(
+                FileLocation.DUMMY, AcslCompletenessClause.Kind.COMPLETE, ImmutableList.of("pos")),
+            new AcslCompletenessClause(
+                FileLocation.DUMMY, AcslCompletenessClause.Kind.DISJOINT, ImmutableList.of()));
+    assertThat(
+            AcslParser.parseAcslComment(
+                contract.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope()))
+        .isEqualTo(contract);
+  }
+
+  @Test
+  public void parseContractWithOnlyBehaviors() throws AcslParseException {
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(
+            "/*@ behavior one: assumes x > 0; ensures y > 0; */",
+            FileLocation.DUMMY,
+            getCProgramScope(),
+            getAcslScope());
+    assertThat(parsed).isInstanceOf(AcslFunctionContract.class);
+    assertThat(((AcslFunctionContract) parsed).getBehaviors()).hasSize(1);
+  }
+
+  @Test
+  public void parseStatementContractForBehaviors() throws AcslParseException {
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(
+            "/*@ for a, b: ensures x == 0; */",
+            FileLocation.DUMMY,
+            getCProgramScope(),
+            getAcslScope());
+    assertThat(parsed).isInstanceOf(AcslStatementContract.class);
+    AcslStatementContract contract = (AcslStatementContract) parsed;
+    assertThat(contract.getEnclosingBehaviors()).containsExactly("a", "b").inOrder();
+    assertThat(contract.getContract().getEnsuresClauses()).hasSize(1);
+    assertThat(
+            AcslParser.parseAcslComment(
+                contract.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope()))
+        .isEqualTo(contract);
   }
 }

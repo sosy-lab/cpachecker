@@ -10,12 +10,16 @@ package org.sosy_lab.cpachecker.cfa.parser.acsl;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslComment.AcslCommentType;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser;
@@ -40,7 +44,11 @@ public class AcslNodeMappingUtils {
           case ASSERTION -> nodeForAssertion(pComment, pCFA.getAstCfaRelation());
           case LOOP_ANNOTATION -> nodeForLoopAnnotation(pComment, pCFA, pCFA.getAstCfaRelation());
           case FUNCTION_CONTRACT ->
-              nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
+              isInsideFunction(pComment, pCFA)
+                  ? nodesForStatementContract(pComment, pCFA).startNodes().iterator().next()
+                  : nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
+          case STATEMENT_CONTRACT ->
+              nodesForStatementContract(pComment, pCFA).startNodes().iterator().next();
           case null ->
               throw new AcslMetadataException.AcslNodeMappingException(
                   "Annotation " + pComment + " has no Antlr context.");
@@ -49,9 +57,79 @@ public class AcslNodeMappingUtils {
                   "Unexpected annotation: "
                       + pComment
                       + ". Parsing is currently supported for assertions, loop annotations,"
-                      + " function contracts.");
+                      + " function contracts, and statement contracts.");
         };
     return Optional.of(n);
+  }
+
+  /** The nodes at which the execution of a statement starts and ends. */
+  public record StatementNodes(
+      FileLocation statementLocation,
+      ImmutableSet<CFAEdge> edges,
+      ImmutableSet<CFANode> startNodes,
+      ImmutableSet<CFANode> endNodes) {}
+
+  /** Whether the comment is inside the definition of a function, e.g., a statement contract. */
+  public static boolean isInsideFunction(AcslComment pComment, CFA pCFA) {
+    int offset = pComment.fileLocation().getNodeOffset();
+    return FluentIterable.from(pCFA.entryNodes())
+        .transform(FunctionEntryNode::getFileLocation)
+        .anyMatch(
+            location ->
+                location.isRealLocation()
+                    && location.getFileName().equals(pComment.fileLocation().getFileName())
+                    && location.getNodeOffset() <= offset
+                    && offset < location.getNodeOffset() + location.getNodeLength());
+  }
+
+  /**
+   * Finds the nodes of the statement after a statement contract.
+   *
+   * @return the nodes at which the statement starts, where its pre-state is, and the nodes after
+   *     the statement, where its post-state is
+   */
+  public static StatementNodes nodesForStatementContract(AcslComment pComment, CFA pCFA) {
+    AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
+    FileLocation next =
+        astCfaRelation.nextStartStatementLocation(pComment.fileLocation().getNodeOffset());
+    ASTElement statement =
+        astCfaRelation
+            .getTightestStatementForStarting(
+                next.getStartingLineNumber(), OptionalInt.of(next.getStartColumnInLine()))
+            .orElseThrow(
+                () ->
+                    new AcslMetadataException.AcslNodeMappingException(
+                        "Statement contract " + pComment + " has no statement."));
+    ImmutableSet<CFAEdge> edges = statement.edges();
+    // Blank edges inside the statement may have no location in it, so its nodes decide whether an
+    // edge enters or leaves the statement
+    ImmutableSet<CFANode> nodes =
+        FluentIterable.from(edges)
+            .transformAndConcat(
+                edge -> ImmutableList.of(edge.getPredecessor(), edge.getSuccessor()))
+            .toSet();
+    ImmutableSet<CFANode> startNodes =
+        FluentIterable.from(edges)
+            .transform(CFAEdge::getPredecessor)
+            .filter(
+                node ->
+                    node.getEnteringEdges()
+                        .anyMatch(edge -> !nodes.contains(edge.getPredecessor())))
+            .toSet();
+    ImmutableSet<CFANode> endNodes =
+        FluentIterable.from(edges)
+            .transform(CFAEdge::getSuccessor)
+            .filter(
+                node ->
+                    node.getNumLeavingEdges() == 0
+                        || node.getLeavingEdges()
+                            .anyMatch(edge -> !nodes.contains(edge.getSuccessor())))
+            .toSet();
+    if (startNodes.isEmpty() || endNodes.isEmpty()) {
+      throw new AcslMetadataException.AcslNodeMappingException(
+          "Statement contract " + pComment + " has no CFA nodes.");
+    }
+    return new StatementNodes(statement.location(), edges, startNodes, endNodes);
   }
 
   /**
