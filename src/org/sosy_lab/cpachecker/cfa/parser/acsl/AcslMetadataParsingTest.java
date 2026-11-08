@@ -189,9 +189,7 @@ public class AcslMetadataParsingTest {
             "even_do_while.c",
             1,
             0,
-            // The annotation belongs to the node before the controlling expression,
-            // which is not a loop head of the CFA
-            ImmutableList.of()));
+            ImmutableList.of(new LoopAnnotationAttribute("main", 1, 2, 1, "do"))));
     b.add(
         task(
             "inv_for.c",

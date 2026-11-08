@@ -188,6 +188,22 @@ public class AcslNodeMappingUtils {
 
     FileLocation nextStatement =
         pAstCfaRelation.nextStartStatementLocation(location.getNodeOffset());
+
+    // The invariant of a do-while loop holds at the beginning of each iteration, i.e., before the
+    // body, but for witnesses the loop head is before the controlling expression
+    Optional<CFAEdge> doEdge =
+        FluentIterable.from(pCFA.edges())
+            .filter(
+                edge ->
+                    edge.getDescription().equals("do")
+                        && edge.getFileLocation().getNodeOffset() == nextStatement.getNodeOffset()
+                        && edge.getFileLocation().getFileName().equals(location.getFileName()))
+            .first()
+            .toJavaUtil();
+    if (doEdge.isPresent()) {
+      return doEdge.orElseThrow().getSuccessor();
+    }
+
     Optional<CFANode> iterationNode =
         pCFA.getLoopStructure()
             .flatMap(
