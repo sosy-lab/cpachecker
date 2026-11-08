@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -67,7 +66,7 @@ abstract class AbstractScope implements Scope {
   public abstract CType lookupTypedef(String name);
 
   @Override
-  public abstract void registerDeclaration(ASimpleDeclaration declaration);
+  public abstract void registerDeclaration(CSimpleDeclaration declaration);
 
   /**
    * Register a type, e.g., a new struct type.
@@ -76,7 +75,7 @@ abstract class AbstractScope implements Scope {
    *     because the type is already known.
    */
   @Override
-  public abstract boolean registerTypeDeclaration(AbstractDeclaration declaration);
+  public abstract boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
 
   /**
    * Take a name and return a name qualified with the current function (if we are in a function).

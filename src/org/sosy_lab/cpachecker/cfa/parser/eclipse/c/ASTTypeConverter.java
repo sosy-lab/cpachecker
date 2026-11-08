@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -140,16 +139,12 @@ class ASTTypeConverter {
             };
         String name = ct.getName();
         String qualifiedName = kind.toASTString() + " " + name;
-
-        Type oldType = scope.lookupType(qualifiedName);
-
+        @Nullable CComplexType oldType = scope.lookupType(qualifiedName);
         // We have seen this type already.
         // Replace it with a CElaboratedType.
         if (oldType != null) {
-          assert oldType instanceof CComplexType : "Typedef " + oldType + " is not a CType";
-          @Nullable CComplexType oldCType = (CComplexType) oldType;
           yield new CElaboratedType(
-              CTypeQualifiers.NONE, kind, oldCType.getName(), oldCType.getOrigName(), oldCType);
+              CTypeQualifiers.NONE, kind, oldType.getName(), oldType.getOrigName(), oldType);
         }
         // empty linkedList for the Fields of the struct, they are created afterward
         // with the right references in case of pointers to a struct of the same type
@@ -274,13 +269,11 @@ class ASTTypeConverter {
 
     final String name = t.getName();
 
-    Type oldType = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
+    CType oldType = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
 
     // We have seen this type already.
     if (oldType != null) {
-      assert oldType instanceof CType : "Typedef " + name + " is not a CType";
-      CType oldCType = (CType) oldType;
-      return new CTypedefType(CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), oldCType);
+      return new CTypedefType(CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(
           CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), convert(t.getType()));
@@ -335,20 +328,17 @@ class ASTTypeConverter {
 
   private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
-    Type realType = scope.lookupType("enum " + e.getName());
-    @Nullable CComplexType realCType = null;
+    @Nullable CComplexType realType = scope.lookupType("enum " + e.getName());
     String name = e.getName();
     String origName = name;
     if (realType != null) {
-      assert realType instanceof CComplexType : "Typedef " + e.getName() + " is not a CComplexType";
-      realCType = (CComplexType) realType;
-      name = realCType.getName();
-      origName = realCType.getOrigName();
+      name = realType.getName();
+      origName = realType.getOrigName();
     } else {
       name = scope.getFileSpecificTypeName(name);
     }
     return new CElaboratedType(
-        CTypeQualifiers.NONE, ComplexTypeKind.ENUM, name, origName, realCType);
+        CTypeQualifiers.NONE, ComplexTypeKind.ENUM, name, origName, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -439,9 +429,7 @@ class ASTTypeConverter {
     }
     CType type = null;
     if (binding instanceof IProblemBinding) {
-      Type typedef = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
-      assert typedef instanceof CType : "Typedef " + name + " is not a CType";
-      type = (CType) typedef;
+      type = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
     }
 
     if (type == null) {
@@ -531,19 +519,15 @@ class ASTTypeConverter {
         };
     String name = ASTConverter.convert(d.getName());
     String origName = name;
-    Type realType = scope.lookupType(type.toASTString() + " " + name);
-    @Nullable CComplexType realCType = null;
-
+    @Nullable CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
     if (realType != null) {
-      assert realType instanceof CComplexType : "Typedef " + realType + " is not a CType";
-      realCType = (CComplexType) realType;
-      name = realCType.getName();
-      origName = realCType.getOrigName();
+      name = realType.getName();
+      origName = realType.getOrigName();
     } else {
       name = scope.getFileSpecificTypeName(name);
     }
 
-    return new CElaboratedType(convertCTypeQualifiers(d), type, name, origName, realCType);
+    return new CElaboratedType(convertCTypeQualifiers(d), type, name, origName, realType);
   }
 
   /**

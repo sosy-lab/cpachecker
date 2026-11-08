@@ -231,8 +231,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         // renamed it, but the scope knows it only as main::i or i__1. The name without the
         // function is unique, since the scope has only the variables in scope at the loop.
         CSimpleDeclaration declaration =
-            (CSimpleDeclaration)
-                scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
+            scope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(variable));
         if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
           nondetVerifierCall = nondetCall(simpleType, pNondetDeclarations) + ";";
         } else {
@@ -328,7 +327,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     for (String variable : mapNamesToVariables.keySet()) {
       String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
-      CSimpleDeclaration declaration = (CSimpleDeclaration) scope.lookupVariable(variableName);
+      CSimpleDeclaration declaration = scope.lookupVariable(variableName);
       if (declaration.getType().getCanonicalType() instanceof CSimpleType simpleType) {
         varDeclaration =
             declaration.getType().toASTString(variableName)

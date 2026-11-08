@@ -162,9 +162,7 @@ public class TransitionInvariantUtils {
       String varWithoutFunc = removeFunctionFromVarsName(variable);
       if (pScope.variableNameInUse(varWithoutFunc)
           && (pScope.lookupVariable(varWithoutFunc) == null
-              || ((CSimpleDeclaration) pScope.lookupVariable(varWithoutFunc))
-                      .getType()
-                      .getCanonicalType()
+              || pScope.lookupVariable(varWithoutFunc).getType().getCanonicalType()
                   instanceof CPointerType)) {
         return true;
       }

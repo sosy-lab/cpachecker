@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -862,7 +863,7 @@ public class CFACreator {
             .filter(AVariableDeclaration.class)
             .toSet();
     for (AVariableDeclaration declaration : globalVariables) {
-      globalScope.registerDeclaration(declaration);
+      globalScope.registerDeclaration((CVariableDeclaration) declaration);
     }
 
     AcslScope acslScope = AcslScope.mutableCopy(AcslScope.empty());
@@ -925,7 +926,7 @@ public class CFACreator {
             pResult.localVariablesAndParametersInScope(currentNode);
         if (variablesInScope.isPresent()) {
           for (AbstractSimpleDeclaration declaration : variablesInScope.orElseThrow()) {
-            scopeForNode.registerDeclaration(declaration);
+            scopeForNode.registerDeclaration((CSimpleDeclaration) declaration);
           }
         } else {
           logger.log(

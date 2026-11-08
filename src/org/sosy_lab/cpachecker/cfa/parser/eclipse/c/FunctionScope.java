@@ -29,11 +29,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -43,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -55,7 +51,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * Implementation of {@link Scope} for the local scope inside functions. Only variables can be
  * declared. Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-public class FunctionScope extends AbstractScope {
+class FunctionScope extends AbstractScope {
 
   private final Scope artificialScope;
   private final Map<String, CFunctionDeclaration> localFunctions = new HashMap<>();
@@ -307,16 +303,7 @@ public class FunctionScope extends AbstractScope {
       }
     }
 
-    ASimpleDeclaration declaration = artificialScope.lookupVariable(name);
-    // For some reason this is sometimes null
-    if (declaration == null) {
-      return null;
-    }
-
-    assert declaration instanceof CSimpleDeclaration
-        : "Only C declarations are allowed in the scope: " + declaration;
-
-    return (CSimpleDeclaration) declaration;
+    return artificialScope.lookupVariable(name);
   }
 
   @Override
@@ -334,15 +321,7 @@ public class FunctionScope extends AbstractScope {
       return returnDecl;
     }
 
-    AFunctionDeclaration declaration = artificialScope.lookupFunction(name);
-    if (declaration == null) {
-      return null;
-    }
-
-    assert declaration instanceof CFunctionDeclaration
-        : "Only C declarations are allowed in the scope: " + declaration;
-
-    return (CFunctionDeclaration) declaration;
+    return artificialScope.lookupFunction(name);
   }
 
   @Override
@@ -364,11 +343,7 @@ public class FunctionScope extends AbstractScope {
       }
     }
 
-    Type declaration = artificialScope.lookupType(name);
-    assert declaration instanceof CComplexType
-        : "Only C declarations are allowed in the scope: " + declaration;
-
-    return (CComplexType) declaration;
+    return artificialScope.lookupType(name);
   }
 
   @Override
@@ -380,10 +355,7 @@ public class FunctionScope extends AbstractScope {
       return declaration.getType();
     }
 
-    Type type = artificialScope.lookupTypedef(name);
-    assert type instanceof CType : "Only C declarations are allowed in the scope: " + type;
-
-    return (CType) type;
+    return artificialScope.lookupTypedef(name);
   }
 
   @Override
@@ -400,12 +372,7 @@ public class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public void registerDeclaration(ASimpleDeclaration pDeclaration) {
-    assert pDeclaration instanceof CSimpleDeclaration
-        : "Only C declarations are allowed in the scope: " + pDeclaration;
-
-    CSimpleDeclaration declaration = (CSimpleDeclaration) pDeclaration;
-
+  public void registerDeclaration(CSimpleDeclaration declaration) {
     assert declaration instanceof CVariableDeclaration
             || declaration instanceof CEnumerator
             || declaration instanceof CParameterDeclaration
@@ -462,12 +429,7 @@ public class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public boolean registerTypeDeclaration(AbstractDeclaration pDeclaration) {
-    assert pDeclaration instanceof CComplexTypeDeclaration
-        : "Only C declarations are allowed in the scope: " + pDeclaration;
-
-    CComplexTypeDeclaration declaration = (CComplexTypeDeclaration) pDeclaration;
-
+  public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
     checkArgument(declaration.getName() == null);
 
     String typeName = declaration.getType().getQualifiedName();

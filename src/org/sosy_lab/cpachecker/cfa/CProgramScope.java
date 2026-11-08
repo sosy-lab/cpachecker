@@ -44,8 +44,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -498,7 +496,7 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public void registerDeclaration(ASimpleDeclaration pDeclaration) {
+  public void registerDeclaration(CSimpleDeclaration pDeclaration) {
     if (simpleDeclarations instanceof ImmutableMultimap<String, CSimpleDeclaration>
         || functionDeclarations instanceof ImmutableMultimap<String, CFunctionDeclaration>) {
       // Previously adding new declarations to a scope was ignored and all data structures
@@ -510,15 +508,13 @@ public class CProgramScope implements Scope {
     if (pDeclaration instanceof CFunctionDeclaration pFunctionDeclaration) {
       // Function declarations are not stored in the simple declarations map
       functionDeclarations.put(pDeclaration.getOrigName(), pFunctionDeclaration);
-    } else if (pDeclaration instanceof CSimpleDeclaration pSimpleDeclaration) {
-      simpleDeclarations.put(pDeclaration.getOrigName(), pSimpleDeclaration);
     } else {
-      throw new AssertionError("Unsupported declaration type: " + pDeclaration);
+      simpleDeclarations.put(pDeclaration.getOrigName(), pDeclaration);
     }
   }
 
   @Override
-  public boolean registerTypeDeclaration(AbstractDeclaration pDeclaration) {
+  public boolean registerTypeDeclaration(CComplexTypeDeclaration pDeclaration) {
     // Assume that all type declarations are already registered
     return false;
   }

@@ -45,7 +45,7 @@ public class AntrlTypeExpressionToTypeConverter extends AntlrToInternalAbstractC
 
   @Override
   public AcslType visitTypedefName(TypedefNameContext ctx) {
-    return getAcslScope().lookupTypedef(ctx.getText());
+    return getAcslScope().lookupType(ctx.getText());
   }
 
   @Override

@@ -85,8 +85,7 @@ public class TerminationArgumentsToWitnessUtils {
    */
   private static String toNameInInputProgram(String pVariable, Scope pScope) {
     CSimpleDeclaration variable =
-        (CSimpleDeclaration)
-            pScope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(pVariable));
+        pScope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(pVariable));
     return variable == null ? pVariable : pScope.createScopedNameOf(variable.getOrigName());
   }
 
