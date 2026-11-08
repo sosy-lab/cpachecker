@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
@@ -1209,16 +1208,6 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslFunctionDeclaration pAcslFunctionDeclaration) {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(AcslParameterDeclaration pAcslParameterDeclaration) {
-      return ImmutableList.of();
-    }
-
-    @Override
     public Iterable<CAstNode> visit(CDesignatedInitializer pNode) {
       return Iterables.concat(pNode.getDesignators(), ImmutableList.of(pNode.getRightHandSide()));
     }
@@ -1229,8 +1218,13 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<CAstNode> visit(AcslInitializerExpression pNode) {
-      return ImmutableList.of();
+    public Iterable<? extends AAstNode> visit(AcslParameterDeclaration pNode) {
+      return visit((AParameterDeclaration) pNode);
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslInitializerExpression pNode) {
+      return ImmutableList.of(pNode.getExpression());
     }
 
     @Override
@@ -1491,18 +1485,18 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<CAstNode> visit(AcslBinaryTerm pNode) {
-      return ImmutableList.of();
+    public Iterable<? extends AAstNode> visit(AcslBinaryTerm pNode) {
+      return visit((ABinaryExpression) pNode);
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslIdTerm pAcslIdTerm) {
-      return ImmutableList.of();
+      return visit((AIdExpression) pAcslIdTerm);
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslOldTerm pAcslOldTerm) {
-      return ImmutableList.of();
+      return ImmutableList.of(pAcslOldTerm.getTerm());
     }
 
     @Override
@@ -1512,12 +1506,12 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslAtTerm pAcslAtTerm) {
-      return ImmutableList.of();
+      return ImmutableList.of(pAcslAtTerm.getTerm(), pAcslAtTerm.getLabel());
     }
 
     @Override
-    public Iterable<CAstNode> visit(AcslUnaryTerm pNode) {
-      return ImmutableList.of();
+    public Iterable<? extends AAstNode> visit(AcslUnaryTerm pNode) {
+      return visit((AUnaryExpression) pNode);
     }
 
     @Override
@@ -1562,12 +1556,12 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
-      return ImmutableList.of();
+      return visit((ABinaryExpression) pAcslBinaryTermPredicate);
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslOldPredicate pAcslOldPredicate) {
-      return ImmutableList.of();
+      return ImmutableList.of(pAcslOldPredicate.getExpression());
     }
 
     @Override
@@ -1578,43 +1572,52 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslTernaryTerm pAcslTernaryTerm) {
-      return ImmutableList.of();
+      return ImmutableList.of(
+          pAcslTernaryTerm.getCondition(),
+          pAcslTernaryTerm.getResultIfTrue(),
+          pAcslTernaryTerm.getResultIfFalse());
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslFunctionCallTerm pAcslFunctionCallTerm) {
-      return ImmutableList.of();
+      return visit((AFunctionCallExpression) pAcslFunctionCallTerm);
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) {
-      return ImmutableList.of();
+      return visit((AArraySubscriptExpression) pAcslArraySubscriptTerm);
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslCExpression pAcslCExpression) {
-      return ImmutableList.of();
+      return ImmutableList.of(pAcslCExpression.getCExpression());
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslTernaryPredicate pAcslTernaryPredicate) {
-      return ImmutableList.of();
+      return ImmutableList.of(
+          pAcslTernaryPredicate.getCondition(),
+          pAcslTernaryPredicate.getResultIfTrue(),
+          pAcslTernaryPredicate.getResultIfFalse());
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslValidPredicate pAcslValidPredicate) {
-      return ImmutableList.of();
+      return Iterables.concat(
+          ImmutableList.of(pAcslValidPredicate.getMemoryLocationSet()),
+          Optionals.asSet(pAcslValidPredicate.getLabel()));
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslQuantifiedPredicate pQuantifiedPredicate) {
-      return ImmutableList.of();
+      return Iterables.concat(
+          pQuantifiedPredicate.getBinders(), ImmutableList.of(pQuantifiedPredicate.getPredicate()));
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
         AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
-      return ImmutableList.of();
+      return pAcslPredicateApplicationPredicate.getParameters();
     }
 
     @Override
@@ -1626,19 +1629,21 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(
         AcslMemoryLocationSetTerm pAcslMemoryLocationSetTerm) {
-      return ImmutableList.of();
+      return ImmutableList.of(pAcslMemoryLocationSetTerm.getTerm());
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
         AcslLogicFunctionDefinition pAcslLogicFunctionDefinition) {
-      return ImmutableList.of();
+      return ImmutableList.of(
+          pAcslLogicFunctionDefinition.getDeclaration(), pAcslLogicFunctionDefinition.getBody());
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
         AcslLogicPredicateDefinition pAcslLogicPredicateDefinition) {
-      return ImmutableList.of();
+      return ImmutableList.of(
+          pAcslLogicPredicateDefinition.getDeclaration(), pAcslLogicPredicateDefinition.getBody());
     }
   }
 }

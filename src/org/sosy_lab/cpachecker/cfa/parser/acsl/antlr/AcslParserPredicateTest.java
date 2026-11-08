@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class AcslParserPredicateTest {
 
@@ -627,5 +628,20 @@ public class AcslParserPredicateTest {
                   parsed.toASTString(), getCProgramScope(), getAcslScope(), FileLocation.DUMMY))
           .isEqualTo(parsed);
     }
+  }
+
+  @Test
+  public void traverseChildrenOfPredicates() throws AcslParseException {
+    AcslPredicate parsed =
+        AcslParser.parsePredicate(
+            "\\forall integer ax; ax <= x ? \\old(y) : z",
+            getCProgramScope(),
+            getAcslScope(),
+            FileLocation.DUMMY);
+    assertThat(
+            CFAUtils.traverseRecursively(parsed)
+                .filter(AcslIdTerm.class)
+                .transform(term -> term.getDeclaration().getName()))
+        .containsExactly("ax", "x", "y", "z");
   }
 }
