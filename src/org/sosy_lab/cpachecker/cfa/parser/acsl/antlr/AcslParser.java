@@ -80,12 +80,10 @@ public class AcslParser {
       throws AcslParseException {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
-    PredicateToAstConverter converter =
-        new PredicateToAstConverter(
-            pCProgramScope, AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
-
     try {
-      return converter.visit(tree);
+      return new PredicateToAstConverter(
+              pCProgramScope, AcslScope.mutableCopy(pAcslScope), pInitialFileLocation)
+          .visit(tree);
     } catch (AcslParseRuntimeException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
@@ -96,18 +94,13 @@ public class AcslParser {
       throws AcslParseException {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.logicDef());
-
-    LogicDefinitionToAstConverter converter =
-        new LogicDefinitionToAstConverter(AcslScope.mutableCopy(pAcslScope), pInitialFileLocation);
-
-    AcslLogicDefinition definition;
     try {
-      definition = converter.visit(tree);
+      return new LogicDefinitionToAstConverter(
+              AcslScope.mutableCopy(pAcslScope), pInitialFileLocation)
+          .visit(tree);
     } catch (AcslParseRuntimeException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
-
-    return definition;
   }
 
   /**
@@ -126,12 +119,10 @@ public class AcslParser {
   public static AAcslAnnotation parseAcslComment(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
-    String comment = stripCommentMarker(pInput);
-    ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
-    AnnotationToAstConverter parser =
-        new AnnotationToAstConverter(pCProgramScope, pAcslScope, pFileLocation);
+    ParseTree tree =
+        generateParseTree(stripCommentMarker(pInput), pParser -> pParser.acslComment());
     try {
-      return parser.visit(tree);
+      return new AnnotationToAstConverter(pCProgramScope, pAcslScope, pFileLocation).visit(tree);
     } catch (AcslParseRuntimeException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
@@ -149,11 +140,9 @@ public class AcslParser {
    * @throws AcslParseException When no parse tree can be generated for the comment.
    */
   public static AcslCommentType acslCommentToCommentType(String pInput) throws AcslParseException {
-    String comment = stripCommentMarker(pInput);
-    ParseTree tree = generateParseTree(comment, pParser -> pParser.acslComment());
-    CommentTypeVisitor converter = new CommentTypeVisitor();
-    AcslCommentType type = converter.visit(tree);
-    return type;
+    ParseTree tree =
+        generateParseTree(stripCommentMarker(pInput), pParser -> pParser.acslComment());
+    return new CommentTypeVisitor().visit(tree);
   }
 
   /**

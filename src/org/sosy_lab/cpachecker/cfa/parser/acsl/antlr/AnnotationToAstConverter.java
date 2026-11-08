@@ -136,8 +136,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
       AcslMemoryLocationSet memLocation = memoryLocationSetConverter.visit(loc.tset());
       locationSetBuilder.add(memLocation);
     }
-    ImmutableSet<AcslMemoryLocationSet> locationsSet = locationSetBuilder.build();
-    return new AcslAssigns(fileLocation, locationsSet);
+    return new AcslAssigns(fileLocation, locationSetBuilder.build());
   }
 
   @Override
@@ -158,8 +157,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
       AcslMemoryLocationSet memLocation = memoryLocationSetConverter.visit(loc.tset());
       locationSetBuilder.add(memLocation);
     }
-    ImmutableSet<AcslMemoryLocationSet> locationsSet = locationSetBuilder.build();
-    return new AcslAssigns(fileLocation, locationsSet);
+    return new AcslAssigns(fileLocation, locationSetBuilder.build());
   }
 
   @Override

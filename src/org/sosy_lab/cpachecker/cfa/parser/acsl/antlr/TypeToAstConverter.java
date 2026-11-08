@@ -36,8 +36,7 @@ class TypeToAstConverter extends AbstractAntlrToAstConverter<AcslType> {
   @Override
   public AcslType visitTypeVar(TypeVarContext ctx) {
     String typeName = ctx.getText();
-    AcslType type = getTypeForName(typeName);
-    return type;
+    return getTypeForName(typeName);
   }
 
   @Override

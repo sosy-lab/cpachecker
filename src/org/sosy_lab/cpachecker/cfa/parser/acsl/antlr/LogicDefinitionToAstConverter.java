@@ -79,23 +79,20 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
 
   private List<@NonNull AcslParameterDeclaration> parseParameters(
       ParametersContext ctx, String functionName) {
-    List<@NonNull AcslParameterDeclaration> parameters =
-        FluentIterable.from(ctx.children)
-            .filter(
-                elem ->
-                    !(Objects.equals(elem.getText(), ",")
-                        || Objects.equals(elem.getText(), "(")
-                        || Objects.equals(elem.getText(), ")")))
-            .transform(
-                parameter -> {
-                  String variableName = parameter.getChild(1).getText();
-                  AcslType type = typeConverter.visit(parameter.getChild(0));
-                  return new AcslParameterDeclaration(
-                      fileLocationFromContext(ctx), type, variableName, functionName);
-                })
-            .toList();
-
-    return parameters;
+    return FluentIterable.from(ctx.children)
+        .filter(
+            elem ->
+                !(Objects.equals(elem.getText(), ",")
+                    || Objects.equals(elem.getText(), "(")
+                    || Objects.equals(elem.getText(), ")")))
+        .transform(
+            parameter -> {
+              String variableName = parameter.getChild(1).getText();
+              AcslType type = typeConverter.visit(parameter.getChild(0));
+              return new AcslParameterDeclaration(
+                  fileLocationFromContext(ctx), type, variableName, functionName);
+            })
+        .toList();
   }
 
   @Override
