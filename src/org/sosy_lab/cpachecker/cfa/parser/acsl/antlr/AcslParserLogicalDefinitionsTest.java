@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -60,7 +61,7 @@ public class AcslParserLogicalDefinitionsTest {
     AcslScope acslScope = getAcslScope();
 
     AcslAstNode parsed = AcslParser.parseLogicalDefinition(input, acslScope, FileLocation.DUMMY);
-    assert parsed.equals(output) : "Parsed object does not match expected object";
+    assertThat(parsed).isEqualTo(output);
   }
 
   @Test

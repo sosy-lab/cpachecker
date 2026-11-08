@@ -109,7 +109,7 @@ public class AcslParserPredicateTest {
 
     AcslAstNode parsed =
         AcslParser.parsePredicate(input, cProgramScope, acslScope, FileLocation.DUMMY);
-    assert parsed.equals(output) : "Parsed object does not match expected object";
+    assertThat(parsed).isEqualTo(output);
   }
 
   private Object parseConstant(String pConstant) throws AcslParseException {
