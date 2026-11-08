@@ -257,13 +257,13 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
 
     AcslPredicate predicate = visit(pPredicate);
 
-    if (pQuantifier.equals("\\exists")) {
-      return new AcslExistsPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
-    } else if (pQuantifier.equals("\\forall")) {
-      return new AcslForallPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
-    } else {
-      throw new RuntimeException("Unknown quantifier: " + pQuantifier);
-    }
+    return switch (pQuantifier) {
+      case "\\exists" ->
+          new AcslExistsPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
+      case "\\forall" ->
+          new AcslForallPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
+      default -> throw new AssertionError("Unknown quantifier: " + pQuantifier);
+    };
   }
 
   @Override
