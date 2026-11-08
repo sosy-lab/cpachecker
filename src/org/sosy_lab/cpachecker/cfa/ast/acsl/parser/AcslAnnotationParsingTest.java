@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -58,11 +59,9 @@ public class AcslAnnotationParsingTest {
 
   private CProgramScope getCProgramScope() {
     String currentFunctionName = "f";
-
-    CProgramScope scope =
-        CProgramScope.mutableCoy(CProgramScope.empty().withFunctionScope(currentFunctionName));
+    ImmutableList.Builder<CSimpleDeclaration> declarations = ImmutableList.builder();
     for (String var : ImmutableList.of("x", "y", "z")) {
-      scope.registerDeclaration(
+      declarations.add(
           new CVariableDeclaration(
               FileLocation.DUMMY,
               true,
@@ -74,7 +73,7 @@ public class AcslAnnotationParsingTest {
               null /* No initializer, we only want it for testing */,
               /* pHasThreadLocalStorage= */ false));
     }
-    scope.registerDeclaration(
+    declarations.add(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             new CFunctionType(basicInt(), ImmutableList.of(), false),
@@ -82,7 +81,8 @@ public class AcslAnnotationParsingTest {
             ImmutableList.of(),
             ImmutableSet.of()));
 
-    return scope;
+    return CProgramScope.ofDeclarations(declarations.build())
+        .withFunctionScope(currentFunctionName);
   }
 
   private AcslScope getAcslScope() {
@@ -319,8 +319,7 @@ ensures x <= 10;
             null /* No initializer, we only want it for testing */,
             /* pHasThreadLocalStorage= */ false);
 
-    CProgramScope scope = getCProgramScope();
-    scope.registerDeclaration(a);
+    CProgramScope scope = getCProgramScope().withAdditionalDeclarations(ImmutableList.of(a));
 
     AcslParameterDeclaration i =
         new AcslParameterDeclaration(

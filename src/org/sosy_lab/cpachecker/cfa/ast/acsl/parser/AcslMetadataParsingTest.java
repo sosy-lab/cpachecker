@@ -314,12 +314,8 @@ public class AcslMetadataParsingTest {
     if (programName.equals("badVariable.c")
         || programName.contains("bad_variable")
         || programName.equals("power.c")
-        || programName.equals("square.c")
-        || programName.equals("shadowed_variable.c")) {
+        || programName.equals("square.c")) {
       // A variable that is not declared in the scope should always throw an exception
-
-      // ToDo: A shadowed variable should be recognized correctly by the parser. For this, the scope
-      // that is given to the parser needs to be built up correctly.
 
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
@@ -363,12 +359,8 @@ public class AcslMetadataParsingTest {
     if (programName.equals("badVariable.c")
         || programName.contains("bad_variable")
         || programName.equals("power.c")
-        || programName.equals("square.c")
-        || programName.equals("shadowed_variable.c")) {
+        || programName.equals("square.c")) {
       // A variable that is not declared in the scope should always throw an exception
-
-      // ToDo: A shadowed variable should be recognized correctly by the parser. For this, the scope
-      // that is given to the parser needs to be built up correctly.
 
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
@@ -412,12 +404,8 @@ public class AcslMetadataParsingTest {
     if (programName.equals("badVariable.c")
         || programName.contains("bad_variable")
         || programName.equals("power.c")
-        || programName.equals("square.c")
-        || programName.equals("shadowed_variable.c")) {
+        || programName.equals("square.c")) {
       // A variable that is not declared in the scope should always throw an exception
-
-      // ToDo: A shadowed variable should be recognized correctly by the parser. For this, the scope
-      // that is given to the parser needs to be built up correctly.
 
       RuntimeException expectedException =
           assertThrows(RuntimeException.class, () -> cfaCreator.parseFileAndCreateCFA(files));

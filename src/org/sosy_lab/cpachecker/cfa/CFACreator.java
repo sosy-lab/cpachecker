@@ -853,18 +853,13 @@ public class CFACreator {
    * @return The acsl metadata from all acsl comments for the CFA.
    */
   private AcslMetadata createAcslMetadata(CFA pCFA, ParseResult pResult) {
-    // The scope for the source program
     CProgramScope programScope = new CProgramScope(pCFA, logger);
-    // A scope containing the global variables from the source
-    CProgramScope globalScope = CProgramScope.mutableCoy(CProgramScope.empty());
-    ImmutableSet<AVariableDeclaration> globalVariables =
-        FluentIterable.from(pResult.globalDeclarations())
-            .transform(Pair::getFirst)
-            .filter(AVariableDeclaration.class)
-            .toSet();
-    for (AVariableDeclaration declaration : globalVariables) {
-      globalScope.registerDeclaration((CVariableDeclaration) declaration);
-    }
+    CProgramScope globalScope =
+        programScope.withVariablesInScope(
+            FluentIterable.from(pResult.globalDeclarations())
+                .transform(Pair::getFirst)
+                .filter(CVariableDeclaration.class)
+                .toSet());
 
     AcslScope acslScope = AcslScope.mutableCopy(AcslScope.empty());
     ImmutableList<AcslComment> allComments =
@@ -885,8 +880,7 @@ public class CFACreator {
         ImmutableSetMultimap.builder();
 
     for (AcslComment comment : allComments) {
-      // Build a scope with all variables and parameters that are in scope at the current node
-      CProgramScope scopeForNode = CProgramScope.mutableCoy(globalScope);
+      CProgramScope scopeForNode = globalScope;
       AcslCommentType commentType;
       Optional<CFANode> n = Optional.empty();
 
@@ -916,18 +910,13 @@ public class CFACreator {
                 () ->
                     new AcslMetadataException(
                         "Acsl function contract at " + comment.fileLocation()));
-        if (currentNode instanceof FunctionEntryNode fn) {
-          scopeForNode = scopeForNode.withFunctionScope(fn.getFunctionName());
-          scopeForNode.registerDeclaration(programScope.lookupFunction(fn.getFunctionName()));
-        }
-
-        // Add variables and parameters that are in scope to the scope for the current node
-        Optional<Set<AbstractSimpleDeclaration>> variablesInScope =
-            pResult.localVariablesAndParametersInScope(currentNode);
+        // Only the variables and parameters in scope at the node are visible
+        Optional<FluentIterable<AbstractSimpleDeclaration>> variablesInScope =
+            pCFA.getAstCfaRelation().getVariablesAndParametersInScope(currentNode);
         if (variablesInScope.isPresent()) {
-          for (AbstractSimpleDeclaration declaration : variablesInScope.orElseThrow()) {
-            scopeForNode.registerDeclaration((CSimpleDeclaration) declaration);
-          }
+          scopeForNode =
+              programScope.withVariablesInScope(
+                  variablesInScope.orElseThrow().filter(CSimpleDeclaration.class).toSet());
         } else {
           logger.log(
               Level.WARNING,
@@ -935,6 +924,7 @@ public class CFACreator {
                   + currentNode
                   + " while parsing the ACSL annotations corresponding to it");
         }
+        scopeForNode = scopeForNode.withFunctionScope(currentNode.getFunctionName());
       }
 
       AAcslAnnotation annotation;

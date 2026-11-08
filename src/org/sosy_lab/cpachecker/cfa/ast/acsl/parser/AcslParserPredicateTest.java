@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -66,11 +67,9 @@ public class AcslParserPredicateTest {
 
   private CProgramScope getCProgramScope() {
     String currentFunctionName = "f";
-
-    CProgramScope scope =
-        CProgramScope.mutableCoy(CProgramScope.empty().withFunctionScope(currentFunctionName));
+    ImmutableList.Builder<CSimpleDeclaration> declarations = ImmutableList.builder();
     for (String var : ImmutableList.of("x", "y", "z")) {
-      scope.registerDeclaration(
+      declarations.add(
           new CVariableDeclaration(
               FileLocation.DUMMY,
               true,
@@ -82,7 +81,7 @@ public class AcslParserPredicateTest {
               null /* No initializer, we only want it for testing */,
               /* pHasThreadLocalStorage= */ false));
     }
-    scope.registerDeclaration(
+    declarations.add(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             new CFunctionType(basicInt(), ImmutableList.of(), false),
@@ -90,7 +89,8 @@ public class AcslParserPredicateTest {
             ImmutableList.of(),
             ImmutableSet.of()));
 
-    return scope;
+    return CProgramScope.ofDeclarations(declarations.build())
+        .withFunctionScope(currentFunctionName);
   }
 
   private AcslScope getAcslScope() {

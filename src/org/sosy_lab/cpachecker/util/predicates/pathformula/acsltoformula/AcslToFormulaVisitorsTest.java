@@ -135,10 +135,9 @@ public class AcslToFormulaVisitorsTest {
   private CProgramScope getCProgramScope() {
     String currentFunctionName = "f";
 
-    CProgramScope scope =
-        CProgramScope.mutableCoy(CProgramScope.empty().withFunctionScope(currentFunctionName));
+    ImmutableList.Builder<CSimpleDeclaration> declarations = ImmutableList.builder();
     for (String var : ImmutableList.of("x", "y", "z")) {
-      scope.registerDeclaration(
+      declarations.add(
           new CVariableDeclaration(
               FileLocation.DUMMY,
               true,
@@ -151,7 +150,7 @@ public class AcslToFormulaVisitorsTest {
               /* pHasThreadLocalStorage= */ false));
     }
 
-    scope.registerDeclaration(
+    declarations.add(
         new CVariableDeclaration(
             FileLocation.DUMMY,
             true,
@@ -163,7 +162,7 @@ public class AcslToFormulaVisitorsTest {
             null /* No initializer, we only want it for testing */,
             /* pHasThreadLocalStorage= */ false));
 
-    scope.registerDeclaration(
+    declarations.add(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             new CFunctionType(basicInt(), ImmutableList.of(), false),
@@ -171,7 +170,8 @@ public class AcslToFormulaVisitorsTest {
             ImmutableList.of(),
             ImmutableSet.of()));
 
-    return scope;
+    return CProgramScope.ofDeclarations(declarations.build())
+        .withFunctionScope(currentFunctionName);
   }
 
   // add variables that will be used as pointers below to pointer target set builder
