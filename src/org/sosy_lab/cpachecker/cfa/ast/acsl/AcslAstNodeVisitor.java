@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-
 public interface AcslAstNodeVisitor<R, X extends Exception>
     extends AcslPredicateVisitor<R, X>,
         AcslSimpleDeclarationVisitor<R, X>,

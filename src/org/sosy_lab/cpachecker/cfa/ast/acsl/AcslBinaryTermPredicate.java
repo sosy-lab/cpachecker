@@ -71,8 +71,6 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     GREATER_THAN(">"),
     ;
 
-    @Serial private static final long serialVersionUID = 70136361956900L;
-
     private final String operator;
 
     AcslBinaryTermPredicateOperator(String pOperator) {

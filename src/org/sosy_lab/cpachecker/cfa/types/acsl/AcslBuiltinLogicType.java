@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cfa.types.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serial;
-
 public enum AcslBuiltinLogicType implements AcslLogicType {
   BOOLEAN("boolean"),
   INTEGER("integer"),
@@ -22,8 +20,6 @@ public enum AcslBuiltinLogicType implements AcslLogicType {
   // DO NOT USE UNDER ANY CIRCUMSTANCE EXCEPT THAN WITH AN EMPTY SET
   ANY("any"),
   ;
-
-  @Serial private static final long serialVersionUID = 7011236361956900L;
 
   private final String type;
 

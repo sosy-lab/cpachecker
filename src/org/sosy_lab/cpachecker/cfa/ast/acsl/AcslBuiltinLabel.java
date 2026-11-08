@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public enum AcslBuiltinLabel implements AcslLabel {
@@ -22,8 +21,6 @@ public enum AcslBuiltinLabel implements AcslLabel {
   LOOP_EXIT("LoopExit"),
   INIT("Init"),
   ;
-
-  @Serial private static final long serialVersionUID = 701126361956900L;
 
   private final String label;
   private final FileLocation location;

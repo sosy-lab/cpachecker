@@ -62,8 +62,6 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     AND("&&"),
     OR("||");
 
-    @Serial private static final long serialVersionUID = 701123361956900L;
-
     private final String operator;
 
     AcslBinaryPredicateOperator(String pOperator) {
