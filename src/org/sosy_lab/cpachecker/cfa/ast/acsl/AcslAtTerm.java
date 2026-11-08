@@ -11,24 +11,20 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public final class AcslAtTerm implements AcslTerm {
+public final class AcslAtTerm extends AbstractExpression implements AcslTerm {
 
   @Serial private static final long serialVersionUID = 814408976675011353L;
-
   private final AcslTerm term;
   private final AcslLabel label;
-  private final FileLocation fileLocation;
 
   public AcslAtTerm(FileLocation pLocation, AcslTerm pTerm, AcslLabel pLabel) {
-    checkNotNull(pLocation);
-    checkNotNull(pTerm);
-    checkNotNull(pLabel);
-    fileLocation = pLocation;
+    super(pLocation, pTerm.getExpressionType());
     term = pTerm;
-    label = pLabel;
+    label = checkNotNull(pLabel);
   }
 
   public AcslLabel getLabel() {
@@ -50,13 +46,8 @@ public final class AcslAtTerm implements AcslTerm {
   }
 
   @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
-  }
-
-  @Override
   public AcslType getExpressionType() {
-    return term.getExpressionType();
+    return (AcslType) super.getExpressionType();
   }
 
   @Override
@@ -69,15 +60,10 @@ public final class AcslAtTerm implements AcslTerm {
   }
 
   @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(" + toASTString(pAAstNodeRepresentation) + ")";
-  }
-
-  @Override
   public int hashCode() {
     final int prime = 37;
     int result = 2;
-    result = prime * result + fileLocation.hashCode();
+    result = prime * result + super.hashCode();
     result = prime * result + term.hashCode();
     result = prime * result + label.hashCode();
     return result;
@@ -90,7 +76,7 @@ public final class AcslAtTerm implements AcslTerm {
     }
 
     return obj instanceof AcslAtTerm other
-        && fileLocation.equals(other.fileLocation)
+        && super.equals(other)
         && other.term.equals(term)
         && other.label.equals(label);
   }

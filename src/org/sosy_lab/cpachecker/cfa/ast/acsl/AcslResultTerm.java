@@ -8,25 +8,17 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.Serial;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public final class AcslResultTerm implements AcslTerm, AExpression {
+public final class AcslResultTerm extends AbstractExpression implements AcslTerm {
 
   @Serial private static final long serialVersionUID = -814550243801154576L;
 
-  private final AcslType type;
-  private final FileLocation fileLocation;
-
   public AcslResultTerm(FileLocation pLocation, AcslType pType) {
-    type = pType;
-    fileLocation = pLocation;
-    checkNotNull(pType);
-    checkNotNull(pLocation);
+    super(pLocation, pType);
   }
 
   @Override
@@ -36,17 +28,12 @@ public final class AcslResultTerm implements AcslTerm, AExpression {
 
   @Override
   public AcslType getExpressionType() {
-    return type;
+    return (AcslType) super.getExpressionType();
   }
 
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
   }
 
   @Override
@@ -61,7 +48,7 @@ public final class AcslResultTerm implements AcslTerm, AExpression {
 
   @Override
   public int hashCode() {
-    return 19823;
+    return 19823 * super.hashCode();
   }
 
   @Override
@@ -70,8 +57,6 @@ public final class AcslResultTerm implements AcslTerm, AExpression {
       return true;
     }
 
-    return obj instanceof AcslResultTerm other
-        && fileLocation.equals(other.fileLocation)
-        && type.equals(other.type);
+    return obj instanceof AcslResultTerm && super.equals(obj);
   }
 }

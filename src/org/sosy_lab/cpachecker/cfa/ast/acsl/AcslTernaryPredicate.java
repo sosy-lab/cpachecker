@@ -11,15 +11,14 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
+import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
-public final class AcslTernaryPredicate implements AcslPredicate {
+public final class AcslTernaryPredicate extends AbstractExpression implements AcslPredicate {
 
   @Serial private static final long serialVersionUID = 81297456675011353L;
-
-  private final FileLocation fileLocation;
   private final AcslPredicate condition;
   private final AcslPredicate resultIfTrue;
   private final AcslPredicate resultIfFalse;
@@ -29,18 +28,14 @@ public final class AcslTernaryPredicate implements AcslPredicate {
       AcslPredicate pCondition,
       AcslPredicate pResultIfTrue,
       AcslPredicate pResultIfFalse) {
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
-    assert pResultIfFalse.getExpressionType().equals(pResultIfTrue.getExpressionType());
-    assert pResultIfFalse.getExpressionType().equals(AcslBuiltinLogicType.BOOLEAN);
-    fileLocation = pFileLocation;
-    condition = pCondition;
+    assert Objects.equals(pResultIfFalse.getExpressionType(), pResultIfTrue.getExpressionType());
+    assert Objects.equals(pResultIfFalse.getExpressionType(), AcslBuiltinLogicType.BOOLEAN);
+    condition = checkNotNull(pCondition);
     resultIfTrue = pResultIfTrue;
     resultIfFalse = pResultIfFalse;
-    checkNotNull(pFileLocation);
-    checkNotNull(pCondition);
-    checkNotNull(pResultIfTrue);
-    checkNotNull(pResultIfFalse);
   }
 
   public AcslPredicate getCondition() {
@@ -61,18 +56,8 @@ public final class AcslTernaryPredicate implements AcslPredicate {
   }
 
   @Override
-  public Type getExpressionType() {
-    return resultIfTrue.getExpressionType();
-  }
-
-  @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
   }
 
   @Override
@@ -99,6 +84,7 @@ public final class AcslTernaryPredicate implements AcslPredicate {
   public int hashCode() {
     final int prime = 35;
     int result = 1;
+    result = prime * result + super.hashCode();
     result = prime * result + condition.hashCode();
     result = prime * result + resultIfTrue.hashCode();
     result = prime * result + resultIfFalse.hashCode();
@@ -112,7 +98,7 @@ public final class AcslTernaryPredicate implements AcslPredicate {
     }
 
     return obj instanceof AcslTernaryPredicate other
-        && other.fileLocation.equals(fileLocation)
+        && super.equals(other)
         && other.condition.equals(condition)
         && other.resultIfTrue.equals(resultIfTrue)
         && other.resultIfFalse.equals(resultIfFalse);

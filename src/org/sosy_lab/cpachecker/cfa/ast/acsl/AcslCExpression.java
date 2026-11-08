@@ -8,26 +8,21 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.Serial;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public final class AcslCExpression implements AcslTerm, AExpression {
+public final class AcslCExpression extends AbstractExpression implements AcslTerm {
 
   @Serial private static final long serialVersionUID = 3075231315805189849L;
   private final CExpression expression;
-  private final FileLocation fileLocation;
 
   public AcslCExpression(FileLocation pLocation, CExpression pExpression) {
-    fileLocation = pLocation;
+    super(pLocation, new AcslCType(pExpression.getExpressionType()));
     expression = pExpression;
-    checkNotNull(pLocation);
-    checkNotNull(pExpression);
   }
 
   public CExpression getCExpression() {
@@ -41,17 +36,12 @@ public final class AcslCExpression implements AcslTerm, AExpression {
 
   @Override
   public AcslType getExpressionType() {
-    return new AcslCType(expression.getExpressionType());
+    return (AcslType) super.getExpressionType();
   }
 
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
   }
 
   @Override
@@ -62,5 +52,21 @@ public final class AcslCExpression implements AcslTerm, AExpression {
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString(pAAstNodeRepresentation);
+  }
+
+  @Override
+  public int hashCode() {
+    return 31 * super.hashCode() + expression.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof AcslCExpression other
+        && super.equals(other)
+        && other.expression.equals(expression);
   }
 }

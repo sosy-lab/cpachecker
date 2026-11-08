@@ -11,27 +11,20 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslSetType;
 
-public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
+public abstract sealed class AcslMemoryLocationSet extends AbstractAstNode implements AcslAstNode
     permits AcslMemoryLocationSetEmpty, AcslMemoryLocationSetTerm {
 
   @Serial private static final long serialVersionUID = 1456718713245456789L;
 
-  private final FileLocation fileLocation;
   private final AcslSetType type;
 
   protected AcslMemoryLocationSet(FileLocation pFileLocation, AcslSetType pType) {
-    fileLocation = pFileLocation;
-    type = pType;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
+    super(pFileLocation);
+    type = checkNotNull(pType);
   }
 
   public AcslSetType getType() {
@@ -45,7 +38,7 @@ public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
     final int prime = 37;
     int result = 8;
     result = prime * result + type.hashCode();
-    result = prime * result + fileLocation.hashCode();
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -56,7 +49,7 @@ public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
     }
 
     return obj instanceof AcslMemoryLocationSet other
-        && other.type.equals(type)
-        && other.fileLocation.equals(fileLocation);
+        && super.equals(other)
+        && other.type.equals(type);
   }
 }

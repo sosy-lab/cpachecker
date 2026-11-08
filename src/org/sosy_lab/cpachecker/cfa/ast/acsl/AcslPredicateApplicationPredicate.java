@@ -9,19 +9,19 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public final class AcslPredicateApplicationPredicate implements AcslPredicate {
+public final class AcslPredicateApplicationPredicate extends AbstractExpression
+    implements AcslPredicate {
 
-  private final FileLocation fileLocation;
+  @Serial private static final long serialVersionUID = 448373275534775671L;
   private final AcslPredicateDeclaration predicateDeclaration;
   private final ImmutableList<AcslTerm> parameters;
 
@@ -29,16 +29,12 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
       FileLocation pFileLocation,
       AcslPredicateDeclaration pPredicateDeclaration,
       List<AcslTerm> pParameters) {
-    Preconditions.checkNotNull(pFileLocation);
-    Preconditions.checkNotNull(pPredicateDeclaration);
-    Preconditions.checkNotNull(pParameters);
-
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
     Verify.verify(
         pParameters.size() == pPredicateDeclaration.getParameters().size(),
         "Expected %s parameters but got %s.",
         pPredicateDeclaration.getParameters().size(),
         pParameters.size());
-
     for (int i = 0; i < pParameters.size(); i++) {
       AcslType providedType = pParameters.get(i).getExpressionType();
       AcslType expectedType = pPredicateDeclaration.getType().getParameters().get(i);
@@ -47,22 +43,13 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
           "Provided parameter %s is not of the expected type.",
           i);
     }
-
     predicateDeclaration = pPredicateDeclaration;
     parameters = ImmutableList.copyOf(pParameters);
-    fileLocation = pFileLocation;
   }
-
-  @Serial private static final long serialVersionUID = 448373275534775671L;
 
   @Override
   public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public Type getExpressionType() {
-    return AcslBuiltinLogicType.BOOLEAN;
   }
 
   public AcslPredicateDeclaration getPredicateDeclaration() {
@@ -79,30 +66,13 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   }
 
   @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    StringBuilder astString = new StringBuilder(predicateDeclaration.getName() + "(");
-    String paramString = Joiner.on(", ").join(parameters.stream().toList());
-    astString.append(paramString);
-    astString.append(")");
-    return astString.toString();
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(" + toASTString(pAAstNodeRepresentation) + ")";
+    return predicateDeclaration.getName() + "(" + Joiner.on(", ").join(parameters) + ")";
   }
 
   private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {
     AcslType generalType = AcslType.mostGeneralType(provided, expected);
-    if (expected.equals(generalType) || provided.equals(generalType)) {
-      return true;
-    }
-    return false;
+    return expected.equals(generalType) || provided.equals(generalType);
   }
 
   @Override
@@ -110,7 +80,9 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     if (this == p0) {
       return true;
     }
+
     return p0 instanceof AcslPredicateApplicationPredicate other
+        && super.equals(other)
         && predicateDeclaration.equals(other.predicateDeclaration)
         && parameters.equals(other.parameters);
   }
@@ -119,8 +91,9 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash * predicateDeclaration.hashCode();
-    hash = hash * prime * parameters.hashCode();
+    hash = prime * hash + super.hashCode();
+    hash = prime * hash + predicateDeclaration.hashCode();
+    hash = prime * hash + parameters.hashCode();
     return hash;
   }
 }

@@ -13,16 +13,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import java.io.Serial;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
-public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
-    permits AcslExistsPredicate, AcslForallPredicate {
+public abstract sealed class AcslQuantifiedPredicate extends AbstractExpression
+    implements AcslPredicate permits AcslExistsPredicate, AcslForallPredicate {
 
   @Serial private static final long serialVersionUID = -81123952385151276L;
 
-  private final FileLocation fileLocation;
   private final List<AcslParameterDeclaration> binders;
   private final AcslPredicate predicate;
 
@@ -30,12 +29,9 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
       FileLocation pFileLocation,
       List<AcslParameterDeclaration> pBinders,
       AcslPredicate pPredicate) {
-    fileLocation = pFileLocation;
-    binders = pBinders;
-    predicate = pPredicate;
-    checkNotNull(pFileLocation);
-    checkNotNull(pBinders);
-    checkNotNull(pPredicate);
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
+    binders = checkNotNull(pBinders);
+    predicate = checkNotNull(pPredicate);
   }
 
   public List<AcslParameterDeclaration> getBinders() {
@@ -44,16 +40,6 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
 
   public AcslPredicate getPredicate() {
     return predicate;
-  }
-
-  @Override
-  public Type getExpressionType() {
-    return AcslBuiltinLogicType.BOOLEAN;
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
   }
 
   String toString(String quantifier) {
@@ -70,9 +56,9 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
   public int hashCode() {
     final int prime = 3;
     int result = 7;
-    result = prime * result + Objects.hashCode(fileLocation);
-    result = prime * result + Objects.hashCode(binders);
-    result = prime * result + Objects.hashCode(predicate);
+    result = prime * result + super.hashCode();
+    result = prime * result + binders.hashCode();
+    result = prime * result + predicate.hashCode();
     return result;
   }
 
@@ -84,7 +70,7 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
 
     return obj instanceof AcslQuantifiedPredicate other
         && other.getClass().equals(getClass())
-        && other.fileLocation.equals(fileLocation)
+        && super.equals(other)
         && other.binders.equals(binders)
         && other.predicate.equals(predicate);
   }

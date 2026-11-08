@@ -11,30 +11,22 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class AcslLogicDefinition implements AcslAstNode
+public abstract sealed class AcslLogicDefinition extends AbstractAstNode implements AcslAstNode
     permits AcslLogicFunctionDefinition, AcslLogicPredicateDefinition {
 
   @Serial private static final long serialVersionUID = 19841239875456789L;
 
-  private final FileLocation fileLocation;
   private final AcslLogicDeclaration declaration;
   private final AcslAstNode body;
 
   protected AcslLogicDefinition(
       FileLocation pFileLocation, AcslLogicDeclaration pDeclaration, AcslAstNode pBody) {
-    fileLocation = pFileLocation;
-    declaration = pDeclaration;
-    body = pBody;
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pBody);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
+    super(pFileLocation);
+    declaration = checkNotNull(pDeclaration);
+    body = checkNotNull(pBody);
   }
 
   public AcslLogicDeclaration getDeclaration() {
@@ -53,7 +45,7 @@ public abstract sealed class AcslLogicDefinition implements AcslAstNode
     int result = 8;
     result = prime * result + body.hashCode();
     result = prime * result + declaration.hashCode();
-    result = prime * result + fileLocation.hashCode();
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -64,8 +56,8 @@ public abstract sealed class AcslLogicDefinition implements AcslAstNode
     }
 
     return obj instanceof AcslLogicDefinition other
+        && super.equals(other)
         && other.declaration.equals(declaration)
-        && other.body.equals(body)
-        && other.fileLocation.equals(fileLocation);
+        && other.body.equals(body);
   }
 }
