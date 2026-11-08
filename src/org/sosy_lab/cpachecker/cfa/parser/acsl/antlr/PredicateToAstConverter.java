@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
@@ -31,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate.AcslQuantifier;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
@@ -242,13 +242,11 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
 
     AcslPredicate predicate = visit(pPredicate);
 
-    return switch (pQuantifier) {
-      case "\\exists" ->
-          new AcslExistsPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
-      case "\\forall" ->
-          new AcslForallPredicate(fileLocationFromContext(pBindersContext), binders, predicate);
-      default -> throw new AssertionError("Unknown quantifier: " + pQuantifier);
-    };
+    return new AcslQuantifiedPredicate(
+        fileLocationFromContext(pBindersContext),
+        AcslQuantifier.of(pQuantifier),
+        binders,
+        predicate);
   }
 
   @Override

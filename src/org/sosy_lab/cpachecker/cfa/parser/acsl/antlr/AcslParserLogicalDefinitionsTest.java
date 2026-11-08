@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperato
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
@@ -33,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate.AcslQuantifier;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
@@ -488,8 +489,9 @@ public class AcslParserLogicalDefinitionsTest {
             // Function Declaration
             sortedDeclaration,
             // Function body
-            new AcslForallPredicate(
+            new AcslQuantifiedPredicate(
                 FileLocation.DUMMY,
+                AcslQuantifier.FORALL,
                 ImmutableList.of(firstIterator, secondIterator),
                 new AcslBinaryPredicate(
                     FileLocation.DUMMY,

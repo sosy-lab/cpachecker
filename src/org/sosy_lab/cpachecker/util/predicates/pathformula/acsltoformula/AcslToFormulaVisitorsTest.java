@@ -24,14 +24,14 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate.AcslQuantifier;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -340,8 +340,9 @@ public class AcslToFormulaVisitorsTest {
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x");
 
     AcslPredicate pred =
-        new AcslExistsPredicate(
+        new AcslQuantifiedPredicate(
             FileLocation.DUMMY,
+            AcslQuantifier.EXISTS,
             ImmutableList.of(x),
             b.neq(new AcslIdTerm(FileLocation.DUMMY, x), new AcslIdTerm(FileLocation.DUMMY, x)));
 
@@ -375,7 +376,9 @@ public class AcslToFormulaVisitorsTest {
             b.eq(new AcslIdTerm(FileLocation.DUMMY, x), b.integer(5)),
             b.eq(new AcslIdTerm(FileLocation.DUMMY, x), b.integer(6)));
 
-    AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(x), body);
+    AcslPredicate forall =
+        new AcslQuantifiedPredicate(
+            FileLocation.DUMMY, AcslQuantifier.FORALL, ImmutableList.of(x), body);
 
     BooleanFormula f = translate(forall);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -464,7 +467,9 @@ public class AcslToFormulaVisitorsTest {
                 b.lt(new AcslIdTerm(FileLocation.DUMMY, i), b.integer(3))),
             b.eq(ai, b.integer(5)));
 
-    AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(i), body);
+    AcslPredicate forall =
+        new AcslQuantifiedPredicate(
+            FileLocation.DUMMY, AcslQuantifier.FORALL, ImmutableList.of(i), body);
 
     AcslPredicate rhs = b.eq(a1, b.integer(5));
 
@@ -538,8 +543,11 @@ public class AcslToFormulaVisitorsTest {
     // \forall i: P(x,i) <-> defP.body
     BooleanFormula fDefinition =
         translate(
-            new AcslForallPredicate(
-                FileLocation.DUMMY, ImmutableList.of(x, index), b.equivalent(pai, defP.getBody())));
+            new AcslQuantifiedPredicate(
+                FileLocation.DUMMY,
+                AcslQuantifier.FORALL,
+                ImmutableList.of(x, index),
+                b.equivalent(pai, defP.getBody())));
 
     boolean unsat;
 
@@ -707,8 +715,11 @@ public class AcslToFormulaVisitorsTest {
     // \forall i: P(i) <-> defP.body
     BooleanFormula fDefinition =
         translate(
-            new AcslForallPredicate(
-                FileLocation.DUMMY, ImmutableList.of(index), b.equivalent(pai, defP.getBody())));
+            new AcslQuantifiedPredicate(
+                FileLocation.DUMMY,
+                AcslQuantifier.FORALL,
+                ImmutableList.of(index),
+                b.equivalent(pai, defP.getBody())));
 
     AcslPredicateApplicationPredicate pa2 =
         new AcslPredicateApplicationPredicate(

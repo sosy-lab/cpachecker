@@ -78,8 +78,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
@@ -95,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
@@ -1618,13 +1617,7 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslForallPredicate pForallPredicate)
-        throws NoException {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(AcslExistsPredicate pAcslExistsPredicate)
+    public Iterable<? extends AAstNode> visit(AcslQuantifiedPredicate pQuantifiedPredicate)
         throws NoException {
       return ImmutableList.of();
     }

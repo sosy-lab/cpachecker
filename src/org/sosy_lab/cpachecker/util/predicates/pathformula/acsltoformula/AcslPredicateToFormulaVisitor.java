@@ -19,8 +19,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
@@ -241,19 +239,13 @@ public class AcslPredicateToFormulaVisitor
   }
 
   @Override
-  public BooleanFormula visit(AcslForallPredicate pForallPredicate) throws NoException {
+  public BooleanFormula visit(AcslQuantifiedPredicate pQuantifiedPredicate) throws NoException {
     QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
-    QuantifierData data = handleQuantifier(pForallPredicate);
-
-    return qfmr.forall(data.smtVars, data.bodyFormula);
-  }
-
-  @Override
-  public BooleanFormula visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
-
-    QuantifierData data = handleQuantifier(pAcslExistsPredicate);
-    return qfmr.exists(data.smtVars, data.bodyFormula);
+    QuantifierData data = handleQuantifier(pQuantifiedPredicate);
+    return switch (pQuantifiedPredicate.getQuantifier()) {
+      case FORALL -> qfmr.forall(data.smtVars, data.bodyFormula);
+      case EXISTS -> qfmr.exists(data.smtVars, data.bodyFormula);
+    };
   }
 
   @Override
@@ -287,10 +279,10 @@ public class AcslPredicateToFormulaVisitor
 
   private record QuantifierData(List<Formula> smtVars, BooleanFormula bodyFormula) {}
 
-  private QuantifierData handleQuantifier(AcslQuantifiedPredicate pForallPredicate) {
+  private QuantifierData handleQuantifier(AcslQuantifiedPredicate pQuantifiedPredicate) {
     Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap = new HashMap<>();
     List<AcslParameterDeclaration> newBinders = new ArrayList<>();
-    for (AcslParameterDeclaration declaration : pForallPredicate.getBinders()) {
+    for (AcslParameterDeclaration declaration : pQuantifiedPredicate.getBinders()) {
       String newName = "ACSL#q" + renamingCounter++ + "#" + declaration.getName();
 
       AcslParameterDeclaration renamed =
@@ -309,7 +301,7 @@ public class AcslPredicateToFormulaVisitor
 
     AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(ImmutableMap.copyOf(renamingMap));
 
-    AcslPredicate renamedBody = pForallPredicate.getPredicate().accept(renamingVisitor);
+    AcslPredicate renamedBody = pQuantifiedPredicate.getPredicate().accept(renamingVisitor);
     BooleanFormula bodyF = renamedBody.accept(this);
 
     return new QuantifierData(smtVars, bodyF);

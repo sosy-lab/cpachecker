@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLiteralTerm;
@@ -41,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate.AcslQuantifier;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
@@ -558,8 +558,9 @@ public class AcslParserPredicateTest {
     AcslParameterDeclaration y =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay");
     AcslPredicate output =
-        new AcslForallPredicate(
+        new AcslQuantifiedPredicate(
             FileLocation.DUMMY,
+            AcslQuantifier.FORALL,
             ImmutableList.of(x, y),
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
@@ -578,8 +579,9 @@ public class AcslParserPredicateTest {
     AcslParameterDeclaration y =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ay");
     AcslPredicate output =
-        new AcslForallPredicate(
+        new AcslQuantifiedPredicate(
             FileLocation.DUMMY,
+            AcslQuantifier.FORALL,
             ImmutableList.of(x, y),
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
@@ -598,8 +600,9 @@ public class AcslParserPredicateTest {
     AcslParameterDeclaration y =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay");
     AcslPredicate output =
-        new AcslExistsPredicate(
+        new AcslQuantifiedPredicate(
             FileLocation.DUMMY,
+            AcslQuantifier.EXISTS,
             ImmutableList.of(x, y),
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,

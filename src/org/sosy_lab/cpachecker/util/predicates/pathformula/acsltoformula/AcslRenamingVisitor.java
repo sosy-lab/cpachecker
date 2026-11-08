@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
@@ -30,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
@@ -126,19 +125,12 @@ public class AcslRenamingVisitor
   }
 
   @Override
-  public AcslPredicate visit(AcslForallPredicate pForallPredicate) throws NoException {
-    return new AcslForallPredicate(
-        pForallPredicate.getFileLocation(),
-        pForallPredicate.getBinders(),
-        pForallPredicate.getPredicate().accept(this));
-  }
-
-  @Override
-  public AcslPredicate visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    return new AcslExistsPredicate(
-        pAcslExistsPredicate.getFileLocation(),
-        pAcslExistsPredicate.getBinders(),
-        pAcslExistsPredicate.getPredicate().accept(this));
+  public AcslPredicate visit(AcslQuantifiedPredicate pQuantifiedPredicate) throws NoException {
+    return new AcslQuantifiedPredicate(
+        pQuantifiedPredicate.getFileLocation(),
+        pQuantifiedPredicate.getQuantifier(),
+        pQuantifiedPredicate.getBinders(),
+        pQuantifiedPredicate.getPredicate().accept(this));
   }
 
   @Override
