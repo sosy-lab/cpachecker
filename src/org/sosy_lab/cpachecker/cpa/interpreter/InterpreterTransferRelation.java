@@ -12,7 +12,6 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -66,7 +67,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   private final InterpreterWitnessExporter witnessExporter;
   private final @Nullable InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
-  private final ImmutableSet<String> allocationsThatCannotFail;
+  private final @Nullable SMGOptions smgOptions;
   private final boolean collectInvariants;
 
   InterpreterTransferRelation(
@@ -77,7 +78,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       InterpreterWitnessExporter pWitnessExporter,
       @Nullable InterpreterSampler pSampler,
       @Nullable ValueTransferOptions pValueTransferOptions,
-      ImmutableSet<String> pAllocationsThatCannotFail) {
+      @Nullable SMGOptions pSmgOptions) {
     super(pWrapped);
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
@@ -85,7 +86,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     witnessExporter = pWitnessExporter;
     sampler = pSampler;
     valueTransferOptions = pValueTransferOptions;
-    allocationsThatCannotFail = pAllocationsThatCannotFail;
+    smgOptions = pSmgOptions;
     collectInvariants = pWitnessExporter.collectsInvariants();
   }
 
@@ -219,13 +220,25 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     return status;
   }
 
-  /** Whether the given call allocates memory and the wrapped analysis lets it never fail. */
+  /**
+   * Whether the given call allocates memory and the wrapped analysis lets it never fail. Besides
+   * the functions of the C standard, the functions that the analysis is configured to treat as an
+   * allocation are considered. {@code alloca} and its builtin version are left out on purpose: they
+   * never fail.
+   */
   private boolean isAllocationThatCannotFail(CFunctionCall pFunctionCall) {
-    if (allocationsThatCannotFail.isEmpty()) {
+    if (smgOptions == null || smgOptions.isEnableMallocFailure()) {
       return false;
     }
     CFunctionDeclaration declaration = pFunctionCall.getFunctionCallExpression().getDeclaration();
-    return declaration != null && allocationsThatCannotFail.contains(declaration.getName());
+    if (declaration == null) {
+      return false;
+    }
+    String name = declaration.getName();
+    return StandardFunctions.isMemoryAllocatingFunction(name)
+        || StandardFunctions.isMemoryReallocatingFunction(name)
+        || smgOptions.getMemoryAllocationFunctions().contains(name)
+        || smgOptions.getArrayAllocationFunctions().contains(name);
   }
 
   /**
