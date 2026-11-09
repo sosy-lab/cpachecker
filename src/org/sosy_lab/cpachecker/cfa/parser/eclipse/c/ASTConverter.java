@@ -2258,15 +2258,25 @@ class ASTConverter {
     IASTDeclSpecifier declSpecifier = sd.getDeclSpecifier();
     Pair<CStorageClass, ? extends CType> specifier = convert(declSpecifier);
     typeConverter.checkNoCPAcheckerAttributeForThreadLocal(declSpecifier, d);
-    // Attributes of a struct, union, or enum specifier belong to that type.
-    boolean specifiesType =
-        declSpecifier instanceof IASTCompositeTypeSpecifier
-            || declSpecifier instanceof IASTEnumerationSpecifier;
-    boolean packed = !specifiesType && hasPackedAttribute(declSpecifier);
-    int alignment =
-        Math.max(
-            getAlignmentSpecifier(declSpecifier),
-            specifiesType ? 0 : getAlignedAttribute(declSpecifier));
+    // Alignment specifiers always apply to the member (C11 § 6.7.5 (6)).
+    boolean packed;
+    int alignment;
+    if (declSpecifier instanceof IASTCompositeTypeSpecifier
+        || declSpecifier instanceof IASTEnumerationSpecifier) {
+      // The member declaration defines a struct, union, or enum type in place. GCC applies
+      // attributes after its keyword or closing brace to this type and not to the member
+      // (https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html#Type-Attributes-1), so they are
+      // handled with the type. CDT also stores attributes before the keyword here, which GCC
+      // applies to the member (unsupported).
+      packed = false;
+      alignment = getAlignmentSpecifier(declSpecifier);
+    } else {
+      // The member has a basic type or refers to an existing type (e.g., "struct T" or a typedef
+      // name), so the attributes apply to the member.
+      packed = hasPackedAttribute(declSpecifier);
+      alignment =
+          Math.max(getAlignmentSpecifier(declSpecifier), getAlignedAttribute(declSpecifier));
+    }
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class inside composite type", d);
     }
