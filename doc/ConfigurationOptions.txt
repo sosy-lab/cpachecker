@@ -6065,9 +6065,6 @@ termination.violation.witness.dot = "nontermination_witness.dot"
 # Export termination counterexample to file as GraphML automaton 
 termination.violation.witness.graphml = "nontermination_witness.graphml"
 
-# Export termination counterexample to file in YAML format 
-termination.violation.witness.yaml = "Counterexample.%s.witness-2.1.yml"
-
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
 

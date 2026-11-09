@@ -69,7 +69,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -146,14 +145,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitnessGraphml = Path.of("nontermination_witness.graphml");
-
-  @Option(
-      secure = true,
-      name = "violation.witness.yaml",
-      description = "Export termination counterexample to file in YAML format ")
-  @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate violationWitnessYaml =
-      PathTemplate.ofFormatString("Counterexample.%s.witness-2.1.yml");
 
   @Option(
       secure = true,
@@ -481,7 +472,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     if (pResult == Result.FALSE
         && (violationWitnessGraphml != null
-            || violationWitnessYaml != null
+            || cexToWitnessEporter.isExportEnabled()
             || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached.stream()
@@ -716,10 +707,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             logger);
       }
 
-      if (violationWitnessYaml != null) {
+      // The YAML witness is written to the same file (witness.yamlexporter.nonterminationWitness)
+      // as the one of the other termination analyses, such that a configuration that combines
+      // them needs to specify the file only once.
+      if (cexToWitnessEporter.isExportEnabled()) {
         cexToWitnessEporter.exportNonTerminationWitness(
             cexInfo,
-            violationWitnessYaml,
+            cexToWitnessEporter.getOutputFileTemplate(),
             0,
             OptionalInt.of(
                 countLoopHeadVisitsInStem(
