@@ -558,14 +558,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CExpression rhs = assignment.getRightHandSide();
       if (rhs instanceof CStringLiteralExpression cStringLiteralExpression) {
         final CExpression lhs = assignment.getLeftHandSide();
-        final CType lhsType = lhs.getExpressionType();
+        final CType lhsType = lhs.getExpressionType().getCanonicalType();
         final CArrayType lhsArrayType;
         if (lhsType instanceof CArrayType cArrayType) {
           lhsArrayType = cArrayType;
-        } else if (lhsType instanceof CPointerType cPointerType) {
-          // TODO someone has to check if length must be fixed to string size here if yes replace
-          // with stringExp.tranformTypeToArrayType
-          lhsArrayType = new CArrayType(CTypeQualifiers.NONE, cPointerType.getType());
+        } else if (lhsType instanceof CPointerType) {
+          // A pointer initialized with a string literal points to the literal (C11 6.4.5).
+          // Expanding the literal here would write its characters through the uninitialized
+          // pointer instead, which leaves the pointer itself unassigned and clobbers arbitrary
+          // memory, making feasible paths infeasible.
+          result.add(assignment);
+          continue;
         } else {
           throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
