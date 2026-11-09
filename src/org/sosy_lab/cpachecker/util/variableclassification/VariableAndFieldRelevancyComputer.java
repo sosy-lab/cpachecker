@@ -496,26 +496,21 @@ final class VariableAndFieldRelevancyComputer {
           final CRightHandSide rhs = assignment.getRightHandSide();
           final Pair<VariableOrField, VarFieldDependencies> r =
               assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
-          if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
-            // Normally, everything in the RHS becomes a dependency of the LHS, so it is relevant
-            // only if the LHS is relevant. For functions writing through pointer arguments, we
-            // use unknown() as the dependent instead: the RHS visitor then calls
-            // withDependency(unknown(), x) for every x in the RHS, which marks x as relevant
-            // directly instead of recording a dependency (same as for f(a); below).
-            final VariableOrField dependent =
-                rhs instanceof CFunctionCallExpression call
-                        && call.getFunctionNameExpression() instanceof CIdExpression function
-                        && StandardFunctions.writesThroughPointerArguments(function.getName())
-                    ? VariableOrField.unknown()
-                    : r.getFirst();
-            result =
-                result.withDependencies(
-                    r.getSecond()
-                        .withDependencies(
-                            rhs.accept(CollectingRHSVisitor.create(pCfa, dependent))));
-          } else {
-            throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
-          }
+          // Normally, everything in the RHS becomes a dependency of the LHS, so it is relevant
+          // only if the LHS is relevant. For functions writing through pointer arguments, we
+          // use unknown() as the dependent instead: the RHS visitor then calls
+          // withDependency(unknown(), x) for every x in the RHS, which marks x as relevant
+          // directly instead of recording a dependency (same as for f(a); below).
+          final VariableOrField dependent =
+              rhs instanceof CFunctionCallExpression call
+                      && call.getFunctionNameExpression() instanceof CIdExpression function
+                      && StandardFunctions.writesThroughPointerArguments(function.getName())
+                  ? VariableOrField.unknown()
+                  : r.getFirst();
+          result =
+              result.withDependencies(
+                  r.getSecond()
+                      .withDependencies(rhs.accept(CollectingRHSVisitor.create(pCfa, dependent))));
         } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
           result =
               result.withDependencies(
