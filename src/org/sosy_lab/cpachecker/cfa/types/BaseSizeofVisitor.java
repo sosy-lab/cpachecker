@@ -110,7 +110,12 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
       sizeOfType = decl.getType().accept(this);
       size = size.max(sizeOfType);
     }
-    // Round up to the alignment of the union.
+    // Round up to the alignment of the union, so that the elements of an array of unions are
+    // aligned. C11 allows this trailing padding (§ 6.7.2.1 (17), § 6.5.3.4 (4)), and GCC leaves
+    // the layout to the ABI:
+    // https://gcc.gnu.org/onlinedocs/gcc/Structures-unions-enumerations-and-bit-fields-implementation.html
+    // The System V x86-64 psABI (https://gitlab.com/x86-psABIs/x86-64-ABI, § 3.1.2) defines:
+    // "The size of any object is always a multiple of the object's alignment."
     // Use the non-atomic alignment for the same reason as at the end of the struct case.
     BigInteger alignof = BigInteger.valueOf(model.getAlignof(pCompositeType.withoutAtomic()));
     return size.add(alignof).subtract(BigInteger.ONE).divide(alignof).multiply(alignof);
