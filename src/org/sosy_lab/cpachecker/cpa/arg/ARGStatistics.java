@@ -672,7 +672,12 @@ public class ARGStatistics implements Statistics {
     }
 
     // Only export counterexamples that for target states without explicit ones if there is no
-    // explicit one
+    // explicit one. This happens for BMC: multiple target states can exist while only one of them
+    // has been checked for feasability. Filtering here prevents the witness export to overwrite the
+    // checked correct counterexample with one that is unchecked and therefore potentially wrong.
+    // TODO: extend or replace this with a better solution that does not implicitely apply this 
+    // potentially unexpected filtering 
+    // see https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/596
     Map<ARGState, CounterexampleInfo> allCounterexamples = registeredCounterexamples.buildOrThrow();
     if (allCounterexamples.isEmpty()) {
       ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
