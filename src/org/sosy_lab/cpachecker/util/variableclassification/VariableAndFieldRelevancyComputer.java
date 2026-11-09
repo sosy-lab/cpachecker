@@ -486,12 +486,22 @@ final class VariableAndFieldRelevancyComputer {
         // Heuristic: for external function calls
         // r = f(a); // r depends on f and a, BUT
         // f(a); // f and a are always relevant
-        // r = memcpy(a, ...); // a is always relevant, because memcpy writes through it
+        // r = memcpy(a, b, n); // a, b, and n are always relevant (not only a)
+        // The last case applies to all functions that write through pointer arguments
+        // (cf. StandardFunctions#writesThroughPointerArguments). The pointer written through
+        // must be relevant, because the call has a side effect on the memory it points to.
+        // The other arguments are made relevant as well, because an analysis that handles or
+        // overapproximates such a function may need them, e.g., source pointer and length.
         if (statement instanceof CAssignment assignment) {
           final CRightHandSide rhs = assignment.getRightHandSide();
           final Pair<VariableOrField, VarFieldDependencies> r =
               assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
           if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
+            // Normally, everything in the RHS becomes a dependency of the LHS, so it is relevant
+            // only if the LHS is relevant. For functions writing through pointer arguments, we
+            // use unknown() as the dependent instead: the RHS visitor then calls
+            // withDependency(unknown(), x) for every x in the RHS, which marks x as relevant
+            // directly instead of recording a dependency (same as for f(a); below).
             final VariableOrField dependent =
                 rhs instanceof CFunctionCallExpression call
                         && call.getFunctionNameExpression() instanceof CIdExpression function
