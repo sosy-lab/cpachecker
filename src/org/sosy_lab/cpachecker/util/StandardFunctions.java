@@ -380,6 +380,10 @@ public final class StandardFunctions {
           "strtok_s",
           "strxfrm");
 
+  /** Functions from string.h that write to the memory that their pointer arguments point to */
+  public static final ImmutableSet<String> POINTER_ARGUMENT_WRITING_FUNCTIONS =
+      ImmutableSet.of("memcpy", "memmove", "memset", "strcat", "strcpy", "strncat", "strncpy");
+
   /** C11 B.26 Date and time time.h */
   public static final ImmutableSet<String> C11_TIME_H_FUNCTIONS =
       ImmutableSet.of(

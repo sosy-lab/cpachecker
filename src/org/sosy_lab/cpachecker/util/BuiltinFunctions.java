@@ -33,8 +33,6 @@ public class BuiltinFunctions {
   private static final ImmutableSet<String> SETJMP =
       ImmutableSet.of("_setjmp", "setjmp", "sigsetjmp");
   private static final String STRLEN = "strlen";
-  private static final ImmutableSet<String> POINTER_ARGUMENT_WRITING_FUNCTIONS =
-      ImmutableSet.of("memcpy", "memmove", "memset", "strcat", "strcpy", "strncat", "strncpy");
   private static final String POPCOUNT = "popcount";
 
   // abs, labs, llabs: C11 7.22.6.1 "The abs, labs and llabs functions" (stdlib.h).
@@ -104,7 +102,7 @@ public class BuiltinFunctions {
 
   /** Returns whether the function writes to the memory that its pointer arguments point to. */
   public static boolean writesThroughPointerArguments(String pFunctionName) {
-    return POINTER_ARGUMENT_WRITING_FUNCTIONS.contains(pFunctionName)
+    return StandardFunctions.POINTER_ARGUMENT_WRITING_FUNCTIONS.contains(pFunctionName)
         || BuiltinAtomicFunctions.getSideEffectFunctionNames().contains(pFunctionName);
   }
 
