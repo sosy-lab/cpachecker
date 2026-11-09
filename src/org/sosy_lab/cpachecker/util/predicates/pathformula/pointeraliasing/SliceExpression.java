@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
@@ -16,8 +17,11 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -25,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -109,7 +114,7 @@ record SliceExpression(
 
   /** Represents performing indexing on a {@code CExpression}, i.e., {@code base[i]}. */
   sealed interface SliceIndexModifier extends SliceModifier
-      permits SliceVariableIndexModifier, SliceFormulaIndexModifier {}
+      permits SliceVariableIndexModifier, SliceConstantIndexModifier, SliceFormulaIndexModifier {}
 
   /** Represents performing a field access on a {@code CExpression}, i.e., {@code base.field}. */
   record SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) implements SliceModifier {
@@ -125,6 +130,16 @@ record SliceExpression(
   record SliceVariableIndexModifier(SliceVariable index) implements SliceIndexModifier {
     SliceVariableIndexModifier {
       checkNotNull(index);
+    }
+  }
+
+  /**
+   * Represents performing indexing on an array, i.e., {@code base[c]}, where {@code c} is a
+   * non-negative constant.
+   */
+  record SliceConstantIndexModifier(long index) implements SliceIndexModifier {
+    SliceConstantIndexModifier {
+      checkArgument(index >= 0, "Constant slice index %s must not be negative", index);
     }
   }
 
@@ -180,6 +195,19 @@ record SliceExpression(
   }
 
   /**
+   * Return a new {@link SliceExpression} with indexing by the given constant as the last modifier.
+   *
+   * @param index The non-negative index that should be used for indexing.
+   * @return The modified {@link SliceExpression}
+   */
+  SliceExpression withConstantIndex(long index) {
+    // add to modifiers
+    ImmutableList<SliceModifier> newModifiers =
+        listAndElement(modifiers, new SliceConstantIndexModifier(index));
+    return new SliceExpression(base, newModifiers);
+  }
+
+  /**
    * Return a new {@code ArraySliceExpression} where indexing by the given quantified variable is
    * replaced with indexing by the given formula.
    *
@@ -217,7 +245,8 @@ record SliceExpression(
         // replace type with field type
         type = fieldModifier.field.getType().getCanonicalType();
       } else {
-        assert (modifier instanceof SliceVariableIndexModifier);
+        assert (modifier instanceof SliceVariableIndexModifier
+            || modifier instanceof SliceConstantIndexModifier);
         // replace type with the type of its element
         CPointerType adjustedPointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(type);
         type = adjustedPointerType.getType().getCanonicalType();
@@ -229,30 +258,63 @@ record SliceExpression(
 
   /**
    * Makes a canonical {@link SliceExpression} out of this one. A canonical expression has all outer
-   * field accesses in base moved to the start of modifiers.
+   * field accesses and constant-index subscripts in base moved to the start of modifiers.
    *
    * @return A canonical version of this expression.
    */
   SliceExpression constructCanonical() {
-    // only CExpression can have outer field accesses
+    // only CExpression can have outer field accesses or subscripts
     if (!(base instanceof CExpression currentBase)) {
       return this;
     }
 
     Deque<SliceModifier> canonicalModifiers = new ArrayDeque<>(modifiers);
-    while (currentBase instanceof CFieldReference outerFieldReference) {
-      if (outerFieldReference.isPointerDereference()) {
-        // pointer dereference, convert to explicit pointer dereference
-        outerFieldReference = outerFieldReference.withExplicitPointerDereference();
+    while (true) {
+      if (currentBase instanceof CFieldReference outerFieldReference) {
+        if (outerFieldReference.isPointerDereference()) {
+          // pointer dereference, convert to explicit pointer dereference
+          outerFieldReference = outerFieldReference.withExplicitPointerDereference();
+        }
+        // the outer reference must be added in front of all previous modifiers
+        canonicalModifiers.addFirst(
+            new SliceFieldAccessModifier(
+                new CCompositeTypeMemberDeclaration(
+                    outerFieldReference.getExpressionType(), outerFieldReference.getFieldName())));
+        currentBase = outerFieldReference.getFieldOwner();
+      } else if (currentBase instanceof CArraySubscriptExpression outerSubscript) {
+        final OptionalLong index = getConstantInBoundsIndex(outerSubscript);
+        if (index.isEmpty()) {
+          break;
+        }
+        // the outer subscript must be added in front of all previous modifiers as well
+        canonicalModifiers.addFirst(new SliceConstantIndexModifier(index.orElseThrow()));
+        currentBase = outerSubscript.getArrayExpression();
+      } else {
+        break;
       }
-      // the outer reference must be added in front of all previous modifiers
-      canonicalModifiers.addFirst(
-          new SliceFieldAccessModifier(
-              new CCompositeTypeMemberDeclaration(
-                  outerFieldReference.getExpressionType(), outerFieldReference.getFieldName())));
-      currentBase = outerFieldReference.getFieldOwner();
     }
     return new SliceExpression(currentBase, ImmutableList.copyOf(canonicalModifiers));
+  }
+
+  /**
+   * Returns the index of the given subscript if it is an integer literal that is within the bounds
+   * of the subscripted array.
+   */
+  private static OptionalLong getConstantInBoundsIndex(CArraySubscriptExpression subscript) {
+    if (!(subscript.getArrayExpression().getExpressionType().getCanonicalType()
+            instanceof CArrayType arrayType)
+        || !(subscript.getSubscriptExpression()
+            instanceof CIntegerLiteralExpression indexLiteral)) {
+      return OptionalLong.empty();
+    }
+    final OptionalInt length = arrayType.getLengthAsInt();
+    final BigInteger index = indexLiteral.getValue();
+    if (length.isEmpty()
+        || index.signum() < 0
+        || index.compareTo(BigInteger.valueOf(length.orElseThrow())) >= 0) {
+      return OptionalLong.empty();
+    }
+    return OptionalLong.of(index.longValueExact());
   }
 
   /** Returns all slice variables present in the modifiers. */
@@ -293,9 +355,12 @@ record SliceExpression(
                 false);
       } else {
         // subscript
-        // the index literal is zero, so it can have whichever integer type
+        // the index literal is non-negative, so it can have whichever large-enough integer type
         CIntegerLiteralExpression indexLiteral =
-            CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT);
+            modifier instanceof SliceConstantIndexModifier constantIndex
+                ? CIntegerLiteralExpression.createDummyLiteral(
+                    constantIndex.index(), CNumericTypes.LONG_INT)
+                : CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT);
 
         CPointerType resolvedPointerType =
             (CPointerType)
