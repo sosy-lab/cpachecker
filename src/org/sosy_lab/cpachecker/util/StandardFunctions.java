@@ -380,10 +380,6 @@ public final class StandardFunctions {
           "strtok_s",
           "strxfrm");
 
-  /** Functions from string.h that write to the memory that their pointer arguments point to */
-  public static final ImmutableSet<String> POINTER_ARGUMENT_WRITING_FUNCTIONS =
-      ImmutableSet.of("memcpy", "memmove", "memset", "strcat", "strcpy", "strncat", "strncpy");
-
   /** C11 B.26 Date and time time.h */
   public static final ImmutableSet<String> C11_TIME_H_FUNCTIONS =
       ImmutableSet.of(
@@ -645,6 +641,16 @@ public final class StandardFunctions {
    */
   public static boolean isMemoryReallocatingFunction(String functionName) {
     return MEMORY_REALLOCATING_FUNCTION.equals(functionName);
+  }
+
+  /** Functions from string.h that write to the memory that their pointer arguments point to */
+  private static final ImmutableSet<String> POINTER_ARGUMENT_WRITING_FUNCTIONS =
+      ImmutableSet.of("memcpy", "memmove", "memset", "strcat", "strcpy", "strncat", "strncpy");
+
+  /** Returns whether the function writes to the memory that its pointer arguments point to. */
+  public static boolean writesThroughPointerArguments(String pFunctionName) {
+    return POINTER_ARGUMENT_WRITING_FUNCTIONS.contains(pFunctionName)
+        || BuiltinAtomicFunctions.getSideEffectFunctionNames().contains(pFunctionName);
   }
 
   /* ############## C11 input/output functions by categories used in the standard ############## */

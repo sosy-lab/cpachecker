@@ -55,8 +55,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 
 /**
  * The class computes global control-flow and context-insensitive over-approximation of sets of
@@ -495,7 +495,7 @@ final class VariableAndFieldRelevancyComputer {
             final VariableOrField dependent =
                 rhs instanceof CFunctionCallExpression call
                         && call.getFunctionNameExpression() instanceof CIdExpression function
-                        && BuiltinFunctions.writesThroughPointerArguments(function.getName())
+                        && StandardFunctions.writesThroughPointerArguments(function.getName())
                     ? VariableOrField.unknown()
                     : r.getFirst();
             result =

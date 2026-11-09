@@ -100,12 +100,6 @@ public class BuiltinFunctions {
     return pFunctionName.equals(STRLEN);
   }
 
-  /** Returns whether the function writes to the memory that its pointer arguments point to. */
-  public static boolean writesThroughPointerArguments(String pFunctionName) {
-    return StandardFunctions.POINTER_ARGUMENT_WRITING_FUNCTIONS.contains(pFunctionName)
-        || BuiltinAtomicFunctions.getSideEffectFunctionNames().contains(pFunctionName);
-  }
-
   public static boolean isSetjmpFunction(String pFunctionName) {
     return SETJMP.contains(pFunctionName);
   }
