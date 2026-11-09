@@ -16,12 +16,24 @@ struct __attribute__((packed)) S {
   int i;
 };
 
+// T has size 5 only with alignment 1, otherwise a[2] is outside of the allocated memory.
+struct __attribute__((packed)) T {
+  int i;
+  char c;
+};
+
 int main() {
   struct S *p = malloc(5);
   if (p) {
     p->c = 1;
     p->i = 2;
     free(p);
+  }
+  struct T *a = malloc(3 * 5);
+  if (a) {
+    a[2].i = 3;
+    a[2].c = 4;
+    free(a);
   }
   return 0;
 }

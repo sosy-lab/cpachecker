@@ -38,6 +38,16 @@ union U2 { char c; int i __attribute__((aligned(16))); };
 union U3 { char c[5]; int i; };
 enum EN1 { EA = -1, EB = 200 } __attribute__((packed));
 struct EN2 { char c; enum EN1 e; };
+// packed structs and unions have alignment 1, also if the first member is not a char
+struct P4 { int i; char c; } __attribute__((packed));
+struct __attribute__((packed)) P5 { long l; short s; };
+struct P6 { int i __attribute__((packed)); char c; };
+struct __attribute__((packed)) P7 { struct { int a; char b; } in; char c; };
+typedef struct __attribute__((packed)) { int i; char c; } P8;
+struct N1 { char c; struct P4 p; };
+struct __attribute__((packed)) PA4 { int i; char c __attribute__((aligned(2))); };
+struct __attribute__((packed)) PA5 { int i; char c; } __attribute__((aligned(2)));
+union __attribute__((packed)) U4 { int i; char c[5]; };
 // self references, nested types, and several declarators in the first member declaration
 struct __attribute__((packed, aligned(2))) L { char c; struct L *next; };
 struct __attribute__((packed)) O { char c; struct { char d; struct O *o; } inner; };
@@ -79,6 +89,16 @@ int main() {
   check(sizeof(union U2) == 16 && _Alignof(union U2) == 16);
   check(sizeof(union U3) == 8);
   check(sizeof(enum EN1) == 2 && sizeof(struct EN2) == 4 && offsetof(struct EN2, e) == 2);
+  check(sizeof(struct P4) == 5 && _Alignof(struct P4) == 1 && offsetof(struct P4, c) == 4);
+  check(sizeof(struct P4[3]) == 15);
+  check(sizeof(struct P5) == 10 && _Alignof(struct P5) == 1);
+  check(sizeof(struct P6) == 5 && _Alignof(struct P6) == 1);
+  check(sizeof(struct P7) == 9 && _Alignof(struct P7) == 1 && offsetof(struct P7, c) == 8);
+  check(sizeof(P8) == 5 && _Alignof(P8) == 1);
+  check(sizeof(struct N1) == 6 && _Alignof(struct N1) == 1 && offsetof(struct N1, p) == 1);
+  check(sizeof(struct PA4) == 6 && _Alignof(struct PA4) == 2 && offsetof(struct PA4, c) == 4);
+  check(sizeof(struct PA5) == 6 && _Alignof(struct PA5) == 2);
+  check(sizeof(union U4) == 5 && _Alignof(union U4) == 1);
   check(sizeof(a_t) == 64 && sizeof(a_t) == sizeof(b_t));
   struct L l1, l2;
   l1.next = &l2;
