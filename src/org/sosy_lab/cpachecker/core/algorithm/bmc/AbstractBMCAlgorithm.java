@@ -553,7 +553,7 @@ abstract class AbstractBMCAlgorithm
           boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
           if (!safe) {
             if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+              return statusForViolation(reachedSet);
             }
             candidateInvariantIterator.remove();
           }
@@ -949,6 +949,16 @@ abstract class AbstractBMCAlgorithm
                         + "Otherwise please report this as a bug.");
               }
             });
+  }
+
+  /** Status for a found violation: imprecise if the counterexample skips a recursive call. */
+  protected final AlgorithmStatus statusForViolation(ReachedSet pReachedSet) {
+    if (ARGUtils.hasCounterexampleSkippingRecursiveCall(pReachedSet)) {
+      logger.log(
+          Level.INFO, "Counterexample skips a recursive function call, result is imprecise.");
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    }
+    return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
   /**

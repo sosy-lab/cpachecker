@@ -558,7 +558,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
-   *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
+   *     unsafe (imprecise if the counterexample skips a recursive call); {@code
+   *     AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
@@ -581,7 +582,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     do {
       unrollProgram(pReachedSet);
       if (findCexByBMC(pReachedSet)) {
-        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        return statusForViolation(pReachedSet);
       }
       adjustConfigsAccordingToARG(pReachedSet);
       // Forward-condition check

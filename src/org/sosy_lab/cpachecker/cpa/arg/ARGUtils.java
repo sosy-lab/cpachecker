@@ -137,6 +137,17 @@ public class ARGUtils {
   }
 
   /** Get all abstract states without parents. */
+  /** Whether the counterexample of a target state in the reached set skips a recursive call. */
+  public static boolean hasCounterexampleSkippingRecursiveCall(UnmodifiableReachedSet pReached) {
+    return from(pReached)
+        .filter(ARGState.class)
+        .filter(ARGState::isTarget)
+        .anyMatch(
+            state ->
+                state.getCounterexampleInformation().isPresent()
+                    && state.getCounterexampleInformation().orElseThrow().skipsRecursiveCall());
+  }
+
   public static ImmutableSet<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
 
     ImmutableSet.Builder<ARGState> result = ImmutableSet.builder();

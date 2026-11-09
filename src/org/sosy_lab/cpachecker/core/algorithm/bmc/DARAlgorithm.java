@@ -176,7 +176,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
-   *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
+   *     unsafe (imprecise if the counterexample skips a recursive call); {@code
+   *     AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
   private AlgorithmStatus dualApproximatedReachabilityModelChecking(ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
@@ -201,7 +202,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         stats.interpolationPreparation.stop();
       }
       if (findCexByBMC(pReachedSet) || !adjustConditions()) {
-        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        return statusForViolation(pReachedSet);
       }
       // Check if interpolation or forward-condition check is applicable
       adjustConfigsAccordingToARG(pReachedSet);
@@ -223,7 +224,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
           case FAILED -> {
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            return statusForViolation(pReachedSet);
           }
           default -> {}
         }

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -270,6 +271,12 @@ public class CEGARAlgorithm
         }
 
       } while (refinementSuccessful);
+
+      if (status.isPrecise() && ARGUtils.hasCounterexampleSkippingRecursiveCall(reached)) {
+        logger.log(
+            Level.INFO, "Counterexample skips a recursive function call, result is imprecise.");
+        status = status.withPrecise(false);
+      }
 
     } finally {
       stats.totalTimer.stop();

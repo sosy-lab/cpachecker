@@ -30,7 +30,9 @@ import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -152,6 +154,20 @@ public class CounterexampleInfo extends AbstractAppender {
 
   public boolean isSpurious() {
     return spurious;
+  }
+
+  /**
+   * Whether the path skips a recursive function call (cf. cpa.callstack.skip*Recursion). The effect
+   * of such a call is overapproximated, so the counterexample may be infeasible.
+   */
+  public boolean skipsRecursiveCall() {
+    // summary edges are only taken for skipped recursive calls and thread creations
+    return !spurious
+        && from(getTargetPath().getFullPath())
+            .anyMatch(
+                edge ->
+                    edge instanceof CFunctionSummaryStatementEdge summaryEdge
+                        && !(summaryEdge.getFunctionCall() instanceof CThreadCreateStatement));
   }
 
   /**
