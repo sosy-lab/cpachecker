@@ -734,7 +734,10 @@ public enum MachineModel {
     return alignof;
   }
 
-  /** Return the alignment of a member within its composite type (GCC semantics). */
+  /**
+   * Return the alignment of a member within its composite type (GCC semantics). This includes the
+   * attributes of the composite type, cf. {@link CCompositeType}.
+   */
   public int getAlignof(CCompositeTypeMemberDeclaration pMember) {
     int alignof = pMember.isPacked() ? 1 : getAlignof(pMember.getType());
     return Math.max(alignof, pMember.getAlignment());

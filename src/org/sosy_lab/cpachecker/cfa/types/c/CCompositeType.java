@@ -21,6 +21,27 @@ import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+/**
+ * A struct or union type.
+ *
+ * <p>The GCC attributes {@code packed} and {@code aligned} and the alignment specifier {@code
+ * _Alignas} affect the layout of a composite type. They are stored only in its members ({@link
+ * CCompositeTypeMemberDeclaration#isPacked()} and {@link
+ * CCompositeTypeMemberDeclaration#getAlignment()}). This includes the attributes of the composite
+ * type itself, because GCC defines the following as equivalent:
+ *
+ * <ul>
+ *   <li>{@code packed} on a struct or union and {@code packed} on each of its members
+ *       (https://gcc.gnu.org/onlinedocs/gcc/Common-Attributes.html#index-packed),
+ *   <li>{@code aligned(N)} on a struct or union and {@code aligned(N)} on one of its members
+ *       (https://gcc.gnu.org/onlinedocs/gcc/Common-Attributes.html#index-aligned). We use the first
+ *       member, which has offset 0 anyway.
+ * </ul>
+ *
+ * <p>Thus, this class needs no field for these attributes, which would have to be kept wherever
+ * composite types are copied. The layout is computed from the members by {@link
+ * org.sosy_lab.cpachecker.cfa.types.MachineModel}.
+ */
 public final class CCompositeType implements CComplexType {
 
   @Serial private static final long serialVersionUID = -839957929135012583L;
@@ -163,7 +184,7 @@ public final class CCompositeType implements CComplexType {
   /**
    * This is the declaration of a member of a composite type. It contains a type and an optional
    * name, and the GCC attributes packed and aligned, which affect the layout of the composite type.
-   * Packed or aligned attributes of the composite type itself are stored in its members as well.
+   * These also encode the attributes of the composite type itself, cf. {@link CCompositeType}.
    */
   public static final class CCompositeTypeMemberDeclaration implements Serializable {
 

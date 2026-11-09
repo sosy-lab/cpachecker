@@ -3040,8 +3040,8 @@ class ASTConverter {
       }
     }
 
-    // GCC: packed on a struct or union is equivalent to packed on all its members. A minimum
-    // alignment of the type is equivalent to the same minimum alignment of its first member.
+    // Store the attributes of the type in its members: packed in all members and aligned in the
+    // first member. GCC defines this as equivalent, cf. CCompositeType.
     boolean packed = hasPackedAttribute(d);
     int alignment = getAlignedAttribute(d);
     if (alignment > 0 && list.isEmpty()) {
