@@ -2239,8 +2239,12 @@ class ASTConverter {
     }
   }
 
-  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(
-      final IASTDeclaration d, int nofMember) {
+  /**
+   * @param pTypePacked whether the composite type is packed, which applies to all its members
+   * @param pTypeAlignment the alignment of the composite type for its first member, or 0
+   */
+  private ImmutableList<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(
+      final IASTDeclaration d, int nofMember, boolean pTypePacked, int pTypeAlignment) {
     if (d.getParent() instanceof IASTCompositeTypeSpecifier) {
       // FIXME: remove conditional after debugging
     }
@@ -2291,28 +2295,23 @@ class ASTConverter {
               compositeType);
     }
 
-    List<CCompositeTypeMemberDeclaration> result;
+    packed |= pTypePacked;
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, null, nofMember, packed, alignment);
-      result = Collections.singletonList(newD);
-
-    } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, declarators[0], nofMember, packed, alignment);
-      result = Collections.singletonList(newD);
-
-    } else {
-      result = new ArrayList<>(declarators.length);
-      for (IASTDeclarator c : declarators) {
-
-        result.add(createDeclarationForCompositeType(type, c, nofMember, packed, alignment));
-      }
+      return ImmutableList.of(
+          createDeclarationForCompositeType(
+              type, null, nofMember, packed, Math.max(alignment, pTypeAlignment)));
     }
-
-    return result;
+    ImmutableList.Builder<CCompositeTypeMemberDeclaration> result =
+        ImmutableList.builderWithExpectedSize(declarators.length);
+    for (int i = 0; i < declarators.length; i++) {
+      int memberAlignment = i == 0 ? Math.max(alignment, pTypeAlignment) : alignment;
+      result.add(
+          createDeclarationForCompositeType(
+              type, declarators[i], nofMember, packed, memberAlignment));
+    }
+    return result.build();
   }
 
   private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(
@@ -2840,11 +2839,16 @@ class ASTConverter {
   }
 
   private CCompositeType convert(IASTCompositeTypeSpecifier d) {
+    // Store the attributes of the type in its members: packed in all members and aligned in the
+    // first member. GCC defines this as equivalent, cf. CCompositeType.
+    boolean packed = hasPackedAttribute(d);
+    int alignment = getAlignedAttribute(d);
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(d.getMembers().length);
 
     int nofMember = 0;
     for (IASTDeclaration c : d.getMembers()) {
-      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c, nofMember);
+      List<CCompositeTypeMemberDeclaration> newCs =
+          convertDeclarationInCompositeType(c, nofMember, packed, list.isEmpty() ? alignment : 0);
       nofMember++;
       assert !newCs.isEmpty();
       list.addAll(newCs);
@@ -2857,6 +2861,9 @@ class ASTConverter {
           default ->
               throw parseContext.parseError("Unknown key " + d.getKey() + " for composite type", d);
         };
+    if (alignment > 0 && list.isEmpty()) {
+      throw parseContext.parseError("Unsupported aligned attribute for empty " + kind, d);
+    }
     String name = convert(d.getName());
     String origName = name;
     if (name.isEmpty()) {
@@ -2889,24 +2896,6 @@ class ASTConverter {
               "Member " + member + " of struct " + name + " has incomplete non-array type", d);
         }
       }
-    }
-
-    // Store the attributes of the type in its members: packed in all members and aligned in the
-    // first member. GCC defines this as equivalent, cf. CCompositeType.
-    boolean packed = hasPackedAttribute(d);
-    int alignment = getAlignedAttribute(d);
-    if (alignment > 0 && list.isEmpty()) {
-      throw parseContext.parseError("Unsupported aligned attribute for empty " + kind, d);
-    }
-    for (int i = 0; i < list.size() && (packed || alignment > 0); i++) {
-      CCompositeTypeMemberDeclaration member = list.get(i);
-      list.set(
-          i,
-          new CCompositeTypeMemberDeclaration(
-              member.getType(),
-              member.getName(),
-              packed || member.isPacked(),
-              i == 0 ? Math.max(alignment, member.getAlignment()) : member.getAlignment()));
     }
 
     CCompositeType compositeType =

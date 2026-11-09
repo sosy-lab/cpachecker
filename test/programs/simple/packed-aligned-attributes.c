@@ -38,6 +38,10 @@ union U2 { char c; int i __attribute__((aligned(16))); };
 union U3 { char c[5]; int i; };
 enum EN1 { EA = -1, EB = 200 } __attribute__((packed));
 struct EN2 { char c; enum EN1 e; };
+// self references, nested types, and several declarators in the first member declaration
+struct __attribute__((packed, aligned(2))) L { char c; struct L *next; };
+struct __attribute__((packed)) O { char c; struct { char d; struct O *o; } inner; };
+struct __attribute__((aligned(8))) M { char a, b; int i; };
 
 // example from #1079
 #define PADDING_SIZE (64 - sizeof(unsigned char) - sizeof(unsigned int))
@@ -76,5 +80,12 @@ int main() {
   check(sizeof(union U3) == 8);
   check(sizeof(enum EN1) == 2 && sizeof(struct EN2) == 4 && offsetof(struct EN2, e) == 2);
   check(sizeof(a_t) == 64 && sizeof(a_t) == sizeof(b_t));
+  struct L l1, l2;
+  l1.next = &l2;
+  l2.c = 7;
+  check(sizeof(struct L) == 10 && _Alignof(struct L) == 2 && offsetof(struct L, next) == 1);
+  check(sizeof(*l1.next) == 10 && l1.next->c == 7);
+  check(sizeof(struct O) == 17 && offsetof(struct O, inner) == 1 && offsetof(struct O, inner.o) == 9);
+  check(sizeof(struct M) == 8 && _Alignof(struct M) == 8 && offsetof(struct M, b) == 1);
   return 0;
 }
