@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -319,8 +320,12 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           status = currentAlgorithm.run(currentReached);
 
           isLastReachedSetUsable = true;
+          // a counterexample through a skipped recursive call needs the analysis for recursion
+          boolean recursionSkipped =
+              !status.isPrecise()
+                  && ARGUtils.hasCounterexampleSkippingRecursiveCall(currentReached);
           skipNextAnalysesIfRequired(
-              configFilesIterator, LastAnalysisResult.TERMINATED, false, false);
+              configFilesIterator, LastAnalysisResult.TERMINATED, recursionSkipped, false);
 
           if (status.isPrecise() && currentReached.wasTargetReached()) {
 
