@@ -1,0 +1,52 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+void __VERIFIER_assert(int condition) {
+  if (!condition) {
+    ERROR:
+      goto ERROR;
+  }
+}
+
+extern void *malloc(unsigned long size);
+extern void free(void *ptr);
+extern int snprintf(char *dest, unsigned long size, const char *format, ...);
+
+
+// Expected: true (safe for unreach-label). Machine model: LP64 (64).
+// Ten characters and a terminator fill the eleven-byte destination.
+// All asserted observations match the expected behavior, so ERROR is unreachable.
+int main(void) {
+
+  char *p = malloc(11UL);
+  if (p == 0) {
+    return 0;
+  }
+
+  for (int i = 0; i < 11; ++i) {
+    p[i] = 'Z';
+  }
+
+  snprintf(p, 11UL, "%s", "abcdefghijklm");
+
+  __VERIFIER_assert(p[0] == 'a');
+  __VERIFIER_assert(p[1] == 'b');
+  __VERIFIER_assert(p[2] == 'c');
+  __VERIFIER_assert(p[3] == 'd');
+  __VERIFIER_assert(p[4] == 'e');
+  __VERIFIER_assert(p[5] == 'f');
+  __VERIFIER_assert(p[6] == 'g');
+  __VERIFIER_assert(p[7] == 'h');
+  __VERIFIER_assert(p[8] == 'i');
+  __VERIFIER_assert(p[9] == 'j');
+  __VERIFIER_assert(p[10] == '\0');
+
+  free(p);
+
+  return 0;
+}

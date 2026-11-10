@@ -1,0 +1,39 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+void __VERIFIER_assert(int condition) {
+  if (!condition) {
+    ERROR:
+      goto ERROR;
+  }
+}
+
+
+// Expected: true (safe for unreach-label). Machine model: LP64 (64).
+// Every in-bounds element contains the literal prefix; there is no terminator in this array.
+// All asserted observations match the expected behavior, so ERROR is unreachable.
+int main(void) {
+
+  // Subcase: string-one-full-original.
+  {
+    char a[1] = "x";
+
+    __VERIFIER_assert(sizeof a == 1U);
+    __VERIFIER_assert(a[0] == 'x');
+  }
+
+  // Subcase: string-initializer-len1-size1.
+  {
+    char value[1] = "a";
+
+    __VERIFIER_assert(sizeof value == 1U);
+    __VERIFIER_assert(value[0] == 'a');
+  }
+
+  return 0;
+}
