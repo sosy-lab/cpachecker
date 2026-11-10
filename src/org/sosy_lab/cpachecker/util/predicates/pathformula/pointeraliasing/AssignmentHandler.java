@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -678,8 +677,7 @@ class AssignmentHandler {
       SingleRhsPartialAssignment assignment,
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap,
       CArrayType lhsArrayType) {
-    final long arrayLength =
-        ((CIntegerLiteralExpression) lhsArrayType.getLength()).getValue().longValueExact();
+    final long arrayLength = lhsArrayType.getLengthAsInt().orElseThrow();
     final long elementBitSize =
         typeHandler.getExactBitSizeof(typeHandler.simplifyType(lhsArrayType.getType()));
     if (arrayLength == 0 || elementBitSize == 0) {
