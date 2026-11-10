@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CfaCopyOrigins;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -81,6 +82,12 @@ public final class AstCfaRelation {
   private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToDeclaredParameters;
   private final ImmutableSet<AVariableDeclaration> globalVariables;
 
+  // A transformation of the CFA can copy nodes and edges, for example a copy of the whole CFA. The
+  // AST elements below are filled with the edges of the CFA as it is in the end, so they are about
+  // the copies, while the maps that the parser filled are about the program. This field connects
+  // both.
+  private final CfaCopyOrigins copyOrigins;
+
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
@@ -102,6 +109,26 @@ public final class AstCfaRelation {
     cfaNodeToDeclaredParameters = pCfaNodeToDeclaredParameters;
     globalVariables = pGlobalVariables;
     expressionLocations = pExpressionLocations;
+    copyOrigins = new CfaCopyOrigins();
+  }
+
+  /**
+   * The node of the program that the given node stands for, which is the node itself unless a
+   * transformation of the CFA copied it or an analysis cloned it for a thread (cf. {@link
+   * CFANode#getOriginal()}).
+   */
+  public CFANode programNodeOf(CFANode pNode) {
+    // a per-thread clone of the CFA is made from the CFA that is analyzed, so it is resolved first
+    return copyOrigins.programNodeOf(pNode.getOriginal());
+  }
+
+  /**
+   * The edge of the program that the given edge stands for, which is the edge itself unless a
+   * transformation of the CFA copied it or an analysis cloned it for a thread (cf. {@link
+   * CFAEdge#getOriginal()}).
+   */
+  public CFAEdge programEdgeOf(CFAEdge pEdge) {
+    return copyOrigins.programEdgeOf(pEdge.getOriginal());
   }
 
   /**
@@ -172,13 +199,16 @@ public final class AstCfaRelation {
    * @return the tightest iteration structure that contains the given node
    */
   public Optional<IterationElement> getTightestIterationStructureForNode(CFANode pNode) {
-    CFANode originalNode = pNode.getOriginal();
+    // The iteration structures contain the nodes of the original program, so we translate
+    // potentially copied nodes
+    CFANode programNode = programNodeOf(pNode);
     Optional<IterationElement> result = Optional.empty();
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().edges().stream()
           .anyMatch(
               pEdge ->
-                  pEdge.getPredecessor() == originalNode || pEdge.getSuccessor() == originalNode)) {
+                  programNodeOf(pEdge.getPredecessor()).equals(programNode)
+                      || programNodeOf(pEdge.getSuccessor()).equals(programNode))) {
         if (result.isPresent()) {
           if (result
               .orElseThrow()
@@ -523,16 +553,16 @@ public final class AstCfaRelation {
    */
   public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
       CFANode pNode) {
-    CFANode originalNode = pNode.getOriginal();
-    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)
-        || !cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
+    CFANode programNode = programNodeOf(pNode);
+    if (!cfaNodeToAstParametersInScope.containsKey(programNode)
+        || !cfaNodeToAstLocalVariablesInScope.containsKey(programNode)) {
       return Optional.empty();
     }
 
     Set<AVariableDeclaration> localVariables =
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode));
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(programNode));
     Set<AParameterDeclaration> parameters =
-        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode));
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(programNode));
     ImmutableSet<String> localNames =
         FluentIterable.concat(localVariables, parameters)
             .transform(AbstractSimpleDeclaration::getOrigName)
@@ -661,21 +691,21 @@ public final class AstCfaRelation {
   }
 
   public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
-    CFANode originalNode = pCfaNode.getOriginal();
-    if (!cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
+    CFANode programNode = programNodeOf(pCfaNode);
+    if (!cfaNodeToAstLocalVariablesInScope.containsKey(programNode)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode)));
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(programNode)));
   }
 
   public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
-    CFANode originalNode = pCfaNode.getOriginal();
-    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)) {
+    CFANode programNode = programNodeOf(pCfaNode);
+    if (!cfaNodeToAstParametersInScope.containsKey(programNode)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode)));
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(programNode)));
   }
 
   /**
