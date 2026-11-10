@@ -62,7 +62,6 @@ rootDirectory = "."
 # SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-License-Identifier: Apache-2.0 OR GPL-3.0-or-later
 
 # Further options for Bitwuzla in addition to the default options. Format: 
 # "option_name=value" with ’,’ to separate options. Option names and values
@@ -236,10 +235,6 @@ solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
-
-# Backend to use for the solver
-solver.yices2.solverType = "mcsat"
-  allowed values: [dpllt, mcsat]
 
 # Sets the engine to be used by this Z3 context, corresponding to Z3 option
 # 'engine=...'. Default: auto-config
