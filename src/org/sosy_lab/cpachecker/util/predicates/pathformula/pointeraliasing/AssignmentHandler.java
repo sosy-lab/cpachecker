@@ -727,7 +727,7 @@ class AssignmentHandler {
         elementType.equals(targetType)
             && elementSpan.isFullSpan(typeHandler.getExactBitSizeof(elementType));
     if (value.isEmpty()
-        || isScalarType(targetType)
+        || CTypes.isScalarType(targetType)
         || getsWholeValue
         || assignmentOptions.conversionType() == ConversionType.BYTE_REPEAT) {
       return value;
@@ -739,10 +739,6 @@ class AssignmentHandler {
         lhsArrayType,
         targetType);
     return Optional.empty();
-  }
-
-  private boolean isScalarType(CType targetType) {
-    return !(targetType instanceof CCompositeType || targetType instanceof CArrayType);
   }
 
   /**
