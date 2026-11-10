@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
@@ -589,7 +590,24 @@ public final class CCfaTransformer {
         newMutableCfa.setVariableClassification(variableClassification.orElse(null));
       }
 
-      return newMutableCfa.immutableCopy();
+      // The AST elements of the relation of the original CFA refer to its edges, so the new CFA
+      // needs its own relation, which also knows what the new nodes and edges stand for in the
+      // program. Otherwise, e.g., the export of witnesses for the new CFA cannot find the AST
+      // elements for its edges.
+      AstCfaRelation originalAstCfaRelation = pOriginalCfa.getAstCfaRelation();
+      AstCfaRelation newAstCfaRelation = null;
+      if (originalAstCfaRelation != null) {
+        newAstCfaRelation =
+            originalAstCfaRelation.copyForCopiedCfa(oldNodeToNewNode, oldEdgeToNewEdge);
+        newMutableCfa.setAstCfaRelation(newAstCfaRelation);
+      }
+
+      ImmutableCFA newCfa = newMutableCfa.immutableCopy();
+      if (newAstCfaRelation != null) {
+        // The edges can only be set once the CFA is complete.
+        newAstCfaRelation.setEdgesForAstElements(newCfa.edges());
+      }
+      return newCfa;
     }
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {

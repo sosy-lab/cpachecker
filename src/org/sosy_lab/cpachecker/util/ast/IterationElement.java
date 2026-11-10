@@ -57,6 +57,17 @@ public final class IterationElement extends BranchingElement {
   }
 
   @Override
+  IterationElement copyWithoutEdges() {
+    return new IterationElement(
+        getCompleteElement().location(),
+        clause.map(ASTElement::location),
+        controllingExpression.map(ASTElement::location),
+        body.location(),
+        initClause.map(ASTElement::location),
+        iterationExpression.map(ASTElement::location));
+  }
+
+  @Override
   protected void setEdges(ImmutableSet<CFAEdge> pEdges) {
     super.setEdges(pEdges);
     clause.ifPresent(x -> x.setEdges(pEdges));

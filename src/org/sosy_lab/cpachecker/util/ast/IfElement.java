@@ -45,6 +45,15 @@ public final class IfElement extends StatementElement {
   }
 
   @Override
+  IfElement copyWithoutEdges() {
+    return new IfElement(
+        getCompleteElement().location(),
+        conditionElement.location(),
+        thenElement.location(),
+        maybeElseElement.map(ASTElement::location));
+  }
+
+  @Override
   protected void setEdges(ImmutableSet<CFAEdge> pEdges) {
     super.setEdges(pEdges);
     conditionElement.setEdges(pEdges);

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -16,6 +18,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -110,6 +113,45 @@ public final class AstCfaRelation {
     globalVariables = pGlobalVariables;
     expressionLocations = pExpressionLocations;
     copyOrigins = new CfaCopyOrigins();
+  }
+
+  private AstCfaRelation(AstCfaRelation pOther, CfaCopyOrigins pCopyOrigins) {
+    // The AST elements cache the edges of one CFA, so a relation for a copied cfa needs to copy
+    // these too.
+    // TODO separate the AST structure of the program from the edges of a CFA, such that the
+    // structure can be shared and copyWithoutEdges is not needed.
+    ifElements = transformedImmutableSetCopy(pOther.ifElements, IfElement::copyWithoutEdges);
+    iterationStructures =
+        transformedImmutableSetCopy(pOther.iterationStructures, IterationElement::copyWithoutEdges);
+    statementElements =
+        transformedImmutableSetCopy(pOther.statementElements, StatementElement::copyWithoutEdges);
+    statementOffsetsToLocations = pOther.statementOffsetsToLocations;
+    cfaNodeToAstLocalVariablesInScope = pOther.cfaNodeToAstLocalVariablesInScope;
+    cfaNodeToAstParametersInScope = pOther.cfaNodeToAstParametersInScope;
+    cfaNodeToDeclaredLocalVariables = pOther.cfaNodeToDeclaredLocalVariables;
+    cfaNodeToDeclaredParameters = pOther.cfaNodeToDeclaredParameters;
+    globalVariables = pOther.globalVariables;
+    expressionLocations = pOther.expressionLocations;
+    copyOrigins = pCopyOrigins;
+  }
+
+  /**
+   * Creates the relation of the AST to a copy of the CFA of this relation. The copy consists of new
+   * nodes and edges, which stand for the same elements of the program as the ones they were copied
+   * from. The edges of the AST elements of the returned relation still need to be set with {@link
+   * #setEdgesForAstElements(ImmutableSet)} once the copy is finished.
+   *
+   * @param pCopiedNodes maps the nodes of the CFA of this relation to their copies
+   * @param pCopiedEdges maps the edges of the CFA of this relation to their copies
+   */
+  public AstCfaRelation copyForCopiedCfa(
+      Map<CFANode, CFANode> pCopiedNodes, Map<CFAEdge, CFAEdge> pCopiedEdges) {
+    // What the CFA of this relation stands for may already be a copy, so the copies of the new CFA
+    // are resolved to the program through this relation.
+    CfaCopyOrigins origins = new CfaCopyOrigins();
+    pCopiedNodes.forEach((node, copy) -> origins.rememberNode(copy, programNodeOf(node)));
+    pCopiedEdges.forEach((edge, copy) -> origins.rememberEdge(copy, programEdgeOf(edge)));
+    return new AstCfaRelation(this, origins);
   }
 
   /**

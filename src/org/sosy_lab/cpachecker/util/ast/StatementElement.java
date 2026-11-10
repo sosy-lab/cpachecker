@@ -28,6 +28,14 @@ public class StatementElement {
     return new ASTElement(pConditionLocation);
   }
 
+  /**
+   * Returns a new element for the same part of the program, but without any CFA edges assigned to
+   * it, such that it can be related to another CFA for the same program.
+   */
+  StatementElement copyWithoutEdges() {
+    return new StatementElement(completeElement.location());
+  }
+
   protected void setEdges(ImmutableSet<CFAEdge> pEdges) {
     completeElement.setEdges(pEdges);
   }
