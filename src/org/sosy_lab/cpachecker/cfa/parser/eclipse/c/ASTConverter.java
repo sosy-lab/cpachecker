@@ -3306,6 +3306,9 @@ class ASTConverter {
                 e);
       }
 
+      // Checked before the array is converted to a pointer below, which hides the string literal
+      final boolean isStringInitialization = isStringInitialization(type, initializedExpression);
+
       if (type.getCanonicalType() instanceof CPointerType
           && initializedExpression.getExpressionType().getCanonicalType()
               instanceof CArrayType initializerType) {
@@ -3321,7 +3324,7 @@ class ASTConverter {
                 CUnaryExpression.UnaryOperator.AMPER);
       }
 
-      if (!areInitializerAssignable(type, initializedExpression)) {
+      if (!isStringInitialization && !areInitializerAssignable(type, initializedExpression)) {
         if (type.getCanonicalType() instanceof CPointerType
             && CTypes.isIntegerType(initializedExpression.getExpressionType())) {
           if (declaration != null) {
@@ -3383,10 +3386,11 @@ class ASTConverter {
       // neither array nor pointer and allows to drop a redundant second check for CArrayType or
       // CPointerType
       CType canonicalType = CPointerType.POINTER_TO_VOID;
-      if (pDeclarationType instanceof CArrayType cArrayType) {
+      CType declarationType = pDeclarationType.getCanonicalType();
+      if (declarationType instanceof CArrayType cArrayType) {
         canonicalType = cArrayType.getType().getCanonicalType();
       }
-      if (pDeclarationType instanceof CPointerType cPointerType) {
+      if (declarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
       return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
