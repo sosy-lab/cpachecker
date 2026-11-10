@@ -149,6 +149,8 @@ public class SMGCPABuiltins {
   private static final int STRCMP_FIRST_PARAMETER = 0;
   private static final int STRCMP_SECOND_PARAMETER = 1;
 
+  private static final int STRLEN_PARAMETER = 0;
+
   private static final String VERIFIER_NONDET_PREFIX = "__VERIFIER_nondet_";
 
   private static final String ALLOCA_ALLOCATION_COMMON_IDENTIFIER = "__CPACHECKER_ALLOCA_ID_";
@@ -728,11 +730,17 @@ public class SMGCPABuiltins {
 
       case "memset" -> evaluateMemset(funCallExpr, state, cfaEdge);
 
-      case "memcpy" -> evaluateMemcpy(funCallExpr, state, cfaEdge);
+      case "memcpy" -> evaluateMemcpy(funCallExpr, functionName, state, cfaEdge);
 
       case "memcmp" -> evaluateMemcmp(funCallExpr, state, cfaEdge);
 
       case "strcmp" -> evaluateStrcmp(funCallExpr, state, cfaEdge);
+
+      case "strlen" -> evaluateStrlen(funCallExpr, state, cfaEdge);
+
+      case "strcpy", "strncpy" -> handleStrXcpy(funCallExpr, functionName, state, cfaEdge);
+
+      case "snprintf" -> evaluateSnprintf(funCallExpr, state, cfaEdge);
 
       case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(funCallExpr, state);
@@ -2403,7 +2411,11 @@ public class SMGCPABuiltins {
   }
 
   /**
+   * Handles memcpy(), and other functions that behave the same (with preprocessing) like strcpy()
+   * and strncpy().
+   *
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
+   * @param pFunctionName name of the called function, i.e. memcpy, strcpy, or strncpy.
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return a list of {@link ValueAndSMGState} with either the targetAddress pointer expression and
@@ -2412,15 +2424,18 @@ public class SMGCPABuiltins {
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateMemcpy(
-      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      CFunctionCallExpression functionCall, String pFunctionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     // TODO: partial edges are not copied, but we could!
 
     // evaluate function: void *memcpy(void *str1, const void *str2, size_t n)
+    // or one of the string copy functions with the same target and source parameters (see
+    // handleStrXcpy()), which only differ in the size of the copy (see evaluateMemcpyLastStep())
 
-    if (functionCall.getParameterExpressions().size() != 3) {
+    int expectedNumOfParameters = pFunctionName.equals("strcpy") ? 2 : 3;
+    if (functionCall.getParameterExpressions().size() != expectedNumOfParameters) {
       throw new UnrecognizedCodeException(
-          functionCall.getFunctionNameExpression().toASTString() + " needs 3 arguments.",
+          pFunctionName + " needs " + expectedNumOfParameters + " arguments.",
           cfaEdge,
           functionCall);
     }
@@ -2458,7 +2473,9 @@ public class SMGCPABuiltins {
               ValueAndSMGState.ofUnknownValue(
                   currentState,
                   "Returned unknown because of unknown target or offset of address of target"
-                      + " argument in function memcpy in",
+                      + " argument in function "
+                      + pFunctionName
+                      + " in",
                   cfaEdge));
           continue;
         } else if (!(targetAddress instanceof AddressExpression)) {
@@ -2467,7 +2484,9 @@ public class SMGCPABuiltins {
               ValueAndSMGState.ofUnknownValue(
                   currentState,
                   "Returned unknown because of unknown target or offset of address of target"
-                      + " argument in function memcpy in",
+                      + " argument in function "
+                      + pFunctionName
+                      + " in",
                   cfaEdge));
           continue;
         }
@@ -2478,7 +2497,8 @@ public class SMGCPABuiltins {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState,
-                  "Returned unknown because of unknown offset of target argument in function memcpy"
+                  "Returned unknown because of unknown offset of target argument in function "
+                      + pFunctionName
                       + " in",
                   cfaEdge));
           continue;
@@ -2502,6 +2522,7 @@ public class SMGCPABuiltins {
             }
 
             evaluateMemcpySecondStep(
+                pFunctionName,
                 newTargetObjAndState.getSMGObject(),
                 numNewTargetObjOffset.bigIntegerValue(),
                 newTargetObjAndState.getSMGState(),
@@ -2531,7 +2552,9 @@ public class SMGCPABuiltins {
               ValueAndSMGState.ofUnknownValue(
                   currentState,
                   "Returned unknown because of unknown target or offset of address of target"
-                      + " argument in function memcpy in",
+                      + " argument in function "
+                      + pFunctionName
+                      + " in",
                   cfaEdge));
           continue;
         }
@@ -2544,12 +2567,14 @@ public class SMGCPABuiltins {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState,
-                  "Returned unknown because of unknown offset of target argument in function memcpy"
+                  "Returned unknown because of unknown offset of target argument in function "
+                      + pFunctionName
                       + " in",
                   cfaEdge));
           continue;
         }
         evaluateMemcpySecondStep(
+            pFunctionName,
             targetObj,
             numTargetOffset.bigIntegerValue(),
             currentState,
@@ -2563,6 +2588,7 @@ public class SMGCPABuiltins {
 
   // Evals second and third parameters of memcpy with given first (target)
   private void evaluateMemcpySecondStep(
+      String pFunctionName,
       SMGObject targetObj,
       BigInteger targetOffset,
       SMGState pCurrentState,
@@ -2603,7 +2629,9 @@ public class SMGCPABuiltins {
               ValueAndSMGState.ofUnknownValue(
                   currentState,
                   "Returned unknown because of unknown target or offset of source argument in"
-                      + " function memcpy in",
+                      + " function "
+                      + pFunctionName
+                      + " in",
                   pCFAEdge));
           continue;
         } else if (!(sourceAddress instanceof AddressExpression)) {
@@ -2612,7 +2640,9 @@ public class SMGCPABuiltins {
               ValueAndSMGState.ofUnknownValue(
                   currentState,
                   "Returned unknown because of unknown target or offset of source argument in"
-                      + " function memcpy in",
+                      + " function "
+                      + pFunctionName
+                      + " in",
                   pCFAEdge));
           continue;
         }
@@ -2623,7 +2653,8 @@ public class SMGCPABuiltins {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState,
-                  "Returned unknown because of unknown offset in source argument in function memcpy"
+                  "Returned unknown because of unknown offset in source argument in function "
+                      + pFunctionName
                       + " in",
                   pCFAEdge));
           continue;
@@ -2646,6 +2677,7 @@ public class SMGCPABuiltins {
               continue;
             }
             evaluateMemcpyLastStep(
+                pFunctionName,
                 targetObj,
                 targetOffset,
                 newSourceObjAndState.getSMGObject(),
@@ -2673,7 +2705,9 @@ public class SMGCPABuiltins {
               ValueAndSMGState.ofUnknownValue(
                   currentState,
                   "Returned unknown because of unknown target or offset for source argument in"
-                      + " function memcpy in",
+                      + " function "
+                      + pFunctionName
+                      + " in",
                   pCFAEdge));
           continue;
         }
@@ -2685,12 +2719,15 @@ public class SMGCPABuiltins {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState,
-                  "Returned unknown because of unknown source offset in function memcpy in",
+                  "Returned unknown because of unknown source offset in function "
+                      + pFunctionName
+                      + " in",
                   pCFAEdge));
           continue;
         }
 
         evaluateMemcpyLastStep(
+            pFunctionName,
             targetObj,
             targetOffset,
             sourceObj,
@@ -2703,8 +2740,10 @@ public class SMGCPABuiltins {
     }
   }
 
-  // Evals the 3rd parameter to memcpy with the first 2 given as source and target
+  // Evals the size of the copy (the 3rd parameter for memcpy and strncpy, the length of the source
+  // string for strcpy) with the first 2 given as source and target
   private void evaluateMemcpyLastStep(
+      String pFunctionName,
       SMGObject targetObj,
       BigInteger targetOffset,
       SMGObject sourceObj,
@@ -2714,6 +2753,13 @@ public class SMGCPABuiltins {
       CFAEdge pCFAEdge,
       ImmutableList.Builder<ValueAndSMGState> resultBuilder)
       throws CPATransferException {
+    if (pFunctionName.equals("strcpy")) {
+      resultBuilder.add(
+          evaluateStrcpy(
+              pCurrentState, targetObj, targetOffset, sourceObj, sourceOffset, pCFAEdge));
+      return;
+    }
+
     for (ValueAndSMGState sizeAndState :
         getFunctionParameterValue(MEMCPY_SIZE_PARAMETER, functionCall, pCurrentState, pCFAEdge)) {
 
@@ -2726,14 +2772,28 @@ public class SMGCPABuiltins {
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 currentState,
-                "Returned unknown because of unknown size of copy in function memcpy in",
+                "Returned unknown because of unknown size of copy in function "
+                    + pFunctionName
+                    + " in",
                 pCFAEdge));
         continue;
       }
 
-      resultBuilder.add(
-          evaluateMemcpy(
-              currentState, targetObj, targetOffset, sourceObj, sourceOffset, numSizeValue));
+      if (pFunctionName.equals("strncpy")) {
+        resultBuilder.add(
+            evaluateStrncpy(
+                currentState,
+                targetObj,
+                targetOffset,
+                sourceObj,
+                sourceOffset,
+                numSizeValue,
+                pCFAEdge));
+      } else {
+        resultBuilder.add(
+            evaluateMemcpy(
+                currentState, targetObj, targetOffset, sourceObj, sourceOffset, numSizeValue));
+      }
     }
   }
 
@@ -3250,6 +3310,16 @@ public class SMGCPABuiltins {
     throw new SMGException("Could not compare the memory regions given in memcmp in " + pCFAEdge);
   }
 
+  /** Returns the number of bytes given by a (unsigned) size_t argument, e.g. of memcpy. */
+  private static long getNumberOfBytesFromSizeArgument(NumericValue pSizeArgument) {
+    long numOfBytes = pSizeArgument.bigIntegerValue().longValue();
+    if (numOfBytes < 0) {
+      // The argument is unsigned, so we have to transform it into a positive.
+      numOfBytes = Integer.toUnsignedLong(pSizeArgument.bigIntegerValue().intValueExact());
+    }
+    return numOfBytes;
+  }
+
   /**
    * This expects that targetAddress and sourceAddress are valid AddressExpressions with numeric
    * offsets. Copies all values from sourceAddress to targetAddress for the size specified in BYTES.
@@ -3272,12 +3342,7 @@ public class SMGCPABuiltins {
       NumericValue numOfBytesToCopy)
       throws SMGException {
 
-    long numOfBytes = numOfBytesToCopy.bigIntegerValue().longValue();
-    if (numOfBytes < 0) {
-      // the argument is unsigned, so we have to transform it into a postive. On most 64bit systems
-      // it's an unsigned long (C99 standard)
-      numOfBytes = Integer.toUnsignedLong(numOfBytesToCopy.bigIntegerValue().intValueExact());
-    }
+    long numOfBytes = getNumberOfBytesFromSizeArgument(numOfBytesToCopy);
 
     BigInteger sizeToCopyInBits =
         BigInteger.valueOf(numOfBytes)
@@ -3435,6 +3500,282 @@ public class SMGCPABuiltins {
       }
     }
     return resultBuilder.build();
+  }
+
+  /**
+   * Handles C function: size_t strlen(const char *s); (C11 7.24.6.3) returning the number of
+   * characters that precede the terminating \0 of the string s.
+   *
+   * @param pFunctionCall the function call of strlen.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current CFAEdge for debugging and error info.
+   * @return the length of the string, or an unknown value and maybe an error state if the length
+   *     can not be determined or the string is read invalidly, e.g. beyond its memory.
+   */
+  private List<ValueAndSMGState> evaluateStrlen(
+      CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    if (pFunctionCall.getParameterExpressions().size() != 1) {
+      throw new UnrecognizedCodeException(
+          "The function strlen needs exactly 1 argument.", pCfaEdge, pFunctionCall);
+    }
+
+    // Dereference the argument (char *) to get the memory and offset of the first character
+    CExpression stringExpr = pFunctionCall.getParameterExpressions().get(STRLEN_PARAMETER);
+    CPointerExpression firstCharExpr =
+        new CPointerExpression(stringExpr.getFileLocation(), CNumericTypes.CHAR, stringExpr);
+    List<SMGStateAndOptionalSMGObjectAndOffset> stringObjsAndStates =
+        firstCharExpr.accept(new SMGCPAAddressVisitor(evaluator, pState, pCfaEdge, logger));
+    checkArgument(stringObjsAndStates.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset stringObjAndState = stringObjsAndStates.getFirst();
+    SMGState currentState = stringObjAndState.getSMGState();
+
+    if (!stringObjAndState.hasSMGObjectAndOffset()) {
+      // Unknown address, the state might be an error state for invalid dereferences
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown for unknown address of the argument in function strlen in ",
+              pCfaEdge));
+    }
+    SMGObject stringObj = stringObjAndState.getSMGObject();
+    if (stringObj.isZero()) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState.withNullPointerDereferenceWhenReading(stringObj),
+              "Returned unknown for null dereference of the argument in function strlen in ",
+              pCfaEdge));
+    }
+    if (!(stringObjAndState.getOffsetForObject() instanceof NumericValue numStringOffset)) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown for unknown offset of the argument in function strlen in ",
+              pCfaEdge));
+    }
+    return ImmutableList.of(
+        evaluateStrlen(
+            currentState, stringObj, numStringOffset.bigIntegerValue(), Optional.empty()));
+  }
+
+  /**
+   * Implementation of size_t strlen(const char *s); (C11 7.24.6.3) for a string in the given
+   * memory, optionally bounded by a maximum length (like POSIX strnlen(), e.g. for strncpy()).
+   * Reads the characters starting at the given offset until a \0 is found or the maximum length is
+   * reached. Each read is checked, i.e. reading beyond the memory before finding \0 results in an
+   * error state.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pStringObj {@link SMGObject} holding the string.
+   * @param pOffsetInBits offset of the first character of the string in the object.
+   * @param pMaxLength maximum number of characters read, or empty for no bound.
+   * @return the number of characters before the first \0 (but at most pMaxLength) as {@link
+   *     NumericValue} and the state after reading. An unknown value is returned if a character is
+   *     not concrete or a read is invalid, the state is an error state in the latter case.
+   */
+  private ValueAndSMGState evaluateStrlen(
+      SMGState pState,
+      SMGObject pStringObj,
+      BigInteger pOffsetInBits,
+      Optional<BigInteger> pMaxLength)
+      throws SMGException {
+    if (!(pStringObj.getSize() instanceof NumericValue numStringObjSize)) {
+      throw new SMGException("Symbolic memory size in strlen currently not supported.");
+    }
+    BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+    SMGState currentState = pState;
+    BigInteger length = BigInteger.ZERO;
+    while (pMaxLength.isEmpty() || length.compareTo(pMaxLength.orElseThrow()) < 0) {
+      BigInteger charOffsetInBits = pOffsetInBits.add(length.multiply(sizeOfCharInBits));
+      if (charOffsetInBits.signum() < 0
+          || charOffsetInBits.add(sizeOfCharInBits).compareTo(numStringObjSize.bigIntegerValue())
+              > 0) {
+        return ValueAndSMGState.ofUnknownValue(
+            currentState.withOutOfRangeRead(pStringObj, charOffsetInBits, sizeOfCharInBits),
+            "Returned unknown value due to out-of-range read when determining the string length.");
+      }
+      // The read checks for validity and external allocation
+      ValueAndSMGState charAndState =
+          currentState.readValueWithoutMaterialization(
+              pStringObj, charOffsetInBits, sizeOfCharInBits, CNumericTypes.CHAR);
+      currentState = charAndState.getState();
+      if (!(charAndState.getValue() instanceof NumericValue numChar)) {
+        return ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unknown character when determining the string length.");
+      }
+      if (numChar.bigIntegerValue().signum() == 0) {
+        break;
+      }
+      length = length.add(BigInteger.ONE);
+    }
+    return ValueAndSMGState.of(new NumericValue(length), currentState);
+  }
+
+  /**
+   * Handles the string copy functions, which only differ in the length of the copy:
+   *
+   * <ul>
+   *   <li>char *strcpy(char *dest, const char *src); copies the string src, including the
+   *       terminating null character, to dest.
+   *   <li>char *strncpy(char *dest, const char *src, size_t n); copies at most n characters of the
+   *       string src to dest and pads dest with null characters up to n characters if src is
+   *       shorter.
+   * </ul>
+   *
+   * Both return dest. The target and source are evaluated like for memcpy (see {@link
+   * #evaluateMemcpy(CFunctionCallExpression, String, SMGState, CFAEdge)}), only the size of the
+   * copy differs (see {@link #evaluateStrcpy} and {@link #evaluateStrncpy}).
+   *
+   * @param pFunctionCall the function call of strcpy or strncpy.
+   * @param pFunctionName name of the called function, i.e. strcpy or strncpy.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current CFAEdge for debugging and error info.
+   */
+  private List<ValueAndSMGState> handleStrXcpy(
+      CFunctionCallExpression pFunctionCall,
+      String pFunctionName,
+      SMGState pState,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    return evaluateMemcpy(pFunctionCall, pFunctionName, pState, pCfaEdge);
+  }
+
+  /**
+   * char *strcpy(char * restrict s1, const char * restrict s2); (C11 7.24.2.3) copies the string
+   * s2, including the terminating \0, to s1 and returns s1. The length of s2 is determined with
+   * {@link #evaluateStrlen(SMGState, SMGObject, BigInteger, Optional)}. Reading beyond the source
+   * before finding \0, or writing beyond the target, results in an error state.
+   *
+   * @return the pointer to the target and the state after the copy, or an unknown value and maybe
+   *     an error state if the length of the source can not be determined or the copy is invalid.
+   */
+  private ValueAndSMGState evaluateStrcpy(
+      SMGState pState,
+      SMGObject pTargetObj,
+      BigInteger pTargetOffset,
+      SMGObject pSourceObj,
+      BigInteger pSourceOffset,
+      CFAEdge pCfaEdge)
+      throws SMGException {
+    ValueAndSMGState lengthAndState =
+        evaluateStrlen(pState, pSourceObj, pSourceOffset, Optional.empty());
+    if (!(lengthAndState.getValue() instanceof NumericValue numLength)) {
+      return ValueAndSMGState.ofUnknownValue(
+          lengthAndState.getState(),
+          "Returned unknown because of unknown length of the source string in function strcpy in",
+          pCfaEdge);
+    }
+    // Copy including the terminating \0
+    return evaluateMemcpy(
+        lengthAndState.getState(),
+        pTargetObj,
+        pTargetOffset,
+        pSourceObj,
+        pSourceOffset,
+        new NumericValue(numLength.bigIntegerValue().add(BigInteger.ONE)));
+  }
+
+  /**
+   * char *strncpy(char * restrict s1, const char * restrict s2, size_t n); (C11 7.24.2.4) copies at
+   * most n characters of the string s2 to s1, pads s1 with \0 up to n characters if s2 is shorter,
+   * and returns s1. The length of s2 is determined with {@link #evaluateStrlen(SMGState, SMGObject,
+   * BigInteger, Optional)}, bounded by n. Hence, n characters are always written to the target, and
+   * the source is read until \0 or n characters. Reading or writing beyond the memory results in an
+   * error state.
+   *
+   * @return the pointer to the target and the state after the copy, or an unknown value and maybe
+   *     an error state if the length of the source can not be determined or the copy is invalid.
+   */
+  private ValueAndSMGState evaluateStrncpy(
+      SMGState pState,
+      SMGObject pTargetObj,
+      BigInteger pTargetOffset,
+      SMGObject pSourceObj,
+      BigInteger pSourceOffset,
+      NumericValue pNumOfCharacters,
+      CFAEdge pCfaEdge)
+      throws SMGException, SMGSolverException {
+    BigInteger numOfCharacters =
+        BigInteger.valueOf(getNumberOfBytesFromSizeArgument(pNumOfCharacters));
+    BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+
+    // n characters are always written to the target
+    if (!(pTargetObj.getSize() instanceof NumericValue numTargetSize)) {
+      throw new SMGException("Symbolic memory size in strncpy currently not supported.");
+    }
+    if (numTargetSize
+            .bigIntegerValue()
+            .compareTo(pTargetOffset.add(numOfCharacters.multiply(sizeOfCharInBits)))
+        < 0) {
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withInvalidWrite(pTargetObj),
+          "Returned unknown for invalid copy ranges in function strncpy.");
+    }
+
+    ValueAndSMGState lengthAndState =
+        evaluateStrlen(pState, pSourceObj, pSourceOffset, Optional.of(numOfCharacters));
+    if (!(lengthAndState.getValue() instanceof NumericValue numLength)) {
+      return ValueAndSMGState.ofUnknownValue(
+          lengthAndState.getState(),
+          "Returned unknown because of unknown length of the source string in function strncpy in",
+          pCfaEdge);
+    }
+    BigInteger numOfCopiedCharacters = numLength.bigIntegerValue();
+    SMGState currentState = lengthAndState.getState();
+
+    if (numOfCopiedCharacters.signum() > 0) {
+      ValueAndSMGState copyResult =
+          evaluateMemcpy(
+              currentState,
+              pTargetObj,
+              pTargetOffset,
+              pSourceObj,
+              pSourceOffset,
+              new NumericValue(numOfCopiedCharacters));
+      if (copyResult.getValue().isUnknown()) {
+        // Invalid copy, the state might be an error state
+        return copyResult;
+      }
+      currentState = copyResult.getState();
+    }
+
+    // Pad the rest of the n characters with \0
+    BigInteger numOfPaddingCharacters = numOfCharacters.subtract(numOfCopiedCharacters);
+    if (numOfPaddingCharacters.signum() > 0) {
+      currentState =
+          currentState.writeValueWithChecks(
+              pTargetObj,
+              new NumericValue(pTargetOffset.add(numOfCopiedCharacters.multiply(sizeOfCharInBits))),
+              new NumericValue(numOfPaddingCharacters.multiply(sizeOfCharInBits)),
+              new NumericValue(0),
+              CNumericTypes.CHAR,
+              pCfaEdge);
+    }
+
+    return evaluator.searchOrCreatePointer(
+        pTargetObj, CPointerType.POINTER_TO_VOID, new NumericValue(pTargetOffset), currentState);
+  }
+
+  /**
+   * int snprintf(char *str, size_t size, const char *format, ...); writes at most size bytes,
+   * including the terminating null character, of the formatted output to str and returns the number
+   * of characters that would have been written if size had been sufficiently large (not counting
+   * the terminating null character).
+   *
+   * <p>Stub: not yet modeled, the call is handled like an unknown function (see {@link
+   * #handleUnknownFunction(CFAEdge, CFunctionCallExpression, String, SMGState)}), i.e. str is not
+   * written.
+   *
+   * @param pFunctionCall the function call of snprintf.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current CFAEdge for debugging and error info.
+   */
+  private List<ValueAndSMGState> evaluateSnprintf(
+      CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    // TODO: model snprintf
+    return handleUnknownFunction(pCfaEdge, pFunctionCall, "snprintf", pState);
   }
 
   private List<ValueAndSMGState> evaluateRealloc(
