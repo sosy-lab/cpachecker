@@ -26,7 +26,7 @@ class EdgeType(Enum):
 errorFound = False
 
 
-def log(msg, level=1):
+def log(msg, *, level=1):
     if level <= logLevel:
         global errorFound
         errorFound = True
@@ -110,7 +110,7 @@ def collectChildren(filename):
                 ):
                     log(
                         f"trailing whitespace in config '{filename}' in line '{line.strip()}'",
-                        level=2,
+                        level=4,
                     )
 
                 if line.strip().endswith("\\"):
@@ -131,11 +131,9 @@ def collectChildren(filename):
                     if os.path.exists(child):
                         children[child] = typ
                     else:
-                        log(
-                            f"file '{child}' referenced in '{filename}' does not exists"
-                        )
+                        log(f"file '{child}' referenced in '{filename}' does not exist")
     except UnicodeDecodeError:
-        log(f"Cannot read file '{filename}'", level=3)
+        log(f"Cannot read file '{filename}'")
     return children
 
 
@@ -285,7 +283,7 @@ def determineNode(node, dependencyNode=False):
             with open(filename) as f:
                 content = re.sub("\n", "&#10;", f.read())
         except UnicodeDecodeError:
-            log(f"Cannot read file '{filename}'", level=3)
+            log(f"Cannot read file '{filename}'")
         content = content.replace("\\", "\\\\").replace('"', '\\"')
     else:
         log(f"File does not exist: '{filename}'")
@@ -399,7 +397,7 @@ Examples:
     parser.add_argument(
         "--logLevel",
         metavar="LEVEL",
-        default=1,
+        default=2,
         help="a higher value enables more warnings, 0 is OFF",
     )
     parser.add_argument(
@@ -463,26 +461,34 @@ def componentsSanityCheck(nodes):
     """Check for configuration files in the components folder that are never used."""
     for name, node in nodes.items():
         if not node.parents:
+            unused_level = 2 if "unmaintained/" in name else 3
             if "components/" in name:
-                log(f"Component file {name} is unused!", 2)
-            if "includes/" in name:
-                log(f"Include file {name} is unused!")
+                log(f"Component file {name} is unused!", level=unused_level)
+            elif "includes/" in name:
+                log(f"Include file {name} is unused!", level=unused_level)
+            elif "cex-checks/" in name:
+                log(f"Counterexample-check file {name} is unused!", level=unused_level)
         elif "unmaintained/" not in name and all(
             "unmaintained/" in parent for parent in node.parents
         ):
             if "components/" in name:
-                log(f"Component file {name} is unmaintained!", 2)
-            if "includes/" in name:
-                log(f"Include file {name} is unmaintained!", 2)
+                log(
+                    f"Component file {name} is used only by unmaintained files!",
+                    level=3,
+                )
+            elif "includes/" in name:
+                log(f"Include file {name} is used only by unmaintained files!", level=3)
+            elif "cex-checks/" in name:
+                log(
+                    f"Counterexample-check file {name} is used only by unmaintained files!",
+                    level=3,
+                )
 
         if "unmaintained/" in name:
             maintained_parents = [p for p in node.parents if "unmaintained/" not in p]
             if maintained_parents:
                 log(
-                    "Unmaintained file '{}' is referenced by maintained files '{}'".format(
-                        name, "', '".join(maintained_parents)
-                    ),
-                    1,
+                    f"Unmaintained file '{name}' is referenced by maintained files '{', '.join(maintained_parents)}'"
                 )
 
 
@@ -529,7 +535,10 @@ def transitiveReductionCheck(nodes):
                     ):
                         continue  # it is ok if the set of specs in "specification = " is overriden with a different set
                     log(
-                        f"included twice:{c.name}\nFirst include by:\t{reach[c].name}\nSecond include by:\t{current2.name}\nCommon ancestor:\t{current.name}\n"
+                        f"included twice:{c.name}\n"
+                        f"  First include by:\t{reach[c].name}\n"
+                        f"  Second include by:\t{current2.name}\n"
+                        f"  Common ancestor:\t{current.name}"
                     )
                 else:
                     reach[c] = current2

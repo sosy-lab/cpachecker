@@ -62,4 +62,10 @@ SPDX-License-Identifier: Apache-2.0
     <!-- Some tasks in this set use malloc. Needed for CEX. -->
     <option name="--option">overflow.trackPointers=true</option>
   </tasks>
+
+  <tasks name="Overflow-Sequentialized">
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/concurrent/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+  </tasks>
 </benchmark>

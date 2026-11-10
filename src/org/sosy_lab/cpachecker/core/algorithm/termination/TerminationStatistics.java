@@ -159,13 +159,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       secure = true,
       name = "exportYamlCorrectnessWitness",
       description = "export correctness witness in YAML format")
-  private boolean exportYamlCorrectnessWitness = true;
+  protected boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
       name = "exportSupportingInvariantsInWitness",
       description = "export supporting invariants in the witness")
-  private boolean exportSupportingInvariantsInWitness = true;
+  private boolean exportSupportingInvariantsInWitness = false;
 
   @Option(
       secure = true,
@@ -486,7 +486,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(!violations.hasNext());
     }
 
-    if (pResult == Result.TRUE) {
+    if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
       try {
         terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
       } catch (IOException e) {

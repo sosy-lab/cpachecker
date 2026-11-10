@@ -8,19 +8,26 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor;
 
 public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
   private final BlockingQueue<DssMessage> queue;
   private final Deque<DssMessage> highestPriority;
   private final Deque<DssMessage> next;
+  private final Set<String> activeWorkers;
+  private final AtomicInteger pendingMessages;
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
@@ -28,9 +35,21 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
    * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType}
    */
   public DssDefaultQueue() {
+    this(ConcurrentHashMap.newKeySet());
+  }
+
+  /**
+   * Creates a queue that shares its worker's activity with the termination monitor.
+   *
+   * <p>Add the worker to {@code pActiveWorkers} before starting its thread. A worker can do useful
+   * work before it first calls {@link #take()}, and the monitor needs to see that too.
+   */
+  public DssDefaultQueue(Set<String> pActiveWorkers) {
     queue = new LinkedBlockingQueue<>();
     highestPriority = new ArrayDeque<>();
     next = new ArrayDeque<>();
+    activeWorkers = Objects.requireNonNull(pActiveWorkers);
+    pendingMessages = new AtomicInteger();
   }
 
   @Override
@@ -40,12 +59,29 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
   @Override
   public boolean isEmpty() {
-    return next.isEmpty() && highestPriority.isEmpty() && queue.isEmpty();
+    return pendingMessages.get() == 0;
   }
 
   @Override
   public boolean add(DssMessage pMessage) {
-    return queue.add(pMessage);
+    // Count the message first. Otherwise, the monitor could look between these two steps and see
+    // neither an active sender nor a queued message.
+    pendingMessages.incrementAndGet();
+    boolean added = false;
+    try {
+      added = queue.add(pMessage);
+      return added;
+    } finally {
+      if (!added) {
+        pendingMessages.decrementAndGet();
+      }
+    }
+  }
+
+  private DssMessage startProcessing(DssMessage pMessage) {
+    int remainingMessages = pendingMessages.decrementAndGet();
+    checkState(remainingMessages >= 0, "Consumed a message that was not registered as pending");
+    return pMessage;
   }
 
   /**
@@ -67,16 +103,21 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
       queueForMessage.add(message);
     }
     if (!highestPriority.isEmpty()) {
-      return highestPriority.removeFirst();
+      return startProcessing(highestPriority.removeFirst());
     }
     if (!next.isEmpty()) {
-      return next.removeFirst();
+      return startProcessing(next.removeFirst());
     }
-    DssThreadMonitor.remove(Thread.currentThread().getName());
+    activeWorkers.remove(Thread.currentThread().getName());
     try {
-      return queue.take();
-    } finally {
-      DssThreadMonitor.add(Thread.currentThread().getName());
+      DssMessage message = queue.take();
+      // Mark the worker active before the message stops counting as pending. This keeps the work
+      // visible to the monitor while it moves from the queue to the worker.
+      activeWorkers.add(Thread.currentThread().getName());
+      return startProcessing(message);
+    } catch (InterruptedException e) {
+      activeWorkers.add(Thread.currentThread().getName());
+      throw e;
     }
   }
 }

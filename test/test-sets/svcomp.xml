@@ -40,7 +40,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--benchmark"/>
   <option name="--timelimit">900 s</option>
 
-  <rundefinition name="SV-COMP26_unreach-call">
+  <rundefinition name="SV-COMP27_unreach-call">
     <tasks name="C.unreach-call.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -136,14 +136,14 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_no-data-race">
+  <rundefinition name="SV-COMP27_no-data-race">
     <tasks name="C.no-data-race.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_valid-memcleanup">
+  <rundefinition name="SV-COMP27_valid-memcleanup">
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -158,7 +158,7 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_valid-memsafety">
+  <rundefinition name="SV-COMP27_valid-memsafety">
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -210,7 +210,7 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_no-overflow">
+  <rundefinition name="SV-COMP27_no-overflow">
     <tasks name="C.no-overflow.Main">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
@@ -256,7 +256,7 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_termination">
+  <rundefinition name="SV-COMP27_termination">
     <tasks name="C.termination.BitVectors">
       <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
@@ -292,32 +292,47 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_unreach-call_demo">
+  <rundefinition name="SV-COMP27_correct-tags">
+    <tasks name="SV-LIB.correct-tags.CoreVerification">
+      <includesfile>../programs/svlib-benchmarks/CoreVerification.set</includesfile>
+      <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+    </tasks>
+    <tasks name="SV-LIB.correct-tags.CoreValidation">
+      <includesfile>../programs/svlib-benchmarks/CoreValidation.set</includesfile>
+      <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+    </tasks>
+    <tasks name="SV-LIB.correct-tags.CTranslated">
+      <includesfile>../programs/svlib-benchmarks/CTranslated.set</includesfile>
+      <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP27_unreach-call_demo">
     <tasks name="C.unreach-call.Huawei-Concurrency-Challenges">
-      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+      <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
 
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_no-data-race_demo">
+  <rundefinition name="SV-COMP27_no-data-race_demo">
     <tasks name="C.no-data-race.Huawei-Concurrency-Challenges">
-      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-data-race.prp</propertyfile>
+      <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_valid-memsafety_demo">
+  <rundefinition name="SV-COMP27_valid-memsafety_demo">
     <tasks name="C.valid-memsafety.Huawei-Concurrency-Challenges">
-      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+      <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     </tasks>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_no-overflow_demo">
+  <rundefinition name="SV-COMP27_no-overflow_demo">
     <tasks name="C.no-overflow.Huawei-Concurrency-Challenges">
-      <includesfile>../sv-benchmarks/c/Huawei-Concurrency-Challenges.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
   </rundefinition>
 

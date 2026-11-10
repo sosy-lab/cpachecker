@@ -21,7 +21,12 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 /** Helper class for Distributed Summary Synthesis tests. */
 public class DssTestUtils {
 
-  private static final String DSS_CONFIGURATION_FILE = "config/dss.properties";
+  /** Configuration of the whole Distributed Summary Synthesis algorithm. */
+  public static final String DSS_CONFIGURATION_FILE = "config/dss.properties";
+
+  /** Configuration of the forward analysis that a single DSS block worker runs. */
+  public static final String DSS_FORWARD_CONFIGURATION_FILE =
+      "config/distributed-summary-synthesis/dss-block-analysis.properties";
 
   /** Create a {@link BlockOperator} and return the block-end predicate. */
   public static Predicate<CFANode> createBlockOperator(CFA cfa)

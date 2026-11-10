@@ -13,9 +13,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -122,8 +120,8 @@ public class RegressionVerificationWitnessToCandidateInvariantsConverter {
 
   private Set<Invariant> readInvariantEntriesFromWitness(final Path pWitnessFile)
       throws InterruptedException, InvalidConfigurationException {
-    try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream(); ) {
-      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
+    try {
+      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pWitnessFile);
       return new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa)
           .generateInvariantsFromEntries(entries);
     } catch (IOException e) {

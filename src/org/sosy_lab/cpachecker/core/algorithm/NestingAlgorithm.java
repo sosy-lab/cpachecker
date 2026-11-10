@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -44,6 +45,9 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** abstract algorithm for executing other nested algorithms. */
 public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider {
+
+  /** Flag for disabling the consistency check of cfa.* options. Only for tests. */
+  @VisibleForTesting public static boolean checkCfaOptionMisMatch = true;
 
   protected record NestedAnalysis(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
@@ -164,17 +168,20 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
     // "cfa.*"-options of a subconfig are effectively ignored because the CFA gets only generated
     // once for the NestingAlgorithm, so we check whether all "cfa.*"-options that are set in the
-    // subconfig are also present and with the same value in the global config:
-    for (Entry<String, String> entry : single.entrySet()) {
-      String key = entry.getKey();
-      String value = entry.getValue();
-      if (key.startsWith("cfa.") && !(global.containsKey(key) && value.equals(global.get(key)))) {
-        throw new InvalidConfigurationException(
-            "CFA option of a nested sub-configuration must also be present in the outer"
-                + " configuration!\n"
-                + String.format(
-                    "inner config: \"%s = %s\" ; outer config: \"%s = %s\" ",
-                    key, value, key, global.get(key)));
+    // subconfig are also present and with the same value in the global config.
+    // In tests we sometimes need to disable it.
+    if (checkCfaOptionMisMatch) {
+      for (Entry<String, String> entry : single.entrySet()) {
+        String key = entry.getKey();
+        String value = entry.getValue();
+        if (key.startsWith("cfa.") && !(global.containsKey(key) && value.equals(global.get(key)))) {
+          throw new InvalidConfigurationException(
+              "CFA option of a nested sub-configuration must also be present in the outer"
+                  + " configuration!\n"
+                  + String.format(
+                      "inner config %s has \"%s = %s\"\nouter config has \"%s = %s\" ",
+                      pSingleConfigFileName, key, value, key, global.get(key)));
+        }
       }
     }
   }

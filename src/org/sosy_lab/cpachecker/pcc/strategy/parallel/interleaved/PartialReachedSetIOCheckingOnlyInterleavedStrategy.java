@@ -95,10 +95,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
     logger.log(Level.INFO, "Create reading thread");
     Thread readingThread =
-        new Thread(new PartitionReader(injectedCFA, checkResult, partitionsAvailable));
+        Thread.ofPlatform()
+            .name("PartialReachedSetIOCheckingOnlyInterleavedStrategy")
+            .start(new PartitionReader(injectedCFA, checkResult, partitionsAvailable));
     try {
-      readingThread.start();
-
       PartitioningCheckingHelper checkInfo =
           new PartitioningCheckingHelper() {
             @Override

@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -99,7 +100,11 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads - 1);
+    ThreadFactory threadFactory =
+        Thread.ofPlatform()
+            .name("PartialReachedSetIOCheckingInterleavedStrategy.checkCertificate-", 0)
+            .factory();
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads - 1, threadFactory);
     try {
       for (int i = 0; i < numThreads - 1; i++) {
         executor.execute(

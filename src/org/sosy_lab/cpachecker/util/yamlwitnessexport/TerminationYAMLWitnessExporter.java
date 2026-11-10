@@ -93,7 +93,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
-            pLoopHead.getFunctionName());
+            pLoopHead.getFunction().getOrigName());
     String invariant =
         wrapTheVariablesWithCastToLongLong(
             pSupportingInvariant.toString(), pSupportingInvariant.getVariables());
@@ -114,7 +114,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
-            pLoopHead.getFunctionName());
+            pLoopHead.getFunction().getOrigName());
     for (TerminationArgument argument : pArguments) {
       RankingFunction rankingFunction = argument.getRankingFunction();
       if (rankingFunction instanceof NestedRankingFunction pNestedRankingFunction) {
@@ -208,7 +208,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         case V2 ->
             logger.log(
                 Level.SEVERE, "Format in version 2.0 does not support termination witnesses.");
-        case V2d1 -> constructWitness(pTerminationArguments, outputFile);
+        case V2d1, V2d2 -> constructWitness(pTerminationArguments, outputFile);
       }
     }
   }

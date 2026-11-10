@@ -1,0 +1,25 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+; A location invariant holds in the state before the annotated statement is executed,
+; so this program is correct even though the invariant does not hold afterwards.
+
+(set-logic LIA)
+
+(set-info :format-version 1.0)
+
+(define-proc
+  f1
+  ()
+  ()
+  ((a Int))
+  (! (sequence
+    (assign (a 0))
+    (! (assign (a 1)) :check-true (= a 0))) :tag proc-f1))
+
+(verify-call f1 ())

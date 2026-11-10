@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -505,13 +506,15 @@ public final class ExpressionTrees {
    * @param fMgr the formula manger having the formula "in scope"
    * @param location a node in which the function the formula is in scope is located
    * @param variableNameReplacer a function to replace variable names.
+   * @param pMachineModel the machine model of the analyzed program
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
       BooleanFormula formula,
       FormulaManagerView fMgr,
       CFANode location,
-      Function<String, String> variableNameReplacer)
+      Function<String, String> variableNameReplacer,
+      MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
     return fromFormula(
         formula,
@@ -519,7 +522,8 @@ public final class ExpressionTrees {
         name ->
             !name.contains(FUNCTION_DELIMITER)
                 || name.startsWith(location.getFunctionName() + FUNCTION_DELIMITER),
-        variableNameReplacer);
+        variableNameReplacer,
+        pMachineModel);
   }
 
   /**
@@ -534,13 +538,15 @@ public final class ExpressionTrees {
    * @param fMgr the formula manger having the formula "in scope"
    * @param pIncludeVariablesFilter a filter for variable names, which should be considered.
    * @param variableNameReplacer a function to replace variable names.
+   * @param pMachineModel the machine model of the analyzed program
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
       BooleanFormula formula,
       FormulaManagerView fMgr,
       Function<String, Boolean> pIncludeVariablesFilter,
-      Function<String, String> variableNameReplacer)
+      Function<String, String> variableNameReplacer,
+      MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
 
     BooleanFormula inv = formula;
@@ -557,7 +563,7 @@ public final class ExpressionTrees {
               return true;
             });
 
-    FormulaToCVisitor v = new FormulaToCVisitor(fMgr, variableNameReplacer);
+    FormulaToCVisitor v = new FormulaToCVisitor(fMgr, variableNameReplacer, pMachineModel);
     boolean isValid = fMgr.visit(inv, v);
     if (!isValid) {
       throw new TranslationToExpressionTreeFailedException("Could not translate formula to C");

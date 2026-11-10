@@ -22,7 +22,6 @@ import com.google.common.base.Functions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -75,9 +74,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class LiveVariables {
@@ -360,8 +357,9 @@ public class LiveVariables {
     if (!liveVarConfig.overallLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.create(liveVarConfig.overallLivenessCheckTime);
-      limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
+      limitChecker =
+          ResourceLimitChecker.createWallTimeLimitChecker(
+              liveVarsShutdown, liveVarConfig.overallLivenessCheckTime);
       limitChecker.start();
     } else {
       shutdownNotifier = pShutdownNotifier;
@@ -407,8 +405,9 @@ public class LiveVariables {
     if (!config.partwiseLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.create(config.partwiseLivenessCheckTime);
-      limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
+      limitChecker =
+          ResourceLimitChecker.createWallTimeLimitChecker(
+              liveVarsShutdown, config.partwiseLivenessCheckTime);
       limitChecker.start();
     } else {
       shutdownNotifier = pShutdownNotifier;

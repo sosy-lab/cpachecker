@@ -172,6 +172,19 @@ with considerably less effort!
   In such cases, rename one of the config files.
   Config files in `config/unmaintained/` should never have the same name
   as config files outside of this directory.
+- Regarding output files the following is desired:
+  - By default in most configs: all output files produced (in particular witnesses), except for particularly expensive ones
+  - Default with `--no-output-files`: no files produced, including no witnesses
+  - SV-COMP with `--benchmark` (implies `--no-output-files`): no files except witnesses
+
+  This is achieved with the following steps:
+  - Enable witnesses and output files by default in the code.
+  - Have a `@FileOption(FileOption.Type.OUTPUT_FILE)` option for the file name,
+    which is set to `null` by `--no-output-files` (code needs to handle this).
+  - Do not set the option in standard config files.
+  - Explicitly set the option for the file names of witnesses to `witness.yml` in the SV-COMP configs.
+    Then `--no-output-files` has no effect on these options,
+    because it sets only options to `null` that are not in the config file.
 
 Note that the syntax of configuration files is explained in
 [`Configuration.md`](Configuration.md#configuration-file-format).
@@ -231,6 +244,23 @@ Note that the syntax of configuration files is explained in
     and often easier to use and with more nice methods (like `filter(Class)`) than `Stream`.
   - Java itself provides the `Collections` class,
     though some parts like the singleton and immutable collections are better replaced by Guava utilities.
+
+### Threads and Concurrency
+
+- Prefer high-level utilities such as `ExecutorService` etc.
+  over low-level thread management and locking.
+- Make sure that all started threads have a name that indicates their use
+  (e.g., the class that started them).
+  For this, call `Thread.ofPlatform().name(...)`
+  and use the result either to start a thread or create a `ThreadFactory`
+  for `Executors`' factory methods.
+- Preferably avoid inheriting from thread.
+  This mixes the identity of the thread with the class managing it
+  and violates encapsulation.
+  A class that starts and manages a separate thread instance internally is cleaner.
+- With the above rules, all instances of thread creation in CPAchecker
+  are done via `Thread.ofPlatform()`, which is nice for searching for them.
+  Please deviate from this only when really necessary.
 
 ### Coding
 

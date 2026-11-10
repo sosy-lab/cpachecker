@@ -8,17 +8,22 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -26,57 +31,57 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class DssBlockAnalyses {
+public final class DssBlockAnalyses {
 
   private DssBlockAnalyses() {}
 
+  private static List<AbstractState> extractBlockStatesAtGhostLocation(ReachedSet pAbstractStates) {
+    return FluentIterable.from(pAbstractStates)
+        .filter(
+            a ->
+                AbstractStates.extractStateByType(a, BlockState.class).getType()
+                    == BlockStateType.ABSTRACTION)
+        .toList();
+  }
+
   /**
-   * Simulate the CPA algorithm on the given reached set using the states provided in the list. The
-   * CPA algorithm is performed on the given reached set (by reference).
+   * Groups the given ghost states by the block-end state they were spawned from.
    *
-   * @param reachedSet the reached set to perform the CPA algorithm on
-   * @param pCpa the CPA to use
-   * @param pStates the states to put into the reached set one-by-one starting with the first one.
-   *     All states are required to have a location and should emerge from the same location.
-   * @throws InterruptedException thread interrupted during precision computation
-   * @throws CPAException wrapper exception for all CPA exceptions
+   * <p>Keyed by object identity: {@link BlockState} describes only where in the block a state is,
+   * so several states of one reached set can be equal without being the same state. The predecessor
+   * is a back-pointer to one specific state, and only identity preserves that.
    */
-  static void executeCpaAlgorithmWithStates(
-      ReachedSet reachedSet, ConfigurableProgramAnalysis pCpa, List<StateAndPrecision> pStates)
-      throws InterruptedException, CPAException {
-    for (StateAndPrecision stateAndPrecision : pStates) {
-      AbstractState state = stateAndPrecision.state();
-      CFANode location = AbstractStates.extractLocation(state);
-      assert location != null;
-      if (reachedSet.isEmpty()) {
-        reachedSet.add(state, stateAndPrecision.precision());
-      } else {
-        // CPA algorithm
-        for (AbstractState abstractState : ImmutableSet.copyOf(reachedSet)) {
-          AbstractState merged =
-              pCpa.getMergeOperator()
-                  .merge(
-                      state,
-                      abstractState,
-                      pCpa.getInitialPrecision(
-                          location, StateSpacePartition.getDefaultPartition()));
-          if (!merged.equals(abstractState)) {
-            reachedSet.remove(abstractState);
-            reachedSet.add(
-                merged,
-                pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()));
-          }
-        }
-        if (!pCpa.getStopOperator()
-            .stop(
-                state,
-                reachedSet.getReached(location),
-                pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()))) {
-          reachedSet.add(
-              state, pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()));
-        }
-      }
+  private static ListMultimap<BlockState, AbstractState> sortGhostStatesByPredecessor(
+      List<AbstractState> states) {
+    ListMultimap<BlockState, AbstractState> byPredecessor =
+        Multimaps.newListMultimap(new IdentityHashMap<>(), ArrayList::new);
+    for (AbstractState state : states) {
+      byPredecessor.put(
+          AbstractStates.extractStateByType(state, BlockState.class).getPredecessor(), state);
     }
+    return byPredecessor;
+  }
+
+  /**
+   * Maps every {@link BlockState} of the reached set to the state that contains it, so that a
+   * back-pointer into the block CPA can be resolved to the entry of the reached set that the
+   * waitlist knows.
+   *
+   * <p>Keyed by object identity for the same reason as {@link #sortGhostStatesByPredecessor(List)}:
+   * equal block states would collide, while every state of the reached set has its own block state
+   * instance.
+   */
+  private static IdentityHashMap<BlockState, AbstractState> indexByBlockState(
+      ReachedSet pReachedSet) {
+    IdentityHashMap<BlockState, AbstractState> blockStateToState = new IdentityHashMap<>();
+    for (AbstractState state : pReachedSet) {
+      BlockState blockState = AbstractStates.extractStateByType(state, BlockState.class);
+      checkState(
+          blockStateToState.put(blockState, state) == null,
+          "Multiple states of the reached set contain the block state %s",
+          blockState);
+    }
+    return blockStateToState;
   }
 
   /**
@@ -87,8 +92,7 @@ public class DssBlockAnalyses {
    * @throws CPAException wrapper exception
    * @throws InterruptedException thread interrupted
    */
-  static DssBlockAnalysisResult runAlgorithm(
-      Algorithm pAlgorithm, ReachedSet pReachedSet, BlockNode pBlockNode)
+  static DssBlockAnalysisResult runAlgorithm(Algorithm pAlgorithm, ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -97,14 +101,60 @@ public class DssBlockAnalyses {
     while (pReachedSet.hasWaitingState()) {
       status = status.update(pAlgorithm.run(pReachedSet));
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
+      IdentityHashMap<BlockState, AbstractState> blockStateToState = indexByBlockState(pReachedSet);
+      ListMultimap<BlockState, AbstractState> predecessorToStates =
+          sortGhostStatesByPredecessor(extractBlockStatesAtGhostLocation(pReachedSet));
+      for (BlockState blockState : predecessorToStates.keySet()) {
+        checkState(blockState.getType() == BlockStateType.FINAL);
+        advanceViolationConditions(
+            blockState,
+            predecessorToStates.get(blockState),
+            blockStateToState.get(blockState),
+            pReachedSet);
+      }
     }
 
-    return new DssBlockAnalysisResult(pReachedSet, pBlockNode, status);
+    return new DssBlockAnalysisResult(pReachedSet, status);
+  }
+
+  /**
+   * Narrows the violation conditions of one block-end state to those not yet processed and decides
+   * whether that state still has to be explored.
+   *
+   * <p>The state is taken off the waitlist once no condition is left to process. If no condition of
+   * this state was processed, the state remains untouched: the analysis may have stopped because a
+   * different block-end state produced a target.
+   */
+  private static void advanceViolationConditions(
+      BlockState pBlockState,
+      Collection<AbstractState> pStatesAtGhostLocation,
+      AbstractState pStateInReachedSet,
+      ReachedSet pReachedSet) {
+    ImmutableSet<? extends @NonNull AbstractState> processedViolationConditions =
+        FluentIterable.from(pStatesAtGhostLocation)
+            .transformAndConcat(
+                a ->
+                    AbstractStates.extractStateByType(a, BlockState.class).getViolationConditions())
+            .toSet();
+    ImmutableList.Builder<AbstractState> remainingBuilder = ImmutableList.builder();
+    for (AbstractState violationCondition : pBlockState.getViolationConditions()) {
+      if (!processedViolationConditions.contains(violationCondition)) {
+        remainingBuilder.add(violationCondition);
+      }
+    }
+    ImmutableList<AbstractState> remainingConditions = remainingBuilder.build();
+
+    if (remainingConditions.size() == pBlockState.getViolationConditions().size()) {
+      return;
+    }
+    if (remainingConditions.isEmpty()) {
+      pReachedSet.removeOnlyFromWaitlist(pStateInReachedSet);
+    }
+    pBlockState.setViolationConditions(remainingConditions);
   }
 
   static class DssBlockAnalysisResult {
 
-    private final ImmutableSet<ARGState> summaries;
     private final ImmutableSet<ARGState> finalLocationStates;
     private final ImmutableSet<ARGState> allViolations;
     private final ImmutableSet<ARGState> vcViolations;
@@ -113,17 +163,13 @@ public class DssBlockAnalyses {
 
     /**
      * Interpret the reached set after the block analysis. We collect all states at the final
-     * location, all target states (violations) and all summary states (final location, not target,
-     * no children).
+     * location and all target states (violations).
      *
      * @param pReachedSet the reached set after the block analysis
-     * @param pBlockNode the block node that was analyzed
      * @param pStatus the status returned by the analysis algorithm
      */
-    private DssBlockAnalysisResult(
-        ReachedSet pReachedSet, BlockNode pBlockNode, AlgorithmStatus pStatus) {
+    private DssBlockAnalysisResult(ReachedSet pReachedSet, AlgorithmStatus pStatus) {
       status = pStatus;
-      ImmutableSet.Builder<ARGState> summariesBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> violationsBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> vcViolationsBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> targetStatesBuilder = ImmutableSet.builder();
@@ -147,14 +193,9 @@ public class DssBlockAnalyses {
           } else {
             targetStatesBuilder.add(argState);
           }
-        } else if (blockState.getLocationNode().equals(pBlockNode.getFinalLocation())
-            && blockState.getType() == BlockStateType.FINAL
-            && argState.getChildren().isEmpty()) {
-          summariesBuilder.add(argState);
         }
       }
       allViolations = violationsBuilder.build();
-      summaries = summariesBuilder.build();
       finalLocationStates = finalLocationBuilder.build();
       vcViolations = vcViolationsBuilder.build();
       targetStates = targetStatesBuilder.build();
@@ -162,10 +203,6 @@ public class DssBlockAnalyses {
 
     public AlgorithmStatus getStatus() {
       return status;
-    }
-
-    public ImmutableSet<ARGState> getSummaries() {
-      return summaries;
     }
 
     public ImmutableSet<ARGState> getAllViolations() {
@@ -187,8 +224,8 @@ public class DssBlockAnalyses {
     @Override
     public String toString() {
       return "DssBlockAnalysisResult{"
-          + "abstractionStates="
-          + summaries
+          + "finalLocationStates="
+          + finalLocationStates
           + ", violationStates="
           + allViolations
           + ", status="

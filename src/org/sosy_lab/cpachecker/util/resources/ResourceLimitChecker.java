@@ -27,6 +27,7 @@ import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -171,7 +172,6 @@ public final class ResourceLimitChecker {
 
     try {
       ResourceLimit cpuTimeLimitChecker = ProcessCpuTimeLimit.create(cpuTime);
-      logger.log(Level.INFO, "Using " + cpuTimeLimitChecker.getName());
       return new ResourceLimitChecker(shutdownManager, ImmutableList.of(cpuTimeLimitChecker));
     } catch (JMException e) {
       logger.log(
@@ -179,6 +179,21 @@ public final class ResourceLimitChecker {
           "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
     }
     return new ResourceLimitChecker(shutdownManager, ImmutableList.of());
+  }
+
+  /**
+   * Create an instance of this class with specific wall-time limit. The returned instance is not
+   * started yet.
+   */
+  public static ResourceLimitChecker createWallTimeLimitChecker(
+      ShutdownManager shutdownManager, TimeSpan wallTime) {
+
+    if (wallTime.compareTo(TimeSpan.empty()) <= 0) {
+      return new ResourceLimitChecker(shutdownManager, ImmutableList.of());
+    }
+
+    ResourceLimit wallTimeLimitChecker = WalltimeLimit.create(wallTime);
+    return new ResourceLimitChecker(shutdownManager, ImmutableList.of(wallTimeLimitChecker));
   }
 
   @Options(prefix = "limits")
@@ -242,6 +257,7 @@ public final class ResourceLimitChecker {
     }
 
     @Override
+    @SuppressForbidden("sleep is used only as grace period during shutdown")
     public void run() {
       ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
       shutdownManager.getNotifier().registerAndCheckImmediately(interruptThreadOnShutdown);

@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -21,29 +23,36 @@ public class DssThreadMonitor extends Thread {
 
   private final List<Thread> threadsToMonitor;
   private final DssConnection connection;
+  private final ImmutableList<DssConnection> monitoredConnections;
   private final DssMessageFactory messageFactory;
+  private final Set<String> activeWorkers;
 
-  public static final Set<String> active = ConcurrentHashMap.newKeySet();
-
+  /**
+   * @param pThreadsToMonitor the threads of all monitored actors
+   * @param pMessageFactory factory for the result message
+   * @param pConnection the connection to broadcast the result on
+   * @param pMonitoredConnections the connections of all monitored actors, whose queues have to be
+   *     empty before quiescence may be interpreted as a proof
+   * @param pActiveWorkers workers that have started and are not waiting for queue input
+   */
   public DssThreadMonitor(
-      List<Thread> pThreadsToMonitor,
+      ImmutableList<Thread> pThreadsToMonitor,
       DssMessageFactory pMessageFactory,
-      DssConnection pConnection) {
+      DssConnection pConnection,
+      Collection<DssConnection> pMonitoredConnections,
+      Set<String> pActiveWorkers) {
     super(THREAD_NAME);
     threadsToMonitor = pThreadsToMonitor;
     connection = pConnection;
+    monitoredConnections = ImmutableList.copyOf(pMonitoredConnections);
     messageFactory = pMessageFactory;
-  }
-
-  public static void add(String id) {
-    active.add(id);
-  }
-
-  public static void remove(String id) {
-    active.remove(id);
+    activeWorkers = pActiveWorkers;
   }
 
   @Override
+  @SuppressForbidden(
+      "TODO this should be improved, cf."
+          + " https://gitlab.com/sosy-lab/software/cpachecker/-/commit/25db045321d415aa3b4bf6742bc082a49f04ac53#note_3882238434")
   public void run() {
     while (true) {
       boolean allWaiting =
@@ -53,7 +62,13 @@ public class DssThreadMonitor extends Thread {
                       t.getState() == Thread.State.WAITING
                           || t.getState() == Thread.State.TIMED_WAITING);
 
-      if (allWaiting && connection.getBroadcaster().isEmpty() && active.isEmpty()) {
+      boolean noMessageWaitingToBeProcessed =
+          monitoredConnections.stream().noneMatch(DssConnection::hasPendingMessages);
+
+      if (allWaiting
+          && noMessageWaitingToBeProcessed
+          && connection.getBroadcaster().isEmpty()
+          && activeWorkers.isEmpty()) {
         connection
             .getBroadcaster()
             .broadcastToAll(messageFactory.createDssResultMessage(THREAD_NAME, Result.TRUE));
