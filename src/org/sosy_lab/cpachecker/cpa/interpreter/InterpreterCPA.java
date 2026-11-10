@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -69,6 +71,7 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
   private final InterpreterWitnessExporter witnessExporter;
   private final @Nullable InterpreterSampler sampler;
   private final @Nullable ValueTransferOptions valueTransferOptions;
+  private final @Nullable SMGOptions smgOptions;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(InterpreterCPA.class);
@@ -91,6 +94,8 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
         sampleNondeterministicValues ? new InterpreterSampler(pConfig, pCfa, logger, stats) : null;
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();
+    SMGCPA smg = CPAs.retrieveCPA(pCpa, SMGCPA.class);
+    smgOptions = smg == null ? null : smg.getSMGOptions();
   }
 
   @Override
@@ -108,7 +113,8 @@ public class InterpreterCPA extends AbstractSingleWrapperCPA {
         stats,
         witnessExporter,
         sampler,
-        valueTransferOptions);
+        valueTransferOptions,
+        smgOptions);
   }
 
   @Override

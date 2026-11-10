@@ -386,13 +386,11 @@ class GlobalScope extends AbstractScope {
           // infinite recursion in the types toASTString method, what we don't want
           if (decl.getType() instanceof CPointerType cPointerType) {
             newMembers.add(
-                new CCompositeTypeMemberDeclaration(
-                    createPointerField(cPointerType, oldType, renamedElaboratedType),
-                    decl.getName()));
+                decl.withType(createPointerField(cPointerType, oldType, renamedElaboratedType)));
 
             // this member cannot be self referencing as it is no pointer
           } else {
-            newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
+            newMembers.add(decl);
           }
         }
         renamedCompositeType.setMembers(newMembers);

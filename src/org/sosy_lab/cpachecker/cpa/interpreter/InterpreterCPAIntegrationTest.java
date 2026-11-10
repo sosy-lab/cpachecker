@@ -95,14 +95,23 @@ public class InterpreterCPAIntegrationTest {
             ImmutableMap.of("limits.time.cpu", "10s")),
         task("interpreter--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
         task("interpreter--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
-        task("interpreter--memorysafety", "valid-memsafety", "heap-recursion-true.i", Result.TRUE),
+        // An execution in which every allocation succeeds is not the only execution of a program
+        // that allocates, so such a program cannot be proven safe, only unsafe.
+        task(
+            "interpreter--memorysafety",
+            "valid-memsafety",
+            "heap-recursion-true.i",
+            Result.UNKNOWN),
         task(
             "interpreter--memorysafety",
             "valid-memsafety",
             "heap-out-of-bounds-false.i",
             Result.FALSE),
         task(
-            "interpreter--memorycleanup", "valid-memcleanup", "heap-recursion-true.i", Result.TRUE),
+            "interpreter--memorycleanup",
+            "valid-memcleanup",
+            "heap-recursion-true.i",
+            Result.UNKNOWN),
         task("interpreter--memorycleanup", "valid-memcleanup", "heap-leak-false.i", Result.FALSE));
   }
 

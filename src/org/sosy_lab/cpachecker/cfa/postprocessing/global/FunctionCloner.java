@@ -346,7 +346,7 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
       // convert members and set them
       List<CCompositeTypeMemberDeclaration> l = new ArrayList<>(type.getMembers().size());
       for (CCompositeTypeMemberDeclaration decl : type.getMembers()) {
-        l.add(new CCompositeTypeMemberDeclaration(decl.getType().accept(this), decl.getName()));
+        l.add(decl.withType(decl.getType().accept(this)));
       }
       comp.setMembers(l);
 
