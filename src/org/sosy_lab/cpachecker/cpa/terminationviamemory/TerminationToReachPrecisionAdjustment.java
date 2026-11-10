@@ -61,7 +61,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustment {
-  private final Solver solver;
+  protected final Solver solver;
   protected final BooleanFormulaManagerView bfmgr;
   protected final FormulaManagerView fmgr;
   private final InterpolationManager itpMgr;
