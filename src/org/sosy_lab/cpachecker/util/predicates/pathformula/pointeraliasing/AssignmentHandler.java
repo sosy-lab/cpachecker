@@ -17,6 +17,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -310,13 +311,9 @@ class AssignmentHandler {
 
     // perform completely nondeterministic assignments first, so that deterministic assignments
     // to the same location take precedence
-    final ListMultimap<PartialAssignmentLhs, PartialAssignmentRhs> orderedAssignmentMultimap =
-        MultimapBuilder.linkedHashKeys().arrayListValues().build();
-    for (boolean nondet : new boolean[] {true, false}) {
-      for (var entry : simpleAssignmentMultimap.asMap().entrySet()) {
-        if (entry.getValue().stream().allMatch(rhs -> rhs.actual().isEmpty()) == nondet) {
-          orderedAssignmentMultimap.putAll(entry.getKey(), entry.getValue());
-        }
+    for (PartialAssignmentLhs lhs : ImmutableList.copyOf(simpleAssignmentMultimap.keySet())) {
+      if (!isValueAssignedNondet(simpleAssignmentMultimap.get(lhs))) {
+        simpleAssignmentMultimap.putAll(lhs, simpleAssignmentMultimap.removeAll(lhs));
       }
     }
 
@@ -335,7 +332,7 @@ class AssignmentHandler {
             lhsBaseResolutionMap,
             rhsBaseResolutionMap);
     final BooleanFormula result =
-        assignmentQuantifierHandler.assignSimpleSlices(orderedAssignmentMultimap);
+        assignmentQuantifierHandler.assignSimpleSlices(simpleAssignmentMultimap);
 
     // add addressed fields of rhs to pointer-target set
     for (CompositeField field : rhsAddressedFields) {
@@ -343,6 +340,10 @@ class AssignmentHandler {
     }
 
     return result;
+  }
+
+  private static boolean isValueAssignedNondet(Collection<PartialAssignmentRhs> rhsList) {
+    return rhsList.stream().allMatch(rhs -> rhs.actual().isEmpty());
   }
 
   /**
