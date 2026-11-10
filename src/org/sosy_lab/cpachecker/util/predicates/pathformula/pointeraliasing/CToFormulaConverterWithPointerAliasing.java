@@ -545,6 +545,25 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
+   * Whether the contents of a char array should be initialized from its string-literal initializer
+   * even though {@link
+   * CFormulaEncodingWithPointerAliasingOptions#handleStringLiteralInitializers()} is disabled. This
+   * is the case for relevant arrays that are not longer than the strings that builtin functions
+   * like strlen, strcmp, and strcpy handle precisely, because only then can these functions profit
+   * from the contents, and the cost is bounded.
+   */
+  private boolean isShortRelevantStringInitializer(
+      CVariableDeclaration declaration, CArrayType arrayType, CStringLiteralExpression literal) {
+    OptionalInt length = arrayType.getLengthAsInt();
+    return length.isPresent()
+        && length.getAsInt() <= options.maxPreciseStrFunctionSize() + 1
+        && CTypes.isCharacterType(arrayType.getType())
+        // escape sequences are not decoded by CStringLiteralExpression#expandStringLiteral
+        && literal.getContentWithoutNullTerminator().indexOf('\\') < 0
+        && isRelevantVariable(declaration);
+  }
+
+  /**
    * Expands a string literal to an array of characters.
    *
    * @param assignments The list of assignments.
@@ -1025,14 +1044,21 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // attachment of the array location to the __string__; this skips exhaustive __string__ reads
     // and writes, and circumvents problems with differently-sized arrays as well
     final boolean forceArrayAttachment;
+    final boolean expandStringLiteral;
     if (initializer instanceof CInitializerExpression initializerExpression) {
       CExpression rhs = initializerExpression.getExpression();
+      expandStringLiteral =
+          options.handleStringLiteralInitializers()
+              || (rhs instanceof CStringLiteralExpression literal
+                  && lhsType instanceof CArrayType arrayType
+                  && isShortRelevantStringInitializer(declaration, arrayType, literal));
       forceArrayAttachment =
           rhs instanceof CStringLiteralExpression
               && lhsType instanceof CArrayType
-              && !options.handleStringLiteralInitializers();
+              && !expandStringLiteral;
     } else {
       forceArrayAttachment = false;
+      expandStringLiteral = false;
     }
 
     // use normal assignment options with cast conversion, use old SSA indices if aliased as this is
@@ -1061,7 +1087,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final SliceExpression lhsSlice = new SliceExpression(lhs);
 
       if (initializer != null) {
-        if (options.handleStringLiteralInitializers()) {
+        if (expandStringLiteral) {
           // TODO: see if this can be simplified, this block is just copied from the case
           // (initializer instanceof CInitializerList). Both cases might be unifyable by using
           // CInitializers.convertToAssignments
