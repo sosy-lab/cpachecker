@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -656,18 +657,36 @@ public class ARGStatistics implements Statistics {
 
   public Map<ARGState, CounterexampleInfo> getAllCounterexamples(
       final UnmodifiableReachedSet pReached) {
-    ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
+    ImmutableMap.Builder<ARGState, CounterexampleInfo> registeredCounterexamples =
+        ImmutableMap.builder();
+    ImmutableList.Builder<ARGState> targetStatesWithoutCounterexample = ImmutableList.builder();
 
     for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
       if (!(targetState instanceof ARGState s)) {
         continue;
       }
-
-      ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
-          .ifPresent(cex -> counterexamples.put(s, cex));
+      s.getCounterexampleInformation()
+          .ifPresentOrElse(
+              cex -> registeredCounterexamples.put(s, cex),
+              () -> targetStatesWithoutCounterexample.add(s));
     }
 
-    Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();
+    // Only export counterexamples that for target states without explicit ones if there is no
+    // explicit one. This happens for BMC: multiple target states can exist while only one of them
+    // has been checked for feasability. Filtering here prevents the witness export to overwrite the
+    // checked correct counterexample with one that is unchecked and therefore potentially wrong.
+    // TODO: extend or replace this with a better solution that does not implicitely apply this
+    // potentially unexpected filtering
+    // see https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/596
+    Map<ARGState, CounterexampleInfo> allCounterexamples = registeredCounterexamples.buildOrThrow();
+    if (allCounterexamples.isEmpty()) {
+      ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
+      for (ARGState s : targetStatesWithoutCounterexample.build()) {
+        ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
+            .ifPresent(cex -> counterexamples.put(s, cex));
+      }
+      allCounterexamples = counterexamples.buildOrThrow();
+    }
     final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
         Maps.filterValues(allCounterexamples, CounterexampleInfo::isPreciseCounterExample);
     return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;

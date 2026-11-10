@@ -28,10 +28,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * function (cf. {@link MemoryLocation#isOnFunctionStack(String)}), so a recursive call overwrites
  * the variables of its caller. Every frame remembers the values to restore when the call returns.
  *
- * <p>The status records whether ignored external calls have made the execution unsound or
- * imprecise. A target state may be reported only if the execution is still precise, and termination
- * without a target state proves safety only if it is still sound; otherwise the analysis aborts
- * with an exception and reports {@code UNKNOWN}.
+ * <p>The status records whether ignored external calls, an allocation that the wrapped analysis
+ * models as always successful, or sampled inputs have made the execution unsound or imprecise. A
+ * target state may be reported only if the execution is still precise, and termination without a
+ * target state proves safety only if it is still sound; otherwise the analysis aborts with an
+ * exception and reports {@code UNKNOWN}.
  */
 public class InterpreterState extends AbstractSingleWrapperState {
 
@@ -63,8 +64,8 @@ public class InterpreterState extends AbstractSingleWrapperState {
     if (!status.isSound()) {
       throw new CPATransferException(
           "The execution ended without violating the specification, but it is no longer sound"
-              + " because function side effects were ignored or inputs were sampled. InterpreterCPA"
-              + " cannot prove that the program is safe.");
+              + " because function side effects were ignored, an allocation was assumed to succeed,"
+              + " or inputs were sampled. InterpreterCPA cannot prove that the program is safe.");
     }
   }
 
