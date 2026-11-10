@@ -363,15 +363,22 @@ class AssignmentFormulaHandler {
               || partialRhsMap.subRangeMap(lhsSpanRange).asMapOfRanges().isEmpty(),
           "overlapping spans are not allowed");
 
+      final BitvectorFormula partialRhsFormula;
       if (rhs.isNondet()) {
-        // nondet rhs part, make the whole rhs result nondeterministic
-        return new ResolvedSlice(Value.nondetValue(), resultType);
+        Optional<BitvectorFormula> maybePreciseNondetFormula =
+            constructPartialRhsFormulaForNonDeterministicValue(rhsSpan, targetType);
+        if (maybePreciseNondetFormula.isEmpty()) {
+          // We were not able to compute precise nondet formula. In this case,
+          // fall back to the previous, coarser behaviour instead of failing
+          return new ResolvedSlice(Value.nondetValue(), resultType);
+        }
+        partialRhsFormula = maybePreciseNondetFormula.orElseThrow();
+      } else {
+        ResolvedSlice rhsResolved = rhs.actual().orElseThrow();
+        partialRhsFormula =
+            constructPartialRhsFormulaFromDeterministicValue(
+                rhsResolved, targetType, rhsSpan, assignmentOptions);
       }
-      ResolvedSlice rhsResolved = rhs.actual().orElseThrow();
-      // now we have a non-nondet value
-
-      final BitvectorFormula partialRhsFormula =
-          constructPartialRhsFormula(rhsResolved, targetType, rhsSpan, assignmentOptions);
       verify(bvmgr.getLength(partialRhsFormula) == rhsSpan.bitSize());
 
       // store in correct place
@@ -432,6 +439,27 @@ class AssignmentFormulaHandler {
   }
 
   /**
+   * Attempt to construct a span-sized bitvector formula that defines non-deterministic values for a
+   * partial span of a C type. For example, it is possible to define that only the first byte of an
+   * integer is set to a non-deterministic value, while the rest of the object remains unchanged.
+   */
+  private Optional<BitvectorFormula> constructPartialRhsFormulaForNonDeterministicValue(
+      PartialSpan rhsSpan, CType targetType) {
+    // nondet rhs part: make only its own span nondeterministic, retaining the rest of the
+    // object from previous LHS below, instead of collapsing the whole object to nondet
+    final String nondetName =
+        "__nondet_value_" + CTypeUtils.typeToString(targetType).replace(' ', '_');
+    final Formula nondet = conv.makeNondet(nondetName, targetType, ssa, constraints);
+    final BitvectorFormula nondetBv = conv.makeValueReinterpretationToBitvector(targetType, nondet);
+    if (nondetBv == null) {
+      // e.g. a float target under a formula theory with no bitvector reinterpretation;
+      return Optional.empty();
+    }
+    BitvectorFormula nondetRhs = extractRangeOfBitvector(nondetBv, rhsSpan.asRhsRange());
+    return Optional.of(nondetRhs);
+  }
+
+  /**
    * Construct a span-sized bitvector formula containing the part of given right-hand-side formula,
    * as determined by {@code rhsSpan}.
    *
@@ -442,7 +470,7 @@ class AssignmentFormulaHandler {
    * @return Span-sized bitvector formula containing the part of {@code rhs} as determined by {@code
    *     rhsSpan}.
    */
-  private BitvectorFormula constructPartialRhsFormula(
+  private BitvectorFormula constructPartialRhsFormulaFromDeterministicValue(
       final ResolvedSlice rhs,
       final CType targetType,
       final PartialSpan rhsSpan,
