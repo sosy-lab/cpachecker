@@ -672,9 +672,7 @@ class AssignmentHandler {
     generateSimplePartialAssignments(elementAssignment, simpleAssignmentMultimap);
   }
 
-  /**
-   * Assigns each element of the LHS array that the span covers from the covered bits of the RHS
-   */
+  /** Assigns each element of the LHS array that the span covers from the covered bits of the RHS */
   private void generatePartialAssignmentsForArrayElements(
       SingleRhsPartialAssignment assignment,
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap,
@@ -727,7 +725,9 @@ class AssignmentHandler {
     final boolean getsWholeValue =
         elementType.equals(targetType)
             && elementSpan.isFullSpan(typeHandler.getExactBitSizeof(elementType));
-    if (value.isEmpty() || isScalarType(targetType) || getsWholeValue
+    if (value.isEmpty()
+        || isScalarType(targetType)
+        || getsWholeValue
         || assignmentOptions.conversionType() == ConversionType.BYTE_REPEAT) {
       return value;
     }
