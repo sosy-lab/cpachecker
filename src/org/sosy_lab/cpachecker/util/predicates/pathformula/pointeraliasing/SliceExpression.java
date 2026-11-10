@@ -354,13 +354,13 @@ record SliceExpression(
                 resolved,
                 false);
       } else {
-        // subscript
-        // the index literal is non-negative, so it can have whichever large-enough integer type
-        CIntegerLiteralExpression indexLiteral =
+        // subscript; unresolved indices become zero, and size_t is the type of an index
+        final long index =
             modifier instanceof SliceConstantIndexModifier constantIndex
-                ? CIntegerLiteralExpression.createDummyLiteral(
-                    constantIndex.index(), CNumericTypes.LONG_INT)
-                : CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT);
+                ? constantIndex.index()
+                : 0;
+        CIntegerLiteralExpression indexLiteral =
+            CIntegerLiteralExpression.createDummyLiteral(index, CNumericTypes.SIZE_T);
 
         CPointerType resolvedPointerType =
             (CPointerType)
