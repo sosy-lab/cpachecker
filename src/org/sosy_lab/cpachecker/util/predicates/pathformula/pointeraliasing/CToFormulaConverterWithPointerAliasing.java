@@ -1016,32 +1016,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     CType lhsType = typeHandler.getSimplifiedType(declaration);
 
-    // special case: force array attachment if all of these are true:
-    // 1. we are currently handling a declaration with string initializer
-    // 3. the declaration is of an array
-    // 2. we do not handle string literal initializers explicitly, just using the __string__
-    // approximation
-    // in this special case, instead of copying all elements of __string__, we just force
-    // attachment of the array location to the __string__; this skips exhaustive __string__ reads
-    // and writes, and circumvents problems with differently-sized arrays as well
-    final boolean forceArrayAttachment;
-    if (initializer instanceof CInitializerExpression initializerExpression) {
-      CExpression rhs = initializerExpression.getExpression();
-      forceArrayAttachment =
-          rhs instanceof CStringLiteralExpression
-              && lhsType instanceof CArrayType
-              && !options.handleStringLiteralInitializers();
-    } else {
-      forceArrayAttachment = false;
-    }
+    // An array with a string initializer is an object of its own, with an address different from
+    // the literal and from other arrays. Without handleStringLiteralInitializers, its contents are
+    // nondeterministic.
+    final boolean untrackedStringInitializer =
+        initializer instanceof CInitializerExpression initializerExpression
+            && initializerExpression.getExpression() instanceof CStringLiteralExpression
+            && lhsType instanceof CArrayType
+            && !options.handleStringLiteralInitializers();
 
     // use normal assignment options with cast conversion, use old SSA indices if aliased as this is
-    // an initialization assignment, force array attachment according to the special case, leave
-    // everything else as-is
+    // an initialization assignment, leave everything else as-is
     AssignmentOptions assignmentOptions =
         new AssignmentOptions.Builder(ConversionType.CAST)
             .setUseOldSSAIndicesIfAliased(true)
-            .setForceArrayAttachment(forceArrayAttachment)
             .build();
     final AssignmentHandler assignmentHandler =
         new AssignmentHandler(
@@ -1072,15 +1060,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           return assignmentHandler.initializationAssign(lhs, declarationType, assignments);
         }
 
-        CExpression rhs = ((CInitializerExpression) initializer).getExpression();
-        if (forceArrayAttachment) {
-          // we are forcing array attachment, cast RHS to pointer type
-          CType lhsPointerType = CTypes.adjustFunctionOrArrayType(lhsType);
-          rhs = makeCastFromArrayToPointerIfNecessary(rhs, lhsPointerType);
-        }
-        SliceExpression rhsSlice = new SliceExpression(rhs);
-        SliceAssignment assignment =
-            new SliceAssignment(lhsSlice, Optional.of(lhs), Optional.of(rhsSlice));
+        Optional<SliceExpression> rhsSlice =
+            untrackedStringInitializer
+                ? Optional.empty()
+                : Optional.of(
+                    new SliceExpression(((CInitializerExpression) initializer).getExpression()));
+        SliceAssignment assignment = new SliceAssignment(lhsSlice, Optional.of(lhs), rhsSlice);
         // perform a slice assignment to lhs from rhs
         result = assignmentHandler.assign(ImmutableList.of(assignment));
 
