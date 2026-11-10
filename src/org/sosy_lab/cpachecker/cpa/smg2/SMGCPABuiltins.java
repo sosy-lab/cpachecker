@@ -151,6 +151,10 @@ public class SMGCPABuiltins {
 
   private static final int STRLEN_PARAMETER = 0;
 
+  private static final int SNPRINTF_TARGET_PARAMETER = 0;
+  private static final int SNPRINTF_SIZE_PARAMETER = 1;
+  private static final int SNPRINTF_FORMAT_PARAMETER = 2;
+
   private static final String VERIFIER_NONDET_PREFIX = "__VERIFIER_nondet_";
 
   private static final String ALLOCA_ALLOCATION_COMMON_IDENTIFIER = "__CPACHECKER_ALLOCA_ID_";
@@ -3357,6 +3361,19 @@ public class SMGCPABuiltins {
     }
     BigInteger numericSourceAddressSize = numSourceAddressSize.bigIntegerValue();
     BigInteger numericTargetAddressSize = numTargetAddressSize.bigIntegerValue();
+    // The memory might have been freed already (use-after-free)
+    SymbolicProgramConfiguration memoryModel = pState.getMemoryModel();
+    if (!memoryModel.isObjectValid(sourceAddress)
+        && !memoryModel.isObjectExternallyAllocated(sourceAddress)) {
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withInvalidRead(sourceAddress),
+          "Returned unknown for invalid source memory in function memcpy.");
+    } else if (!memoryModel.isObjectValid(targetAddress)
+        && !memoryModel.isObjectExternallyAllocated(targetAddress)) {
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withInvalidWrite(targetAddress),
+          "Returned unknown for invalid target memory in function memcpy.");
+    }
     // There can be deref errors if the size is too large
     if (numericSourceAddressSize.compareTo(sourceOffset.add(sizeToCopyInBits)) < 0) {
       return ValueAndSMGState.ofUnknownValue(
@@ -3520,42 +3537,82 @@ public class SMGCPABuiltins {
           "The function strlen needs exactly 1 argument.", pCfaEdge, pFunctionCall);
     }
 
-    // Dereference the argument (char *) to get the memory and offset of the first character
-    CExpression stringExpr = pFunctionCall.getParameterExpressions().get(STRLEN_PARAMETER);
-    CPointerExpression firstCharExpr =
-        new CPointerExpression(stringExpr.getFileLocation(), CNumericTypes.CHAR, stringExpr);
-    List<SMGStateAndOptionalSMGObjectAndOffset> stringObjsAndStates =
-        firstCharExpr.accept(new SMGCPAAddressVisitor(evaluator, pState, pCfaEdge, logger));
-    checkArgument(stringObjsAndStates.size() == 1);
-    SMGStateAndOptionalSMGObjectAndOffset stringObjAndState = stringObjsAndStates.getFirst();
-    SMGState currentState = stringObjAndState.getSMGState();
-
-    if (!stringObjAndState.hasSMGObjectAndOffset()) {
-      // Unknown address, the state might be an error state for invalid dereferences
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown for unknown address of the argument in function strlen in ",
-              pCfaEdge));
-    }
-    SMGObject stringObj = stringObjAndState.getSMGObject();
-    if (stringObj.isZero()) {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState.withNullPointerDereferenceWhenReading(stringObj),
-              "Returned unknown for null dereference of the argument in function strlen in ",
-              pCfaEdge));
-    }
-    if (!(stringObjAndState.getOffsetForObject() instanceof NumericValue numStringOffset)) {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown for unknown offset of the argument in function strlen in ",
-              pCfaEdge));
-    }
     return ImmutableList.of(
         evaluateStrlen(
-            currentState, stringObj, numStringOffset.bigIntegerValue(), Optional.empty()));
+            pFunctionCall.getParameterExpressions().get(STRLEN_PARAMETER), pState, pCfaEdge));
+  }
+
+  /**
+   * Returns the length of the string the given char * expression points to, see {@link
+   * #evaluateStrlen(SMGState, SMGObject, BigInteger, Optional)}.
+   *
+   * @return the length, or an unknown value and maybe an error state if the length can not be
+   *     determined or the string is read invalidly, e.g. beyond its memory.
+   */
+  private ValueAndSMGState evaluateStrlen(
+      CExpression pStringExpr, SMGState pState, CFAEdge pCfaEdge) throws CPATransferException {
+    SMGStateAndOptionalSMGObjectAndOffset stringObjAndState =
+        dereferenceCharPointer(pStringExpr, pState, pCfaEdge, false);
+    if (!stringObjAndState.hasSMGObjectAndOffset()) {
+      return ValueAndSMGState.ofUnknownValue(
+          stringObjAndState.getSMGState(),
+          "Returned unknown for unknown or invalid string argument in ",
+          pCfaEdge);
+    }
+    return evaluateStrlen(
+        stringObjAndState.getSMGState(),
+        stringObjAndState.getSMGObject(),
+        ((NumericValue) stringObjAndState.getOffsetForObject()).bigIntegerValue(),
+        Optional.empty());
+  }
+
+  /**
+   * Dereferences the given char * expression with the address visitor, i.e. returns the memory and
+   * offset of the first character it points to.
+   *
+   * @param pCharPointerExpr expression with type char * (or char array).
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current CFAEdge for debugging and error info.
+   * @param pIsWrite true if the memory is written, false if it is read. Used for error info.
+   * @return the memory with a concrete offset, or only a state if the memory or a concrete offset
+   *     can not be determined. The state is an error state for invalid dereferences, e.g. of a null
+   *     pointer.
+   */
+  private SMGStateAndOptionalSMGObjectAndOffset dereferenceCharPointer(
+      CExpression pCharPointerExpr, SMGState pState, CFAEdge pCfaEdge, boolean pIsWrite)
+      throws CPATransferException {
+    CExpression charPointerExpr = pCharPointerExpr;
+    while (charPointerExpr instanceof CCastExpression castExpr) {
+      charPointerExpr = castExpr.getOperand();
+    }
+    // The address visitor returns the memory of string literals directly, while all other
+    // expressions are dereferenced
+    CExpression firstCharExpr =
+        charPointerExpr instanceof CStringLiteralExpression
+            ? charPointerExpr
+            : new CPointerExpression(
+                charPointerExpr.getFileLocation(), CNumericTypes.CHAR, charPointerExpr);
+    List<SMGStateAndOptionalSMGObjectAndOffset> objsAndStates =
+        firstCharExpr.accept(new SMGCPAAddressVisitor(evaluator, pState, pCfaEdge, logger));
+    checkArgument(objsAndStates.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset objAndState = objsAndStates.getFirst();
+    SMGState currentState = objAndState.getSMGState();
+
+    if (!objAndState.hasSMGObjectAndOffset()) {
+      // Unknown address, the state might already be an error state for invalid dereferences
+      return objAndState;
+    }
+    SMGObject obj = objAndState.getSMGObject();
+    if (obj.isZero()) {
+      return SMGStateAndOptionalSMGObjectAndOffset.of(
+          pIsWrite
+              ? currentState.withNullPointerDereferenceWhenWriting(obj)
+              : currentState.withNullPointerDereferenceWhenReading(obj));
+    }
+    if (!(objAndState.getOffsetForObject() instanceof NumericValue)) {
+      return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
+    }
+    return objAndState;
   }
 
   /**
@@ -3758,24 +3815,205 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * int snprintf(char *str, size_t size, const char *format, ...); writes at most size bytes,
-   * including the terminating null character, of the formatted output to str and returns the number
-   * of characters that would have been written if size had been sufficiently large (not counting
-   * the terminating null character).
+   * Handles C function: int snprintf(char * restrict s, size_t n, const char * restrict format,
+   * ...); (C11 7.21.6.5) writing the output formatted according to format, but at most n - 1
+   * characters and a terminating \0, to s. Nothing is written if n is zero, in which case s may be
+   * a null pointer. Returns the number of characters of the complete output (not counting the
+   * terminating \0).
    *
-   * <p>Stub: not yet modeled, the call is handled like an unknown function (see {@link
-   * #handleUnknownFunction(CFAEdge, CFunctionCallExpression, String, SMGState)}), i.e. str is not
-   * written.
+   * <p>Only formats that preserve their input are modeled precisely, i.e. a string literal format
+   * without conversion specifications (the output is the format) or exactly "%s" with one string
+   * argument (the output is the argument). For all other formats, UNKNOWN is written to the n bytes
+   * of s that might be written and an unknown value is returned. If n is not concrete, the function
+   * is handled like an unknown function (see {@link #handleUnknownFunction(CFAEdge,
+   * CFunctionCallExpression, String, SMGState)}).
    *
    * @param pFunctionCall the function call of snprintf.
    * @param pState current {@link SMGState}.
    * @param pCfaEdge current CFAEdge for debugging and error info.
+   * @return the number of characters of the complete output, or an unknown value and maybe an error
+   *     state.
    */
   private List<ValueAndSMGState> evaluateSnprintf(
       CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
       throws CPATransferException {
-    // TODO: model snprintf
-    return handleUnknownFunction(pCfaEdge, pFunctionCall, "snprintf", pState);
+    List<CExpression> parameters = pFunctionCall.getParameterExpressions();
+    if (parameters.size() < 3) {
+      throw new UnrecognizedCodeException(
+          "The function snprintf needs at least 3 arguments.", pCfaEdge, pFunctionCall);
+    }
+
+    List<ValueAndSMGState> sizesAndStates =
+        getFunctionParameterValue(SNPRINTF_SIZE_PARAMETER, pFunctionCall, pState, pCfaEdge);
+    checkArgument(sizesAndStates.size() == 1);
+    SMGState currentState = sizesAndStates.getFirst().getState();
+    if (!(sizesAndStates.getFirst().getValue() instanceof NumericValue numSize)) {
+      // The written memory can not be determined
+      return handleUnknownFunction(pCfaEdge, pFunctionCall, "snprintf", currentState);
+    }
+    BigInteger maxNumOfWrittenBytes = BigInteger.valueOf(getNumberOfBytesFromSizeArgument(numSize));
+
+    Optional<CExpression> maybeOutputExpr = getInputPreservedBySnprintfFormat(pFunctionCall);
+    if (maybeOutputExpr.isPresent()) {
+      // The output is the string given by the expression
+      SMGStateAndOptionalSMGObjectAndOffset outputObjAndState =
+          dereferenceCharPointer(maybeOutputExpr.orElseThrow(), currentState, pCfaEdge, false);
+      if (!outputObjAndState.hasSMGObjectAndOffset()) {
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                outputObjAndState.getSMGState(),
+                "Returned unknown for unknown or invalid string argument in function snprintf in ",
+                pCfaEdge));
+      }
+      SMGObject outputObj = outputObjAndState.getSMGObject();
+      BigInteger outputOffset =
+          ((NumericValue) outputObjAndState.getOffsetForObject()).bigIntegerValue();
+      ValueAndSMGState lengthAndState =
+          evaluateStrlen(
+              outputObjAndState.getSMGState(), outputObj, outputOffset, Optional.empty());
+      if (lengthAndState.getValue() instanceof NumericValue numLength) {
+        return ImmutableList.of(
+            writeSnprintfOutput(
+                lengthAndState.getState(),
+                parameters.get(SNPRINTF_TARGET_PARAMETER),
+                maxNumOfWrittenBytes,
+                outputObj,
+                outputOffset,
+                numLength.bigIntegerValue(),
+                pCfaEdge));
+      } else if (lengthAndState.getState().hasMemoryErrors()) {
+        return ImmutableList.of(lengthAndState);
+      }
+      // The length of the output is unknown, write UNKNOWN below
+      currentState = lengthAndState.getState();
+
+    } else {
+      // Check that the format is a valid string and all other arguments are valid
+      ValueAndSMGState formatLengthAndState =
+          evaluateStrlen(parameters.get(SNPRINTF_FORMAT_PARAMETER), currentState, pCfaEdge);
+      if (formatLengthAndState.getState().hasMemoryErrors()) {
+        return ImmutableList.of(formatLengthAndState);
+      }
+      List<SMGState> checkedStates =
+          checkAllParametersForValidity(
+              formatLengthAndState.getState(), pCfaEdge, pFunctionCall, "snprintf");
+      checkState(checkedStates.size() == 1);
+      currentState = checkedStates.getFirst();
+    }
+
+    // The output is not known, write UNKNOWN to the n bytes that might be written
+    if (maxNumOfWrittenBytes.signum() > 0) {
+      SMGStateAndOptionalSMGObjectAndOffset targetObjAndState =
+          dereferenceCharPointer(
+              parameters.get(SNPRINTF_TARGET_PARAMETER), currentState, pCfaEdge, true);
+      currentState = targetObjAndState.getSMGState();
+      if (targetObjAndState.hasSMGObjectAndOffset()) {
+        BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+        currentState =
+            currentState.writeValueWithChecks(
+                targetObjAndState.getSMGObject(),
+                targetObjAndState.getOffsetForObject(),
+                new NumericValue(maxNumOfWrittenBytes.multiply(sizeOfCharInBits)),
+                UnknownValue.getInstance(),
+                CNumericTypes.CHAR,
+                pCfaEdge);
+      }
+    }
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown for unknown output of function snprintf in ",
+            pCfaEdge));
+  }
+
+  /**
+   * Returns the expression of the string that is the output of the given snprintf call, if the
+   * format preserves its input. This is the case for a string literal format without conversion
+   * specifications (the output is the format itself) and the format "%s" with exactly one argument
+   * (the output is the argument). Returns empty for all other formats.
+   */
+  private Optional<CExpression> getInputPreservedBySnprintfFormat(
+      CFunctionCallExpression pFunctionCall) {
+    List<CExpression> parameters = pFunctionCall.getParameterExpressions();
+    CExpression formatExpr = parameters.get(SNPRINTF_FORMAT_PARAMETER);
+    while (formatExpr instanceof CCastExpression castExpr) {
+      formatExpr = castExpr.getOperand();
+    }
+    if (!(formatExpr instanceof CStringLiteralExpression formatLiteral)) {
+      return Optional.empty();
+    }
+    String format = formatLiteral.getContentWithoutNullTerminator();
+    if (!format.contains("%")) {
+      return Optional.of(formatExpr);
+    } else if (format.equals("%s") && parameters.size() == SNPRINTF_FORMAT_PARAMETER + 2) {
+      return Optional.of(parameters.get(SNPRINTF_FORMAT_PARAMETER + 1));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Writes the known output of snprintf, i.e. the given string in memory, to the target given by
+   * the expression: at most n - 1 characters and a terminating \0, nothing if n is zero. Writing
+   * beyond the target results in an error state.
+   *
+   * @return the length of the complete output and the state after writing, or an unknown value and
+   *     maybe an error state if writing failed.
+   */
+  private ValueAndSMGState writeSnprintfOutput(
+      SMGState pState,
+      CExpression pTargetExpr,
+      BigInteger pMaxNumOfWrittenBytes,
+      SMGObject pOutputObj,
+      BigInteger pOutputOffset,
+      BigInteger pOutputLength,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    ValueAndSMGState result = ValueAndSMGState.of(new NumericValue(pOutputLength), pState);
+    if (pMaxNumOfWrittenBytes.signum() == 0) {
+      // Nothing is written, the target may even be a null pointer
+      return result;
+    }
+
+    SMGStateAndOptionalSMGObjectAndOffset targetObjAndState =
+        dereferenceCharPointer(pTargetExpr, pState, pCfaEdge, true);
+    if (!targetObjAndState.hasSMGObjectAndOffset()) {
+      return ValueAndSMGState.ofUnknownValue(
+          targetObjAndState.getSMGState(),
+          "Returned unknown for unknown or invalid target argument in function snprintf in ",
+          pCfaEdge);
+    }
+    SMGObject targetObj = targetObjAndState.getSMGObject();
+    BigInteger targetOffset =
+        ((NumericValue) targetObjAndState.getOffsetForObject()).bigIntegerValue();
+    SMGState currentState = targetObjAndState.getSMGState();
+
+    BigInteger numOfCopiedChars = pOutputLength.min(pMaxNumOfWrittenBytes.subtract(BigInteger.ONE));
+    if (numOfCopiedChars.signum() > 0) {
+      ValueAndSMGState copyResult =
+          evaluateMemcpy(
+              currentState,
+              targetObj,
+              targetOffset,
+              pOutputObj,
+              pOutputOffset,
+              new NumericValue(numOfCopiedChars));
+      if (copyResult.getValue().isUnknown()) {
+        // Invalid copy, the state might be an error state
+        return copyResult;
+      }
+      currentState = copyResult.getState();
+    }
+
+    BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+    currentState =
+        currentState.writeValueWithChecks(
+            targetObj,
+            new NumericValue(targetOffset.add(numOfCopiedChars.multiply(sizeOfCharInBits))),
+            new NumericValue(sizeOfCharInBits),
+            new NumericValue(0),
+            CNumericTypes.CHAR,
+            pCfaEdge);
+    return ValueAndSMGState.of(new NumericValue(pOutputLength), currentState);
   }
 
   private List<ValueAndSMGState> evaluateRealloc(
