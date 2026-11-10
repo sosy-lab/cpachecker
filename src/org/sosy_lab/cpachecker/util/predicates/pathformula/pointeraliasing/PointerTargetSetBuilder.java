@@ -353,7 +353,11 @@ public interface PointerTargetSetBuilder {
                 containerOffset + properOffset,
                 field);
           }
-          if (isTargetComposite && memberDeclaration.equals(field.getFieldDeclaration())) {
+          // the field may come from a field reference, which has no attributes
+          if (isTargetComposite
+              && memberDeclaration
+                  .withoutAttributes()
+                  .equals(field.getFieldDeclaration().withoutAttributes())) {
             MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
             targets =
                 ptsMgr.addToTargets(
