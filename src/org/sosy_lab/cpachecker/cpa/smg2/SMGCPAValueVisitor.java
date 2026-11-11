@@ -302,6 +302,19 @@ public class SMGCPAValueVisitor
         arrayValue =
             AddressExpression.withZeroOffset(
                 arrayValue, SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr));
+      } else if (arrayValue instanceof NumericValue numArrayValue
+          && numArrayValue.bigIntegerValue().signum() == 0
+          && SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr) instanceof CPointerType) {
+        // Subscript access on a null pointer
+        // We need to be careful to not accidentally report a null-pointer access for switched
+        // subscript expressions (e.g. 0[pointer])
+        resultBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState.withNullPointerDereferenceWhenReading(cfaEdge.toString()),
+                "Returned unknown value due to null pointer dereference in subscript expression"
+                    + " in ",
+                cfaEdge));
+        continue;
       } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
         // Not a valid pointer/address
         resultBuilder.add(
