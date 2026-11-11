@@ -33,6 +33,8 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
  */
 final class FormulaWrappingHandler {
 
+  private static final String ESCAPE_PREFIX = "$";
+
   private final Theory encodeBitvectorAs;
   private final Theory encodeFloatAs;
   private final Theory encodeIntegerAs;
@@ -53,6 +55,25 @@ final class FormulaWrappingHandler {
     intOptions = checkNotNull(pIntOptions);
     assert encodeBitvectorAs != Theory.FLOAT : "can not encode bitvectors as floats";
     assert encodeFloatAs != Theory.BITVECTOR : "can not encode floats as bitvectors";
+  }
+
+  /**
+   * Names of program variables can be SMT-LIB keywords, e.g., for a C variable named "false"
+   * without SSA index. We prefix such names to make them valid.
+   */
+  String escapeName(String pName) {
+    return manager.isValidName(pName) ? pName : ESCAPE_PREFIX + pName;
+  }
+
+  /** Inverse of {@link #escapeName(String)}. */
+  String unescapeName(String pName) {
+    if (pName.startsWith(ESCAPE_PREFIX)) {
+      String name = pName.substring(ESCAPE_PREFIX.length());
+      if (!manager.isValidName(name)) {
+        return name;
+      }
+    }
+    return pName;
   }
 
   boolean useBitvectors() {

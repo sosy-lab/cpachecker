@@ -1153,10 +1153,11 @@ public class FormulaManagerView {
                 throw new IllegalArgumentException(
                     "already instantiated variable " + pFullSymbolName + " in formula");
               }
-              final int reInstantiateWithIndex = pSsa.getIndex(pFullSymbolName);
+              final String name = wrappingHandler.unescapeName(pFullSymbolName);
+              final int reInstantiateWithIndex = pSsa.getIndex(name);
 
               if (reInstantiateWithIndex > 0) {
-                return makeName(pFullSymbolName, reInstantiateWithIndex);
+                return makeName(name, reInstantiateWithIndex);
               } else {
                 // TODO throw exception
                 return pFullSymbolName;

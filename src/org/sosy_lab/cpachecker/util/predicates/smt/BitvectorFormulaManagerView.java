@@ -203,12 +203,12 @@ public class BitvectorFormulaManagerView extends BaseManagerView
 
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
-    return manager.makeVariable(pLength, pVar);
+    return manager.makeVariable(pLength, escapeName(pVar));
   }
 
   @Override
   public BitvectorFormula makeVariable(BitvectorType type, String pVar) {
-    return manager.makeVariable(type.getSize(), pVar);
+    return manager.makeVariable(type.getSize(), escapeName(pVar));
   }
 
   @Override

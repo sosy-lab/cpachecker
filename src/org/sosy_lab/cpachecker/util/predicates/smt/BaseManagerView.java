@@ -61,4 +61,8 @@ abstract class BaseManagerView {
   final List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
     return wrappingHandler.unwrapType(pTypes);
   }
+
+  final String escapeName(String pName) {
+    return wrappingHandler.escapeName(pName);
+  }
 }

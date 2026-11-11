@@ -307,6 +307,18 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
     testUnInstantiate(_inst3, _uinst3, ssaBuilder);
   }
 
+  @Test
+  public void testUnInstantiateKeyword() throws SolverException, InterruptedException {
+    IntegerFormula _0 = imgrv.makeNumber(0);
+    IntegerFormula _false = imgrv.makeVariable("false");
+    IntegerFormula _false1 = imgrv.makeVariable("false", 1);
+
+    SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
+    ssaBuilder.setIndex("false", CNumericTypes.INT, 1);
+
+    testUnInstantiate(imgrv.equal(_false1, _0), imgrv.equal(_false, _0), ssaBuilder);
+  }
+
   private void testUnInstantiate(
       BooleanFormula pInstantiated, BooleanFormula pUninstantiated, SSAMapBuilder pSsaBuilder)
       throws SolverException, InterruptedException {

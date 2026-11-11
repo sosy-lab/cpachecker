@@ -88,7 +88,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     final FTE unwrappedElementType = (FTE) unwrapType(pElementType);
 
     final ArrayFormula<TI, TE> result =
-        manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
+        manager.makeArray(escapeName(pName), unwrappedIndexType, unwrappedElementType);
 
     return wrap(inputArrayType, result);
   }
@@ -109,7 +109,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(
       final String pName, final ArrayFormulaType<TI, TE> type) {
     return wrap(
-        type, manager.makeArray(pName, (ArrayFormulaType<Formula, Formula>) unwrapType(type)));
+        type,
+        manager.makeArray(
+            escapeName(pName), (ArrayFormulaType<Formula, Formula>) unwrapType(type)));
   }
 
   @Override

@@ -375,7 +375,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
 
   @Override
   public FloatingPointFormula makeVariable(String pVar, FloatingPointType pType) {
-    return manager.makeVariable(pVar, pType);
+    return manager.makeVariable(escapeName(pVar), pType);
   }
 
   public FloatingPointFormula makeVariable(String pVar, int idx, FloatingPointType pType) {

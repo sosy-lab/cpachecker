@@ -130,7 +130,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
 
   @Override
   public BooleanFormula makeVariable(String pVar) {
-    return manager.makeVariable(pVar);
+    return manager.makeVariable(escapeName(pVar));
   }
 
   @Override

@@ -125,7 +125,7 @@ public class NumeralFormulaManagerView<
 
   @Override
   public ResultFormulaType makeVariable(String pVar) {
-    return manager.makeVariable(pVar);
+    return manager.makeVariable(escapeName(pVar));
   }
 
   public ResultFormulaType makeVariable(String pVar, int idx) {
