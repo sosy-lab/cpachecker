@@ -2539,7 +2539,7 @@ public class SMGCPAExpressionEvaluator {
     // Elements without explicit initializer are not written here, as the memory of a declared
     // array is zeroed before its initializer is handled (see handleInitializerForDeclaration()).
     int numberOfElements =
-        getNumberOfArrayElementsToInitialize(pState, pVarDecl, variableName, memberTypeSize);
+        getNumberOfArrayElementsToInitialize(pLValueType, variableName, memberTypeSize, pEdge);
 
     SMGState currentState = pState;
     // The index of the next element to initialize, i.e. the current position in the list.
@@ -2601,46 +2601,33 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
-   * Returns the number of elements of the array that is initialized by an initializer list.
+   * Returns the number of elements of the array of the given type that is initialized by an
+   * initializer list. The array might be the variable itself, or a member or element of it, e.g. an
+   * array in a struct or a row of a multidimensional array.
    *
-   * @throws SMGException if the number of elements can not be determined.
+   * <p>The size of declared arrays without explicit size, e.g. {@code int a[] = {1, 2};}, is
+   * already determined by the frontend using the initializer.
+   *
+   * @param pArrayType the type of the initialized array (not the type of the variable).
+   * @throws CPATransferException if the number of elements can not be determined, e.g. for flexible
+   *     array members.
    */
   private int getNumberOfArrayElementsToInitialize(
-      SMGState pState,
-      @Nullable CVariableDeclaration pVarDecl,
-      String pVariableName,
-      Value pMemberTypeSizeInBits)
-      throws SMGException {
+      CArrayType pArrayType, String pVariableName, Value pMemberTypeSizeInBits, CFAEdge pEdge)
+      throws CPATransferException {
     if (!(pMemberTypeSizeInBits instanceof NumericValue numMemberTypeSizeInBits)) {
       throw new SMGException(
           "Can't handle symbolic array element size in initializer for: " + pVariableName);
     }
-
-    BigInteger memSizeInBits;
-    if (pVarDecl != null
-        && pVarDecl.getType().getCanonicalType() instanceof CArrayType varType
-        && varType.hasKnownConstantSize()) {
-      memSizeInBits =
-          machineModel
-              .getSizeof(varType)
-              .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
-    } else if (pVariableName.contains("__STRING_LITERAL_CPACHECKER")) {
-      // resolve the array size from the allocated memory directly
-      SMGObject memory =
-          pState.getMemoryModel().getGlobalVariableToSmgObjectMap().get(pVariableName);
-      checkNotNull(memory);
-      // We can only work with concrete sizes here
-      if (memory.getSize() instanceof NumericValue numMemorySize) {
-        memSizeInBits = numMemorySize.bigIntegerValue();
-      } else {
-        throw new SMGException(
-            "Can't handle symbolic memory size in initializer for declaration: " + pVarDecl);
-      }
-    } else {
-      throw new SMGException(
-          "Can't determine the size of the array initialized by an initializer list for: "
-              + pVariableName);
+    if (!pArrayType.hasKnownConstantSize()) {
+      throw new UnsupportedCodeException(
+          "Initializer for array without size in variable " + pVariableName, pEdge);
     }
+
+    BigInteger memSizeInBits =
+        machineModel
+            .getSizeof(pArrayType)
+            .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
     return memSizeInBits.divide(numMemberTypeSizeInBits.bigIntegerValue()).intValueExact();
   }
 
@@ -2697,6 +2684,7 @@ public class SMGCPAExpressionEvaluator {
               pEdge,
               stringVarName,
               new NumericValue(BigInteger.ZERO),
+              stringArrayType,
               pFileLocation,
               pExpression);
 
@@ -2725,16 +2713,33 @@ public class SMGCPAExpressionEvaluator {
       return stateBuilder.build();
     }
 
+    // The initialized array might be smaller than the string literal, e.g. char a[3] = "abc";
+    CArrayType destinationArrayType =
+        pCurrentExpressionType.getCanonicalType() instanceof CArrayType arrayType
+            ? arrayType
+            : pExpression.getExpressionType();
     return transformStringToArrayAndInitialize(
-        pState, pVarDecl, pEdge, variableName, pOffset, pFileLocation, pExpression);
+        pState,
+        pVarDecl,
+        pEdge,
+        variableName,
+        pOffset,
+        destinationArrayType,
+        pFileLocation,
+        pExpression);
   }
 
+  /**
+   * Initializes the array of the given type with the characters of the string literal. Characters
+   * (including the terminating \0) that exceed the destination array are cut off.
+   */
   private List<SMGState> transformStringToArrayAndInitialize(
       SMGState pState,
       CVariableDeclaration pVarDecl,
       CFAEdge pEdge,
       String variableName,
       Value pOffset,
+      CArrayType pDestinationArrayType,
       FileLocation pFileLocation,
       CStringLiteralExpression pExpression)
       throws CPATransferException {
@@ -2750,7 +2755,7 @@ public class SMGCPAExpressionEvaluator {
         pEdge,
         variableName,
         pOffset,
-        arrayType,
+        pDestinationArrayType,
         new CInitializerList(pFileLocation, charArrayInitialziersBuilder.build()));
   }
 
