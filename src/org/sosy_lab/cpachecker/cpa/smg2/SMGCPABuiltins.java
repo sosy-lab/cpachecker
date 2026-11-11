@@ -2469,7 +2469,16 @@ public class SMGCPABuiltins {
                 .getCanonicalType();
 
         Value targetAddress = targetAndState.getValue();
-        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
+        if (isNullPointer(targetAddress)) {
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState.withNullPointerDereferenceWhenWriting(SMGObject.nullInstance()),
+                  "Returned unknown because of null pointer target argument in function "
+                      + pFunctionName
+                      + " in",
+                  cfaEdge));
+          continue;
+        } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // Write the target region to unknown depending on the size
           // TODO:
@@ -2625,7 +2634,16 @@ public class SMGCPABuiltins {
                 .getCanonicalType();
 
         Value sourceAddress = sourceAndState.getValue();
-        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
+        if (isNullPointer(sourceAddress)) {
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState.withNullPointerDereferenceWhenReading(SMGObject.nullInstance()),
+                  "Returned unknown because of null pointer source argument in function "
+                      + pFunctionName
+                      + " in",
+                  pCFAEdge));
+          continue;
+        } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // Write the target region to unknown depending on the size
           // TODO:
@@ -2799,6 +2817,17 @@ public class SMGCPABuiltins {
                 currentState, targetObj, targetOffset, sourceObj, sourceOffset, numSizeValue));
       }
     }
+  }
+
+  /**
+   * Returns true if the given value of a pointer argument is the null pointer, e.g. returned by a
+   * failing malloc().
+   */
+  private static boolean isNullPointer(Value pPointerValue, final SMGState state) {
+    return (pPointerValue instanceof NumericValue numPointerValue
+            && numPointerValue.bigIntegerValue().signum() == 0)
+        || (state.isPointer(pPointerValue)
+            && state.getMemoryModel().getSMGValueFromValue(pPointerValue).orElseThrow().isZero());
   }
 
   /**
