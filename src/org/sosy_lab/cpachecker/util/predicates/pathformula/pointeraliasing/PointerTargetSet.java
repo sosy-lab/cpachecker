@@ -148,7 +148,13 @@ public final class PointerTargetSet implements Serializable {
     return allocationCount;
   }
 
-  /** Get the facts about equal strings that currently hold, the newest first. */
+  /**
+   * Get the facts about equal strings that currently hold, the newest first.
+   *
+   * <p>The facts are only relevant for precision, not for soundness: they may be dropped or ignored
+   * at any time, e.g., in case of doubt. However, a fact must not be kept if a write may change one
+   * of its strings.
+   */
   PersistentList<StringEqualityFact> getStringFacts() {
     return stringFacts;
   }
