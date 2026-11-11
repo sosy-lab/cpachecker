@@ -5214,8 +5214,20 @@ public class SMGState
     SatisfiabilityAndSMGState maybeAssignmentResultAndState;
     if (identsToReplace.size() == 1) {
       // Some nested variable is to be replaced
+      // The solver checks only the constraints related to the last added constraint, so we make a
+      // constraint with the variable the last added one to get the variable into the model
+      SymbolicIdentifier identToReplace = identsToReplace.iterator().next();
+      SMGState stateToCheck = this;
+      for (Constraint constraint : getConstraints()) {
+        if (memoryModel
+            .getSymbolicIdentifiersWithTypesForValue(constraint)
+            .containsKey(identToReplace)) {
+          stateToCheck = addConstraint(constraint);
+          break;
+        }
+      }
       // Add the parameters for the memory access and check sat to get a model
-      maybeAssignmentResultAndState = evaluator.checkIsUnsatWithCurrentConstraints(this);
+      maybeAssignmentResultAndState = evaluator.checkIsUnsatWithCurrentConstraints(stateToCheck);
       SMGState currentState = maybeAssignmentResultAndState.getState();
 
       if (maybeAssignmentResultAndState.isSAT()) {
@@ -5238,7 +5250,7 @@ public class SMGState
           }
         }
         // We allow only simple assignments to pure variables for the moment
-        if (assignments.size() > 1) {
+        if (assignments.size() != 1) {
           throw new SMGException(
               "Stop analysis because of symbolic offset in subscript expression that could not be"
                   + " assigned. "

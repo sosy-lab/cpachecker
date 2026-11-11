@@ -52,6 +52,12 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
+  <tasks name="ConcreteMemoryAccessMemSafety">
+    <include>../programs/smg2_tests/symbolic-execution/memsafety_symbolic_subscript_unrelated_constraint_unsafe.yml</include>
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
   <tasks name="SimpleMemSafety">
     <includesfile>../programs/simple/simple.set</includesfile>
     <option name="--smgSymbolicExecution"/>
