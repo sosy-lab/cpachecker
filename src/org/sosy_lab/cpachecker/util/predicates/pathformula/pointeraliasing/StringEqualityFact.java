@@ -48,7 +48,7 @@ record StringEqualityFact(Formula first, Formula second, Formula size, BooleanFo
   }
 
   /** Whether this fact says that the strings at the two given addresses are equal. */
-  BooleanFormula isAbout(Formula address1, Formula address2, FormulaManagerView fmgr) {
+  BooleanFormula equates(Formula address1, Formula address2, FormulaManagerView fmgr) {
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     return bfmgr.and(
         valid,

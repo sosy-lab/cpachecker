@@ -933,7 +933,7 @@ class CExpressionVisitorWithPointerAliasing
       Formula s2Address = pointerValue(s2);
       BooleanFormula equalByFact = conv.bfmgr.makeFalse();
       for (StringEqualityFact fact : pts.getStringFacts()) {
-        equalByFact = conv.bfmgr.or(equalByFact, fact.isAbout(s1Address, s2Address, conv.fmgr));
+        equalByFact = conv.bfmgr.or(equalByFact, fact.equates(s1Address, s2Address, conv.fmgr));
       }
       constraints.addConstraint(
           conv.bfmgr.implication(equalByFact, conv.fmgr.makeEqual(result, zero)));
