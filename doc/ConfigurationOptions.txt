@@ -3796,6 +3796,12 @@ cpa.smg2.cacheSubsets = false
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
 
+# If this Option is enabled, calloc returns 0 if the product of its arguments
+# can not be represented in size_t, as required by C23 and implemented by
+# common C libraries. Otherwise, the product is used as size of the
+# allocation.
+cpa.smg2.callocSizeOverflowReturnsZero = false
+
 # If this Option is enabled, C function atexit() will return a succeeding and
 # failing registration for each registration. Otherwise only succeeding.
 cpa.smg2.canAtexitFail = false
@@ -3815,11 +3821,22 @@ cpa.smg2.crashOnUnknownInConstraint = false
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}
 
+# If this Option is enabled, failure of calloc is simulated, returning 0 on
+# failure.
+cpa.smg2.enableCallocFail = true
+
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg2.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of malloc is simulated
+# If this Option is enabled, failure of malloc is simulated, i.e. it may
+# return 0. For calloc, see option enableCallocFail) and for realloc see
+# option enableReallocFail.
 cpa.smg2.enableMallocFail = true
+
+# If this Option is enabled, failure of realloc is simulated, i.e. it may
+# return 0 and leave the old memory given unchanged. This also applies to
+# realloc with a null pointer, which otherwise behaves like malloc.
+cpa.smg2.enableReallocFail = true
 
 # If true, memory with symbolic size can be zeroed, which allows usage of
 # zeroing allocation functions like calloc().
@@ -4016,6 +4033,17 @@ cpa.smg2.preciseSMGRead = true
 
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
+
+# Sets how realloc(ptr, 0) with a valid ptr is handled, which is
+# implementation-defined (C11 7.22.3 (1), C17 7.22.3.5 (3)) and undefined
+# since C23.
+# FREE_AND_ALLOCATE_ZERO_SIZE: the memory of ptr is freed and the result is
+# that of an allocation with size 0 (see option mallocZeroReturnsZero), e.g.
+# musl and BSD libc.
+# FREE_AND_RETURN_ZERO: the memory of ptr is freed and 0 is returned, e.g.
+# glibc.
+cpa.smg2.reallocWithZeroSize = FREE_AND_ALLOCATE_ZERO_SIZE
+  enum:     [FREE_AND_ALLOCATE_ZERO_SIZE, FREE_AND_RETURN_ZERO]
 
 # whether to use heuristic to avoid similar, repeated refinements
 cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
