@@ -36,7 +36,6 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-
       final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
@@ -58,7 +57,6 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
   public Set<CFAEdge> getTestTargets() {
     return testTargets;
   }
-
 
   public void setTestTargets(Set<CFAEdge> pTestTargets) {
     this.testTargets = pTestTargets;

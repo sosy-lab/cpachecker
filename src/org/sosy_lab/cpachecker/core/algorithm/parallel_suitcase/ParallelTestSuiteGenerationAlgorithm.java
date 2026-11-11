@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-
 /**
  * Parallel test case generation algorithm Divides global test targets into multiple subsets and
  * processes each subset in parallel using multiple threads
@@ -66,7 +65,6 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
 
   private final Specification specification;
   private final ShutdownManager shutdownManager;
-
 
   // private final Configuration globalConfig;
 
@@ -92,10 +90,9 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
     this.cfa = cfa;
     this.specification = spec;
 
-
     if (numberOfThreads <= 0) {
       throw new InvalidConfigurationException("Number of threads must be positive");
-  }
+    }
 
     logger.log(Level.INFO, "=== ParallelTestSuiteGenerationAlgorithm CONSTRUCTOR CALLED ===");
   }
@@ -280,8 +277,6 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
           logger.log(Level.SEVERE, "THREAD_DEBUG " + threadId + " RECURSION DETECTED!");
           return;
         }
-
-
 
         // 5. Create + initialize reached set (ONLY ONCE)
         ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
