@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -541,6 +542,25 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // Delete SSA index to signal that baseName should not be used anymore.
     ssa.deleteVariable(base.name());
+  }
+
+  /**
+   * Whether the contents of a char array should be initialized from its string-literal initializer
+   * even though {@link
+   * CFormulaEncodingWithPointerAliasingOptions#handleStringLiteralInitializers()} is disabled. This
+   * is the case for relevant arrays that are not longer than the strings that builtin functions
+   * like strlen, strcmp, and strcpy handle precisely, because only then can these functions profit
+   * from the contents, and the cost is bounded.
+   */
+  private boolean isShortRelevantStringInitializer(
+      CVariableDeclaration declaration, CArrayType arrayType, CStringLiteralExpression literal) {
+    OptionalInt length = arrayType.getLengthAsInt();
+    return length.isPresent()
+        && length.orElseThrow() <= options.maxPreciseStrFunctionSize() + 1
+        && CTypes.isCharacterType(arrayType.getType())
+        // escape sequences are not decoded by CStringLiteralExpression#expandStringLiteral
+        && literal.getContentWithoutNullTerminator().indexOf('\\') < 0
+        && isRelevantVariable(declaration);
   }
 
   /**
@@ -1016,13 +1036,22 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     CType lhsType = typeHandler.getSimplifiedType(declaration);
 
     // An array with a string initializer is an object of its own, with an address different from
-    // the literal and from other arrays. Without handleStringLiteralInitializers, its contents are
-    // nondeterministic.
-    final boolean untrackedStringInitializer =
-        initializer instanceof CInitializerExpression initializerExpression
-            && initializerExpression.getExpression() instanceof CStringLiteralExpression
-            && lhsType instanceof CArrayType
-            && !options.handleStringLiteralInitializers();
+    // the literal and from other arrays. It gets the contents of the literal if
+    // handleStringLiteralInitializers is enabled or if it is short and relevant (cf.
+    // isShortRelevantStringInitializer), otherwise its contents are nondeterministic.
+    final boolean expandStringLiteral;
+    final boolean untrackedStringInitializer;
+    if (initializer instanceof CInitializerExpression initializerExpression
+        && initializerExpression.getExpression() instanceof CStringLiteralExpression literal
+        && lhsType instanceof CArrayType arrayType) {
+      expandStringLiteral =
+          options.handleStringLiteralInitializers()
+              || isShortRelevantStringInitializer(declaration, arrayType, literal);
+      untrackedStringInitializer = !expandStringLiteral;
+    } else {
+      expandStringLiteral = options.handleStringLiteralInitializers();
+      untrackedStringInitializer = false;
+    }
 
     // use normal assignment options with cast conversion, use old SSA indices if aliased as this is
     // an initialization assignment, leave everything else as-is
@@ -1048,7 +1077,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final SliceExpression lhsSlice = new SliceExpression(lhs);
 
       if (initializer != null) {
-        if (options.handleStringLiteralInitializers()) {
+        if (expandStringLiteral) {
           // TODO: see if this can be simplified, this block is just copied from the case
           // (initializer instanceof CInitializerList). Both cases might be unifyable by using
           // CInitializers.convertToAssignments

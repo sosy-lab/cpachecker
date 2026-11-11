@@ -34,6 +34,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -964,6 +965,24 @@ class AssignmentFormulaHandler {
       }
 
       final Formula address = lvalue.asAliased().getAddress();
+
+      // the write may change strings that facts are about
+      if (!pts.getStringFacts().isEmpty()) {
+        if (useQuantifiers) {
+          // This write is one element of a slice assignment (e.g., for memset or an array copy)
+          // that
+          // is encoded with a quantifier, so the address contains the quantified variable. The
+          // facts live outside of the quantifier and must not refer to this variable. So instead
+          // of checking which facts the write affects, we drop all of them, which is sound.
+          pts.setStringFacts(PersistentLinkedList.of());
+        } else {
+          Formula writeSize =
+              fmgr.makeNumber(fmgr.getFormulaType(address), typeHandler.getExactSizeof(lvalueType));
+          pts.setStringFacts(
+              StringEqualityFact.afterWrite(
+                  pts.getStringFacts(), address, writeSize, bfmgr.makeTrue(), fmgr));
+        }
+      }
 
       if (rhs != null) {
         // use the special quantifier version of pointer assignment if requested
