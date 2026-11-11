@@ -2218,8 +2218,7 @@ public class SMGCPAExpressionEvaluator {
   /**
    * Returns the string literal that initializes the given array of character type, if there is one.
    * The string literal might be enclosed in braces, e.g. {@code char a[] = { "abc" };} (C11 6.7.9
-   * (14)).
-   * TODO: we currently disallow multi-dimensional arrays in these cases and abort instead
+   * (14)). TODO: we currently disallow multi-dimensional arrays in these cases and abort instead
    */
   private static Optional<CStringLiteralExpression> getStringLiteralInitializerOfCharArray(
       CArrayType pArrayType, CInitializer pInitializer) {
