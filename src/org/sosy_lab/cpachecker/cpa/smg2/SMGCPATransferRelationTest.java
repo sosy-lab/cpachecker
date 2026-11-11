@@ -448,7 +448,6 @@ public class SMGCPATransferRelationTest {
    * i.e. struct TestStruct { struct otherStruct, int array[], ... };
    * struct TestStruct structName = {{1, 2, ...}, {-1, -2, ...}, ...};
    */
-  @Ignore
   @Test
   public void localVariableDeclarationWithAssignmentStructComplexTypesTest()
       throws CPATransferException {
