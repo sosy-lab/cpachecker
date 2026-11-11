@@ -18,5 +18,5 @@ properties:
 
 options:
   language: C
+  language_version: gnu99
   data_model: LP64
-  c_standard: GNU99
