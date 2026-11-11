@@ -2637,7 +2637,8 @@ public class SMGCPABuiltins {
         if (isNullPointer(sourceAddress, currentState)) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
-                  currentState.withNullPointerDereferenceWhenReading(SMGObject.nullInstance()),
+                  currentState.withNullPointerDereferenceWhenReading(
+                      "null pointer source argument in function " + pFunctionName),
                   "Returned unknown because of null pointer source argument in function "
                       + pFunctionName
                       + " in",
@@ -3581,7 +3582,7 @@ public class SMGCPABuiltins {
   private ValueAndSMGState evaluateStrlen(
       CExpression pStringExpr, SMGState pState, CFAEdge pCfaEdge) throws CPATransferException {
     SMGStateAndOptionalSMGObjectAndOffset stringObjAndState =
-        dereferenceCharPointer(pStringExpr, pState, pCfaEdge, false);
+        dereferenceCharPointer(pStringExpr, pState, pCfaEdge);
     if (!stringObjAndState.hasSMGObjectAndOffset()) {
       return ValueAndSMGState.ofUnknownValue(
           stringObjAndState.getSMGState(),
@@ -3599,18 +3600,15 @@ public class SMGCPABuiltins {
    * Dereferences the given char * expression with the address visitor, i.e. returns the memory and
    * offset of the first character it points to.
    *
-   * @param pCharPointerExpr expression with type char * (or char array).
+   * @param charPointerExpr expression with type char * (or char array).
    * @param pState current {@link SMGState}.
    * @param pCfaEdge current CFAEdge for debugging and error info.
-   * @param pIsWrite true if the memory is written, false if it is read. Used for error info.
    * @return the memory with a concrete offset, or only a state if the memory or a concrete offset
    *     can not be determined. The state is an error state for invalid dereferences, e.g. of a null
    *     pointer.
    */
   private SMGStateAndOptionalSMGObjectAndOffset dereferenceCharPointer(
-      CExpression pCharPointerExpr, SMGState pState, CFAEdge pCfaEdge, boolean pIsWrite)
-      throws CPATransferException {
-    CExpression charPointerExpr = pCharPointerExpr;
+      CExpression charPointerExpr, SMGState pState, CFAEdge pCfaEdge) throws CPATransferException {
     while (charPointerExpr instanceof CCastExpression castExpr) {
       charPointerExpr = castExpr.getOperand();
     }
@@ -3634,9 +3632,8 @@ public class SMGCPABuiltins {
     SMGObject obj = objAndState.getSMGObject();
     if (obj.isZero()) {
       return SMGStateAndOptionalSMGObjectAndOffset.of(
-          pIsWrite
-              ? currentState.withNullPointerDereferenceWhenWriting(obj)
-              : currentState.withNullPointerDereferenceWhenReading(obj));
+          currentState.withNullPointerDereferenceWhenReading(
+              "Error: null-pointer dereference in " + pCfaEdge));
     }
     if (!(objAndState.getOffsetForObject() instanceof NumericValue)) {
       return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
@@ -3886,7 +3883,7 @@ public class SMGCPABuiltins {
     if (maybeOutputExpr.isPresent()) {
       // The output is the string given by the expression
       SMGStateAndOptionalSMGObjectAndOffset outputObjAndState =
-          dereferenceCharPointer(maybeOutputExpr.orElseThrow(), currentState, pCfaEdge, false);
+          dereferenceCharPointer(maybeOutputExpr.orElseThrow(), currentState, pCfaEdge);
       if (!outputObjAndState.hasSMGObjectAndOffset()) {
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
@@ -3933,8 +3930,7 @@ public class SMGCPABuiltins {
     // The output is not known, write UNKNOWN to the n bytes that might be written
     if (maxNumOfWrittenBytes.signum() > 0) {
       SMGStateAndOptionalSMGObjectAndOffset targetObjAndState =
-          dereferenceCharPointer(
-              parameters.get(SNPRINTF_TARGET_PARAMETER), currentState, pCfaEdge, true);
+          dereferenceCharPointer(parameters.get(SNPRINTF_TARGET_PARAMETER), currentState, pCfaEdge);
       currentState = targetObjAndState.getSMGState();
       if (targetObjAndState.hasSMGObjectAndOffset()) {
         BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
@@ -4004,7 +4000,7 @@ public class SMGCPABuiltins {
     }
 
     SMGStateAndOptionalSMGObjectAndOffset targetObjAndState =
-        dereferenceCharPointer(pTargetExpr, pState, pCfaEdge, true);
+        dereferenceCharPointer(pTargetExpr, pState, pCfaEdge);
     if (!targetObjAndState.hasSMGObjectAndOffset()) {
       return ValueAndSMGState.ofUnknownValue(
           targetObjAndState.getSMGState(),
