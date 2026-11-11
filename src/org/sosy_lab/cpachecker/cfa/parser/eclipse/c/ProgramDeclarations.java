@@ -438,6 +438,8 @@ public class ProgramDeclarations {
       // the types of the fields
       areEqual =
           areEqual
+              && members1.get(i).isPacked() == members2.get(i).isPacked()
+              && members1.get(i).getAlignment() == members2.get(i).getAlignment()
               && areEqualTypes(typeM1.getCanonicalType(), typeM2.getCanonicalType(), foundTypes);
     }
 

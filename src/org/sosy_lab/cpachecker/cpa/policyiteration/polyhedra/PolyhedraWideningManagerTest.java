@@ -98,6 +98,14 @@ public class PolyhedraWideningManagerTest {
     return new CIdExpression(
         FileLocation.DUMMY,
         new CVariableDeclaration(
-            FileLocation.DUMMY, false, CStorageClass.AUTO, type, varName, varName, varName, null));
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            type,
+            varName,
+            varName,
+            varName,
+            null,
+            /* pHasThreadLocalStorage= */ false));
   }
 }

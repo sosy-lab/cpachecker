@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
-import static com.google.common.base.Preconditions.checkState;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableSet;
@@ -20,7 +19,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -29,7 +27,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
@@ -37,12 +34,11 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitn
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 
 public class TerminationToReachStatistics extends ARGStatistics implements Statistics {
-  private ImmutableSet<Loop> nonterminatingLoops = null;
   private final TerminationYAMLWitnessExporter terminationWitnessExporter;
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private NonterminationCounterexampleToWitness nonterminationWitnessExporter;
-  private Scope scope;
+  private CProgramScope scope;
 
   public TerminationToReachStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCFA, ConfigurableProgramAnalysis pCPA)
@@ -106,12 +102,6 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
   @Override
   public String getName() {
     return null;
-  }
-
-  void setNonterminatingLoop(ImmutableSet<Loop> pLoop) {
-    checkState(nonterminatingLoops == null);
-    checkState(pLoop != null);
-    nonterminatingLoops = pLoop;
   }
 
   public void setFormulaManager(FormulaManagerView pFmgr) {

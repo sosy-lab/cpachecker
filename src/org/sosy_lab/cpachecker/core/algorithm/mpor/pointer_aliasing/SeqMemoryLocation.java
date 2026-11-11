@@ -13,10 +13,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -24,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * Represents an overapproximating memory location that can be used to create partial order
@@ -63,7 +66,6 @@ public record SeqMemoryLocation(
   }
 
   public static SeqMemoryLocation of(SeqCallContext pCallContext, CSimpleDeclaration pDeclaration) {
-
     return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty(), Optional.empty());
   }
 
@@ -122,12 +124,35 @@ public record SeqMemoryLocation(
         && variableDeclaration.isGlobal();
   }
 
+  /**
+   * Whether this {@link SeqMemoryLocation} is heap allocated, which is true iff a) it is local, b)
+   * it is not allocated via function call such as {@code malloc(...)} and c) it is not created from
+   * a {@link CFunctionDeclaration}.
+   */
+  public boolean isStackAllocated() {
+    return !isGlobal()
+        && functionCallExpression().isEmpty()
+        && declaration instanceof CVariableDeclaration;
+  }
+
+  public boolean isPointerType() {
+    return isDeclarationPointerType() || isFieldMemberPointerType();
+  }
+
   public boolean isDeclarationPointerType() {
     return declaration != null && declaration.getType() instanceof CPointerType;
   }
 
   public boolean isFieldMemberPointerType() {
     return fieldMember.isPresent() && fieldMember.orElseThrow().getType() instanceof CPointerType;
+  }
+
+  public CIdExpression toCIdExpression() throws UnsupportedCodeException {
+    if (fieldMember.isPresent()) {
+      throw new UnsupportedCodeException(
+          String.format("Cannot create a CExpression for the SeqMemoryLocations: %s", this), null);
+    }
+    return new CIdExpression(FileLocation.DUMMY, declaration);
   }
 
   public CType getUnwrappedType() {

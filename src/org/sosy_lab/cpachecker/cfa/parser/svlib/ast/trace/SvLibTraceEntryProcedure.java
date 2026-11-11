@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 
@@ -39,7 +40,7 @@ public final class SvLibTraceEntryProcedure extends SvLibTraceComponent {
 
   @Override
   public String toASTString() {
-    return "(entry-proc " + declaration.getName() + ")";
+    return "(entry-proc " + SmtLibSymbols.quoteIfNeeded(declaration.getName()) + ")";
   }
 
   @Override

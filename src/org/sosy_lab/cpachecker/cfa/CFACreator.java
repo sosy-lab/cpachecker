@@ -534,7 +534,13 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
+
+      // As in parseFileAndCreateCFA, an SV-LIB script starts in the function that calls the
+      // procedure of its verify-call command.
+      FunctionEntryNode mainFunction =
+          language == Language.SVLIB
+              ? getSvLibMainFunction(parseResult.functions())
+              : parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
       return createCFA(parseResult, mainFunction);
@@ -929,7 +935,9 @@ public class CFACreator {
           final AExpression functionNameExp =
               aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
           if (functionNameExp instanceof AIdExpression aIdExpression) {
-            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())) {
+            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())
+                // the ThreadingCPA runs the init routine of pthread_once in a new thread
+                || ThreadingTransferRelation.THREAD_ONCE.equals(aIdExpression.getName())) {
               return true;
             }
           }

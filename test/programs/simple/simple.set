@@ -13,11 +13,13 @@ atomic/*.yml
 bitvectors/*.yml
 block_analysis/*.yml
 cast_to_union/*.yml
+interpreter/*.yml
 pointer_aliasing/*.yml
 arrays/*.yml
 *.yml
 nested_operators/*.yml
 builtin_overflow_functions/*.yml
+string_literals/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
 witness_output/*.yml
@@ -29,4 +31,5 @@ verifier-nondet-memory-sanity/*.yml
 termination-nested/*.yml
 mathFunctions/*.yml
 memset/*.yml
+scanf/*.yml
 str_functions/*.yml

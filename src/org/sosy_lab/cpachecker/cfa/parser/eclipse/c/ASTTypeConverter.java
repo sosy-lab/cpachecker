@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
@@ -85,17 +86,23 @@ class ASTTypeConverter {
   // to a given source region can be looked up in O(log n) instead of scanning the whole set.
   private final NavigableSet<FileLocation> unhandledAtomicOccurrences;
 
+  // All cases of __thread and _Thread_local that were not handled so far, analogous to
+  // unhandledAtomicOccurrences.
+  private final Set<FileLocation> unhandledThreadLocalOccurrences;
+
   ASTTypeConverter(
       Scope pScope,
       ASTConverter pConverter,
       String pFilePrefix,
       ParseContext pParseContext,
-      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences,
+      Set<FileLocation> pUnhandledThreadLocalOccurrences) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
     unhandledAtomicOccurrences = pUnhandledAtomicOccurrences;
+    unhandledThreadLocalOccurrences = pUnhandledThreadLocalOccurrences;
 
     pParseContext.registerTypeMemoizationFilePrefixIfAbsent(filePrefix);
   }
@@ -473,10 +480,24 @@ class ASTTypeConverter {
   boolean hasCPAcheckerAttributeForThreadLocal(IASTAttributeOwner ao) {
     for (IASTAttribute attr : ao.getAttributes()) {
       if (String.valueOf(attr.getName()).equals(EclipseCdtWrapper.THREAD_LOCAL_ATTRIBUTE)) {
+        // As for _Atomic, some AST nodes are handled twice, so loc might already be removed.
+        unhandledThreadLocalOccurrences.remove(converter.getLocation(attr));
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * Throw a parse error if this AST node has the attribute for {@code __thread} / {@code
+   * _Thread_local}, for places where a thread-local storage class is not allowed or not supported.
+   */
+  void checkNoCPAcheckerAttributeForThreadLocal(IASTAttributeOwner ao, IASTNode pNode) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      if (String.valueOf(attr.getName()).equals(EclipseCdtWrapper.THREAD_LOCAL_ATTRIBUTE)) {
+        throw parseContext.parseError("_Thread_local in unsupported location", pNode);
+      }
+    }
   }
 
   boolean hasUnexpectedCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {

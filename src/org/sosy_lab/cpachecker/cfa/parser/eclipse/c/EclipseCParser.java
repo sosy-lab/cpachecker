@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -212,7 +213,8 @@ class EclipseCParser implements CParser {
         machine,
         "",
         sa,
-        ImmutableSortedSet.of());
+        ImmutableSortedSet.of(),
+        new HashSet<>());
   }
 
   @Override
@@ -350,6 +352,8 @@ class EclipseCParser implements CParser {
                   asts,
                   result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
                   result.cfaNodeToAstParametersInScope().orElseThrow(),
+                  result.cfaNodeToVisibleLocalVariables().orElseThrow(),
+                  result.cfaNodeToVisibleParameters().orElseThrow(),
                   FluentIterable.from(result.globalDeclarations())
                       .transform(Pair::getFirst)
                       .filter(AVariableDeclaration.class)

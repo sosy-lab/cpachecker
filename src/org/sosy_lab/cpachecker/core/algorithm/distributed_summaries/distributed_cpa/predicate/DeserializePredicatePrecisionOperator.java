@@ -12,6 +12,9 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -53,12 +56,16 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
   private static final Splitter PREDICATE_SPLITTER = Splitter.on(" , ").omitEmptyStrings();
 
   private final Function<Integer, CFANode> nodeMapping;
-  private final AbstractionManager abstractionManager;
+  // Scoped to this solver context: incoming messages repeatedly carry the same predicates.
+  private final LoadingCache<String, AbstractionPredicate> parsedPredicates;
 
   public DeserializePredicatePrecisionOperator(
       final AbstractionManager pAbstractionManager, final Function<Integer, CFANode> pNodeMapping) {
     nodeMapping = pNodeMapping;
-    abstractionManager = pAbstractionManager;
+    parsedPredicates =
+        CacheBuilder.newBuilder()
+            .maximumSize(1024)
+            .build(CacheLoader.from(pAbstractionManager::parsePredicate));
   }
 
   private Multimap<LocationInstance, AbstractionPredicate> parseLocationInstances(
@@ -77,7 +84,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
                       Integer.parseInt(splitNodeNumberAndLocationInstance.getFirst())),
                   Integer.parseInt(splitNodeNumberAndLocationInstance.get(1)));
           for (String precision : PREDICATE_SPLITTER.split(serializedPredicates)) {
-            locationInstances.put(locationInstance, abstractionManager.parsePredicate(precision));
+            locationInstances.put(locationInstance, parsedPredicates.getUnchecked(precision));
           }
         });
     contentReader.popLevel();
@@ -95,7 +102,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
           for (String precision : PREDICATE_SPLITTER.split(serializedPrecisions)) {
             localPredicates.put(
                 Objects.requireNonNull(nodeMapping.apply(Integer.parseInt(location))),
-                abstractionManager.parsePredicate(precision));
+                parsedPredicates.getUnchecked(precision));
           }
         });
     contentReader.popLevel();
@@ -112,7 +119,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     functionPredicatesMap.forEach(
         (function, serializedPredicates) -> {
           for (String predicate : PREDICATE_SPLITTER.split(serializedPredicates)) {
-            functionPredicates.put(function, abstractionManager.parsePredicate(predicate));
+            functionPredicates.put(function, parsedPredicates.getUnchecked(predicate));
           }
         });
     contentReader.popLevel();
@@ -126,7 +133,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
         contentReader.getOrDefault(SerializePredicatePrecisionOperator.DSS_MESSAGE_GLOBAL_KEY, "");
     return transformedImmutableSetCopy(
         PREDICATE_SPLITTER.splitToList(serializedPredicates),
-        predicate -> abstractionManager.parsePredicate(predicate));
+        predicate -> parsedPredicates.getUnchecked(predicate));
   }
 
   @Override

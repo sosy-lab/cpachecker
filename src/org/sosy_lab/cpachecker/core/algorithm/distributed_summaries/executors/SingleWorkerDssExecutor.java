@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -29,8 +31,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -117,45 +119,23 @@ public class SingleWorkerDssExecutor implements DssExecutor {
       final String outputFileNamePrefix = dssMessage.getType().name();
       final String outputFileName = outputFileNamePrefix + messageCount + ".json";
       Path outputPath = outputMessages.resolve(outputFileName);
-      JSON.writeJSONString(dssMessage.asJson(), outputPath);
+      JSON.writeJSONString(
+          dssMessage.asJsonWithIdentifier(0, options.compressMessages()), outputPath);
       messageCount++;
     }
   }
 
+  private static List<DssMessage> readMessages(List<Path> pPaths) throws IOException {
+    List<DssMessage> messages = new ArrayList<>(pPaths.size());
+    for (Path path : pPaths) {
+      messages.add(DssMessage.fromJson(path));
+    }
+    return messages;
+  }
+
   private OldAndNewMessages prepareOldAndNewMessages(
       List<Path> pKnownConditions, List<Path> pNewConditions) throws IOException {
-    List<DssMessage> toBeConsideredOld = new ArrayList<>();
-    List<DssMessage> toBeConsideredNew = new ArrayList<>();
-    // known conditions always stay 'old' and never become 'true'
-    for (Path knownMessageFile : pKnownConditions) {
-      DssMessage message = DssMessage.fromJson(knownMessageFile);
-      toBeConsideredOld.add(message);
-    }
-
-    // new conditions can be considered 'new' (the default), but under certain conditions
-    // we can avoid unnecessary analysis when we know that considering them 'old' is semantically
-    // equivalent.
-    // effect of a new postcondition: starts for each verification condition a new analysis run that
-    // considers all known + the new postcondition
-    // Multiple new postconditions have the same effect as only taking one of them as 'new' and the
-    // others as 'old'.
-    boolean isFirstPostcondition = true;
-    for (Path newMessageFile : pNewConditions) {
-      DssMessage message = DssMessage.fromJson(newMessageFile);
-      if (message.getType() == DssMessageType.POST_CONDITION) {
-        if (isFirstPostcondition) {
-          // Do postconditions first, so that information is known before error conditions are
-          // checked
-          toBeConsideredNew.addFirst(message);
-          isFirstPostcondition = false;
-        } else {
-          toBeConsideredOld.add(message);
-        }
-      } else {
-        toBeConsideredNew.add(message);
-      }
-    }
-    return new OldAndNewMessages(toBeConsideredOld, toBeConsideredNew);
+    return new OldAndNewMessages(readMessages(pKnownConditions), readMessages(pNewConditions));
   }
 
   @Override
@@ -189,20 +169,29 @@ public class SingleWorkerDssExecutor implements DssExecutor {
             .build()) {
 
       DssAnalysisWorker actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
-      // use list instead of set. Each message has a unique timestamp,
-      // so there will be no duplicates that a set can remove.
-      // But the equality checks are unnecessarily expensive
       List<DssMessage> response = new ArrayList<>();
       if (knownConditions.isEmpty() && newConditions.isEmpty()) {
         response.addAll(actor.runInitialAnalysis());
       } else {
         OldAndNewMessages preparedBatches =
             prepareOldAndNewMessages(knownConditions, newConditions);
-        for (DssMessage message : preparedBatches.oldMessages()) {
+
+        ImmutableList<DssMessage> oldMessages =
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(DssMessage::getTimestamp), preparedBatches.oldMessages());
+        for (DssMessage message : oldMessages) {
           actor.storeMessage(message);
         }
-        for (DssMessage message : preparedBatches.newMessages()) {
-          response.addAll(actor.processMessage(message));
+
+        ImmutableList<DssMessage> newMessages =
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(DssMessage::getTimestamp), preparedBatches.newMessages());
+        DssMessageBroadcaster broadcaster = actor.getConnection().getBroadcaster();
+        for (DssMessage message : newMessages) {
+          broadcaster.broadcastToIds(message, ImmutableSet.of(actor.getBlockId()));
+        }
+        while (actor.getConnection().hasPendingMessages()) {
+          response.addAll(actor.processMessage(actor.nextMessage()));
         }
       }
       writeAllMessages(response);

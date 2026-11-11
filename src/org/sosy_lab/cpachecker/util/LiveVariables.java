@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -312,6 +313,26 @@ public class LiveVariables {
         .append(globalVariables)
         .transform(FROM_EQUIV_WRAPPER)
         .toSet();
+  }
+
+  /** Returns this liveness information with its node keys replaced by corresponding CFA clones. */
+  public LiveVariables copyWithNodeMapping(Map<CFANode, CFANode> pNodeMapping) {
+    if (this instanceof AllVariablesAsLiveVariables) {
+      return this;
+    }
+
+    ImmutableSetMultimap.Builder<CFANode, Wrapper<ASimpleDeclaration>> clonedLiveVariables =
+        ImmutableSetMultimap.builder();
+    for (Map.Entry<CFANode, Wrapper<ASimpleDeclaration>> entry : liveVariables.entries()) {
+      clonedLiveVariables.put(
+          pNodeMapping.getOrDefault(entry.getKey(), entry.getKey()), entry.getValue());
+    }
+    return new LiveVariables(
+        clonedLiveVariables.build(),
+        variableClassification,
+        globalVariables,
+        evaluationStrategy,
+        language);
   }
 
   /** Return set of all variables which are alive at at least one node. */

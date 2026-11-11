@@ -158,13 +158,28 @@ public record SeqThreadStatement(
                 data.getPcLeftHandSide(), targetPc.orElseThrow(), instrumentation)
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
                 data.getThreadId(), targetGoto.orElseThrow(), instrumentation);
-    ImmutableList<CExportStatement> instrumentationExportStatements =
-        transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
+
+    ImmutableList<SeqInstrumentation> beforeStatementInstrumentation =
+        preparedInstrumentation.stream()
+            .filter(i -> i.type().isPlacedBeforeStatements)
+            .collect(ImmutableList.toImmutableList());
+    ImmutableList<SeqInstrumentation> afterStatementInstrumentation =
+        preparedInstrumentation.stream()
+            .filter(i -> !i.type().isPlacedBeforeStatements)
+            .collect(ImmutableList.toImmutableList());
+
+    ImmutableList<CExportStatement> beforeExportStatements =
+        transformedImmutableListCopy(
+            beforeStatementInstrumentation, i -> checkNotNull(i).exportStatement());
+    ImmutableList<CExportStatement> afterExportStatements =
+        transformedImmutableListCopy(
+            afterStatementInstrumentation, i -> checkNotNull(i).exportStatement());
 
     // add the instrumentation after the actual export statements that carry input program semantics
     return ImmutableList.<CCompoundStatementElement>builder()
+        .addAll(beforeExportStatements)
         .addAll(exportStatements)
-        .addAll(instrumentationExportStatements)
+        .addAll(afterExportStatements)
         .build();
   }
 }

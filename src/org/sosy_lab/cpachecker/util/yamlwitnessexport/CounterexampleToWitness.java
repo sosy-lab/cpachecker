@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -53,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -66,6 +65,8 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.concurrent.ConcurrentState;
+import org.sosy_lab.cpachecker.cpa.concurrent.ThreadState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -227,52 +228,92 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunction().getOrigName()));
   }
 
-  protected static Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
+  protected Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
-    if (threadingState == null) {
+    if (threadingState != null) {
+      for (String threadId : threadingState.getThreadIds()) {
+        if (threadingState
+            .getThreadLocation(threadId)
+            .getLocationNode()
+            .equals(pEdge.getSuccessor())) {
+
+          return Optional.of(threadingState.getProgramThread(threadId));
+        }
+      }
       return Optional.empty();
     }
 
-    for (String threadId : threadingState.getThreadIds()) {
-      if (threadingState
-          .getThreadLocation(threadId)
-          .getLocationNode()
-          .equals(pEdge.getSuccessor())) {
-
-        return Optional.of(threadId);
+    // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
+    // ConcurrentState. Since it clones the CFA per thread, the location nodes are thread-specific
+    // and thus uniquely identify the thread that just moved to the successor of the edge.
+    ConcurrentState concurrentState = extractStateByType(pState, ConcurrentState.class);
+    if (concurrentState != null) {
+      for (Map.Entry<ThreadId, ThreadState> entry : concurrentState.threads().entrySet()) {
+        if (entry.getValue().getLocationNode().equals(pEdge.getSuccessor())) {
+          return getPorThreadName(concurrentState, entry.getKey());
+        }
       }
     }
 
     return Optional.empty();
   }
 
-  protected static Optional<String> getNewThreadNameIfExists(
-      ARGState pState, ARGState pPreviousState) {
+  protected Optional<String> getNewThreadNameIfExists(ARGState pState, ARGState pPreviousState) {
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
-    if (threadingState == null) {
-      return Optional.empty();
-    }
-
     ThreadingState previousThreadingState =
         extractStateByType(pPreviousState, ThreadingState.class);
-    if (previousThreadingState == null) {
+    if (threadingState != null && previousThreadingState != null) {
+      for (String threadId : threadingState.getThreadIds()) {
+        if (!previousThreadingState.getThreadIds().contains(threadId)) {
+          return Optional.of(threadId);
+        }
+      }
       return Optional.empty();
     }
 
-    for (String threadId : threadingState.getThreadIds()) {
-      if (!previousThreadingState.getThreadIds().contains(threadId)) {
-        return Optional.of(threadId);
+    // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
+    // ConcurrentState. The newly created thread is the one whose PID is present in the current
+    // state but not in the previous one.
+    ConcurrentState concurrentState = extractStateByType(pState, ConcurrentState.class);
+    ConcurrentState previousConcurrentState =
+        extractStateByType(pPreviousState, ConcurrentState.class);
+    if (concurrentState != null && previousConcurrentState != null) {
+      for (ThreadId pid : concurrentState.threads().keySet()) {
+        if (!previousConcurrentState.threads().containsKey(pid)) {
+          return getPorThreadName(concurrentState, pid);
+        }
       }
     }
 
     return Optional.empty();
+  }
+
+  /**
+   * Returns the name used to refer to a thread of the POR analysis in the witness. The main thread
+   * always has PID 0 and is named "main" to match the thread IDs used during the export. Every
+   * other thread is named by its PID: the handle it was created with is not necessarily a single
+   * variable (it may be an array element, a struct field, ...), so there is no general source-level
+   * name to recover here. This still yields one stable, unique name per thread, which is all the
+   * caller's name-to-witness-id map (see pThreadNameToId) needs.
+   */
+  private static Optional<String> getPorThreadName(ConcurrentState pState, ThreadId pPid) {
+    if (pPid.equals(ThreadId.MAIN)) {
+      return Optional.of("main");
+    }
+    if (!pState.threads().containsKey(pPid) && !pState.livePids().contains(pPid)) {
+      return Optional.empty();
+    }
+    return Optional.of("T" + pPid.id());
   }
 
   private static OptionalInt getThreadIdIfExists(
       Optional<String> pThreadName, ImmutableMap<String, Integer> pThreadNameToId) {
 
     if (pThreadName.isPresent()) {
-      return OptionalInt.of(Objects.requireNonNull(pThreadNameToId.get(pThreadName.orElseThrow())));
+      Integer id = pThreadNameToId.get(pThreadName.orElseThrow());
+      if (id != null) {
+        return OptionalInt.of(id);
+      }
     }
     return OptionalInt.empty();
   }
@@ -308,6 +349,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         return ImmutableList.of(assumption);
       }
     } else if (pEdge instanceof AssumeEdge assumeEdge) {
+      AssumeEdge astAssumeEdge = (AssumeEdge) assumeEdge.getOriginal();
       // Without the AST structure we cannot guarantee that we are exporting at the beginning of
       // an iteration or if statement
       // To export the branching waypoint, we first find the IfElement or IterationElement
@@ -316,13 +358,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       // should be traversed and exporting this information will quickly make the witness
       // difficult to read
       Optional<IfElement> optionalIfElement =
-          pAstCFARelation.getIfStructureForConditionEdge(assumeEdge);
+          pAstCFARelation.getIfStructureForConditionEdge(astAssumeEdge);
       Optional<IterationElement> optionalIterationElement =
-          pAstCFARelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
+          pAstCFARelation.getTightestIterationStructureForNode(astAssumeEdge.getPredecessor());
 
       Set<CFANode> nodesBetweenConditionAndFirstBranch;
       Set<CFANode> nodesBetweenConditionAndSecondBranch;
-      CFANode successor = assumeEdge.getSuccessor();
+      CFANode successor = astAssumeEdge.getSuccessor();
       FileLocation astElementLocation;
       if (optionalIfElement.isPresent()) {
         IfElement ifElement = optionalIfElement.orElseThrow();
@@ -356,7 +398,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           return ImmutableList.of();
         }
 
-        if (!iterationElement.getControllingExpression().orElseThrow().edges().contains(pEdge)) {
+        if (!iterationElement
+            .getControllingExpression()
+            .orElseThrow()
+            .edges()
+            .contains(astAssumeEdge)) {
           // In this case we have an assume edge inside the loop which has nothing to do with its
           // controlling expression. This case should be ignored.
           return ImmutableList.of();
@@ -390,7 +436,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           handleBranchingWaypoint(
               nodesBetweenConditionAndFirstBranch.contains(successor),
               astElementLocation,
-              assumeEdge);
+              astAssumeEdge);
 
       if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)) {
         return ImmutableList.of(
@@ -404,34 +450,39 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       // as function enter waypoints in order to match the thread being created
     } else if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)
         && pEdge instanceof CStatementEdge pStatementEdge
-        && pStatementEdge.getStatement() instanceof CFunctionCallStatement pFunctionCallStatement
+        // the call may also assign its result, e.g., `err = pthread_create(...)`
+        && pStatementEdge.getStatement() instanceof CFunctionCall pFunctionCallStatement
         && isCallTo(pFunctionCallStatement.getFunctionCallExpression(), "pthread_create")) {
 
-      FileLocation functionCallLocation = pFunctionCallStatement.getFileLocation();
-      OptionalInt columnOfCall =
-          pAstCFARelation.getColumnOfFunctionCallParenthesis(
+      Optional<FileLocation> parenthesis =
+          pAstCFARelation.getClosingParenthesisOfFunctionCall(
               pFunctionCallStatement.getFunctionCallExpression());
-      if (columnOfCall.isEmpty()) {
+      if (parenthesis.isEmpty()) {
         logger.log(
             Level.FINEST,
-            "Could not compute the column of the thread creation for the edge:",
+            "Could not compute the location of the thread creation for the edge:",
             pEdge);
         return ImmutableList.of();
       }
 
-      pThreadNameToIdBuilder.put(
-          pNewThread.orElseThrow(), pThreadNameToIdBuilder.buildOrThrow().size());
+      // Register the newly created thread so that later waypoints can refer to it by its ID. If the
+      // analysis does not expose the new thread (e.g. it does not track threads at all), we still
+      // export the waypoint, just without a thread ID.
+      if (pNewThread.isPresent()) {
+        ImmutableMap<String, Integer> threadNameToId = pThreadNameToIdBuilder.buildOrThrow();
+        String newThreadName = pNewThread.orElseThrow();
+        if (!threadNameToId.containsKey(newThreadName)) {
+          pThreadNameToIdBuilder.put(newThreadName, threadNameToId.size());
+        }
+      }
 
       WaypointRecord waypointRecord =
           new WaypointRecord(
               WaypointType.FUNCTION_ENTER,
               WaypointAction.FOLLOW,
               null,
-              new LocationRecord(
-                  functionCallLocation.getFileName().toString(),
-                  functionCallLocation.getStartingLineInOrigin(),
-                  columnOfCall.orElseThrow(),
-                  pStatementEdge.getPredecessor().getFunctionName()),
+              LocationRecord.createLocationRecordAtStart(
+                  parenthesis.orElseThrow(), pStatementEdge.getPredecessor().getFunctionName()),
               OptionalInt.empty());
 
       return ImmutableList.of(
@@ -464,9 +515,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /** Returns the call that creates a thread, e.g. to {@code pthread_create}, of {@code pEdge}. */
-  private static Optional<CFunctionCallStatement> threadCreationCall(CFAEdge pEdge) {
+  private static Optional<CFunctionCall> threadCreationCall(CFAEdge pEdge) {
     if (pEdge instanceof CStatementEdge statementEdge
-        && statementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement
+        && statementEdge.getStatement() instanceof CFunctionCall functionCallStatement
         && isCallTo(
             functionCallStatement.getFunctionCallExpression(),
             ThreadingTransferRelation.THREAD_START)) {
@@ -485,7 +536,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         .map(
             call ->
                 pAstCfaRelation
-                    .getColumnOfFunctionCallParenthesis(call.getFunctionCallExpression())
+                    .getClosingParenthesisOfFunctionCall(call.getFunctionCallExpression())
                     .isPresent())
         .orElse(false);
   }
@@ -554,7 +605,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // is well-defined, since every edge used here contains an operation whose execution causes
         // an overflow in a C program
         FileLocation fullExpressionLocation =
-            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
+            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge.getOriginal(), pAstCfaRelation)
+                .orElseThrow();
 
         return new WaypointRecord(
             WaypointType.TARGET,
@@ -938,26 +990,30 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * analysis may handle a whole basic block in one step (cf. option
    * cpa.composite.aggregateBasicBlocks). {@link ARGPath#fullPathIterator()} resolves such holes
    * into the edges they stand for. For such edges the states enclosing the whole hole are used.
+   *
+   * <p>The executing thread is recognized by its location in the state after the edge, so only the
+   * last edge of a hole matches it directly (e.g., with cpa.concurrent.aggregateBasicBlocks). A
+   * hole is a block of one thread, so the other edges of the hole get the thread of its last edge.
    */
-  protected static ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
-    // an analysis that does not track threads has no thread name for any step
-    boolean tracksThreads = extractStateByType(pPath.getFirstState(), ThreadingState.class) != null;
+  protected ImmutableList<WitnessPathStep> getPathSteps(ARGPath pPath) {
+    ImmutableList<EdgeWithStates> edges = getEdgesWithStates(pPath);
     ImmutableList.Builder<WitnessPathStep> steps = ImmutableList.builder();
 
-    for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
-      CFAEdge edge = it.getOutgoingEdge();
-      if (!tracksThreads) {
-        steps.add(new WitnessPathStep(edge, Optional.empty(), Optional.empty()));
-        continue;
+    for (int i = 0; i < edges.size(); i++) {
+      EdgeWithStates step = edges.get(i);
+      Optional<String> currentThread = getCurrentThreadNameIfExists(step.state(), step.edge());
+      if (currentThread.isEmpty()) {
+        int lastOfHole = i;
+        while (lastOfHole + 1 < edges.size() && edges.get(lastOfHole + 1).state() == step.state()) {
+          lastOfHole++;
+        }
+        currentThread = getCurrentThreadNameIfExists(step.state(), edges.get(lastOfHole).edge());
       }
-      ARGState previousState =
-          it.isPositionWithState() ? it.getAbstractState() : it.getPreviousAbstractState();
-      ARGState nextState = it.getNextAbstractState();
       steps.add(
           new WitnessPathStep(
-              edge,
-              getCurrentThreadNameIfExists(nextState, edge),
-              getNewThreadNameIfExists(nextState, previousState)));
+              step.edge(),
+              currentThread,
+              getNewThreadNameIfExists(step.state(), step.previousState())));
     }
 
     return steps.build();
