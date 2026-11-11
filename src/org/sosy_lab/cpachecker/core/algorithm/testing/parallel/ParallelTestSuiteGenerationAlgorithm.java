@@ -304,13 +304,10 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
         logger.log(Level.SEVERE, "Thread " + threadId + " unexpected error", e);
 
       } finally {
-        try {
           if (threadLogger != null) {
             threadLogger.flush();
           }
           logger.flush();
-        } catch (Exception ignore) {
-        }
 
         if (threadShutdownManager != null) {
           threadShutdownManager.requestShutdown("Thread finished");
