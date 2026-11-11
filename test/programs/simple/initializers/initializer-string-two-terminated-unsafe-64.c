@@ -20,23 +20,11 @@ int main(void) {
 
   int all_expected_checks_fail = 0;
 
-  // Subcase: string-two-terminated-original.
-  {
-    char a[2] = "x";
+  char a[2] = "x";
 
-    all_expected_checks_fail = all_expected_checks_fail || (sizeof a != 2U);
-    all_expected_checks_fail = all_expected_checks_fail || (a[0] != 'x');
-    all_expected_checks_fail = all_expected_checks_fail || (a[1] != '\0');
-  }
-
-  // Subcase: string-initializer-len1-size2.
-  {
-    char value[2] = "a";
-
-    all_expected_checks_fail = all_expected_checks_fail || (sizeof value != 2U);
-    all_expected_checks_fail = all_expected_checks_fail || (value[0] != 'a');
-    all_expected_checks_fail = all_expected_checks_fail || (value[1] != '\0');
-  }
+  all_expected_checks_fail = all_expected_checks_fail || (sizeof a != 2U);
+  all_expected_checks_fail = all_expected_checks_fail || (a[0] != 'x');
+  all_expected_checks_fail = all_expected_checks_fail || (a[1] != '\0');
 
   // Only if every deliberately negated check fails does this one assertion reach ERROR.
   __VERIFIER_assert(all_expected_checks_fail);

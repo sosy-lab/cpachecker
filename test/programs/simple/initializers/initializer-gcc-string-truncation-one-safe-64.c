@@ -19,21 +19,10 @@ void __VERIFIER_assert(int condition) {
 // All asserted observations match the expected behavior, so ERROR is unreachable.
 int main(void) {
 
-  // Subcase: gcc-string-truncation-one-original.
-  {
-    char a[1] = "xy";
+  char a[1] = "xy";
 
-    __VERIFIER_assert(sizeof a == 1U);
-    __VERIFIER_assert(a[0] == 'x');
-  }
-
-  // Subcase: string-initializer-len2-size1.
-  {
-    char value[1] = "ab";
-
-    __VERIFIER_assert(sizeof value == 1U);
-    __VERIFIER_assert(value[0] == 'a');
-  }
+  __VERIFIER_assert(sizeof a == 1U);
+  __VERIFIER_assert(a[0] == 'x');
 
   return 0;
 }
