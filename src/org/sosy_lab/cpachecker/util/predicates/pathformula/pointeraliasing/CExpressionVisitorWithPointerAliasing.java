@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -945,24 +946,6 @@ class CExpressionVisitorWithPointerAliasing
     return Value.ofValue(result);
   }
 
-  /** Functions without body that do not write through their pointer arguments. */
-  private static final ImmutableSet<String> NON_WRITING_EXTERNAL_FUNCTIONS =
-      ImmutableSet.of(
-          "__assert_fail",
-          "abort",
-          "exit",
-          "fprintf",
-          "free",
-          "kfree",
-          "printf",
-          "printk",
-          "puts",
-          "strcasecmp",
-          "strchr",
-          "strncasecmp",
-          "strrchr",
-          "strstr");
-
   /**
    * Whether a call to a function without body may write to memory through its arguments in a way
    * that the encoding ignores.
@@ -970,7 +953,7 @@ class CExpressionVisitorWithPointerAliasing
   private static boolean mayWriteThroughPointerArguments(final CFunctionCallExpression e) {
     if (e.getFunctionNameExpression() instanceof CIdExpression idExpression) {
       String name = idExpression.getName();
-      if (NON_WRITING_EXTERNAL_FUNCTIONS.contains(name)
+      if (StandardFunctions.neverWritesThroughPointerArguments(name)
           || BuiltinFloatFunctions.matchesModf(name) // write is encoded
           || name.equals("__VERIFIER_nondet_memory") // write is encoded
           || name.equals(THREAD_JOIN)) { // write is encoded
