@@ -35,6 +35,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -47,8 +48,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -74,8 +77,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private final CFA cfa;
   private final LogManager logger;
   private final CProgramScope cProgramScope;
-  // The edges added for global variables at the beginning of main
-  private final Set<CFAEdge> edgesOfGlobalVariables = new HashSet<>();
+  // The edges added for global variables and parameters at the beginning of functions
+  private final Set<CFAEdge> addedDeclarationEdges = new HashSet<>();
 
   @Option(
       secure = true,
@@ -164,6 +167,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } else {
       if (instrumentationProperty == InstrumentationProperty.MEMSAFETY) {
         initializeEdgesWithGlobalVariables();
+        initializeEdgesWithParameters();
       }
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
       ImmutableMap<String, String> variablesWithTypes =
@@ -328,7 +332,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
             Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
         location = Integer.parseInt(fileLocation);
         if (pTransition.getOrderAsString().equals("AFTER")
-            && !edgesOfGlobalVariables.contains(pEdge)) {
+            && !addedDeclarationEdges.contains(pEdge)) {
           location += 1;
         }
       }
@@ -507,22 +511,60 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    */
   private void initializeEdgesWithGlobalVariables() {
     CFANode mainNode = cfa.getMainFunction();
-    mainNode = getMainNodeAfterGlobal(mainNode);
+    mainNode = getFirstNodeOfFunctionBody(mainNode);
     FileLocation location = mainNode.getLeavingEdge(0).getFileLocation();
     for (AVariableDeclaration decl : cfa.getAstCfaRelation().getGlobalVariables().orElseThrow()) {
       CFANode dummy = CFANode.newDummyCFANode();
       CFAEdge newEdge =
           new CDeclarationEdge(decl.toASTString(), location, mainNode, dummy, (CDeclaration) decl);
       mainNode.addLeavingEdge(newEdge);
-      edgesOfGlobalVariables.add(newEdge);
+      addedDeclarationEdges.add(newEdge);
     }
   }
 
   /**
-   * If there are global variables, the real main node is a bit later than the first one. This
-   * function searches for the first node that follows 'Function start' edge.
+   * The parameters of a function are not declared by an edge of the CFA, but their address can be
+   * taken like the address of a local variable. Therefore, we add their declarations before the
+   * first statement of the function, in the same way as for global variables at the beginning of
+   * main.
    */
-  private CFANode getMainNodeAfterGlobal(CFANode pCFANode) {
+  private void initializeEdgesWithParameters() {
+    for (FunctionEntryNode entryNode : cfa.getAllFunctions().values()) {
+      CFANode firstNode = getFirstNodeOfFunctionBody(entryNode);
+      if (firstNode.getNumLeavingEdges() == 0) {
+        continue;
+      }
+      FileLocation location = firstNode.getLeavingEdge(0).getFileLocation();
+      if (!location.isRealLocation()
+          || location.getStartingLineInOrigin()
+              <= entryNode.getFileLocation().getStartingLineInOrigin()) {
+        // There is no line in the body before the first statement, e.g., for 'void f(int x) {}'
+        continue;
+      }
+      for (AParameterDeclaration parameter : entryNode.getFunctionParameters()) {
+        if (parameter instanceof CParameterDeclaration cParameterDeclaration
+            && !cParameterDeclaration.getName().isEmpty()) {
+          CVariableDeclaration declaration = cParameterDeclaration.asVariableDeclaration();
+          CFAEdge newEdge =
+              new CDeclarationEdge(
+                  declaration.toASTString(),
+                  location,
+                  firstNode,
+                  CFANode.newDummyCFANode(),
+                  declaration);
+          firstNode.addLeavingEdge(newEdge);
+          addedDeclarationEdges.add(newEdge);
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns the first node of the body of the function with the given entry node, i.e., the node
+   * after the 'Function start' edge. For main, the declarations of global variables come before
+   * this edge.
+   */
+  private CFANode getFirstNodeOfFunctionBody(CFANode pCFANode) {
     CFAEdge currentEdge = pCFANode.getLeavingEdge(0);
     while (!currentEdge.getDescription().contains("Function start")) {
       currentEdge = currentEdge.getSuccessor().getLeavingEdge(0);
