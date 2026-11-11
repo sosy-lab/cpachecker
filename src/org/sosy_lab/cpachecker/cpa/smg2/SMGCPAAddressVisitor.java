@@ -305,12 +305,8 @@ public class SMGCPAAddressVisitor
                 arrayValue, pCurrentState, expr, symOffset);
           }
           // Fallthrough for no constraints or no assignment possible
-
-        } else {
-          throw new UnsupportedOperationException(
-              "Missing case in SMGCPAAddressVisitor. Report to CPAchecker issue tracker for SMG2"
-                  + " analysis. Missing symbolic handling of an array subscript expression");
         }
+        // Otherwise, the users of the target handle the symbolic offset
       }
 
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTarget =

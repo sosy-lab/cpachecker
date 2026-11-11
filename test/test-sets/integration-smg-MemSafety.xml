@@ -66,6 +66,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="OverapproximateMemoryAccessMemSafety">
     <include>../programs/smg2_tests/symbolic-execution/memsafety_struct_argument_*.yml</include>
+    <include>../programs/smg2_tests/symbolic-execution/memsafety_struct_member_array_symbolic_*.yml</include>
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>

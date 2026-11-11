@@ -460,9 +460,17 @@ public class SMGCPAValueVisitor
           || returnType instanceof CFunctionType) {
 
         if (!(additionalOffset instanceof NumericValue numAdditionalOffset)) {
-          throw new RuntimeException(
-              "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
-                  + " analysis.");
+          // A memory location has no symbolic offsets, so we use the address of the variable
+          ValueAndSMGState addressAndState =
+              evaluator.createAddressForLocalOrGlobalVariable(
+                  qualifiedVarName, returnType, newState);
+          if (addressAndState.getValue().isUnknown()) {
+            return ImmutableList.of(addressAndState);
+          }
+          return ImmutableList.of(
+              ValueAndSMGState.of(
+                  AddressExpression.of(addressAndState.getValue(), returnType, finalOffset),
+                  addressAndState.getState()));
         }
 
         return ImmutableList.of(
