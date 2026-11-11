@@ -774,7 +774,10 @@ public class SMGTransferRelation
           throw new SMGException("Usage of unknown variable in function " + callEdge);
         }
 
-        Value offsetForObject = derefedPointerOffsetAndState.getFirst().getOffsetForObject();
+        Value offsetForObject =
+            evaluator.addBitOffsetValues(
+                derefedPointerOffsetAndState.getFirst().getOffsetForObject(),
+                addrParamValue.getOffset());
         if (!(offsetForObject instanceof NumericValue numOffsetForObject)) {
           throw new SMGException(
               "Usage of symbolic offsets in function arguments for structs not supported at the"
@@ -815,11 +818,7 @@ public class SMGTransferRelation
           currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
 
       return currentState.copySMGObjectContentToSMGObject(
-          memorySource,
-          offsetSource,
-          newMemory,
-          BigInteger.ZERO,
-          evaluator.subtractBitOffsetValues(newMemory.getSize(), offsetSource));
+          memorySource, offsetSource, newMemory, BigInteger.ZERO, newMemory.getSize());
     } else {
 
       return evaluator.writeValueToNewVariableBasedOnTypes(

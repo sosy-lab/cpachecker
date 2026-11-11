@@ -64,6 +64,12 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
+  <tasks name="OverapproximateMemoryAccessMemSafety">
+    <include>../programs/smg2_tests/symbolic-execution/memsafety_struct_argument_*.yml</include>
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
   <tasks name="MemSafety-Concurrency-Sequentialized">
     <option name="--option">analysis.preprocessing.MPOR=true</option>
     <includesfile>../programs/simple/simple_concurrent.set</includesfile>
