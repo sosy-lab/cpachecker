@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -55,7 +56,7 @@ public class AtExitTransformer {
   private final LogManager logger;
   private final Configuration config;
 
-  private static int variableCounter = 0;
+  private final UniqueIdGenerator variableCounter = new UniqueIdGenerator();
 
   public AtExitTransformer(MutableCFA pCFA, LogManager pLogger, Configuration pConfiguration) {
     cfa = pCFA;
@@ -145,7 +146,7 @@ public class AtExitTransformer {
 
   /** Generate a new variable name */
   private String mkTmpVariable() {
-    return "__atexit_TMP_" + variableCounter++;
+    return "__atexit_TMP_" + variableCounter.getFreshId();
   }
 
   /**
