@@ -186,7 +186,8 @@ public class AtExitTransformer {
                 var,
                 var,
                 scope.getQualifiedName() + "::" + var,
-                null);
+                null,
+                /* pHasThreadLocalStorage= */ false);
         CFAEdge e1 = new CDeclarationEdge("", loc, n0, n1, declVar);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e1);
 

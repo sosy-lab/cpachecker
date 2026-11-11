@@ -53,7 +53,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
  * nested loop does not modify keep their values. Zero further iterations are the concrete iteration
  * of the ARG path. If T is empty, the state covers no other state, and the ARG path is exact.
  */
-class NestedLoopSummarizer {
+public class NestedLoopSummarizer {
 
   private static final String SUMMARY_SUFFIX = "__summary_";
 
@@ -117,9 +117,11 @@ class NestedLoopSummarizer {
       ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, ImmutableList<CFANode> pPath) {
     LoopHeadVisit visit = pVisits.get(pVisit);
     Set<CFANode> loopNodes =
-        cfa.getLoopStructure()
-            .orElseThrow()
-            .getLoopNodesForLoopHead(visit.loopHead().location().getLocationNode());
+        from(cfa.getLoopStructure()
+                .orElseThrow()
+                .getLoopsForLoopHead(visit.loopHead().location().getLocationNode()))
+            .transformAndConcat(Loop::getLoopNodes)
+            .toSet();
     for (int i = pVisit + 1; i <= pLast; i++) {
       if (pVisits.get(i).loopHead().equals(visit.loopHead())) {
         return !loopNodes.containsAll(pPath.subList(visit.pathIndex(), pVisits.get(i).pathIndex()));
@@ -209,6 +211,18 @@ class NestedLoopSummarizer {
                   : fmgr.makeVariable(type, getExitName(variable, pSummary)));
         });
     return exits.buildOrThrow();
+  }
+
+  /**
+   * Returns T(s_entry, s_exit) for a transition invariant T whose variables of the previous and the
+   * current state contain {@code PREV_KEYWORD} and {@code CURR_KEYWORD}. The entry state is given
+   * by the SSA map, and the exit state by the exit variables of the modified variables. The other
+   * variables of T are existentially quantified.
+   */
+  public BooleanFormula instantiateTransitionInvariant(
+      BooleanFormula pTransitionInvariant, Map<String, Formula> pExits, SSAMap pEntry) {
+    return instantiateTransitionInvariant(
+        pTransitionInvariant, pExits, pEntry, SUMMARY_SUFFIX + summaryCounter++);
   }
 
   /**
@@ -319,14 +333,11 @@ class NestedLoopSummarizer {
 
   /**
    * Checks whether a loop that assigns the given program variables may modify the given formula
-   * variable. The heap and the variables of the formula encoding, e.g., for the results of memory
-   * allocations, are always considered modified.
+   * variable. The heap and the variables of the formula encoding, e.g., for the fields of structs
+   * or the results of memory allocations, are always considered modified.
    */
   private boolean isModified(String pVariable, Set<String> pModifiedProgramVariables) {
-    // The fields of structs that are not on the heap are encoded as variables "struct$field"
-    int fieldSeparator = pVariable.indexOf('$');
-    String variable = fieldSeparator < 0 ? pVariable : pVariable.substring(0, fieldSeparator);
-    return !programVariables.contains(variable) || pModifiedProgramVariables.contains(variable);
+    return !programVariables.contains(pVariable) || pModifiedProgramVariables.contains(pVariable);
   }
 
   private static ImmutableSet<String> collectProgramVariables(CFA pCfa) {

@@ -57,7 +57,9 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
@@ -71,6 +73,7 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.OcCounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -162,7 +165,7 @@ public class CEXExporter {
         cexToWitness =
             pSpecification.getProperties().contains(CommonVerificationProperty.TERMINATION)
                 ? new NonterminationCounterexampleToWitness(config, pCFA, pSpecification, pLogger)
-                : createCexToWitness(config, pCFA, pSpecification, pLogger);
+                : createCexToWitness(config, pCFA, pSpecification, pLogger, cpa);
       } else {
         cexToWitness = null;
       }
@@ -180,7 +183,11 @@ public class CEXExporter {
    * if {@code pCfa} was transformed.
    */
   private static CounterexampleToWitness createCexToWitness(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
     ProgramTransformation transformation = pCfa.getMetadata().getTransformation();
@@ -188,6 +195,9 @@ public class CEXExporter {
       CFA originalCfa = transformation.originalCfa();
       return transformation.createCounterexampleToWitness(
           pConfig, originalCfa, pSpecification, pLogger);
+    }
+    if (CPAs.retrieveCPA(pCpa, OrderingConsistencyCPA.class) != null) {
+      return new OcCounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
     }
     return new CounterexampleToWitness(pConfig, pCfa, pSpecification, pLogger);
   }
@@ -206,6 +216,27 @@ public class CEXExporter {
       logger.log(
           Level.FINEST,
           "Skipping counterexample printing because it is similar to one of already printed.");
+    }
+  }
+
+  /** Export only a YAML violation witness, without exporting a counterexample trace. */
+  public void exportYamlWitness(CounterexampleInfo pCounterexample) {
+    if (!options.hasYamlWitnessExport() || cexToWitness == null) {
+      return;
+    }
+    // the YAML witness is exported the same way for a transformed and an untransformed
+    // program, the exporter of a transformed one maps the counterexample back first
+    if (cfa.getMetadata().getInputLanguage() != Language.C) {
+      logger.log(
+          Level.WARNING,
+          "Cannot export violation witness to YAML format for languages other than C.");
+      return;
+    }
+    try {
+      cexToWitness.export(
+          pCounterexample, options.getYamlWitnessPathTemplate(), pCounterexample.getUniqueId());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
     }
   }
 
@@ -373,21 +404,25 @@ public class CEXExporter {
                   + " export.");
         } else {
           try {
-            final Witness witness =
-                witnessExporter.generateErrorWitness(
-                    rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+            // only the GraphML and DOT outputs are built from this; the YAML export below goes
+            // straight from the counterexample, so skip the work when neither file is wanted
+            if (options.getWitnessFile() != null || options.getWitnessDotFile() != null) {
+              final Witness witness =
+                  witnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-            writeErrorPathFile(
-                options.getWitnessFile(),
-                uniqueId,
-                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-                compressWitness);
+              writeErrorPathFile(
+                  options.getWitnessFile(),
+                  uniqueId,
+                  (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+                  compressWitness);
 
-            writeErrorPathFile(
-                options.getWitnessDotFile(),
-                uniqueId,
-                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
-                compressWitness);
+              writeErrorPathFile(
+                  options.getWitnessDotFile(),
+                  uniqueId,
+                  (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+                  compressWitness);
+            }
 
           } catch (InterruptedException e) {
             logger.logUserException(
@@ -395,19 +430,7 @@ public class CEXExporter {
           }
         }
 
-        // the YAML witness is exported the same way for a transformed and an untransformed
-        // program, the exporter of a transformed one maps the counterexample back first
-        if (cfa.getMetadata().getInputLanguage() != Language.C) {
-          logger.log(
-              Level.WARNING,
-              "Cannot export violation witness to YAML format for languages other than C.");
-        } else if (cexToWitness != null) {
-          try {
-            cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
-          }
-        }
+        exportYamlWitness(counterexample);
       }
     }
 

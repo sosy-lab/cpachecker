@@ -40,7 +40,7 @@
             location:
               file_name: "./concurrent-data-race.c"
               line: 43
-              column: 19
+              column: 38
               function: "main"
     - segment:
         - waypoint:
@@ -52,7 +52,7 @@
             location:
               file_name: "./concurrent-data-race.c"
               line: 43
-              column: 19
+              column: 38
               function: "main"
         - waypoint:
             # registers t2_func as thread 2 (2nd function_enter'd pthread_create)
@@ -62,7 +62,7 @@
             location:
               file_name: "./concurrent-data-race.c"
               line: 44
-              column: 19
+              column: 38
               function: "main"
     - segment:
         # multi-follow final segment: the two conflicting accesses (both targets)

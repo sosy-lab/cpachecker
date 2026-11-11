@@ -1,0 +1,32 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
+
+import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+/**
+ * An argument that settles some propositions of a specification without reasoning about what the
+ * program computes.
+ *
+ * @param name the name of the rule, used to select it and to report which rule decided a task
+ * @param argument the argument that makes the rule sound, independently of the program
+ * @param decides the propositions that this rule can settle
+ * @param check applies the rule to a program; returns {@link RuleVerdict#abstained()} if the rule
+ *     abstains, which it has to do whenever its argument does not hold for the program
+ */
+record SimpleRule(String name, String argument, ImmutableSet<Property> decides, Check check) {
+
+  /** The check of a rule, cf. {@link SimpleRule#check()}. */
+  @FunctionalInterface
+  interface Check {
+    RuleVerdict apply(ProgramFacts pFacts) throws CPAException, InterruptedException;
+  }
+}

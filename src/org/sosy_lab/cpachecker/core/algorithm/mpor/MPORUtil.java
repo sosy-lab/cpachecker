@@ -31,9 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /** Contains static methods that can be reused outside the MPOR context. */
@@ -166,7 +170,8 @@ public final class MPORUtil {
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
-        pInitializer);
+        pInitializer,
+        pVariableDeclaration.hasThreadLocalStorage());
   }
 
   // Pointers ======================================================================================
@@ -207,6 +212,28 @@ public final class MPORUtil {
             return true;
           }
         }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether the pointers that go out of scope at {@code pCfaNode} have to be reset, i.e.,
+   * whether leaving edge is a function that returns or a thread that exits.
+   *
+   * <p>Terminations of the whole program, e.g. a call to {@code abort()}, do not require resets
+   * because no statement of the input program is executed afterwards.
+   */
+  public static boolean requiresPointerResets(CFANode pCfaNode) {
+    for (CFAEdge leavingEdge : pCfaNode.getLeavingEdges()) {
+      if (leavingEdge.getSuccessor() instanceof FunctionExitNode) {
+        return true;
+      }
+      // pthread_exit is declared __noreturn__, so its successor is a CFATerminationNode, but only
+      // the thread and not the whole program exits
+      if (leavingEdge.getSuccessor() instanceof CFATerminationNode
+          && PthreadUtil.isCallToPthreadFunction(leavingEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+        return true;
       }
     }
     return false;

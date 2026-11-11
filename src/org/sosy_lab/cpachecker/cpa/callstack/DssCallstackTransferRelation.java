@@ -52,9 +52,14 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
 
   private final CallstackTransferRelationBackwards backwards;
 
-  public DssCallstackTransferRelation(CallstackOptions pOptions, LogManager pLogger) {
+  /** Whether the program is free of recursion, see {@link DssCallstackEffect}. */
+  private final boolean cancelMatchedCalls;
+
+  public DssCallstackTransferRelation(
+      CallstackOptions pOptions, LogManager pLogger, boolean pCancelMatchedCalls) {
     super(pOptions, pLogger);
     backwards = new CallstackTransferRelationBackwards(pOptions, pLogger);
+    cancelMatchedCalls = pCancelMatchedCalls;
   }
 
   @Override
@@ -71,13 +76,14 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
             state.withWrappedStateAndTraversedEdge(
                 new CallstackState(
                     null, pEdge.getSuccessor().getFunctionName(), state.getCallNode()),
-                pEdge));
+                pEdge,
+                cancelMatchedCalls));
       }
       if (!changesCallstack(pEdge)) {
         if (pEdge instanceof AStatementEdge statementEdge) {
           checkForUnsupportedFunctionCall(statementEdge);
         }
-        return ImmutableList.of(state.withTraversedEdge(pEdge));
+        return ImmutableList.of(state.withTraversedEdge(pEdge, cancelMatchedCalls));
       }
     }
 
@@ -87,7 +93,9 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
     ImmutableList.Builder<DssCallstackState> successors = ImmutableList.builder();
     for (AbstractState successor :
         super.getAbstractSuccessorsForEdge(state.getWrappedState(), pPrecision, pEdge)) {
-      successors.add(state.withWrappedStateAndTraversedEdge((CallstackState) successor, pEdge));
+      successors.add(
+          state.withWrappedStateAndTraversedEdge(
+              (CallstackState) successor, pEdge, cancelMatchedCalls));
     }
     return successors.build();
   }

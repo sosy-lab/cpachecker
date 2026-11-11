@@ -164,6 +164,17 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.FALSE, specificationFilePath);
   }
 
+  /** The thread creation spans two lines, so its closing parenthesis is on the second one. */
+  @Test(timeout = 3000)
+  public void validate_function_enter_of_call_spanning_lines() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-multiline-call.c");
+    Path witnessFilePath =
+        Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-multiline-call.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
   @Test(timeout = 3000)
   public void validate_unreac_call_concurrency_goblint_regression_1() throws Exception {
     Path inputFilePath =

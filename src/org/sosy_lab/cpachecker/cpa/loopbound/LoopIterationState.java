@@ -156,6 +156,52 @@ interface LoopIterationState {
       return new UndeterminedLoopIterationState(iters, pLoopIterationsBeforeAbstraction, true);
     }
 
+    /** Returns the pointwise minimum of the iteration counts of both states. */
+    UndeterminedLoopIterationState minimum(UndeterminedLoopIterationState pOther) {
+      PersistentSortedMap<Loop, LoopIteration> minimum = PathCopyingPersistentTreeMap.of();
+      for (Map.Entry<Loop, LoopIteration> entry : iterations.entrySet()) {
+        LoopIteration other = pOther.iterations.get(entry.getKey());
+        if (other != null) {
+          minimum =
+              minimum.putAndCopy(
+                  entry.getKey(),
+                  entry.getValue().getCount() <= other.getCount() ? entry.getValue() : other);
+        }
+      }
+      return new UndeterminedLoopIterationState(
+          minimum,
+          Math.min(maxLoopIteration, pOther.maxLoopIteration),
+          loopCounterAbstracted || pOther.loopCounterAbstracted);
+    }
+
+    /** Returns the pointwise maximum of the iteration counts of both states. */
+    UndeterminedLoopIterationState maximum(UndeterminedLoopIterationState pOther) {
+      PersistentSortedMap<Loop, LoopIteration> maximum = iterations;
+      for (Map.Entry<Loop, LoopIteration> entry : pOther.iterations.entrySet()) {
+        LoopIteration own = maximum.get(entry.getKey());
+        if (own == null || own.getCount() < entry.getValue().getCount()) {
+          maximum = maximum.putAndCopy(entry.getKey(), entry.getValue());
+        }
+      }
+      return new UndeterminedLoopIterationState(
+          maximum,
+          Math.max(maxLoopIteration, pOther.maxLoopIteration),
+          loopCounterAbstracted || pOther.loopCounterAbstracted);
+    }
+
+    /** Returns whether no iteration count of this state exceeds the one of the other state. */
+    boolean isAtMost(UndeterminedLoopIterationState pOther) {
+      if (maxLoopIteration > pOther.maxLoopIteration) {
+        return false;
+      }
+      for (Map.Entry<Loop, LoopIteration> entry : iterations.entrySet()) {
+        if (entry.getValue().getCount() > pOther.getLoopIterationCount(entry.getKey())) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     public static LoopIterationState newState() {
       return new UndeterminedLoopIterationState();
     }

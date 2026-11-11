@@ -49,6 +49,11 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
+    if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
+      // Preserve final states for terminal edges, including overflow and thread termination.
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), prev.nextHasOverflow(), prev));
+    }
+
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
     for (CFAEdge nextEdge : cfaEdge.getSuccessor().getLeavingEdges()) {

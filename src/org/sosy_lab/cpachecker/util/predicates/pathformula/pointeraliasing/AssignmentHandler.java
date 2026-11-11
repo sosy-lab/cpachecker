@@ -241,10 +241,10 @@ class AssignmentHandler {
 
     for (SliceAssignment assignment : assignments) {
       // to initialize the span size, we need to know the type after potential casting
-      // this is usually the type of LHS, but if pointer assignment or array attachment is being
-      // forced, it must be adjusted to pointer
+      // this is usually the type of LHS, but if pointer assignment is being forced, it must be
+      // adjusted to pointer
       CType targetType = typeHandler.simplifyType(assignment.lhs.getFullExpressionType());
-      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+      if (assignmentOptions.forcePointerAssignment()) {
         targetType = CTypes.adjustFunctionOrArrayType(targetType);
       }
 
@@ -297,7 +297,7 @@ class AssignmentHandler {
         MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
     for (SingleRhsPartialAssignment partialAssignment : partialAssignments) {
-      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+      if (assignmentOptions.forcePointerAssignment()) {
         // actual assignment type is pointer, which is already simple
         simpleAssignmentMultimap.put(partialAssignment.lhs(), partialAssignment.rhs());
       } else {
@@ -389,7 +389,7 @@ class AssignmentHandler {
     pts.addEssentialFields(lhsBaseVisitor.getInitializedFields());
     pts.addEssentialFields(lhsBaseVisitor.getUsedFields());
 
-    if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+    if (assignmentOptions.forcePointerAssignment()) {
       // resolved LHS now may have array type, but it must be interpreted as pointer instead
       final CType lhsPointerType = CTypes.adjustFunctionOrArrayType(resolvedLhsBase.type());
       resolvedLhsBase = new ResolvedSlice(resolvedLhsBase.expression(), lhsPointerType);
@@ -436,7 +436,7 @@ class AssignmentHandler {
       final CRightHandSide rhsDummy = rhs.getDummyResolvedExpression();
       CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
 
-      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+      if (assignmentOptions.forcePointerAssignment()) {
         // lhsType may be an array, but we have to interpret it as a pointer instead
         lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
       }
