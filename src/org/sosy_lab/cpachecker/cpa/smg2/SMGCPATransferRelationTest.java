@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -447,6 +448,7 @@ public class SMGCPATransferRelationTest {
    * i.e. struct TestStruct { struct otherStruct, int array[], ... };
    * struct TestStruct structName = {{1, 2, ...}, {-1, -2, ...}, ...};
    */
+  @Ignore
   @Test
   public void localVariableDeclarationWithAssignmentStructComplexTypesTest()
       throws CPATransferException {

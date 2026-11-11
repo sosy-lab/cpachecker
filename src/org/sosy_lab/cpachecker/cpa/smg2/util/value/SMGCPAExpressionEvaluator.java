@@ -21,6 +21,8 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -87,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
@@ -2316,6 +2319,15 @@ public class SMGCPAExpressionEvaluator {
     }
 
     if (newInitializer != null) {
+      if (cType instanceof CArrayType || isStructOrUnionType(cType)) {
+        // Members and elements of an aggregate that are not explicitly initialized are initialized
+        // to 0 (C11 6.7.9 (19) and (21)). We zero the entire memory first, so that the initializer
+        // only needs to write the explicitly initialized values.
+        // This also zeroes padding bytes. Their value is only guaranteed to be zero for static
+        // storage duration (C11 6.7.9 (10)), otherwise padding bytes take unspecified values
+        // (C11 6.2.6.1 (6)), i.e. zero is a valid choice.
+        currentState = currentState.writeToStackOrGlobalVariableToZero(pVarName, cType, pEdge);
+      }
       return handleInitializer(
           currentState,
           pVarDecl,
@@ -2508,8 +2520,9 @@ public class SMGCPAExpressionEvaluator {
     return ImmutableList.of(currentState);
   }
 
-  /*
-   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case arrays.
+  /**
+   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case
+   * arrays (but we might interpret them as pointers!).
    */
   private List<SMGState> handleInitializerList(
       SMGState pState,
@@ -2524,40 +2537,129 @@ public class SMGCPAExpressionEvaluator {
     CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(pLValueType.getType());
     Value memberTypeSize = getBitSizeof(pState, memberType, pEdge);
 
-    List<CInitializer> initList = pNewInitializer.getInitializers();
-    // The initilizerlist might exceed the memory allocated. In this case we cut off the rest of the
-    // initializer
-    // Also, the initializer might be smaller, in that case we pad 0
-    if (pVarDecl != null && pVarDecl.getType().getCanonicalType().hasKnownConstantSize()) {
-      BigInteger typeSize = machineModel.getSizeof(pVarDecl.getType().getCanonicalType());
-      int initializerSize = pNewInitializer.getInitializers().size();
-      if (typeSize.intValueExact() < initializerSize) {
-        initList = initList.subList(0, typeSize.intValueExact());
-      }
-      // TODO: handle smaller initializer lists
-    }
+    // The initializer-list might exceed the memory allocated.
+    // In this case we cut off the rest of the initializer.
+    // Elements without explicit initializer are not written here, as the memory of a declared
+    // array is zeroed before its initializer is handled (see handleInitializerForDeclaration()).
+    int numberOfElements =
+        getNumberOfArrayElementsToInitialize(pState, pVarDecl, variableName, memberTypeSize);
 
     SMGState currentState = pState;
-    Value offset = pOffset;
-    for (CInitializer initializer : initList) {
-      // TODO: this has to be checked with a test!!!!
-      if (initializer instanceof CDesignatedInitializer) {
-        initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+    // The index of the next element to initialize, i.e. the current position in the list.
+    // Designators change it, and following initializers continue from the designated position.
+    int index = 0;
+    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+      int lastIndex = index;
+      if (initializer instanceof CDesignatedInitializer designatedInitializer) {
+        List<CDesignator> designators = designatedInitializer.getDesignators();
+        if (designators.size() != 1) {
+          throw new UnsupportedCodeException(
+              "Nested designators in array initializer " + pNewInitializer.toASTString(),
+              pEdge,
+              designatedInitializer);
+        }
+        switch (designators.getFirst()) {
+          case CArrayDesignator arrayDesignator -> {
+            index =
+                evaluateArrayDesignatorIndex(
+                    currentState, arrayDesignator.getSubscriptExpression(), pEdge);
+            lastIndex = index;
+          }
+          case CArrayRangeDesignator rangeDesignator -> {
+            index =
+                evaluateArrayDesignatorIndex(
+                    currentState, rangeDesignator.getFloorExpression(), pEdge);
+            lastIndex =
+                evaluateArrayDesignatorIndex(
+                    currentState, rangeDesignator.getCeilExpression(), pEdge);
+          }
+          default ->
+              throw new UnrecognizedCodeException(
+                  "Non array designator in initializer for array", pEdge, designatedInitializer);
+        }
+        initializer = designatedInitializer.getRightHandSide();
       }
 
-      List<SMGState> newStates =
-          handleInitializer(
-              currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
+      for (int i = index; i <= lastIndex; i++) {
+        if (i >= numberOfElements) {
+          // Excess initializers are cut off
+          break;
+        }
+        Value offsetInBits =
+            addBitOffsetValues(
+                pOffset, multiplyBitOffsetValues(memberTypeSize, BigInteger.valueOf(i)));
+        List<SMGState> newStates =
+            handleInitializer(
+                currentState, pVarDecl, pEdge, variableName, offsetInBits, memberType, initializer);
 
-      offset = addBitOffsetValues(offset, memberTypeSize);
-
-      // If this ever fails we have to split the rest of the initializer such that all states are
-      // treated the same from this point onwards
-      checkArgument(newStates.size() == 1);
-      currentState = newStates.getFirst();
+        // If this ever fails we have to split the rest of the initializer such that all states are
+        // treated the same from this point onwards
+        checkArgument(newStates.size() == 1);
+        currentState = newStates.getFirst();
+      }
+      index = lastIndex + 1;
     }
 
     return ImmutableList.of(currentState);
+  }
+
+  /**
+   * Returns the number of elements of the array that is initialized by an initializer list.
+   *
+   * @throws SMGException if the number of elements can not be determined.
+   */
+  private int getNumberOfArrayElementsToInitialize(
+      SMGState pState,
+      @Nullable CVariableDeclaration pVarDecl,
+      String pVariableName,
+      Value pMemberTypeSizeInBits)
+      throws SMGException {
+    if (!(pMemberTypeSizeInBits instanceof NumericValue numMemberTypeSizeInBits)) {
+      throw new SMGException(
+          "Can't handle symbolic array element size in initializer for: " + pVariableName);
+    }
+
+    BigInteger memSizeInBits;
+    if (pVarDecl != null
+        && pVarDecl.getType().getCanonicalType() instanceof CArrayType varType
+        && varType.hasKnownConstantSize()) {
+      memSizeInBits =
+          machineModel
+              .getSizeof(varType)
+              .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+    } else if (pVariableName.contains("__STRING_LITERAL_CPACHECKER")) {
+      // resolve the array size from the allocated memory directly
+      SMGObject memory =
+          pState.getMemoryModel().getGlobalVariableToSmgObjectMap().get(pVariableName);
+      checkNotNull(memory);
+      // We can only work with concrete sizes here
+      if (memory.getSize() instanceof NumericValue numMemorySize) {
+        memSizeInBits = numMemorySize.bigIntegerValue();
+      } else {
+        throw new SMGException(
+            "Can't handle symbolic memory size in initializer for declaration: " + pVarDecl);
+      }
+    } else {
+      throw new SMGException(
+          "Can't determine the size of the array initialized by an initializer list for: "
+              + pVariableName);
+    }
+    return memSizeInBits.divide(numMemberTypeSizeInBits.bigIntegerValue()).intValueExact();
+  }
+
+  /** Evaluates the (constant) index expression of an array designator to a concrete index. */
+  private int evaluateArrayDesignatorIndex(
+      SMGState pState, CExpression pIndexExpression, CFAEdge pEdge) throws CPATransferException {
+    List<ValueAndSMGState> indexValuesAndStates =
+        new SMGCPAValueVisitor(this, pState, pEdge, logger)
+            .evaluate(pIndexExpression, getCanonicalType(pIndexExpression));
+    if (indexValuesAndStates.size() == 1
+        && indexValuesAndStates.getFirst().getValue() instanceof NumericValue numIndex) {
+      return numIndex.bigIntegerValue().intValueExact();
+    }
+    throw new SMGException(
+        "Could not evaluate array designator index to a concrete value: "
+            + pIndexExpression.toASTString());
   }
 
   /*
