@@ -42,7 +42,7 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
   }
 
   @Override
-  protected ConfigurationBuilder createTestConfigBuilder() {
+  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
     return super.createTestConfigBuilder().setOption("rcnf.boundVarsHandling", "drop");
   }
 
