@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslRemoveSsaIndexVisitor;
 
 public record ArrayInitialization(
     CFANode loopHead,
