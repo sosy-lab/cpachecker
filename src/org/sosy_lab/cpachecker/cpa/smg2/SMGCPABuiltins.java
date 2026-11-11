@@ -2469,7 +2469,7 @@ public class SMGCPABuiltins {
                 .getCanonicalType();
 
         Value targetAddress = targetAndState.getValue();
-        if (isNullPointer(targetAddress)) {
+        if (isNullPointer(targetAddress, currentState)) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState.withNullPointerDereferenceWhenWriting(SMGObject.nullInstance()),
@@ -2634,7 +2634,7 @@ public class SMGCPABuiltins {
                 .getCanonicalType();
 
         Value sourceAddress = sourceAndState.getValue();
-        if (isNullPointer(sourceAddress)) {
+        if (isNullPointer(sourceAddress, currentState)) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState.withNullPointerDereferenceWhenReading(SMGObject.nullInstance()),
