@@ -81,13 +81,15 @@ final class PathSequence {
         || hashCode != other.hashCode) {
       return false;
     }
-    PathSequence s = this;
-    while (s != other) {
-      if (!s.last.equals(other.last)) {
+    // Both have the same size, so they reach a shared prefix (at least EMPTY) at the same step.
+    PathSequence s1 = this;
+    PathSequence s2 = other;
+    while (s1 != s2) {
+      if (!s1.last.equals(s2.last)) {
         return false;
       }
-      s = s.prefix;
-      other = other.prefix;
+      s1 = s1.prefix;
+      s2 = s2.prefix;
     }
     return true;
   }
