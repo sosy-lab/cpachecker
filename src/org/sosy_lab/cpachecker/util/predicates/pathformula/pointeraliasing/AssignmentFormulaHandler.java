@@ -969,7 +969,11 @@ class AssignmentFormulaHandler {
       // the write may change strings that facts are about
       if (!pts.getStringFacts().isEmpty()) {
         if (useQuantifiers) {
-          // the address contains a bound variable that must not escape into the facts
+          // This write is one element of a slice assignment (e.g., for memset or an array copy)
+          // that
+          // is encoded with a quantifier, so the address contains the quantified variable. The
+          // facts live outside of the quantifier and must not refer to this variable. So instead
+          // of checking which facts the write affects, we drop all of them, which is sound.
           pts.setStringFacts(PersistentLinkedList.of());
         } else {
           Formula writeSize =
