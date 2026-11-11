@@ -14,7 +14,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
+package org.sosy_lab.cpachecker.core.algorithm.testing.parallel;
 
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;

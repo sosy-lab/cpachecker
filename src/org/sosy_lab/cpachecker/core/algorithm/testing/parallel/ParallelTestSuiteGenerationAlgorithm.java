@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
+package org.sosy_lab.cpachecker.core.algorithm.testing.parallel;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
