@@ -74,6 +74,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private final CFA cfa;
   private final LogManager logger;
   private final CProgramScope cProgramScope;
+  // The edges added for global variables at the beginning of main
+  private final Set<CFAEdge> edgesOfGlobalVariables = new HashSet<>();
 
   @Option(
       secure = true,
@@ -325,7 +327,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         fileLocation =
             Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
         location = Integer.parseInt(fileLocation);
-        if (pTransition.getOrderAsString().equals("AFTER")) {
+        if (pTransition.getOrderAsString().equals("AFTER")
+            && !edgesOfGlobalVariables.contains(pEdge)) {
           location += 1;
         }
       }
@@ -495,6 +498,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    * The declarations of global variables are not considered in the CFA starting from the main
    * function entry node. For transformations like memory safety, this is important. Therefore, we
    * have to add them in the beginning.
+   *
+   * <p>The added edges have the location of the first statement of main, and the code for them is
+   * inserted before this statement also for the order AFTER (see {@link
+   * #computeLineNumberBasedOnTransition}). After the statement would be too late, because the
+   * statement can already use the global variables, or declare a local variable that shadows a
+   * global variable with the same name.
    */
   private void initializeEdgesWithGlobalVariables() {
     CFANode mainNode = cfa.getMainFunction();
@@ -505,6 +514,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       CFAEdge newEdge =
           new CDeclarationEdge(decl.toASTString(), location, mainNode, dummy, (CDeclaration) decl);
       mainNode.addLeavingEdge(newEdge);
+      edgesOfGlobalVariables.add(newEdge);
     }
   }
 
