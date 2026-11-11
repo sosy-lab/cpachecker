@@ -75,15 +75,20 @@ final class PathSequence {
   }
 
   @Override
-  public boolean equals(Object pOther) {
-    if (!(pOther instanceof PathSequence other)
-        || size != other.size
-        || hashCode != other.hashCode) {
-      return false;
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
+      return true;
     }
-    // Both have the same size, so they reach a shared prefix (at least EMPTY) at the same step.
+    return pOther instanceof PathSequence other
+        && size == other.size
+        && hashCode == other.hashCode
+        && hasSameNodes(other);
+  }
+
+  /** Requires the same size, so both reach a shared prefix (at least EMPTY) at the same step. */
+  private boolean hasSameNodes(PathSequence pOther) {
     PathSequence s1 = this;
-    PathSequence s2 = other;
+    PathSequence s2 = pOther;
     while (s1 != s2) {
       if (!s1.last.equals(s2.last)) {
         return false;
