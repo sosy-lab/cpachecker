@@ -14,7 +14,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -28,9 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
-  // Change from final to allow updates for parallel test generation
-  // Volatile ensures visibility of changes across threads
-  private volatile Set<CFAEdge> testTargets;
+  private Set<CFAEdge> testTargets;
 
   TestTargetTransferRelation(
       final TestTargetOptions pTargetOptions, final CFA pCfa, final LogManager pLogger) {
