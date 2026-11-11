@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
@@ -2161,7 +2163,7 @@ public class SMGCPAExpressionEvaluator {
     // Don't check for existing variables or else an edge that declares an existing variable is not
     // changed!
     String varName = pVarDecl.getQualifiedName();
-    CType cType = SMGCPAExpressionEvaluator.getCanonicalType(pVarDecl);
+    CType cType = getCompletedTypeOfDeclaration(pVarDecl);
 
     SMGState currentState = pState;
     // Remove previously invalidated objects and create them anew
@@ -2180,6 +2182,62 @@ public class SMGCPAExpressionEvaluator {
         pEdge);
   }
 
+  /**
+   * Returns the canonical type of the declared variable. For an array declared without length but
+   * with an initializer, the length is determined by the initializer (C11 6.7.9 (22)). The frontend
+   * does this already in most cases, but not in all, e.g. not for {@code const char a[] = "abc";}.
+   * In these cases the length is computed here.
+   */
+  private CType getCompletedTypeOfDeclaration(CVariableDeclaration pVarDecl) {
+    CType cType = SMGCPAExpressionEvaluator.getCanonicalType(pVarDecl);
+    CInitializer initializer = pVarDecl.getInitializer();
+    if (!(cType instanceof CArrayType arrayType)
+        || arrayType.getLength() != null
+        || initializer == null) {
+      return cType;
+    }
+
+    final int length;
+    Optional<CStringLiteralExpression> stringLiteral =
+        getStringLiteralInitializerOfCharArray(arrayType, initializer);
+    if (stringLiteral.isPresent()) {
+      length = stringLiteral.orElseThrow().getSize();
+    } else if (initializer instanceof CInitializerList initList) {
+      // TODO: designators might increase the length
+      length = initList.getInitializers().size();
+    } else {
+      return cType;
+    }
+    return new CArrayType(
+        arrayType.getQualifiers(),
+        arrayType.getType(),
+        new CIntegerLiteralExpression(
+            initializer.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(length)));
+  }
+
+  /**
+   * Returns the string literal that initializes the given array of character type, if there is one.
+   * The string literal might be enclosed in braces, e.g. {@code char a[] = { "abc" };} (C11 6.7.9
+   * (14)).
+   * TODO: we currently disallow multi-dimensional arrays in these cases and abort instead
+   */
+  private static Optional<CStringLiteralExpression> getStringLiteralInitializerOfCharArray(
+      CArrayType pArrayType, CInitializer pInitializer) {
+    if (!CTypes.isCharacterType(pArrayType.getType())) {
+      return Optional.empty();
+    }
+    CInitializer initializer = pInitializer;
+    if (initializer instanceof CInitializerList initList
+        && initList.getInitializers().size() == 1) {
+      initializer = initList.getInitializers().getFirst();
+    }
+    if (initializer instanceof CInitializerExpression initExpr
+        && initExpr.getExpression() instanceof CStringLiteralExpression stringLiteral) {
+      return Optional.of(stringLiteral);
+    }
+    return Optional.empty();
+  }
+
   public BigInteger getAlignOf(CType pType) {
     return BigInteger.valueOf(machineModel.getAlignof(pType));
   }
@@ -2191,7 +2249,7 @@ public class SMGCPAExpressionEvaluator {
       return ImmutableList.of(pState);
     }
 
-    CType cType = SMGCPAExpressionEvaluator.getCanonicalType(pVarDecl);
+    CType cType = getCompletedTypeOfDeclaration(pVarDecl);
     boolean isExtern = pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN);
 
     if (cType.isIncomplete() && cType instanceof CElaboratedType) {
@@ -2237,38 +2295,11 @@ public class SMGCPAExpressionEvaluator {
     if (cType instanceof CArrayType cArrayType
         && cArrayType.getLength() == null
         && pVarDecl.getInitializer() != null) {
-      // For some reason the type size is not always correct.
-      // in the case: static const char array[] = "blablabla"; for example the cType
-      // is just const char[] and returns pointer size. We try to get it from the
-      // initializer
-      CInitializer init = pVarDecl.getInitializer();
-      if (init instanceof CInitializerExpression cInitializerExpression) {
-        CExpression initExpr = cInitializerExpression.getExpression();
-        if (initExpr instanceof CStringLiteralExpression stringLit) {
-          typeSizeInBits =
-              new NumericValue(
-                  BigInteger.valueOf(8).multiply(BigInteger.valueOf(stringLit.getSize())));
-        } else {
-          throw new SMGException(
-              "Could not determine correct type size for an array for initializer expression: "
-                  + init);
-        }
-      } else if (init instanceof CInitializerList initList) {
-        CType realCType = cType.getCanonicalType();
-
-        CArrayType arrayType = (CArrayType) realCType;
-        CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(arrayType.getType());
-        Value memberTypeSize = getBitSizeof(newState, memberType, pEdge);
-        BigInteger numberOfMembers = BigInteger.valueOf(initList.getInitializers().size());
-        typeSizeInBits =
-            multiplyBitOffsetValues(
-                memberTypeSize, BigInteger.valueOf(8).multiply(numberOfMembers));
-
-      } else {
-        throw new SMGException(
-            "Could not determine correct type size for an array for initializer expression: "
-                + init);
-      }
+      // The length of the array could not be determined from the initializer, see
+      // getCompletedTypeOfDeclaration()
+      throw new SMGException(
+          "Could not determine correct type size for an array for initializer expression: "
+              + pVarDecl.getInitializer());
     }
 
     // Handle incomplete type of external variables as externally allocated
@@ -2386,6 +2417,20 @@ public class SMGCPAExpressionEvaluator {
       CType realCType = pLValueType.getCanonicalType();
 
       if (realCType instanceof CArrayType arrayType) {
+        // A string literal in braces initializes the whole array, e.g. char a[4] = { "abc" };
+        Optional<CStringLiteralExpression> stringLiteral =
+            getStringLiteralInitializerOfCharArray(arrayType, pNewInitializer);
+        if (stringLiteral.isPresent()) {
+          return handleStringInitializer(
+              pNewState,
+              pVarDecl,
+              pEdge,
+              variableName,
+              pOffset,
+              arrayType,
+              pInitializer.getFileLocation(),
+              stringLiteral.orElseThrow());
+        }
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, variableName, pOffset, arrayType, pNewInitializer);
       } else if (realCType instanceof CCompositeType structType) {
