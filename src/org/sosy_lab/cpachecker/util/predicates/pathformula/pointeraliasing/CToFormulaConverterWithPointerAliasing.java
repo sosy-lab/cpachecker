@@ -556,7 +556,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       CVariableDeclaration declaration, CArrayType arrayType, CStringLiteralExpression literal) {
     OptionalInt length = arrayType.getLengthAsInt();
     return length.isPresent()
-        && length.getAsInt() <= options.maxPreciseStrFunctionSize() + 1
+        && length.orElseThrow() <= options.maxPreciseStrFunctionSize() + 1
         && CTypes.isCharacterType(arrayType.getType())
         // escape sequences are not decoded by CStringLiteralExpression#expandStringLiteral
         && literal.getContentWithoutNullTerminator().indexOf('\\') < 0
