@@ -127,7 +127,12 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
                 machineModel,
                 cConverter.createPointerTargetSetBuilder(pts),
                 new Constraints(fmgr.getBooleanFormulaManager()));
-        precision = addAcslInvariants(precision, fullState, locations, acslToFormula);
+        PredicatePrecision newPrecision =
+            addAcslInvariants(precision, fullState, locations, acslToFormula);
+
+        if (!precision.equals(newPrecision)) {
+          precision = newPrecision;
+        }
       }
 
       for (CFANode location : locations) {

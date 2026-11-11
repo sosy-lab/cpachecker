@@ -124,7 +124,8 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
                     "Cound not determine the node(s) after the loop, storing invariant for loop"
                         + " head instead!");
               } else {
-                updatedState = acslState.withAddedInvariant(exitNodes, init);
+                // TODO clean this up if it works
+                updatedState = acslState.withAddedInvariant(init.loopHead(), init);
               }
             }
           }

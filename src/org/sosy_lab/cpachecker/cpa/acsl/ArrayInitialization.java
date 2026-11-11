@@ -45,6 +45,7 @@ public record ArrayInitialization(
     AcslTerm value)
     implements AcslInvariantProvider {
 
+  @SuppressWarnings("unused")
   @Override
   public AcslPredicate toInvariant(CProgramScope pScope, FileLocation pLoc, LogManager pLogger) {
     // I think I need the program scope to get the C objects for the array
@@ -98,7 +99,10 @@ public record ArrayInitialization(
                 paramiTerm,
                 AcslBinaryTermExpressionOperator.LESS_EQUAL),
             new AcslBinaryTermPredicate(
-                pLoc, paramiTerm, upperbound.accept(ssaRemover), upperBoundOp),
+                pLoc,
+                paramiTerm,
+                index.accept(ssaRemover),
+                AcslBinaryTermExpressionOperator.LESS_THAN),
             AcslBinaryPredicateOperator.AND);
     AcslPredicate arrayPred =
         new AcslBinaryTermPredicate(
