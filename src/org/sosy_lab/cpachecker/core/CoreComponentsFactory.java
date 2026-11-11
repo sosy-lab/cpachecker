@@ -595,7 +595,6 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
@@ -914,9 +913,7 @@ public class CoreComponentsFactory {
         algorithm =
             new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
       }
-
     }
-
 
     return algorithm;
   }
