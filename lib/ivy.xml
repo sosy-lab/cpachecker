@@ -173,19 +173,14 @@ SPDX-License-Identifier: Apache-2.0
              The user has to enable such components directly.
              We provide the following configuration for this case.
              A user can either replace the configuration of JavaSMT below with the 'complete' runtime configuration:
-             <dependency org="org.sosy_lab" name="java-smt" rev="7.0.0-rc2" conf="runtime->runtime; contrib->sources">
+             <dependency org="org.sosy_lab" name="java-smt" rev="7.0.0" conf="runtime->runtime; contrib->sources">
              or just add the additional dependency 'javasmt-yices2':
              <dependency org="org.sosy_lab" name="javasmt-yices2" rev="6.0.0-772-g388dc9b19" conf="runtime->runtime; contrib->sources"/>
         -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="7.0.0-rc2" conf="runtime->runtime-without-gpl; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="7.0.0" conf="runtime->runtime-without-gpl; contrib->sources">
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
-          <exclude org="org.sosy_lab" module="javasmt-solver-cvc5"/>
         </dependency>
-        <!-- CVC5 version 1.4.2 (the next version after 2026-04-08-ca862b4) has problems (either in JavaSMT or CVC5 directly)
-             that we want to avoid until they are fixed. See: https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1831
-        -->
-        <dependency org="org.sosy_lab" name="javasmt-solver-cvc5" rev="2026-04-08-ca862b4" conf="runtime->solver-cvc5" />
 
 
         <!-- YAML parser -->
