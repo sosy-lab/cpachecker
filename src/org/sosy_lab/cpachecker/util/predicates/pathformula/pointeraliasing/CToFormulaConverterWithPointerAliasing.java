@@ -614,6 +614,47 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
+   * Returns the assignment of the null character that terminates the string in an array with a
+   * string-literal initializer, e.g., {@code s[5] = '\0'} for {@code char s[] = "hello"}. If the
+   * contents of such an array are not tracked, this single store still bounds functions like {@code
+   * strlen} on it, which could otherwise return any value.
+   *
+   * @return the assignment, or nothing if the position of the terminator is not known or the array
+   *     has no room for it (e.g., {@code char s[5] = "hello"})
+   */
+  private static Optional<SliceAssignment> makeStringTerminatorAssignment(
+      CIdExpression array, CArrayType arrayType, CInitializer initializer) {
+    if (!CTypes.isCharacterType(arrayType.getType())
+        || !(initializer instanceof CInitializerExpression initializerExpression)
+        || !(initializerExpression.getExpression() instanceof CStringLiteralExpression literal)) {
+      return Optional.empty();
+    }
+    String content = literal.getContentWithoutNullTerminator();
+    OptionalInt length = arrayType.getLengthAsInt();
+    // escape sequences are not decoded, so with them the position of the terminator is not known
+    if (content.indexOf('\\') >= 0
+        || length.isEmpty()
+        || content.length() >= length.orElseThrow()) {
+      return Optional.empty();
+    }
+    FileLocation location = array.getFileLocation();
+    CArraySubscriptExpression terminator =
+        new CArraySubscriptExpression(
+            location,
+            arrayType.getType(),
+            array,
+            new CIntegerLiteralExpression(
+                location, CNumericTypes.INT, BigInteger.valueOf(content.length())));
+    CCharLiteralExpression nullCharacter =
+        new CCharLiteralExpression(location, CNumericTypes.SIGNED_CHAR, '\0');
+    return Optional.of(
+        new SliceAssignment(
+            new SliceExpression(terminator),
+            Optional.of(terminator),
+            Optional.of(new SliceExpression(nullCharacter))));
+  }
+
+  /**
    * Expands an assignment list.
    *
    * @param declaration The declaration of the variable.
@@ -1095,7 +1136,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                     new SliceExpression(((CInitializerExpression) initializer).getExpression()));
         SliceAssignment assignment = new SliceAssignment(lhsSlice, Optional.of(lhs), rhsSlice);
         // perform a slice assignment to lhs from rhs
-        result = assignmentHandler.assign(ImmutableList.of(assignment));
+        BooleanFormula initialization = assignmentHandler.assign(ImmutableList.of(assignment));
+        if (untrackedStringInitializer) {
+          Optional<SliceAssignment> terminator =
+              makeStringTerminatorAssignment(lhs, (CArrayType) lhsType, initializer);
+          if (terminator.isPresent()) {
+            initialization =
+                bfmgr.and(
+                    initialization,
+                    assignmentHandler.assign(ImmutableList.of(terminator.orElseThrow())));
+          }
+        }
+        result = initialization;
 
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
         // perform a slice assignment of nondet value to lhs
