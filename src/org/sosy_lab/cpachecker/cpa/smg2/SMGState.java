@@ -4001,8 +4001,9 @@ public class SMGState
               readValuePte,
               transformedImmutableListCopy(
                   readAfterMat,
-                  t ->
-                      t.getValue()
+                  t -> {
+                    try {
+                      return t.getValue()
                           + " with PTE "
                           + t.getState()
                               .getMemoryModel()
@@ -4011,7 +4012,12 @@ public class SMGState
                                   t.getState()
                                       .getMemoryModel()
                                       .getSMGValueFromValue(t.getValue())
-                                      .orElseGet(() -> SMGValue.zeroValue()))));
+                                      .orElseGet(() -> SMGValue.zeroValue()));
+                    } catch (SMGException e) {
+                      // Materialization can never trigger this exception from using getValue()
+                      throw new RuntimeException(e);
+                    }
+                  }));
         }
 
         returnBuilder.addAll(readAfterMat);

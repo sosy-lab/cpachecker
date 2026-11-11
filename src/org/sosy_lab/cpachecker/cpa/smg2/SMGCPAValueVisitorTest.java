@@ -3473,9 +3473,10 @@ public class SMGCPAValueVisitorTest {
    * @param pTarget pointer target {@link SMGObject}
    * @param offset offset in bits of the pointer.
    * @throws InvalidConfigurationException should never be thrown
+   * @throws SMGException should never be thrown
    */
   private Value addPointerToMemory(SMGObject pTarget, int offset)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, SMGException {
     CType dummyType = CPointerType.POINTER_TO_VOID;
     ValueAndSMGState addressAndState =
         currentState.searchOrCreateAddress(pTarget, dummyType, BigInteger.valueOf(offset));
