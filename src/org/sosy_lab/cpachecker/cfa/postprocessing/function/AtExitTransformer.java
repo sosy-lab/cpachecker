@@ -101,7 +101,7 @@ public class AtExitTransformer {
    *
    * <p>Meant to be used as a first step before calling {@link AtExitTransformer#addExitHandlers()}
    */
-  public void replaceReturns() {
+  private void replaceReturns() {
     for (CFAEdge edge : ImmutableList.copyOf(cfa.edges())) {
       // Match all "return" statements in the main function
       Optional<CExpression> maybeReturnValue = tryReturnEdge(edge);
@@ -157,7 +157,7 @@ public class AtExitTransformer {
    * AtExitTransformer#replaceReturns()} has already been executed and all `returns` in the main()
    * function have been convert to exit() calls.
    */
-  public void addExitHandlers() {
+  private void addExitHandlers() {
     for (CFAEdge edge : ImmutableList.copyOf(cfa.edges())) {
       // Match all calls to "exit"
       if (edge instanceof CStatementEdge stmtEdge
