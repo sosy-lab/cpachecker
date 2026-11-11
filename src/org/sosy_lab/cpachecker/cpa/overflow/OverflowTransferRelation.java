@@ -49,9 +49,16 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
+    if (cfaEdge.equals(prev.getOverflowingNextEdge())) {
+      // The lookahead checked this edge when prev was created. The edge executed after prev can be
+      // another one (of another thread, or another branch), so only the successor via exactly the
+      // checked edge is a target.
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), null, prev, true));
+    }
+
     if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
-      // Preserve final states for terminal edges, including overflow and thread termination.
-      return ImmutableList.of(new OverflowState(ImmutableSet.of(), prev.nextHasOverflow(), prev));
+      // Preserve final states for terminal edges, e.g., thread termination.
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), null, prev, false));
     }
 
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
@@ -72,11 +79,11 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       assumptions = logicalAssumptions.build();
 
       for (CExpression assumption : assumptions) {
-        outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, prev));
+        outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), nextEdge, prev, false));
       }
 
       // No overflows <=> all assumptions hold.
-      outStates.add(new OverflowState(assumptions, prev.nextHasOverflow(), prev));
+      outStates.add(new OverflowState(assumptions, null, prev, false));
     }
 
     return outStates.build();

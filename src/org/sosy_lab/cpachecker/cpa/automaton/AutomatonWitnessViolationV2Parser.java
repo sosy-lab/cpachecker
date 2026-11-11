@@ -428,6 +428,16 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
         pAstCfaRelation.getIfStructureFollowingColumnAtTheSameLine(followLine, followColumn);
     Optional<IterationElement> optionalIterationStructure =
         pAstCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(followColumn, followLine);
+    // Both may follow the column, e.g., in `while (c) { if (d) ... }`, then the waypoint refers to
+    // the one that starts first
+    if (optionalIfStructure.isPresent() && optionalIterationStructure.isPresent()) {
+      FileLocation ifLocation = optionalIfStructure.orElseThrow().getCompleteElement().location();
+      FileLocation loopLocation =
+          optionalIterationStructure.orElseThrow().getCompleteElement().location();
+      if (loopLocation.getNodeOffset() < ifLocation.getNodeOffset()) {
+        optionalIfStructure = Optional.empty();
+      }
+    }
 
     // This is the case for ternary operators, which are expressions and therefore not covered by if
     // or iteration structures which only cover statements.

@@ -20,6 +20,7 @@ arrays/*.yml
 nested_operators/*.yml
 builtin_overflow_functions/*.yml
 string_literals/*.yml
+string_functions/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
 witness_output/*.yml
@@ -31,5 +32,6 @@ verifier-nondet-memory-sanity/*.yml
 termination-nested/*.yml
 mathFunctions/*.yml
 memset/*.yml
+union_arrays/*.yml
 scanf/*.yml
 str_functions/*.yml
