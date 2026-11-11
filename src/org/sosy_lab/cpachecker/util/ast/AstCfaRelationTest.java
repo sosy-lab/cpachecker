@@ -51,4 +51,16 @@ public class AstCfaRelationTest {
     assertThat(ifElement.getCompleteElement().location().getNodeLength())
         .isEqualTo("if (x > 5) t = 1;".length());
   }
+
+  /** The else branch starts after the negated condition also if it is an empty block. */
+  @Test
+  public void nodesBeforeEmptyElseBranch() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "if-with-empty-else.c");
+    CFAEdge negatedCondition = TestCfaUtils.getEdge("[!(x > 5)]", cfa);
+
+    IfElement ifElement =
+        cfa.getAstCfaRelation().getIfStructureForConditionEdge(negatedCondition).orElseThrow();
+    assertThat(ifElement.getNodesBetweenConditionAndElseBranch())
+        .containsExactly(negatedCondition.getSuccessor());
+  }
 }
