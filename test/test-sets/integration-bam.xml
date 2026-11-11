@@ -95,6 +95,14 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--predicateAnalysis-bam-rec--overflow"/>
   </tasks>
 
+  <!-- function calls that take the address of a variable, which pointer aliasing removes from the SSAMap -->
+  <tasks name="predicate_pointer_aliasing">
+    <include>../programs/bam/address-of-variable-in-call-*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <option name="--predicateAnalysis-bam-rec"/>
+    <option name="--option">cpa.predicate.handlePointerAliasing=true</option>
+  </tasks>
+
 
   <!-- parallel BAM -->
   <tasks name="VA-parallelBam-noCegar">

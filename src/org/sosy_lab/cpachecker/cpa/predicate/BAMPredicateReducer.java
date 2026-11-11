@@ -460,11 +460,19 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
         summSsa.setIndex(var, type, newIndex);
 
-      } else if (!entrySsaWithRet.containsVariable(var)) {
+      } else if (!entrySsaWithRet.containsVariable(var)
+          && expandedSSA.getIndex(var) >= summSsa.getIndex(var)) {
         // non-existent index for variable only used in functioncall, just copy
         final int newIndex = expandedSSA.getIndex(var);
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
         summSsa.setIndex(var, type, newIndex);
+
+      } else if (!entrySsaWithRet.containsVariable(var)) {
+        // The caller already used the index for a variable that the function call removed from
+        // the SSAMap (e.g., because it takes the address of the variable).
+        final int newIndex = summSsa.getFreshIndex(var);
+        entrySsaWithRetBuilder.setIndex(var, type, newIndex);
+        setFreshValueBasis(summSsa, var, newIndex);
 
       } else {
         final int newIndex = entrySsaWithRetBuilder.getFreshIndex(var);
