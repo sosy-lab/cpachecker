@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationARGPath;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationTransferRelation;
@@ -176,6 +175,9 @@ public class TerminationLoopInformation {
     ImmutableMap.Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
 
     for (CVariableDeclaration relevantVariable : pRelevantVariables) {
+      if (relevantVariable.getType().isIncomplete()) {
+        continue; // Cannot declare or assign variable of incomplete type.
+      }
       CExpression unprimedVariable = new CIdExpression(DUMMY, relevantVariable);
       CVariableDeclaration primedVariable = TerminationUtils.createPrimedVariable(relevantVariable);
       builder.put(unprimedVariable, primedVariable);
@@ -185,8 +187,8 @@ public class TerminationLoopInformation {
       CType type = relevantVariable.getType();
       while (type instanceof CPointerType) {
         type = ((CPointerType) type).getType();
-        if (type instanceof CVoidType || type instanceof CFunctionType) {
-          break; // Cannot declare variable of type void or of function type.
+        if (type.isIncomplete() || type instanceof CFunctionType) {
+          break; // Cannot declare variable of incomplete type (e.g., void) or of function type.
         }
 
         unprimedVariable = new CPointerExpression(DUMMY, type, unprimedVariable);
