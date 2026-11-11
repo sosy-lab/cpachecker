@@ -3268,24 +3268,16 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  /**
-   * I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0.
-   *
-   * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
-   * @return A new SMGState with the error info.
-   */
-  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) {
+  /** I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0. */
+  public SMGState withNullPointerDereferenceWhenReading(String additionalInfo) {
     // getValueForSMGValue(pValue)
     // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
         "Null pointer dereference on read of object with the intent to read it: "
-            + nullObject
+            + additionalInfo
             + ".";
     SMGErrorInfo newErrorInfo =
-        SMGErrorInfo.of()
-            .withProperty(Property.INVALID_READ)
-            .withErrorMessage(errorMSG)
-            .withInvalidObjects(Collections.singleton(nullObject));
+        SMGErrorInfo.of().withProperty(Property.INVALID_READ).withErrorMessage(errorMSG);
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);

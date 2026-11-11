@@ -809,7 +809,8 @@ public class SMGCPAExpressionEvaluator {
 
       // The object may be null if no such object exists, check and log if 0
       if (object.isZero()) {
-        SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
+        SMGState errorState =
+            pState.withNullPointerDereferenceWhenReading(exprReading.toQualifiedASTString());
         returnBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 errorState, "Returned unknown value due to null-pointer dereference."));
@@ -1599,7 +1600,8 @@ public class SMGCPAExpressionEvaluator {
 
       // The object may be null if no such object exists, check and log if 0
       if (sourceObject.isZero()) {
-        returnBuilder.add(pState.withNullPointerDereferenceWhenReading(sourceObject));
+        returnBuilder.add(
+            pState.withNullPointerDereferenceWhenReading("when copying memory, the source was 0"));
         continue;
       }
 
@@ -1767,7 +1769,8 @@ public class SMGCPAExpressionEvaluator {
     // The object may be null if no such object exists, check and log if 0
     if (firstObject.isZero()) {
       return ValueAndSMGState.ofUnknownValue(
-          currentState.withNullPointerDereferenceWhenReading(firstObject),
+          currentState.withNullPointerDereferenceWhenReading(
+              "when comparing 2 strings, the first argument was zero"),
           "Returned unknown value due to unknown value in string comparing expression with invalid"
               + " dereference.");
     }
