@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern unsigned __VERIFIER_nondet_uint();
+extern unsigned __VERIFIER_nondet_int();
 extern void __VERIFIER_assume(int);
 extern void __assert_fail(const char *assertion, const char *file,
                           unsigned int line, const char *function);
 
 int main() {
-    unsigned size = __VERIFIER_nondet_uint(); // or a big number like size = 1000000;
+    int size = __VERIFIER_nondet_int(); // or a big number like size = 1000000;
     __VERIFIER_assume(size >= 11);
 
     int A[size];
