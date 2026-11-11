@@ -59,9 +59,9 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
             newTerminationState.getPathSequence(), reachedTerminationState.getPathSequence());
   }
 
-  private boolean isSubsequence(
-      ImmutableList<CFANode> newPath, ImmutableList<CFANode> reachedPath) {
-    if (newPath.size() < reachedPath.size()) {
+  private boolean isSubsequence(PathSequence newPath, PathSequence reachedPath) {
+    if (newPath.size() < reachedPath.size()
+        || !newPath.prefix(reachedPath.size()).equals(reachedPath)) {
       return false;
     }
     // Taking one more state away with reachPath.size() instead of reachedPath.size() - 1, because
@@ -72,8 +72,7 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
     // Only cover the state by the abstract state of the previous visit of its loop head, i.e., the
     // path between them is exactly one iteration of the loop. It may contain iterations of
     // nested loops, but it must not leave the loop, e.g., through the head of an outer loop.
-    return newPath.subList(0, reachedPath.size()).equals(reachedPath)
-        && !lastIterationOfTheBranch.isEmpty()
+    return !lastIterationOfTheBranch.isEmpty()
         && lastIterationOfTheBranch.indexOf(newPath.getLast())
             == lastIterationOfTheBranch.size() - 1
         && from(loopStructure.getLoopsForLoopHead(newPath.getLast()))

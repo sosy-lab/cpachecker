@@ -114,7 +114,7 @@ public class NestedLoopSummarizer {
    * iterated loop and the path reaches the iterated head first.
    */
   private boolean leavesLoopAfter(
-      ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, ImmutableList<CFANode> pPath) {
+      ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, PathSequence pPath) {
     LoopHeadVisit visit = pVisits.get(pVisit);
     Set<CFANode> loopNodes =
         from(cfa.getLoopStructure()
