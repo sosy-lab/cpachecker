@@ -1818,6 +1818,19 @@ public class SMGCPABuiltins {
       Value sizeValue = sizeAndState.getValue();
       SMGState currentState = sizeAndState.getState();
 
+      if (options.isCallocSizeOverflowReturnsZero()
+          && functionName.equals("calloc")
+          && sizeValue instanceof NumericValue numSizeValue
+          && numSizeValue
+                  .bigIntegerValue()
+                  .compareTo(machineModel.getMaximalIntegerValue(machineModel.getSizeType()))
+              > 0) {
+        // The product of the arguments of calloc(n, size) can not be represented in size_t,
+        // i.e. the memory can not be allocated
+        resultBuilder.add(ValueAndSMGState.of(new NumericValue(0), currentState));
+        continue;
+      }
+
       if (!(sizeValue instanceof NumericValue) && !options.trackPredicates()) {
         String infoMsg =
             "Could not determine a concrete size for a memory allocation function in line "
@@ -1937,7 +1950,7 @@ public class SMGCPABuiltins {
     }
 
     // If malloc can fail (and fails) it simply returns a pointer to 0 (C also sets errno)
-    if (options.isEnableMallocFailure()) {
+    if (mayAllocationFail(functionName)) {
       // This mapping always exists
       Value addressToZero = new NumericValue(0);
       resultBuilder.add(ValueAndSMGState.of(addressToZero, pState));
@@ -2009,6 +2022,22 @@ public class SMGCPABuiltins {
     }
 
     return resultBuilder.build();
+  }
+
+  /**
+   * Returns true if the given allocation function may fail, i.e. return 0, according to the options
+   * for realloc, array allocation functions like calloc, and all other allocation functions like
+   * malloc.
+   */
+  private boolean mayAllocationFail(String pFunctionName) {
+    if (isMemoryReallocatingFunction(pFunctionName)) {
+      return options.isEnableReallocFailure();
+    } else if (pFunctionName.contains("calloc")) {
+      return options.isEnableCallocFailure();
+    }
+    // malloc
+    assert pFunctionName.equals("malloc");
+    return options.isEnableMallocFailure();
   }
 
   private ValueAndSMGState handleAllocZero(SMGState currentState) {
@@ -4095,7 +4124,8 @@ public class SMGCPABuiltins {
    * Evaluates realloc(ptr, size); If the size is smaller than the current memory size, every
    * HV-Edge (value) outside the bounds is deleted. If the size is 0, we free the pointer and call
    * malloc(0) and return the pointer. If the ptr is null, we call malloc(size). We always return
-   * new memory (new pointer to new memory) and free the old if it exists.
+   * new memory (new pointer to new memory) and free the old if it exists. If allocations may fail,
+   * we additionally return a null pointer with the old memory unchanged.
    *
    * @param pState current {@link SMGState}
    * @param pSizeValue size in byte
@@ -4168,11 +4198,16 @@ public class SMGCPABuiltins {
     }
 
     // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
+    // Its result is implementation-defined (C11 7.22.3 (1)), see option reallocWithZeroSize
     if (sizeInBits instanceof NumericValue numSize
         && numSize.bigIntegerValue().equals(BigInteger.ZERO)) {
       resultBuilder = ImmutableList.builder();
       for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
-        resultBuilder.add(handleAllocZero(freedState));
+        resultBuilder.add(
+            switch (options.getReallocWithZeroSize()) {
+              case FREE_AND_ALLOCATE_ZERO_SIZE -> handleAllocZero(freedState);
+              case FREE_AND_RETURN_ZERO -> ValueAndSMGState.of(new NumericValue(0), freedState);
+            });
       }
       return resultBuilder.build();
     }
@@ -4222,6 +4257,12 @@ public class SMGCPABuiltins {
       for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
         resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, freedState));
       }
+    }
+
+    // If realloc can fail (and fails) it returns a pointer to 0 and the old memory is unchanged
+    // (C11 7.22.3.5 (3))
+    if (options.isEnableReallocFailure()) {
+      resultBuilder.add(ValueAndSMGState.of(new NumericValue(0), pState));
     }
     return resultBuilder.build();
   }
