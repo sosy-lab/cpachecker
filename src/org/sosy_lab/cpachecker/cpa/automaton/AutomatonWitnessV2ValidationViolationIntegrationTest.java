@@ -93,6 +93,19 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
 
+  /** The waypoint at the loop refers to the loop and not to the if statement after it. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_loop_and_branch_on_one_line() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "loop-and-branch-on-one-line-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH,
+            "loop-and-branch-on-one-line-nontermination.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
   @Test(timeout = 3000)
   public void validate_unreach_call_concurrency() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
