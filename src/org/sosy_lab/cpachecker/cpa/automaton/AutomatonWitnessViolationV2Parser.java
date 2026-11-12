@@ -622,9 +622,15 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
       @Nullable String constraint,
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
       ImmutableList.Builder<AutomatonTransition> transitions)
-      throws InterruptedException {
+      throws InterruptedException, WitnessParseException {
+    if (followColumn.isEmpty()) {
+      followColumn = cfa.getAstCfaRelation().getColumnOfFirstCallInLine(followLine);
+      if (followColumn.isEmpty()) {
+        throw new WitnessParseException(
+            "No function call for the function return waypoint in line " + followLine);
+      }
+    }
 
-    // TODO: Handle missing columns properly here
     AutomatonBoolExpr expr =
         restrictToThread(
             new And(

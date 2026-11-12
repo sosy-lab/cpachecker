@@ -80,6 +80,17 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
 
+  /** Without a column, the waypoints refer to the first call in their line. */
+  @Test(timeout = 3000)
+  public void validate_function_waypoints_without_column() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "function-waypoints.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "function-waypoints-without-column.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
   /** The exported assumption names the inner of two variables as in the input program. */
   @Test(timeout = 9000)
   public void validate_shadowed_variable_roundtrip() throws Exception {
