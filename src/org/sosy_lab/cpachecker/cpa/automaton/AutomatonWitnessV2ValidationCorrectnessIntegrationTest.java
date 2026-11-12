@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -166,6 +169,17 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
         PROGRAMS_PATH.resolve("do-while-loop.c"),
         "do-while-loop-invalid-loop-invariant.yml",
         Result.FALSE);
+  }
+
+  /** NaN is not equal to itself, so `x == NaN` would be an invalid invariant. */
+  @Test(timeout = 9000)
+  public void export_nan_value_roundtrip() throws Exception {
+    Path witnessFile =
+        WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+            PROGRAMS_PATH.resolve("nan-argument.c"),
+            Result.TRUE,
+            Path.of(SPECIFICATION_PATH, "unreach-call.prp"));
+    assertThat(Files.readString(witnessFile)).doesNotContain("0.0/0.0");
   }
 
   /** The exported loop invariants must be checked at the loop heads they were exported for. */
