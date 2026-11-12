@@ -101,6 +101,16 @@ python-unit-tests:
   extends: .check-binaries-default-jdk
   script: "python3 -m unittest discover scripts"
 
+# Compare test sets with their upstream sources (needs network access, weekly only)
+python-test-sets-sync:
+  extends: .check-without-dependencies
+  image: python:3.12-alpine
+  variables:
+    CHECK_UPSTREAM_TEST_SETS: "true"
+  script: "python3 -m unittest discover -v -s scripts -p test_benchmark_definitions_sync.py"
+  rules:
+    - if: $[[ inputs.extended_tests ]] == true
+
 
 javascript-build:
   extends: .check-without-dependencies
