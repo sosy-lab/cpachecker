@@ -671,7 +671,6 @@ public class CoreComponentsFactory {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useParallelTestSuiteGeneration) {
-      logger.log(Level.INFO, "Using Parallel Test Suite Generation Algorithm");
       algorithm =
           new ParallelTestSuiteGenerationAlgorithm(
               config, logger, shutdownNotifier, cfa, specification);
@@ -1005,6 +1004,7 @@ public class CoreComponentsFactory {
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
         || useRandomTestCaseGeneratorAlgorithm
+        || useParallelTestSuiteGeneration
         || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
