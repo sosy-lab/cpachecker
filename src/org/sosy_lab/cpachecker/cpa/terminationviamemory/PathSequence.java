@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * An immutable sequence of CFA nodes that shares its prefix with the sequence it was extended from,
  * so that extending it takes constant time and memory.
  *
- * TODO: Replace this class with Prestistent Stack Implementation as soon as it is merged.
+ * <p>TODO: Replace this class with Prestistent Stack Implementation as soon as it is merged.
  * https://github.com/sosy-lab/java-common-lib/pull/65
  */
 final class PathSequence {
