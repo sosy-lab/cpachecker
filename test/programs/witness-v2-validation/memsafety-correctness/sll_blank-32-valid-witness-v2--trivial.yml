@@ -6,6 +6,52 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+
+- entry_type: "predicate_definitions_set"
+  metadata:
+    format_version: "2.2"
+    uuid: "c66c3ee7-e0de-4bae-87f0-fd48fb1a961e"
+    creation_time: "2055-11-21T10:29:38+01:00"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./memsafety_sll-blank.c"
+      input_file_hashes:
+        "./memsafety_sll-blank.c": "7e09d23e5ceaecbd6130f3a55dff37778c1d9f359387860231aa337f850f6d2f"
+      specification: "G valid-free && G valid-deref && G valid-memtrack"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - predicate_definition:
+        name: "pred_sll"
+        parameters: # Empty on purpose for tests
+        definition:
+          "true"
+        format: "ext_c_expression"
+        locations:
+          - file_name: "./sll_blank.c"
+            line: 25
+            column: 3
+            function: "create"
+    - predicate_definition:
+        name: "pred_sll2"
+        parameters:
+          - name: "now"
+            type: "struct sll *"
+        definition:
+          "true"
+        format: "ext_c_expression"
+        locations:
+          - file_name: "./sll_blank.c"
+            line: 37
+            column: 3
+            function: "destroy"
+          - file_name: "./sll_blank.c"
+            line: 49
+            column: 3
+            function: "main"
 - entry_type: "invariant_set"
   metadata:
     format_version: "2.0"
@@ -22,37 +68,30 @@
       data_model: "ILP32"
       language: "C"
   content:
-    - inductive_predicate:
-      - name: "pred_sll"
-      - params:
-        - name: start
-          type: "struct sll *"
-        - name: end
-          type: "struct sll *"
-      - definition:
-        "true"
-    - inductive_predicate:
-      - name: "pred_sll2"
-      - params:
-        - name: start
-          type: "struct sll *"
-      - definition:
-        "true"
     - invariant:
-        type: "loop_invariant"
+        type: "loop_memory_invariant"
         location:
           file_name: "./sll_blank.c"
           line: 25
           column: 3
           function: "create"
-        value: "pred_sll(sll, now)"
+        value: "pred_sll()"
         format: "c_expression"
     - invariant:
-        type: "loop_invariant"
+        type: "loop_memory_invariant"
         location:
           file_name: "./sll_blank.c"
           line: 37
           column: 3
-          function: "create"
+          function: "destroy"
         value: "pred_sll2(now)"
+        format: "c_expression"
+    - invariant:
+        type: "location_memory_invariant"
+        location:
+          file_name: "./sll_blank.c"
+          line: 49
+          column: 3
+          function: "main"
+        value: "pred_sll2(sll)"
         format: "c_expression"
