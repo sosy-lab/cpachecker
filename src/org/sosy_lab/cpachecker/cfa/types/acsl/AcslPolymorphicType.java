@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -20,6 +21,7 @@ public final class AcslPolymorphicType implements AcslLogicType {
 
   public AcslPolymorphicType(String pName) {
     name = checkNotNull(pName);
+    checkArgument(!name.isEmpty(), "A type variable has a name");
   }
 
   @Override

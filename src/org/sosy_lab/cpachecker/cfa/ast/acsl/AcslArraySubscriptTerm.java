@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -26,6 +27,14 @@ public final class AcslArraySubscriptTerm extends AArraySubscriptExpression impl
         checkNotNull(pType),
         checkNotNull(pArrayTerm),
         checkNotNull(pSubscriptTerm));
+    checkArgument(
+        AcslType.isPointer(pArrayTerm.getExpressionType()),
+        "%s is no array or pointer",
+        pArrayTerm);
+    checkArgument(
+        AcslType.isIntegral(pSubscriptTerm.getExpressionType()),
+        "The subscript %s is no integer",
+        pSubscriptTerm);
   }
 
   @Override

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -21,6 +22,7 @@ public final class AcslPredicateType extends AbstractFunctionType implements Acs
 
   public AcslPredicateType(List<AcslType> pParameters, boolean pTakesVarArgs) {
     super(AcslBuiltinLogicType.BOOLEAN, checkNotNull(pParameters), pTakesVarArgs);
+    checkArgument(!pTakesVarArgs, "A logic function has no variable arguments");
   }
 
   @Override

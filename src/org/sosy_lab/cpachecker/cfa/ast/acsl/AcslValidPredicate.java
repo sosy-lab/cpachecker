@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
@@ -17,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslValidPredicate extends AbstractExpression implements AcslPredicate {
 
@@ -31,12 +34,22 @@ public final class AcslValidPredicate extends AbstractExpression implements Acsl
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
     memoryLocationSet = checkNotNull(pMemoryLocationSet);
     optionalLabel = checkNotNull(pLabel);
+    checkArgument(
+        FluentIterable.from(memoryLocationSet.getTerms())
+            .allMatch(term -> AcslType.isPointer(term.getExpressionType())),
+        "\\valid needs pointers, not %s",
+        memoryLocationSet);
   }
 
   public AcslValidPredicate(FileLocation pFileLocation, AcslMemoryLocationSet pMemoryLocationSet) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
     memoryLocationSet = checkNotNull(pMemoryLocationSet);
     optionalLabel = null;
+    checkArgument(
+        FluentIterable.from(memoryLocationSet.getTerms())
+            .allMatch(term -> AcslType.isPointer(term.getExpressionType())),
+        "\\valid needs pointers, not %s",
+        memoryLocationSet);
   }
 
   @Override

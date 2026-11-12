@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
@@ -29,6 +31,24 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
         checkNotNull(pType),
         checkNotNull(pOperand),
         checkNotNull(pOperator));
+    checkArgument(
+        operandFits(pOperator, pOperand.getExpressionType()),
+        "The operator %s cannot be applied to %s",
+        pOperator,
+        pOperand);
+  }
+
+  private static boolean operandFits(AcslUnaryTermOperator pOperator, AcslType pType) {
+    if (pType instanceof AcslPolymorphicType) {
+      return true;
+    }
+    return switch (pOperator) {
+      case PLUS, MINUS -> AcslType.isNumeric(pType);
+      case POINTER_DEREFERENCE -> AcslType.isPointer(pType);
+      case NEGATION ->
+          AcslType.isNumeric(pType) || AcslType.isBoolean(pType) || AcslType.isPointer(pType);
+      case SIZEOF, ADDRESS_OF -> true;
+    };
   }
 
   @Override

@@ -82,7 +82,7 @@ public class AcslParser {
     try {
       return new PredicateToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation)
           .visit(tree);
-    } catch (AcslParseRuntimeException e) {
+    } catch (AcslParseRuntimeException | IllegalArgumentException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
   }
@@ -94,7 +94,7 @@ public class AcslParser {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.completeLogicDef().logicDef());
     try {
       return new LogicDefinitionToAstConverter(pAcslScope, pInitialFileLocation).visit(tree);
-    } catch (AcslParseRuntimeException e) {
+    } catch (AcslParseRuntimeException | IllegalArgumentException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
   }
@@ -119,7 +119,7 @@ public class AcslParser {
         generateParseTree(blankCommentMarkers(pInput), pParser -> pParser.acslComment());
     try {
       return new AnnotationToAstConverter(pCProgramScope, pAcslScope, pFileLocation).visit(tree);
-    } catch (AcslParseRuntimeException e) {
+    } catch (AcslParseRuntimeException | IllegalArgumentException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
   }

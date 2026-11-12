@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -33,6 +35,10 @@ public final class AcslCompletenessClause extends AAcslAnnotation {
     super(pFileLocation);
     kind = checkNotNull(pKind);
     behaviors = checkNotNull(pBehaviors);
+    checkArgument(
+        ImmutableSet.copyOf(behaviors).size() == behaviors.size(),
+        "The behaviors %s are not different",
+        behaviors);
   }
 
   public Kind getKind() {

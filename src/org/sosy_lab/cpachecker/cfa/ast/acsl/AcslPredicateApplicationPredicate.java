@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Joiner;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.io.Serial;
@@ -17,7 +18,6 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
-import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslPredicateApplicationPredicate extends AbstractExpression
     implements AcslPredicate {
@@ -31,19 +31,12 @@ public final class AcslPredicateApplicationPredicate extends AbstractExpression
       AcslPredicateDeclaration pPredicateDeclaration,
       List<AcslTerm> pParameters) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
-    Verify.verify(
-        pParameters.size() == pPredicateDeclaration.getParameters().size(),
-        "Expected %s parameters but got %s.",
-        pPredicateDeclaration.getParameters().size(),
-        pParameters.size());
-    for (int i = 0; i < pParameters.size(); i++) {
-      AcslType providedType = pParameters.get(i).getExpressionType();
-      AcslType expectedType = pPredicateDeclaration.getType().getParameters().get(i);
-      Verify.verify(
-          providedTypeMatchesExpectedType(providedType, expectedType),
-          "Provided parameter %s is not of the expected type.",
-          i);
-    }
+    checkArgument(
+        AcslFunctionCallTerm.argumentsFit(
+            pParameters, pPredicateDeclaration.getType().getParameters()),
+        "%s cannot be applied to %s",
+        pPredicateDeclaration,
+        pParameters);
     predicateDeclaration = pPredicateDeclaration;
     parameters = ImmutableList.copyOf(pParameters);
   }
@@ -79,11 +72,6 @@ public final class AcslPredicateApplicationPredicate extends AbstractExpression
         + Joiner.on(", ")
             .join(Lists.transform(parameters, term -> term.toASTString(pAAstNodeRepresentation)))
         + ")";
-  }
-
-  private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {
-    AcslType generalType = AcslType.mostGeneralType(provided, expected);
-    return expected.equals(generalType) || provided.equals(generalType);
   }
 
   @Override

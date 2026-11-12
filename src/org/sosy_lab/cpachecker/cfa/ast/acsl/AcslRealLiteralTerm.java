@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.CharMatcher;
@@ -24,6 +25,10 @@ public final class AcslRealLiteralTerm extends AcslLiteralTerm {
 
   public AcslRealLiteralTerm(FileLocation pFileLocation, AcslType pType, BigDecimal pValue) {
     super(checkNotNull(pFileLocation), checkNotNull(pType));
+    checkArgument(
+        AcslType.isNumeric(pType) && !AcslType.isIntegral(pType),
+        "A real literal has a real type, not %s",
+        pType);
     value = checkNotNull(pValue);
   }
 

@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.io.Serial;
 import java.util.List;
@@ -36,6 +38,12 @@ public final class AcslQuantifiedPredicate extends AbstractExpression implements
     quantifier = checkNotNull(pQuantifier);
     binders = ImmutableList.copyOf(pBinders);
     predicate = checkNotNull(pPredicate);
+    checkArgument(!binders.isEmpty(), "A quantifier binds at least one variable");
+    checkArgument(
+        ImmutableSet.copyOf(Lists.transform(binders, AcslParameterDeclaration::getName)).size()
+            == binders.size(),
+        "The variables of a quantifier have different names, not %s",
+        binders);
   }
 
   public AcslQuantifier getQuantifier() {

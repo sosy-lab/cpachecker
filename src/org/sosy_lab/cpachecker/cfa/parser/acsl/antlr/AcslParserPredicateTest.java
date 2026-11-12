@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
@@ -541,21 +542,50 @@ public class AcslParserPredicateTest {
 
   @Test
   public void parseSimpleValidPredicate() throws AcslParseException {
-    CProgramScope cProgramScope = getCProgramScope();
+    CVariableDeclaration p =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            new CPointerType(CTypeQualifiers.NONE, basicInt()),
+            "p",
+            "p",
+            "p",
+            null /* No initializer, we only want it for testing */,
+            /* pHasThreadLocalStorage= */ false);
     AcslPredicate output =
         new AcslValidPredicate(
             FileLocation.DUMMY,
             new AcslMemoryLocationSet(
                 FileLocation.DUMMY,
                 ImmutableList.of(
-                    new AcslIdTerm(
-                        FileLocation.DUMMY,
-                        new AcslCVariableDeclaration(
-                            (CVariableDeclaration)
-                                Objects.requireNonNull(cProgramScope.lookupVariable("x")))))));
-    String input = "\\valid(x)";
+                    new AcslIdTerm(FileLocation.DUMMY, new AcslCVariableDeclaration(p)))));
+    CProgramScope cProgramScope =
+        getCProgramScope().withAdditionalDeclarations(ImmutableList.of(p));
 
-    testPredicateParsing(input, output);
+    assertThat(
+            AcslParser.parsePredicate(
+                "\\valid(p)", cProgramScope, getAcslScope(), FileLocation.DUMMY))
+        .isEqualTo(output);
+    assertThrows(
+        AcslParseException.class,
+        () ->
+            AcslParser.parsePredicate(
+                "\\valid(x)", cProgramScope, getAcslScope(), FileLocation.DUMMY));
+  }
+
+  @Test
+  public void rejectIllTypedPredicates() {
+    for (String predicate :
+        ImmutableList.of(
+            "x[0] == 0", "x % 1.5 == 0", "*x == 0", "\\forall integer k, integer k; k == k")) {
+      assertThrows(
+          predicate,
+          AcslParseException.class,
+          () ->
+              AcslParser.parsePredicate(
+                  predicate, getCProgramScope(), getAcslScope(), FileLocation.DUMMY));
+    }
   }
 
   @Test

@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslBinaryTermPredicate extends ABinaryExpression implements AcslPredicate {
@@ -31,6 +33,28 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
         checkNotNull(pOperand1),
         checkNotNull(pOperand2),
         checkNotNull(pOperator));
+    checkArgument(
+        operandsFit(pOperator, pOperand1.getExpressionType(), pOperand2.getExpressionType()),
+        "%s and %s cannot be compared with %s",
+        pOperand1,
+        pOperand2,
+        pOperator);
+  }
+
+  private static boolean operandsFit(
+      AcslBinaryTermPredicateOperator pOperator, AcslType pType1, AcslType pType2) {
+    return switch (pOperator) {
+      // A pointer can be compared with 0, e.g., for a pointer as predicate
+      case EQUALS, NOT_EQUALS ->
+          AcslType.areCompatible(pType1, pType2)
+              || (AcslType.isPointer(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isIntegral(pType1) && AcslType.isPointer(pType2));
+      case LESS_EQUAL, GREATER_EQUAL, LESS_THAN, GREATER_THAN ->
+          pType1 instanceof AcslPolymorphicType
+              || pType2 instanceof AcslPolymorphicType
+              || (AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isPointer(pType2));
+    };
   }
 
   @Override

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -33,6 +34,33 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
         checkNotNull(pFunctionName),
         checkNotNull(pParameters),
         checkNotNull(pDeclaration));
+    checkArgument(
+        pType.equals(pDeclaration.getType().getReturnType()),
+        "The type %s of the call is not the return type of %s",
+        pType,
+        pDeclaration);
+    checkArgument(
+        pFunctionName instanceof AcslIdTerm idTerm && idTerm.getDeclaration().equals(pDeclaration),
+        "%s does not name the function %s",
+        pFunctionName,
+        pDeclaration);
+    checkArgument(
+        argumentsFit(pParameters, pDeclaration.getType().getParameters()),
+        "%s cannot be applied to %s",
+        pDeclaration,
+        pParameters);
+  }
+
+  static boolean argumentsFit(List<AcslTerm> pArguments, List<AcslType> pParameterTypes) {
+    if (pArguments.size() != pParameterTypes.size()) {
+      return false;
+    }
+    for (int i = 0; i < pArguments.size(); i++) {
+      if (!AcslType.areCompatible(pArguments.get(i).getExpressionType(), pParameterTypes.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -65,10 +93,5 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return null;
   }
 }

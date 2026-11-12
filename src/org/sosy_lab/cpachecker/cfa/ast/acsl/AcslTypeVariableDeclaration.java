@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 /** Declaration of a type variable of a polymorphic logic function or predicate. */
@@ -30,6 +32,11 @@ public final class AcslTypeVariableDeclaration extends AbstractDeclaration
       String pQualifiedName) {
     super(checkNotNull(pFileLocation), pIsGlobal, checkNotNull(pType), checkNotNull(pName), pName);
     qualifiedName = checkNotNull(pQualifiedName);
+    checkArgument(
+        pType.equals(new AcslPolymorphicType(pName)),
+        "The type variable %s has the type %s",
+        pName,
+        pType);
   }
 
   @Override

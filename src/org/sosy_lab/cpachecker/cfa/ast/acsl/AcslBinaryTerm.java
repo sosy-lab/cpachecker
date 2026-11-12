@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm {
@@ -31,6 +33,35 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
         checkNotNull(pOperand1),
         checkNotNull(pOperand2),
         checkNotNull(pOperator));
+    checkArgument(
+        operandsFit(pOperator, pOperand1.getExpressionType(), pOperand2.getExpressionType()),
+        "The operator %s cannot be applied to %s and %s",
+        pOperator,
+        pOperand1,
+        pOperand2);
+  }
+
+  private static boolean operandsFit(
+      AcslBinaryTermOperator pOperator, AcslType pType1, AcslType pType2) {
+    if (pType1 instanceof AcslPolymorphicType || pType2 instanceof AcslPolymorphicType) {
+      return true;
+    }
+    return switch (pOperator) {
+      case PLUS ->
+          (AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isIntegral(pType1) && AcslType.isPointer(pType2));
+      case MINUS ->
+          (AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isPointer(pType2));
+      case MULTIPLY, DIVIDE -> AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2);
+      case MODULO, SHIFT_LEFT, SHIFT_RIGHT ->
+          AcslType.isIntegral(pType1) && AcslType.isIntegral(pType2);
+      case BINARY_AND, BINARY_OR, BINARY_XOR, BINARY_IMPLICATION, BINARY_EQUIVALENT ->
+          (AcslType.isIntegral(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isBoolean(pType1) && AcslType.isBoolean(pType2));
+    };
   }
 
   @Override

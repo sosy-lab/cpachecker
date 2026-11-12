@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -21,6 +22,8 @@ public final class AcslCharLiteralTerm extends AcslLiteralTerm {
 
   public AcslCharLiteralTerm(FileLocation pFileLocation, AcslType pType, char pCharacter) {
     super(checkNotNull(pFileLocation), checkNotNull(pType));
+    checkArgument(
+        AcslType.isIntegral(pType), "A character literal has an integer type, not %s", pType);
     character = pCharacter;
   }
 

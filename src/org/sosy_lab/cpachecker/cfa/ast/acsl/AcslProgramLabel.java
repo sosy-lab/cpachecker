@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -22,6 +23,7 @@ public final class AcslProgramLabel extends AbstractAstNode implements AcslLabel
   public AcslProgramLabel(String pLabel, FileLocation pLocation) {
     super(pLocation);
     label = checkNotNull(pLabel);
+    checkArgument(!label.isEmpty(), "A label has a name");
   }
 
   @Override

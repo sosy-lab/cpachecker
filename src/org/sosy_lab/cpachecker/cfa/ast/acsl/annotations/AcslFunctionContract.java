@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -68,6 +70,16 @@ public final class AcslFunctionContract extends AAcslAnnotation {
     assignsClauses = checkNotNull(pAssignsClauses);
     behaviors = checkNotNull(pBehaviors);
     completenessClauses = checkNotNull(pCompletenessClauses);
+    ImmutableSet<String> behaviorNames =
+        ImmutableSet.copyOf(Lists.transform(behaviors, AcslBehavior::getName));
+    checkArgument(
+        behaviorNames.size() == behaviors.size(), "The behaviors %s have the same name", behaviors);
+    checkArgument(
+        FluentIterable.from(completenessClauses)
+            .allMatch(clause -> behaviorNames.containsAll(clause.getBehaviors())),
+        "The completeness clauses %s name behaviors other than %s",
+        completenessClauses,
+        behaviorNames);
   }
 
   @Override

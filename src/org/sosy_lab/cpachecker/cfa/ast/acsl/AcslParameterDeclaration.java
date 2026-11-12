@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -23,12 +24,14 @@ public final class AcslParameterDeclaration extends AParameterDeclaration
 
   public AcslParameterDeclaration(FileLocation pFileLocation, AcslType pType, String pName) {
     super(checkNotNull(pFileLocation), checkNotNull(pType), checkNotNull(pName));
+    checkArgument(!pName.isEmpty(), "A parameter has a name");
     qualifiedName = pName;
   }
 
   public AcslParameterDeclaration(
       FileLocation pFileLocation, AcslType pType, String pName, String pFunctionName) {
     super(checkNotNull(pFileLocation), checkNotNull(pType), checkNotNull(pName));
+    checkArgument(!pName.isEmpty(), "A parameter has a name");
     qualifiedName = checkNotNull(pFunctionName) + "::" + pName;
   }
 

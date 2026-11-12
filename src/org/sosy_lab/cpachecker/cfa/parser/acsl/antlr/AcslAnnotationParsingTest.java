@@ -282,12 +282,12 @@ ensures x <= 10;
     CProgramScope cProgramScope = getCProgramScope();
 
     String assertion = "assert is_positive(x, y);";
-    java.lang.RuntimeException exception =
+    AcslParseException exception =
         assertThrows(
-            RuntimeException.class,
+            AcslParseException.class,
             () ->
                 AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, cProgramScope, aScope));
-    assertThat(exception.getMessage()).isEqualTo("Expected 1 parameters but got 2.");
+    assertThat(exception).hasMessageThat().contains("cannot be applied to [x, y]");
   }
 
   @Test
@@ -351,10 +351,7 @@ ensures x <= 10;
                 FileLocation.DUMMY,
                 new AcslFunctionCallTerm(
                     FileLocation.DUMMY,
-                    new AcslFunctionType(
-                        AcslBuiltinLogicType.INTEGER,
-                        ImmutableList.of(AcslBuiltinLogicType.INTEGER),
-                        false),
+                    AcslBuiltinLogicType.INTEGER,
                     new AcslIdTerm(FileLocation.DUMMY, declaration),
                     ImmutableList.of(
                         new AcslIdTerm(FileLocation.DUMMY, new AcslCVariableDeclaration(a))),

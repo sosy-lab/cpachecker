@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -37,6 +40,24 @@ public final class AcslFunctionDeclaration extends AFunctionDeclaration
         checkNotNull(pOrigName),
         checkNotNull(pParameters));
     polymorphicTypes = checkNotNull(pPolymorphicTypes);
+    checkArgument(
+        Lists.transform(pParameters, AcslParameterDeclaration::getType)
+            .equals(pType.getParameters()),
+        "The parameters %s do not have the parameter types of %s",
+        pParameters,
+        pType);
+    checkArgument(
+        ImmutableSet.copyOf(Lists.transform(pParameters, AcslParameterDeclaration::getName)).size()
+            == pParameters.size(),
+        "The parameters %s have different names",
+        pParameters);
+    checkArgument(
+        ImmutableSet.copyOf(
+                    Lists.transform(pPolymorphicTypes, AcslTypeVariableDeclaration::getName))
+                .size()
+            == pPolymorphicTypes.size(),
+        "The type variables %s have different names",
+        pPolymorphicTypes);
   }
 
   public List<AcslTypeVariableDeclaration> getPolymorphicTypes() {

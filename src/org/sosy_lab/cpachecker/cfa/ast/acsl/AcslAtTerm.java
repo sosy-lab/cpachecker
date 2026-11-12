@@ -22,7 +22,7 @@ public final class AcslAtTerm extends AbstractExpression implements AcslTerm {
   private final AcslLabel label;
 
   public AcslAtTerm(FileLocation pLocation, AcslTerm pTerm, AcslLabel pLabel) {
-    super(pLocation, pTerm.getExpressionType());
+    super(pLocation, checkNotNull(pTerm).getExpressionType());
     term = pTerm;
     label = checkNotNull(pLabel);
   }

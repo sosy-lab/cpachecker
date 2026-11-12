@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslLogicFunctionDefinition extends AcslLogicDefinition {
 
@@ -20,6 +22,11 @@ public final class AcslLogicFunctionDefinition extends AcslLogicDefinition {
   public AcslLogicFunctionDefinition(
       FileLocation pFileLocation, AcslFunctionDeclaration pDeclaration, AcslTerm pBody) {
     super(checkNotNull(pFileLocation), checkNotNull(pDeclaration), checkNotNull(pBody));
+    checkArgument(
+        AcslType.areCompatible(pBody.getExpressionType(), pDeclaration.getType().getReturnType()),
+        "The body %s does not have the return type of %s",
+        pBody,
+        pDeclaration);
   }
 
   @Override

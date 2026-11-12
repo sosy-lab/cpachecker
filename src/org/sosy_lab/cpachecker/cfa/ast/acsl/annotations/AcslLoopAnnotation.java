@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
@@ -33,6 +34,8 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
     super(pFileLocation);
     loopInvariants = checkNotNull(pLoopInvariants);
     loopAssigns = checkNotNull(pLoopAssigns);
+    checkArgument(
+        !loopInvariants.isEmpty() || !loopAssigns.isEmpty(), "A loop annotation has a clause");
   }
 
   @Override

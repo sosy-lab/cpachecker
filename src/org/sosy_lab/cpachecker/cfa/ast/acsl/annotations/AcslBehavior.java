@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
@@ -36,6 +37,7 @@ public final class AcslBehavior extends AAcslAnnotation {
       ImmutableSet<AcslAssigns> pAssignsClauses) {
     super(pFileLocation);
     name = checkNotNull(pName);
+    checkArgument(!name.isEmpty(), "A behavior has a name");
     assumesClauses = checkNotNull(pAssumesClauses);
     requiresClauses = checkNotNull(pRequiresClauses);
     ensuresClauses = checkNotNull(pEnsuresClauses);
