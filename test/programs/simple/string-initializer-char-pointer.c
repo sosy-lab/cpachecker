@@ -11,13 +11,18 @@ typedef char *string;
 char *global = "abc";
 static char *staticGlobal = "-";
 string typedefGlobal = "xy";
+unsigned char *unsignedGlobal = "u";
+char *firstElement = &("abc"[0]);
 
 int main(void) {
   char *local = "";
   char *a = global;
   char **p = &staticGlobal;
   string b = typedefGlobal;
-  if (a != global || *p != staticGlobal || b != typedefGlobal || local != local) {
+  unsigned char *u = unsignedGlobal;
+  char *f = firstElement;
+  if (a != global || *p != staticGlobal || b != typedefGlobal || local != local
+      || u != unsignedGlobal || f != firstElement) {
   ERROR:
     return 1;
   }

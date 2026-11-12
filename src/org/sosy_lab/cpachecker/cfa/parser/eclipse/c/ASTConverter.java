@@ -3306,12 +3306,11 @@ class ASTConverter {
                 e);
       }
 
-      // Checked before the array is converted to a pointer below, which hides the string literal
-      final boolean isStringInitialization = isStringInitialization(type, initializedExpression);
-
       if (type.getCanonicalType() instanceof CPointerType
           && initializedExpression.getExpressionType().getCanonicalType()
-              instanceof CArrayType initializerType) {
+              instanceof CArrayType initializerType
+          // String literals are kept as they are, which is easier for analyses (#1536).
+          && !(initializedExpression instanceof CStringLiteralExpression)) {
         // TODO This is part of #1035 but should probably be handled generally somewhere else and
         // removed here.
         CType elementType = initializerType.getType();
@@ -3324,11 +3323,13 @@ class ASTConverter {
                 CUnaryExpression.UnaryOperator.AMPER);
       }
 
-      if (!isStringInitialization && !areInitializerAssignable(type, initializedExpression)) {
+      if (!areInitializerAssignable(type, initializedExpression)) {
         CType initializerType = initializedExpression.getExpressionType().getCanonicalType();
         // Compilers only warn here, and assignments of such values are not checked
         if (type.getCanonicalType() instanceof CPointerType
-            && (CTypes.isIntegerType(initializerType) || initializerType instanceof CPointerType)) {
+            && (CTypes.isIntegerType(initializerType)
+                || initializerType instanceof CPointerType
+                || initializerType instanceof CArrayType)) {
           if (declaration != null) {
             logger.logf(
                 Level.WARNING,
