@@ -227,6 +227,8 @@ public class SMGCPAAddressVisitor
           }
           // Fallthrough for no constraints or no assignment possible
         }
+        logger.log(
+            Level.FINE, "Symbolic subscript value overapproximated. Precision may be reduced.");
       }
       Value finalOffset = evaluator.addBitOffsetValues(addrOffset, subscriptOffset);
 
