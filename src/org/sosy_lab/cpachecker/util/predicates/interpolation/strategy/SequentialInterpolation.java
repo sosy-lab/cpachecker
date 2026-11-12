@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.List;
@@ -140,7 +141,7 @@ public class SequentialInterpolation extends ITPStrategy {
       final InterpolationManager.Interpolator<T> interpolator, final List<T> groupIds)
       throws InterruptedException, SolverException {
     Map<T, T> newGroupIds = interpolator.destroyAndRebuildSolverEnvironment();
-    return FluentIterable.from(groupIds).transform(newGroupIds::get).toList();
+    return transformedImmutableListCopy(groupIds, newGroupIds::get);
   }
 
   /**
