@@ -11,15 +11,16 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Predicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * An immutable sequence of CFA nodes that shares its prefix with the sequence it was extended from,
  * so that extending it takes constant time and memory.
+ *
+ * TODO: Replace this class with Prestistent Stack Implementation as soon as it is merged.
+ * https://github.com/sosy-lab/java-common-lib/pull/65
  */
 final class PathSequence {
 
@@ -64,14 +65,19 @@ final class PathSequence {
     return result;
   }
 
-  /** Returns the nodes from the first index (inclusive) to the second one (exclusive). */
-  ImmutableList<CFANode> subList(int pFrom, int pTo) {
+  /**
+   * Checks whether all nodes from the first index (inclusive) to the second one (exclusive) satisfy
+   * the given condition. The nodes are visited from the last one to the first one, which takes time
+   * linear in the size of this sequence.
+   */
+  boolean allNodesMatch(int pFrom, int pTo, Predicate<CFANode> pCondition) {
     checkArgument(0 <= pFrom && pFrom <= pTo);
-    List<CFANode> reversed = new ArrayList<>(pTo - pFrom);
     for (PathSequence s = prefix(pTo); s.size > pFrom; s = s.prefix) {
-      reversed.add(s.last);
+      if (!pCondition.test(s.last)) {
+        return false;
+      }
     }
-    return ImmutableList.copyOf(reversed).reverse();
+    return true;
   }
 
   @Override

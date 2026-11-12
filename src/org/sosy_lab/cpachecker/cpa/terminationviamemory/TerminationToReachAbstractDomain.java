@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -60,24 +60,25 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
   }
 
   private boolean isSubsequence(PathSequence newPath, PathSequence reachedPath) {
-    if (newPath.size() < reachedPath.size()
+    if (newPath.size() <= reachedPath.size()
         || !newPath.prefix(reachedPath.size()).equals(reachedPath)) {
       return false;
     }
-    // Taking one more state away with reachPath.size() instead of reachedPath.size() - 1, because
-    // the previous loop head is included twice at the end.
-    ImmutableList<CFANode> lastIterationOfTheBranch =
-        newPath.subList(reachedPath.size(), newPath.size());
 
     // Only cover the state by the abstract state of the previous visit of its loop head, i.e., the
     // path between them is exactly one iteration of the loop. It may contain iterations of
     // nested loops, but it must not leave the loop, e.g., through the head of an outer loop.
-    return !lastIterationOfTheBranch.isEmpty()
-        && lastIterationOfTheBranch.indexOf(newPath.getLast())
-            == lastIterationOfTheBranch.size() - 1
-        && from(loopStructure.getLoopsForLoopHead(newPath.getLast()))
+    CFANode loopHead = newPath.getLast();
+    ImmutableSet<CFANode> loopNodes =
+        from(loopStructure.getLoopsForLoopHead(loopHead))
             .transformAndConcat(Loop::getLoopNodes)
-            .toSet()
-            .containsAll(lastIterationOfTheBranch);
+            .toSet();
+    // Taking one more state away with reachPath.size() instead of reachedPath.size() - 1, because
+    // the previous loop head is included twice at the end.
+    return loopNodes.contains(loopHead)
+        && newPath.allNodesMatch(
+            reachedPath.size(),
+            newPath.size() - 1,
+            node -> !node.equals(loopHead) && loopNodes.contains(node));
   }
 }

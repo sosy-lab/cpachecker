@@ -124,7 +124,8 @@ public class NestedLoopSummarizer {
             .toSet();
     for (int i = pVisit + 1; i <= pLast; i++) {
       if (pVisits.get(i).loopHead().equals(visit.loopHead())) {
-        return !loopNodes.containsAll(pPath.subList(visit.pathIndex(), pVisits.get(i).pathIndex()));
+        return !pPath.allNodesMatch(
+            visit.pathIndex(), pVisits.get(i).pathIndex(), loopNodes::contains);
       }
     }
     return true;
