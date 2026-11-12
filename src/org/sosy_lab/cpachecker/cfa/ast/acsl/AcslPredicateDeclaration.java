@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
 public final class AcslPredicateDeclaration extends AFunctionDeclaration
     implements AcslLogicDeclaration {
 
-  @Serial private static final long serialVersionUID = -814553465151276L;
+  @Serial private static final long serialVersionUID = 4720953172121488522L;
   private final List<AcslTypeVariableDeclaration> polymorphicTypes;
 
   public AcslPredicateDeclaration(

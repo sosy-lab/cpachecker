@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslFunctionCallTerm extends AFunctionCallExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = -612040123327639887L;
+  @Serial private static final long serialVersionUID = 300878915220884911L;
 
   public AcslFunctionCallTerm(
       FileLocation pLocation,

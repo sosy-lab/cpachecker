@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 
 public final class AcslPredicateType extends AbstractFunctionType implements AcslType {
 
-  @Serial private static final long serialVersionUID = -814550244571276L;
+  @Serial private static final long serialVersionUID = -7041162901557764244L;
 
   public AcslPredicateType(List<AcslType> pParameters, boolean pTakesVarArgs) {
     super(AcslBuiltinLogicType.BOOLEAN, checkNotNull(pParameters), pTakesVarArgs);

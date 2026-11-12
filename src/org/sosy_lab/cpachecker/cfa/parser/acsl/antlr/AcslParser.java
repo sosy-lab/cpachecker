@@ -164,7 +164,7 @@ public class AcslParser {
   }
 
   public static final class AcslParseException extends Exception {
-    @Serial private static final long serialVersionUID = -8907490123042996735L;
+    @Serial private static final long serialVersionUID = 3393854101386977973L;
 
     private AcslParseException(String pMsg, Throwable pCause) {
       super(checkNotNull(pMsg), checkNotNull(pCause));

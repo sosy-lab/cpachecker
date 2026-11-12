@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslBinaryPredicate extends ABinaryExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = 7019956121956900L;
+  @Serial private static final long serialVersionUID = 2340946883565651164L;
 
   public AcslBinaryPredicate(
       FileLocation pFileLocation,

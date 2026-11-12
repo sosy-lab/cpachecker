@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class AcslCType implements AcslType {
 
-  @Serial private static final long serialVersionUID = -81123243801151276L;
+  @Serial private static final long serialVersionUID = -7647456338392769900L;
 
   private final CType type;
 

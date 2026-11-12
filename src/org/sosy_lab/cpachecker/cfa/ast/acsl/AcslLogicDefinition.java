@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public abstract sealed class AcslLogicDefinition extends AbstractAstNode implements AcslAstNode
     permits AcslLogicFunctionDefinition, AcslLogicPredicateDefinition {
 
-  @Serial private static final long serialVersionUID = 19841239875456789L;
+  @Serial private static final long serialVersionUID = -8805149469924106107L;
 
   private final AcslLogicDeclaration declaration;
   private final AcslAstNode body;

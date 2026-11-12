@@ -14,7 +14,7 @@ import java.io.Serial;
 
 public final class AcslSetType implements AcslType {
 
-  @Serial private static final long serialVersionUID = -81412344571276L;
+  @Serial private static final long serialVersionUID = 3035088493008538370L;
 
   private AcslType elementType;
 

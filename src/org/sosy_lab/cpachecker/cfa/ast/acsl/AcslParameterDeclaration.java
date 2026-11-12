@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 public final class AcslParameterDeclaration extends AParameterDeclaration
     implements AcslSimpleDeclaration {
 
-  @Serial private static final long serialVersionUID = 145675929875456789L;
+  @Serial private static final long serialVersionUID = 6290958920195598979L;
   private final String qualifiedName;
 
   public AcslParameterDeclaration(FileLocation pFileLocation, AcslType pType, String pName) {

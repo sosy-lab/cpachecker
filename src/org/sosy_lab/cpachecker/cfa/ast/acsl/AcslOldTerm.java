@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslOldTerm extends AbstractExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = -81455024380567276L;
+  @Serial private static final long serialVersionUID = 5870202440492471999L;
   private final AcslTerm term;
 
   public AcslOldTerm(FileLocation pLocation, AcslTerm pTerm) {

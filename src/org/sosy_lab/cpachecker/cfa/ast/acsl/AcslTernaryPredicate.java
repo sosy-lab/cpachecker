@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslTernaryPredicate extends AbstractExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = 81297456675011353L;
+  @Serial private static final long serialVersionUID = 8803046908559569331L;
   private final AcslPredicate condition;
   private final AcslPredicate resultIfTrue;
   private final AcslPredicate resultIfFalse;

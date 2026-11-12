@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslLogicFunctionDefinition extends AcslLogicDefinition {
 
-  @Serial private static final long serialVersionUID = 145671239875456789L;
+  @Serial private static final long serialVersionUID = -4600895736566083632L;
 
   public AcslLogicFunctionDefinition(
       FileLocation pFileLocation, AcslFunctionDeclaration pDeclaration, AcslTerm pBody) {

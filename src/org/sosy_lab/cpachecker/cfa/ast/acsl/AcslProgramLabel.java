@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslProgramLabel extends AbstractAstNode implements AcslLabel {
-  @Serial private static final long serialVersionUID = 70111261956900L;
+  @Serial private static final long serialVersionUID = 7865806609981277317L;
 
   private final String label;
 

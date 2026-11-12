@@ -11,14 +11,14 @@ package org.sosy_lab.cpachecker.cfa.parser.acsl;
 import java.io.Serial;
 
 public class AcslMetadataException extends RuntimeException {
-  @Serial private static final long serialVersionUID = -3184259442448755810L;
+  @Serial private static final long serialVersionUID = 9113841098540412745L;
 
   public AcslMetadataException(String message) {
     super(message);
   }
 
   public static class AcslNodeMappingException extends AcslMetadataException {
-    @Serial private static final long serialVersionUID = -2422260384913137786L;
+    @Serial private static final long serialVersionUID = 480129679996868553L;
 
     public AcslNodeMappingException(String message) {
       super(message);
@@ -26,7 +26,7 @@ public class AcslMetadataException extends RuntimeException {
   }
 
   public static class AcslMetadataCreationException extends AcslMetadataException {
-    @Serial private static final long serialVersionUID = 2641299193651871955L;
+    @Serial private static final long serialVersionUID = 1264216760515393605L;
 
     public AcslMetadataCreationException(String message) {
       super(message);

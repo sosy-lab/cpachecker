@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = 7019912361956900L;
+  @Serial private static final long serialVersionUID = 8110585630483048533L;
 
   public AcslBinaryTerm(
       FileLocation pFileLocation,

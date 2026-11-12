@@ -14,7 +14,7 @@ import java.io.Serial;
 
 public final class AcslPointerType implements AcslType {
 
-  @Serial private static final long serialVersionUID = 145845279875456789L;
+  @Serial private static final long serialVersionUID = 7921362585606728084L;
 
   private final AcslType type;
 

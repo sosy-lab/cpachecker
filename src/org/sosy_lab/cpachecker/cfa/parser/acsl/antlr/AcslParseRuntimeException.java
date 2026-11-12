@@ -17,7 +17,7 @@ import java.io.Serial;
  */
 final class AcslParseRuntimeException extends RuntimeException {
 
-  @Serial private static final long serialVersionUID = 6014538431289071823L;
+  @Serial private static final long serialVersionUID = 2373820322746422700L;
 
   AcslParseRuntimeException(String pMsg) {
     super(pMsg);

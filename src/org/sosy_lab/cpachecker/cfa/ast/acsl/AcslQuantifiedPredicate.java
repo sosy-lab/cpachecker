@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslQuantifiedPredicate extends AbstractExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = -81123952385151276L;
+  @Serial private static final long serialVersionUID = -6454842818334326221L;
 
   private final AcslQuantifier quantifier;
   private final ImmutableList<AcslParameterDeclaration> binders;

@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = -6073836890768425L;
+  @Serial private static final long serialVersionUID = -4362991898716030717L;
 
   public AcslUnaryPredicate(
       FileLocation pFileLocation, AcslPredicate pOperand, AcslUnaryPredicateOperator pOperator) {

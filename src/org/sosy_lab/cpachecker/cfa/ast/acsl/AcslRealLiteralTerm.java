@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslRealLiteralTerm extends AcslLiteralTerm {
 
-  @Serial private static final long serialVersionUID = -81455024380768976L;
+  @Serial private static final long serialVersionUID = -9116381648021444709L;
 
   private final BigDecimal value;
 

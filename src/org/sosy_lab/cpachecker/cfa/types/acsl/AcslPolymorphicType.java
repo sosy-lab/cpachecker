@@ -14,7 +14,7 @@ import java.io.Serial;
 
 public final class AcslPolymorphicType implements AcslLogicType {
 
-  @Serial private static final long serialVersionUID = 1456598245975456789L;
+  @Serial private static final long serialVersionUID = 7112186973639694412L;
 
   private final String name;
 

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 /** A set of memory locations, given by its elements. It is empty for {@code \empty}. */
 public final class AcslMemoryLocationSet extends AbstractAstNode implements AcslAstNode {
 
-  @Serial private static final long serialVersionUID = 1456718713245456789L;
+  @Serial private static final long serialVersionUID = -2231305848685238940L;
 
   private final ImmutableList<AcslTerm> terms;
 
