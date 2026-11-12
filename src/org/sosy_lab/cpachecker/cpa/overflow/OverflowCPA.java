@@ -50,6 +50,6 @@ public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnaly
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new OverflowState(ImmutableSet.of(), false);
+    return new OverflowState(ImmutableSet.of(), null, null, false);
   }
 }

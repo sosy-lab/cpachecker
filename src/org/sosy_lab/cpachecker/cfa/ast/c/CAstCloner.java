@@ -273,8 +273,11 @@ public abstract class CAstCloner extends AbstractTransformingCAstNodeVisitor<NoE
 
   @Override
   public CAstNode visit(CEnumerator decl) {
-    return new CEnumerator(
-        decl.getFileLocation(), decl.getName(), changeTypeQualifiedName(decl), decl.getValue());
+    CEnumerator newDecl =
+        new CEnumerator(
+            decl.getFileLocation(), decl.getName(), changeTypeQualifiedName(decl), decl.getValue());
+    newDecl.setEnum(cloneType(decl.getEnum()));
+    return newDecl;
   }
 
   @Override
