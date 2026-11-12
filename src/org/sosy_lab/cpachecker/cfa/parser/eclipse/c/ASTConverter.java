@@ -1049,6 +1049,11 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
+    if (castType.getCanonicalType().equals(operand.getExpressionType().getCanonicalType())) {
+      // No-op cast (GCC allows such casts also for structs and unions)
+      return operand;
+    }
+
     // Cast-to-union extension (GCC): initialize the union member whose type is an exact match of
     // the operand's type.
     // https://gcc.gnu.org/onlinedocs/gcc/Cast-to-Union.html
@@ -1069,8 +1074,7 @@ class ASTConverter {
 
   /**
    * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
-   * designated initializer. Returns {@code null} if this cast is not a cast to a union type, and
-   * the operand if it already has the union type.
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
    *
    * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
    * member type. If no member matches (or the union is empty), this method throws a {@link
@@ -1084,18 +1088,11 @@ class ASTConverter {
       return null;
     }
 
-    CType operandType = castOperand.getExpressionType().getCanonicalType();
-    if (operandType
-        .withQualifiersSetTo(CTypeQualifiers.NONE)
-        .equals(compositeType.withQualifiersSetTo(CTypeQualifiers.NONE))) {
-      // GCC accepts casts of a union to its own type
-      return castOperand;
-    }
-
     if (compositeType.getMembers().isEmpty()) {
       throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
     }
 
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
     CCompositeTypeMemberDeclaration matchingMember =
         findUnionMemberWithExactType(compositeType, operandType);
 
