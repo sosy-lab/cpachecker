@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.function.Predicate;
@@ -19,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * An immutable sequence of CFA nodes that shares its prefix with the sequence it was extended from,
  * so that extending it takes constant time and memory.
  *
- * <p>TODO: Replace this class with Prestistent Stack Implementation as soon as it is merged.
+ * <p>TODO: Replace this class with Persistent Stack Implementation as soon as it is merged.
  * https://github.com/sosy-lab/java-common-lib/pull/65
  */
 final class PathSequence {
@@ -52,7 +53,7 @@ final class PathSequence {
 
   CFANode getLast() {
     checkState(size > 0);
-    return last;
+    return checkNotNull(last);
   }
 
   /** Returns the sequence of the first given number of nodes. */
