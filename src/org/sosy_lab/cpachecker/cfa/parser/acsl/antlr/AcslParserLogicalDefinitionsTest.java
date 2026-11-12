@@ -570,17 +570,21 @@ public class AcslParserLogicalDefinitionsTest {
   }
 
   @Test
-  public void parseIsFalseLogicPredicate() {
-    // Logic definitions that take boolean parameters are not supported.
-    String definition1 = "predicate is_false(boolean p) = (!p) == \\true;";
-    String definition2 = "predicate is_false(boolean p) = !p;";
+  public void parseIsFalseLogicPredicate() throws AcslParseException {
     AcslScope acslScope = getAcslScope();
+    // The grammar does not allow a negated predicate as term
     assertThrows(
         AcslParseException.class,
-        () -> AcslParser.parseLogicalDefinition(definition1, acslScope, FileLocation.DUMMY));
-    assertThrows(
-        NullPointerException.class,
-        () -> AcslParser.parseLogicalDefinition(definition2, acslScope, FileLocation.DUMMY));
+        () ->
+            AcslParser.parseLogicalDefinition(
+                "predicate is_false(boolean p) = (!p) == \\true;", acslScope, FileLocation.DUMMY));
+    // A boolean term as predicate holds if it is true
+    assertThat(
+            AcslParser.parseLogicalDefinition(
+                "predicate is_false(boolean p) = !p;", acslScope, FileLocation.DUMMY))
+        .isEqualTo(
+            AcslParser.parseLogicalDefinition(
+                "predicate is_false(boolean p) = !(p == \\true);", acslScope, FileLocation.DUMMY));
   }
 
   @Test

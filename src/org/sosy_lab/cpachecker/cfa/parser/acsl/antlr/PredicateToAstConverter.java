@@ -13,6 +13,7 @@ import static com.google.common.base.Verify.verify;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -21,6 +22,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
@@ -47,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ParenthesesPredContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.PredicateApplicationPredContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.PredicateTermContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.PredicateVariableContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TermContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.TernaryConditionPredContext;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.UnaryPredContext;
@@ -117,13 +122,37 @@ class PredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate>
 
   @Override
   public AcslPredicate visitPredicateTerm(PredicateTermContext ctx) {
-    // As in C, a term as predicate holds if it is not zero
-    AcslTerm term = termConverter.visit(ctx.getChild(0));
+    return termAsPredicate(termConverter.visit(ctx.getChild(0)), ctx);
+  }
+
+  @Override
+  public AcslPredicate visitPredicateVariable(PredicateVariableContext ctx) {
+    String name = ctx.getText();
+    AcslPredicateDeclaration predicate = getAcslScope().lookupPredicate(name);
+    if (predicate == null) {
+      return termAsPredicate(
+          new AcslIdTerm(fileLocationFromContext(ctx), getVariableDeclarationForName(name)), ctx);
+    }
+    if (!predicate.getParameters().isEmpty()) {
+      throw new AcslParseRuntimeException("Predicate " + name + " is applied to no arguments");
+    }
+    return new AcslIdPredicate(fileLocationFromContext(ctx), predicate);
+  }
+
+  /** A boolean term as predicate holds if it is true, and any other term if it is not zero. */
+  private AcslPredicate termAsPredicate(AcslTerm pTerm, ParserRuleContext pContext) {
+    FileLocation location = fileLocationFromContext(pContext);
+    if (pTerm.getExpressionType().equals(AcslBuiltinLogicType.BOOLEAN)) {
+      return new AcslBinaryTermPredicate(
+          location,
+          pTerm,
+          new AcslBooleanLiteralTerm(location, true),
+          AcslBinaryTermPredicateOperator.EQUALS);
+    }
     return new AcslBinaryTermPredicate(
-        fileLocationFromContext(ctx),
-        term,
-        new AcslIntegerLiteralTerm(
-            fileLocationFromContext(ctx), AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+        location,
+        pTerm,
+        new AcslIntegerLiteralTerm(location, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
         AcslBinaryTermPredicateOperator.NOT_EQUALS);
   }
 
