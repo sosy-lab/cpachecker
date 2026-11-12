@@ -661,6 +661,9 @@ analysis.memorizeReachedAfterRestart = false
 # Name of the used analysis, defaults to the name of the used configuration
 analysis.name = no default value
 
+# list of files with configurations to use
+analysis.parallelTestGeneration.configFiles = no default value
+
 # Number of threads for parallel test generation
 analysis.parallelTestGeneration.numberOfThreads = 4
 

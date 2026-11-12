@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.testing.parallel;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,7 +20,9 @@ import java.util.logging.Level;
 import javax.management.JMException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testing.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -51,6 +53,22 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
  */
 @Options(prefix = "analysis.parallelTestGeneration")
 public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
+
+  @Option(
+      secure = true,
+      required = true,
+      description =
+          "list of files with configurations"
+              + " to use") /*, which are optionally suffixed according to one"
+                                                      + " of the followig schemes:either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are"
+                                                      + " place holders.MODE may take one of the following values continue (i.e., continue"
+                                                      + " analysis with same CPA and reached set), reuse-precision (i.e., reuse the"
+                                                      + " aggregation of the precisions from the previous analysis run), noreuse (i.e.,"
+                                                      + " start from scratch).LIMIT is a positive integer number specifying the time limit"
+                                                      + " of the analysis in each round.If no (correct) limit is given a default limit is"
+                                                      + " used.")*/
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private List<AnnotatedValue<Path>> configFiles;
 
   // Configuration option: Number of threads for parallel execution
   @Option(description = "Number of threads for parallel test generation", secure = true)
@@ -89,6 +107,11 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
     this.shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     this.cfa = cfa;
     this.specification = spec;
+
+    if (configFiles == null || configFiles.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "Need to specify thread configurations for parallel testing");
+    }
 
     if (numberOfThreads <= 0) {
       throw new InvalidConfigurationException("Number of threads must be positive");
@@ -161,8 +184,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
 
       for (int i = 0; i < partitions.size(); i++) {
         Set<CFAEdge> partition = partitions.get(i);
-        Path configFile =
-            Path.of("config/includes/testing/valueAnalysis-PrallelTestcaseGen.properties");
+        Path configFile = configFiles.get(i % configFiles.size()).value();
         executorService.submit(new TestCaseGenerationTask(partition, i, configFile));
       }
       executorService.shutdown();
@@ -253,8 +275,8 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
 
         ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
         // 4. Inject partition into TestTargetCPA
-        TestTargetCPA testTargetCPA = CPAs.retrieveCPA(cpa, TestTargetCPA.class);
-        Preconditions.checkNotNull(testTargetCPA, "TestTargetCPA not found");
+        TestTargetCPA testTargetCPA =
+            CPAs.retrieveCPAOrFail(cpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
 
         TestTargetTransferRelation transferRel =
             (TestTargetTransferRelation) testTargetCPA.getTransferRelation();
