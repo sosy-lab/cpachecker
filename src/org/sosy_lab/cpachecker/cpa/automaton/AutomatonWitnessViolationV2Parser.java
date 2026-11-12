@@ -102,6 +102,9 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
   private final CParser cparser;
   private final ParserTools parserTools;
 
+  /** Whether the automaton under construction keeps track of the thread ids of the witness. */
+  private boolean tracksThreadIds = false;
+
   public static String THREAD_ID_QUERY = "checkCurrentThreadId==";
 
   AutomatonWitnessViolationV2Parser(
@@ -136,15 +139,6 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * accesses have to be reached without a fixed order. This is a witness version 2.2 feature.
    */
   private boolean supportsMultipleTargetWaypoints() {
-    return version == YAMLWitnessVersion.V2d2;
-  }
-
-  /**
-   * Function-enter waypoints are required to validate violation witnesses for concurrent programs,
-   * since e.g. {@code pthread_create} needs a dedicated action to track the created thread. This is
-   * a witness version 2.2 feature.
-   */
-  private boolean supportsFunctionEnterWaypoints() {
     return version == YAMLWitnessVersion.V2d2;
   }
 
@@ -552,16 +546,13 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
   /**
    * Transform a function enter into automata transitions.
    *
-   * <p>Function-enter waypoints are only supported by witnesses that {@link
-   * #supportsFunctionEnterWaypoints() support them}; for older versions this method always throws.
-   *
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is
    * @param threadId the thread that performs the call, if the witness names one
    * @param pPthreadFunctionEnterWaypoint the identifier that the created thread has in the witness
    * @param pDistanceToViolation the distance to the violation
-   * @throws WitnessParseException if this waypoint is not supported
+   * @throws WitnessParseException if no call matches the location of the waypoint
    */
   protected void handleFunctionEnter(
       String nextStateId,
@@ -572,10 +563,6 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
       Integer pDistanceToViolation,
       ImmutableList.Builder<AutomatonTransition> transitions)
       throws WitnessParseException {
-    if (!supportsFunctionEnterWaypoints()) {
-      throw new WitnessParseException("We currently do not support function enter waypoints.");
-    }
-
     // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
     // or a CStatementEdge
     ImmutableSet<CFAEdge> inputEdges =
@@ -605,9 +592,11 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
     transitionBuilder.withActions(
-        ImmutableList.of(
-            getThreadIdAssignment(pPthreadFunctionEnterWaypoint),
-            distanceToViolationAction(pDistanceToViolation)));
+        tracksThreadIds
+            ? ImmutableList.of(
+                getThreadIdAssignment(pPthreadFunctionEnterWaypoint),
+                distanceToViolationAction(pDistanceToViolation))
+            : ImmutableList.of(distanceToViolationAction(pDistanceToViolation)));
 
     transitions.add(transitionBuilder.build());
   }
@@ -943,7 +932,8 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     // which the witness refers to threads, cf. ThreadingTransferRelation#strengthen. It has to be
     // decided for the witness as a whole, since a waypoint naming a thread may appear in any
     // segment, including the last one.
-    if (supportsThreadIdentifiers() && referencesThreads(segments)) {
+    tracksThreadIds = supportsThreadIdentifiers() && referencesThreads(segments);
+    if (tracksThreadIds) {
       automatonVariablesBuilder.put(
           THREAD_ID_VAR_NAME,
           AutomatonVariable.createAutomatonVariable(

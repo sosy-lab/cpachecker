@@ -58,6 +58,28 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
+  /** Function-enter and function-return waypoints exist since format version 2.0. */
+  @Test(timeout = 3000)
+  public void validate_function_waypoints() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "function-waypoints.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "function-waypoints.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The defined function never returns the value of the function-return waypoint. */
+  @Test(timeout = 3000)
+  public void reject_function_return_waypoint_with_wrong_result() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "function-waypoints.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "function-waypoints-wrong-result.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
   /** The exported assumption names the inner of two variables as in the input program. */
   @Test(timeout = 9000)
   public void validate_shadowed_variable_roundtrip() throws Exception {
