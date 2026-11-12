@@ -95,7 +95,8 @@ public final class AcslInvariants {
     return invariants.build();
   }
 
-  private static ImmutableList<AcslPredicate> preState(AcslFunctionContract pContract) {
+  /** Returns the predicates that hold in the pre-state of the contract. */
+  public static ImmutableList<AcslPredicate> preState(AcslFunctionContract pContract) {
     ImmutableList.Builder<AcslPredicate> predicates = ImmutableList.builder();
     predicates.addAll(
         FluentIterable.from(pContract.getRequiresClauses())
@@ -115,7 +116,8 @@ public final class AcslInvariants {
     return predicates.build();
   }
 
-  private static ImmutableList<AcslPredicate> postState(AcslFunctionContract pContract) {
+  /** Returns the predicates that hold in the post-state of the contract. */
+  public static ImmutableList<AcslPredicate> postState(AcslFunctionContract pContract) {
     ImmutableList.Builder<AcslPredicate> predicates = ImmutableList.builder();
     predicates.addAll(
         FluentIterable.from(pContract.getEnsuresClauses())
@@ -142,7 +144,8 @@ public final class AcslInvariants {
             .toList());
   }
 
-  private static AcslPredicate conjunction(Collection<AcslPredicate> pPredicates) {
+  /** Returns the conjunction of the predicates, which is true for no predicates. */
+  public static AcslPredicate conjunction(Collection<AcslPredicate> pPredicates) {
     AcslPredicate result = null;
     for (AcslPredicate predicate : pPredicates) {
       result =

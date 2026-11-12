@@ -23,6 +23,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.AcslToWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
@@ -236,6 +237,11 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "converts a witness to an ACSL annotated program")
   private boolean useWitnessToACSLAlgorithm = false;
+
+  @Option(
+      secure = true,
+      description = "writes the ACSL annotations of the program as correctness witness")
+  private boolean useAcslToWitnessAlgorithm = false;
 
   @Option(
       secure = true,
@@ -651,6 +657,9 @@ public class CoreComponentsFactory {
 
     } else if (useWitnessToACSLAlgorithm) {
       algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
+
+    } else if (useAcslToWitnessAlgorithm) {
+      algorithm = new AcslToWitnessAlgorithm(config, logger, cfa, specification);
 
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);

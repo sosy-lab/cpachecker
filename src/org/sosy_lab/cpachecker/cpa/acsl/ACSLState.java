@@ -17,15 +17,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -34,7 +28,7 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeReportingState {
+public class ACSLState implements AbstractStateWithAssumptions {
 
   private final ImmutableSet<AcslPredicate> annotations;
   private final AcslToExpressionTreeConverter converter;
@@ -52,17 +46,6 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     logger = pLogManager;
   }
 
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
-      throws TranslationToExpressionTreeFailedException {
-    try {
-      return toExpressionTree();
-    } catch (UnrecognizedCodeException e) {
-      throw new TranslationToExpressionTreeFailedException(e.getMessage());
-    }
-  }
-
   private ExpressionTree<Object> toExpressionTree() throws UnrecognizedCodeException {
     if (annotations.isEmpty()) {
       return ExpressionTrees.getTrue();
@@ -73,38 +56,6 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     return factory.and(representations);
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope,
-      CFANode pLocation,
-      AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables,
-      MachineModel pMachineModel)
-      throws InterruptedException,
-          ReportingMethodNotImplementedException,
-          TranslationToExpressionTreeFailedException {
-    throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
-            + " 'ACSLState'");
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope,
-      AIdExpression pFunctionReturnVariable,
-      MachineModel pMachineModel)
-      throws InterruptedException,
-          ReportingMethodNotImplementedException,
-          TranslationToExpressionTreeFailedException {
-    throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
-            + " 'ACSLState'");
-  }
-
-  public boolean hasAnnotations() {
-    return !annotations.isEmpty();
   }
 
   @Override

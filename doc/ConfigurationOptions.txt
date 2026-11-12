@@ -876,6 +876,9 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# writes the ACSL annotations of the program as correctness witness
+analysis.useAcslToWitnessAlgorithm = false
+
 # Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
