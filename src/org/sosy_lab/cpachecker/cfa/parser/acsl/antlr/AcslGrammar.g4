@@ -444,15 +444,15 @@ polyId
     ;
 
 logicConstDef
-    : 'logic'? typeExpr polyId '=' term
+    : 'logic'? typeExpr polyId '=' term ';'
     ;
 
 logicFunctionDef
-    : 'logic'? typeExpr polyId parameters '=' term
+    : 'logic'? typeExpr polyId parameters '=' term ';'
     ;
 
 logicPredicateDef
-    : 'predicate'? polyId parameters? '=' pred
+    : 'predicate'? polyId parameters? '=' pred ';'
     ;
 
 
@@ -465,7 +465,7 @@ parameter
     ;
 
 lemmaDef
-    : 'lemma'? polyId ':' pred
+    : 'lemma'? polyId ':' pred ';'
     ;
 
 
@@ -475,5 +475,13 @@ acslStatement
 
 
 acslComment
-    :  assertion | loopAnnot | functionContract | forBehaviorsContract | logicDef
+    : (assertion | loopAnnot | functionContract | forBehaviorsContract | logicDef) EOF
+    ;
+
+completePred
+    : pred EOF
+    ;
+
+completeLogicDef
+    : logicDef EOF
     ;

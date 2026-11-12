@@ -137,6 +137,7 @@ public class AcslParserPredicateTest {
   @Test
   public void rejectInvalidIntegerConstants() {
     assertThrows(AcslParseException.class, () -> parseConstant("08"));
+    assertThrows(AcslParseException.class, () -> parseConstant("42lul"));
   }
 
   @Test

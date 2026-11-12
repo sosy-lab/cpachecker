@@ -78,7 +78,7 @@ public class AcslParser {
       FileLocation pInitialFileLocation)
       throws AcslParseException {
 
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.completePred().pred());
     try {
       return new PredicateToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation)
           .visit(tree);
@@ -91,7 +91,7 @@ public class AcslParser {
       String pInput, AcslScope pAcslScope, FileLocation pInitialFileLocation)
       throws AcslParseException {
 
-    ParseTree tree = generateParseTree(pInput, pParser -> pParser.logicDef());
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.completeLogicDef().logicDef());
     try {
       return new LogicDefinitionToAstConverter(pAcslScope, pInitialFileLocation).visit(tree);
     } catch (AcslParseRuntimeException e) {

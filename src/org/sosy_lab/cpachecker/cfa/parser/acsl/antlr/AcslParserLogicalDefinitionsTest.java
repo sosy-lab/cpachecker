@@ -168,7 +168,7 @@ public class AcslParserLogicalDefinitionsTest {
                         maxArrayDeclaration))));
     String input =
         "T MaxArray<T>(T* a,integer i) = (i == 0) ? a[0] : (a[i] > MaxArray(a, i - 1) ? a[i] :"
-            + " MaxArray(a, i - 1))";
+            + " MaxArray(a, i - 1));";
 
     testLogicalFunctionParsing(input, output);
   }
@@ -279,7 +279,7 @@ public class AcslParserLogicalDefinitionsTest {
                         minArrayDeclaration))));
     String input =
         "T MinArray<T>(T* a,integer i) = (i == 0) ? a[0] : (a[i] < MinArray(a, i - 1) ? a[i] :"
-            + " MinArray(a, i - 1))";
+            + " MinArray(a, i - 1));";
 
     testLogicalFunctionParsing(input, output);
   }
@@ -363,7 +363,7 @@ public class AcslParserLogicalDefinitionsTest {
                                 AcslBinaryTermOperator.MINUS)),
                         sumArrayDeclaration),
                     AcslBinaryTermOperator.PLUS)));
-    String input = "T SumArray<T>(T* a,integer i) = (i == 0) ? a[0] : a[i] + SumArray(a, i - 1)";
+    String input = "T SumArray<T>(T* a,integer i) = (i == 0) ? a[0] : a[i] + SumArray(a, i - 1);";
 
     testLogicalFunctionParsing(input, output);
   }
@@ -438,7 +438,7 @@ public class AcslParserLogicalDefinitionsTest {
                                 AcslBinaryTermOperator.MINUS)),
                         fibDeclaration),
                     AcslBinaryTermOperator.PLUS)));
-    String input = "integer Fib(integer i) = (i == 0) || (i == 1) ? i : Fib(i - 1) + Fib(i - 2)";
+    String input = "integer Fib(integer i) = (i == 0) || (i == 1) ? i : Fib(i - 1) + Fib(i - 2);";
 
     testLogicalFunctionParsing(input, output);
   }
@@ -535,7 +535,7 @@ public class AcslParserLogicalDefinitionsTest {
                     AcslBinaryPredicateOperator.IMPLICATION)));
     String input =
         "Sorted<T>(T* a, integer i, integer j) = \\forall integer k, l ; i <= k < l <= j ==> a[k] <"
-            + " a[l]";
+            + " a[l];";
 
     testLogicalFunctionParsing(input, output);
   }
@@ -576,7 +576,7 @@ public class AcslParserLogicalDefinitionsTest {
     String definition2 = "predicate is_false(boolean p) = !p;";
     AcslScope acslScope = getAcslScope();
     assertThrows(
-        NullPointerException.class,
+        AcslParseException.class,
         () -> AcslParser.parseLogicalDefinition(definition1, acslScope, FileLocation.DUMMY));
     assertThrows(
         NullPointerException.class,

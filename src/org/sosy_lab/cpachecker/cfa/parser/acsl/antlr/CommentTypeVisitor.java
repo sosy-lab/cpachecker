@@ -21,11 +21,9 @@ class CommentTypeVisitor extends AcslGrammarBaseVisitor<AcslCommentType> {
 
   @Override
   public AcslCommentType visitAcslComment(AcslCommentContext ctx) {
-    AcslCommentType type = super.visitAcslComment(ctx);
-    if (type == null) {
-      return AcslCommentType.UNKNOWN;
-    }
-    return type;
+    // The last child is the end of the input
+    AcslCommentType type = ctx.getChild(0).accept(this);
+    return type == null ? AcslCommentType.UNKNOWN : type;
   }
 
   @Override

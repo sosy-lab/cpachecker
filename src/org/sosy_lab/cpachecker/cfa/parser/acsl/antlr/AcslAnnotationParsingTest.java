@@ -108,6 +108,15 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
+  public void rejectTrailingInput() {
+    assertThrows(
+        AcslParseException.class,
+        () ->
+            AcslParser.parseAcslComment(
+                "//@ assert x == 10; x", FileLocation.DUMMY, getCProgramScope(), getAcslScope()));
+  }
+
+  @Test
   public void testAssertionToAstString() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     String input = "//@ assert x == 10;";
@@ -222,7 +231,7 @@ ensures x <= 10;
 
   @Test
   public void parseAssertionWithPredicate() throws AcslParseException {
-    String predicate = "predicate is_positive(integer i) = i >= 0";
+    String predicate = "predicate is_positive(integer i) = i >= 0;";
     AcslLogicDefinition predDef =
         AcslParser.parseLogicalDefinition(predicate, getAcslScope(), FileLocation.DUMMY);
     AcslScope aScope = getAcslScope().withDeclaration(predDef.getDeclaration());
@@ -266,7 +275,7 @@ ensures x <= 10;
 
   @Test
   public void parseAssertionPredWrongNumParameters() throws AcslParseException {
-    String predicate = "predicate is_positive(integer i) = i >= 0";
+    String predicate = "predicate is_positive(integer i) = i >= 0;";
     AcslLogicDefinition predDef =
         AcslParser.parseLogicalDefinition(predicate, getAcslScope(), FileLocation.DUMMY);
     AcslScope aScope = getAcslScope().withDeclaration(predDef.getDeclaration());
@@ -283,7 +292,7 @@ ensures x <= 10;
 
   @Test
   public void assertionWithPredicateAstStringTest() throws AcslParseException {
-    String predicate = "predicate is_positive(integer i) = i >= 0";
+    String predicate = "predicate is_positive(integer i) = i >= 0;";
     AcslLogicDefinition predDef =
         AcslParser.parseLogicalDefinition(predicate, getAcslScope(), FileLocation.DUMMY);
     AcslScope aScope = getAcslScope().withDeclaration(predDef.getDeclaration());

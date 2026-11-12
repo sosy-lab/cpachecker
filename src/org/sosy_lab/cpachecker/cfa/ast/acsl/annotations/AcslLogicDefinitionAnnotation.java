@@ -50,6 +50,6 @@ public final class AcslLogicDefinitionAnnotation extends AAcslAnnotation {
 
   @Override
   public String toAstString() {
-    return definition.toASTString();
+    return definition.toASTString() + ";";
   }
 }
