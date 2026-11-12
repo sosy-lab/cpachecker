@@ -19,9 +19,7 @@ import java.util.Objects;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = InvariantSetEntry.class, name = "invariant_set"),
   @JsonSubTypes.Type(value = ViolationSequenceEntry.class, name = "violation_sequence"),
-  @JsonSubTypes.Type(
-      value = PredicateDefinitionsSetEntry.class,
-      name = "predicate_definitions_set")
+  @JsonSubTypes.Type(value = PredicateDefinitionSetEntry.class, name = "predicate_definition_set")
 })
 public abstract class AbstractEntry {
 
