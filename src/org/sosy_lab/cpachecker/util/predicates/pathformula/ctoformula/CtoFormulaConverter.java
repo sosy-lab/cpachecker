@@ -158,7 +158,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
 
   private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
       ImmutableSet.<String>builder()
-          .add("memcpy", "memmove", "memset")
+          .add("memcpy", "memmove", "memset", "strcpy")
           // the atomic builtins that write to the object their pointer argument designates,
           // i.e. all of them except __atomic_load_n and the fences
           .addAll(BuiltinAtomicFunctions.getSideEffectFunctionNames())

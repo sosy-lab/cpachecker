@@ -261,10 +261,7 @@ public class WitnessInvariantsExtractor {
     // candidate for the node
     for (Invariant invariant : invariants) {
       Optional<CFANode> node = findNode(invariant);
-      String column =
-          invariant.getColumn().isPresent()
-              ? String.valueOf(invariant.getColumn().getAsInt())
-              : "none";
+      OptionalInt column = invariant.getColumn();
 
       if (node.isPresent()) {
         ExpressionTreeLocationInvariant candidateInvariant;
@@ -320,13 +317,13 @@ public class WitnessInvariantsExtractor {
               loopStructure ->
                   column.isPresent()
                       ? astCfaRelation.getNodeForIterationStatementLocation(
-                          line, column.getAsInt(), loopStructure)
+                          line, column.orElseThrow(), loopStructure)
                       : astCfaRelation
                           .getIterationStructureFollowingColumnAtTheSameLine(column, line)
                           .flatMap(loop -> loop.getLoopHead(loopStructure)));
     }
     return column.isPresent()
-        ? astCfaRelation.getNodeForStatementLocation(line, column.getAsInt())
+        ? astCfaRelation.getNodeForStatementLocation(line, column.orElseThrow())
         : astCfaRelation
             .getTightestStatementForStarting(line, column)
             .flatMap(

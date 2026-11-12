@@ -59,6 +59,7 @@ rootDirectory = "."
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -219,11 +220,40 @@ solver.synchronize = false
 # parallelity when solving larger queries.
 solver.synchronized.useSeperateProvers = false
 
+# Enable API tracing to record all calls to the JavaSMT library
+solver.trace = false
+
+# Sets how tracing errors should be handled
+solver.traceError = "log"
+  allowed values: [log, fail]
+
+# Export solver interaction as Java code into a file.
+solver.tracefile = no default value
+
 # Apply additional checks to catch common user errors.
 solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
+
+# Sets the engine to be used by this Z3 context, corresponding to Z3 option
+# 'engine=...'. Default: auto-config
+solver.z3.engine = "auto-config"
+  allowed values: [auto-config, datalog, bmc, spacer]
+
+# Further options for Z3 in addition to the default options. Format: 
+# "option.name=value" with ’,’ to separate options. Spaces, as well as
+# capitalization in the options are allowed. Option names and values can be
+# found in the Z3 documentation online:
+# https://microsoft.github.io/z3guide/programming/Parameters/ Example:
+# "spacer.order_children = 2, xform.inline_eager = FALSE,
+# xform.inline_linear=false,xform.slice=false,spacer.max_level=10". Please
+# use the dedicated configuration options, and not this option, for the
+# following Z3 options: logic, engine, optsmt_engine, priority,
+# smt.random_seed, and random_seed. Further, please do not configure the
+# following options, which are specified via JavaSMTs ProverOptions: model,
+# proof, unsat_core.
+solver.z3.furtherOptions = ""
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -236,6 +266,12 @@ solver.z3.legacy.requireProofs = true
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
+
+# SMT-LIB logic to configure the SMT solvers (i.e. all Provers created from a
+# SolverContext with this option) with. Default: ALL. Note: this option does
+# not cover specialized logic selection, e.g. 'spacer.logic'! Please use
+# 'furtherOptions' for those.
+solver.z3.logic = "ALL"
 
 # Ordering for objectives in the optimization context
 solver.z3.objectivePrioritizationMode = "box"
@@ -3796,6 +3832,12 @@ cpa.smg2.cacheSubsets = false
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
 
+# If this Option is enabled, calloc returns 0 if the product of its arguments
+# can not be represented in size_t, as required by C23 and implemented by
+# common C libraries. Otherwise, the product is used as size of the
+# allocation.
+cpa.smg2.callocSizeOverflowReturnsZero = false
+
 # If this Option is enabled, C function atexit() will return a succeeding and
 # failing registration for each registration. Otherwise only succeeding.
 cpa.smg2.canAtexitFail = false
@@ -3815,11 +3857,22 @@ cpa.smg2.crashOnUnknownInConstraint = false
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}
 
+# If this Option is enabled, failure of calloc is simulated, returning 0 on
+# failure.
+cpa.smg2.enableCallocFail = true
+
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg2.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of malloc is simulated
+# If this Option is enabled, failure of malloc is simulated, i.e. it may
+# return 0. For calloc, see option enableCallocFail) and for realloc see
+# option enableReallocFail.
 cpa.smg2.enableMallocFail = true
+
+# If this Option is enabled, failure of realloc is simulated, i.e. it may
+# return 0 and leave the old memory given unchanged. This also applies to
+# realloc with a null pointer, which otherwise behaves like malloc.
+cpa.smg2.enableReallocFail = true
 
 # If true, memory with symbolic size can be zeroed, which allows usage of
 # zeroing allocation functions like calloc().
@@ -4016,6 +4069,17 @@ cpa.smg2.preciseSMGRead = true
 
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
+
+# Sets how realloc(ptr, 0) with a valid ptr is handled, which is
+# implementation-defined (C11 7.22.3 (1), C17 7.22.3.5 (3)) and undefined
+# since C23.
+# FREE_AND_ALLOCATE_ZERO_SIZE: the memory of ptr is freed and the result is
+# that of an allocation with size 0 (see option mallocZeroReturnsZero), e.g.
+# musl and BSD libc.
+# FREE_AND_RETURN_ZERO: the memory of ptr is freed and 0 is returned, e.g.
+# glibc.
+cpa.smg2.reallocWithZeroSize = FREE_AND_ALLOCATE_ZERO_SIZE
+  enum:     [FREE_AND_ALLOCATE_ZERO_SIZE, FREE_AND_RETURN_ZERO]
 
 # whether to use heuristic to avoid similar, repeated refinements
 cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
