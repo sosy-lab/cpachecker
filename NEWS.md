@@ -12,8 +12,7 @@ Changes since CPAchecker 4.2.2
 -------------------------------------------------
 * Due to system requirements from common SMT solvers,
   most configurations of CPAchecker
-  will start requiring Ubuntu 24.04 / Debian 13 or newer
-  after the next CPAchecker release.
+  now require Ubuntu 24.04 / Debian 13 or newer.
 
 
 Changes from CPAchecker 4.2.1 to CPAchecker 4.2.2
