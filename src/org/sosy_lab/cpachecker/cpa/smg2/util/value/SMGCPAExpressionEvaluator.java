@@ -23,6 +23,8 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -35,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -1504,33 +1507,34 @@ public class SMGCPAExpressionEvaluator {
           machineModel.getSizeofInBits(
               pType, new SMG2SizeofVisitor(machineModel, this, pInitialSmgState, logger, options)));
     } catch (UnsupportedOperationException unsException) {
-      // TODO: handle this properly
-      // Variable array length
-      if (pType.getCanonicalType() instanceof CArrayType arrayType
+      // Variable array length, only supported with an element type of concrete size
+      if (options.allowSymbolicVariableArrayLength()
+          && pType.getCanonicalType() instanceof CArrayType arrayType
+          && arrayType.getLength() != null
           && unsException
               .getMessage()
-              .contains("Could not determine variable array length for length")) {
-        CExpression arrayLength = arrayType.getLength();
-        CType arrayLengthType = arrayLength.getExpressionType().getCanonicalType();
-        // Evaluate using the value visitor, and reuse symbolic size
-        List<ValueAndSMGState> lengths =
+              .contains("Could not determine variable array length for length")
+          && getBitSizeof(pInitialSmgState, arrayType.getType(), pEdge)
+              instanceof NumericValue elementSizeInBits) {
+        // The size in bytes is calculated in size_t as in C, i.e., it may wrap around
+        CSimpleType sizeType = machineModel.getSizeType();
+        BigInteger charSizeInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+        CExpression byteSize =
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                sizeType,
+                sizeType,
+                new CCastExpression(FileLocation.DUMMY, sizeType, arrayType.getLength()),
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY,
+                    sizeType,
+                    elementSizeInBits.bigIntegerValue().divide(charSizeInBits)),
+                BinaryOperator.MULTIPLY);
+        List<ValueAndSMGState> byteSizes =
             new SMGCPAValueVisitor(this, pInitialSmgState, pEdge, logger)
-                .evaluate(arrayLength, arrayLengthType);
-        if (lengths.size() == 1) {
-          ValueAndSMGState arrayLengthValueAndState = lengths.getFirst();
-          Value arrayLengthValue = arrayLengthValueAndState.getValue();
-          checkState(
-              !arrayLengthValue.isExplicitlyKnown(),
-              "The sizeOf visitor returned a non-explicit value, but we found one later.");
-          if (options.allowSymbolicVariableArrayLength()) {
-            BigInteger byteSizeOfElementType =
-                machineModel.getSizeof(arrayType.getType().getCanonicalType());
-
-            return multiplyBitOffsetValues(
-                arrayLengthValue,
-                byteSizeOfElementType.multiply(
-                    BigInteger.valueOf(machineModel.getSizeofCharInBits())));
-          }
+                .evaluate(byteSize, sizeType);
+        if (byteSizes.size() == 1 && !byteSizes.getFirst().getValue().isUnknown()) {
+          return multiplyBitOffsetValues(byteSizes.getFirst().getValue(), charSizeInBits);
         }
       }
       throw unsException;
