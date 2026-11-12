@@ -402,7 +402,8 @@ public class ConfigurationFileChecks {
     final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig =
-        basePath.toString().toLowerCase().contains("testcasegeneration")
+        basePath.toString().contains("testCaseGeneration")
+            || basePath.toString().contains("TestCaseGeneration")
             || basePath.toString().contains("testcomp");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
