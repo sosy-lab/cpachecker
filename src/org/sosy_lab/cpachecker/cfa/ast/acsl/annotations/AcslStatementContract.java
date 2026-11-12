@@ -61,7 +61,7 @@ public final class AcslStatementContract extends AAcslAnnotation {
   public String toAstString() {
     return (enclosingBehaviors.isEmpty()
             ? ""
-            : "for " + Joiner.on(", ").join(enclosingBehaviors) + ":" + System.lineSeparator())
+            : "for " + Joiner.on(", ").join(enclosingBehaviors) + ": ")
         + contract.toAstString();
   }
 }

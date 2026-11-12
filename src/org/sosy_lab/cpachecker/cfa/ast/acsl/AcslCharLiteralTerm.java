@@ -30,6 +30,18 @@ public final class AcslCharLiteralTerm extends AcslLiteralTerm {
   }
 
   @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (character) {
+      case '\'' -> "'\\''";
+      case '\\' -> "'\\\\'";
+      default ->
+          character >= ' ' && character < 127
+              ? "'" + character + "'"
+              : String.format("'\\x%x'", (int) character);
+    };
+  }
+
+  @Override
   public <R, X extends Exception> R accept(AcslTermVisitor<R, X> v) throws X {
     return v.visit(this);
   }

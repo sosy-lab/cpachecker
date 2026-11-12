@@ -44,7 +44,9 @@ public final class AcslAssigns extends AAcslAnnotation {
   @Override
   public String toAstString() {
     return "assigns "
-        + Joiner.on(", ").join(Collections2.transform(locations, l -> l.toASTString()))
+        + (locations.isEmpty()
+            ? "\\nothing"
+            : Joiner.on(", ").join(Collections2.transform(locations, l -> l.toASTString())))
         + ";";
   }
 }

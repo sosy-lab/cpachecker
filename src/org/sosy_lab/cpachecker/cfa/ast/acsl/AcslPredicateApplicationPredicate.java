@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
@@ -66,8 +67,18 @@ public final class AcslPredicateApplicationPredicate extends AbstractExpression
   }
 
   @Override
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    // Parentheses would make the application a term
+    return toASTString(pAAstNodeRepresentation);
+  }
+
+  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return predicateDeclaration.getName() + "(" + Joiner.on(", ").join(parameters) + ")";
+    return predicateDeclaration.getName()
+        + "("
+        + Joiner.on(", ")
+            .join(Lists.transform(parameters, term -> term.toASTString(pAAstNodeRepresentation)))
+        + ")";
   }
 
   private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {

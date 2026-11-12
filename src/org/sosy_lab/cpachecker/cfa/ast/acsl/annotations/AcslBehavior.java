@@ -88,9 +88,8 @@ public final class AcslBehavior extends AAcslAnnotation {
   public String toAstString() {
     return "behavior "
         + name
-        + ":"
-        + System.lineSeparator()
-        + Joiner.on(System.lineSeparator())
+        + ": "
+        + Joiner.on(' ')
             .join(
                 FluentIterable.<AAcslAnnotation>concat(
                         assumesClauses, requiresClauses, ensuresClauses, assignsClauses)

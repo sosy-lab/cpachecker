@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -95,29 +97,10 @@ public final class AcslFunctionContract extends AAcslAnnotation {
 
   @Override
   public String toAstString() {
-    StringBuilder astString = new StringBuilder();
-
-    for (AcslRequires r : requiresClauses) {
-      astString.append(r.toAstString()).append(System.lineSeparator());
-    }
-
-    for (AcslEnsures e : ensuresClauses) {
-      astString.append(e.toAstString()).append(System.lineSeparator());
-    }
-
-    for (AcslAssigns a : assignsClauses) {
-      astString.append(a.toAstString()).append(System.lineSeparator());
-    }
-
-    for (AcslBehavior b : behaviors) {
-      astString.append(b.toAstString()).append(System.lineSeparator());
-    }
-
-    for (AcslCompletenessClause c : completenessClauses) {
-      astString.append(c.toAstString()).append(System.lineSeparator());
-    }
-
-    return astString.toString();
+    return FluentIterable.<AAcslAnnotation>concat(
+            requiresClauses, ensuresClauses, assignsClauses, behaviors, completenessClauses)
+        .transform(AAcslAnnotation::toAstString)
+        .join(Joiner.on(' '));
   }
 
   public ImmutableSet<AcslEnsures> getEnsuresClauses() {

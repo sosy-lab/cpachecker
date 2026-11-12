@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -70,14 +68,8 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
 
   @Override
   public String typedDeclarationString() {
-    return getType().toASTString(getName())
-        + " "
-        + getName()
-        + "<"
-        + FluentIterable.from(getPolymorphicTypes()).transform(t -> t.toString())
-        + ">("
-        + FluentIterable.from(getParameters()).transform(e -> e.toASTString()).join(Joiner.on(", "))
-        + ")";
+    return "predicate "
+        + AcslLogicDeclaration.polyIdWithParameters(getName(), polymorphicTypes, getParameters());
   }
 
   @Override

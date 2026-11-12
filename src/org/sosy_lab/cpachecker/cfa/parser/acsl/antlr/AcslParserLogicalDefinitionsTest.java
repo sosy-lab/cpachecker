@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryPredicateOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLogicDefinitionAnnotation;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslFunctionType;
@@ -58,8 +60,13 @@ public class AcslParserLogicalDefinitionsTest {
 
     AcslScope acslScope = getAcslScope();
 
-    AcslAstNode parsed = AcslParser.parseLogicalDefinition(input, acslScope, FileLocation.DUMMY);
+    AcslLogicDefinition parsed =
+        AcslParser.parseLogicalDefinition(input, acslScope, FileLocation.DUMMY);
     assertThat(parsed).isEqualTo(output);
+
+    String printed = new AcslLogicDefinitionAnnotation(FileLocation.DUMMY, parsed).toAstString();
+    assertThat(AcslParser.parseLogicalDefinition(printed, acslScope, FileLocation.DUMMY))
+        .isEqualTo(parsed);
   }
 
   @Test

@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -62,13 +64,9 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
 
   @Override
   public String toAstString() {
-    StringBuilder astString = new StringBuilder();
-    for (AcslLoopInvariant l : loopInvariants) {
-      astString.append(l.toAstString()).append(System.lineSeparator());
-    }
-    for (AcslAssigns a : loopAssigns) {
-      astString.append("loop ").append(a.toAstString()).append(System.lineSeparator());
-    }
-    return astString.toString();
+    return FluentIterable.concat(
+            FluentIterable.from(loopInvariants).transform(AcslLoopInvariant::toAstString),
+            FluentIterable.from(loopAssigns).transform(assigns -> "loop " + assigns.toAstString()))
+        .join(Joiner.on(' '));
   }
 }

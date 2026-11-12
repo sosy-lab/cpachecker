@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.CharMatcher;
 import java.io.Serial;
 import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -29,6 +30,13 @@ public final class AcslRealLiteralTerm extends AcslLiteralTerm {
   @Override
   public BigDecimal getValue() {
     return value;
+  }
+
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    String text = value.toString();
+    // Without a point or an exponent, the constant would be an integer
+    return CharMatcher.anyOf(".E").matchesAnyOf(text) ? text : text + ".";
   }
 
   @Override
