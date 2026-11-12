@@ -252,10 +252,11 @@ public class ExpressionSimplificationVisitor
     }
 
     final CExpression op = recursive(operand);
-    assert op.getExpressionType().equals(operandType) : "simplification should not change type";
+    assert op.getExpressionType().getCanonicalType().equals(operandType.getCanonicalType())
+        : "simplification should not change type";
     final NumericValue value = getValue(op);
 
-    if (value != null && operandType instanceof CSimpleType cSimpleType) {
+    if (value != null && operandType.getCanonicalType() instanceof CSimpleType cSimpleType) {
       if (unaryOperator == UnaryOperator.MINUS) {
         // we have to cast the value, because it can overflow, for example for the unary-expression
         // "-2147483648" (=MIN_INT),
