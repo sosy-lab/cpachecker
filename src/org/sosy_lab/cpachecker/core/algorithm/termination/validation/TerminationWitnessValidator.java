@@ -254,8 +254,9 @@ public class TerminationWitnessValidator implements Algorithm {
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
       }
-      if (!loopsToTransitionInvariants.containsKey(loop)
-          && !loopsToSupportingInvariants.containsKey(loop)) {
+      // E.g., the transition invariant of the witness could not be parsed
+      if (!loopsToTransitionInvariants.containsKey(loop)) {
+        logger.log(Level.INFO, "A loop has no transition invariant.");
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
 
@@ -386,7 +387,8 @@ public class TerminationWitnessValidator implements Algorithm {
         .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().entrySet())
         .forEach(e -> builder.put(e.getKey(), e.getValue()));
 
-    return builder.buildOrThrow();
+    // Several transition invariants at the loop can refer to the same previous variable
+    return builder.buildKeepingLast();
   }
 
   private ImmutableListMultimap<Loop, BooleanFormula> mapSupportingInvariantsToLoops(
@@ -421,32 +423,33 @@ public class TerminationWitnessValidator implements Algorithm {
     ImmutableMap.Builder<LoopStructure.Loop, BooleanFormula> builder = new ImmutableMap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
+      ImmutableList<ExpressionTreeLocationInvariant> transitionInvariants =
+          FluentIterable.from(pInvariants)
+              .filter(
+                  invariant ->
+                      invariant instanceof ExpressionTreeLocationTransitionInvariant
+                          && isTheInvariantLocationInLoop(loop, invariant.getLocation()))
+              .toList();
+      if (transitionInvariants.isEmpty()) {
+        // The formula of the loop is not needed, and it cannot be created for every loop
+        continue;
+      }
       BooleanFormula invariantForTheLoop = bfmgr.makeTrue();
-      boolean isTrivial = true;
       PathFormula loopFormula = pfmgr.makeFormulaForPath(loop.getInnerLoopEdges().asList());
-      for (ExpressionTreeLocationInvariant invariant : pInvariants) {
-        if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
-          continue;
-        }
-
-        if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
-          BooleanFormula invariantFormula;
-          try {
-            if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
-              invariantFormula = bfmgr.makeTrue();
-            } else {
-              invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
-            }
-          } catch (CPATransferException e) {
+      for (ExpressionTreeLocationInvariant invariant : transitionInvariants) {
+        BooleanFormula invariantFormula;
+        try {
+          if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
             invariantFormula = bfmgr.makeTrue();
+          } else {
+            invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
           }
-          invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
-          isTrivial = false;
+        } catch (CPATransferException e) {
+          invariantFormula = bfmgr.makeTrue();
         }
+        invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
       }
-      if (!isTrivial) {
-        builder.put(loop, invariantForTheLoop);
-      }
+      builder.put(loop, invariantForTheLoop);
     }
     return builder.buildOrThrow();
   }
