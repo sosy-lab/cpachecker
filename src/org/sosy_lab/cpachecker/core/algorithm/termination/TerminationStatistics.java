@@ -552,7 +552,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private ImmutableList<AbstractInvariantEntry> convertRankingFunctionToTransitionInvariant(
       Multimap<Loop, TerminationArgument> pTerminationArguments) {
-    ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
+    // Several termination arguments often have the same supporting invariants
+    ImmutableSet.Builder<AbstractInvariantEntry> entries = ImmutableSet.builder();
 
     for (Loop loop : pTerminationArguments.keySet()) {
       for (CFANode loopHead : loop.getLoopHeads()) {
@@ -585,7 +586,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                 programScope));
       }
     }
-    return entries.build();
+    return entries.build().asList();
   }
 
   /**

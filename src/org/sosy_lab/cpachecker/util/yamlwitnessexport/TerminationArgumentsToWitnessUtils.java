@@ -301,7 +301,8 @@ public class TerminationArgumentsToWitnessUtils {
       CFAEdge pIncomingLoopEdge,
       AstCfaRelation pAstCfaRelation,
       CProgramScope pProgramScope) {
-    ImmutableList.Builder<Optional<String>> transitionInvariants = ImmutableList.builder();
+    // Several lassos often have the same ranking function
+    ImmutableSet.Builder<Optional<String>> transitionInvariants = ImmutableSet.builder();
 
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
     // This is planned in https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1483
@@ -355,7 +356,7 @@ public class TerminationArgumentsToWitnessUtils {
                 rankingFunction.toString(), rankingFunction.getVariables(), true, scope));
       }
     }
-    ImmutableList<Optional<String>> disjuncts = transitionInvariants.build();
+    ImmutableSet<Optional<String>> disjuncts = transitionInvariants.build();
     // Weakening a transition invariant to true keeps it a transition invariant
     String transitionInvariant =
         disjuncts.stream().allMatch(Optional::isPresent)
