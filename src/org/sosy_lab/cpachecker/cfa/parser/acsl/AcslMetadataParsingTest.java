@@ -183,13 +183,15 @@ public class AcslMetadataParsingTest {
             "even_while_nondet.c",
             1,
             0,
-            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 2, 1, "while"))));
+            ImmutableList.of(new LoopAnnotationAttribute("main", 1, 2, 1, "while"))));
     b.add(
         task(
             "even_do_while.c",
             1,
             0,
-            ImmutableList.of(new LoopAnnotationAttribute("main", 2, 1, 1, "do"))));
+            // The annotation belongs to the node before the controlling expression,
+            // which is not a loop head of the CFA
+            ImmutableList.of()));
     b.add(
         task(
             "inv_for.c",
@@ -323,12 +325,6 @@ public class AcslMetadataParsingTest {
       assertThat(expectedException)
           .hasMessageThat()
           .contains("is not declared in neither the C program nor the ACSL scope.");
-    } else if (programName.equals("even_while_nondet.c") || programName.equals("even_do_while.c")) {
-      // ToDo: Fix the node mapping.
-      // Currently, the heads of do-while and non-deterministic
-      // while-loops don't have the isLoopHead flag set to true. As a result, they are not
-      // identified as loop head nodes.
-      assertThrows(AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else if (programName.equals("maxArray.c")) {
       assertThrows(
           // ToDo: Implement TypeSpecifierContext
@@ -368,12 +364,6 @@ public class AcslMetadataParsingTest {
       assertThat(expectedException)
           .hasMessageThat()
           .contains("is not declared in neither the C program nor the ACSL scope.");
-    } else if (programName.equals("even_while_nondet.c") || programName.equals("even_do_while.c")) {
-      // ToDo: Fix the node mapping.
-      // Currently, the heads of do-while and non-deterministic
-      // while-loops don't have the isLoopHead flag set to true. As a result, they are not
-      // identified as loop head nodes.
-      assertThrows(AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else if (programName.equals("maxArray.c")) {
       assertThrows(
           // ToDo: Implement TypeSpecifierContext
@@ -413,12 +403,6 @@ public class AcslMetadataParsingTest {
       assertThat(expectedException)
           .hasMessageThat()
           .contains("is not declared in neither the C program nor the ACSL scope.");
-    } else if (programName.equals("even_while_nondet.c") || programName.equals("even_do_while.c")) {
-      // ToDo: Fix the node mapping.
-      // Currently, the heads of do-while and non-deterministic
-      // while-loops don't have the isLoopHead flag set to true. As a result, they are not
-      // identified as loop head nodes.
-      assertThrows(AcslNodeMappingException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
     } else if (programName.equals("maxArray.c")) {
       assertThrows(
           // ToDo: Implement TypeSpecifierContext

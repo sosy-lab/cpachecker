@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.acsl.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -187,10 +186,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public void setLiveVariables(LiveVariables pLiveVariables) {
     metadata = metadata.withLiveVariables(pLiveVariables);
-  }
-
-  public void setAcslMetadata(AcslMetadata pAcslMetadata) {
-    metadata = metadata.withAcslMetadata(pAcslMetadata);
   }
 
   @Override
