@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.testing.parallel;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -137,7 +137,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
               false, // We handle parallelism ourselves
               TestTargetType.ASSUME, // Use assumption edges as test targets
               "", // No specific target function
-              Collections.emptyList(), // No optimization strategies
+              ImmutableList.of(), // No optimization strategies
               false, // Don't apply optimizations nested
               false, // Don't track redundant targets
               logger);
@@ -156,12 +156,13 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Divided targets into " + partitions.size() + " partitions");
 
       // Step 3: Create thread pool and submit tasks
-      ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+      ExecutorService executorService =
+          Executors.newFixedThreadPool(numberOfThreads); // TODO forbidden API
 
       for (int i = 0; i < partitions.size(); i++) {
         Set<CFAEdge> partition = partitions.get(i);
         Path configFile =
-            Paths.get("config/includes/testing/valueAnalysis-PrallelTestcaseGen.properties");
+            Path.of("config/includes/testing/valueAnalysis-PrallelTestcaseGen.properties");
         executorService.submit(new TestCaseGenerationTask(partition, i, configFile));
       }
       executorService.shutdown();
@@ -253,9 +254,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
         ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
         // 4. Inject partition into TestTargetCPA
         TestTargetCPA testTargetCPA = CPAs.retrieveCPA(cpa, TestTargetCPA.class);
-        if (testTargetCPA == null) {
-          throw new IllegalStateException("TestTargetCPA not found");
-        }
+        Preconditions.checkNotNull(testTargetCPA, "TestTargetCPA not found");
 
         TestTargetTransferRelation transferRel =
             (TestTargetTransferRelation) testTargetCPA.getTransferRelation();
@@ -304,10 +303,10 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
         logger.log(Level.SEVERE, "Thread " + threadId + " unexpected error", e);
 
       } finally {
-          if (threadLogger != null) {
-            threadLogger.flush();
-          }
-          logger.flush();
+        if (threadLogger != null) {
+          threadLogger.flush();
+        }
+        logger.flush();
 
         if (threadShutdownManager != null) {
           threadShutdownManager.requestShutdown("Thread finished");
