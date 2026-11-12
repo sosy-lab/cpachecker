@@ -332,6 +332,18 @@ public class AcslToFormulaVisitorsTest {
   }
 
   @Test
+  public void testXor()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // x == y ^^ x == y should be unsatisfiable
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
+    AcslTerm y = getAcslIdTermFromVarName(cProgramScope, "y");
+
+    BooleanFormula f = translate(b.xor(b.eq(x, y), b.eq(x, y)));
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
   public void testExists()
       throws SolverException, InterruptedException, InvalidConfigurationException {
     // \exists x: x != x should be unsatisfiable

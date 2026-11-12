@@ -61,7 +61,8 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     IMPLICATION("==>"),
     EQUIVALENT("<==>"),
     AND("&&"),
-    OR("||");
+    OR("||"),
+    XOR("^^");
 
     private final String operator;
 

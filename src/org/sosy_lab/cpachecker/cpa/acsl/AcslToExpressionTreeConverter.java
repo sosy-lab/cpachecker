@@ -107,6 +107,10 @@ public final class AcslToExpressionTreeConverter {
               factory.or(
                   factory.and(convert(left, false), convert(right, pNegated)),
                   factory.and(convert(left, true), convert(right, !pNegated)));
+          case XOR ->
+              factory.or(
+                  factory.and(convert(left, false), convert(right, !pNegated)),
+                  factory.and(convert(left, true), convert(right, pNegated)));
         };
       }
       case AcslTernaryPredicate ternary ->

@@ -153,6 +153,7 @@ public class AcslPredicateToFormulaVisitor
       case EQUIVALENT -> bfmgr.equivalence(operand1Formula, operand2Formula);
       case AND -> bfmgr.and(operand1Formula, operand2Formula);
       case OR -> bfmgr.or(operand1Formula, operand2Formula);
+      case XOR -> bfmgr.xor(operand1Formula, operand2Formula);
     };
   }
 

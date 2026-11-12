@@ -139,6 +139,10 @@ public class AcslTestBuilder {
     return binaryPred(left, right, AcslBinaryPredicateOperator.EQUIVALENT);
   }
 
+  public AcslPredicate xor(AcslPredicate left, AcslPredicate right) {
+    return binaryPred(left, right, AcslBinaryPredicateOperator.XOR);
+  }
+
   public AcslPredicate implies(AcslPredicate left, AcslPredicate right) {
     return binaryPred(left, right, AcslBinaryPredicateOperator.IMPLICATION);
   }
