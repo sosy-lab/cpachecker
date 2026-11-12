@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -1019,6 +1020,26 @@ public class CFAUtils {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns whether the given call of <code>__VERIFIER_nondet_memory</code> havocs a block that is
+   * not accessed between its allocation in memory and the call to <code>__VERIFIER_nondet_memory
+   * </code>.
+   *
+   * <p>The most trivial case for this:
+   *
+   * <pre>
+   * int * p = malloc(4 * sizeof(int));
+   * __VERIFIER_nondet_memory(p, 4);
+   * </pre>
+   *
+   * @see UntouchedAllocationCheck for details on the method's behavior
+   */
+  public static boolean isHavocOfUntouchedAllocation(
+      CStatementEdge pNondetMemoryCall, Predicate<String> pIsAllocationFunction) {
+    return new UntouchedAllocationCheck(pIsAllocationFunction)
+        .isHavocOfUntouchedAllocation(pNondetMemoryCall);
   }
 
   private static final Traverser<AAstNode> AST_LHS_TRAVERSER =

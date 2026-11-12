@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -747,10 +749,21 @@ class CExpressionVisitorWithPointerAliasing
           return Value.ofValue(destinationFormula);
 
         } else if (functionName.equals("__VERIFIER_nondet_memory")) {
-          MemoryManipulationFunctionHandler memoryFunctionHandler =
-              new MemoryManipulationFunctionHandler(
-                  conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
-          memoryFunctionHandler.handleNondetMemoryAssignment(e);
+          // Setting each byte to a nondet value explicitly is expensive for large blocks,
+          // so we only do it if we have to.
+          // One case where we can avoid it:
+          // Fresh allocations (for example malloc(..)) already have unconstrained content in our
+          // encoding.
+          // So the havoc of an allocation that wasn't touched yet does not change the abstract
+          // program state
+          // and can be skipped.
+          if (!(edge instanceof CStatementEdge statementEdge)
+              || !isHavocOfFreshlyAllocatedMemory(statementEdge)) {
+            MemoryManipulationFunctionHandler memoryFunctionHandler =
+                new MemoryManipulationFunctionHandler(
+                    conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
+            memoryFunctionHandler.handleNondetMemoryAssignment(e);
+          }
 
         } else if (functionName.equals(THREAD_JOIN)) {
           // pthread_join(t, p) writes the result of thread t to *p. The encoding does not know
@@ -825,6 +838,15 @@ class CExpressionVisitorWithPointerAliasing
 
     // Delegate
     return Value.ofValue(delegate.visit(e));
+  }
+
+  private boolean isHavocOfFreshlyAllocatedMemory(CStatementEdge pEdge) {
+
+    return CFAUtils.isHavocOfUntouchedAllocation(
+        pEdge,
+        name ->
+            conv.options.isMemoryAllocationFunction(name)
+                && !conv.options.isMemoryAllocationFunctionWithZeroing(name));
   }
 
   /** This method provides approximations of the builtin functions memcmp, strcmp, and strncmp. */
