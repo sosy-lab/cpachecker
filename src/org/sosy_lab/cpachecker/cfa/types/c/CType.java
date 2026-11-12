@@ -26,7 +26,6 @@ public sealed interface CType extends Type
         CBitFieldType,
         CComplexType,
         CFunctionType,
-        CFunctionTypeWithNames,
         CPointerType,
         CProblemType,
         CSimpleType,
