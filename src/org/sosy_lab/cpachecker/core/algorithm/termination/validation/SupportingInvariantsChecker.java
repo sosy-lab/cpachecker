@@ -10,10 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,6 +56,13 @@ public final class SupportingInvariantsChecker {
     UNKNOWN
   }
 
+  /**
+   * The results of the checks of witnesses for each CFA, since the analyses that validate a witness
+   * in parallel check the same invariants.
+   */
+  private static final Cache<CFA, Map<List<Path>, InvariantCheckResult>> RESULTS =
+      CacheBuilder.newBuilder().weakKeys().build();
+
   private SupportingInvariantsChecker() {}
 
   /**
@@ -73,14 +84,31 @@ public final class SupportingInvariantsChecker {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws CPAException, InterruptedException {
+    Map<List<Path>, InvariantCheckResult> results =
+        RESULTS.asMap().computeIfAbsent(pCfa, cfa -> new ConcurrentHashMap<>());
+    List<Path> key =
+        ImmutableList.of(
+            pConfigFile.toAbsolutePath().normalize(), pWitnessPath.toAbsolutePath().normalize());
+    InvariantCheckResult cachedResult = results.get(key);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
+
     List<AbstractEntry> witnessEntries;
     try {
       witnessEntries = AutomatonWitnessV2ParserUtils.parseYAML(pWitnessPath);
     } catch (IOException e) {
       throw new CPAException("Supporting invariants check failed: " + e.getMessage(), e);
     }
-    return checkInvariants(
-        pConfigFile, withoutTransitionInvariants(witnessEntries), pCfa, pLogger, pShutdownNotifier);
+    InvariantCheckResult result =
+        checkInvariants(
+            pConfigFile,
+            withoutTransitionInvariants(witnessEntries),
+            pCfa,
+            pLogger,
+            pShutdownNotifier);
+    results.put(key, result);
+    return result;
   }
 
   /**
