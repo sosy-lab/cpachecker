@@ -162,6 +162,6 @@ public record ParseResult(
         cfaNodeToAstParametersInScope,
         cfaNodeToVisibleLocalVariables,
         cfaNodeToVisibleParameters,
-        Optional.empty());
+        svLibCfaMetadata);
   }
 }
