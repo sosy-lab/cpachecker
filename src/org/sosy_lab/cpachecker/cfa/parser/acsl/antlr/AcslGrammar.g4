@@ -69,8 +69,8 @@ termTernaryConditionBody
   | termTernaryConditionBody '[' termTernaryConditionBody ']'   # ArrayAccessTermTernaryConditionBody
   | termTernaryConditionBody '->' id                            # PointerStructureFieldAccessTermTernaryConditionBody
   | termTernaryConditionBody '.' id                             # StructureFieldAccessTermTernaryConditionBody
-  | '(' typeExpr ')' termTernaryConditionBody                   # CastTermTernaryConditionBody
   | '(' termTernaryConditionBody ')'                            # ParenthesesTermTernaryConditionBody
+  | '(' typeExpr ')' termTernaryConditionBody                   # CastTermTernaryConditionBody
   | '\\result'                                                  # ResultTermTernaryConditionBody
   | '\\old' '(' termTernaryConditionBody ')'                    # OldTermTernaryConditionBody
   | '\\at' '(' termTernaryConditionBody ',' labelId ')'        # AtTermTernaryConditionBody
@@ -97,9 +97,9 @@ term
     | term '.' id                                       # StructureFieldAccessTerm
     | '{' term '\\with' '.' id '=' term '}'             # FieldFuncModifierTerm
     | term '->' id                                      # PointerStructureFieldAccessTerm
-    | '(' typeExpr ')' term                            # CastTerm
-    | ident '(' term (',' term)* ')'                    # FuncApplicationTerm
     | '(' term ')'                                      # ParenthesesTerm
+    | ident '(' term (',' term)* ')'                    # FuncApplicationTerm
+    | '(' typeExpr ')' term                            # CastTerm
     // The ACSL standard allow a general predicate to be the condition here,
     // but since this would make the grammmar left recursive between terms and predicates,
     // we decided to use a more restricted grammar, with a lot of different rules,
@@ -289,6 +289,8 @@ completenessClause
 // This represents a set of memory locations
 tset
     : '\\empty'                         # TsetEmpty
+    // A single location is a term, e.g., *p
+    | term                                  # TsetTerm
     | tset '->' id                      # TsetPointerAccess
     | tset '.' id                       # TsetMemberAccess
     | '*' tset                          # TsetDeref
@@ -301,7 +303,6 @@ tset
     | '(' tset ')'                      # TsetParen
     | '{' tset '|' binders (':' pred)? '}'  # TsetBinders
     | '{' (tset (',' tset)*)? '}'           # TsetSet
-    | term                                  # TsetTerm
     ;
 
 cCompoundStatement

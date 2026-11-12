@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 import com.google.common.base.Verify;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.RuleNode;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -43,6 +44,18 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
     cProgramScope = pCProgramScope;
     acslScope = pAcslScope;
     initialFileLocation = pInitialFileLocation;
+  }
+
+  /**
+   * Passes on the result of a rule with a single rule as child. Any other rule without its own
+   * visit method is not supported, so a result from only some of its children would be wrong.
+   */
+  @Override
+  public T visitChildren(RuleNode pNode) {
+    if (pNode.getChildCount() == 1 && pNode.getChild(0) instanceof RuleNode child) {
+      return child.accept(this);
+    }
+    throw new AcslParseRuntimeException("Unsupported ACSL construct: " + pNode.getText());
   }
 
   public AcslScope getAcslScope() {
