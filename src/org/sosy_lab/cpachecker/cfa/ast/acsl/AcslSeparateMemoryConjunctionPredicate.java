@@ -8,17 +8,21 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 /**
- * Predicates that describe that the two (C) memory regions inside are disjoint (i.e. different
- * memory regions). Contrary to SL (which uses *) we use the symbol @ (so that we don't accidentally
- * confuse the symbol with dereference in C). Example:
+ * Predicates that describe that the memory regions inside each C argument are disjunct (i.e.
+ * distinct memory regions). Contrary to SL (which uses *) we use a function {@code \separated(e_1,
+ * ..., e_n)} with n >= 1. Example:
  *
  * <pre>
  * <code>struct sll {
@@ -32,7 +36,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
  *   if (sll == 0) return 0;
  *   sll->next = malloc(sizeof(sll));
  *   if (sll->next == 0) return 0;
- *   // Here we can guaratee that: (sll) @ (sll->next)
+ *   // Here we can guaratee that: \separated(sll, sll->next);
+ *   // Or even stronger, that a recursive function call describing the rest of the list is separate
+ *   // in \separated(sll, sll_inv(sll->next));
  *   ...
  * }</code>
  * </pre>
@@ -42,34 +48,23 @@ public final class AcslSeparateMemoryConjunctionPredicate extends AbstractExpres
 
   @Serial private static final long serialVersionUID = -2029723119416804891L;
 
-  // TODO: decide whether we want input validation here, or in the visitor. Theoretically you may
-  //  put every C statement here, but we know its invalid for e.g. integer types.
-  // Both expressions are expected to target some memory. May also be an array for example.
-  private final CExpression leftPointer;
-  private final CExpression rightPointer;
+  // All expressions are expected to target some memory. May also be an array for example.
+  private final List<AExpression> disjunctMemory;
 
-  // TODO: the usual structure of CExpression in ACSL-Term in ACSL-Predicate is annoying here
   public AcslSeparateMemoryConjunctionPredicate(
-      FileLocation pFileLocation, CExpression pLeftPointer, CExpression pRightPointer) {
+      FileLocation pFileLocation, List<AExpression> pDisjunctMemory) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
-    leftPointer = checkNotNull(pLeftPointer);
-    rightPointer = checkNotNull(pRightPointer);
+    checkNotNull(pDisjunctMemory);
+    checkArgument(!pDisjunctMemory.isEmpty());
+    disjunctMemory = pDisjunctMemory;
   }
 
   /**
-   * Returns the left {@link CExpression} that is supposed to target some memory region that is
-   * disjoint from the right memory region.
+   * Returns all n {@link CExpression}s for the n >= 1 arguments describing disjunct memory regions
+   * per argument.
    */
-  public CExpression getLeftCExpressionTargetingMemory() {
-    return leftPointer;
-  }
-
-  /**
-   * Returns the right {@link CExpression} that is supposed to target some memory region that is
-   * disjoint from the left memory region.
-   */
-  public CExpression getRightCExpressionTargetingMemory() {
-    return rightPointer;
+  public List<AExpression> getSeparatedArguments() {
+    return disjunctMemory;
   }
 
   @Override
@@ -81,13 +76,14 @@ public final class AcslSeparateMemoryConjunctionPredicate extends AbstractExpres
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+  ;
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "\\("
-        + leftPointer.toASTString(pAAstNodeRepresentation)
-        + " @ "
-        + rightPointer.toASTString(pAAstNodeRepresentation)
+    return "\\separated("
+        + disjunctMemory.stream()
+            .map(e -> e.toASTString(pAAstNodeRepresentation))
+            .collect(Collectors.joining(", "))
         + ")";
   }
 }
