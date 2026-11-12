@@ -34,3 +34,4 @@ mathFunctions/*.yml
 memset/*.yml
 union_arrays/*.yml
 scanf/*.yml
+setjmp/*.yml
