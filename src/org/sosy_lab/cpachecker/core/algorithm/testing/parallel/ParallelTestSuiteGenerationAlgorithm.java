@@ -60,13 +60,13 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
       description =
           "list of files with configurations"
               + " to use") /*, which are optionally suffixed according to one"
-                                                      + " of the followig schemes:either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are"
-                                                      + " place holders.MODE may take one of the following values continue (i.e., continue"
-                                                      + " analysis with same CPA and reached set), reuse-precision (i.e., reuse the"
-                                                      + " aggregation of the precisions from the previous analysis run), noreuse (i.e.,"
-                                                      + " start from scratch).LIMIT is a positive integer number specifying the time limit"
-                                                      + " of the analysis in each round.If no (correct) limit is given a default limit is"
-                                                      + " used.")*/
+                           + " of the followig schemes:either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are"
+                           + " place holders.MODE may take one of the following values continue (i.e., continue"
+                           + " analysis with same CPA and reached set), reuse-precision (i.e., reuse the"
+                           + " aggregation of the precisions from the previous analysis run), noreuse (i.e.,"
+                           + " start from scratch).LIMIT is a positive integer number specifying the time limit"
+                           + " of the analysis in each round.If no (correct) limit is given a default limit is"
+                           + " used.")*/
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
