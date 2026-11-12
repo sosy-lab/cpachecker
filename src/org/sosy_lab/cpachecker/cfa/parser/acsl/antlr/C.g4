@@ -1,8 +1,8 @@
 // This file is part of ANTLR grammars-v4, a collection of grammars for ANTLR v4:
 // https://github.com/antlr/grammars-v4
 //
-// It is c/C.g4 at commit 753536777d827ccc0c9b108531ea67375c2039ac, in which IntegerConstant and
-// FloatingConstant are tokens instead of fragments and DecimalConstant allows leading zeros.
+// It is c/C.g4 at commit 753536777d827ccc0c9b108531ea67375c2039ac, in which each kind of constant
+// is a token of its own and the parser rule constant distinguishes them.
 //
 // SPDX-FileCopyrightText: 2013 Sam Harwell
 //
@@ -17,13 +17,27 @@ grammar C;
 
 primaryExpression
     : Identifier
-    | Constant
+    | constant
     | StringLiteral+
     | '(' expression ')'
     | genericSelection
     | '__extension__'? '(' compoundStatement ')' // Blocks (GCC extension)
     | '__builtin_va_arg' '(' unaryExpression ',' typeName ')'
     | '__builtin_offsetof' '(' typeName ',' unaryExpression ')'
+    ;
+
+constant
+    : DecimalConstant                    # DecimalIntegerConstant
+    | OctalConstant                      # OctalIntegerConstant
+    | HexadecimalConstant                # HexadecimalIntegerConstant
+    | BinaryConstant                     # BinaryIntegerConstant
+    | DecimalFloatingConstant            # DecimalFloatConstant
+    | HexadecimalFloatingConstant        # HexadecimalFloatConstant
+    | SimpleCharacterConstant            # SimpleCharConstant
+    | SimpleEscapeCharacterConstant      # SimpleEscapeCharConstant
+    | OctalEscapeCharacterConstant       # OctalEscapeCharConstant
+    | HexadecimalEscapeCharacterConstant # HexadecimalEscapeCharConstant
+    | UniversalCharacterConstant         # UniversalCharConstant
     ;
 
 genericSelection
@@ -891,34 +905,20 @@ fragment HexQuad
     : HexadecimalDigit HexadecimalDigit HexadecimalDigit HexadecimalDigit
     ;
 
-Constant
-    : IntegerConstant
-    | FloatingConstant
-    //|   EnumerationConstant
-    | CharacterConstant
+DecimalConstant
+    : NonzeroDigit Digit* IntegerSuffix?
     ;
 
-IntegerConstant
-    : DecimalConstant IntegerSuffix?
-    | OctalConstant IntegerSuffix?
-    | HexadecimalConstant IntegerSuffix?
-    | BinaryConstant
+OctalConstant
+    : '0' OctalDigit* IntegerSuffix?
     ;
 
-fragment BinaryConstant
-    : '0' [bB] [0-1]+
+HexadecimalConstant
+    : HexadecimalPrefix HexadecimalDigit+ IntegerSuffix?
     ;
 
-fragment DecimalConstant
-    : Digit+
-    ;
-
-fragment OctalConstant
-    : '0' OctalDigit*
-    ;
-
-fragment HexadecimalConstant
-    : HexadecimalPrefix HexadecimalDigit+
+BinaryConstant
+    : '0' [bB] [0-1]+ IntegerSuffix?
     ;
 
 fragment HexadecimalPrefix
@@ -957,17 +957,12 @@ fragment LongLongSuffix
     | 'LL'
     ;
 
-FloatingConstant
-    : DecimalFloatingConstant
-    | HexadecimalFloatingConstant
-    ;
-
-fragment DecimalFloatingConstant
+DecimalFloatingConstant
     : FractionalConstant ExponentPart? FloatingSuffix?
     | DigitSequence ExponentPart FloatingSuffix?
     ;
 
-fragment HexadecimalFloatingConstant
+HexadecimalFloatingConstant
     : HexadecimalPrefix (HexadecimalFractionalConstant | HexadecimalDigitSequence) BinaryExponentPart FloatingSuffix?
     ;
 
@@ -1005,20 +1000,28 @@ fragment FloatingSuffix
     : [flFL]
     ;
 
-fragment CharacterConstant
-    : '\'' CCharSequence '\''
-    | 'L\'' CCharSequence '\''
-    | 'u\'' CCharSequence '\''
-    | 'U\'' CCharSequence '\''
+SimpleCharacterConstant
+    : CharacterPrefix? '\'' ~['\\\r\n] '\''
     ;
 
-fragment CCharSequence
-    : CChar+
+SimpleEscapeCharacterConstant
+    : CharacterPrefix? '\'' SimpleEscapeSequence '\''
     ;
 
-fragment CChar
-    : ~['\\\r\n]
-    | EscapeSequence
+OctalEscapeCharacterConstant
+    : CharacterPrefix? '\'' OctalEscapeSequence '\''
+    ;
+
+HexadecimalEscapeCharacterConstant
+    : CharacterPrefix? '\'' HexadecimalEscapeSequence '\''
+    ;
+
+UniversalCharacterConstant
+    : CharacterPrefix? '\'' UniversalCharacterName '\''
+    ;
+
+fragment CharacterPrefix
+    : [LuU]
     ;
 
 fragment EscapeSequence

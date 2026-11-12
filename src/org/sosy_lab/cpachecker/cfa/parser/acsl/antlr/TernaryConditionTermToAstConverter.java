@@ -99,7 +99,8 @@ class TernaryConditionTermToAstConverter extends AbstractAntlrToAstConverter<Acs
 
   @Override
   public AcslTerm visitCConstant(CConstantContext ctx) {
-    return convertCConstant(ctx.getText(), fileLocationFromContext(ctx));
+    return new ConstantToAstConverter(getCProgramScope(), getAcslScope(), getInitialFileLocation())
+        .visit(ctx.constant());
   }
 
   @Override

@@ -9,27 +9,20 @@
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
 import com.google.common.base.Verify;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarBaseVisitor;
-import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslLogicType;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPointerType;
@@ -149,79 +142,6 @@ abstract class AbstractAntlrToAstConverter<T> extends AcslGrammarBaseVisitor<T> 
       throw new AcslParseRuntimeException("Type " + pName + " is not declared");
     }
     return type;
-  }
-
-  /**
-   * Converts a C constant. In ACSL, integer constants denote mathematical integers and floating
-   * constants denote real numbers, so their suffixes do not change the value.
-   */
-  AcslTerm convertCConstant(String pText, FileLocation pFileLocation) {
-    if (pText.endsWith("'")) {
-      return new AcslCharLiteralTerm(
-          pFileLocation, AcslBuiltinLogicType.INTEGER, parseCharacterConstant(pText));
-    }
-
-    boolean isHexadecimal = pText.startsWith("0x") || pText.startsWith("0X");
-    if (isHexadecimal ? pText.matches(".*[.pP].*") : pText.matches(".*[.eE].*")) {
-      String withoutSuffix = pText.replaceFirst("[flFL]$", "");
-      BigDecimal value =
-          isHexadecimal
-              ? new BigDecimal(Double.parseDouble(withoutSuffix))
-              : new BigDecimal(withoutSuffix);
-      return new AcslRealLiteralTerm(pFileLocation, AcslBuiltinLogicType.REAL, value);
-    }
-
-    String digits = pText.replaceFirst("([uU](ll|LL|l|L)?|(ll|LL|l|L)[uU]?)$", "");
-    BigInteger value;
-    if (isHexadecimal) {
-      value = new BigInteger(digits.substring(2), 16);
-    } else if (digits.startsWith("0b") || digits.startsWith("0B")) {
-      value = new BigInteger(digits.substring(2), 2);
-    } else if (digits.length() > 1 && digits.startsWith("0")) {
-      value = new BigInteger(digits.substring(1), 8);
-    } else {
-      value = new BigInteger(digits);
-    }
-    return new AcslIntegerLiteralTerm(pFileLocation, AcslBuiltinLogicType.INTEGER, value);
-  }
-
-  private static char parseCharacterConstant(String pText) {
-    // The prefixes L, u, and U do not change the value of a single character
-    String content = pText.substring(pText.indexOf('\'') + 1, pText.length() - 1);
-    if (content.length() == 1 && content.charAt(0) != '\\') {
-      return content.charAt(0);
-    }
-    if (content.length() < 2 || content.charAt(0) != '\\') {
-      throw new AcslParseRuntimeException("Unsupported character constant " + pText);
-    }
-
-    String escape = content.substring(1);
-    int value =
-        switch (escape) {
-          case "'" -> '\'';
-          case "\"" -> '"';
-          case "?" -> '?';
-          case "\\" -> '\\';
-          case "a" -> 7;
-          case "b" -> '\b';
-          case "f" -> '\f';
-          case "n" -> '\n';
-          case "r" -> '\r';
-          case "t" -> '\t';
-          case "v" -> 11;
-          default -> {
-            if (escape.matches("[0-7]{1,3}")) {
-              yield Integer.parseInt(escape, 8);
-            } else if (escape.matches("x[0-9a-fA-F]+|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}")) {
-              yield Integer.parseInt(escape.substring(1), 16);
-            }
-            throw new AcslParseRuntimeException("Unsupported character constant " + pText);
-          }
-        };
-    if (value > Character.MAX_VALUE) {
-      throw new AcslParseRuntimeException("Unsupported character constant " + pText);
-    }
-    return (char) value;
   }
 
   AcslType findResultTypeAfterUnaryOperation(

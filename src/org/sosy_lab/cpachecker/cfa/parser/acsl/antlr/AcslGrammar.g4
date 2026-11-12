@@ -41,7 +41,7 @@ literal
     : '\\true'                                          # TrueConstant
     | '\\false'                                         # FalseConstant
     // let's use C classes
-    | Constant                                          # CConstant
+    | constant                                          # CConstant
     | string                                            # StringConstant
     ;
 

@@ -131,6 +131,12 @@ public class AcslParserPredicateTest {
     assertThat(parseConstant("0X2Allu")).isEqualTo(BigInteger.valueOf(42));
     assertThat(parseConstant("052")).isEqualTo(BigInteger.valueOf(42));
     assertThat(parseConstant("0")).isEqualTo(BigInteger.ZERO);
+    assertThat(parseConstant("0b101010u")).isEqualTo(BigInteger.valueOf(42));
+  }
+
+  @Test
+  public void rejectInvalidIntegerConstants() {
+    assertThrows(AcslParseException.class, () -> parseConstant("08"));
   }
 
   @Test
@@ -148,6 +154,14 @@ public class AcslParserPredicateTest {
     assertThat(parseConstant("'\\''")).isEqualTo('\'');
     assertThat(parseConstant("'\\101'")).isEqualTo('A');
     assertThat(parseConstant("L'\\x41'")).isEqualTo('A');
+    assertThat(parseConstant("u'\\u00e4'")).isEqualTo('\u00e4');
+    assertThat(parseConstant("'\\\\'")).isEqualTo('\\');
+  }
+
+  @Test
+  public void rejectUnsupportedCharacterConstants() {
+    assertThrows(AcslParseException.class, () -> parseConstant("'ab'"));
+    assertThrows(AcslParseException.class, () -> parseConstant("U'\\U0001F600'"));
   }
 
   @Test
