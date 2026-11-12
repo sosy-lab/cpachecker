@@ -469,6 +469,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         case V2 -> exportWitnessVersion2(pCex, outputFile);
         case V2d1 ->
             logger.log(Level.INFO, "There is currently no version 2.1 for Violation Witnesses.");
+        case V2d4 ->
+            logger.log(Level.INFO, "There is currently no version 2.4 for Violation Witnesses.");
       }
     }
   }
