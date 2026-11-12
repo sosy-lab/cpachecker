@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersElemen
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
@@ -641,7 +642,8 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
                 new CheckCoversColumnAndLine(followColumn.orElseThrow(), followLine),
                 // Edges which correspond to blocks in the code, like function declaration edges and
                 // iteration statement edges may fulfill the condition, but are not always desired.
-                new IsStatementEdge()),
+                // A call of a defined function returns via a function-return edge.
+                new Or(new IsStatementEdge(), new IsFunctionReturnEdge())),
             threadId);
 
     AutomatonTransition.Builder transitionBuilder =
