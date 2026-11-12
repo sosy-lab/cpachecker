@@ -221,13 +221,19 @@ public class TerminationWitnessValidator implements Algorithm {
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
     if (hasSupportingInvariants(loopsToSupportingInvariants)) {
-      if (SupportingInvariantsChecker.checkInvariants(
-              supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier)
-          == InvariantCheckResult.INVALID) {
+      InvariantCheckResult result =
+          SupportingInvariantsChecker.checkInvariants(
+              supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier);
+      if (result == InvariantCheckResult.INVALID) {
         // Supporting invariants are not invariants
         pReachedSet.addNoWaitlist(
             DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
         return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      // The checks of the transition invariants assume the supporting invariants
+      if (result == InvariantCheckResult.UNKNOWN) {
+        logger.log(Level.INFO, "The supporting invariants could not be proven.");
+        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
     }
 
