@@ -2502,7 +2502,12 @@ class ASTConverter {
    * <p>Example: {@code int a[] = { 1, 2 };} will be converted to {@code int a[2] = { 1, 2 };}
    */
   private CType addArrayLengthFromInitializer(
-      final CArrayType arrayType, final IASTInitializerClause initializer) {
+      final CArrayType arrayType, IASTInitializerClause initializer) {
+    IASTLiteralExpression bracedString = getBracedStringLiteral(initializer);
+    if (bracedString != null && isCharArray(arrayType)) {
+      initializer = bracedString;
+    }
+
     if (arrayType.getLength() != null) {
       return arrayType;
 
@@ -3257,6 +3262,14 @@ class ASTConverter {
   private CInitializer convert(
       IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
 
+    IASTLiteralExpression bracedString = getBracedStringLiteral(iList);
+    if (bracedString != null
+        && declaration != null
+        && type.equals(declaration.getType())
+        && isCharArray(type)) {
+      return convert((IASTInitializerClause) bracedString, type, declaration);
+    }
+
     if (declaration != null && iList.getSize() == 1) {
       if (type instanceof CSimpleType || type instanceof CPointerType) {
         IASTInitializerClause result = unpackBracedInitializer(iList);
@@ -3272,6 +3285,24 @@ class ASTConverter {
     } else {
       return convertInitializerListForNonCompositeType(iList, type, declaration);
     }
+  }
+
+  /** Returns "abc" for {"abc"}, which initializes a char array like "abc" (C11 § 6.7.9 (14)). */
+  private static @Nullable IASTLiteralExpression getBracedStringLiteral(
+      IASTInitializerClause pClause) {
+    if (pClause instanceof IASTInitializerList list
+        && list.getSize() == 1
+        && list.getClauses()[0] instanceof IASTLiteralExpression literal
+        && literal.getKind() == IASTLiteralExpression.lk_string_literal) {
+      return literal;
+    }
+    return null;
+  }
+
+  private static boolean isCharArray(CType pType) {
+    return pType.getCanonicalType() instanceof CArrayType arrayType
+        && arrayType.getType().getCanonicalType().asUnqualified() instanceof CSimpleType elemType
+        && elemType.getType() == CBasicType.CHAR;
   }
 
   private @Nullable IASTInitializerClause unpackBracedInitializer(IASTInitializerList pIList) {
