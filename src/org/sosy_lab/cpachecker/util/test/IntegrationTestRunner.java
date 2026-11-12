@@ -19,6 +19,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /**
  * Helper class for running integration tests, i.e., full CPAchecker runs.
@@ -143,9 +144,18 @@ public class IntegrationTestRunner {
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
 
     ShutdownManager shutdownManager = ShutdownManager.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
-    CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
-    logger.flush();
-    return new IntegrationTestResult(stringLogHandler.getLog(), results);
+    // Without this the options of the category "limits" would have no effect in tests,
+    // because it is otherwise only CPAMain that enforces them.
+    ResourceLimitChecker limits =
+        ResourceLimitChecker.fromConfiguration(config, logger, shutdownManager);
+    limits.start();
+    try {
+      CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
+      CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
+      logger.flush();
+      return new IntegrationTestResult(stringLogHandler.getLog(), results);
+    } finally {
+      limits.cancel();
+    }
   }
 }

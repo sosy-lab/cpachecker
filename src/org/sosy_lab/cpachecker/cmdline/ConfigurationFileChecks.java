@@ -420,7 +420,10 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
         || Ascii.toLowerCase(basePath.toString()).contains("termination")
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
-        || basePath.toString().contains("validation-termination")) {
+        || basePath.toString().contains("validation-termination")
+        // A config for the termination property has no property violation to look for
+        // and thus must not configure a specification.
+        || basePath.toString().endsWith("--termination.properties")) {
       assertThat(Strings.nullToEmpty(spec)).isEmpty();
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
@@ -557,7 +560,16 @@ public class ConfigurationFileChecks {
               Path.of("sequentializeProgram.properties"),
               Path.of("sequentialization-concurrency--memorysafety.properties"),
               Path.of("sequentialization-concurrency--overflow.properties"),
-              Path.of("sequentialization-concurrency.properties"));
+              Path.of("sequentialization-concurrency.properties"),
+              // interpret the property itself, so they reject the default specification
+              Path.of("orderingConsistency.properties"),
+              Path.of("orderingConsistency--overflow.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency--overflow.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency-z3-nla.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency.properties"),
+              Path.of("svcomp27--concurrency.properties"),
+              Path.of("svcomp27--concurrency-overflow.properties"),
+              Path.of("svcomp27--datarace.properties"));
     }
 
     CPAcheckerResult result;

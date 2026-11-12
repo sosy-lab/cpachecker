@@ -11,16 +11,20 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * An assignment of the memory location {@code rightHandSideMemoryLocation} to the pointer {@code
  * leftHandSideMemoryLocation}.
  *
- * <p>This is not a record so that the constructor can be private, i.e. so that instances can only
- * be created by {@link SeqPointerAssignment#of}, which rejects unsupported input programs.
+ * <p>This class is not a record so that the constructor can reject unsupported input programs (via
+ * {@link UnsupportedCodeException}), and records do not allow checked exceptions in the method
+ * called after construction.
  */
 public final class SeqPointerAssignment {
+
+  private final MPORThread thread;
 
   private final SeqPointerAssignmentType type;
 
@@ -28,29 +32,22 @@ public final class SeqPointerAssignment {
 
   private final SeqMemoryLocation rightHandSideMemoryLocation;
 
-  private SeqPointerAssignment(
-      SeqPointerAssignmentType pType,
-      SeqMemoryLocation pLeftHandSideMemoryLocation,
-      SeqMemoryLocation pRightHandSideMemoryLocation) {
-
-    type = pType;
-    leftHandSideMemoryLocation = pLeftHandSideMemoryLocation;
-    rightHandSideMemoryLocation = pRightHandSideMemoryLocation;
-  }
-
-  /**
-   * Creates a {@link SeqPointerAssignment} after checking that the left-hand side is actually a
-   * pointer.
-   */
-  public static SeqPointerAssignment of(
+  SeqPointerAssignment(
+      MPORThread pThread,
       SeqPointerAssignmentType pType,
       SeqMemoryLocation pLeftHandSideMemoryLocation,
       SeqMemoryLocation pRightHandSideMemoryLocation)
       throws UnsupportedCodeException {
 
     InputRejection.checkPointerAssignmentLeftHandSide(pLeftHandSideMemoryLocation);
-    return new SeqPointerAssignment(
-        pType, pLeftHandSideMemoryLocation, pRightHandSideMemoryLocation);
+    thread = pThread;
+    type = pType;
+    leftHandSideMemoryLocation = pLeftHandSideMemoryLocation;
+    rightHandSideMemoryLocation = pRightHandSideMemoryLocation;
+  }
+
+  public MPORThread getThread() {
+    return thread;
   }
 
   public SeqPointerAssignmentType type() {

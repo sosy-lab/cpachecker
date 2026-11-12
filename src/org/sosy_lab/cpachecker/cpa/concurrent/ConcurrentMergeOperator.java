@@ -1,0 +1,92 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.concurrent;
+
+import com.google.common.collect.ImmutableList;
+import java.util.Map.Entry;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+class ConcurrentMergeOperator implements MergeOperator {
+
+  private final MergeOperator wrappedMerge;
+  private final StopOperator threadSpecificStop;
+  private final Precision threadSpecificUnitPrecision;
+
+  ConcurrentMergeOperator(
+      ConfigurableProgramAnalysis pWrappedCpa, ConfigurableProgramAnalysis pThreadSpecificCpa)
+      throws InterruptedException {
+    wrappedMerge = pWrappedCpa.getMergeOperator();
+    threadSpecificStop = pThreadSpecificCpa.getStopOperator();
+    threadSpecificUnitPrecision =
+        pThreadSpecificCpa.getInitialPrecision(
+            CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
+  }
+
+  @Override
+  public AbstractState merge(AbstractState state1, AbstractState state2, Precision precision)
+      throws CPAException, InterruptedException {
+    if (state1 instanceof ConcurrentState pConcurrentState1
+        && state2 instanceof ConcurrentState pConcurrentState2
+        && precision instanceof ConcurrentPrecision pConcurrentPrecision) {
+      if (canMerge(pConcurrentState1, pConcurrentState2)) {
+        AbstractState wrapped1 = pConcurrentState1.getWrappedState();
+        AbstractState wrapped2 = pConcurrentState2.getWrappedState();
+        Precision wrappedPrecision = pConcurrentPrecision.getWrappedPrecision();
+        AbstractState mergedWrapped = wrappedMerge.merge(wrapped1, wrapped2, wrappedPrecision);
+        if (wrapped2.equals(mergedWrapped)) {
+          return pConcurrentState2;
+        } else {
+          return pConcurrentState1.withWrappedState(mergedWrapped);
+        }
+      }
+    }
+    return state2;
+  }
+
+  private boolean canMerge(ConcurrentState c1, ConcurrentState c2)
+      throws CPAException, InterruptedException {
+    if (!c1.liveThreadIds.equals(c2.liveThreadIds)) {
+      return false;
+    }
+    if (!c1.handleToLastCreatedThreadId.equals(c2.handleToLastCreatedThreadId)) {
+      return false;
+    }
+    if (c1.threads.size() != c2.threads.size()) {
+      return false;
+    }
+    for (Entry<ThreadId, ThreadState> entry : c1.threads.entrySet()) {
+      ThreadState thisThreadState = entry.getValue();
+      ThreadState otherThreadState = c2.threads.get(entry.getKey());
+      if (otherThreadState == null) {
+        return false;
+      }
+      if (!thisThreadState.getLocationNode().equals(otherThreadState.getLocationNode())) {
+        return false;
+      }
+      AbstractState wrapped1 = thisThreadState.getWrappedState();
+      AbstractState wrapped2 = otherThreadState.getWrappedState();
+      if (wrapped1 != wrapped2
+          && (!threadSpecificStop.stop(
+                  wrapped1, ImmutableList.of(wrapped2), threadSpecificUnitPrecision)
+              || !threadSpecificStop.stop(
+                  wrapped2, ImmutableList.of(wrapped1), threadSpecificUnitPrecision))) {
+        return false;
+      }
+    }
+    return true;
+  }
+}

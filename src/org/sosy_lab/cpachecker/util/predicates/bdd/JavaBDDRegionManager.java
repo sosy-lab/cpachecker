@@ -108,6 +108,9 @@ class JavaBDDRegionManager implements RegionManager {
               + " cache size).")
   private double cacheRatio = 0.1;
 
+  /** JFactory.MAXVAR, which is not public. */
+  private static final int MAX_VAR_COUNT = 2_097_151;
+
   private int nextvar = 0;
   private int varcount = 100;
 
@@ -270,7 +273,10 @@ class JavaBDDRegionManager implements RegionManager {
 
   private BDD createNewVar() {
     if (nextvar >= varcount) {
-      varcount = (int) (varcount * 1.5);
+      if (varcount >= MAX_VAR_COUNT) {
+        throw new BDDVariableLimitException(MAX_VAR_COUNT);
+      }
+      varcount = (int) Math.min(varcount * 1.5, MAX_VAR_COUNT);
       factory.setVarNum(varcount);
     }
     BDD ret = factory.ithVar(nextvar++);

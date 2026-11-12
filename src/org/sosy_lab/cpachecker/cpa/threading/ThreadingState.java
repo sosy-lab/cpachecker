@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessViolationV2Parser;
@@ -60,6 +61,7 @@ public class ThreadingState
     implements AbstractState,
         AbstractStateWithAssumptions,
         AbstractStateWithLocations,
+        AbstractStateWithThreads,
         Graphable,
         Partitionable,
         AbstractQueryableState {
@@ -409,6 +411,11 @@ public class ThreadingState
 
   public Set<String> getThreadIds() {
     return threads.keySet();
+  }
+
+  @Override
+  public int getNumberOfActiveThreads() {
+    return threads.size();
   }
 
   public AbstractState getThreadCallstack(String id) {

@@ -115,8 +115,7 @@ class ASTLiteralConverter {
   }
 
   @VisibleForTesting
-  CLiteralExpression parseIntegerLiteral(
-      FileLocation pFileLoc, String pValueStr, IASTLiteralExpression pExp) {
+  CLiteralExpression parseIntegerLiteral(FileLocation pFileLoc, String pValueStr, IASTNode pExp) {
 
     // Get the suffix that is specified in the literal
     Suffix denotedSuffix = extractDenotedSuffix(pValueStr, pExp);
@@ -381,14 +380,14 @@ class ASTLiteralConverter {
    *
    * @param pMachineModel the machine model.
    * @param pValue the literal value.
-   * @param pExp the ASTLiteralExpression containing the literal.
+   * @param pExp the AST node containing the literal.
    * @return the size that will be used to represent the value.
    */
   private Suffix getLeastRepresentedTypeForValue(
       BigInteger pValue,
       MachineModel pMachineModel,
       ImmutableList<Suffix> pSuffixes,
-      IASTLiteralExpression pExp) {
+      IASTNode pExp) {
     Preconditions.checkState(!pSuffixes.isEmpty(), "List with possible suffixes must not be empty");
 
     int numberOfBits = pValue.bitLength();

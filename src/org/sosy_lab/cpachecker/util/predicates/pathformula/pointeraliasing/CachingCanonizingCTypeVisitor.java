@@ -194,8 +194,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
         final CType oldMemberType = oldMemberDeclaration.getType();
         final CType memberType = oldMemberType.accept(this);
         if (memberType != oldMemberType) {
-          memberDeclarations.add(
-              new CCompositeTypeMemberDeclaration(memberType, oldMemberDeclaration.getName()));
+          memberDeclarations.add(oldMemberDeclaration.withType(memberType));
         } else {
           memberDeclarations.add(oldMemberDeclaration);
         }

@@ -534,7 +534,13 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
+
+      // As in parseFileAndCreateCFA, an SV-LIB script starts in the function that calls the
+      // procedure of its verify-call command.
+      FunctionEntryNode mainFunction =
+          language == Language.SVLIB
+              ? getSvLibMainFunction(parseResult.functions())
+              : parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
       return createCFA(parseResult, mainFunction);

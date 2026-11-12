@@ -472,6 +472,10 @@ analysis.algorithm.MPOR.validateProgramCounters = true
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
+# use the ordering-consistency algorithm for concurrent programs, works only
+# with the OrderingConsistencyCPA
+analysis.algorithm.OrderingConsistency = false
+
 # use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -534,6 +538,12 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
+
+# decide the specification with simple rules, i.e., with arguments that need
+# no reasoning about what the program computes. This replaces the analysis
+# that would otherwise run, so use a portfolio to combine the rules with
+# another analysis.
+analysis.algorithm.simpleRules = false
 
 # Use termination algorithm to prove (non-)termination. This needs the
 # TerminationCPA as root CPA and an automaton CPA with
@@ -792,7 +802,7 @@ analysis.traversal.useLoopstack = false
 analysis.traversal.useNumberOfHeapObjects = false
 
 # handle abstract states with fewer running threads first? (needs
-# ThreadingCPA)
+# AbstractStateWithThreads)
 analysis.traversal.useNumberOfThreads = false
 
 # Use an implementation of postorder strategy that allows to select a
@@ -1153,8 +1163,9 @@ cfa.callgraph.export = true
 cfa.callgraph.file = "functionCalls.dot"
 cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
-# how often do we clone a function?
-cfa.cfaCloner.numberOfCopies = 5
+# how often do we clone a function? The ThreadingCPA uses one copy per
+# created thread.
+cfa.cfaCloner.numberOfCopies = 10
 
 # while this option is activated, before each use of a PointerExpression, or
 # a dereferenced field access the expression is checked if it is 0
@@ -2121,6 +2132,32 @@ cpa.composite.inCPAEnabledAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
+# Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore
+# certain variables during dependency calculation if there is no information
+# about them in the precision (e.g., no predicates referring to them).
+cpa.concurrent.abstractionAware = false
+
+# Aggregate basic blocks to MultiEdges. Similar to basic block aggregation
+# inthe CompositeCPA transfer relation, but only one global statement (i.e.,
+# astatement that accesses a global variable or uses heap memory) is included
+# in aMultiEdge, so that all concurrent thread interleavings are explored.
+cpa.concurrent.aggregateBasicBlocks = false
+
+# Merge operator: SEP never merges states; JOIN delegates to the wrapped
+# merge operator when thread states are compatible.
+cpa.concurrent.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR
+cpa.concurrent.partialOrderReductionAlgorithm = "SPOR"
+
+# Seed for the pseudo-random shuffling of the enabled threads in the
+# source-set heuristic. A single random-number generator is shared by
+# reference across all states of one analysis run, so successive shuffles
+# draw fresh values instead of every state restarting the same sequence; the
+# seed is fixed only to keep runs reproducible.
+cpa.concurrent.randomSeed = 0
+
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
@@ -2280,6 +2317,28 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# Maximum number of different assignments to collect per location for the
+# invariants of a correctness witness. If a location has more assignments
+# than this, no invariant is exported for it, because an incomplete
+# disjunction would be unsound. Use -1 for no limit (which needs memory
+# proportional to the length of the execution).
+cpa.interpreter.maxAssignmentsPerLocation = 100
+
+# Maximum number of assignments that are sampled during one execution.
+# Sampling is intended for programs whose inputs are read outside of any
+# loop, where the number of inputs is bounded by the program. This limit
+# protects against the unbounded number of solver calls that a program with
+# inputs in a loop would need. Use -1 for no limit.
+cpa.interpreter.maxSamples = 1000
+
+# Execute programs with inputs by asking the SMT solver for one assignment of
+# the inputs instead of aborting on the first nondeterministic choice. This
+# needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
+# and the ConstraintsCPA in the CPA configuration. Only one of the possible
+# executions is explored, so the analysis can then only report FALSE, never
+# TRUE.
+cpa.interpreter.sampleNondeterministicValues = false
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -2546,6 +2605,9 @@ cpa.monitor.pathcomputationlimit = 0
 # keep tracking nondeterministically-assigned variables even if they are used
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
+
+# calls to these functions are the reachability targets
+cpa.oc.errorFunctions = {"reach_error"}
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -4121,8 +4183,8 @@ cpa.thread.supportSelfCreation = false
 cpa.threading.allowMultipleLHS = false
 
 # the maximal number of parallel threads, -1 for infinite. When combined with
-# 'useClonedFunctions=true', we need at least N cloned functions. The option
-# 'cfa.cfaCloner.numberOfCopies' should be set to N.
+# 'useClonedFunctions=true', each created thread gets new cloned functions,
+# thus 'cfa.cfaCloner.numberOfCopies' limits the number of created threads.
 cpa.threading.maxNumberOfThreads = 5
 
 # stop state-space-exploration once main is left. Setting this option to true
@@ -5235,6 +5297,45 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
+# write every collected memory event before solving (debugging aid)
+oc.dumpEvents = false
+
+# write the enabled events and read-from choices of a found violation model
+oc.dumpViolationModel = false
+
+# how the ordering constraints are decided
+oc.encoding = CLOCKS
+  enum:     [REFINEMENT, CLOCKS]
+
+# file for the collected memory-event dump
+oc.eventsDumpFile = "OrderingConsistency-events.txt"
+
+# file for the violation execution graph (DOT/graphviz)
+oc.executionGraphFile = "executionGraph.dot"
+
+# export the found violation as an execution graph in DOT/graphviz format
+oc.exportExecutionGraph = true
+
+# export the found violation as a sequentialized counterexample: the enabled
+# events in a consistent execution order, with their CFA edges
+oc.exportSequentializedCounterexample = true
+
+# give up when the loop bound exceeds this value; a negative value deepens
+# without bound
+oc.finalLoopBound = -1
+
+# loop bound of the first exploration round
+oc.initialLoopBound = 5
+
+# loop bound increase between iterative-deepening rounds
+oc.loopBoundStep = 5
+
+# file for the sequentialized counterexample trace
+oc.sequentializedCounterexampleFile = "Counterexample.oc.txt"
+
+# file for the violation-model dump
+oc.violationModelFile = "OrderingConsistency-model.txt"
+
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false
 
@@ -5704,6 +5805,27 @@ sampling.random.samplesToBeGenerated = 10
 # Stop after finding the first counterexample. This is useful when using this
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
+
+# The simple rules to use, by name. The default lists every rule of this
+# CPAchecker version, so switching a rule off or measuring a single rule
+# means removing the others from this list. A rule is applied only if it can
+# decide a proposition of the specification, and the statistics report which
+# rules were applied. A new rule has to be added here as well, which
+# SimpleRulesTest checks.
+simplerules.rules = {
+          "no-reachable-target-location",
+          "violation-on-every-execution",
+          "no-reachable-loop",
+          "endless-loop-on-every-execution",
+          "no-signed-overflow-possible",
+          "signed-overflow-on-every-execution",
+          "no-memory-operation",
+          "no-heap-allocation",
+          "all-accesses-inside-their-object",
+          "access-outside-object-on-every-execution",
+          "free-of-non-heap-object-on-every-execution",
+          "single-threaded",
+          "program-does-nothing"}
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"

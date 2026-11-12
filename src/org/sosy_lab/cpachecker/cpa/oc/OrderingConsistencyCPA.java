@@ -1,0 +1,284 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.oc;
+
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
+import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+
+/**
+ * CPA that explores every thread instance of a concurrent program separately, over all its paths
+ * (no feasibility checks, bounded loop unrolling), and fills an {@link OcExplorationRegistry} for
+ * the subsequent ordering-consistency check.
+ */
+@Options(prefix = "cpa.oc")
+public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable {
+
+  @Option(secure = true, description = "calls to these functions are the reachability targets")
+  private Set<String> errorFunctions = ImmutableSet.of("reach_error");
+
+  private final CFA cfa;
+  // present iff the specification is no-overflow; then error-function calls are no targets
+  private final Optional<ArithmeticOverflowAssumptionBuilder> overflowAssumptionBuilder;
+  private final ImmutableSet<String> addressedVariables;
+  private final Solver solver;
+  private final PathFormulaManager pathFormulaManager;
+  // all data of one exploration round, including its loop bound; replaced, never cleared, by
+  // resetExploration, which the algorithm calls before every round
+  private OcExplorationRegistry registry = new OcExplorationRegistry(0, 0);
+  private final LocationCPA locationCPA;
+  private final CallstackCPA callstackCPA;
+  private final OrderingConsistencyTransferRelation transferRelation;
+
+  private OrderingConsistencyState initialState;
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(OrderingConsistencyCPA.class);
+  }
+
+  public OrderingConsistencyCPA(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
+    super("sep", "never", null);
+    pConfig.inject(this);
+    overflowAssumptionBuilder =
+        pSpecification.getProperties().contains(CommonVerificationProperty.OVERFLOW)
+            ? Optional.of(new ArithmeticOverflowAssumptionBuilder(pCfa, pLogger, pConfig))
+            : Optional.empty();
+    // memory is modeled by OC's own address events, so the encoding must not use the
+    // pointer-aliasing (heap/pointer-target-set) encoding, which is on by default
+    Configuration pathFormulaConfig =
+        Configuration.builder()
+            .copyFrom(pConfig)
+            .setOption("cpa.predicate.handlePointerAliasing", "false")
+            .build();
+    cfa = pCfa;
+    addressedVariables =
+        pCfa.getVarClassification().isPresent()
+            ? ImmutableSet.copyOf(pCfa.getVarClassification().orElseThrow().getAddressedVariables())
+            : ImmutableSet.of();
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    pathFormulaManager =
+        new PathFormulaManagerImpl(
+            solver.getFormulaManager(),
+            pathFormulaConfig,
+            pLogger,
+            pShutdownNotifier,
+            pCfa,
+            AnalysisDirection.FORWARD);
+    locationCPA = LocationCPA.create(pCfa, pConfig);
+    callstackCPA = new CallstackCPA(pConfig, pLogger);
+    transferRelation = new OrderingConsistencyTransferRelation(this, pShutdownNotifier);
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    if (initialState == null) {
+      ThreadInstance mainInstance =
+          registry.newInstance(new InstanceKey(-1, pNode.getFunctionName(), 0));
+      checkState(mainInstance.getId() == ThreadInstance.MAIN_INSTANCE_ID);
+      initialState =
+          new OrderingConsistencyState(
+              mainInstance.getId(),
+              locationCPA.getStateFactory().getState(pNode),
+              (CallstackState) callstackCPA.getInitialState(pNode, pPartition),
+              pathFormulaManager.makeEmptyPathFormula(),
+              solver.getFormulaManager().getBooleanFormulaManager().makeTrue(),
+              ImmutableList.of(),
+              ImmutableMap.of(),
+              ImmutableSet.of(),
+              ImmutableMap.of(),
+              ImmutableMap.of(),
+              false);
+    }
+    return initialState;
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return this::mergeStates;
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    // covers exactly the states absorbed by a merge; nothing else is ever covered
+    return (pState, pReached, pPrecision) -> ((OrderingConsistencyState) pState).isAbsorbed();
+  }
+
+  /**
+   * Merges two states of the same unrolled program point into one whose guard is the disjunction of
+   * the incoming guards, turning the per-thread exploration into a DAG. Never merges into an
+   * already expanded state: its suffix would be explored a second time with overlapping guards
+   * (duplicated events); a missed merge only falls back to tree-shaped, sound exploration.
+   */
+  @SuppressWarnings("unused") // pPrecision required by the MergeOperator functional interface
+  private AbstractState mergeStates(
+      AbstractState pState1, AbstractState pState2, Precision pPrecision)
+      throws InterruptedException {
+    OrderingConsistencyState s1 = (OrderingConsistencyState) pState1;
+    OrderingConsistencyState s2 = (OrderingConsistencyState) pState2;
+    if (s1 == s2
+        || s1.isAbsorbed()
+        || s2.isExpanded()
+        || !s1.getMergeKey().equals(s2.getMergeKey())) {
+      return s2;
+    }
+    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormula mergedGuard = bfmgr.or(s1.getGuard(), s2.getGuard());
+
+    // reconcile the branches' local SSA indices: makeOr yields
+    // (guard1 and bridge1) or (guard2 and bridge2), the guarded phi assignments of the join;
+    // it also merges the pointer-target sets, which stay empty as pointer aliasing is disabled
+    PathFormula merged =
+        pathFormulaManager.makeOr(
+            s1.getPathFormula().withFormula(s1.getGuard()),
+            s2.getPathFormula().withFormula(s2.getGuard()));
+    Verify.verify(
+        merged.getPointerTargetSet().equals(PointerTargetSet.emptyPointerTargetSet()),
+        "OC runs without pointer aliasing, so the merged pointer-target set must stay empty");
+    registry.addPathConstraint(bfmgr.implication(mergedGuard, merged.getFormula()));
+
+    ImmutableList<Integer> lastEvents =
+        ImmutableSet.copyOf(Iterables.concat(s1.getLastEventIds(), s2.getLastEventIds())).asList();
+    s1.markAbsorbed(); // the stop operator covers s1, only the merged state continues
+    OrderingConsistencyState mergedState =
+        new OrderingConsistencyState(
+            s2.getInstanceId(),
+            s2.getLocationState(),
+            s2.getCallstackState(),
+            pathFormulaManager.makeEmptyPathFormulaWithContextFrom(merged),
+            mergedGuard,
+            lastEvents,
+            s2.getCreateCounts(),
+            s2.getLiveInstanceIds(),
+            s2.getLoopCounts(),
+            s2.getLockDepths(),
+            // equal for both states, it is part of the merge key
+            s2.isTarget());
+    if (s1.isOverflowTarget() || s2.isOverflowTarget()) {
+      mergedState.markOverflowTarget();
+    }
+    return mergedState;
+  }
+
+  public Solver getSolver() {
+    return solver;
+  }
+
+  public PathFormulaManager getPathFormulaManager() {
+    return pathFormulaManager;
+  }
+
+  public OcExplorationRegistry getRegistry() {
+    return registry;
+  }
+
+  /**
+   * Discards all exploration results and prepares a fresh round with the given loop bound: all
+   * per-round data lives in the registry, which is replaced by a new one rather than cleared. The
+   * fresh-name counter is carried over into the new registry: the solver (and its formula manager)
+   * lives across all rounds, so restarting the counter at zero could mint a name already used, at a
+   * different type, by an earlier round (see {@link OcExplorationRegistry#OcExplorationRegistry
+   * (int, int)}).
+   */
+  public void resetExploration(int pLoopBound) {
+    registry = new OcExplorationRegistry(pLoopBound, registry.getNextCssaIndex());
+    initialState = null;
+    transferRelation.setRegistry(registry);
+  }
+
+  CFA getCfa() {
+    return cfa;
+  }
+
+  /** Qualified names of variables whose address is taken somewhere in the program. */
+  ImmutableSet<String> getAddressedVariables() {
+    return addressedVariables;
+  }
+
+  LocationCPA getLocationCPA() {
+    return locationCPA;
+  }
+
+  /**
+   * A state of a sequentialized counterexample path: the given location, reached by a step of
+   * thread instance {@code pInstanceId} which created instance {@code pCreatedInstanceId} (or
+   * {@link MemoryEvent#NO_INSTANCE}). Such a path interleaves several threads and therefore has no
+   * counterpart in the exploration's reached set.
+   */
+  public AbstractState counterexampleStateFor(
+      CFANode pNode, int pInstanceId, int pCreatedInstanceId) {
+    return new OcCounterexampleState(
+        locationCPA.getStateFactory().getState(pNode), pInstanceId, pCreatedInstanceId);
+  }
+
+  CallstackCPA getCallstackCPA() {
+    return callstackCPA;
+  }
+
+  Set<String> getErrorFunctions() {
+    return overflowAssumptionBuilder.isPresent() ? ImmutableSet.of() : errorFunctions;
+  }
+
+  Optional<ArithmeticOverflowAssumptionBuilder> getOverflowAssumptionBuilder() {
+    return overflowAssumptionBuilder;
+  }
+
+  @Override
+  public void close() {
+    solver.close();
+  }
+}

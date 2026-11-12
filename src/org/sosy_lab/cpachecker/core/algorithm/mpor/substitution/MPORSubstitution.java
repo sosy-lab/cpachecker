@@ -354,6 +354,7 @@ public class MPORSubstitution {
 
     if (substituteStatement instanceof CAssignment assignment) {
       MPORSubstitutionTrackerUtil.trackPointerAssignment(
+          thread,
           assignment.getLeftHandSide(),
           assignment.getRightHandSide(),
           pCallContext,
@@ -516,7 +517,12 @@ public class MPORSubstitution {
     CVariableDeclaration variableDeclarationSubstitute =
         (CVariableDeclaration) idExpressionSubstitute.getDeclaration();
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
-        variableDeclarationSubstitute, idExpressionSubstitute, pCallContext, pInputCfa, pTracker);
+        thread,
+        variableDeclarationSubstitute,
+        idExpressionSubstitute,
+        pCallContext,
+        pInputCfa,
+        pTracker);
     return variableDeclarationSubstitute;
   }
 

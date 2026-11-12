@@ -110,11 +110,20 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
     }
   }
 
-  /** This method should not be called from this class, but only from the extending one. */
+  /**
+   * Export the given counterexample as a non-termination witness if it describes a lasso, i.e., if
+   * its target state knows the number of unrollings before the cycle. Otherwise, e.g., for an
+   * analysis that only identifies the location of the infinite loop, only the target is exported.
+   */
   @Override
   protected void exportWitness(
-      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) {
-    throw new UnsupportedOperationException();
+      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) throws IOException {
+    if (AbstractStates.extractStateByType(pCex.getTargetState(), TerminationToReachState.class)
+        == null) {
+      super.exportWitness(pCex, pPath, pWitnessVersion);
+    } else {
+      exportWitness(pCex, pPath, pWitnessVersion, OptionalInt.empty());
+    }
   }
 
   /**
