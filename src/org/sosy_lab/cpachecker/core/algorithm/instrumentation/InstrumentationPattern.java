@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 
 /**
  * Class for patterns defined on the transitions of instrumentation automaton. Should not be used
@@ -77,6 +79,8 @@ public class InstrumentationPattern {
           // Returns left variable from assignment, needed especially for data races
           case "vars_un_assign" -> patternType.VARS_UN_ASSIGN;
           case "declar" -> patternType.DECLAR;
+          // Returns local variables whose lifetime ends at the end of their block
+          case "scope_end" -> patternType.SCOPE_END;
           case "ADD" -> patternType.ADD;
           case "SUB" -> patternType.SUB;
           case "NEG" -> patternType.NEG;
@@ -119,6 +123,7 @@ public class InstrumentationPattern {
       case VARS_BIN_ASSIGN -> getTwoVariablesFromAssignment(pCFAEdge);
       case VARS_UN_ASSIGN -> getOneVariableFromAssignment(pCFAEdge);
       case DECLAR -> getTheOperandsFromDeclaration(pCFAEdge);
+      case SCOPE_END -> getTheOperandsFromLocalDeclaration(pCFAEdge);
       case ADD ->
           getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap, pMachineModel);
       case SUB ->
@@ -467,8 +472,33 @@ public class InstrumentationPattern {
             || declaration.getName().contains("__CPAchecker_TMP")) {
           return null;
         }
-        return ImmutableList.of(declaration.getName());
+        return getNameAndLine(declaration);
       }
+    }
+    return null;
+  }
+
+  /**
+   * Returns the name of the declared variable and the line of its declaration, which together
+   * identify the declaration, e.g., to name the table entry of a variable in memory safety.
+   */
+  private static ImmutableList<String> getNameAndLine(CVariableDeclaration pDeclaration) {
+    return ImmutableList.of(
+        pDeclaration.getName(),
+        Integer.toString(pDeclaration.getFileLocation().getStartingLineInOrigin()));
+  }
+
+  /**
+   * Matches the declaration of a local variable whose lifetime is bounded by its block, i.e., that
+   * is neither static nor extern.
+   */
+  private ImmutableList<String> getTheOperandsFromLocalDeclaration(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()
+        && pCFAEdge.getRawAST().orElseThrow() instanceof CVariableDeclaration declaration
+        && !declaration.isGlobal()
+        && declaration.getCStorageClass() == CStorageClass.AUTO
+        && !declaration.getName().contains("__CPAchecker_TMP")) {
+      return getNameAndLine(declaration);
     }
     return null;
   }
@@ -482,7 +512,7 @@ public class InstrumentationPattern {
         }
         if (declaration.getType().toString().contains("*")
             || declaration.getType().toString().contains("[")) {
-          return ImmutableList.of(declaration.getName());
+          return getNameAndLine(declaration);
         }
       }
     }
@@ -493,6 +523,19 @@ public class InstrumentationPattern {
   private ImmutableList<String> getTheOperandsFromPointerDereference(CFAEdge pCFAEdge) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (astNode instanceof CExpressionStatement pCExpressionStatement
+          && takesAddress(pCExpressionStatement.getExpression())) {
+        // An address like '&a[i]' or '&p->f' is computed without accessing the memory
+        return null;
+      }
+      if ((astNode instanceof CVariableDeclaration declaration
+              && declaration.getInitializer() != null)
+          || (astNode instanceof CReturnStatement returnStatement
+              && returnStatement.getReturnValue().isPresent())) {
+        // The expressions of the initializer or of the returned value are matched separately,
+        // see canBeDecomposed
+        return ImmutableList.of();
+      }
       if (astNode instanceof CExpressionStatement pCExpressionStatement
           && (pCExpressionStatement.getExpression().toString().contains("*")
               || pCExpressionStatement.getExpression().toString().contains("[")
@@ -509,6 +552,16 @@ public class InstrumentationPattern {
       }
     }
     return null;
+  }
+
+  /** Decides whether the expression takes an address, possibly cast, e.g., '(char *) &a[i]'. */
+  private static boolean takesAddress(CExpression pExpression) {
+    CExpression expression = pExpression;
+    while (expression instanceof CCastExpression pCCastExpression) {
+      expression = pCCastExpression.getOperand();
+    }
+    return expression instanceof CUnaryExpression pCUnaryExpression
+        && pCUnaryExpression.getOperator() == UnaryOperator.AMPER;
   }
 
   @Nullable
@@ -618,6 +671,7 @@ public class InstrumentationPattern {
     VARS_BIN_ASSIGN,
     VARS_UN_ASSIGN,
     DECLAR,
+    SCOPE_END,
     ADD,
     SUB,
     NEG,

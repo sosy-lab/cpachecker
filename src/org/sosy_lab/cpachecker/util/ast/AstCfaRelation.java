@@ -99,6 +99,30 @@ public final class AstCfaRelation {
     return Objects.requireNonNull(statementOffsetsToLocations.ceilingEntry(offset)).getValue();
   }
 
+  /**
+   * Returns the location of the innermost statement that starts before the given location and
+   * contains it, e.g., the block or the for loop that contains a declaration.
+   *
+   * @param pLocation the location to search the enclosing statement for
+   * @return the location of the innermost enclosing statement, or an empty Optional if there is
+   *     none, e.g., for a location outside of functions
+   */
+  public Optional<FileLocation> getTightestEnclosingStatement(FileLocation pLocation) {
+    int end = pLocation.getNodeOffset() + pLocation.getNodeLength();
+    // Statements nested in an enclosing statement start after it, so the first enclosing
+    // statement found backwards from the location is the innermost one
+    for (FileLocation statement :
+        statementOffsetsToLocations
+            .headMap(pLocation.getNodeOffset(), false)
+            .descendingMap()
+            .values()) {
+      if (statement.getNodeOffset() + statement.getNodeLength() >= end) {
+        return Optional.of(statement);
+      }
+    }
+    return Optional.empty();
+  }
+
   private void initializeMapFromConditionEdgesToIfStructures() {
     if (conditionEdgesToIfStructure != null) {
       return;

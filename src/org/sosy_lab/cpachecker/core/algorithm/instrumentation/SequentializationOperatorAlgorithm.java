@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -48,7 +50,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -244,8 +250,14 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                 // If there is a self-loop in the automaton, we have to move forward.
                 matched = matched || !transition.getDestination().equals(transition.getSource());
               }
+              String lineNumber =
+                  computeLineNumberBasedOnTransition(transition, edge, matchedVariables);
+              if (lineNumber.isEmpty() && transition.getPattern().toString().equals("scope_end")) {
+                // The variable does not go out of scope at the end of a block
+                continue;
+              }
               String newEdge =
-                  computeLineNumberBasedOnTransition(transition, edge, matchedVariables)
+                  lineNumber
                       + "|||"
                       + transition
                           .getOperation()
@@ -298,6 +310,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     if (pTransition.getSource().isFunctionHeadAnnotation()) {
       return Integer.toString(
           pEdge.getPredecessor().getFunction().getFileLocation().getStartingLineInOrigin() + 1);
+    }
+    if (pTransition.getPattern().toString().equals("scope_end")) {
+      // The operation is inserted before the closing brace of the block of the declared variable
+      return getLineOfScopeEnd(pEdge).map(String::valueOf).orElse("");
     }
     try {
       // TODO: The location should be computed differently !
@@ -426,6 +442,32 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           pDecomposedMap,
           pMatchedVariables,
           pCExpressionAssignmentStatement);
+      return true;
+    }
+    if (astNode instanceof CVariableDeclaration pCVariableDeclaration
+        && pTransition.getPattern().toString().equals("ptr_deref")
+        && !addedDeclarationEdges.contains(pCFAEdge)) {
+      // Dereferences in the initializer, e.g., in 'int x = *p;'
+      decomposeInitializer(
+          pCFAEdge,
+          pTransition,
+          pWaitlist,
+          pDecomposedMap,
+          pMatchedVariables,
+          pCVariableDeclaration.getInitializer());
+      return true;
+    }
+    if (astNode instanceof CReturnStatement pCReturnStatement
+        && pTransition.getPattern().toString().equals("ptr_deref")
+        && pCReturnStatement.getReturnValue().isPresent()) {
+      // Dereferences in the returned expression, e.g., in 'return *p;'
+      decomposeExpression(
+          pCFAEdge,
+          pTransition,
+          pWaitlist,
+          pDecomposedMap,
+          pMatchedVariables,
+          pCReturnStatement.getReturnValue().orElseThrow());
       return true;
     }
 
@@ -560,6 +602,39 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   }
 
   /**
+   * Returns the line of the closing brace of the block at whose end the variable declared on the
+   * edge goes out of scope. There is no such line for the added declarations of global variables
+   * and parameters, and for a variable declared in the header of a for loop.
+   */
+  private Optional<Integer> getLineOfScopeEnd(CFAEdge pEdge) {
+    FileLocation declaration = pEdge.getFileLocation();
+    if (addedDeclarationEdges.contains(pEdge) || !declaration.isRealLocation()) {
+      return Optional.empty();
+    }
+    FileLocation inner = declaration;
+    while (true) {
+      Optional<FileLocation> enclosing =
+          cfa.getAstCfaRelation().getTightestEnclosingStatement(inner);
+      if (enclosing.isEmpty()) {
+        return Optional.empty();
+      }
+      FileLocation statement = enclosing.orElseThrow();
+      if (statement.getStartingLineInOrigin() < declaration.getStartingLineInOrigin()) {
+        // The block that contains the declaration, its last line is the closing brace
+        return statement.getEndingLineInOrigin() > declaration.getEndingLineInOrigin()
+            ? Optional.of(statement.getEndingLineInOrigin())
+            : Optional.empty();
+      }
+      if (statement.getEndingLineInOrigin() > declaration.getEndingLineInOrigin()) {
+        // A statement that starts at the line of the declaration, e.g., 'for (int i = 0; ...) {'
+        return Optional.empty();
+      }
+      // The statement of the declaration itself, e.g., for 'b' in 'int a, b;'
+      inner = statement;
+    }
+  }
+
+  /**
    * Returns the first node of the body of the function with the given entry node, i.e., the node
    * after the 'Function start' edge. For main, the declarations of global variables come before
    * this edge.
@@ -643,6 +718,65 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   }
 
   /* Decomposes a CFAEdge with assignment statement. */
+  /**
+   * Adds an edge for every expression of the initializer of a declaration, so that the expressions
+   * are matched in the same way as the right-hand side of an assignment.
+   */
+  private void decomposeInitializer(
+      CFAEdge pCFAEdge,
+      InstrumentationTransition pTransition,
+      List<Pair<CFANode, InstrumentationState>> pWaitlist,
+      Map<CFANode, String> pDecomposedMap,
+      ImmutableList<String> pMatchedVariables,
+      @Nullable CInitializer pInitializer) {
+    if (pInitializer instanceof CInitializerExpression pCInitializerExpression) {
+      decomposeExpression(
+          pCFAEdge,
+          pTransition,
+          pWaitlist,
+          pDecomposedMap,
+          pMatchedVariables,
+          pCInitializerExpression.getExpression());
+    } else if (pInitializer instanceof CInitializerList pCInitializerList) {
+      for (CInitializer initializer : pCInitializerList.getInitializers()) {
+        decomposeInitializer(
+            pCFAEdge, pTransition, pWaitlist, pDecomposedMap, pMatchedVariables, initializer);
+      }
+    } else if (pInitializer instanceof CDesignatedInitializer pCDesignatedInitializer) {
+      decomposeInitializer(
+          pCFAEdge,
+          pTransition,
+          pWaitlist,
+          pDecomposedMap,
+          pMatchedVariables,
+          pCDesignatedInitializer.getRightHandSide());
+    }
+  }
+
+  /**
+   * Adds an edge for the expression, e.g., of an initializer or a return statement, so that it is
+   * matched in the same way as the right-hand side of an assignment.
+   */
+  private void decomposeExpression(
+      CFAEdge pCFAEdge,
+      InstrumentationTransition pTransition,
+      List<Pair<CFANode, InstrumentationState>> pWaitlist,
+      Map<CFANode, String> pDecomposedMap,
+      ImmutableList<String> pMatchedVariables,
+      CExpression pExpression) {
+    String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
+    CFANode node = CFANode.newDummyCFANode();
+    node.addLeavingEdge(
+        new CStatementEdge(
+            pExpression.toASTString(),
+            new CExpressionStatement(pCFAEdge.getFileLocation(), pExpression),
+            pCFAEdge.getFileLocation(),
+            node,
+            pCFAEdge.getSuccessor()));
+    pDecomposedMap.put(node, condition);
+    pWaitlist.add(Pair.of(node, pTransition.getSource()));
+  }
+
   private void decomposeAssignmentStatement(
       CFAEdge pCFAEdge,
       InstrumentationTransition pTransition,
