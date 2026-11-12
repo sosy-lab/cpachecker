@@ -28,10 +28,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -60,13 +62,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslPredicateToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToFormulaConverter;
@@ -121,6 +126,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final @Nullable CtoWpConverter wpConverter;
   private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
+  private final LogManagerWithoutDuplicates loggerWithoutDuplicates;
+  private final MachineModel machineModel;
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(
@@ -164,6 +171,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     logger = pLogger;
+    loggerWithoutDuplicates = new LogManagerWithoutDuplicates(pLogger);
+    machineModel = pMachineModel;
     shutdownNotifier = pShutdownNotifier;
 
     switch (pLanguage) {
@@ -345,6 +354,39 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             false,
             false);
     return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, AcslPredicate pAssumption)
+      throws CPATransferException {
+    if (!(converter instanceof CToFormulaConverterWithPointerAliasing cConverter)) {
+      throw new UnsupportedCodeException(
+          "ACSL annotations need the encoding of C programs with pointer aliasing", null);
+    }
+    SSAMapBuilder ssa = pPathFormula.getSsa().builder();
+    PointerTargetSetBuilder pts =
+        cConverter.createPointerTargetSetBuilder(pPathFormula.getPointerTargetSet());
+    Constraints constraints = new Constraints(bfmgr);
+    BooleanFormula assumption;
+    try {
+      assumption =
+          pAssumption.accept(
+              new AcslPredicateToFormulaVisitor(
+                  fmgr, ssa, cConverter, machineModel, pts, constraints));
+    } catch (UnsupportedOperationException e) {
+      loggerWithoutDuplicates.logOnce(
+          Level.WARNING,
+          "Ignoring the ACSL predicate",
+          pAssumption.toASTString(),
+          "because it cannot be converted:",
+          e.getMessage());
+      return pPathFormula;
+    }
+    return new PathFormula(
+        bfmgr.and(pPathFormula.getFormula(), assumption, constraints.get()),
+        ssa.build(),
+        pts.build(),
+        pPathFormula.getLength());
   }
 
   @Override
@@ -617,6 +659,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             switch (assumption) {
               case CExpression cAssumption -> makeAnd(pPathFormula, cAssumption);
               case SvLibRelationalTerm svLibAssumption -> makeAnd(pPathFormula, svLibAssumption);
+              case AcslPredicate acslAssumption -> makeAnd(pPathFormula, acslAssumption);
               default ->
                   throw new CPATransferException(
                       "Unsupported assumption " + assumption.getClass().getSimpleName());

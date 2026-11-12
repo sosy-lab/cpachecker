@@ -11,15 +11,19 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
@@ -34,14 +38,29 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -55,6 +74,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -125,19 +145,17 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   @Override
   public Formula visit(AcslUnaryTerm pAcslUnaryTerm) {
     // TODO check negation vs bitwise complementation according to ACSL standard, see Issue #1640
-    Formula operandFormula = pAcslUnaryTerm.getOperand().accept(this);
-
     return switch (pAcslUnaryTerm.getOperator()) {
       case SIZEOF -> throw new UnsupportedOperationException("Not yet implemented");
-      case PLUS -> operandFormula; // unary plus should not change the value
-      case MINUS -> fmgr.makeNegate(operandFormula);
-      case POINTER_DEREFERENCE ->
-          throw new UnsupportedOperationException(
-              "Not yet implemented, use AcslCExpression instead");
-      case ADDRESS_OF ->
-          throw new UnsupportedOperationException(
-              "Not yet implemented, use AcslCExpression instead");
-      case NEGATION -> fmgr.makeNot(operandFormula);
+      // unary plus should not change the value
+      case PLUS -> pAcslUnaryTerm.getOperand().accept(this);
+      case MINUS ->
+          unaryToCExpression(pAcslUnaryTerm)
+              .map(this::convertCExpression)
+              .orElseGet(() -> fmgr.makeNegate(pAcslUnaryTerm.getOperand().accept(this)));
+      case POINTER_DEREFERENCE, ADDRESS_OF ->
+          convertCExpression(toCExpressionOrFail(pAcslUnaryTerm));
+      case NEGATION -> fmgr.makeNot(pAcslUnaryTerm.getOperand().accept(this));
     };
   }
 
@@ -168,6 +186,11 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
 
   @Override
   public Formula visit(AcslBinaryTerm pAcslBinaryTerm) {
+    Optional<CExpression> cExpression = binaryToCExpression(pAcslBinaryTerm);
+    if (cExpression.isPresent()) {
+      return convertCExpression(cExpression.orElseThrow());
+    }
+
     AcslType operand1Type = pAcslBinaryTerm.getOperand1().getExpressionType();
     AcslType operand2Type = pAcslBinaryTerm.getOperand2().getExpressionType();
     AcslType termType = pAcslBinaryTerm.getExpressionType();
@@ -183,7 +206,21 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
     operand1Formula = result.f1();
     operand2Formula = result.f2();
 
-    return switch (pAcslBinaryTerm.getOperator()) {
+    AcslBinaryTermOperator operator = pAcslBinaryTerm.getOperator();
+    boolean bitvectors =
+        operand1Formula instanceof BitvectorFormula && operand2Formula instanceof BitvectorFormula;
+    boolean booleans =
+        operand1Formula instanceof BooleanFormula && operand2Formula instanceof BooleanFormula;
+    boolean isShift =
+        operator == AcslBinaryTermOperator.SHIFT_LEFT
+            || operator == AcslBinaryTermOperator.SHIFT_RIGHT;
+    if ((isShift && !bitvectors)
+        || (AcslBinaryTermOperator.isBitwiseOperator(operator) && !bitvectors && !booleans)) {
+      throw new UnsupportedOperationException(
+          "The operator " + operator + " needs bitvectors, not " + pAcslBinaryTerm.toASTString());
+    }
+
+    return switch (operator) {
       case BINARY_AND -> fmgr.makeAnd(operand1Formula, operand2Formula);
       case BINARY_OR -> fmgr.makeOr(operand1Formula, operand2Formula);
       // bitwise a -> b is the same as bitwise not a or b
@@ -204,6 +241,10 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
   @Override
   public Formula visit(AcslIdTerm pAcslIdTerm) {
     AcslSimpleDeclaration variable = pAcslIdTerm.getDeclaration();
+    if (variable instanceof AcslCVariableDeclaration) {
+      // The C encoding knows the names and the memory of program variables
+      return convertCExpression(toCExpressionOrFail(pAcslIdTerm));
+    }
     String varName = variable.getName();
     // Quantifier variables do not need tracking in the SSA map, use index 1 for them
     int useIndex = varName.startsWith("ACSL#q") ? 1 : getIndex(varName, variable.getType());
@@ -276,19 +317,146 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
 
   @Override
   public Formula visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) {
-    throw new UnsupportedOperationException("Not yet implemented, use AcslCExpression instead");
+    return convertCExpression(toCExpressionOrFail(pAcslArraySubscriptTerm));
   }
 
   @Override
   public Formula visit(AcslCExpression pAcslCExpression) {
+    return convertCExpression(pAcslCExpression.getCExpression());
+  }
+
+  Formula convertCExpression(CExpression pExpression) {
     try {
-      Formula f = cExpressionToFormula(pAcslCExpression.getCExpression(), ptsb);
+      Formula f = cExpressionToFormula(pExpression, ptsb);
       Verify.verify(
           ptsb.build().equals(originalPts)); // make sure we did not modify the original pts
       return f;
-    } catch (UnrecognizedCodeException ex) {
-      throw new RuntimeException(ex);
+    } catch (UnrecognizedCodeException e) {
+      throw new UnsupportedOperationException(e.getMessage(), e);
     }
+  }
+
+  /**
+   * Returns the term as C expression, if it consists only of program variables, memory accesses,
+   * literals, and operators of C. The C encoding converts such a term with the semantics of C,
+   * which avoids conversions between bitvectors and integers.
+   */
+  Optional<CExpression> toCExpression(AcslTerm pTerm) {
+    return switch (pTerm) {
+      case AcslIdTerm id when id.getDeclaration() instanceof AcslCVariableDeclaration variable ->
+          Optional.of(new CIdExpression(id.getFileLocation(), variable.getCVariableDeclaration()));
+      case AcslIntegerLiteralTerm literal -> integerLiteral(literal);
+      case AcslCharLiteralTerm literal ->
+          Optional.of(
+              new CCharLiteralExpression(
+                  literal.getFileLocation(), CNumericTypes.CHAR, literal.getValue()));
+      case AcslCExpression expression -> Optional.of(expression.getCExpression());
+      case AcslArraySubscriptTerm subscript -> {
+        Optional<CExpression> array = toCExpression(subscript.getArrayExpression());
+        Optional<CExpression> index = toCExpression(subscript.getSubscriptExpression());
+        Optional<CType> elementType = array.flatMap(AcslTermToFormulaVisitor::targetType);
+        yield array.isPresent() && index.isPresent() && elementType.isPresent()
+            ? Optional.of(
+                new CArraySubscriptExpression(
+                    subscript.getFileLocation(),
+                    elementType.orElseThrow(),
+                    array.orElseThrow(),
+                    index.orElseThrow()))
+            : Optional.empty();
+      }
+      case AcslUnaryTerm unary -> unaryToCExpression(unary);
+      case AcslBinaryTerm binary -> binaryToCExpression(binary);
+      default -> Optional.empty();
+    };
+  }
+
+  private Optional<CExpression> integerLiteral(AcslIntegerLiteralTerm pLiteral) {
+    for (CSimpleType type : ImmutableList.of(CNumericTypes.INT, CNumericTypes.LONG_LONG_INT)) {
+      if (machineModel.getMinimalIntegerValue(type).compareTo(pLiteral.getValue()) <= 0
+          && pLiteral.getValue().compareTo(machineModel.getMaximalIntegerValue(type)) <= 0) {
+        return Optional.of(
+            new CIntegerLiteralExpression(pLiteral.getFileLocation(), type, pLiteral.getValue()));
+      }
+    }
+    return Optional.empty();
+  }
+
+  private Optional<CExpression> unaryToCExpression(AcslUnaryTerm pTerm) {
+    Optional<CExpression> operand = toCExpression(pTerm.getOperand());
+    if (operand.isEmpty()) {
+      return Optional.empty();
+    }
+    CExpression cOperand = operand.orElseThrow();
+    FileLocation location = pTerm.getFileLocation();
+    return switch (pTerm.getOperator()) {
+      case PLUS -> operand;
+      case MINUS ->
+          Optional.of(
+              new CUnaryExpression(
+                  location, cOperand.getExpressionType(), cOperand, UnaryOperator.MINUS));
+      case POINTER_DEREFERENCE ->
+          targetType(cOperand).map(type -> new CPointerExpression(location, type, cOperand));
+      case ADDRESS_OF ->
+          Optional.of(
+              new CUnaryExpression(
+                  location,
+                  new CPointerType(CTypeQualifiers.NONE, cOperand.getExpressionType()),
+                  cOperand,
+                  UnaryOperator.AMPER));
+      case NEGATION, SIZEOF -> Optional.empty();
+    };
+  }
+
+  private Optional<CExpression> binaryToCExpression(AcslBinaryTerm pTerm) {
+    Optional<BinaryOperator> operator =
+        switch (pTerm.getOperator()) {
+          case PLUS -> Optional.of(BinaryOperator.PLUS);
+          case MINUS -> Optional.of(BinaryOperator.MINUS);
+          case MULTIPLY -> Optional.of(BinaryOperator.MULTIPLY);
+          case DIVIDE -> Optional.of(BinaryOperator.DIVIDE);
+          case MODULO -> Optional.of(BinaryOperator.REMAINDER);
+          case SHIFT_LEFT -> Optional.of(BinaryOperator.SHIFT_LEFT);
+          case SHIFT_RIGHT -> Optional.of(BinaryOperator.SHIFT_RIGHT);
+          case BINARY_AND -> Optional.of(BinaryOperator.BITWISE_AND);
+          case BINARY_OR -> Optional.of(BinaryOperator.BITWISE_OR);
+          case BINARY_XOR -> Optional.of(BinaryOperator.BITWISE_XOR);
+          case BINARY_IMPLICATION, BINARY_EQUIVALENT -> Optional.empty();
+        };
+    return binaryToCExpression(pTerm.getOperand1(), pTerm.getOperand2(), operator);
+  }
+
+  /** Returns the C expression with the operator, if both operands are C expressions. */
+  Optional<CExpression> binaryToCExpression(
+      AcslTerm pOperand1, AcslTerm pOperand2, Optional<BinaryOperator> pOperator) {
+    Optional<CExpression> operand1 = toCExpression(pOperand1);
+    Optional<CExpression> operand2 = toCExpression(pOperand2);
+    if (pOperator.isEmpty() || operand1.isEmpty() || operand2.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(
+          new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
+              .buildBinaryExpression(
+                  operand1.orElseThrow(), operand2.orElseThrow(), pOperator.orElseThrow()));
+    } catch (UnrecognizedCodeException e) {
+      return Optional.empty();
+    }
+  }
+
+  private static Optional<CType> targetType(CExpression pPointer) {
+    return switch (pPointer.getExpressionType().getCanonicalType()) {
+      case CPointerType pointer -> Optional.of(pointer.getType());
+      case CArrayType array -> Optional.of(array.getType());
+      default -> Optional.empty();
+    };
+  }
+
+  private CExpression toCExpressionOrFail(AcslTerm pTerm) {
+    return toCExpression(pTerm)
+        .orElseThrow(
+            () ->
+                new UnsupportedOperationException(
+                    "The C encoding cannot convert " + pTerm.toASTString()));
   }
 
   /**

@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -370,9 +371,12 @@ public class PathChecker {
             pathFormula = pmgr.makeAnd(pathFormula, pCExpression);
           } else if (expr instanceof SvLibRelationalTerm pTerm) {
             pathFormula = pmgr.makeAnd(pathFormula, pTerm);
+          } else if (expr instanceof AcslPredicate predicate) {
+            pathFormula = pmgr.makeAnd(pathFormula, predicate);
           } else {
             throw new CPATransferException(
-                "Expected a CExpression or a SvLibFinalRelationalTerm as assumption!");
+                "Expected a CExpression, a SvLibFinalRelationalTerm, or an ACSL predicate as"
+                    + " assumption!");
           }
         }
       }

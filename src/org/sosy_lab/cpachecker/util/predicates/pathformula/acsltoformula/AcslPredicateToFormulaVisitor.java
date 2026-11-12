@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -178,8 +180,29 @@ public class AcslPredicateToFormulaVisitor
     AcslType operand2Type = pAcslBinaryTermPredicate.getOperand2().getExpressionType();
     AcslType termType = pAcslBinaryTermPredicate.getExpressionType();
 
-    Formula operand1Formula = pAcslBinaryTermPredicate.getOperand1().accept(termVisitor);
-    Formula operand2Formula = pAcslBinaryTermPredicate.getOperand2().accept(termVisitor);
+    AcslTerm operand1 = pAcslBinaryTermPredicate.getOperand1();
+    AcslTerm operand2 = pAcslBinaryTermPredicate.getOperand2();
+    BinaryOperator cOperator =
+        switch (pAcslBinaryTermPredicate.getOperator()) {
+          case EQUALS -> BinaryOperator.EQUALS;
+          case NOT_EQUALS -> BinaryOperator.NOT_EQUALS;
+          case LESS_EQUAL -> BinaryOperator.LESS_EQUAL;
+          case GREATER_EQUAL -> BinaryOperator.GREATER_EQUAL;
+          case LESS_THAN -> BinaryOperator.LESS_THAN;
+          case GREATER_THAN -> BinaryOperator.GREATER_THAN;
+        };
+    Optional<CExpression> cComparison =
+        termVisitor.binaryToCExpression(operand1, operand2, Optional.of(cOperator));
+    if (cComparison.isPresent()) {
+      Formula comparison = termVisitor.convertCExpression(cComparison.orElseThrow());
+      return comparison instanceof BooleanFormula booleanComparison
+          ? booleanComparison
+          : bfmgr.not(
+              fmgr.makeEqual(comparison, fmgr.makeNumber(fmgr.getFormulaType(comparison), 0)));
+    }
+
+    Formula operand1Formula = operand1.accept(termVisitor);
+    Formula operand2Formula = operand2.accept(termVisitor);
 
     BinaryTermData result =
         typeHelper.handleBinaryTerm(

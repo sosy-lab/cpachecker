@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
@@ -76,6 +77,13 @@ public interface PathFormulaManager {
 
   PathFormula makeAnd(PathFormula pPathFormula, SvLibRelationalTerm pAssumption)
       throws CPATransferException, InterruptedException;
+
+  /**
+   * Returns the path formula with the ACSL predicate as assumption. A predicate that cannot be
+   * converted is ignored, which over-approximates.
+   */
+  PathFormula makeAnd(PathFormula pPathFormula, AcslPredicate pAssumption)
+      throws CPATransferException;
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
       throws CPATransferException, InterruptedException;

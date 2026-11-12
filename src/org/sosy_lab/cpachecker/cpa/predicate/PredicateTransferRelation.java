@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -419,6 +420,13 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         try {
           // compute new pathFormula with the operation on the edge
           pf = pathFormulaManager.makeAnd(pf, pTerm);
+        } finally {
+          pathFormulaTimer.stop();
+        }
+      } else if (assumption instanceof AcslPredicate predicate) {
+        pathFormulaTimer.start();
+        try {
+          pf = pathFormulaManager.makeAnd(pf, predicate);
         } finally {
           pathFormulaTimer.stop();
         }
