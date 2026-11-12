@@ -47,8 +47,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -63,6 +64,7 @@ public class SeqPointerAliasingUtil {
    *     CPointerType}.
    */
   public static Optional<SeqPointerAssignment> tryBuildPointerAssignment(
+      MPORThread pThread,
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
       SeqCallContext pLeftHandSideCallContext,
@@ -115,7 +117,7 @@ public class SeqPointerAliasingUtil {
                       rightHandSideVisitResult.fieldMember());
               return Optional.of(
                   new SeqPointerAssignment(
-                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                      pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
           case CFunctionCallExpression functionCallExpression -> {
@@ -129,7 +131,7 @@ public class SeqPointerAliasingUtil {
                       Optional.of(functionCallExpression));
               return Optional.of(
                   new SeqPointerAssignment(
-                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                      pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
         }
@@ -142,16 +144,17 @@ public class SeqPointerAliasingUtil {
       CSimpleDeclaration declaration, Optional<CCompositeTypeMemberDeclaration> fieldMember) {}
 
   private static final class CPointerAssignmentVisitor
-      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, NoException> {
+      extends DefaultCExpressionVisitor<CPointerAssignmentVisitResult, UnsupportedCodeException> {
 
     @Override
-    public CPointerAssignmentVisitResult visit(
-        CArraySubscriptExpression pArraySubscriptExpression) {
+    public CPointerAssignmentVisitResult visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
       return pArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference) {
+    public CPointerAssignmentVisitResult visit(CFieldReference pFieldReference)
+        throws UnsupportedCodeException {
       CPointerAssignmentVisitResult fieldOwnerResult = pFieldReference.getFieldOwner().accept(this);
       CCompositeTypeMemberDeclaration fieldMember =
           SeqPointerAliasingUtil.getCompositeTypeMemberDeclarationByFieldName(
@@ -161,22 +164,26 @@ public class SeqPointerAliasingUtil {
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression) {
+    public CPointerAssignmentVisitResult visit(CPointerExpression pPointerExpression)
+        throws UnsupportedCodeException {
       return pPointerExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression) {
+    public CPointerAssignmentVisitResult visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
       return pComplexCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression) {
+    public CPointerAssignmentVisitResult visit(CCastExpression pCastExpression)
+        throws UnsupportedCodeException {
       return pCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression) {
+    public CPointerAssignmentVisitResult visit(CUnaryExpression pUnaryExpression)
+        throws UnsupportedCodeException {
       return pUnaryExpression.getOperand().accept(this);
     }
 
@@ -352,17 +359,14 @@ public class SeqPointerAliasingUtil {
   // CCompositeTypeMemberDeclaration
 
   public static CCompositeTypeMemberDeclaration getCompositeTypeMemberDeclarationByFieldName(
-      CType pType, String pFieldName) {
+      CType pType, String pFieldName) throws UnsupportedCodeException {
 
-    for (CCompositeTypeMemberDeclaration declaration :
-        getAllCompositeTypeMemberDeclarationsInType(pType, ImmutableSet.of())) {
-      if (declaration.getName().equals(pFieldName)) {
-        return declaration;
-      }
-    }
-    throw new IllegalArgumentException(
-        String.format(
-            "No CCompositeTypeMemberDeclaration with name %s found in pType.", pFieldName));
+    Optional<CCompositeTypeMemberDeclaration> fieldMember =
+        getAllCompositeTypeMemberDeclarationsInType(pType, ImmutableSet.of()).stream()
+            .filter(declaration -> declaration.getName().equals(pFieldName))
+            .findFirst();
+    InputRejection.checkFieldMemberFound(fieldMember, pType, pFieldName);
+    return fieldMember.orElseThrow();
   }
 
   public static ImmutableList<CCompositeTypeMemberDeclaration>
@@ -413,7 +417,6 @@ public class SeqPointerAliasingUtil {
 
     @Override
     public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression) throws NoException {
-
       return true;
     }
 
@@ -434,45 +437,6 @@ public class SeqPointerAliasingUtil {
 
     @Override
     public Boolean visit(CComplexCastExpression pComplexCastExpression) throws NoException {
-
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-  }
-
-  public static final class CLeftHandSideSimpleDeclarationVisitor
-      implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
-
-    @Override
-    public CSimpleDeclaration visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws NoException {
-
-      CLeftHandSide arrayLeftHandSide =
-          (CLeftHandSide) pArraySubscriptExpression.getArrayExpression();
-      return arrayLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CFieldReference pFieldReference) throws NoException {
-      CLeftHandSide fieldOwnerLeftHandSide = (CLeftHandSide) pFieldReference.getFieldOwner();
-      return fieldOwnerLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CIdExpression pIdExpression) throws NoException {
-      return pIdExpression.getDeclaration();
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CPointerExpression pPointerExpression) throws NoException {
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pPointerExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CComplexCastExpression pComplexCastExpression)
-        throws NoException {
-
       CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
       return operandLeftHandSide.accept(this);
     }
@@ -518,19 +482,18 @@ public class SeqPointerAliasingUtil {
     }
   }
 
-  public static class CExpressionCollector<T extends CExpression>
-      extends CExpressionTraversalVisitor {
+  static class CExpressionCollector<T extends CExpression> extends CExpressionTraversalVisitor {
 
     private final Class<T> expressionToCollect;
 
     private final ImmutableSet.Builder<T> collected = ImmutableSet.builder();
 
-    public CExpressionCollector(Class<T> pExpressionToCollect) {
+    CExpressionCollector(Class<T> pExpressionToCollect) {
       expressionToCollect = pExpressionToCollect;
     }
 
     /** Returns the possibly empty set collected expressions during the search. */
-    public ImmutableSet<T> getCollected() {
+    ImmutableSet<T> getCollected() {
       return collected.build();
     }
 

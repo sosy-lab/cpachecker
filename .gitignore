@@ -99,6 +99,10 @@ src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLSymbols.java
 node_modules/
 /.idea/sonarlint.xml
 /.idea/sonarlint/
+/.idea/copilot*
 
 contrib/worker-visualization/venv/
 contrib/worker-visualization/.idea
+
+# AI
+.claude

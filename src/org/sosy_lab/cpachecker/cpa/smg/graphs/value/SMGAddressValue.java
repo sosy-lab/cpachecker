@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-public interface SMGAddressValue extends SMGSymbolicValue {
+public sealed interface SMGAddressValue extends SMGSymbolicValue
+    permits SMGKnownAddressValue, SMGUnknownValue, SMGZeroValue {
 
   SMGAddress getAddress();
 

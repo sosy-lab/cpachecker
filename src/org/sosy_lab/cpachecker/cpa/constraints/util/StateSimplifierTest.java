@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
  * Unit tests for {@link org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier}.
@@ -84,7 +85,7 @@ public class StateSimplifierTest {
 
   public StateSimplifierTest() throws InvalidConfigurationException {
     Configuration config =
-        Configuration.builder().setOption("cpa.constraints.removeTrivial", "true").build();
+        TestUtils.configurationForTest().setOption("cpa.constraints.removeTrivial", "true").build();
     simplifier = new StateSimplifier(config, new ConstraintsStatistics());
   }
 

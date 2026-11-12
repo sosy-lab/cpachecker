@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibLivenessTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -28,6 +29,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
+/**
+ * Transfer relation for the safety specification of SV-LIB programs.
+ *
+ * <p>The assumptions of a state are conjoined to the path formula of that state, i.e., after its
+ * entering edge. A location invariant of a node therefore has to be an assumption of the states at
+ * that node, which is why the annotations of the successor of an edge are the relevant ones here.
+ */
 public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
@@ -52,6 +60,12 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
       return ImmutableList.of();
     }
 
+    if (state.nextStateViolatesProperty()) {
+      // The property that the predecessor assumed to be violated is reported here.
+      return ImmutableList.of(
+          new SvLibSafetySpecState(ImmutableSet.of(), false, /* pHasPropertyViolation= */ true));
+    }
+
     ImmutableList.Builder<SvLibSafetySpecState> outStates = ImmutableList.builder();
 
     Set<SvLibTagProperty> propertiesToProof =
@@ -59,7 +73,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             .getSvLibCfaMetadata()
             .orElseThrow()
             .tagAnnotations()
-            .get(cfaEdge.getPredecessor());
+            .get(cfaEdge.getSuccessor());
 
     // First construct one successor per property we need to proof
     ImmutableList.Builder<SvLibRelationalTerm> assumptionsBuilder =
@@ -72,7 +86,8 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
               yield new SvLibSafetySpecState(
                   ImmutableSet.of(
                       SvLibRelationalTerm.booleanNegation(pSvLibCheckTrueTag.getTerm())),
-                  true);
+                  /* pNextStateViolatesProperty= */ true,
+                  false);
             }
             case SvLibEnsuresTag pSvLibEnsuresTag ->
                 throw new UnsupportedCodeException(
@@ -83,6 +98,12 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             case SvLibRequiresTag pSvLibRequiresTag ->
                 throw new UnsupportedCodeException(
                     "Tag 'requires' not supported in safety specifications.", cfaEdge);
+            case SvLibLivenessTag pSvLibLivenessTag ->
+                throw new UnsupportedCodeException(
+                    "Liveness tag '"
+                        + pSvLibLivenessTag.toASTString()
+                        + "' not supported in safety specifications.",
+                    cfaEdge);
           };
       outStates.add(successorState);
     }
@@ -92,7 +113,8 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
     outStates.add(
         new SvLibSafetySpecState(
             ImmutableSet.of(SvLibRelationalTerm.booleanConjunction(assumptionsBuilder.build())),
-            state.hasPropertyViolation()));
+            false,
+            false));
 
     return outStates.build();
   }

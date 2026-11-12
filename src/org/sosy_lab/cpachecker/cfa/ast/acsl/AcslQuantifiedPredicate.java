@@ -70,9 +70,9 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
   public int hashCode() {
     final int prime = 3;
     int result = 7;
-    result = prime * result + Objects.hash(fileLocation);
-    result = prime * result + Objects.hash(binders);
-    result = prime * result + Objects.hash(predicate);
+    result = prime * result + Objects.hashCode(fileLocation);
+    result = prime * result + Objects.hashCode(binders);
+    result = prime * result + Objects.hashCode(predicate);
     return result;
   }
 

@@ -49,11 +49,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Assig
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceConstantIndexModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFormulaIndexModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceIndexModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariableIndexModifier;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -796,8 +798,16 @@ class AssignmentQuantifierHandler {
       ResolvedSlice resolved, SliceIndexModifier modifier, boolean resolvedIsFunctionParameter)
       throws UnrecognizedCodeException {
 
-    // all subscript modifiers must be already resolved here
-    SliceFormulaIndexModifier resolvedModifier = (SliceFormulaIndexModifier) modifier;
+    // all subscript modifiers must be already resolved or constant here
+    final Formula subscript =
+        switch (modifier) {
+          case SliceFormulaIndexModifier resolvedModifier -> resolvedModifier.encodedVariable();
+          case SliceConstantIndexModifier constantModifier ->
+              fmgr.makeNumber(
+                  conv.getFormulaTypeFromType(pointerAsUnsignedIntType), constantModifier.index());
+          case SliceVariableIndexModifier unresolvedModifier ->
+              throw new IllegalStateException("Cannot apply unresolved modifier to resolved slice");
+        };
 
     // get the array element type
     CType baseType = typeHandler.simplifyType(resolved.type());
@@ -812,8 +822,6 @@ class AssignmentQuantifierHandler {
     // for the direct access reasoning
     final boolean directAccess =
         resolved.type() instanceof CArrayType && !resolvedIsFunctionParameter;
-    // subscript is the encoded modifier variable
-    final Formula subscript = resolvedModifier.encodedVariable();
     // use addressHandler to apply subscript
     // the differentiation based on type of expression will be handled in it
     Expression adjustedExpression =

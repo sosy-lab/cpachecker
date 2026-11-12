@@ -1,0 +1,44 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2011-2013 Alexander von Rhein, University of Passau
+// SPDX-FileCopyrightText: 2011-2021 The SV-Benchmarks Community
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// This is a heavily modified and simplified version of
+// product-lines/minepump_spec2_product41.cil.c in SV-Benchmarks.
+
+extern void abort(void);
+void reach_error() {}
+
+extern int __VERIFIER_nondet_int(void);
+
+typedef unsigned int size_t;
+
+int main(void) 
+{  
+  int methAndRunningLastTime = 0 ;
+  int pumpRunning  =    0;
+  int methaneLevelCritical  =    0;
+  while(1) {
+    if (__VERIFIER_nondet_int()) {
+      methaneLevelCritical = !methaneLevelCritical;
+    }
+    if ((! pumpRunning) && (!methaneLevelCritical)) {
+        pumpRunning = 1;
+    } 
+    if (methaneLevelCritical && pumpRunning) {
+        if (methAndRunningLastTime) {
+          reach_error();abort();
+        } else {
+          methAndRunningLastTime = 1;
+        }
+    } else {
+      methAndRunningLastTime = 0;
+    }
+  }
+  return 0;
+}

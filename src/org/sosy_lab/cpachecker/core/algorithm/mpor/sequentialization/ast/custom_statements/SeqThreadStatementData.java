@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -42,6 +44,11 @@ public class SeqThreadStatementData {
       int pThreadId,
       CLeftHandSide pPcLeftHandSide) {
 
+    checkArgument(!pSubstituteEdges.isEmpty(), "pSubstituteEdges is empty.");
+    // multiple substitute edges can only occur on function return
+    checkArgument(
+        pSubstituteEdges.size() == 1 || pType.equals(SeqThreadStatementType.GHOST_ONLY),
+        "If pSubstituteEdges has multiple elements, then pType must be GHOST_ONLY.");
     type = pType;
     substituteEdges = pSubstituteEdges;
     threadId = pThreadId;

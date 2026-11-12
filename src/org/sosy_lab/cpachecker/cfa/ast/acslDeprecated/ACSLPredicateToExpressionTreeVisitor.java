@@ -42,31 +42,29 @@ public class ACSLPredicateToExpressionTreeVisitor
 
   @Override
   public ExpressionTree<Object> visit(ACSLLogicalPredicate pred) throws UnrecognizedCodeException {
-    ExpressionTree<Object> leftTree;
-    ExpressionTree<Object> rightTree;
-    switch (pred.getOperator()) {
+    return switch (pred.getOperator()) {
       case AND -> {
         if (pred.isNegated()) {
-          leftTree = pred.getLeft().negate().accept(this);
-          rightTree = pred.getRight().negate().accept(this);
-          return Or.of(leftTree, rightTree);
+          ExpressionTree<Object> leftTree = pred.getLeft().negate().accept(this);
+          ExpressionTree<Object> rightTree = pred.getRight().negate().accept(this);
+          yield Or.of(leftTree, rightTree);
         }
-        leftTree = pred.getLeft().accept(this);
-        rightTree = pred.getRight().accept(this);
-        return And.of(leftTree, rightTree);
+        ExpressionTree<Object> leftTree = pred.getLeft().accept(this);
+        ExpressionTree<Object> rightTree = pred.getRight().accept(this);
+        yield And.of(leftTree, rightTree);
       }
       case OR -> {
         if (pred.isNegated()) {
-          leftTree = pred.getLeft().negate().accept(this);
-          rightTree = pred.getRight().negate().accept(this);
-          return And.of(leftTree, rightTree);
+          ExpressionTree<Object> leftTree = pred.getLeft().negate().accept(this);
+          ExpressionTree<Object> rightTree = pred.getRight().negate().accept(this);
+          yield And.of(leftTree, rightTree);
         }
-        leftTree = pred.getLeft().accept(this);
-        rightTree = pred.getRight().accept(this);
-        return Or.of(leftTree, rightTree);
+        ExpressionTree<Object> leftTree = pred.getLeft().accept(this);
+        ExpressionTree<Object> rightTree = pred.getRight().accept(this);
+        yield Or.of(leftTree, rightTree);
       }
       default -> throw new AssertionError("Operator should be AND or OR");
-    }
+    };
   }
 
   @Override

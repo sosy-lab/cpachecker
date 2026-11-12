@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorDirection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -101,16 +102,12 @@ public class SeqNameUtil {
   }
 
   public static String buildStartRoutineArgName(
-      MPOROptions pOptions,
-      // TODO make name (String) parameter directly
-      CParameterDeclaration pStartRoutineArgDeclaration,
-      int pThreadId,
-      String pFunctionName) {
+      MPOROptions pOptions, String pStartRoutineArgName, int pThreadId, String pFunctionName) {
 
     String startPrefix = pOptions.shortVariableNames() ? "S" : "START_ROUTINE_ARG";
     String threadPrefix = buildThreadPrefix(pOptions, pThreadId);
     return Joiner.on(STRING_SEPARATOR)
-        .join(startPrefix, pFunctionName, threadPrefix, pStartRoutineArgDeclaration.getName());
+        .join(startPrefix, pFunctionName, threadPrefix, pStartRoutineArgName);
   }
 
   public static String buildStartRoutineExitVariableName(MPOROptions pOptions, int pThreadId) {
@@ -152,13 +149,15 @@ public class SeqNameUtil {
             : "";
 
     if (pOptions.shortVariableNames()) {
-      return BIT_VECTOR_PREFIX_SHORT
+      return Sequentialization.MPOR_PREFIX
+          + BIT_VECTOR_PREFIX_SHORT
           + pReachType.shortName
           + pAccessType.shortName
           + pThreadId
           + memoryLocationSuffix;
     }
-    return buildThreadPrefix(pOptions, pThreadId)
+    return Sequentialization.MPOR_PREFIX
+        + buildThreadPrefix(pOptions, pThreadId)
         + BIT_VECTOR_PREFIX
         + pReachType.longName
         + pAccessType.longName
@@ -182,12 +181,14 @@ public class SeqNameUtil {
             : "";
 
     if (pOptions.shortVariableNames()) {
-      return PREV_BIT_VECTOR_PREFIX_SHORT
+      return Sequentialization.MPOR_PREFIX
+          + PREV_BIT_VECTOR_PREFIX_SHORT
           + pReachType.shortName
           + pAccessType.shortName
           + memoryLocationSuffix;
     }
-    return PREV_BIT_VECTOR_PREFIX
+    return Sequentialization.MPOR_PREFIX
+        + PREV_BIT_VECTOR_PREFIX
         + pReachType.longName
         + pAccessType.longName
         + memoryLocationSuffix;

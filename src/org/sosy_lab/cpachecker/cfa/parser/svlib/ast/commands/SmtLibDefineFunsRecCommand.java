@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
@@ -55,16 +57,14 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
   @Override
   public String toASTString() {
     return "(define-funs-rec (("
-        + Joiner.on(") (")
-            .join(
-                functionDeclarations.stream()
-                    .map(
-                        pFunctionDeclaration ->
-                            pFunctionDeclaration.getName()
-                                + pFunctionDeclaration.getType().toASTString())
-                    .toList())
+        + from(functionDeclarations)
+            .transform(
+                pFunctionDeclaration ->
+                    SmtLibSymbols.quoteIfNeeded(pFunctionDeclaration.getName())
+                        + pFunctionDeclaration.getType().toASTString())
+            .join(Joiner.on(") ("))
         + ")) ("
-        + Joiner.on(") (").join(bodies.stream().map(b -> b.toASTString()).toList())
+        + from(bodies).transform(SvLibTerm::toASTString).join(Joiner.on(") ("))
         + "))";
   }
 

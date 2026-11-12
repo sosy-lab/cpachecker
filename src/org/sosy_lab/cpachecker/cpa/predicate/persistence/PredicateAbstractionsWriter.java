@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -48,10 +49,13 @@ public final class PredicateAbstractionsWriter {
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
+  private final MachineModel machineModel;
 
-  public PredicateAbstractionsWriter(LogManager pLogger, FormulaManagerView pFmMgr) {
+  public PredicateAbstractionsWriter(
+      LogManager pLogger, FormulaManagerView pFmMgr, MachineModel pMachineModel) {
     logger = pLogger;
     fmgr = pFmMgr;
+    machineModel = pMachineModel;
   }
 
   private int getAbstractionId(ARGState state) {
@@ -117,7 +121,11 @@ public final class PredicateAbstractionsWriter {
           try {
             expressionTree =
                 ExpressionTrees.fromFormula(
-                    formula, fmgr, AbstractStates.extractLocation(state), Function.identity());
+                    formula,
+                    fmgr,
+                    AbstractStates.extractLocation(state),
+                    Function.identity(),
+                    machineModel);
           } catch (TranslationToExpressionTreeFailedException e) {
             // Keep consistency with the previous implementation
             logger.logDebugException(e, "Translation to expression tree failed");

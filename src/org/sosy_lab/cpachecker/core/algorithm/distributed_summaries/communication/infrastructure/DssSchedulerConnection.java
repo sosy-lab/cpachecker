@@ -9,17 +9,23 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure;
 
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
 public class DssSchedulerConnection implements DssConnection {
 
-  private final BlockingQueue<DssMessage> incomingQueue;
+  private final DssDefaultQueue incomingQueue;
   private final DssMessageBroadcaster broadcaster;
   private boolean closed;
 
+  /**
+   * Creates a new connection for the scheduler.
+   *
+   * @param pIncomingQueue the incoming queue for messages to the scheduler
+   * @param pBroadcaster the broadcaster to use for sending messages
+   */
   public DssSchedulerConnection(
-      BlockingQueue<DssMessage> pIncomingQueue, DssMessageBroadcaster pBroadcaster) {
+      DssDefaultQueue pIncomingQueue, DssMessageBroadcaster pBroadcaster) {
     incomingQueue = pIncomingQueue;
     broadcaster = pBroadcaster;
   }

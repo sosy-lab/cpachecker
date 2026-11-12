@@ -16,17 +16,27 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 
 /** Contains information relating the CFA to the AST of the program. */
 public final class AstCfaRelation {
@@ -66,8 +76,14 @@ public final class AstCfaRelation {
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
+  // As in the input program: without the variables that go out of scope at a node and without the
+  // ones hidden by an inner declaration with the same name.
   private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
   private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  // All declared ones, as recorded by the CFA builder, which gives a node the scope in which it was
+  // created, e.g., the node after a for loop still has the variable of the loop.
+  private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToDeclaredLocalVariables;
+  private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToDeclaredParameters;
   private final ImmutableSet<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
@@ -77,6 +93,8 @@ public final class AstCfaRelation {
       ImmutableSet<StatementElement> pStatementElements,
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToDeclaredLocalVariables,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToDeclaredParameters,
       ImmutableSet<AVariableDeclaration> pGlobalVariables,
       ImmutableSortedSet<FileLocation> pExpressionLocations) {
     ifElements = pIfElements;
@@ -85,8 +103,27 @@ public final class AstCfaRelation {
     statementElements = pStatementElements;
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
+    cfaNodeToDeclaredLocalVariables = pCfaNodeToDeclaredLocalVariables;
+    cfaNodeToDeclaredParameters = pCfaNodeToDeclaredParameters;
     globalVariables = pGlobalVariables;
     expressionLocations = pExpressionLocations;
+  }
+
+  /**
+   * Set the edges of the CFA that belong to the AST elements. This is done after finalizing the
+   * CFA, since we first need to finish building the CFA before we know about all the edges due to
+   * edges being added to the CFA like for example with function cloning for concurrency.
+   */
+  public void setEdgesForAstElements(ImmutableSet<CFAEdge> pEdges) {
+    for (IfElement structure : ifElements) {
+      structure.setEdges(pEdges);
+    }
+    for (IterationElement structure : iterationStructures) {
+      structure.setEdges(pEdges);
+    }
+    for (StatementElement structure : statementElements) {
+      structure.setEdges(pEdges);
+    }
   }
 
   /**
@@ -99,17 +136,29 @@ public final class AstCfaRelation {
     return Objects.requireNonNull(statementOffsetsToLocations.ceilingEntry(offset)).getValue();
   }
 
+  /**
+   * Returns the element with the shorter source range, or the first one for equal ranges. Several
+   * elements have the same key, e.g., an if statement in a statement expression in the condition of
+   * another one, or statements of different files at the same line and column.
+   */
+  private static <T> T tighter(T pFirst, T pSecond, Function<T, ASTElement> pElement) {
+    return pElement.apply(pSecond).location().getNodeLength()
+            < pElement.apply(pFirst).location().getNodeLength()
+        ? pSecond
+        : pFirst;
+  }
+
   private void initializeMapFromConditionEdgesToIfStructures() {
     if (conditionEdgesToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<CFAEdge, IfElement> builder = new ImmutableMap.Builder<>();
+    Map<CFAEdge, IfElement> map = new HashMap<>();
     for (IfElement structure : ifElements) {
       for (CFAEdge edge : structure.getConditionElement().edges()) {
-        builder.put(edge, structure);
+        map.merge(edge, structure, (a, b) -> tighter(a, b, IfElement::getCompleteElement));
       }
     }
-    conditionEdgesToIfStructure = builder.buildOrThrow();
+    conditionEdgesToIfStructure = ImmutableMap.copyOf(map);
   }
 
   /**
@@ -123,7 +172,7 @@ public final class AstCfaRelation {
       initializeMapFromConditionEdgesToIfStructures();
     }
 
-    IfElement result = conditionEdgesToIfStructure.getOrDefault(pEdge, null);
+    IfElement result = conditionEdgesToIfStructure.getOrDefault(pEdge.getOriginal(), null);
 
     return Optional.ofNullable(result);
   }
@@ -140,10 +189,13 @@ public final class AstCfaRelation {
    * @return the tightest iteration structure that contains the given node
    */
   public Optional<IterationElement> getTightestIterationStructureForNode(CFANode pNode) {
+    CFANode originalNode = pNode.getOriginal();
     Optional<IterationElement> result = Optional.empty();
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().edges().stream()
-          .anyMatch(pEdge -> pEdge.getPredecessor() == pNode || pEdge.getSuccessor() == pNode)) {
+          .anyMatch(
+              pEdge ->
+                  pEdge.getPredecessor() == originalNode || pEdge.getSuccessor() == originalNode)) {
         if (result.isPresent()) {
           if (result
               .orElseThrow()
@@ -160,6 +212,13 @@ public final class AstCfaRelation {
     return result;
   }
 
+  /** Returns the iteration statement whose body is the given element, if there is one. */
+  public Optional<IterationElement> getIterationStructureWithBody(ASTElement pBody) {
+    return iterationStructures.stream()
+        .filter(structure -> structure.getBody().equals(pBody))
+        .findFirst();
+  }
+
   /**
    * Returns the node that starts the iteration statement at the given line and column.
    *
@@ -168,14 +227,25 @@ public final class AstCfaRelation {
    * @return the node that starts the iteration statement at the given line and column if it could
    *     be uniquely determined
    */
-  public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
+  public Optional<CFANode> getNodeForIterationStatementLocation(
+      int line, int column, LoopStructure pLoopStructure) {
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().location().getStartingLineInOrigin() == line
           && structure.getCompleteElement().location().getStartColumnInLine() == column) {
-        return structure.getLoopHead();
+        return structure.getLoopHead(pLoopStructure);
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns the nodes at which loop invariants hold, i.e., the nodes given by {@link
+   * IterationElement#getLoopHead} for all iteration statements.
+   */
+  public ImmutableSet<CFANode> getLoopInvariantNodes(LoopStructure pLoopStructure) {
+    return FluentIterable.from(iterationStructures)
+        .transformAndConcat(loop -> loop.getLoopHead(pLoopStructure).stream().toList())
+        .toSet();
   }
 
   /**
@@ -208,15 +278,14 @@ public final class AstCfaRelation {
     if (lineAndStartColumnToIfStructure != null) {
       return;
     }
-    ImmutableSortedMap.Builder<StartingLocation, IfElement> builder =
-        new ImmutableSortedMap.Builder<>(StartingLocation::compareTo);
+    NavigableMap<StartingLocation, IfElement> map = new TreeMap<>();
     for (IfElement structure : ifElements) {
       FileLocation location = structure.getCompleteElement().location();
       StartingLocation key =
           new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
-      builder.put(key, structure);
+      map.merge(key, structure, (a, b) -> tighter(a, b, IfElement::getCompleteElement));
     }
-    lineAndStartColumnToIfStructure = builder.buildOrThrow();
+    lineAndStartColumnToIfStructure = ImmutableSortedMap.copyOfSorted(map);
   }
 
   /**
@@ -249,15 +318,14 @@ public final class AstCfaRelation {
     if (lineAndStartColumnToIterationStructure != null) {
       return;
     }
-    ImmutableSortedMap.Builder<StartingLocation, IterationElement> builder =
-        new ImmutableSortedMap.Builder<>(StartingLocation::compareTo);
+    NavigableMap<StartingLocation, IterationElement> map = new TreeMap<>();
     for (IterationElement structure : iterationStructures) {
       FileLocation location = structure.getCompleteElement().location();
       StartingLocation key =
           new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
-      builder.put(key, structure);
+      map.merge(key, structure, (a, b) -> tighter(a, b, IterationElement::getCompleteElement));
     }
-    lineAndStartColumnToIterationStructure = builder.buildOrThrow();
+    lineAndStartColumnToIterationStructure = ImmutableSortedMap.copyOfSorted(map);
   }
 
   /**
@@ -304,16 +372,15 @@ public final class AstCfaRelation {
     if (startingLocationToTightestStatement != null) {
       return;
     }
-    ImmutableSortedMap.Builder<StartingLocation, ASTElement> builder =
-        ImmutableSortedMap.naturalOrder();
+    NavigableMap<StartingLocation, ASTElement> map = new TreeMap<>();
     for (StatementElement element : statementElements) {
       StartingLocation key =
           new StartingLocation(
               element.getCompleteElement().location().getStartColumnInLine(),
               element.getCompleteElement().location().getStartingLineInOrigin());
-      builder.put(key, element.getCompleteElement());
+      map.merge(key, element.getCompleteElement(), (a, b) -> tighter(a, b, Function.identity()));
     }
-    startingLocationToTightestStatement = builder.buildOrThrow();
+    startingLocationToTightestStatement = ImmutableSortedMap.copyOfSorted(map);
   }
 
   private Optional<Entry<StartingLocation, ASTElement>> getStartingFor(
@@ -377,8 +444,116 @@ public final class AstCfaRelation {
   }
 
   /**
+   * Returns the location of the closing parenthesis after the arguments of a function call, which
+   * is the location by which witnesses identify function calls.
+   *
+   * @param pCall the call whose parenthesis we are looking for
+   * @return the location of the parenthesis, or nothing if the call has no location in the program
+   */
+  public Optional<FileLocation> getClosingParenthesisOfFunctionCall(AFunctionCallExpression pCall) {
+    FileLocation call = pCall.getFileLocation();
+    if (!call.isRealLocation()) {
+      return Optional.empty();
+    }
+
+    // A call ends with its closing parenthesis, and the end column is exclusive
+    return Optional.of(
+        new FileLocation(
+            call.getFileName(),
+            call.getNiceFileName(),
+            call.getNodeOffset() + call.getNodeLength() - 1,
+            1,
+            call.getEndingLineNumber(),
+            call.getEndingLineNumber(),
+            call.getEndColumnInLine() - 1,
+            call.getEndColumnInLine(),
+            call.getEndingLineInOrigin(),
+            call.getEndingLineInOrigin(),
+            call.isOffsetRelatedToOrigin()));
+  }
+
+  /**
+   * Returns the edges of the function calls whose closing parenthesis after the arguments is at the
+   * given location, see {@link #getClosingParenthesisOfFunctionCall}. These are {@link
+   * FunctionCallEdge}s and {@link AStatementEdge}s containing a function call.
+   *
+   * @param pLine the line of the parenthesis
+   * @param pColumn the column of the parenthesis. If it is empty, the calls whose parenthesis is on
+   *     the given line are returned.
+   * @return the edges of the calls, which are empty if there is no such call
+   */
+  public ImmutableSet<CFAEdge> getEdgesOfCallsWithClosingParenthesisAt(
+      int pLine, OptionalInt pColumn) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
+
+    // A call belongs to the tightest statement containing its parenthesis
+    ImmutableSet.Builder<ASTElement> statements = ImmutableSet.builder();
+    if (pColumn.isPresent()) {
+      getTightestStatementContaining(pLine, pColumn.orElseThrow()).ifPresent(statements::add);
+    } else {
+      statements.addAll(
+          startingLocationToTightestStatement
+              .subMap(
+                  new StartingLocation(Integer.MIN_VALUE, pLine),
+                  true,
+                  new StartingLocation(Integer.MAX_VALUE, pLine),
+                  true)
+              .values());
+      getTightestStatementContaining(pLine, 1).ifPresent(statements::add);
+    }
+
+    return FluentIterable.from(statements.build())
+        .transformAndConcat(ASTElement::edges)
+        .filter(
+            edge ->
+                getCalledFunction(edge)
+                    .flatMap(this::getClosingParenthesisOfFunctionCall)
+                    .filter(
+                        parenthesis ->
+                            parenthesis.getStartingLineInOrigin() == pLine
+                                && (pColumn.isEmpty()
+                                    || parenthesis.getStartColumnInLine() == pColumn.orElseThrow()))
+                    .isPresent())
+        .toSet();
+  }
+
+  /** Returns the tightest statement that contains the given line and column. */
+  private Optional<ASTElement> getTightestStatementContaining(int pLine, int pColumn) {
+    // Of the statements containing the location, the tightest one starts last
+    for (ASTElement statement :
+        startingLocationToTightestStatement
+            .headMap(new StartingLocation(pColumn, pLine), true)
+            .reversed()
+            .values()) {
+      // The end column is exclusive
+      FileLocation location = statement.location();
+      if (pLine < location.getEndingLineInOrigin()
+          || (pLine == location.getEndingLineInOrigin()
+              && pColumn < location.getEndColumnInLine())) {
+        return Optional.of(statement);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /** Returns the function called by the given edge, if it is a function call at all. */
+  private static Optional<AFunctionCallExpression> getCalledFunction(CFAEdge pEdge) {
+    return switch (pEdge) {
+      case FunctionCallEdge functionCallEdge ->
+          Optional.of(functionCallEdge.getFunctionCallExpression());
+      case AStatementEdge statementEdge
+          when statementEdge.getStatement() instanceof AFunctionCall functionCall ->
+          Optional.of(functionCall.getFunctionCallExpression());
+      default -> Optional.empty();
+    };
+  }
+
+  /**
    * This method returns all variables and parameters in scope at the given node. It includes global
-   * variables, local variables and parameters.
+   * variables, local variables and parameters. As in the input program, it excludes the variables
+   * that go out of scope at the node and the ones hidden by another declaration with the same name.
    *
    * <p>Whenever this is not possible, it returns an empty Optional instead. This usually happens
    * when some information was not passed/tracked correctly from the frontend and is likely a bug in
@@ -394,16 +569,57 @@ public final class AstCfaRelation {
    */
   public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
       CFANode pNode) {
-    if (!cfaNodeToAstParametersInScope.containsKey(pNode)
-        || !cfaNodeToAstLocalVariablesInScope.containsKey(pNode)) {
+    CFANode originalNode = pNode.getOriginal();
+    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)
+        || !cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
       return Optional.empty();
     }
 
+    Set<AVariableDeclaration> localVariables =
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode));
+    Set<AParameterDeclaration> parameters =
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode));
+    ImmutableSet<String> localNames =
+        FluentIterable.concat(localVariables, parameters)
+            .transform(AbstractSimpleDeclaration::getOrigName)
+            .toSet();
     return Optional.of(
         FluentIterable.concat(
-            Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
-            Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
-            globalVariables));
+            localVariables,
+            parameters,
+            // A local variable hides a global one with the same name, and a static local variable
+            // is also among the global variables
+            FluentIterable.from(globalVariables)
+                .filter(global -> !localNames.contains(global.getOrigName()))));
+  }
+
+  /**
+   * Returns the name in the input program of the variable that CPAchecker calls {@code pName} at
+   * the given node, e.g., {@code i} for the variable {@code i__1}, which CPAchecker renamed because
+   * another variable {@code i} exists in the same function. Returns {@code pName} if no variable
+   * with this name is in scope.
+   *
+   * <p>TODO: This information should be collected during parsing. Currently, this is only a simple
+   * heuristic that looks for a variable with this name among the variables in scope.
+   */
+  public String getNameInInputProgram(CFANode pNode, String pName) {
+    return getVariablesAndParametersInScope(pNode)
+        .flatMap(
+            variables ->
+                variables.firstMatch(variable -> variable.getName().equals(pName)).toJavaUtil())
+        .map(AbstractSimpleDeclaration::getOrigName)
+        .orElse(pName);
+  }
+
+  /**
+   * Returns the node before the given statement in the given function, i.e., not a node in a
+   * function that the statement calls.
+   */
+  public Optional<CFANode> getNodeBeforeStatement(ASTElement pStatement, String pFunction) {
+    return pStatement.edges().stream()
+        .map(CFAEdge::getPredecessor)
+        .filter(node -> node.getFunctionName().equals(pFunction))
+        .findFirst();
   }
 
   /**
@@ -466,6 +682,23 @@ public final class AstCfaRelation {
     }
   }
 
+  /**
+   * Returns the location of the statement given by {@link #getStatementFileLocationForNode} if the
+   * execution of this statement starts at the given node, e.g., not for a node inside a conditional
+   * expression of the statement.
+   */
+  public Optional<FileLocation> getStatementStartingAtNode(CFANode pNode) {
+    return getStatementFileLocationForNode(pNode)
+        .filter(
+            location -> {
+              ASTElement statement =
+                  startingLocationToTightestStatement.get(
+                      new StartingLocation(
+                          location.getStartColumnInLine(), location.getStartingLineInOrigin()));
+              return statement != null && statement.startNodes().contains(pNode);
+            });
+  }
+
   public Optional<ImmutableSet<AVariableDeclaration>> getGlobalVariables() {
     if (globalVariables == null) {
       return Optional.empty();
@@ -474,17 +707,45 @@ public final class AstCfaRelation {
   }
 
   public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
-    if (!cfaNodeToAstLocalVariablesInScope.containsKey(pCfaNode)) {
+    CFANode originalNode = pCfaNode.getOriginal();
+    if (!cfaNodeToAstLocalVariablesInScope.containsKey(originalNode)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pCfaNode)));
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(originalNode)));
   }
 
   public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
-    if (!cfaNodeToAstParametersInScope.containsKey(pCfaNode)) {
+    CFANode originalNode = pCfaNode.getOriginal();
+    if (!cfaNodeToAstParametersInScope.containsKey(originalNode)) {
       return ImmutableSet.of();
     }
-    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pCfaNode)));
+    return ImmutableSet.copyOf(
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(originalNode)));
+  }
+
+  /**
+   * Returns the local variables declared in the blocks around the node, as recorded by the CFA
+   * builder. Unlike {@link #getVariablesAndParametersInScope}, they include the ones that go out of
+   * scope at the node and the ones hidden by another declaration with the same name.
+   */
+  public ImmutableSet<AVariableDeclaration> getDeclaredLocalVariablesByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToDeclaredLocalVariables.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(
+        Objects.requireNonNull(cfaNodeToDeclaredLocalVariables.get(pCfaNode)));
+  }
+
+  /**
+   * Returns the parameters of the function of the node, as recorded by the CFA builder. Unlike
+   * {@link #getVariablesAndParametersInScope}, they include the ones that go out of scope at the
+   * node and the ones hidden by a local variable with the same name.
+   */
+  public ImmutableSet<AParameterDeclaration> getDeclaredParametersByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToDeclaredParameters.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToDeclaredParameters.get(pCfaNode)));
   }
 }

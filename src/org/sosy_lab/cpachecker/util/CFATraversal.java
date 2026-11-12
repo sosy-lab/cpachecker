@@ -152,7 +152,7 @@ public class CFATraversal {
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
-  public void traverse(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+  public void traverse(final CFANode startingNode, final CFAVisitor visitor) {
 
     Deque<CFANode> toProcess = new ArrayDeque<>();
 
@@ -161,7 +161,7 @@ public class CFATraversal {
     while (!toProcess.isEmpty()) {
       CFANode n = toProcess.removeLast();
 
-      CFATraversal.TraversalProcess result = visitor.visitNode(n);
+      TraversalProcess result = visitor.visitNode(n);
       if (result == TraversalProcess.ABORT) {
         return;
       }
@@ -198,7 +198,7 @@ public class CFATraversal {
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
-  public void traverseOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+  public void traverseOnce(final CFANode startingNode, final CFAVisitor visitor) {
     traverse(startingNode, new NodeCollectingCFAVisitor(visitor));
   }
 
@@ -211,7 +211,7 @@ public class CFATraversal {
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
-  public void traverseEdgesOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+  public void traverseEdgesOnce(final CFANode startingNode, final CFAVisitor visitor) {
 
     record CFANodeCFAEdgePair(CFANode successor, CFAEdge enteringEdge) {}
 
@@ -237,7 +237,7 @@ public class CFATraversal {
         continue;
       }
       discovered.add(currentNode);
-      CFATraversal.TraversalProcess result = visitor.visitNode(currentNode);
+      TraversalProcess result = visitor.visitNode(currentNode);
       if (result == TraversalProcess.ABORT) {
         return;
       }

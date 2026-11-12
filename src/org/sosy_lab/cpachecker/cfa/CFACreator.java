@@ -111,6 +111,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResol
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.TrivialLoopRemover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -329,6 +330,16 @@ public class CFACreator {
               + " option will otherwise create c code which is not the same as the original"
               + " one")
   private boolean moveDeclarationsToFunctionStart = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.removeTrivialLoops",
+      description =
+          "Remove all trivial loops (with only blank edges) in the CFA "
+              + "and replace them with program termination. "
+              + "This is not valid for properties like termination and valid-memcleanup, "
+              + "but more efficient for standard reachability properties. Cf. #1713.")
+  private boolean removeTrivialLoops = false;
 
   @Option(
       secure = true,
@@ -552,7 +563,13 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
+
+      // As in parseFileAndCreateCFA, an SV-LIB script starts in the function that calls the
+      // procedure of its verify-call command.
+      FunctionEntryNode mainFunction =
+          language == Language.SVLIB
+              ? getSvLibMainFunction(parseResult.functions())
+              : parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
       return createCFA(parseResult, mainFunction);
@@ -781,11 +798,6 @@ public class CFACreator {
       cfa.setSvLibCfaMetadata(pParseResult.svLibCfaMetadata().orElseThrow());
     }
 
-    if (withAcslMetadata) {
-      AcslMetadata acslMetadata = createAcslMetadata(cfa, pParseResult);
-      cfa.setAcslMetadata(acslMetadata);
-    }
-
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
     if (pParseResult.blocks().isPresent()
@@ -813,6 +825,18 @@ public class CFACreator {
 
     logger.log(
         Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
+
+    // Now finally set the edges for the AstCfaRelation, as the CFA is now complete and immutable.
+    if (immutableCFA.getAstCfaRelation() != null) {
+      immutableCFA.getAstCfaRelation().setEdgesForAstElements(immutableCFA.edges());
+    }
+
+    // The mapping of ACSL annotations to CFA nodes needs the edges of the AstCfaRelation
+    if (withAcslMetadata) {
+      AcslMetadata acslMetadata = createAcslMetadata(immutableCFA, pParseResult);
+      return immutableCFA.copyWithMetadata(
+          immutableCFA.getMetadata().withAcslMetadata(acslMetadata));
+    }
 
     return immutableCFA;
   }
@@ -1038,6 +1062,10 @@ public class CFACreator {
       declarationMover.moveDeclarationsToFunctionStart(cfa);
     }
 
+    if (removeTrivialLoops) {
+      TrivialLoopRemover.removeTrivialLoops(cfa);
+    }
+
     if (checkNullPointers) {
       NullPointerChecks nullPointerCheck = new NullPointerChecks(logger, config);
       nullPointerCheck.addNullPointerChecks(cfa);
@@ -1102,7 +1130,9 @@ public class CFACreator {
           final AExpression functionNameExp =
               aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
           if (functionNameExp instanceof AIdExpression aIdExpression) {
-            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())) {
+            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())
+                // the ThreadingCPA runs the init routine of pthread_once in a new thread
+                || ThreadingTransferRelation.THREAD_ONCE.equals(aIdExpression.getName())) {
               return true;
             }
           }
@@ -1415,7 +1445,8 @@ public class CFACreator {
                     v.getName(),
                     v.getOrigName(),
                     v.getQualifiedName(),
-                    initializer);
+                    initializer,
+                    v.hasThreadLocalStorage());
 
             previouslyInitializedVariables.add(name);
             iterator.set(Pair.of(v, p.getSecond())); // replace declaration

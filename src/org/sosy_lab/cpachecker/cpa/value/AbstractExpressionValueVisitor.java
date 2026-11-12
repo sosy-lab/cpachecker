@@ -396,54 +396,37 @@ public abstract class AbstractExpressionValueVisitor
       }
     }
 
-    switch (op) {
-      case PLUS -> {
-        return l + r;
-      }
-      case MINUS -> {
-        return l - r;
-      }
+    return switch (op) {
+      case PLUS -> l + r;
+      case MINUS -> l - r;
       case DIVIDE -> {
         if (r == 0) {
           logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-          return 0;
+          yield 0;
         }
-        return l / r;
+        yield l / r;
       }
-      case REMAINDER -> {
-        return l % r;
-      }
-      case MULTIPLY -> {
-        return l * r;
-      }
-      case SHIFT_LEFT -> {
-        /* There is a difference in the SHIFT-operation in Java and C.
-         * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
-         *
-         * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
-         *
-         * If the promoted type of the left-hand operand is long, then only the
-         * six lowest-order bits of the right-hand operand are used as the
-         * shift distance. It is as if the right-hand operand were subjected to
-         * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
-         * The shift distance actually used is therefore always in the range 0 to 63.
-         */
-        return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
-      }
-      case SHIFT_RIGHT -> {
-        return l >> r;
-      }
-      case BITWISE_AND -> {
-        return l & r;
-      }
-      case BITWISE_OR -> {
-        return l | r;
-      }
-      case BITWISE_XOR -> {
-        return l ^ r;
-      }
+      case REMAINDER -> l % r;
+      case MULTIPLY -> l * r;
+      case SHIFT_LEFT ->
+          /* There is a difference in the SHIFT-operation in Java and C.
+           * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
+           *
+           * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
+           *
+           * If the promoted type of the left-hand operand is long, then only the
+           * six lowest-order bits of the right-hand operand are used as the
+           * shift distance. It is as if the right-hand operand were subjected to
+           * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
+           * The shift distance actually used is therefore always in the range 0 to 63.
+           */
+          (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
+      case SHIFT_RIGHT -> l >> r;
+      case BITWISE_AND -> l & r;
+      case BITWISE_OR -> l | r;
+      case BITWISE_XOR -> l ^ r;
       default -> throw new AssertionError("unknown binary operation: " + op);
-    }
+    };
   }
 
   /**
@@ -631,7 +614,7 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    switch (type.getType()) {
+    return switch (type.getType()) {
       case INT128, CHAR, INT -> {
         CSimpleType canonicalType = type.getCanonicalType();
         int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
@@ -660,13 +643,13 @@ public abstract class AbstractExpressionValueVisitor
             };
 
         // return 1 if expression holds, 0 otherwise
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       case FLOAT, DOUBLE, FLOAT128 -> {
         boolean result =
             comparisonOperation(
                 op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       default -> {
         logger.logf(
@@ -674,9 +657,9 @@ public abstract class AbstractExpressionValueVisitor
             "unsupported type %s for result of binary operation %s",
             type.toString(),
             op);
-        return Value.UnknownValue.getInstance();
+        yield Value.UnknownValue.getInstance();
       }
-    }
+    };
   }
 
   /**
@@ -778,265 +761,288 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinFunctions.isPopcountFunction(functionName)) {
-          return handlePopcount(
-              functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
-
-        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
-          return BuiltinOverflowFunctions.evaluateFunctionCall(
-              pIastFunctionCallExpression, this, machineModel, logger);
-
-        } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName, parameterValues, (FloatValue arg) -> new NumericValue(arg.abs()));
-
-        } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
-            || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
-          checkArgument(parameterValues.isEmpty());
-          FloatValue.Format precision =
-              FloatValue.Format.fromCType(
-                  machineModel,
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
-          return new NumericValue(FloatValue.infinity(precision));
-
-        } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
-          // FIXME: Add support for NaN payloads
-          checkArgument(parameterValues.size() < 2);
-          FloatValue.Format precision =
-              FloatValue.Format.fromCType(
-                  machineModel,
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
-          return new NumericValue(FloatValue.nan(precision));
-
-        } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) ->
-                  new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0));
-
-        } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1));
-
-        } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)));
-
-        } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)));
-
-        } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)));
-
-        } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> {
-                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-                return switch (machineModel.getSizeofLongInt()) {
-                  case Integer.BYTES -> new NumericValue(value.integerValue());
-                  case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> Value.UnknownValue.getInstance();
-                };
-              });
-
-        } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> {
-                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-                return switch (machineModel.getSizeofLongLongInt()) {
-                  case Integer.BYTES -> new NumericValue(value.integerValue());
-                  case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> Value.UnknownValue.getInstance();
-                };
-              });
-
-        } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)));
-
-        } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(
-                      arg1.lessOrEqual(arg2)
-                          ? FloatValue.zero(arg1.getFormat())
-                          : arg1.subtract(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
-          // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
-          // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
-          // return the first argument.
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(
-                      switch (arg1.compareWithTotalOrder(arg2)) {
-                        case -1 -> arg2.isNan() ? arg1 : arg2;
-                        case +1 -> arg1.isNan() ? arg2 : arg1;
-                        default -> arg1;
-                      }));
-
-        } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
-          // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
-          // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
-          // argument for `float` or `double` and the second for `long double`
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(
-                      switch (arg1.compareWithTotalOrder(arg2)) {
-                        case -1 -> arg1.isNan() ? arg2 : arg1;
-                        case +1 -> arg2.isNan() ? arg1 : arg2;
-                        default -> arg1;
-                      }));
-
-        } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> {
-                int fpClass;
-                if (arg.isNan()) {
-                  fpClass = 0;
-                } else if (arg.isInfinite()) {
-                  fpClass = 1;
-                } else if (arg.isZero()) {
-                  fpClass = 2;
-                } else if (arg.isSubnormal()) {
-                  fpClass = 3;
-                } else {
-                  // Normal number
-                  fpClass = 4;
-                }
-                return new NumericValue(fpClass);
-              });
-
-        } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
-          // We only need the return value and can ignore the integer part that needs to be written
-          // to the pointer in the 2nd argument
-          if (parameterValues.size() == 2) {
-            Value value = parameterValues.getFirst();
-            if (value.isExplicitlyKnown()) {
-              FloatValue arg =
-                  castToFloat(
-                      machineModel,
-                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
-                      (NumericValue) value);
-
-              if (arg.isInfinite()) {
-                // Return zero if the number is infinite
-                return new NumericValue(
-                    arg.isNegative()
-                        ? FloatValue.negativeZero(arg.getFormat())
-                        : FloatValue.zero(arg.getFormat()));
-              } else {
-                // Otherwise, get the fractional part
-                return new NumericValue(arg.modulo(FloatValue.one(arg.getFormat())));
-              }
-            }
-          }
-
-        } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.greaterThan(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0));
+        // Which functions are evaluated here is decided by HandledFunction, so that
+        // ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls does not report a
+        // call that is evaluated here as an unhandled call.
+        HandledFunction handled = HandledFunction.of(calledFunctionName);
+        if (handled != null) {
+          return switch (handled) {
+            case POPCOUNT ->
+                handlePopcount(
+                    calledFunctionName,
+                    parameterValues,
+                    pIastFunctionCallExpression,
+                    machineModel,
+                    logger);
+            case BUILTIN_OVERFLOW ->
+                BuiltinOverflowFunctions.evaluateFunctionCall(
+                    pIastFunctionCallExpression, this, machineModel, logger);
+            case BUILTIN_FLOAT -> handleBuiltinFloatFunction(calledFunctionName, parameterValues);
+            // These are not builtin functions and are handled before an expression is evaluated.
+            case FREE, FSCANF, NONDET_INPUT -> Value.UnknownValue.getInstance();
+          };
         }
       }
     }
     // Return 'unknown' if it's not a builtin function that we support
+    return Value.UnknownValue.getInstance();
+  }
+
+  /**
+   * Evaluate a call of one of the builtin float functions, cf. {@link BuiltinFloatFunctions}.
+   *
+   * <p>Which functions are evaluated here is part of what {@link HandledFunction#BUILTIN_FLOAT}
+   * promises, so a function that is added here has to be one that {@link HandledFunction} knows.
+   */
+  private Value handleBuiltinFloatFunction(String calledFunctionName, List<Value> parameterValues) {
+    if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName, parameterValues, (FloatValue arg) -> new NumericValue(arg.abs()));
+
+    } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
+        || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
+      checkArgument(parameterValues.isEmpty());
+      FloatValue.Format precision =
+          FloatValue.Format.fromCType(
+              machineModel,
+              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
+      return new NumericValue(FloatValue.infinity(precision));
+
+    } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
+      // FIXME: Add support for NaN payloads
+      checkArgument(parameterValues.size() < 2);
+      FloatValue.Format precision =
+          FloatValue.Format.fromCType(
+              machineModel,
+              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
+      return new NumericValue(FloatValue.nan(precision));
+
+    } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0));
+
+    } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1));
+
+    } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)));
+
+    } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)));
+
+    } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)));
+
+    } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> {
+            FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+            return switch (machineModel.getSizeofLongInt()) {
+              case Integer.BYTES -> new NumericValue(value.integerValue());
+              case Long.BYTES -> new NumericValue(value.longValue());
+              default -> Value.UnknownValue.getInstance();
+            };
+          });
+
+    } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> {
+            FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+            return switch (machineModel.getSizeofLongLongInt()) {
+              case Integer.BYTES -> new NumericValue(value.integerValue());
+              case Long.BYTES -> new NumericValue(value.longValue());
+              default -> Value.UnknownValue.getInstance();
+            };
+          });
+
+    } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)));
+
+    } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(
+                  arg1.lessOrEqual(arg2)
+                      ? FloatValue.zero(arg1.getFormat())
+                      : arg1.subtract(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
+      // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
+      // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
+      // return the first argument.
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg2.isNan() ? arg1 : arg2;
+                    case +1 -> arg1.isNan() ? arg2 : arg1;
+                    default -> arg1;
+                  }));
+
+    } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
+      // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
+      // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
+      // argument for `float` or `double` and the second for `long double`
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg1.isNan() ? arg2 : arg1;
+                    case +1 -> arg2.isNan() ? arg1 : arg2;
+                    default -> arg1;
+                  }));
+
+    } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> {
+            int fpClass;
+            if (arg.isNan()) {
+              fpClass = 0;
+            } else if (arg.isInfinite()) {
+              fpClass = 1;
+            } else if (arg.isZero()) {
+              fpClass = 2;
+            } else if (arg.isSubnormal()) {
+              fpClass = 3;
+            } else {
+              // Normal number
+              fpClass = 4;
+            }
+            return new NumericValue(fpClass);
+          });
+
+    } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
+      // We only need the return value and can ignore the integer part that needs to be written
+      // to the pointer in the 2nd argument
+      if (parameterValues.size() == 2) {
+        Value value = parameterValues.getFirst();
+        if (value.isExplicitlyKnown()) {
+          FloatValue arg =
+              castToFloat(
+                  machineModel,
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                  (NumericValue) value);
+
+          if (arg.isInfinite()) {
+            // Return zero if the number is infinite
+            return new NumericValue(
+                arg.isNegative()
+                    ? FloatValue.negativeZero(arg.getFormat())
+                    : FloatValue.zero(arg.getFormat()));
+          } else {
+            // Otherwise, get the fractional part
+            return new NumericValue(arg.modulo(FloatValue.one(arg.getFormat())));
+          }
+        }
+      }
+
+    } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesSqrt(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName, parameterValues, (FloatValue arg) -> new NumericValue(arg.sqrt()));
+
+    } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.greaterThan(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0));
+    }
     return Value.UnknownValue.getInstance();
   }
 
@@ -1075,22 +1081,19 @@ public abstract class AbstractExpressionValueVisitor
     final TypeIdOperator idOperator = pE.getOperator();
     final CType innerType = pE.getType();
 
-    switch (idOperator) {
+    return switch (idOperator) {
       case SIZEOF -> {
         if (innerType.hasKnownConstantSize()) {
           BigInteger size = machineModel.getSizeof(innerType);
-          return new NumericValue(size);
+          yield new NumericValue(size);
         }
-        return Value.UnknownValue.getInstance();
+        yield Value.UnknownValue.getInstance();
       }
-      case ALIGNOF -> {
-        return new NumericValue(machineModel.getAlignof(innerType));
-      }
-      default -> {
-        // TODO support more operators
-        return Value.UnknownValue.getInstance();
-      }
-    }
+      case ALIGNOF -> new NumericValue(machineModel.getAlignof(innerType));
+      default ->
+          // TODO support more operators
+          Value.UnknownValue.getInstance();
+    };
   }
 
   /**
@@ -1361,7 +1364,7 @@ public abstract class AbstractExpressionValueVisitor
     final long lVal = pLeftValue.longValue();
     final long rVal = pRightValue.longValue();
 
-    switch (pBinaryOperator) {
+    return switch (pBinaryOperator) {
       case PLUS,
           MINUS,
           DIVIDE,
@@ -1430,7 +1433,7 @@ public abstract class AbstractExpressionValueVisitor
           numResult = intNumResult;
         }
 
-        return new NumericValue(numResult);
+        yield new NumericValue(numResult);
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final boolean result =
@@ -1443,13 +1446,12 @@ public abstract class AbstractExpressionValueVisitor
               case LESS_EQUAL -> (lVal <= rVal);
               default -> throw new AssertionError("Unhandled operation " + pBinaryOperator);
             };
-        return BooleanValue.valueOf(result);
+        yield BooleanValue.valueOf(result);
       }
-      default -> {
-        // TODO check which cases can be handled
-        return UnknownValue.getInstance();
-      }
-    }
+      default ->
+          // TODO check which cases can be handled
+          UnknownValue.getInstance();
+    };
   }
 
   /*

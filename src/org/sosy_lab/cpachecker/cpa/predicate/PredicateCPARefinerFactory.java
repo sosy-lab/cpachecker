@@ -138,7 +138,14 @@ public final class PredicateCPARefinerFactory {
 
     InterpolationManager interpolationManager =
         new InterpolationManager(
-            pfmgr, solver, loopStructure, variableClassification, config, shutdownNotifier, logger);
+            pfmgr,
+            solver,
+            loopStructure,
+            variableClassification,
+            config,
+            shutdownNotifier,
+            logger,
+            /* pEnableCounterexampleAnalysis= */ true);
 
     PathChecker pathChecker =
         new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);

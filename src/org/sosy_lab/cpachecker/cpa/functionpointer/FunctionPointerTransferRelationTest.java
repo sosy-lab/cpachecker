@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class FunctionPointerTransferRelationTest {
 
@@ -87,7 +88,8 @@ public class FunctionPointerTransferRelationTest {
           "stdlib_allocator",
           "stdlib_allocator",
           "stdlib_allocator",
-          new CInitializerList(FileLocation.DUMMY, ImmutableList.of(initializer)));
+          new CInitializerList(FileLocation.DUMMY, ImmutableList.of(initializer)),
+          /* pHasThreadLocalStorage= */ false);
 
   private final CIdExpression libAllocator =
       new CIdExpression(FileLocation.DUMMY, struct, "stdlib_allocator", voidPointerDecl);
@@ -120,7 +122,7 @@ public class FunctionPointerTransferRelationTest {
 
   @Before
   public void init() throws InvalidConfigurationException {
-    Configuration config = Configuration.defaultConfiguration();
+    Configuration config = TestUtils.configurationForTest().build();
     LogManager manager = LogManager.createNullLogManager();
     relation = new FunctionPointerTransferRelation(manager, config);
   }

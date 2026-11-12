@@ -259,8 +259,8 @@ public final class SSAMap implements Serializable {
 
   /**
    * Creates an unmodifiable SSAMap that contains all indices from two SSAMaps. If there are
-   * conflicting indices, the maximum of both is used. Further returns a list with all variables for
-   * which different indices were found, together with the two conflicting indices.
+   * conflicting indices, the maximum of both is used. For all variables for which different indices
+   * are found a callback is notified.
    */
   public static SSAMap merge(
       SSAMap s1, SSAMap s2, MapsDifference.Visitor<String, Integer> collectDifferences) {

@@ -37,7 +37,7 @@ public class AcslNodeMappingUtils {
     CFANode n =
         switch (commentType) {
           case ASSERTION -> nodeForAssertion(pComment, pCFA.getAstCfaRelation());
-          case LOOP_ANNOTATION -> nodeForLoopAnnotation(pComment, pCFA.getAstCfaRelation());
+          case LOOP_ANNOTATION -> nodeForLoopAnnotation(pComment, pCFA, pCFA.getAstCfaRelation());
           case FUNCTION_CONTRACT ->
               nodeForFunctionContract(pComment, pCFA, pCFA.getAstCfaRelation());
           case null ->
@@ -98,19 +98,25 @@ public class AcslNodeMappingUtils {
    * Finds the loop head for an acsl loop annotation
    *
    * @param pComment The comment containing the annotation
+   * @param pCFA The CFA, whose loop structure is used to determine the loop head
    * @param pAstCfaRelation The current AstCfaRelation
    * @return The next CFA node with the 'isLoopHead' flag set to true. Throws an exception if no
    *     matching node can be found.
    */
   private static CFANode nodeForLoopAnnotation(
-      AcslComment pComment, AstCfaRelation pAstCfaRelation) {
+      AcslComment pComment, CFA pCFA, AstCfaRelation pAstCfaRelation) {
     FileLocation location = pComment.fileLocation();
 
     FileLocation nextStatement =
         pAstCfaRelation.nextStartStatementLocation(location.getNodeOffset());
     Optional<CFANode> iterationNode =
-        pAstCfaRelation.getNodeForIterationStatementLocation(
-            nextStatement.getStartingLineNumber(), nextStatement.getStartColumnInLine());
+        pCFA.getLoopStructure()
+            .flatMap(
+                loopStructure ->
+                    pAstCfaRelation.getNodeForIterationStatementLocation(
+                        nextStatement.getStartingLineNumber(),
+                        nextStatement.getStartColumnInLine(),
+                        loopStructure));
 
     if (iterationNode.isPresent()) {
       Verify.verify(iterationNode.orElseThrow().isLoopStart());

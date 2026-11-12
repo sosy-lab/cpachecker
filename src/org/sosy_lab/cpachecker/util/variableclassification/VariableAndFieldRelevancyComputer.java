@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 
 /**
  * The class computes global control-flow and context-insensitive over-approximation of sets of
@@ -438,7 +440,7 @@ final class VariableAndFieldRelevancyComputer {
             + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
     // Currently, we don't pay attention to possible qualifiers (e.g., const/volatile)
-    return compositeType.withoutQualifiers();
+    return compositeType.asUnqualified();
   }
 
   public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)
@@ -484,16 +486,33 @@ final class VariableAndFieldRelevancyComputer {
         // Heuristic: for external function calls
         // r = f(a); // r depends on f and a, BUT
         // f(a); // f and a are always relevant
+        // r = memcpy(a, b, n); // a, b, and n are always relevant (not only a)
+        // The last case applies to all functions that write through pointer arguments
+        // (cf. StandardFunctions#writesThroughPointerArguments). The pointer written through
+        // must be relevant, because the call has a side effect on the memory it points to.
+        // The other arguments are made relevant as well, because an analysis that handles or
+        // overapproximates such a function may need them, e.g., source pointer and length.
         if (statement instanceof CAssignment assignment) {
           final CRightHandSide rhs = assignment.getRightHandSide();
           final Pair<VariableOrField, VarFieldDependencies> r =
               assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
           if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
+            // Normally, everything in the RHS becomes a dependency of the LHS, so it is relevant
+            // only if the LHS is relevant. For functions writing through pointer arguments, we
+            // use unknown() as the dependent instead: the RHS visitor then calls
+            // withDependency(unknown(), x) for every x in the RHS, which marks x as relevant
+            // directly instead of recording a dependency (same as for f(a); below).
+            final VariableOrField dependent =
+                rhs instanceof CFunctionCallExpression call
+                        && call.getFunctionNameExpression() instanceof CIdExpression function
+                        && StandardFunctions.writesThroughPointerArguments(function.getName())
+                    ? VariableOrField.unknown()
+                    : r.getFirst();
             result =
                 result.withDependencies(
                     r.getSecond()
                         .withDependencies(
-                            rhs.accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
+                            rhs.accept(CollectingRHSVisitor.create(pCfa, dependent))));
           } else {
             throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
           }

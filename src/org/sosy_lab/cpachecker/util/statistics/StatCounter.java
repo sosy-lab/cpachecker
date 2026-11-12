@@ -23,6 +23,10 @@ public class StatCounter extends AbstractStatValue {
     counter.increment();
   }
 
+  public void add(long n) {
+    counter.add(n);
+  }
+
   public long getValue() {
     return counter.sum();
   }

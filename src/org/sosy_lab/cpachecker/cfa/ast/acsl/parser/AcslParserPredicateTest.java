@@ -79,7 +79,8 @@ public class AcslParserPredicateTest {
               var,
               var,
               var,
-              null /* No initializer, we only want it for testing */));
+              null /* No initializer, we only want it for testing */,
+              /* pHasThreadLocalStorage= */ false));
     }
     scope.registerDeclaration(
         new CFunctionDeclaration(

@@ -135,7 +135,7 @@ public interface PathFormulaManager {
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
    * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
-   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
+   * Predicate, java.util.function.BiPredicate)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
@@ -152,7 +152,7 @@ public interface PathFormulaManager {
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
    * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
-   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
+   * Predicate, java.util.function.BiPredicate)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.

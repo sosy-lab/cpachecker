@@ -14,7 +14,7 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -61,7 +61,7 @@ public class SMGCPAAddressVisitor
 
   private final SMGState state;
 
-  private final LogManagerWithoutDuplicates logger;
+  private final LogManager logger;
 
   /** This edge is only to be used for debugging/logging! */
   private final CFAEdge cfaEdge;
@@ -72,13 +72,12 @@ public class SMGCPAAddressVisitor
       SMGCPAExpressionEvaluator pEvaluator,
       SMGState currentState,
       CFAEdge edge,
-      LogManagerWithoutDuplicates pLogger,
-      SMGOptions pOptions) {
+      LogManager pLogger) {
     evaluator = pEvaluator;
     state = currentState;
     cfaEdge = edge;
     logger = pLogger;
-    options = pOptions;
+    options = currentState.getOptions();
   }
 
   @Override
@@ -154,7 +153,7 @@ public class SMGCPAAddressVisitor
         ImmutableList.builder();
 
     for (ValueAndSMGState arrayValueAndState :
-        arrayExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options))) {
+        arrayExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       Value arrayValue = arrayValueAndState.getValue();
       SMGState currentState = arrayValueAndState.getState();
 
@@ -165,8 +164,7 @@ public class SMGCPAAddressVisitor
 
       // Evaluate the subscript as far as possible
       for (ValueAndSMGState subscriptValueAndState :
-          subscriptExpr.accept(
-              new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options))) {
+          subscriptExpr.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger))) {
 
         Value subscriptValue = subscriptValueAndState.getValue();
         currentState = subscriptValueAndState.getState();
@@ -406,8 +404,7 @@ public class SMGCPAAddressVisitor
     ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> resultBuilder =
         ImmutableList.builder();
     for (ValueAndSMGState structValuesAndState :
-        ownerExpression.accept(
-            new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options))) {
+        ownerExpression.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       // This value is either an AddressValue for pointers i.e. (*struct).field or a general
       // SymbolicValue
       Value structValue = structValuesAndState.getValue();
@@ -501,7 +498,7 @@ public class SMGCPAAddressVisitor
     ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> resultBuilder =
         ImmutableList.builder();
     for (ValueAndSMGState evaluatedSubExpr :
-        expr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options))) {
+        expr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       SMGState currentState = evaluatedSubExpr.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();

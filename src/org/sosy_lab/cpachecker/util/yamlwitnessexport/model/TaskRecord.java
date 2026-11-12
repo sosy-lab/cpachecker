@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -80,6 +82,7 @@ public class TaskRecord {
 
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
       throws IOException {
+
     List<Path> inputFiles = pCFA.getFileNames();
     ImmutableMap.Builder<String, String> inputFileHashes = ImmutableMap.builder();
     for (Path inputFile : inputFiles) {
@@ -87,6 +90,11 @@ public class TaskRecord {
     }
 
     String specification = getSpecificationAsString(pSpecification);
+    if (pSpecification.getFiles().isEmpty() && pSpecification.getProperties().size() == 1) {
+      specification =
+          getOnlyElement(pSpecification.getProperties())
+              .toFullString(pCFA.getMainFunction().getFunction().getOrigName());
+    }
 
     return new TaskRecord(
         Collections3.transformedImmutableListCopy(inputFiles, Path::toString),

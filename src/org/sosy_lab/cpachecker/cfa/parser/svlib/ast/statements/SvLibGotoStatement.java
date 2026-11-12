@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
@@ -45,7 +46,7 @@ public final class SvLibGotoStatement extends SvLibControlFlowStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return "(goto " + label + ")";
+    return "(goto " + SmtLibSymbols.quoteIfNeeded(label) + ")";
   }
 
   @Override

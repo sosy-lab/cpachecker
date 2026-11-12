@@ -260,13 +260,13 @@ public class AcslRenamingVisitor
   }
 
   private CAstNode renameCExpression(CAstNode node) {
-    switch (node) {
+    return switch (node) {
       case CIdExpression idExpr -> {
         String newName = nameRenamingMap.get(idExpr.getName());
         if (newName == null) {
-          return null;
+          yield null;
         }
-        return new CIdExpression(
+        yield new CIdExpression(
             idExpr.getFileLocation(),
             idExpr.getExpressionType(),
             newName,
@@ -275,16 +275,16 @@ public class AcslRenamingVisitor
       case CParameterDeclaration decl -> {
         String newName = nameRenamingMap.get(decl.getName());
         if (newName == null) {
-          return null;
+          yield null;
         }
-        return new CParameterDeclaration(decl.getFileLocation(), decl.getType(), newName);
+        yield new CParameterDeclaration(decl.getFileLocation(), decl.getType(), newName);
       }
       case CVariableDeclaration decl -> {
         String newName = nameRenamingMap.get(decl.getName());
         if (newName == null) {
-          return null;
+          yield null;
         }
-        return new CVariableDeclaration(
+        yield new CVariableDeclaration(
             decl.getFileLocation(),
             decl.isGlobal(),
             decl.getCStorageClass(),
@@ -292,14 +292,15 @@ public class AcslRenamingVisitor
             newName,
             newName,
             newName,
-            decl.getInitializer());
+            decl.getInitializer(),
+            decl.hasThreadLocalStorage());
       }
       case CFunctionDeclaration decl -> {
         String newName = nameRenamingMap.get(decl.getName());
         if (newName == null) {
-          return null;
+          yield null;
         }
-        return new CFunctionDeclaration(
+        yield new CFunctionDeclaration(
             decl.getFileLocation(),
             decl.getType(),
             newName,
@@ -308,9 +309,7 @@ public class AcslRenamingVisitor
       }
       // This function is passed to SubstitutingCAstNodeVisitor, which requires it to return null
       // for nodes that should not be substituted
-      case null, default -> {
-        return null;
-      }
-    }
+      case null, default -> null;
+    };
   }
 }

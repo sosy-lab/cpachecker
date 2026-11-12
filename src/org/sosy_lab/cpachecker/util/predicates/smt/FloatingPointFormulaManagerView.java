@@ -71,11 +71,13 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
    * @return an optional bitvector of the same size as the wrapper specified
    */
   private Optional<BitvectorFormula> getBitvectorIntermediateIfNecessary(Formula pFormula) {
-    if (isBitvectorIntermediateNecessary(getFormulaType(pFormula))) {
+    FormulaType<?> type = getFormulaType(pFormula);
+    if (isBitvectorIntermediateNecessary(type)) {
+      // The size is taken from the type of the wrapper, because the formula itself is an integer
+      // and the manager of the bitvectors cannot handle a wrapped formula.
       return Optional.of(
           bitvectorFormulaManager.makeBitvector(
-              bitvectorFormulaManager.getLength((BitvectorFormula) pFormula),
-              (IntegerFormula) unwrap(pFormula)));
+              ((FormulaType.BitvectorType) type).getSize(), (IntegerFormula) unwrap(pFormula)));
     }
     return Optional.empty();
   }

@@ -101,18 +101,18 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       Semaphore automatonAvailable = new Semaphore(1);
 
       Thread readingThread =
-          new Thread(
-              new ProofPartReader(
-                  automatonAvailable,
-                  partitionsAvailable,
-                  checkResult,
-                  ioHelpers,
-                  cpas,
-                  roots,
-                  new ReachedSetFactory(config, logger)));
+          Thread.ofPlatform()
+              .name("PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy")
+              .start(
+                  new ProofPartReader(
+                      automatonAvailable,
+                      partitionsAvailable,
+                      checkResult,
+                      ioHelpers,
+                      cpas,
+                      roots,
+                      new ReachedSetFactory(config, logger)));
       try {
-        readingThread.start();
-
         Pair<ARGState, List<ARGState>> checkingResult;
 
         CMCPartitionChecker checker;
@@ -166,7 +166,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           i++;
           if (i < numProofs) {
             // write assumption automaton for next round
-            automatonWriter.writeAutomaton(checkingResult.getFirst(), checkingResult.getSecond());
+            automatonWriter.writeAutomaton(
+                checkingResult.getFirst(), checkingResult.getSecond(), cfa.getMachineModel());
             automatonAvailable.release();
           } else {
             if (!checkingResult.getSecond().isEmpty()) {

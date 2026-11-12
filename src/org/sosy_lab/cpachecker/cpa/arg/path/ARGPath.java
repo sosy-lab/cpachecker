@@ -263,7 +263,7 @@ public class ARGPath extends AbstractAppender {
 
   @Override
   public int hashCode() {
-    return Objects.hash(edges);
+    return Objects.hashCode(edges);
   }
 
   @Override

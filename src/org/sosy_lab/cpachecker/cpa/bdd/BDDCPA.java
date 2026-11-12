@@ -35,7 +35,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDVariableLimitException;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
@@ -78,7 +80,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   private BDDCPA(
       CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     config = pConfig;
@@ -94,7 +96,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
     manager = new NamedRegionManager(rmgr);
     bvmgr = new BitvectorManager(rmgr);
-    predmgr = new PredicateManager(config, manager, cfa);
+    try {
+      predmgr = new PredicateManager(config, manager, cfa);
+    } catch (BDDVariableLimitException e) {
+      throw new CPAException(e.getMessage(), e);
+    }
     bvComputer =
         new BitvectorComputer(
             compressIntEqual,

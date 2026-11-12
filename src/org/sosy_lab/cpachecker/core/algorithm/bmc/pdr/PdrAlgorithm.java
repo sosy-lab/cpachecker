@@ -1275,19 +1275,15 @@ public class PdrAlgorithm implements Algorithm {
       return liftingAbstractionFailureThreshold;
     }
 
-    public LiftingStrategyFactories getLiftingStrategy() {
+    private LiftingStrategyFactories getLiftingStrategy() {
       return liftingStrategy;
-    }
-
-    public AbstractionStrategyFactories getAbstractionStrategyFactory() {
-      return abstractionStrategyFactory;
     }
 
     public InvariantStrengtheningStrategies getInvariantRefinementStrategy() {
       return invariantRefinementStrategy;
     }
 
-    public ConditionAdjustmentCriterion getConditionAdjustmentCriterion() {
+    private ConditionAdjustmentCriterion getConditionAdjustmentCriterion() {
       return conditionAdjustmentCriterion;
     }
   }

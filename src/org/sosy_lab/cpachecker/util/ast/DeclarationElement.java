@@ -8,24 +8,21 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public final class DeclarationElement {
 
   private final ASTElement completeElement;
 
-  public DeclarationElement(FileLocation pStatementLocation, ImmutableSet<CFAEdge> pEdges) {
-    completeElement = determineElement(pStatementLocation, pEdges);
+  public DeclarationElement(FileLocation pStatementLocation) {
+    completeElement = determineElement(pStatementLocation);
   }
 
   public ASTElement getCompleteElement() {
     return completeElement;
   }
 
-  public ASTElement determineElement(
-      FileLocation pConditionLocation, ImmutableSet<CFAEdge> pEdges) {
-    return new ASTElement(pConditionLocation, pEdges);
+  public ASTElement determineElement(FileLocation pConditionLocation) {
+    return new ASTElement(pConditionLocation);
   }
 }

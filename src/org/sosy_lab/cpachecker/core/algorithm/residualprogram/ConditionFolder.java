@@ -197,7 +197,7 @@ public abstract class ConditionFolder {
   }
 
   @SuppressWarnings("checkstyle:PublicReferenceToPrivateType")
-  protected void merge(
+  void merge(
       final ARGState newState1, final ARGState newState2, final MergeUpdateFunction updateFun) {
 
     Map<ARGState, ARGState> mergedInto = new HashMap<>();

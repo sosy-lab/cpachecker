@@ -22,7 +22,6 @@ import com.google.common.base.Functions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -34,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -75,9 +75,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class LiveVariables {
@@ -317,6 +315,26 @@ public class LiveVariables {
         .toSet();
   }
 
+  /** Returns this liveness information with its node keys replaced by corresponding CFA clones. */
+  public LiveVariables copyWithNodeMapping(Map<CFANode, CFANode> pNodeMapping) {
+    if (this instanceof AllVariablesAsLiveVariables) {
+      return this;
+    }
+
+    ImmutableSetMultimap.Builder<CFANode, Wrapper<ASimpleDeclaration>> clonedLiveVariables =
+        ImmutableSetMultimap.builder();
+    for (Map.Entry<CFANode, Wrapper<ASimpleDeclaration>> entry : liveVariables.entries()) {
+      clonedLiveVariables.put(
+          pNodeMapping.getOrDefault(entry.getKey(), entry.getKey()), entry.getValue());
+    }
+    return new LiveVariables(
+        clonedLiveVariables.build(),
+        variableClassification,
+        globalVariables,
+        evaluationStrategy,
+        language);
+  }
+
   /** Return set of all variables which are alive at at least one node. */
   public Set<ASimpleDeclaration> getAllLiveVariables() {
     return from(liveVariables.values())
@@ -360,8 +378,9 @@ public class LiveVariables {
     if (!liveVarConfig.overallLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.create(liveVarConfig.overallLivenessCheckTime);
-      limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
+      limitChecker =
+          ResourceLimitChecker.createWallTimeLimitChecker(
+              liveVarsShutdown, liveVarConfig.overallLivenessCheckTime);
       limitChecker.start();
     } else {
       shutdownNotifier = pShutdownNotifier;
@@ -407,8 +426,9 @@ public class LiveVariables {
     if (!config.partwiseLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.create(config.partwiseLivenessCheckTime);
-      limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
+      limitChecker =
+          ResourceLimitChecker.createWallTimeLimitChecker(
+              liveVarsShutdown, config.partwiseLivenessCheckTime);
       limitChecker.start();
     } else {
       shutdownNotifier = pShutdownNotifier;

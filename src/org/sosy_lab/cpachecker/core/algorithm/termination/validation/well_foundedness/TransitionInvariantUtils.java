@@ -12,9 +12,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -53,6 +58,22 @@ public class TransitionInvariantUtils {
     }
   }
 
+  public static final String TRANS_INV_KEYWORD = "__TransInv_";
+  public static final String PREV_KEYWORD = TRANS_INV_KEYWORD + "PREV";
+  public static final String CURR_KEYWORD = TRANS_INV_KEYWORD + "MID";
+  public static final String CURR2_KEYWORD = TRANS_INV_KEYWORD + "CURR";
+  public static final String EMPTY_PREFIX = "";
+  public static final String AT_PREFIX_NON_C = "::at(";
+  public static final String AT_PREFIX = "\\at(";
+  public static final String ANYPREV_SUFFIX = ", AnyPrev)";
+
+  public static String removeKeyWordAfterTransInv(String pFormula) {
+    if (!pFormula.contains(TRANS_INV_KEYWORD)) {
+      return pFormula;
+    }
+    return pFormula.replace(PREV_KEYWORD, "").replace(CURR_KEYWORD, "").replace(CURR2_KEYWORD, "");
+  }
+
   /**
    * Enum representing the SSA indices of the previous states that we use for different states when
    * constructing formulas. The names of the enum values correspond to the names of the states
@@ -82,6 +103,10 @@ public class TransitionInvariantUtils {
         .anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
   }
 
+  public static boolean isLoopHead(CFANode pCFANode, ImmutableSet<Loop> pLoops) {
+    return pLoops.stream().anyMatch(loop -> loop.getLoopHeads().contains(pCFANode));
+  }
+
   public static CSimpleDeclaration getPrevDeclaration(
       String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     return Iterables.getOnlyElement(
@@ -90,20 +115,61 @@ public class TransitionInvariantUtils {
             .collect(ImmutableSet.toImmutableSet()));
   }
 
-  public static String transformFormulaToStringWithTrivialReplacement(
-      BooleanFormula pFormula, BooleanFormulaManagerView bfmgr, FormulaManagerView fmgr)
+  public static String transformFormulaToStringWithReplacement(
+      BooleanFormula pFormula,
+      BooleanFormulaManagerView bfmgr,
+      FormulaManagerView fmgr,
+      Scope pScope)
+      throws CPAException {
+    return transformFormulaToStringWithReplacement(
+        pFormula, bfmgr, fmgr, pScope, Function.identity());
+  }
+
+  /**
+   * Transforms the formula to a C expression like {@link
+   * #transformFormulaToStringWithReplacement(BooleanFormula, BooleanFormulaManagerView,
+   * FormulaManagerView, Scope)}, where the variables get the names given by the function.
+   */
+  public static String transformFormulaToStringWithReplacement(
+      BooleanFormula pFormula,
+      BooleanFormulaManagerView bfmgr,
+      FormulaManagerView fmgr,
+      Scope pScope,
+      Function<String, String> pVariableNames)
       throws CPAException {
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
-    if (bfmgr.isTrue(pFormula)) {
-      return "1";
-    } else if (bfmgr.isFalse(pFormula)) {
-      return "0";
-    }
     try {
-      return converter.formulaToCExpression(pFormula);
+      // Replace the literals containing pointer variables with true. The formula is converted to
+      // NNF before, so that this replacement only weakens the formula.
+      BooleanFormula formula =
+          fmgr.filterLiterals(
+              pFormula, literal -> !containsPointerVariables(literal, fmgr, pScope));
+      if (bfmgr.isTrue(formula)) {
+        return "1";
+      } else if (bfmgr.isFalse(formula)) {
+        return "0";
+      }
+      return converter.formulaToCExpression(
+          fmgr.renameFreeVariablesAndUFs(formula, pVariableNames));
     } catch (SolverException | InterruptedException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }
+  }
+
+  private static boolean containsPointerVariables(
+      BooleanFormula pFormula, FormulaManagerView fmgr, Scope pScope) {
+    for (String variable : fmgr.extractVariables(pFormula).keySet()) {
+      String varWithoutFunc = removeFunctionFromVarsName(variable);
+      if (pScope.variableNameInUse(varWithoutFunc)
+          && (pScope.lookupVariable(varWithoutFunc) == null
+              || ((CSimpleDeclaration) pScope.lookupVariable(varWithoutFunc))
+                      .getType()
+                      .getCanonicalType()
+                  instanceof CPointerType)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -130,9 +196,12 @@ public class TransitionInvariantUtils {
       if (currIndex < 0 && !isPrevVariable(var, pMapPrevToCurrVars)) {
         continue;
       }
+      // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
+      // renamed it, but the scope knows it only as main::i or i__1. The name without the
+      // function is unique, since the scope has only the variables in scope at the loop.
       builder.setIndex(
           var,
-          scope.lookupVariable(var).getType(),
+          scope.lookupVariable(removeFunctionFromVarsName(var)).getType(),
           isPrevVariable(var, pMapPrevToCurrVars) ? prevIndex : currIndex);
     }
     return builder.build();
@@ -160,29 +229,34 @@ public class TransitionInvariantUtils {
     for (Map.Entry<String, Formula> entry : prevMapNamesToVars.entrySet()) {
       String prevVarPure =
           removeFunctionFromVarsName(
-              fmgr.extractVariables(fmgr.uninstantiate(entry.getValue())).keySet().stream()
+              fmgr.extractVariableNames(fmgr.uninstantiate(entry.getValue())).stream()
                   .findAny()
                   .orElseThrow());
       String prevVar = entry.getKey();
       if (isPrevVariable(prevVarPure, pMapPrevVarsToCurr)) {
-        String currVar =
+        String currVarName =
             pMapPrevVarsToCurr.get(getPrevDeclaration(prevVarPure, pMapPrevVarsToCurr)).getName();
+        Optional<String> currVar = Optional.empty();
         for (Map.Entry<String, Formula> entry2 : currMapNamesToVars.entrySet()) {
           String currVarPure =
               removeFunctionFromVarsName(
-                  fmgr.extractVariables(fmgr.uninstantiate(entry2.getValue())).keySet().stream()
+                  fmgr.extractVariableNames(fmgr.uninstantiate(entry2.getValue())).stream()
                       .findAny()
                       .orElseThrow());
-          if (currVar.equals(currVarPure)) {
-            currVar = entry2.getKey();
+          if (currVarName.equals(currVarPure)) {
+            currVar = Optional.of(entry2.getKey());
             break;
           }
         }
-        if (!currVar.isEmpty()) {
+        // If the variable does not occur in pCurrFormula, e.g., because it is not changed in the
+        // loop, there is no variable to make equivalent to the previous variable
+        if (currVar.isPresent()) {
           equivalence =
               fmgr.makeAnd(
                   equivalence,
-                  fmgr.makeEqual(prevMapNamesToVars.get(prevVar), currMapNamesToVars.get(currVar)));
+                  fmgr.makeEqual(
+                      prevMapNamesToVars.get(prevVar),
+                      currMapNamesToVars.get(currVar.orElseThrow())));
         }
       }
     }

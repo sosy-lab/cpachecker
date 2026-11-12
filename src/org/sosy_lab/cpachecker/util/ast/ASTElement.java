@@ -8,20 +8,29 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
 public final class ASTElement {
   private final FileLocation location;
   private ImmutableSet<CFAEdge> allEdges;
   @LazyInit private ImmutableSet<CFAEdge> edges = null;
 
-  public ASTElement(FileLocation pLocation, ImmutableSet<CFAEdge> pAllEdges) {
+  public ASTElement(FileLocation pLocation) {
     location = pLocation;
-    allEdges = pAllEdges;
+    allEdges = null;
+  }
+
+  void setEdges(ImmutableSet<CFAEdge> pEdges) {
+    Verify.verify(allEdges == null && edges == null, "Edges can only be set once.");
+    allEdges = pEdges;
   }
 
   public FileLocation location() {
@@ -39,6 +48,22 @@ public final class ASTElement {
       allEdges = null; // free reference
     }
     return edges;
+  }
+
+  /** Returns the nodes at which the execution of this element starts. */
+  public ImmutableSet<CFANode> startNodes() {
+    ImmutableSet<CFAEdge> elementEdges = edges();
+    return FluentIterable.from(elementEdges)
+        // The predecessor of a return edge is in the called function
+        .filter(edge -> !(edge instanceof FunctionReturnEdge))
+        .transform(CFAEdge::getPredecessor)
+        .filter(
+            node ->
+                node.getEnteringEdges()
+                    .anyMatch(
+                        edge ->
+                            !elementEdges.contains(edge) && !(edge instanceof FunctionReturnEdge)))
+        .toSet();
   }
 
   @Override

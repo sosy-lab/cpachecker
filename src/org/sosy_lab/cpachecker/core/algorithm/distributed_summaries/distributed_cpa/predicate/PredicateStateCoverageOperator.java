@@ -8,10 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -19,9 +23,24 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class PredicateStateCoverageOperator implements CoverageOperator {
 
   private final Solver solver;
+  private final boolean cacheConditions;
+  private final LoadingCache<PathFormula, BooleanFormula> normalizedConditions;
 
   public PredicateStateCoverageOperator(Solver pSolver) {
+    this(pSolver, true);
+  }
+
+  public PredicateStateCoverageOperator(Solver pSolver, boolean pCacheConditions) {
     solver = pSolver;
+    cacheConditions = pCacheConditions;
+    normalizedConditions =
+        CacheBuilder.newBuilder()
+            .maximumSize(1024)
+            .build(
+                CacheLoader.from(
+                    path ->
+                        PredicateOperatorUtil.normalizeForComparison(
+                            path, solver.getFormulaManager())));
   }
 
   /**
@@ -44,8 +63,16 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
       formula1 = predicateState1.getAbstractionFormula().asFormula();
       formula2 = predicateState2.getAbstractionFormula().asFormula();
     } else if (!predicateState1.isAbstractionState() && !predicateState2.isAbstractionState()) {
-      formula1 = predicateState1.getPathFormula().getFormula();
-      formula2 = predicateState2.getPathFormula().getFormula();
+      if (!predicateState1
+          .getPathFormula()
+          .getPointerTargetSet()
+          .equals(predicateState2.getPathFormula().getPointerTargetSet())) {
+        return false;
+      }
+      // A condition's SSA map selects its boundary values; other versions are private.
+      // Equal raw formulas with different interfaces need not describe the same condition.
+      formula1 = normalize(predicateState1.getPathFormula());
+      formula2 = normalize(predicateState2.getPathFormula());
     } else {
       return false;
     }
@@ -54,6 +81,33 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
     } catch (SolverException e) {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
+  }
+
+  @Override
+  public boolean areStatesSyntacticallyEqual(AbstractState state1, AbstractState state2) {
+    PredicateAbstractState predicateState1 = (PredicateAbstractState) state1;
+    PredicateAbstractState predicateState2 = (PredicateAbstractState) state2;
+    if (predicateState1.isAbstractionState() != predicateState2.isAbstractionState()) {
+      return false;
+    }
+    if (predicateState1.isAbstractionState()) {
+      return predicateState1
+          .getAbstractionFormula()
+          .asFormula()
+          .equals(predicateState2.getAbstractionFormula().asFormula());
+    }
+    return predicateState1
+            .getPathFormula()
+            .getPointerTargetSet()
+            .equals(predicateState2.getPathFormula().getPointerTargetSet())
+        && normalize(predicateState1.getPathFormula())
+            .equals(normalize(predicateState2.getPathFormula()));
+  }
+
+  private BooleanFormula normalize(PathFormula pPath) {
+    return cacheConditions
+        ? normalizedConditions.getUnchecked(pPath)
+        : PredicateOperatorUtil.normalizeForComparison(pPath, solver.getFormulaManager());
   }
 
   @Override

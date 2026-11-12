@@ -59,6 +59,7 @@ rootDirectory = "."
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -219,11 +220,40 @@ solver.synchronize = false
 # parallelity when solving larger queries.
 solver.synchronized.useSeperateProvers = false
 
+# Enable API tracing to record all calls to the JavaSMT library
+solver.trace = false
+
+# Sets how tracing errors should be handled
+solver.traceError = "log"
+  allowed values: [log, fail]
+
+# Export solver interaction as Java code into a file.
+solver.tracefile = no default value
+
 # Apply additional checks to catch common user errors.
 solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
+
+# Sets the engine to be used by this Z3 context, corresponding to Z3 option
+# 'engine=...'. Default: auto-config
+solver.z3.engine = "auto-config"
+  allowed values: [auto-config, datalog, bmc, spacer]
+
+# Further options for Z3 in addition to the default options. Format: 
+# "option.name=value" with ’,’ to separate options. Spaces, as well as
+# capitalization in the options are allowed. Option names and values can be
+# found in the Z3 documentation online:
+# https://microsoft.github.io/z3guide/programming/Parameters/ Example:
+# "spacer.order_children = 2, xform.inline_eager = FALSE,
+# xform.inline_linear=false,xform.slice=false,spacer.max_level=10". Please
+# use the dedicated configuration options, and not this option, for the
+# following Z3 options: logic, engine, optsmt_engine, priority,
+# smt.random_seed, and random_seed. Further, please do not configure the
+# following options, which are specified via JavaSMTs ProverOptions: model,
+# proof, unsat_core.
+solver.z3.furtherOptions = ""
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -236,6 +266,12 @@ solver.z3.legacy.requireProofs = true
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
+
+# SMT-LIB logic to configure the SMT solvers (i.e. all Provers created from a
+# SolverContext with this option) with. Default: ALL. Note: this option does
+# not cover specialized logic selection, e.g. 'spacer.logic'! Please use
+# 'furtherOptions' for those.
+solver.z3.logic = "ALL"
 
 # Ordering for objectives in the optimization context
 solver.z3.objectivePrioritizationMode = "box"
@@ -263,6 +299,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -360,9 +397,10 @@ analysis.algorithm.MPOR.executeSingleActiveThreadFirst = true
 analysis.algorithm.MPOR.executeThreadsUntilConflict = false
 
 # Include original function declarations from the input program? Including
-# them may result in unsound analysis (e.g. false alarms for CBMC, or ignored
-# function calls through function pointers for CPAchecker).
-analysis.algorithm.MPOR.inputFunctionDeclarations = false
+# them may result in an unsound analysis (e.g. false alarms for CBMC). Not
+# including them may  result in the output program producing errors when
+# compiled e.g. by clang.
+analysis.algorithm.MPOR.inputFunctionDeclarations = true
 
 # Include original type declarations from the input file? Disabling may
 # result in parse errors for the output program.
@@ -397,12 +435,12 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
-# How the partial order reduction defines whether threads commute based on
-# their current locations and their reachable memory location accesses.
-# READ_AND_WRITE reduces the state space more than ACCESS_ONLY, but
-# introduces additional overhead (i.e., number of variables, assignments, and
-# expression evaluations).
-analysis.algorithm.MPOR.partialOrderReductionMode = NONE
+# The precision of the partial order reduction instrumentation, i.e., how
+# close the reduction is to the state space of the input program.
+# READ_AND_WRITE is more precise because it reduces the state space more than
+# ACCESS_ONLY, but it adds more overhead (i.e., more variables, more
+# assignments, and more expression evaluations).
+analysis.algorithm.MPOR.partialOrderReductionPrecision = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # Prune and simplify bit vector evaluation expressions based on perfect
@@ -470,6 +508,10 @@ analysis.algorithm.MPOR.validateProgramCounters = true
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
+# use the ordering-consistency algorithm for concurrent programs, works only
+# with the OrderingConsistencyCPA
+analysis.algorithm.OrderingConsistency = false
+
 # use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -532,6 +574,12 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
+
+# decide the specification with simple rules, i.e., with arguments that need
+# no reasoning about what the program computes. This replaces the analysis
+# that would otherwise run, so use a portfolio to combine the rules with
+# another analysis.
+analysis.algorithm.simpleRules = false
 
 # Use termination algorithm to prove (non-)termination. This needs the
 # TerminationCPA as root CPA and an automaton CPA with
@@ -697,11 +745,14 @@ analysis.programNames = []
 # LOCATIONMAPPED: a different set per location (faster, states with different
 # locations cannot be merged)
 # PARTITIONED: partitioning depending on CPAs (e.g. Location, Callstack etc.)
+# INDUCTIONPARTITIONED: partitioning by location, call chain and deepest loop
+# iteration; intended for the induction step case of k-induction
 # PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the
 # states' lattice (maybe faster for some special analyses which use merge_sep
 # and stop_sep
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED,
+             INDUCTIONPARTITIONED, USAGE]
 
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
@@ -787,7 +838,7 @@ analysis.traversal.useLoopstack = false
 analysis.traversal.useNumberOfHeapObjects = false
 
 # handle abstract states with fewer running threads first? (needs
-# ThreadingCPA)
+# AbstractStateWithThreads)
 analysis.traversal.useNumberOfThreads = false
 
 # Use an implementation of postorder strategy that allows to select a
@@ -1081,6 +1132,15 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
   enum:     [ALL, GLOBAL, FUNCTION, LOCAL, GLOBAL_AND_FUNCTION, GLOBAL_AND_LOCAL,
              FUNCTION_AND_LOCAL]
 
+# Configuration file with options that overwrite the options of the analysis
+# for the induction step case only.
+# This allows the step case to merge states that the base case keeps apart,
+# e.g., with cpa.loopbound.domain=RANGE, which only the step case supports.
+# The options must not make the step case drop paths: a path that is missing
+# in the step case can hide a counterexample to induction and lead to a wrong
+# proof.
+bmc.overwriteStepCaseOptions = no default value
+
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
@@ -1139,8 +1199,9 @@ cfa.callgraph.export = true
 cfa.callgraph.file = "functionCalls.dot"
 cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
-# how often do we clone a function?
-cfa.cfaCloner.numberOfCopies = 5
+# how often do we clone a function? The ThreadingCPA uses one copy per
+# created thread.
+cfa.cfaCloner.numberOfCopies = 10
 
 # while this option is activated, before each use of a PointerExpression, or
 # a dereferenced field access the expression is checked if it is 0
@@ -1199,6 +1260,12 @@ cfa.pathForExportingVariablesInScopeWithTheirType = no default value
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = no default value
+
+# Remove all trivial loops (with only blank edges) in the CFA and replace
+# them with program termination. This is not valid for properties like
+# termination and valid-memcleanup, but more efficient for standard
+# reachability properties. Cf. #1713.
+cfa.removeTrivialLoops = false
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
@@ -1356,6 +1423,10 @@ counterexample.checker.checkMemorySafetySubproperty = false
 # only loaded once a CEX-check is performed and is not influenced by settings
 # of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
+
+# Internal representation of the counterexample path used for the check.
+counterexample.checker.counterexampleFormat = AUTOMATON
+  enum:     [AUTOMATON, WITNESSV2]
 
 # counterexample check should fully replace existing counterexamples with own
 # ones, if available
@@ -2041,6 +2112,9 @@ cpa.bdd.useBlockAbstraction = false
 # Dump tracked variables to a file.
 cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 
+# whether to travel over the ghost edge
+cpa.block.transfer.standardVcs = true
+
 # depth of recursion bound
 cpa.callstack.depth = 0
 
@@ -2048,9 +2122,6 @@ cpa.callstack.depth = 0
 # faster since it uses only object equivalence
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
-
-# ignore the callstack and do not track it this heavily over-approximates.
-cpa.callstack.ignoreTransfer = false
 
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
@@ -2072,6 +2143,8 @@ cpa.callstack.traverseBackwards = false
 # Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {
           "pthread_create",
+          "pthread_once",
+          "pthread_barrier_wait",
           "pthread_key_create",
           "_longjmp",
           "longjmp",
@@ -2098,6 +2171,32 @@ cpa.composite.inCPAEnabledAnalysis = false
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
+
+# Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore
+# certain variables during dependency calculation if there is no information
+# about them in the precision (e.g., no predicates referring to them).
+cpa.concurrent.abstractionAware = false
+
+# Aggregate basic blocks to MultiEdges. Similar to basic block aggregation
+# inthe CompositeCPA transfer relation, but only one global statement (i.e.,
+# astatement that accesses a global variable or uses heap memory) is included
+# in aMultiEdge, so that all concurrent thread interleavings are explored.
+cpa.concurrent.aggregateBasicBlocks = false
+
+# Merge operator: SEP never merges states; JOIN delegates to the wrapped
+# merge operator when thread states are compatible.
+cpa.concurrent.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR
+cpa.concurrent.partialOrderReductionAlgorithm = "SPOR"
+
+# Seed for the pseudo-random shuffling of the enabled threads in the
+# source-set heuristic. A single random-number generator is shared by
+# reference across all states of one analysis run, so successive shuffles
+# draw fresh values instead of every state restarting the same sequence; the
+# seed is fixed only to keep runs reproducible.
+cpa.concurrent.randomSeed = 0
 
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
@@ -2259,6 +2358,28 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
+# Maximum number of different assignments to collect per location for the
+# invariants of a correctness witness. If a location has more assignments
+# than this, no invariant is exported for it, because an incomplete
+# disjunction would be unsound. Use -1 for no limit (which needs memory
+# proportional to the length of the execution).
+cpa.interpreter.maxAssignmentsPerLocation = 100
+
+# Maximum number of assignments that are sampled during one execution.
+# Sampling is intended for programs whose inputs are read outside of any
+# loop, where the number of inputs is bounded by the program. This limit
+# protects against the unbounded number of solver calls that a program with
+# inputs in a loop would need. Use -1 for no limit.
+cpa.interpreter.maxSamples = 1000
+
+# Execute programs with inputs by asking the SMT solver for one assignment of
+# the inputs instead of aborting on the first nondeterministic choice. This
+# needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
+# and the ConstraintsCPA in the CPA configuration. Only one of the possible
+# executions is explored, so the analysis can then only report FALSE, never
+# TRUE.
+cpa.interpreter.sampleNondeterministicValues = false
+
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -2386,6 +2507,19 @@ cpa.loopbound.checkOnlyAtBounds = []
 # deactivate this feature.
 cpa.loopbound.cyclicStopModulus = -1
 
+# Which abstract domain to use for the loop-bound CPA.
+# FLAT (the default) considers two states comparable only if their whole
+# per-loop iteration vectors are equal.
+# RANGE merges states with different per-loop iteration counts and keeps, for
+# each loop, the smallest and the largest count of the merged states. A
+# merged state is cut off by the loop bound only once all of its paths exceed
+# it. Only the induction step case of k-induction takes the ranges into
+# account, so this domain is only meant for bmc.overwriteStepCaseOptions. It
+# requires trackStack=false and neither cyclicStopModulus nor
+# loopIterationsBeforeAbstraction.
+cpa.loopbound.domain = "FLAT"
+  allowed values: [FLAT, RANGE]
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -2393,7 +2527,7 @@ cpa.loopbound.loopIterationsBeforeAbstraction = 0
 # This option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
-  enum:     [STATIC, INCREMENT, DOUBLE]
+  enum:     [STATIC, INCREMENT, DOUBLE, FIBONACCI]
 
 # Bound for the number of complete loop unrollings
 # of the program (0 is used for no bound).
@@ -2511,6 +2645,9 @@ cpa.monitor.pathcomputationlimit = 0
 # keep tracking nondeterministically-assigned variables even if they are used
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
+
+# calls to these functions are the reachability targets
+cpa.oc.errorFunctions = {"reach_error"}
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -2636,6 +2773,12 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
+
+# Encode bitwise negation exactly with linear arithmetic, and add linear
+# bounds for the results of bitwise and and or, e.g., x & y is in [0, x] if x
+# is not negative. This makes bitwise operations more precise if bitvectors
+# are encoded as integers, where they are uninterpreted functions.
+cpa.predicate.approximateBitwiseOperationsLinearly = false
 
 # When using the NLA encoding, approximate unsupported operations (e.g.,
 # bitwise shift) with an uninterpreted function (UF). If false, the operation
@@ -2924,7 +3067,7 @@ cpa.predicate.maxPreciseStrFunctionSize = 100
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
-cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"}
+cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
 
 # Memory allocation functions of which all parameters but the first should be
 # ignored.
@@ -3159,10 +3302,6 @@ cpa.predicate.refinement.stopAfter = -1
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
-# time limit for refinement (use milliseconds or specify a unit; 0 for
-# infinite)
-cpa.predicate.refinement.timelimit = 0ms
-
 # After a failed interpolation query, try to solve the formulas again with
 # different options instead of giving up immediately.
 cpa.predicate.refinement.tryAgainOnInterpolationError = true
@@ -3262,6 +3401,10 @@ cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
+
+# Set of functions that deterministically provide new memory on the heap,
+# i.e. they always return valid pointer.
+cpa.predicate.successfulMemoryAllocationFunctions = {"alloca", "__builtin_alloca"}
 
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
@@ -3693,6 +3836,12 @@ cpa.smg2.cacheSubsets = false
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
 
+# If this Option is enabled, calloc returns 0 if the product of its arguments
+# can not be represented in size_t, as required by C23 and implemented by
+# common C libraries. Otherwise, the product is used as size of the
+# allocation.
+cpa.smg2.callocSizeOverflowReturnsZero = false
+
 # If this Option is enabled, C function atexit() will return a succeeding and
 # failing registration for each registration. Otherwise only succeeding.
 cpa.smg2.canAtexitFail = false
@@ -3712,11 +3861,22 @@ cpa.smg2.crashOnUnknownInConstraint = false
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}
 
+# If this Option is enabled, failure of calloc is simulated, returning 0 on
+# failure.
+cpa.smg2.enableCallocFail = true
+
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg2.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of malloc is simulated
+# If this Option is enabled, failure of malloc is simulated, i.e. it may
+# return 0. For calloc, see option enableCallocFail) and for realloc see
+# option enableReallocFail.
 cpa.smg2.enableMallocFail = true
+
+# If this Option is enabled, failure of realloc is simulated, i.e. it may
+# return 0 and leave the old memory given unchanged. This also applies to
+# realloc with a null pointer, which otherwise behaves like malloc.
+cpa.smg2.enableReallocFail = true
 
 # If true, memory with symbolic size can be zeroed, which allows usage of
 # zeroing allocation functions like calloc().
@@ -3788,15 +3948,17 @@ cpa.smg2.handleUnknownDereferenceAsSafe = false
 # function is checked for validity and the result is a UNKNOWN value (which
 # may itself violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound
 # due to side effects, the unknown return value etc.!
-# ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity
-# and may cause memory based errors. Returned values are unknown, but in a
-# valid new memory section that can be freed normally. Functions allocating
-# external memory and returning their address can be defined with option
-# externalAllocationFunction and externalAllocationSize.
+# ASSUME_EXTERNALLY_ALLOCATED: Input into the function is checked for
+# validity and may cause memory based errors. Returned values are unknown,
+# but in a valid new memory section that can be freed normally. Functions
+# allocating external memory and returning their address can be defined with
+# option externalAllocationFunction and externalAllocationSize.
+# ASSUME_EXTERNALLY_ALLOCATED_WARN is equal, but prints warnings.
 # Functions defined in option "safeUnknownFunctions" are handled equally to
 # ASSUME_SAFE in all cases.
-cpa.smg2.handleUnknownFunctions = ASSUME_EXTERNAL_ALLOCATED
-  enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
+cpa.smg2.handleUnknownFunctions = ASSUME_EXTERNALLY_ALLOCATED
+  enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNALLY_ALLOCATED,
+             ASSUME_EXTERNALLY_ALLOCATED_WARN]
 
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
@@ -3912,6 +4074,17 @@ cpa.smg2.preciseSMGRead = true
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
 
+# Sets how realloc(ptr, 0) with a valid ptr is handled, which is
+# implementation-defined (C11 7.22.3 (1), C17 7.22.3.5 (3)) and undefined
+# since C23.
+# FREE_AND_ALLOCATE_ZERO_SIZE: the memory of ptr is freed and the result is
+# that of an allocation with size 0 (see option mallocZeroReturnsZero), e.g.
+# musl and BSD libc.
+# FREE_AND_RETURN_ZERO: the memory of ptr is freed and 0 is returned, e.g.
+# glibc.
+cpa.smg2.reallocWithZeroSize = FREE_AND_ALLOCATE_ZERO_SIZE
+  enum:     [FREE_AND_ALLOCATE_ZERO_SIZE, FREE_AND_RETURN_ZERO]
+
 # whether to use heuristic to avoid similar, repeated refinements
 cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
 
@@ -3936,10 +4109,6 @@ cpa.smg2.refinement.restart = PIVOT
 
 # Resolve definite assignments
 cpa.smg2.resolveDefinites = true
-
-# Sets the level of runtime checking: NONE, HALF, FULL
-cpa.smg2.runtimeCheck = NONE
-  enum:     [FORCED, NONE, HALF, FULL]
 
 # List of functions that are always considered as safe, i.e. they are not
 # evaluated, even if known to the analysis, nor are their inputs checked for
@@ -4044,6 +4213,28 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
+# There might be programs with unsigned integer overflow, and due to the
+# overflow, they are non-terminating. This option enforces the transition
+# invariants to have constraints to limit the mathematical integers.
+cpa.terminationviamemory.addConstraintsToPreventOverflows = false
+
+# Some bitwise operations or modulo are UFs in integer encoding, and they
+# might lead to unsound results. If integer encoding is set, we also have to
+# use this option.
+cpa.terminationviamemory.checkUFsInIntegerEncoding = false
+
+# Disables checks for fix-point with transition invariants and performs plain
+# BMC.
+cpa.terminationviamemory.disableTransitionAbstractions = false
+
+# configuration of the analysis that checks whether the supporting invariants
+# of the witness are invariants of the program before they are used, see
+# useTransitionPredicatesFromWitness
+cpa.terminationviamemory.supportingInvariantsConfig = no default value
+
+# Enables use of transition predicates from the witness.
+cpa.terminationviamemory.useTransitionPredicatesFromWitness = false
+
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 
@@ -4060,9 +4251,16 @@ cpa.thread.supportSelfCreation = false
 cpa.threading.allowMultipleLHS = false
 
 # the maximal number of parallel threads, -1 for infinite. When combined with
-# 'useClonedFunctions=true', we need at least N cloned functions. The option
-# 'cfa.cfaCloner.numberOfCopies' should be set to N.
+# 'useClonedFunctions=true', each created thread gets new cloned functions,
+# thus 'cfa.cfaCloner.numberOfCopies' limits the number of created threads.
 cpa.threading.maxNumberOfThreads = 5
+
+# stop state-space-exploration once main is left. Setting this option to true
+# is always possible for verification, since one can find an interleaving
+# where main is not yet exited. However for validation it should be set to
+# false, since the witness may require main to exit first and then before the
+# teardown of all threads to continue with some other thread.
+cpa.threading.stopStateSpaceExplorationOnMainExit = true
 
 # in case of witness validation we need to check all possible function calls
 # of cloned CFAs.
@@ -4619,10 +4817,37 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Whether to add the block entry as an explicit predicate abstraction
+# location.
+distributedSummaries.abstractAtBlockEntry = true
+
+# Which block analysis to use for the distributed summaries algorithm
+distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
+  enum:     [ALWAYS_REPLACE]
+
+# Whether to cache violation conditions normalized for comparison.
+distributedSummaries.cacheViolationConditions = true
+
+# Whether to combine incoming states and outgoing summaries by exact union.
+distributedSummaries.combineStates = true
+
+# Whether to combine violation conditions at same program location
+distributedSummaries.combineVcsByHash = true
+
+# Whether to dictionary-encode repeated text in serialized messages.
+distributedSummaries.compressMessages = true
+
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
 # information consumes resources and should not be used for benchmarks.
 distributedSummaries.debug = false
+
+# Whether the messages of a debug run carry every predicate formula a second
+# time in the notation of the solver. That notation is not the one the
+# message is built from, so it has to be rendered separately, which costs
+# more than the whole rest of a block analysis. Has no effect unless debug
+# mode is enabled.
+distributedSummaries.debug.readableFormulas = false
 
 # Abstraction nodes are added to each block after they are created. They are
 # needed to strengthen the preconditions of blocks. Missing blocks make the
@@ -4643,7 +4868,8 @@ distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, INLINING_DECOMPOSITION,
+             NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.decomposition.generateBlockGraphOnly = false
@@ -4656,22 +4882,39 @@ distributedSummaries.decomposition.importDecomposition = no default value
 # allows all merges
 distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT
 
+# Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.
+distributedSummaries.decomposition.mergeBranchBoundaries = false
+
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
-  enum:     [DSS, SINGLE_WORKER]
-
-# If this option is set to true, the analysis will try to cover all violation
-# conditions in the block, even if no valid ARG path exists. In some cases,
-# ARGUtils#getAllPaths does not compute all paths as promised. However,
-# setting this option to true may lead to a significant increase in analysis
-# time.
-distributedSummaries.forcefullyCollectAllViolationConditions = false
+  enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
 
 # output file for visualizing the block graph
 distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
 
 # output file for visualizing message exchange
 distributedSummaries.logging.reportFiles = "block_analysis/messages"
+
+# Print per-block statistics, including the local CPA and CEGAR statistics,
+# in addition to aggregate block statistics.
+distributedSummaries.printBlockLevelStats = false
+
+# Report UNKNOWN instead of FALSE if the analysis that replays the violation
+# path for the violation witness does not reach a property violation.
+distributedSummaries.requireConfirmedViolation = true
+
+# Whether to reset callstack state before running a block analysis; usually
+# used together with the inlining decomposition
+distributedSummaries.resetCallstackState = false
+
+# Whether a block without successors stops exploring after its first run.
+# Such a block never receives a violation condition, and its first run, from
+# the unconstrained start state, already finds every violation it can report.
+distributedSummaries.retireTerminalBlocks = false
+
+# Whether to send and use precision updates in precondition and
+# violation-condition messages.
+distributedSummaries.sharePrecision = true
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
@@ -4697,12 +4940,71 @@ distributedSummaries.singleWorker.outputMessages = "messages/"
 # Whether to spawn a worker for only one block id
 distributedSummaries.singleWorker.spawnWorkerForId = ""
 
+# Whether to decide equality of violation conditions by their representation
+# instead of asking the solver. A violation condition is built from the edges
+# of a path, so the same path yields the same formula. Deciding it this way
+# spares an implication query per compared pair, but tells equivalent
+# conditions that are written differently apart.
+distributedSummaries.syntacticVcEquality = false
+
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
 
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
+
+# Level of the per-worker logfiles. The block analyses log their SMT formulas
+# at ALL, and rendering a formula as a string is expensive enough to dominate
+# the runtime of a block analysis, so set this to ALL only when those
+# formulas are what you are looking for.
+distributedSummaries.worker.logLevel = Level.FINE
+
+# The path to which the different versions of the correctness witnesses will
+# be exported. Each witness version replaces the string '%s' with its version
+# number.
+distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
+
+# Whether to query the SMT solver before proceeding backwards.
+dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
+
+# Whether to rewrite generalized violation conditions over the predicates of
+# the precondition where possible. These are the predicates the predecessors
+# abstract their block ends with, including the interpolants they learned
+# while refuting violation conditions of this block. Has no effect unless
+# generalizeViolationConditions is enabled.
+dss.cpa.predicate.generalizeOverPreconditionPredicates = true
+
+# Whether to rewrite every violation condition as a disjunction of cubes
+# generalized from models. The cubes together describe exactly all entry
+# states of the condition; incomplete enumeration falls back to the original
+# condition.
+dss.cpa.predicate.generalizeViolationConditions = true
+
+# The maximal number of cubes a generalized violation condition may consist
+# of. A condition that needs more is sent exactly.
+dss.cpa.predicate.maxCubesPerViolationCondition = 16
+
+# The largest share of CFA edges accessing modelled memory, from 0 to 1, for
+# which violation conditions are generalized and projected into nested
+# disjunctions. Conditions of programs that use memory more are only
+# projected: with the pointer-aliasing encoding, generalization and nested
+# projection cost much more than they save there.
+dss.cpa.predicate.maxMemoryShareForExpensiveSimplification = 1.0
+
+# Whether graph-condition projection may substitute into nested disjunctions.
+# Disabling this keeps shared intermediate values, which can make large exact
+# conditions easier for the solver even when messages become larger.
+dss.cpa.predicate.projectNestedDisjunctions = true
+
+# Whether to remove the intermediate variables of a violation condition
+# before it is sent. The result is equivalent, but usually much smaller, and
+# conditions of different paths that only differ in intermediate values
+# become equal.
+dss.cpa.predicate.projectViolationConditions = true
+
+# Compute violation conditions over the shared ARG graph.
+dss.graphViolationConditions = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -5063,6 +5365,45 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
+# write every collected memory event before solving (debugging aid)
+oc.dumpEvents = false
+
+# write the enabled events and read-from choices of a found violation model
+oc.dumpViolationModel = false
+
+# how the ordering constraints are decided
+oc.encoding = CLOCKS
+  enum:     [REFINEMENT, CLOCKS]
+
+# file for the collected memory-event dump
+oc.eventsDumpFile = "OrderingConsistency-events.txt"
+
+# file for the violation execution graph (DOT/graphviz)
+oc.executionGraphFile = "executionGraph.dot"
+
+# export the found violation as an execution graph in DOT/graphviz format
+oc.exportExecutionGraph = true
+
+# export the found violation as a sequentialized counterexample: the enabled
+# events in a consistent execution order, with their CFA edges
+oc.exportSequentializedCounterexample = true
+
+# give up when the loop bound exceeds this value; a negative value deepens
+# without bound
+oc.finalLoopBound = -1
+
+# loop bound of the first exploration round
+oc.initialLoopBound = 5
+
+# loop bound increase between iterative-deepening rounds
+oc.loopBoundStep = 5
+
+# file for the sequentialized counterexample trace
+oc.sequentializedCounterexampleFile = "Counterexample.oc.txt"
+
+# file for the violation-model dump
+oc.violationModelFile = "OrderingConsistency-model.txt"
+
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false
 
@@ -5090,9 +5431,9 @@ overflow.trackMultiplications = true
 # Track overflows in binary expressions involving pointers.
 overflow.trackPointers = false
 
-# Only check live variables for overflow, as compiler can remove dead
+# Only check live variables for overflow and ignore overflows in dead
 # variables.
-overflow.useLiveness = true
+overflow.useLiveness = false
 
 # List of files with configurations to use. Files can be suffixed with
 # ::refinable to enable iterative refinement of the analysis precision (one
@@ -5120,6 +5461,13 @@ parser.collectACSLAnnotations = false
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
+
+# Whether to enable (experimental) support for the atomic type specifier
+# '_Atomic(type-name)' by rewriting it to the equivalent '_Atomic' qualifier
+# before parsing. Disadvantage: this rewriting is a purely textual
+# replacement that is applied unconditionally to the whole input, including
+# string literals and comments.
+parser.handleAtomicTypeSpecifiers = false
 
 # The command line for calling the preprocessor. May contain binary name and
 # arguments, but won't be expanded by a shell. The argument for the
@@ -5526,6 +5874,27 @@ sampling.random.samplesToBeGenerated = 10
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
 
+# The simple rules to use, by name. The default lists every rule of this
+# CPAchecker version, so switching a rule off or measuring a single rule
+# means removing the others from this list. A rule is applied only if it can
+# decide a proposition of the specification, and the statistics report which
+# rules were applied. A new rule has to be added here as well, which
+# SimpleRulesTest checks.
+simplerules.rules = {
+          "no-reachable-target-location",
+          "violation-on-every-execution",
+          "no-reachable-loop",
+          "endless-loop-on-every-execution",
+          "no-signed-overflow-possible",
+          "signed-overflow-on-every-execution",
+          "no-memory-operation",
+          "no-heap-allocation",
+          "all-accesses-inside-their-object",
+          "access-outside-object-on-every-execution",
+          "free-of-non-heap-object-on-every-execution",
+          "single-threaded",
+          "program-does-nothing"}
+
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
@@ -5663,11 +6032,10 @@ termination.config = no default value
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
 
-# export supporting invariants in the witness
+# Export supporting invariants in the witness. Only the supporting invariants
+# that are proven to be invariants of the program are exported, see
+# termination.supportingInvariantsCheckConfig.
 termination.exportSupportingInvariantsInWitness = true
-
-# export correctness witness in YAML format
-termination.exportYamlCorrectnessWitness = true
 
 # Consider variables with unsigned types in ranking function synthesis.This
 # can lead to unsound results as LassoRanker assumes infinite domain for
@@ -5725,6 +6093,11 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
 
+# configuration of the analysis that checks whether the supporting invariants
+# are invariants of the program before they are exported into the witness.
+# Without it, no supporting invariants are exported.
+termination.supportingInvariantsCheckConfig = no default value
+
 # consider counterexamples for loops for which only pointer variables are
 # relevant or which check that pointer is unequal to null pointer to be
 # imprecise
@@ -5737,6 +6110,20 @@ termination.useCexImpreciseHeuristic = false
 # space is detected.
 termination.validation.checkWithInfiniteSpace = false
 
+# maximal k for the k-induction that checks whether a disjunctively
+# well-founded candidate is a transition invariant, i.e., R^+ => T. If -1,
+# the k-induction is unbounded.
+termination.validation.maxInductionDepth = -1
+
+# configuration of the analysis that checks whether the supporting invariants
+# of the witness are invariants of the program
+termination.validation.supportingInvariantsConfig = no default value
+
+# configuration of the termination analysis that proves the well-foundedness
+# of the transition invariants by proving the termination of an
+# overapproximating program
+termination.validation.wellFoundednessConfig = no default value
+
 # deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
 
@@ -5748,23 +6135,6 @@ termination.violation.witness.graphml = "nontermination_witness.graphml"
 
 # Export termination counterexample to file in YAML format 
 termination.violation.witness.yaml = "Counterexample.%s.witness-2.1.yml"
-
-# The template from which the different versions of the correctness witnesses
-# will be exported. Each version replaces the string '%s' with its version
-# number.
-termination.yamlProofWitness = "witness-%s.yml"
-
-# compress the produced violation-witness automata using GZIP compression.
-terminationtoreach.compressWitness = false
-
-# do not produce witness for validation
-terminationtoreach.validation = false
-
-# Export termination counterexample to file as GraphML automaton 
-terminationtoreach.violation.witness = "witness.graphml"
-
-# Export termination counterexample to file as dot/graphviz automaton 
-terminationtoreach.violation.witness.dot = "witness.dot"
 
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
@@ -5782,6 +6152,15 @@ testcase.compress = false
 
 # Do not output values for variables that are not initialized when declared
 testcase.excludeInitialization = false
+
+# once a test case is generated for a test goal (internally) continue
+# execution of test case from test goal to detect collaterally covered test
+# goals
+testcase.execution = false
+
+# Limit for cpu time used for the continued execution of a test case (use
+# seconds or specify a unit; -1 for infinite)
+testcase.execution.limit.cpu = -1ns
 
 # export test harness to file as code
 testcase.file = no default value
@@ -5825,6 +6204,9 @@ testcase.randomInputSeed = 0
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# whether to stop or continue analysis once a test target is hit
+testcase.stopAtTarget = true
 
 # CFA edge if only a specific edge should be considered, e.g., in
 # counterexample check
@@ -6051,5 +6433,45 @@ witness.yamlexporter.analyseWitnessQuality = false
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
 
+# Export function contracts, i.e. the requires and ensures clauses describing
+# the behavior of a function, into the correctness witness which is exported
+# from the ARG. Function contracts are not part of every witness format
+# version, see witness.yamlexporter.witnessVersions.
+witness.yamlexporter.exportFunctionContracts = false
+
+# Export location invariants, i.e. invariants which hold whenever a specific
+# location in the program is reached, into the correctness witness which is
+# exported from the ARG. Currently these are only exported for the locations
+# at which a function is called.
+witness.yamlexporter.exportLocationInvariants = true
+
+# Export loop invariants, i.e. invariants which hold whenever the head of a
+# loop is reached, into the correctness witness which is exported from the
+# ARG.
+witness.yamlexporter.exportLoopInvariants = true
+
+# export non-termination witness in YAML format
+witness.yamlexporter.exportNonterminationWitness = true
+
+# export termination witness in YAML format
+witness.yamlexporter.exportTerminationWitness = true
+
+# The template from which the different versions of the non-termination
+# witnesses will be exported. Each version replaces the string '%s' with its
+# version number.
+witness.yamlexporter.nonterminationWitness = "witness-%s.yml"
+
+# Which waypoints to export for a counterexample that was found by analyzing
+# a sequentialization of a concurrent program. Exporting only the target
+# makes the witness easier to validate, because every other waypoint
+# constrains the interleaving that a validator has to reproduce.
+witness.yamlexporter.sequentializedWaypoints = ALL
+  enum:     [ALL, TARGET_ONLY]
+
+# The template from which the different versions of the termination witnesses
+# will be exported. Each version replaces the string '%s' with its version
+# number.
+witness.yamlexporter.terminationWitness = "witness-%s.yml"
+
 # The version for which to export the witness.
-witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
+witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]

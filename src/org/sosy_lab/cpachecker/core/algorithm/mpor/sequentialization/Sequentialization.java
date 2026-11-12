@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
@@ -27,14 +27,29 @@ public class Sequentialization {
 
   public static final String MPOR_PREFIX = "__MPOR__";
 
+  /**
+   * The sequentialized program together with the information needed to map results for it back to
+   * the input program.
+   */
+  public record SequentializationResult(String program, SequentializationMapping mapping) {}
+
   @CanIgnoreReturnValue
-  public static String tryBuildProgramString(
+  public static SequentializationResult tryBuildProgram(
       MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
 
+    SequentializationFields fields = buildFields(pOptions, pCfa, pUtils);
+    return new SequentializationResult(
+        buildProgramString(pOptions, fields, pUtils),
+        SequentializationMappingBuilder.buildMapping(fields));
+  }
+
+  private static SequentializationFields buildFields(
+      MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
+
     InputRejection.handleRejections(pCfa);
-    SequentializationFields fields = new SequentializationFields(pOptions, pCfa, pUtils);
-    return buildProgramString(pOptions, fields, pUtils);
+    return new SequentializationFields(pOptions, pCfa, pUtils);
   }
 
   private static String buildProgramString(
@@ -68,7 +83,8 @@ public class Sequentialization {
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.add(
-        SequentializationBuilder.buildInputFunctionAndTypeDeclarations(pOptions, pFields.threads));
+        SequentializationBuilder.buildInputFunctionAndTypeDeclarations(
+            pOptions, pFields.inputMainFunctionDeclaration, pFields.threads));
     // add all variable and parameter declarations, but only if there are any
     Optional.of(
             SequentializationBuilder.buildInputGlobalVariableDeclarations(

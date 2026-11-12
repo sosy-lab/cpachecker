@@ -1,5 +1,5 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 LICENSE = b"""
 // This file is part of CPAchecker,

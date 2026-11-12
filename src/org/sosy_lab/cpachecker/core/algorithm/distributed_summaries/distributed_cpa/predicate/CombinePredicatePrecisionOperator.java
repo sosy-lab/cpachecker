@@ -9,17 +9,21 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 
 public class CombinePredicatePrecisionOperator implements CombinePrecisionOperator {
+
   @Override
-  public Precision combine(Collection<Precision> precisions) throws InterruptedException {
+  public Precision combine(Collection<Precision> precisions) {
     Preconditions.checkArgument(precisions.stream().allMatch(PredicatePrecision.class::isInstance));
     Preconditions.checkArgument(
         !precisions.isEmpty(), "Cannot combine an empty collection of precisions");
-    return PredicatePrecision.unionOf(precisions);
+    return precisions.size() == 1
+        ? Iterables.getOnlyElement(precisions)
+        : PredicatePrecision.unionOf(precisions);
   }
 }

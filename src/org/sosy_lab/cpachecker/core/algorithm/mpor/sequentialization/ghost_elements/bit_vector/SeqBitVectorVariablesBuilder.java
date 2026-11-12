@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqBitVectorVariablesBuilder(
     MPOROptions options,
@@ -40,17 +41,18 @@ public record SeqBitVectorVariablesBuilder(
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
     SeqPointerAliasingMap pointerAliasingMap) {
 
-  public Optional<SeqBitVectorVariables> buildBitVectorVariables() {
-    return switch (options.partialOrderReductionMode()) {
+  public Optional<SeqBitVectorVariables> buildBitVectorVariables() throws UnsupportedCodeException {
+    return switch (options.partialOrderReductionPrecision()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "partialOrderReductionMode is not set, cannot build bit vector variables");
+              "partialOrderReductionPrecision is not set, cannot build bit vector variables");
       case ACCESS_ONLY -> buildAccessOnlyBitVectorVariables();
       case READ_AND_WRITE -> buildReadWriteBitVectorVariables();
     };
   }
 
-  private Optional<SeqBitVectorVariables> buildAccessOnlyBitVectorVariables() {
+  private Optional<SeqBitVectorVariables> buildAccessOnlyBitVectorVariables()
+      throws UnsupportedCodeException {
     // create bit vector access variables for all threads, e.g. __uint8_t ba0
     Optional<ImmutableSet<SeqDenseBitVector>> denseAccessBitVectors =
         buildDenseBitVectorsByAccessType(SeqMemoryAccessType.ACCESS);
@@ -78,7 +80,8 @@ public record SeqBitVectorVariablesBuilder(
             Optional.empty()));
   }
 
-  private Optional<SeqBitVectorVariables> buildReadWriteBitVectorVariables() {
+  private Optional<SeqBitVectorVariables> buildReadWriteBitVectorVariables()
+      throws UnsupportedCodeException {
 
     // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
     Optional<ImmutableSet<SeqDenseBitVector>> denseAccessBitVectors =
@@ -168,7 +171,7 @@ public record SeqBitVectorVariablesBuilder(
   }
 
   private Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> buildSparseBitVectors(
-      SeqMemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) throws UnsupportedCodeException {
 
     if (options.bitVectorEncoding().isDense) {
       return Optional.empty();
@@ -192,7 +195,8 @@ public record SeqBitVectorVariablesBuilder(
   private ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectors(
       SeqMemoryLocation pMemoryLocation,
       SeqMemoryAccessType pAccessType,
-      SeqMemoryReachType pReachType) {
+      SeqMemoryReachType pReachType)
+      throws UnsupportedCodeException {
 
     if (!SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableMap.of();

@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import java.util.Objects;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -20,6 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Extension of ConfigurableProgramAnalysis with serialization and deserialization capabilities for
@@ -32,7 +37,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  */
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
-  record StateAndPrecision(AbstractState state, Precision precision) {}
+  record StateAndPrecision(AbstractState state, Precision precision) {
+
+    public BlockState getBlockState() {
+      return Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class));
+    }
+
+    public BlockGraphPath getBlockGraphPath() {
+      return getBlockState().getHistory();
+    }
+  }
 
   String MULTIPLE_STATES_KEY = "states";
 
@@ -58,6 +72,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   CombinePrecisionOperator getCombinePrecisionOperator();
 
+  CombineViolationConditionsOperator getCombineViolationConditionsOperator();
+
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
    *
@@ -69,7 +85,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   CoverageOperator getCoverageOperator();
 
-  CombineOperator getCombineOperator();
+  CombinePreconditionsOperator getCombineOperator();
 
   /**
    * The abstract state this distributed analysis works n.
@@ -100,6 +116,21 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return {@code true} if the given abstract state is the most general block entry state,
    */
   boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
+
+  /**
+   * Returns the part of the abstract state that says where it is in the program. Examples of CPAs
+   * that track this information are the {@link org.sosy_lab.cpachecker.cpa.location.LocationCPA},
+   * the {@link org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA}, and the {@link
+   * org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA}.
+   *
+   * <p>States at the same program point need equal identifiers, while states at different points
+   * need different ones. A CPA that does not track this information can always return the same
+   * value. Do not return a hash here: a collision would make callers mix unrelated states.
+   *
+   * @param pAbstractState Any abstract state.
+   * @return an identifier for the program point
+   */
+  Object computeProgramPointId(AbstractState pAbstractState);
 
   /**
    * Reset the given abstract state to the initial value iff the abstract state is mutable.

@@ -20,8 +20,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -95,8 +97,12 @@ class CFABuilder extends ASTVisitor {
   // Here we keep track of all occurrences of _Atomic that we found but did not handle yet.
   // The set is filled by this class and then passed to ASTConverter, which removes handled cases.
   // The reason for this is that we want to detect cases like "int * _Atomic a;" where we do not see
-  // the _Atomic in the AST nodes when converting them.
-  private final Set<FileLocation> unhandledAtomicOccurrences = new HashSet<>();
+  // the _Atomic in the AST nodes when converting them. Sorted (by file, offset) so lookups for a
+  // given source region can use subSet() instead of a linear scan.
+  private final NavigableSet<FileLocation> unhandledAtomicOccurrences = new TreeSet<>();
+
+  // Same as unhandledAtomicOccurrences, but for __thread and _Thread_local.
+  private final NavigableSet<FileLocation> unhandledThreadLocalOccurrences = new TreeSet<>();
 
   private final List<AcslComment> acslComments = new ArrayList<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
@@ -168,7 +174,8 @@ class CFABuilder extends ASTVisitor {
             machine,
             staticVariablePrefix,
             sideAssignmentStack,
-            unhandledAtomicOccurrences);
+            unhandledAtomicOccurrences,
+            unhandledThreadLocalOccurrences);
     functionDeclarations.add(
         new FunctionsOfTranslationUnit(new ArrayList<>(), staticVariablePrefix, fileScope));
 
@@ -176,8 +183,11 @@ class CFABuilder extends ASTVisitor {
     // by "__attribute__((__CPAchecker_Atomic__))", via a macro. So we can find all places where
     // this macro was applied.
     for (IASTPreprocessorMacroExpansion exp : ast.getMacroExpansions()) {
-      if (exp.getMacroReference().toString().equals("_Atomic")) {
+      String macroName = exp.getMacroReference().toString();
+      if (macroName.equals("_Atomic")) {
         unhandledAtomicOccurrences.add(astCreator.getLocation(exp));
+      } else if (macroName.equals("__thread") || macroName.equals("_Thread_local")) {
+        unhandledThreadLocalOccurrences.add(astCreator.getLocation(exp));
       }
     }
 
@@ -369,6 +379,10 @@ class CFABuilder extends ASTVisitor {
         ImmutableMap.builder();
     ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
         ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToVisibleLocalVariables =
+        ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToVisibleParameters =
+        ImmutableMap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
 
@@ -389,7 +403,9 @@ class CFABuilder extends ASTVisitor {
             actTypeDefs,
             actVars,
             cfaNodeToAstLocalVariablesInScope,
-            cfaNodeToAstParametersInScope);
+            cfaNodeToAstParametersInScope,
+            cfaNodeToVisibleLocalVariables,
+            cfaNodeToVisibleParameters);
       }
     }
 
@@ -408,6 +424,13 @@ class CFABuilder extends ASTVisitor {
           "Found %d cases of _Atomic in unsupported locations, first one is in %s."
               .formatted(unhandledAtomicOccurrences.size(), firstUnhandledAtomic));
     }
+    if (!unhandledThreadLocalOccurrences.isEmpty()) {
+      throw new CParserException(
+          "Found %d cases of _Thread_local in unsupported locations, first one is in %s."
+              .formatted(
+                  unhandledThreadLocalOccurrences.size(),
+                  unhandledThreadLocalOccurrences.getFirst()));
+    }
 
     ParseResult result;
 
@@ -418,7 +441,10 @@ class CFABuilder extends ASTVisitor {
             // We want to explicitly throw an error if a
             // key was added more than once, since this would be a bug
             cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
-            cfaNodeToAstParametersInScope.buildOrThrow());
+            cfaNodeToAstParametersInScope.buildOrThrow(),
+            // A node gets new ones when variables go out of scope at it
+            cfaNodeToVisibleLocalVariables.buildKeepingLast(),
+            cfaNodeToVisibleParameters.buildKeepingLast());
     result = result.withAcslComments(acslComments, blocks);
 
     return result;
@@ -433,7 +459,9 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
       ImmutableMap<String, CSimpleDeclaration> globalVars,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope,
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToVisibleLocalVariables,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToVisibleParameters)
       throws InterruptedException {
 
     FunctionScope localScope =
@@ -451,7 +479,10 @@ class CFABuilder extends ASTVisitor {
             checkBinding,
             cfaNodeToAstLocalVariablesInScope,
             cfaNodeToAstParametersInScope,
-            unhandledAtomicOccurrences);
+            cfaNodeToVisibleLocalVariables,
+            cfaNodeToVisibleParameters,
+            unhandledAtomicOccurrences,
+            unhandledThreadLocalOccurrences);
 
     declaration.accept(functionBuilder);
 

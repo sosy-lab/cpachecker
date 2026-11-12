@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
@@ -46,7 +47,11 @@ public final class SvLibTraceSetGlobalVariable extends SvLibTraceComponent {
 
   @Override
   public String toASTString() {
-    return "(" + declaration.getName() + " " + constantTerm.toASTString() + ")";
+    return "("
+        + SmtLibSymbols.quoteIfNeeded(declaration.getName())
+        + " "
+        + constantTerm.toASTString()
+        + ")";
   }
 
   @Override

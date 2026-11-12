@@ -181,6 +181,8 @@ public class LocationState
         return locationNode.getEnteringEdge(0).getLineNumber();
       }
       return 0; // DUMMY
+    } else if (pProperty.equalsIgnoreCase("nodenumber")) {
+      return locationNode.getNodeNumber();
     } else {
       return checkProperty(pProperty);
     }
@@ -191,7 +193,18 @@ public class LocationState
     return this;
   }
 
-  // no equals and hashCode because there is always only one element per CFANode
+  // Defined by location node: CFA cloning for dynamic thread creation means a CFANode no longer
+  // uniquely identifies one LocationState.
+
+  @Override
+  public int hashCode() {
+    return locationNode.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof LocationState other && locationNode.equals(other.getLocationNode());
+  }
 
   @Serial
   private Object writeReplace() {

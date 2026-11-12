@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -28,11 +29,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
@@ -40,6 +44,17 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
+/**
+ * Common class for parsing witnesses in version 2.
+ *
+ * <p><pMore information about the witness format can be found in the <a *
+ * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/user-guide/Witness-Format.md">Witnesses
+ * Format</a>. * *
+ *
+ * <p>In addition, the properties supported by each witness version are primarily relevant for the *
+ * SV-COMP competition and therefore kept track in the SV-COMP documentation: <a *
+ * href="https://sv-comp.sosy-lab.org/2027/rules.php">SV-COMP 2027 Rules</a>.
+ */
 @Options(prefix = "witness")
 class AutomatonWitnessV2ParserCommon {
 
@@ -68,16 +83,24 @@ class AutomatonWitnessV2ParserCommon {
   final Configuration config;
   final ShutdownNotifier shutdownNotifier;
 
+  /** The version of the witness format the witness being parsed is written in. */
+  final YAMLWitnessVersion version;
+
   final InvariantExchangeFormatTransformer transformer;
 
   AutomatonWitnessV2ParserCommon(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      YAMLWitnessVersion pVersion)
       throws InvalidConfigurationException {
     pConfig.inject(this, AutomatonWitnessV2ParserCommon.class);
     logger = pLogger;
     cfa = pCFA;
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
+    version = pVersion;
     transformer = new InvariantExchangeFormatTransformer(pConfig, pLogger, pShutdownNotifier, pCFA);
   }
 
@@ -104,7 +127,7 @@ class AutomatonWitnessV2ParserCommon {
   }
 
   record PartitionedWaypoints(
-      Optional<WaypointRecord> follow,
+      Optional<List<WaypointRecord>> follow,
       Optional<WaypointRecord> cycle,
       ImmutableList<WaypointRecord> avoids) {
     // Canonical constructor ensures non-null cycle, follow and avoids
@@ -117,7 +140,7 @@ class AutomatonWitnessV2ParserCommon {
     }
 
     // Constructor that only sets 'follow'
-    PartitionedWaypoints(WaypointRecord pFollow, ImmutableList<WaypointRecord> pAvoids) {
+    PartitionedWaypoints(List<WaypointRecord> pFollow, ImmutableList<WaypointRecord> pAvoids) {
       this(Optional.ofNullable(pFollow), Optional.empty(), pAvoids);
     }
 
@@ -151,7 +174,7 @@ class AutomatonWitnessV2ParserCommon {
           }
           containsFollowOrCycle = true;
           if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-            segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
+            segments.add(new PartitionedWaypoints(ImmutableList.of(waypoint), avoids.build()));
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
             segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
           }
@@ -165,16 +188,30 @@ class AutomatonWitnessV2ParserCommon {
     return segments.build();
   }
 
+  /**
+   * Parses the constraint among the variables in scope at the given node, if it is known, such that
+   * a name refers to the variable with this name in the input program.
+   */
   void handleConstraint(
       String constraint,
       Optional<String> resultFunction,
       int line,
+      Optional<CFANode> pNode,
       AutomatonTransition.Builder builder)
       throws InterruptedException, WitnessParseException {
     try {
       Scope defaultScope =
           switch (cfa.getLanguage()) {
-            case C -> new CProgramScope(cfa, logger);
+            case C -> {
+              CProgramScope programScope = new CProgramScope(cfa, logger);
+              yield pNode
+                  .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
+                  .map(
+                      variables ->
+                          programScope.withVariablesInScope(
+                              variables.filter(CSimpleDeclaration.class).toList()))
+                  .orElse(programScope);
+            }
             default -> DummyScope.getInstance();
           };
       Scope scope =
@@ -210,7 +247,7 @@ class AutomatonWitnessV2ParserCommon {
     checkTargetIsAtEnd(latest, numTargetWaypoints);
   }
 
-  private void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
+  protected void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
       throws InvalidYAMLWitnessException {
     switch (pNumTargetWaypoints) {
       case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");

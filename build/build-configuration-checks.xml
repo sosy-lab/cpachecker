@@ -24,6 +24,7 @@ SPDX-License-Identifier: Apache-2.0
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
             <sysproperty key="java.awt.headless" value="true" />
+            <jvmarg value="--enable-native-access=ALL-UNNAMED"/>
             <batchtest fork="true" todir="${configuration-checks.dir}">
                 <fileset dir="${class.dir}">
                     <include name="org/sosy_lab/cpachecker/cmdline/ConfigurationFileChecks.*"/>

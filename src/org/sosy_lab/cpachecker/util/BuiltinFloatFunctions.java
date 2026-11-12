@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -35,6 +36,11 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> ABSOLUTE_VAL_FLOAT = of("fabsf");
   private static final ImmutableList<String> ABSOLUTE_VAL = of("fabs");
   private static final ImmutableList<String> ABSOLUTE_VAL_LONG_DOUBLE = of("fabsl");
+
+  // C11 7.12.7.5 "The sqrt functions" (math.h);
+  private static final ImmutableList<String> SQRT_FLOAT = of("sqrtf");
+  private static final ImmutableList<String> SQRT = of("sqrt");
+  private static final ImmutableList<String> SQRT_LONG_DOUBLE = of("sqrtl");
 
   private static final ImmutableList<String> FLOOR_FLOAT = of("floorf");
   private static final ImmutableList<String> FLOOR = of("floor");
@@ -110,6 +116,7 @@ public class BuiltinFloatFunctions {
           .addAll(INFINITY)
           .addAll(HUGE_VAL)
           .addAll(ABSOLUTE_VAL)
+          .addAll(SQRT)
           .addAll(CEIL)
           .addAll(FLOOR)
           .addAll(ROUND)
@@ -357,6 +364,17 @@ public class BuiltinFloatFunctions {
     return FREMAINDER_FLOAT.contains(pFunctionName)
         || FREMAINDER.contains(pFunctionName)
         || FREMAINDER_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  /**
+   * Check if the function is one of the {@code sqrt} variants from {@code math.h}.
+   *
+   * <p>Matches {@code sqrtf} for {@code float}, {@code sqrt} for {@code double} and {@code sqrtl}
+   * for {@code long double} values. Complex values are not supported, and {@code csqrt} from {@code
+   * complex.h} will not be matched
+   */
+  public static boolean matchesSqrt(String pFunctionName) {
+    return FluentIterable.concat(SQRT_FLOAT, SQRT, SQRT_LONG_DOUBLE).contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {

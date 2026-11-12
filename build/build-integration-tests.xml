@@ -25,6 +25,7 @@ SPDX-License-Identifier: Apache-2.0
             <classpath refid="classpath.junit"/>
             <sysproperty key="java.awt.headless" value="true" />
             <sysproperty key="enableExtendedTests" value="${enableExtendedTests}"/>
+            <jvmarg value="--enable-native-access=ALL-UNNAMED"/>
             <batchtest fork="true" todir="${integration-tests.dir}">
                 <fileset dir="${class.dir}">
                     <include name="**/*IntegrationTest.*"/>

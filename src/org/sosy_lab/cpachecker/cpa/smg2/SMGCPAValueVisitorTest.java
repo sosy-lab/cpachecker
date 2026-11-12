@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -58,6 +60,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -78,6 +83,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
+import org.sosy_lab.java_smt.api.SolverException;
 
 // TODO: run with more machine models
 /* Test all SMGCPAValueVisitor visits. Some will be tested indirectly, for example value creation. */
@@ -165,10 +172,7 @@ public class SMGCPAValueVisitorTest {
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
     Configuration defaultOptionsNoPreciseRead =
-        Configuration.builder()
-            .copyFrom(Configuration.defaultConfiguration())
-            .setOption("cpa.smg2.preciseSMGRead", "false")
-            .build();
+        TestUtils.configurationForTest().setOption("cpa.smg2.preciseSMGRead", "false").build();
     options = new SMGOptions(defaultOptionsNoPreciseRead, null);
 
     // null, null is fine as long as builtin functions are not used!
@@ -177,11 +181,11 @@ public class SMGCPAValueVisitorTest {
 
     currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
-    Configuration config = Configuration.defaultConfiguration();
+    Configuration config = TestUtils.configurationForTest().build();
     Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
     CFormulaEncodingWithPointerAliasingOptions formulaOptions =
@@ -210,11 +214,11 @@ public class SMGCPAValueVisitorTest {
         SMGState.of(
             MACHINE_MODEL,
             logger,
-            new SMGOptions(Configuration.defaultConfiguration(), null),
+            new SMGOptions(TestUtils.configurationForTest().build(), null),
             evaluator,
             new SMGCPAStatistics());
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /*
@@ -2018,7 +2022,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName + typeToTest,
-              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
 
       CUnaryExpression amperVar = wrapInAmper(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -2593,6 +2598,50 @@ public class SMGCPAValueVisitorTest {
     }
   }
 
+  @Test
+  public void testSizeofTypeInBytes() throws CPATransferException {
+    for (CType type : STRUCT_UNION_TEST_TYPES) {
+      CTypeIdExpression expression =
+          new CTypeIdExpression(
+              FileLocation.DUMMY, UNSIGNED_LONG_TYPE, TypeIdOperator.SIZEOF, type);
+      List<ValueAndSMGState> result = expression.accept(visitor);
+      assertThat(result).hasSize(1);
+      assertThat(result.getFirst().getValue().asNumericValue().bigIntegerValue())
+          .isEqualTo(MACHINE_MODEL.getSizeof(type));
+    }
+  }
+
+  @Test
+  public void testSizeofTypeInConstraint()
+      throws CPATransferException, SolverException, InterruptedException {
+    ConstraintFactory factory =
+        ConstraintFactory.getInstance(
+            currentState, MACHINE_MODEL, logger, options, evaluator, dummyCFAEdge);
+    CTypeIdExpression size =
+        new CTypeIdExpression(
+            FileLocation.DUMMY, UNSIGNED_LONG_TYPE, TypeIdOperator.SIZEOF, INT_TYPE);
+    // The unsigned guard must accept 3, reject 4 (not 32), and reject negative ints.
+    for (int value : new int[] {-1, 3, 4, 31, 32}) {
+      CBinaryExpression guard =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              INT_TYPE,
+              UNSIGNED_LONG_TYPE,
+              new CIntegerLiteralExpression(
+                  FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(value)),
+              size,
+              CBinaryExpression.BinaryOperator.LESS_THAN);
+      ImmutableList<ConstraintAndSMGState> constraints =
+          ImmutableList.copyOf(factory.createPositiveConstraint(guard));
+      assertThat(constraints).hasSize(1);
+      for (ConstraintAndSMGState constraint : constraints) {
+        assertThat(
+                evaluator.getSolver().checkUnsatWithFreshSolver(constraint.getConstraint(), "main"))
+            .isEqualTo(value == 3 ? Satisfiability.SAT : Satisfiability.UNSAT);
+      }
+    }
+  }
+
   /*
    * Test sizeof on different simple types. (Note: sizeof returns the amount of bytes!)
    */
@@ -2619,7 +2668,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
 
       CUnaryExpression sizeOfVar = wrapInSizeof(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -3092,7 +3142,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
+            CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY),
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression structVarExpr = new CIdExpression(FileLocation.DUMMY, declararation);
 
@@ -3166,7 +3217,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
     } else {
       declararation =
           new CVariableDeclaration(
@@ -3177,7 +3229,8 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(MACHINE_MODEL, elaboratedType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, elaboratedType, FileLocation.DUMMY),
+              /* pHasThreadLocalStorage= */ false);
     }
 
     return new CIdExpression(FileLocation.DUMMY, declararation);
@@ -3348,7 +3401,7 @@ public class SMGCPAValueVisitorTest {
         currentState.copyAndAddLocalVariable(
             new NumericValue(BigInteger.valueOf(sizeInBits)), variableName, null);
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /*
@@ -3379,7 +3432,7 @@ public class SMGCPAValueVisitorTest {
             BigInteger.valueOf(writeSizeInBits),
             smgValue);
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /**
@@ -3413,7 +3466,7 @@ public class SMGCPAValueVisitorTest {
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
     currentState = currentState.copyAndReplaceMemoryModel(spc);
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /**
@@ -3428,7 +3481,7 @@ public class SMGCPAValueVisitorTest {
         currentState.searchOrCreateAddress(pTarget, dummyType, BigInteger.valueOf(offset));
 
     currentState = addressAndState.getState();
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
     return addressAndState.getValue();
   }
 
@@ -3451,7 +3504,7 @@ public class SMGCPAValueVisitorTest {
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
     return newPointerValueAndState.getValue();
   }
 
@@ -3482,7 +3535,7 @@ public class SMGCPAValueVisitorTest {
             spc.getSMGValueFromValue(valueToWrite).orElseThrow());
 
     currentState = currentState.copyAndReplaceMemoryModel(spc);
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /**
@@ -3528,7 +3581,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
     return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, idExpr, subscriptAccess);
@@ -3567,7 +3621,8 @@ public class SMGCPAValueVisitorTest {
             arrayVariableName + "NotQual",
             arrayVariableName + "NotQual",
             arrayVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration indexDeclararation =
@@ -3579,7 +3634,8 @@ public class SMGCPAValueVisitorTest {
             indexVariableName + "NotQual",
             indexVariableName + "NotQual",
             indexVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, arrayDeclararation);
     CIdExpression indexVarExpr = new CIdExpression(FileLocation.DUMMY, indexDeclararation);
@@ -3613,7 +3669,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
     return new CArraySubscriptExpression(FileLocation.DUMMY, elementType, idExpr, subscriptAccess);
@@ -3643,7 +3700,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararationIndex =
@@ -3655,7 +3713,8 @@ public class SMGCPAValueVisitorTest {
             indexVariableName + "NotQual",
             indexVariableName + "NotQual",
             indexVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, arrayDeclararation);
     CIdExpression indexExpr = new CIdExpression(FileLocation.DUMMY, declararationIndex);
@@ -3692,7 +3751,8 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, idDeclararation);
     if (arrayIndiceInt == 0) {
@@ -3806,7 +3866,8 @@ public class SMGCPAValueVisitorTest {
             outerVariableName + "NotQual",
             outerVariableName + "NotQual",
             outerVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
 
     CIdExpression idExpr = new CIdExpression(FileLocation.DUMMY, declararation);
     CPointerExpression pointerToArray =
@@ -3942,7 +4003,8 @@ public class SMGCPAValueVisitorTest {
             indexVariableName,
             indexVariableName,
             indexVariableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
     return new CIdExpression(FileLocation.DUMMY, declararationIndex);
   }
 

@@ -48,7 +48,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
   }
 
   @Override
-  protected ConfigurationBuilder createTestConfigBuilder() {
+  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
     ConfigurationBuilder testConfigBuilder = super.createTestConfigBuilder();
     testConfigBuilder.setOption("solver.nonLinearArithmetic", "USE");
     return testConfigBuilder;

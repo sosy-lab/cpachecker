@@ -11,7 +11,17 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import com.google.common.base.Preconditions;
 
 /** This is just a plain formula with two operands and one operator. */
-abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormula<ConstantType> {
+abstract sealed class AbstractBinaryFormula<ConstantType> extends AbstractFormula<ConstantType>
+    permits Add,
+        BinaryAnd,
+        BinaryOr,
+        BinaryXor,
+        Divide,
+        Modulo,
+        Multiply,
+        ShiftLeft,
+        ShiftRight,
+        Union {
 
   private final NumeralFormula<ConstantType> operand1;
 

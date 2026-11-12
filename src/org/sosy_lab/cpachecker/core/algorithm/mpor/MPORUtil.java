@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -35,12 +31,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
@@ -159,32 +157,6 @@ public final class MPORUtil {
         && pVariableDeclaration.getInitializer() != null;
   }
 
-  public static boolean isCpaCheckerTmpWithoutInitializer(
-      CVariableDeclaration pVariableDeclaration) {
-    return !pVariableDeclaration.getType().isConst()
-        && !pVariableDeclaration.isGlobal()
-        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
-        && pVariableDeclaration.getInitializer() == null;
-  }
-
-  public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        return isConstCpaCheckerTmp(variableDeclaration);
-      }
-    }
-    return false;
-  }
-
-  public static boolean isCpaCheckerTmpDeclarationWithoutInitializer(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        return isCpaCheckerTmpWithoutInitializer(variableDeclaration);
-      }
-    }
-    return false;
-  }
-
   // CVariableDeclaration
 
   public static CVariableDeclaration withInitializer(
@@ -198,7 +170,8 @@ public final class MPORUtil {
         pVariableDeclaration.getName(),
         pVariableDeclaration.getOrigName(),
         pVariableDeclaration.getQualifiedName(),
-        pInitializer);
+        pInitializer,
+        pVariableDeclaration.hasThreadLocalStorage());
   }
 
   // Pointers ======================================================================================
@@ -239,6 +212,28 @@ public final class MPORUtil {
             return true;
           }
         }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether the pointers that go out of scope at {@code pCfaNode} have to be reset, i.e.,
+   * whether leaving edge is a function that returns or a thread that exits.
+   *
+   * <p>Terminations of the whole program, e.g. a call to {@code abort()}, do not require resets
+   * because no statement of the input program is executed afterwards.
+   */
+  public static boolean requiresPointerResets(CFANode pCfaNode) {
+    for (CFAEdge leavingEdge : pCfaNode.getLeavingEdges()) {
+      if (leavingEdge.getSuccessor() instanceof FunctionExitNode) {
+        return true;
+      }
+      // pthread_exit is declared __noreturn__, so its successor is a CFATerminationNode, but only
+      // the thread and not the whole program exits
+      if (leavingEdge.getSuccessor() instanceof CFATerminationNode
+          && PthreadUtil.isCallToPthreadFunction(leavingEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+        return true;
       }
     }
     return false;
@@ -293,22 +288,5 @@ public final class MPORUtil {
           .collect(ImmutableList.toImmutableList());
     }
     return pElements;
-  }
-
-  // CFA ===========================================================================================
-
-  public static CFACreator buildTestCfaCreator(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    return new CFACreator(TestUtils.configurationForTest().build(), pLogger, pShutdownNotifier);
-  }
-
-  public static CFACreator buildTestCfaCreatorWithPreprocessor(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    return new CFACreator(
-        TestUtils.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
-        pLogger,
-        pShutdownNotifier);
   }
 }

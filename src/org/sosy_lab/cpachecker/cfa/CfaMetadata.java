@@ -51,7 +51,7 @@ public final class CfaMetadata {
   private final @Nullable AcslMetadata acslMetadata;
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
-  private final @Nullable CfaTransformationMetadata transformationMetadata;
+  private final @Nullable ProgramTransformation transformation;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -66,7 +66,7 @@ public final class CfaMetadata {
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
-      @Nullable CfaTransformationMetadata pCfaTransformationMetadata,
+      @Nullable ProgramTransformation pProgramTransformation,
       @Nullable AcslMetadata pAcslMetadata) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
@@ -81,7 +81,7 @@ public final class CfaMetadata {
     liveVariables = pLiveVariables;
     edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
-    transformationMetadata = pCfaTransformationMetadata;
+    transformation = pProgramTransformation;
     acslMetadata = pAcslMetadata;
   }
 
@@ -134,39 +134,14 @@ public final class CfaMetadata {
     return machineModel;
   }
 
-  /**
-   * Returns a copy of this metadata instance, but with the specified machine model.
-   *
-   * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
-   *     types)
-   * @return a copy of this metadata instance, but with the specified machine model
-   * @throws NullPointerException if {@code pMachineModel == null}
-   */
-  public CfaMetadata withMachineModel(MachineModel pMachineModel) {
-    return new CfaMetadata(
-        checkNotNull(pMachineModel),
-        cfaLanguage,
-        inputLanguage,
-        fileNames,
-        mainFunctionEntry,
-        connectedness,
-        astCFARelation,
-        loopStructure,
-        variableClassification,
-        liveVariables,
-        edgesToAnnotations,
-        svLibCfaMetadata,
-        transformationMetadata,
-        acslMetadata);
-  }
-
-  public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
+  public CfaMetadata withTransformation(ProgramTransformation pTransformation) {
     CfaMetadata newMetadata =
         new CfaMetadata(
             machineModel,
             cfaLanguage,
             inputLanguage,
-            fileNames,
+            // use original files, because transforming does not change what the input files are
+            pTransformation.originalCfa().getFileNames(),
             mainFunctionEntry,
             connectedness,
             astCFARelation,
@@ -175,7 +150,7 @@ public final class CfaMetadata {
             liveVariables,
             edgesToAnnotations,
             svLibCfaMetadata,
-            pTransformationMetadata,
+            pTransformation,
             acslMetadata);
     return newMetadata;
   }
@@ -207,8 +182,8 @@ public final class CfaMetadata {
     return fileNames;
   }
 
-  public @Nullable CfaTransformationMetadata getTransformationMetadata() {
-    return transformationMetadata;
+  public @Nullable ProgramTransformation getTransformation() {
+    return transformation;
   }
 
   /**
@@ -243,7 +218,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -277,7 +252,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -324,7 +299,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -362,7 +337,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         pSvLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -387,7 +362,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -424,7 +399,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -460,7 +435,7 @@ public final class CfaMetadata {
         pLiveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -500,7 +475,7 @@ public final class CfaMetadata {
         liveVariables,
         pedgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         acslMetadata);
   }
 
@@ -525,7 +500,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata,
+        transformation,
         pAcslMetadata);
   }
 
@@ -547,7 +522,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformation);
   }
 
   @Override
@@ -568,7 +543,7 @@ public final class CfaMetadata {
         && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
         && Objects.equals(astCFARelation, other.astCFARelation)
         && Objects.equals(svLibCfaMetadata, other.svLibCfaMetadata)
-        && Objects.equals(transformationMetadata, other.transformationMetadata);
+        && Objects.equals(transformation, other.transformation);
   }
 
   @Override
@@ -584,7 +559,7 @@ public final class CfaMetadata {
         .add("variableClassification", variableClassification)
         .add("liveVariables", liveVariables)
         .add("edgesToAnnotations", edgesToAnnotations)
-        .add("transformationMetadata", transformationMetadata)
+        .add("transformation", transformation)
         .toString();
   }
 }

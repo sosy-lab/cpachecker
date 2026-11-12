@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 /**
  * Each {@link CFAEdge} from the input program corresponds to a {@link SeqThreadStatement} which is
@@ -60,22 +59,6 @@ public record SeqThreadStatement(
     checkArgument(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
-    if (data.getType().containsVariableDeclarations) {
-      checkArgument(
-          exportStatements.stream()
-              .flatMap(export -> export.getAllNestedStatements().stream())
-              .anyMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type contains variable declarations, then exportStatements must"
-              + " contain at least one CVariableDeclarationWrapper.");
-    }
-    if (!data.getType().containsVariableDeclarations) {
-      checkArgument(
-          exportStatements.stream()
-              .flatMap(export -> export.getAllNestedStatements().stream())
-              .noneMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is does not contain variable declarations, then exportStatements"
-              + " cannot contain a CVariableDeclarationWrapper.");
-    }
   }
 
   public static SeqThreadStatement of(
@@ -175,13 +158,28 @@ public record SeqThreadStatement(
                 data.getPcLeftHandSide(), targetPc.orElseThrow(), instrumentation)
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
                 data.getThreadId(), targetGoto.orElseThrow(), instrumentation);
-    ImmutableList<CExportStatement> instrumentationExportStatements =
-        transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
+
+    ImmutableList<SeqInstrumentation> beforeStatementInstrumentation =
+        preparedInstrumentation.stream()
+            .filter(i -> i.type().isPlacedBeforeStatements)
+            .collect(ImmutableList.toImmutableList());
+    ImmutableList<SeqInstrumentation> afterStatementInstrumentation =
+        preparedInstrumentation.stream()
+            .filter(i -> !i.type().isPlacedBeforeStatements)
+            .collect(ImmutableList.toImmutableList());
+
+    ImmutableList<CExportStatement> beforeExportStatements =
+        transformedImmutableListCopy(
+            beforeStatementInstrumentation, i -> checkNotNull(i).exportStatement());
+    ImmutableList<CExportStatement> afterExportStatements =
+        transformedImmutableListCopy(
+            afterStatementInstrumentation, i -> checkNotNull(i).exportStatement());
 
     // add the instrumentation after the actual export statements that carry input program semantics
     return ImmutableList.<CCompoundStatementElement>builder()
+        .addAll(beforeExportStatements)
         .addAll(exportStatements)
-        .addAll(instrumentationExportStatements)
+        .addAll(afterExportStatements)
         .build();
   }
 }

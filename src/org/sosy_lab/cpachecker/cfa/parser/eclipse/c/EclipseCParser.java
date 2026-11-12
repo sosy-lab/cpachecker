@@ -9,9 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapCode;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapFile;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
@@ -20,7 +17,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import java.io.File;
@@ -29,6 +26,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,13 +49,11 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
 /** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
@@ -145,7 +141,7 @@ class EclipseCParser implements CParser {
         Lists.transform(pFilenames, name -> new FileToParse(Path.of(name))),
         new CSourceOriginMapping(),
         CProgramScope.empty(),
-        (pFileName, pContent) -> wrapFile(pFileName));
+        (pFileName, pContent) -> eclipseCdt.wrapFile(pFileName));
   }
 
   @Override
@@ -159,7 +155,7 @@ class EclipseCParser implements CParser {
         CProgramScope.empty(),
         (pFileName, pContent) -> {
           Preconditions.checkArgument(pContent instanceof FileContentToParse);
-          return wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
+          return eclipseCdt.wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
         });
   }
 
@@ -175,14 +171,15 @@ class EclipseCParser implements CParser {
         pScope instanceof CProgramScope cProgramScope ? cProgramScope : CProgramScope.empty(),
         (fileName, content) -> {
           Preconditions.checkArgument(content instanceof FileContentToParse);
-          return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
+          return eclipseCdt.wrapCode(fileName, ((FileContentToParse) content).getFileContent());
         });
   }
 
   private IASTStatement[] parseCodeFragmentReturnBody(String pCode)
       throws CParserException, InterruptedException {
     // parse
-    IASTTranslationUnit ast = parse(wrapCode(Path.of("fragment"), pCode), ParseContext.dummy());
+    IASTTranslationUnit ast =
+        parse(eclipseCdt.wrapCode(Path.of("fragment"), pCode), ParseContext.dummy());
 
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();
@@ -216,7 +213,8 @@ class EclipseCParser implements CParser {
         machine,
         "",
         sa,
-        ImmutableSet.of());
+        ImmutableSortedSet.of(),
+        new HashSet<>());
   }
 
   @Override
@@ -344,24 +342,22 @@ class EclipseCParser implements CParser {
           builder.analyzeTranslationUnit(ast, staticVariablePrefix, pScope);
         }
       }
+
       ParseResult result = builder.createCFA();
 
-      AstCfaRelation astCfaRelation =
-          AstCfaRelationBuilder.getASTCFARelation(
-              pSourceOriginMapping,
-              from(result.cfaNodes().values())
-                  .transformAndConcat(CFANode::getAllLeavingEdges)
-                  .toSet(),
-              asts,
-              result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
-              result.cfaNodeToAstParametersInScope().orElseThrow(),
-              FluentIterable.from(result.globalDeclarations())
-                  .transform(Pair::getFirst)
-                  .filter(AVariableDeclaration.class)
-                  .toSet());
-
-      result = result.withASTStructure(astCfaRelation);
-
+      result =
+          result.withASTStructure(
+              AstCfaRelationBuilder.getASTCFARelation(
+                  pSourceOriginMapping,
+                  asts,
+                  result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
+                  result.cfaNodeToAstParametersInScope().orElseThrow(),
+                  result.cfaNodeToVisibleLocalVariables().orElseThrow(),
+                  result.cfaNodeToVisibleParameters().orElseThrow(),
+                  FluentIterable.from(result.globalDeclarations())
+                      .transform(Pair::getFirst)
+                      .filter(AVariableDeclaration.class)
+                      .toSet()));
       return result;
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);

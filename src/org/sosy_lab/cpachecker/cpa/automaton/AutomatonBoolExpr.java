@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -254,7 +256,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (elementToEnter.edges().contains(edge)) {
+
+      if (elementToEnter.edges().contains(edge.getOriginal())) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -302,7 +305,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (edge.getSuccessor().getLeavingEdges().anyMatch(e -> incomingFrontierEdges.contains(e))) {
+
+      if (edge.getSuccessor()
+          .getLeavingEdges()
+          .anyMatch(e -> incomingFrontierEdges.contains(e.getOriginal()))) {
         return CONST_TRUE;
       }
 
@@ -441,12 +447,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * CFAUtils#getClosestFullExpression(CCfaEdge,AstCfaRelation)}.
    */
   public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
-    private final int columnToReach;
+    private final OptionalInt columnToReach;
     private final int lineNumber;
     private final AstCfaRelation astCfaRelation;
 
     public CheckClosestFullExpressionMatchesColumnAndLine(
-        int pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
+        OptionalInt pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
       astCfaRelation = pAstCfaRelation;
@@ -461,7 +467,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       }
 
       Optional<FileLocation> optionalFullExpressionLocation =
-          CFAUtils.getClosestFullExpression(cCfaEdge, astCfaRelation);
+          CFAUtils.getClosestFullExpression((CCfaEdge) cCfaEdge.getOriginal(), astCfaRelation);
       if (optionalFullExpressionLocation.isEmpty()) {
         return CONST_FALSE;
       }
@@ -470,7 +476,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       int edgeNodeStartingColumn = fullExpressionLocation.getStartColumnInLine();
 
       if (fullExpressionLocation.getStartingLineInOrigin() == lineNumber
-          && edgeNodeStartingColumn == columnToReach) {
+          && (columnToReach.isEmpty() || edgeNodeStartingColumn == columnToReach.orElseThrow())) {
         return CONST_TRUE;
       }
 
@@ -484,13 +490,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public int hashCode() {
-      return columnToReach;
+      return lineNumber;
     }
 
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckClosestFullExpressionMatchesColumnAndLine c
-          && columnToReach == c.columnToReach
+          && columnToReach.equals(c.columnToReach)
           && lineNumber == c.lineNumber
           && astCfaRelation.equals(c.astCfaRelation);
     }
@@ -580,8 +586,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     public CheckPassesThroughNodes(
         Set<CFANode> pEdgePredecessorMatch, Set<CFANode> pEdgeSuccessorMatch) {
-      edgePredecessorMatch = pEdgePredecessorMatch;
-      edgeSuccessorMatch = pEdgeSuccessorMatch;
+      edgePredecessorMatch =
+          pEdgePredecessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
+      edgeSuccessorMatch =
+          pEdgeSuccessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
     }
 
     @Override
@@ -592,8 +604,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
       // happens when there is no else branch in an if statement.
-      if (edgeSuccessorMatch.contains(edge.getSuccessor())
-          && edgePredecessorMatch.contains(edge.getPredecessor())) {
+      if (edgeSuccessorMatch.contains(edge.getSuccessor().getOriginal())
+          && edgePredecessorMatch.contains(edge.getPredecessor().getOriginal())) {
         return CONST_TRUE;
       }
 
@@ -616,7 +628,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final Set<CFANode> edgeSuccessorMatch;
 
     public CheckEndsAtNodes(Set<CFANode> pEdgeSuccessorMatch) {
-      edgeSuccessorMatch = pEdgeSuccessorMatch;
+      edgeSuccessorMatch =
+          pEdgeSuccessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
     }
 
     @Override
@@ -627,7 +642,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
       // happens when there is no else branch in an if statement.
-      if (edgeSuccessorMatch.contains(edge.getSuccessor())) {
+      if (edgeSuccessorMatch.contains(edge.getSuccessor().getOriginal())) {
         return CONST_TRUE;
       }
 
@@ -1638,6 +1653,56 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public boolean equals(Object o) {
       return o instanceof ALLCPAQuery other && queryString.equals(other.queryString);
+    }
+  }
+
+  /**
+   * Checks whether the thread that takes the current edge has the given witness thread id.
+   *
+   * <p>If the CFA was cloned per thread (see {@link CFANode#getCloneThreadId()}), the edge itself
+   * names the thread that takes it, and its clone thread id is compared directly. Otherwise, the
+   * thread is only known to the analysis, so the check is delegated to the other CPAs' states
+   * (e.g., the ThreadingCPA) like {@link ALLCPAQuery} does with the query {@code
+   * AutomatonWitnessViolationV2Parser#THREAD_ID_QUERY}. In particular, if no state answers the
+   * query, the result is unknown and not false.
+   */
+  static final class CheckCurrentThreadId implements AutomatonBoolExpr {
+    private final int threadId;
+    private final ALLCPAQuery fallbackQuery;
+
+    CheckCurrentThreadId(int pThreadId) {
+      threadId = pThreadId;
+      fallbackQuery =
+          new ALLCPAQuery(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY + pThreadId);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      Optional<ThreadId> cloneThreadId = edge.getSuccessor().getCloneThreadId();
+      if (cloneThreadId.isEmpty()) {
+        cloneThreadId = edge.getPredecessor().getCloneThreadId();
+      }
+      if (cloneThreadId.isPresent()) {
+        return cloneThreadId.orElseThrow().id() == threadId ? CONST_TRUE : CONST_FALSE;
+      }
+      return fallbackQuery.eval(pArgs);
+    }
+
+    @Override
+    public String toString() {
+      return "CHECK_CURRENT_THREAD_ID(" + threadId + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return Integer.hashCode(threadId) * 31;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCurrentThreadId other && threadId == other.threadId;
     }
   }
 

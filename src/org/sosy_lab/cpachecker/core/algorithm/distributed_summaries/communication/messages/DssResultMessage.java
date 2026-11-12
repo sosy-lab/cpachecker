@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
 import java.util.Map;
 
 public class DssResultMessage extends DssMessage {
@@ -23,9 +24,13 @@ public class DssResultMessage extends DssMessage {
     super(pSenderId, DssMessageType.RESULT, pResult);
   }
 
+  DssResultMessage(String pSenderId, ImmutableMap<String, String> pResult, Instant pTimestamp) {
+    super(pSenderId, DssMessageType.RESULT, pResult, pTimestamp);
+  }
+
   @Override
   boolean isValid(Map<String, String> pContent) {
-    return pContent.size() == 1
+    return (pContent.size() == 1)
         && pContent.containsKey(DSS_MESSAGE_RESULT_KEY)
         && pContent.get(DSS_MESSAGE_RESULT_KEY) != null
         && !pContent.get(DSS_MESSAGE_RESULT_KEY).isEmpty();

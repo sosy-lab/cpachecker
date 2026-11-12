@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-interface FloatingPointType extends Typed {
+sealed interface FloatingPointType extends Typed permits CompoundFloatingPointInterval {
 
   @Override
   FloatingPointTypeInfo getTypeInfo();

@@ -14,6 +14,22 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public interface CFAEdge {
 
+  /**
+   * Returns the edge of the original CFA that this edge is a per-thread clone of, and this edge
+   * otherwise.
+   *
+   * <p>"Clone" refers only to the copies that the concurrency analyses create of the whole CFA, one
+   * copy per thread, so that each thread has its own local variables (their qualified names get a
+   * thread-specific prefix). Apart from these names, a clone is identical to its original. Clones
+   * are not part of the {@link org.sosy_lab.cpachecker.cfa.CFA} instance, so code that looks up
+   * information stored for the original CFA (e.g., the AST-CFA relation or loop structure) needs to
+   * map an edge to its original first. Edges created by other CFA transformations are not clones in
+   * this sense.
+   */
+  default CFAEdge getOriginal() {
+    return this;
+  }
+
   CFAEdgeType getEdgeType();
 
   CFANode getPredecessor();

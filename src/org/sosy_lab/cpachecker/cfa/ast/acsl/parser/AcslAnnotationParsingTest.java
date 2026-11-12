@@ -71,7 +71,8 @@ public class AcslAnnotationParsingTest {
               var,
               var,
               var,
-              null /* No initializer, we only want it for testing */));
+              null /* No initializer, we only want it for testing */,
+              /* pHasThreadLocalStorage= */ false));
     }
     scope.registerDeclaration(
         new CFunctionDeclaration(
@@ -238,7 +239,15 @@ ensures x <= 10;
     AcslCVariableDeclaration x =
         new AcslCVariableDeclaration(
             new CVariableDeclaration(
-                FileLocation.DUMMY, true, CStorageClass.AUTO, basicInt(), "x", "x", "x", null));
+                FileLocation.DUMMY,
+                true,
+                CStorageClass.AUTO,
+                basicInt(),
+                "x",
+                "x",
+                "x",
+                null,
+                /* pHasThreadLocalStorage= */ false));
     AcslAssertion expected =
         new AcslAssertion(
             FileLocation.DUMMY,
@@ -307,7 +316,8 @@ ensures x <= 10;
             "a",
             "a",
             "a",
-            null /* No initializer, we only want it for testing */);
+            null /* No initializer, we only want it for testing */,
+            /* pHasThreadLocalStorage= */ false);
 
     CProgramScope scope = getCProgramScope();
     scope.registerDeclaration(a);

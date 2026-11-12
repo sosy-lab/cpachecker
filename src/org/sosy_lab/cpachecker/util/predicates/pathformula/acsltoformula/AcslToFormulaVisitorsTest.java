@@ -147,7 +147,8 @@ public class AcslToFormulaVisitorsTest {
               var,
               var,
               var,
-              null /* No initializer, we only want it for testing */));
+              null /* No initializer, we only want it for testing */,
+              /* pHasThreadLocalStorage= */ false));
     }
 
     scope.registerDeclaration(
@@ -159,7 +160,8 @@ public class AcslToFormulaVisitorsTest {
             "a",
             "a",
             "a",
-            null /* No initializer, we only want it for testing */));
+            null /* No initializer, we only want it for testing */,
+            /* pHasThreadLocalStorage= */ false));
 
     scope.registerDeclaration(
         new CFunctionDeclaration(
@@ -208,7 +210,8 @@ public class AcslToFormulaVisitorsTest {
         name,
         name,
         name,
-        null /* No initializer, we only want it for testing */);
+        null /* No initializer, we only want it for testing */,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   @Test

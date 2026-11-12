@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -40,7 +41,7 @@ public record SeqProgramCounterVariableBuilder(
     int numThreads,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
-  private static final String PROGRAM_COUNTER_VARIABLE_NAME = "pc";
+  private static final String PROGRAM_COUNTER_VARIABLE_NAME = Sequentialization.MPOR_PREFIX + "pc";
 
   public static final CIntegerLiteralExpression INIT_PC_LITERAL_EXPRESSION =
       buildIntegerLiteralExpression(SeqProgramCounterVariables.INIT_PC);

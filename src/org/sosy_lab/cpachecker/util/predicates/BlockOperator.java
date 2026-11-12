@@ -287,6 +287,11 @@ public class BlockOperator {
         && !alwaysAtFunctionExit;
   }
 
+  /** Whether every location is a block end (single-block encoding). */
+  public boolean isSingleBlockEncoding() {
+    return !alwaysAndOnlyAtExplicitNodes && threshold == 1;
+  }
+
   protected boolean isJoinNode(CFANode pSuccLoc) {
     return pSuccLoc.getNumEnteringEdges() > 1;
   }
@@ -297,7 +302,9 @@ public class BlockOperator {
 
   protected boolean isLoopHead(CFANode succLoc) {
     checkState(loopHeads != null, "Missing loop information");
-    return loopHeads.contains(succLoc);
+    CFANode originalNode = succLoc.getOriginal();
+    return loopHeads.contains(succLoc)
+        || (originalNode != succLoc && loopHeads.contains(originalNode));
   }
 
   protected boolean isFunctionCall(CFANode succLoc) {

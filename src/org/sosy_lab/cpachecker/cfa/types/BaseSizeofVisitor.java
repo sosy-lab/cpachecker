@@ -106,12 +106,19 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
   private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) throws X {
     BigInteger size = BigInteger.ZERO;
     BigInteger sizeOfType = BigInteger.ZERO;
-    // TODO: Take possible padding into account
     for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
       sizeOfType = decl.getType().accept(this);
       size = size.max(sizeOfType);
     }
-    return size;
+    // Round up to the alignment of the union, so that the elements of an array of unions are
+    // aligned. C11 allows this trailing padding (§ 6.7.2.1 (17), § 6.5.3.4 (4)), and GCC leaves
+    // the layout to the ABI:
+    // https://gcc.gnu.org/onlinedocs/gcc/Structures-unions-enumerations-and-bit-fields-implementation.html
+    // The System V x86-64 psABI (https://gitlab.com/x86-psABIs/x86-64-ABI, § 3.1.2) defines:
+    // "The size of any object is always a multiple of the object's alignment."
+    // Use the non-atomic alignment for the same reason as at the end of the struct case.
+    BigInteger alignof = BigInteger.valueOf(model.getAlignof(pCompositeType.withoutAtomic()));
+    return size.add(alignof).subtract(BigInteger.ONE).divide(alignof).multiply(alignof);
   }
 
   @Override
@@ -272,14 +279,17 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
                     bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
             sizeOfConsecutiveBitFields = BigInteger.ZERO;
           } else {
-            sizeOfConsecutiveBitFields =
-                model
-                    .calculateNecessaryBitfieldOffset(
-                        sizeOfConsecutiveBitFields.add(bitOffset),
-                        innerType,
-                        sizeOfByte,
-                        fieldSizeInBits)
-                    .subtract(bitOffset);
+            if (!typeMember.isPacked()) {
+              // packed bit fields are placed directly after their predecessor
+              sizeOfConsecutiveBitFields =
+                  model
+                      .calculateNecessaryBitfieldOffset(
+                          sizeOfConsecutiveBitFields.add(bitOffset),
+                          innerType,
+                          sizeOfByte,
+                          fieldSizeInBits)
+                      .subtract(bitOffset);
+            }
             sizeOfConsecutiveBitFields = sizeOfConsecutiveBitFields.add(fieldSizeInBits);
           }
 
@@ -290,7 +300,8 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
           }
         } else {
           bitOffset =
-              model.calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, type, sizeOfByte);
+              model.calculatePaddedBitsize(
+                  bitOffset, sizeOfConsecutiveBitFields, model.getAlignof(typeMember), sizeOfByte);
           sizeOfConsecutiveBitFields = BigInteger.ZERO;
 
           if (typeMember.getName().equals(pFieldName)) {
@@ -311,7 +322,12 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
           "could not find field " + pFieldName + " in " + pOwnerType);
     }
 
-    // call with byte size of 1 to return size in bytes instead of bits
-    return model.calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1L);
+    // call with byte size of 1 to return size in bytes instead of bits.
+    // Use the non-atomic alignment of pOwnerType here: an atomic composite type is never larger
+    // than its non-atomic version, so this trailing padding is unaffected by atomicity, and using
+    // the (possibly size-dependent) atomic alignment here would make getSizeof and getAlignof of
+    // an atomic composite type recursively depend on each other.
+    return model.calculatePaddedBitsize(
+        bitOffset, sizeOfConsecutiveBitFields, pOwnerType.withoutAtomic(), 1L);
   }
 }
