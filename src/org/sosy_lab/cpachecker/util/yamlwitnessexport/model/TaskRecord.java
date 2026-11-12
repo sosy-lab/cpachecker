@@ -69,13 +69,20 @@ public class TaskRecord {
             .filter(line -> !line.isEmpty() && !line.startsWith("//"))
             .toList();
 
-    if (simplifiedSpecification.size() != 1) {
-      // Currently, witnesses only accept SV-COMP specifications as valid. These are all a single
-      // line
-      return defaultReturnSpecification;
+    if (simplifiedSpecification.size() == 1) {
+      return simplifiedSpecification.getFirst();
     }
 
-    return simplifiedSpecification.getFirst();
+    // Currently, witnesses only accept SV-COMP specifications as valid. These are all a single
+    // line, except for compound properties like MemSafety specifications, which consist of one
+    // CHECK per line in the witness.
+    if (simplifiedSpecification.size() > 1
+        && FluentIterable.from(simplifiedSpecification)
+            .allMatch(line -> line.startsWith("CHECK("))) {
+      return String.join("\n", simplifiedSpecification);
+    }
+
+    return defaultReturnSpecification;
   }
 
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
