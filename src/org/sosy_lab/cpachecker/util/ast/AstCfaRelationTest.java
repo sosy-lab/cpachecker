@@ -13,6 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.Iterables;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -37,5 +38,29 @@ public class AstCfaRelationTest {
 
     assertThat(cfa.getAstCfaRelation().getStatementStartingAtNode(call)).isEmpty();
     assertThat(cfa.getAstCfaRelation().getStatementStartingAtNode(statementStart)).isPresent();
+  }
+
+  /** A condition edge of two if statements belongs to the inner one, whose condition it is. */
+  @Test
+  public void ifStructureForConditionEdgeOfNestedIfStatements() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "if-in-statement-expression-in-condition.c");
+    CFAEdge innerCondition = TestCfaUtils.getEdge("[x > 5]", cfa);
+
+    IfElement ifElement =
+        cfa.getAstCfaRelation().getIfStructureForConditionEdge(innerCondition).orElseThrow();
+    assertThat(ifElement.getCompleteElement().location().getNodeLength())
+        .isEqualTo("if (x > 5) t = 1;".length());
+  }
+
+  /** The else branch starts after the negated condition also if it is an empty block. */
+  @Test
+  public void nodesBeforeEmptyElseBranch() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "if-with-empty-else.c");
+    CFAEdge negatedCondition = TestCfaUtils.getEdge("[!(x > 5)]", cfa);
+
+    IfElement ifElement =
+        cfa.getAstCfaRelation().getIfStructureForConditionEdge(negatedCondition).orElseThrow();
+    assertThat(ifElement.getNodesBetweenConditionAndElseBranch())
+        .containsExactly(negatedCondition.getSuccessor());
   }
 }
