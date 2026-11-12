@@ -395,7 +395,9 @@ public class TerminationArgumentsToWitnessUtils {
       return Optional.empty();
     }
     if (strictRelation) {
-      return Optional.of(prevRank + " > " + currentRank);
+      // The bound makes the relation well-founded, as in the ranking relation that the termination
+      // analysis proved, see RankingRelationBuilder
+      return Optional.of(prevRank + " >= 0 && " + prevRank + " > " + currentRank);
     }
     return Optional.of(prevRank + " >= " + currentRank);
   }
