@@ -308,8 +308,6 @@ public final class SetjmpLongjmpTransformer {
     FileLocation loc = pSetjmp.getFileLocation();
     CFANode target = newNode(pred);
     CFACreationUtils.removeEdgeFromNodes(pSetjmp);
-    // longjmp creates a loop, e.g., k-induction needs its head
-    succ.setLoopStart();
 
     if (pSetjmp.getStatement() instanceof CFunctionCallAssignmentStatement assignment) {
       CLeftHandSide lhs = assignment.getLeftHandSide();
