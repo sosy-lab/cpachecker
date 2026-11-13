@@ -93,6 +93,13 @@ public class InterpreterCPAIntegrationTest {
             "nonterminating.c",
             Result.UNKNOWN,
             ImmutableMap.of("limits.time.cpu", "10s")),
+        // Both outcomes of an allocation that may fail are executed.
+        new Task(
+            "interpreter-smg",
+            "unreach-call",
+            "allocation-failure-false.c",
+            Result.FALSE,
+            ImmutableMap.of("cpa.smg2.enableMallocFail", "true")),
         task("interpreter--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
         task("interpreter--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
         // An execution in which every allocation succeeds is not the only execution of a program

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterState.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -52,7 +53,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Transfer relation of the {@link InterpreterCPA}. It executes the program edge by edge and checks
- * after every step that the wrapped CPA produced exactly one or zero successors.
+ * after every step that the wrapped CPA produced exactly one or zero successors, except for the two
+ * outcomes of an allocation that may fail, which are returned and executed separately.
  *
  * <p>Because there is at most one successor, the whole execution is performed within a single call
  * of this transfer relation. The intermediate states are then never returned and can be garbage
@@ -100,13 +102,13 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     while (true) {
       shutdownNotifier.shutdownIfNecessary();
 
-      InterpreterState next = executeStep(current, pPrecision);
-      if (next == null) {
+      List<InterpreterState> next = executeStep(current, pPrecision);
+      if (next.size() != 1) {
         // The program ends here (or the specification excludes this path),
-        // so this execution has no successor at all.
-        return ImmutableList.of();
+        // or an allocation may fail and each of its outcomes is executed on its own.
+        return next;
       }
-      current = next;
+      current = next.getFirst();
 
       if (AbstractStates.isTargetState(current)) {
         // Stop here such that the target state is added to the reached set
@@ -120,10 +122,10 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   /**
    * Execute a single program step.
    *
-   * @return the successor state, or {@code null} if the execution ends at the given state
-   * @throws CPATransferException if the given state has more than one successor
+   * @return the successor states: none if the execution ends, two for an allocation that may fail
+   * @throws CPATransferException if the given state has more than one successor otherwise
    */
-  private @Nullable InterpreterState executeStep(InterpreterState pState, Precision pPrecision)
+  private List<InterpreterState> executeStep(InterpreterState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
     final AbstractState wrappedState = pState.getWrappedState();
@@ -147,7 +149,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
             pPrecision,
             /* pAllowSeveralSuccessors= */ sampler != null);
 
-    if (steps.size() > 1) {
+    if (steps.size() > 1 && !isFailingAllocation(steps)) {
       // The execution depends on an input of the program. Choose values for the inputs and
       // continue with the successor that these values determine.
       state = sampleInputs(state, steps);
@@ -159,18 +161,43 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
 
     if (steps.isEmpty()) {
       new InterpreterState(wrappedState, callStack, status).checkMayProveSafety();
-      return null;
+      return ImmutableList.of();
     }
-    InterpreterStep step = steps.getFirst();
-    InterpreterState successor =
-        new InterpreterState(step.successor(), updateCallStack(pState, step.edge(), state), status);
-    if (AbstractStates.isTargetState(successor)) {
-      successor.checkMayReportViolation();
-      // Remember where the specification was violated for the violation witness.
-      witnessExporter.reportViolation(step.edge());
+    List<InterpreterState> successors = new ArrayList<>(steps.size());
+    for (InterpreterStep step : steps) {
+      InterpreterState successor =
+          new InterpreterState(
+              step.successor(), updateCallStack(pState, step.edge(), state), status);
+      if (AbstractStates.isTargetState(successor)) {
+        successor.checkMayReportViolation();
+        // Remember where the specification was violated for the violation witness.
+        witnessExporter.reportViolation(step.edge());
+      } else {
+        checkNoInvalidMemoryAccess(successor, step.edge());
+      }
+      successors.add(successor);
     }
     stats.executedSteps.inc();
-    return successor;
+    return successors;
+  }
+
+  /**
+   * The SMG analysis continues after an invalid memory access unless memory errors are target
+   * states, but the execution has no defined behavior from there on.
+   */
+  private void checkNoInvalidMemoryAccess(AbstractState pState, CFAEdge pEdge)
+      throws CPATransferException {
+    if (smgOptions == null || smgOptions.isMemoryErrorTarget()) {
+      return;
+    }
+    SMGState smgState = AbstractStates.extractStateByType(pState, SMGState.class);
+    if (smgState != null
+        && (smgState.checkProperty("has-invalid-reads")
+            || smgState.checkProperty("has-invalid-writes")
+            || smgState.checkProperty("has-invalid-frees"))) {
+      throw new CPATransferException(
+          "Invalid memory access at " + pEdge + ", the execution has undefined behavior");
+    }
   }
 
   /** The component of the given state that tracks the program location. */
@@ -227,9 +254,22 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
    * never fail.
    */
   private boolean isAllocationThatCannotFail(CFunctionCall pFunctionCall) {
-    if (smgOptions == null || smgOptions.isEnableMallocFailure()) {
-      return false;
-    }
+    return smgOptions != null && !smgOptions.isEnableMallocFailure() && isAllocation(pFunctionCall);
+  }
+
+  /** Whether the steps are the outcomes of an allocation that may fail: success and failure. */
+  private boolean isFailingAllocation(List<InterpreterStep> pSteps) {
+    return pSteps.size() == 2
+        && pSteps.get(0).edge() == pSteps.get(1).edge()
+        && smgOptions != null
+        && smgOptions.isEnableMallocFailure()
+        && pSteps.get(0).edge() instanceof CStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof CFunctionCall functionCall
+        && isAllocation(functionCall);
+  }
+
+  private boolean isAllocation(CFunctionCall pFunctionCall) {
+    verifyNotNull(smgOptions);
     CFunctionDeclaration declaration = pFunctionCall.getFunctionCallExpression().getDeclaration();
     if (declaration == null) {
       return false;
@@ -290,10 +330,10 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       for (AbstractState newState :
           transferRelation.getAbstractSuccessorsForEdge(predecessor, pPrecision, edge)) {
         if (isNewSuccessor(steps, newState)) {
-          if (!steps.isEmpty() && !pAllowSeveralSuccessors) {
+          steps.add(new InterpreterStep(edge, newState));
+          if (steps.size() > 1 && !pAllowSeveralSuccessors && !isFailingAllocation(steps)) {
             throw nondeterminismException(steps.getFirst().edge(), edge);
           }
-          steps.add(new InterpreterStep(edge, newState));
         }
       }
     }
