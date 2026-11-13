@@ -1798,8 +1798,13 @@ public class SMGCPAExpressionEvaluator {
 
       // Now compare the 2 values. Non-equality of non-concrete values has to be checked by the SMG
       // method because of abstraction.
-      // easy, just compare the numeric value and return if != 0
-      int compare = numValue1.bigIntegerValue().compareTo(numValue2.bigIntegerValue());
+      // easy, just compare the numeric value as unsigned char (C11 7.24.4) and return if != 0
+      BigInteger numOfCharValues = BigInteger.ONE.shiftLeft(sizeOfCharInBits.intValueExact());
+      int compare =
+          numValue1
+              .bigIntegerValue()
+              .mod(numOfCharValues)
+              .compareTo(numValue2.bigIntegerValue().mod(numOfCharValues));
       if (compare != 0) {
         return ValueAndSMGState.of(new NumericValue(compare), pState);
       }
