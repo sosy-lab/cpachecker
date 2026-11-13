@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNot
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BinaryPredicateContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BinderContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BindersContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.CanAccessPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ComparisonPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ExistentialQuantificationPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicalFalsePredContext;
@@ -150,6 +152,15 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     } else {
       throw new RuntimeException("Unexpected number of children when creating a valid predicate");
     }
+  }
+
+  @Override
+  public AcslPredicate visitCanAccessPred(CanAccessPredContext ctx) {
+    // The parsing gives the following structure:
+    // ['\canAccess', '(', term, ',', term, ')']
+    AcslTerm targetingMemory = antrlToTermConverter.visit(ctx.term(0));
+    AcslTerm length = antrlToTermConverter.visit(ctx.term(1));
+    return new AcslCanAccessPredicate(fileLocationFromContext(ctx), targetingMemory, length);
   }
 
   @Override
