@@ -606,7 +606,9 @@ public class SMGTransferRelation
     // Create a variable for each parameter, then evaluate all given parameters and assign them to
     // their variables
     // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
-    // Each state with the values of the arguments read so far
+    // Each state with the values of the arguments read so far.
+    // Evaluating an argument may split the state. Each following argument is then evaluated
+    // in every resulting state, so that every successor has its own complete list of values.
     List<Pair<SMGState, ImmutableList<Value>>> statesAndReadValues =
         ImmutableList.of(Pair.of(initialState, ImmutableList.of()));
     CType parameterType = null;
