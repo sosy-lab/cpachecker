@@ -418,25 +418,19 @@ public final class SetjmpLongjmpTransformer {
             .get(1);
     CFACreationUtils.removeEdgeFromNodes(pLongjmp);
 
+    // longjmp(env, 0) makes setjmp return 1
+    CFANode assigned = newNode(pred);
+    CFANode isZero = newNode(pred);
     CFANode valueSet = newNode(pred);
-    if (value instanceof CIntegerLiteralExpression literal
-        && literal.getValue().signum() != 0
-        && literal.getValue().bitLength() < 32) {
-      addEdge(assignmentEdge(valueVar(loc), value, pLongjmp, pred, valueSet));
-    } else {
-      // longjmp(env, 0) makes setjmp return 1
-      CFANode assigned = newNode(pred);
-      CFANode isZero = newNode(pred);
-      addEdge(assignmentEdge(valueVar(loc), value, pLongjmp, pred, assigned));
-      CBinaryExpression notZero =
-          binExprBuilder.buildBinaryExpressionUnchecked(
-              valueVar(loc), CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
-      String raw = notZero.toASTString();
-      addEdge(new CAssumeEdge(raw, loc, assigned, valueSet, notZero, true));
-      addEdge(new CAssumeEdge(raw, loc, assigned, isZero, notZero, false));
-      addEdge(
-          assignmentEdge(valueVar(loc), CIntegerLiteralExpression.ONE, pLongjmp, isZero, valueSet));
-    }
+    addEdge(assignmentEdge(valueVar(loc), value, pLongjmp, pred, assigned));
+    CBinaryExpression notZero =
+        binExprBuilder.buildBinaryExpressionUnchecked(
+            valueVar(loc), CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
+    String raw = notZero.toASTString();
+    addEdge(new CAssumeEdge(raw, loc, assigned, valueSet, notZero, true));
+    addEdge(new CAssumeEdge(raw, loc, assigned, isZero, notZero, false));
+    addEdge(
+        assignmentEdge(valueVar(loc), CIntegerLiteralExpression.ONE, pLongjmp, isZero, valueSet));
     addLongjmpExit(valueSet, pLongjmp, pSetjmpFunction, pMainFunction, pLongjmpTarget);
   }
 
