@@ -3267,7 +3267,7 @@ class ASTConverter {
         && declaration != null
         && type.equals(declaration.getType())
         && isCharArray(type)) {
-      return convert((IASTInitializerClause) bracedString, type, declaration);
+      return convert(bracedString, type, declaration);
     }
 
     if (declaration != null && iList.getSize() == 1) {
