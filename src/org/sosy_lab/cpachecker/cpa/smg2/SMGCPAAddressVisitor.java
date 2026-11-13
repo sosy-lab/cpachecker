@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
@@ -68,16 +69,55 @@ public class SMGCPAAddressVisitor
 
   private final SMGOptions options;
 
+  /**
+   * Whether dereferences of values that are not valid addresses are reported as memory errors. This
+   * is the case if the memory returned is accessed, but not for the & operator, as e.g. &*pointer
+   * or &pointer[1] does not dereference the pointer.
+   */
+  private final boolean reportInvalidDereferences;
+
   public SMGCPAAddressVisitor(
       SMGCPAExpressionEvaluator pEvaluator,
       SMGState currentState,
       CFAEdge edge,
       LogManager pLogger) {
+    this(pEvaluator, currentState, edge, pLogger, true);
+  }
+
+  public SMGCPAAddressVisitor(
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGState currentState,
+      CFAEdge edge,
+      LogManager pLogger,
+      boolean pReportInvalidDereferences) {
     evaluator = pEvaluator;
     state = currentState;
     cfaEdge = edge;
     logger = pLogger;
     options = currentState.getOptions();
+    reportInvalidDereferences = pReportInvalidDereferences;
+  }
+
+  /**
+   * Returns a result without memory for the dereference of the given value that is not a valid
+   * address, with a memory error in the state if the memory is accessed.
+   */
+  private SMGStateAndOptionalSMGObjectAndOffset invalidDereference(
+      SMGState pState, Value pInvalidAddress) {
+    if (!reportInvalidDereferences) {
+      return SMGStateAndOptionalSMGObjectAndOffset.of(pState);
+    }
+    return SMGStateAndOptionalSMGObjectAndOffset.of(
+        pState.withInvalidPointerDereference(pInvalidAddress, cfaEdge));
+  }
+
+  /**
+   * Returns true if the given array expression of a subscript is a pointer. This is false for
+   * switched subscript expressions, e.g. 1[pointer].
+   */
+  private static boolean isPointerTyped(CExpression pArrayExpr) {
+    return SMGCPAExpressionEvaluator.getCanonicalType(pArrayExpr.getExpressionType())
+        instanceof CPointerType;
   }
 
   @Override
@@ -158,7 +198,11 @@ public class SMGCPAAddressVisitor
       SMGState currentState = arrayValueAndState.getState();
 
       if (arrayValue.isUnknown()) {
-        resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
+        if (isPointerTyped(arrayExpr)) {
+          resultBuilder.add(invalidDereference(currentState, arrayValue));
+        } else {
+          resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
+        }
         continue;
       }
 
@@ -325,6 +369,9 @@ public class SMGCPAAddressVisitor
         return ImmutableList.of(
             SMGStateAndOptionalSMGObjectAndOffset.of(
                 SMGObject.nullInstance(), subscriptOffset, pCurrentState));
+      } else if (isPointerTyped(expr.getArrayExpression())) {
+        // E.g. an uninitialized pointer or a non-zero number as pointer
+        return ImmutableList.of(invalidDereference(pCurrentState, arrayValue));
       } else {
         return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState));
       }
@@ -509,14 +556,19 @@ public class SMGCPAAddressVisitor
         offset = pointerValue.getOffset();
         memoryAddress = pointerValue.getMemoryAddress();
       } else if (!currentState.isPointer(value)) {
-        // Pointers are let through w offset 0
-        resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
+        // Pointers are let through w offset 0, all other values (e.g. of uninitialized pointers or
+        // non-zero numbers) are no valid addresses
+        resultBuilder.add(invalidDereference(currentState, value));
         continue;
       }
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       if (!(offset instanceof NumericValue) && !options.trackErrorPredicates()) {
-        // If the offset is not numerically known we can't read a value, return
+        // If the offset is not numerically known we can't access the memory, return
+        // We overapproximate the access and assume it to be unsafe
+        if (reportInvalidDereferences) {
+          currentState = currentState.withUnknownOffsetMemoryAccess();
+        }
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         continue;
       }

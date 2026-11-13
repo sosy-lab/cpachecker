@@ -2508,12 +2508,11 @@ public class SMGCPABuiltins {
                   cfaEdge));
           continue;
         } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
-          // Unknown addresses happen only of we don't have a memory associated
-          // Write the target region to unknown depending on the size
-          // TODO:
+          // Unknown addresses happen only of we don't have a memory associated, e.g. for
+          // uninitialized pointers. Writing to them is invalid.
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
-                  currentState,
+                  currentState.withInvalidWrite(targetAddress),
                   "Returned unknown because of unknown target or offset of address of target"
                       + " argument in function "
                       + pFunctionName
@@ -2674,12 +2673,11 @@ public class SMGCPABuiltins {
                   pCFAEdge));
           continue;
         } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
-          // Unknown addresses happen only of we don't have a memory associated
-          // Write the target region to unknown depending on the size
-          // TODO:
+          // Unknown addresses happen only of we don't have a memory associated, e.g. for
+          // uninitialized pointers. Reading from them is invalid.
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
-                  currentState,
+                  currentState.withUnknownPointerDereferenceWhenReading(sourceAddress, pCFAEdge),
                   "Returned unknown because of unknown target or offset of source argument in"
                       + " function "
                       + pFunctionName
@@ -3503,10 +3501,12 @@ public class SMGCPABuiltins {
         firstAddressOffset = firstAddressExprOffset;
 
       } else if (!pState.getMemoryModel().isPointer(firstAddress)) {
-        // The value can be unknown
+        // The value can be unknown, e.g. for uninitialized pointers. Reading from it is invalid.
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
-                firstValueAndSMGState.getState(),
+                firstValueAndSMGState
+                    .getState()
+                    .withUnknownPointerDereferenceWhenReading(firstAddress, pCfaEdge),
                 "Returned unknown for unknown address in first address in function strcmp in ",
                 pCfaEdge));
         continue;
@@ -3525,11 +3525,13 @@ public class SMGCPABuiltins {
                 "Function strcmp() with symbolic handling not supported with option"
                     + " UnknownFunctionHandling.STRICT enabled");
           }
-          // Unknown addresses happen only of we don't have a memory associated
-          // TODO: decide what to do here and when this happens
+          // Unknown addresses happen only of we don't have a memory associated, e.g. for
+          // uninitialized pointers. Reading from them is invalid.
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
-                  secondValueAndSMGState.getState(),
+                  secondValueAndSMGState
+                      .getState()
+                      .withUnknownPointerDereferenceWhenReading(secondAddress, pCfaEdge),
                   "Returned unknown for unknown target or offset in second address in function"
                       + " strcmp in ",
                   pCfaEdge));

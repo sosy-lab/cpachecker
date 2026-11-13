@@ -3107,6 +3107,29 @@ public class SMGState
   }
 
   /**
+   * Error for dereferencing a {@link Value} that is not a valid address when determining the memory
+   * that is accessed, independent of whether the memory is read or written. I.e. *value = 3; or
+   * value[0] = 3; with value being uninitialized, unknown, or a non-zero number.
+   *
+   * @param invalidAddress the {@link Value} that is not a valid address and was tried to be
+   *     dereferenced.
+   * @param edge the {@link CFAEdge} of the dereference.
+   * @return A new {@link SMGState} with the error info.
+   */
+  public SMGState withInvalidPointerDereference(Value invalidAddress, CFAEdge edge) {
+    String errorMSG =
+        "Dereference of a value that is not a valid address: " + invalidAddress + " at " + edge;
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(invalidAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
    * Error for trying to write to a local/global variable that is not declared.
    *
    * @param variableName the variable name of the variable that was tried to write to.

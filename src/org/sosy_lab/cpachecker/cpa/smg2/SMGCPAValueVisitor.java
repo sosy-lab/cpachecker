@@ -316,7 +316,11 @@ public class SMGCPAValueVisitor
                 cfaEdge));
         continue;
       } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
-        // Not a valid pointer/address
+        // Not a valid pointer/address, e.g. an uninitialized pointer or a non-zero number. We
+        // need to be careful to not report switched subscript expressions (e.g. 1[pointer])
+        if (SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr) instanceof CPointerType) {
+          currentState = currentState.withUnknownPointerDereferenceWhenReading(arrayValue, cfaEdge);
+        }
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 currentState,

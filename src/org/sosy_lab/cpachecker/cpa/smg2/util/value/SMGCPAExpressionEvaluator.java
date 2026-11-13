@@ -417,9 +417,11 @@ public class SMGCPAExpressionEvaluator {
       throws CPATransferException {
     // SMGCPAAddressVisitor may have side effects! But they should not effect anything as they are
     // only interesting in a failure case in which the analysis stops!
+    // Taking the address does not dereference, e.g. &*pointer or &pointer[1], hence invalid
+    // dereferences are not reported.
     SMGState currentState = pState;
     SMGCPAAddressVisitor addressVisitor =
-        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger);
+        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger, false);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset objectAndOffsetOrState :
         operand.accept(addressVisitor)) {
