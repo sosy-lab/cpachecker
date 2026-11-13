@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
@@ -81,6 +83,17 @@ public class AcslParserPredicateTest {
               var,
               null /* No initializer, we only want it for testing */));
     }
+    // Pointer variable for memory predicates
+    scope.registerDeclaration(
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            new CPointerType(CTypeQualifiers.NONE, basicInt()),
+            "p",
+            "p",
+            "p",
+            null /* No initializer, we only want it for testing */));
     scope.registerDeclaration(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
@@ -214,6 +227,63 @@ public class AcslParserPredicateTest {
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
             AcslBinaryTermExpressionOperator.EQUALS);
     String input = "-x == 5";
+
+    testPredicateParsing(input, output);
+  }
+
+  private static AcslIdTerm idTermFor(String pVariableName, CProgramScope pCProgramScope) {
+    return new AcslIdTerm(
+        FileLocation.DUMMY,
+        new AcslCVariableDeclaration(
+            (CVariableDeclaration)
+                Objects.requireNonNull(pCProgramScope.lookupVariable(pVariableName))));
+  }
+
+  // \canAccess(x, len) as defined in the witness format 2.4
+  @Test
+  public void parseCanAccessPredicate() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslPredicate output =
+        new AcslCanAccessPredicate(
+            FileLocation.DUMMY,
+            idTermFor("p", cProgramScope),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE));
+    String input = "\\canAccess(p, 1)";
+
+    testPredicateParsing(input, output);
+  }
+
+  @Test
+  public void parseCanAccessPredicateWithVariableLength() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslPredicate output =
+        new AcslCanAccessPredicate(
+            FileLocation.DUMMY, idTermFor("p", cProgramScope), idTermFor("y", cProgramScope));
+    String input = "\\canAccess(p, y)";
+
+    testPredicateParsing(input, output);
+  }
+
+  @Test
+  public void parseCanAccessPredicateInConjunction() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslPredicate output =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            new AcslCanAccessPredicate(
+                FileLocation.DUMMY,
+                idTermFor("p", cProgramScope),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE)),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                idTermFor("x", cProgramScope),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+                AcslBinaryTermExpressionOperator.LESS_THAN),
+            AcslBinaryPredicateOperator.AND);
+    String input = "\\canAccess(p, 1) && x < 10";
 
     testPredicateParsing(input, output);
   }
