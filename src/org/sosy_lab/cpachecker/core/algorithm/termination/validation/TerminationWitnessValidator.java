@@ -188,6 +188,12 @@ public class TerminationWitnessValidator implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    // Only loops are checked, so a recursion could run forever.
+    if (!LoopStructure.getRecursions(cfa).isEmpty()) {
+      logger.log(Level.INFO, "The validation of termination witnesses does not support recursion.");
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    }
+
     Set<ExpressionTreeLocationInvariant> invariants;
     ImmutableCollection<LoopStructure.Loop> loops =
         cfa.getLoopStructure().orElseThrow().getAllLoops();
