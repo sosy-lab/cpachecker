@@ -177,6 +177,7 @@ pred
     | '\\initialized'  oneLabel?  '(' locationAddress ')'         # InitializedPred
     | '\\valid_read'  oneLabel? '(' locationAddress ')'           # ValidReadPred
     | '\\separated' '(' locationAddress ',' locationAddresses ')' # SeparatedPred
+    | '\\canAccess' '(' term ',' term ')'                       # CanAccessPred
     ;
 
 ident
