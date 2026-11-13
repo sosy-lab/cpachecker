@@ -17,6 +17,7 @@ import java.io.Serial;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -68,25 +69,27 @@ public class AstUtils {
       Optional<Set<CFAEdge>> pEdgesSecondBranch)
       throws BoundaryNodesComputationFailed {
 
+    // An artificial intermediate edge leads to the next operand of `&&` or `||`, so its successor
+    // is inside the condition, also if the edges of the operand are not, e.g., for `f() && g()`
+    final ImmutableSet<CFANode> nodesBeforeOperand =
+        FluentIterable.from(pEdgesCondition)
+            .filter(AssumeEdge.class)
+            .filter(AssumeEdge::isArtificialIntermediate)
+            .transform(CFAEdge::getSuccessor)
+            .toSet();
+    // A constant operand, e.g., in `x && 1`, is a blank edge to a branch
+    if (FluentIterable.from(nodesBeforeOperand)
+        .transformAndConcat(CFANode::getLeavingEdges)
+        .anyMatch(edge -> edge instanceof BlankEdge && !pEdgesCondition.contains(edge))) {
+      throw new BoundaryNodesComputationFailed("Constant operand in condition");
+    }
+
     final Set<CFANode> nodesBoundaryCondition =
         Sets.difference(
             transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getSuccessor),
-            transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getPredecessor));
-
-    // Sometimes the FileLocations are correctly set but not as expected to identify the boundary
-    // nodes. For example in ../sv-benchmarks/c/float-newlib/double_req_bl_1210.c there are multiple
-    // function calls in the condition, the second of which introduces statement edges as part of
-    // the condition. The problem is that these statements do not have a FileLocation inside the
-    // condition, which is correct since some edges are part of a function call. This introduces a
-    // node which says it is exiting the condition, but in truth is merely calling a function. This
-    // is why we need to check if the edges are artificial intermediate edges.
-    if (FluentIterable.from(nodesBoundaryCondition)
-        .transformAndConcat(CFANode::getEnteringEdges)
-        .filter(AssumeEdge.class)
-        .anyMatch(AssumeEdge::isArtificialIntermediate)) {
-
-      throw new BoundaryNodesComputationFailed("Condition edges are not connected");
-    }
+            Sets.union(
+                transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getPredecessor),
+                nodesBeforeOperand));
 
     final Set<CFANode> collectorNodesBetweenConditionAndSecondBranch;
     final Set<CFANode> collectorNodesBetweenConditionAndFirstBranch;

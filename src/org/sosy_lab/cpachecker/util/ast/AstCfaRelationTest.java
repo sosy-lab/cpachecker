@@ -52,6 +52,21 @@ public class AstCfaRelationTest {
         .isEqualTo("if (x > 5) t = 1;".length());
   }
 
+  /** The call in the second operand of {@code &&} is inside the condition. */
+  @Test
+  public void nodesBetweenConditionWithCallsAndBranches() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "branching-at-condition-with-calls.c");
+    CFAEdge abort = TestCfaUtils.getEdge("{abort();}", cfa);
+    CFAEdge secondOperandTrue = TestCfaUtils.getEdge("[!(__CPAchecker_TMP_1 == 0)]", cfa);
+
+    IfElement ifElement =
+        cfa.getAstCfaRelation().getIfStructureForConditionEdge(secondOperandTrue).orElseThrow();
+    assertThat(ifElement.getNodesBetweenConditionAndThenBranch())
+        .containsExactly(abort.getPredecessor());
+    assertThat(ifElement.getNodesBetweenConditionAndElseBranch())
+        .containsExactly(secondOperandTrue.getSuccessor());
+  }
+
   /** The else branch starts after the negated condition also if it is an empty block. */
   @Test
   public void nodesBeforeEmptyElseBranch() throws Exception {

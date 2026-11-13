@@ -58,6 +58,29 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
+  /** The condition of the branching waypoint calls a function in its second operand. */
+  @Test(timeout = 3000)
+  public void validate_branching_at_condition_with_calls() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "branching-at-condition-with-calls.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "branching-at-condition-with-calls.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void reject_wrong_branch_at_condition_with_calls() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "branching-at-condition-with-calls.c");
+    Path witnessFilePath =
+        Path.of(
+            UNREACH_CALL_TEST_DIR_PATH,
+            "branching-at-condition-with-calls.wrong-branch.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
   /** The exported assumption names the inner of two variables as in the input program. */
   @Test(timeout = 9000)
   public void validate_shadowed_variable_roundtrip() throws Exception {
