@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -23,7 +24,7 @@ public class TransitionInvariant extends Invariant {
   public TransitionInvariant(
       ExpressionTree<AExpression> pFormula,
       int pLine,
-      int pColumn,
+      OptionalInt pColumn,
       String pFunction,
       boolean pIsLoopInvariant,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrentVarsToPrev,

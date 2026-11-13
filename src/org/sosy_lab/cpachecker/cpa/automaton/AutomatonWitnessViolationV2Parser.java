@@ -46,10 +46,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.ALLCPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCurrentThreadId;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
@@ -164,10 +164,11 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * without a thread identifier, and witnesses whose version does not {@link
    * #supportsThreadIdentifiers() know about thread identifiers} at all, are returned unchanged.
    *
-   * <p>Which thread is currently active is not something the witness automaton can decide by
-   * looking at the CFA edge, so the check is delegated to the {@link
-   * org.sosy_lab.cpachecker.cpa.threading.ThreadingCPA} by querying it. As a consequence, an
-   * analysis that does not track threads at all cannot evaluate the resulting expression. This is
+   * <p>If the CFA was cloned per thread, the edge names its thread. Otherwise, which thread is
+   * currently active is not something the witness automaton can decide by looking at the CFA edge,
+   * so the check is delegated to the {@link org.sosy_lab.cpachecker.cpa.threading.ThreadingCPA} by
+   * querying it (see {@link AutomatonBoolExpr.CheckCurrentThreadId}). As a consequence, an analysis
+   * that does not track threads at all cannot evaluate the resulting expression. This is
    * intentional: it is how {@link org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm} learns
    * that the task is concurrent and that it needs to continue with a configuration which can handle
    * concurrency.
@@ -179,7 +180,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     if (!supportsThreadIdentifiers() || pThreadId.isEmpty()) {
       return pTrigger;
     }
-    return new And(pTrigger, new ALLCPAQuery(THREAD_ID_QUERY + pThreadId.orElseThrow()));
+    return new And(pTrigger, new CheckCurrentThreadId(pThreadId.orElseThrow()));
   }
 
   /**
@@ -427,6 +428,16 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
         pAstCfaRelation.getIfStructureFollowingColumnAtTheSameLine(followLine, followColumn);
     Optional<IterationElement> optionalIterationStructure =
         pAstCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(followColumn, followLine);
+    // Both may follow the column, e.g., in `while (c) { if (d) ... }`, then the waypoint refers to
+    // the one that starts first
+    if (optionalIfStructure.isPresent() && optionalIterationStructure.isPresent()) {
+      FileLocation ifLocation = optionalIfStructure.orElseThrow().getCompleteElement().location();
+      FileLocation loopLocation =
+          optionalIterationStructure.orElseThrow().getCompleteElement().location();
+      if (loopLocation.getNodeOffset() < ifLocation.getNodeOffset()) {
+        optionalIfStructure = Optional.empty();
+      }
+    }
 
     // This is the case for ternary operators, which are expressions and therefore not covered by if
     // or iteration structures which only cover statements.

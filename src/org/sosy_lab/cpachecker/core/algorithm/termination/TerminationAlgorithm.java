@@ -215,7 +215,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
+        new TerminationStatistics(
+            pConfig, logger, loopStructure.getAllLoops().size(), cfa, originalCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 

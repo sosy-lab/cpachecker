@@ -1,0 +1,1092 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.oc;
+
+import static com.google.common.base.Strings.nullToEmpty;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.io.MoreFiles;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.oc.OcEncoder.PoEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.oc.EventKind;
+import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
+import org.sosy_lab.cpachecker.cpa.oc.OcExplorationRegistry;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
+
+/**
+ * Bounded ordering-consistency analysis: after the wrapped exploration has built the per-thread
+ * event trees, the collected events are encoded into an SMT formula whose models are candidate
+ * violating executions; consistency of the happens-before relation is either checked lazily with
+ * conflict-clause refinement or encoded eagerly with integer clocks.
+ */
+@Options(prefix = "oc")
+public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvider {
+
+  /** How the ordering constraints are decided. */
+  public enum EncodingMode {
+    /**
+     * Lazy: solve, check the model's event graph for cycles, add conflict clauses, repeat.
+     * Experimental — the derivation loop can reject real violations, so it may report a safe
+     * verdict unsoundly; prefer {@link #CLOCKS}.
+     */
+    REFINEMENT,
+    /** Eager: integer clock variables per event, single solver query. The sound default. */
+    CLOCKS,
+  }
+
+  @Option(secure = true, description = "how the ordering constraints are decided")
+  private EncodingMode encoding = EncodingMode.CLOCKS;
+
+  /**
+   * The kind of safety property the analysis checks, derived from the {@code --spec} property file
+   * (see {@link #targetPropertyOf}). A specification stating neither is rejected.
+   */
+  private enum TargetProperty {
+    /** Reachability of a call to the error function (SV-COMP unreach-call). Always supported. */
+    UNREACH_CALL,
+    /** Two conflicting concurrent accesses (SV-COMP no-data-race). Requires the CLOCKS encoding. */
+    DATA_RACE,
+    /**
+     * An overflow of a signed integer operation (SV-COMP no-overflow). The exploration adds an
+     * error event for every operation that can overflow, so this is checked like unreach-call.
+     */
+    NO_OVERFLOW,
+  }
+
+  private final TargetProperty targetProperty;
+
+  @Option(
+      secure = true,
+      description = "write the enabled events and read-from choices of a found violation model")
+  private boolean dumpViolationModel = false;
+
+  @Option(
+      secure = true,
+      description = "write every collected memory event before solving (debugging aid)")
+  private boolean dumpEvents = false;
+
+  @Option(secure = true, description = "file for the collected memory-event dump")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path eventsDumpFile = Path.of("OrderingConsistency-events.txt");
+
+  @Option(secure = true, description = "file for the violation-model dump")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path violationModelFile = Path.of("OrderingConsistency-model.txt");
+
+  @Option(
+      secure = true,
+      description = "export the found violation as an execution graph in DOT/graphviz format")
+  private boolean exportExecutionGraph = true;
+
+  @Option(secure = true, description = "file for the violation execution graph (DOT/graphviz)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path executionGraphFile = Path.of("executionGraph.dot");
+
+  @Option(
+      secure = true,
+      description =
+          "export the found violation as a sequentialized counterexample: the enabled events in a"
+              + " consistent execution order, with their CFA edges")
+  private boolean exportSequentializedCounterexample = true;
+
+  @Option(secure = true, description = "file for the sequentialized counterexample trace")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path sequentializedCounterexampleFile = Path.of("Counterexample.oc.txt");
+
+  @Option(secure = true, description = "loop bound of the first exploration round")
+  private int initialLoopBound = 5;
+
+  @Option(secure = true, description = "loop bound increase between iterative-deepening rounds")
+  private int loopBoundStep = 5;
+
+  @Option(
+      secure = true,
+      description =
+          "give up when the loop bound exceeds this value; a negative value deepens without bound")
+  private int finalLoopBound = -1;
+
+  private final Algorithm innerAlgorithm;
+  private final ConfigurableProgramAnalysis topCpa;
+  private final OrderingConsistencyCPA ocCpa;
+  private final CFA cfa;
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final OcStatistics statistics = new OcStatistics();
+
+  OrderingConsistencyCPA getOcCpa() {
+    return ocCpa;
+  }
+
+  boolean isDataRaceTarget() {
+    return targetProperty == TargetProperty.DATA_RACE;
+  }
+
+  public OrderingConsistencyAlgorithm(
+      Algorithm pInnerAlgorithm,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+    if (new CEXExportOptions(pConfig).hasCfaPathDependentFormats()) {
+      throw new InvalidConfigurationException(
+          "the ordering-consistency analysis creates synthetic interleaving counterexamples that"
+              + " cannot be exported as source, GraphML, or harness files; set"
+              + " counterexample.export.exportAsSource=false,"
+              + " counterexample.export.exportWitness=false, and"
+              + " counterexample.export.exportHarness=false");
+    }
+    if (loopBoundStep < 1) {
+      throw new InvalidConfigurationException("oc.loopBoundStep must be positive");
+    }
+    targetProperty =
+        targetPropertyOf(pSpecification)
+            .orElseThrow(
+                () ->
+                    new InvalidConfigurationException(
+                        "the ordering-consistency analysis cannot interpret the given"
+                            + " specification; it needs a property file stating unreach-call,"
+                            + " no-data-race, or no-overflow"));
+    if (targetProperty == TargetProperty.DATA_RACE && encoding != EncodingMode.CLOCKS) {
+      throw new InvalidConfigurationException(
+          "the ordering-consistency data-race check needs the CLOCKS encoding (set"
+              + " oc.encoding=CLOCKS)");
+    }
+    innerAlgorithm = pInnerAlgorithm;
+    topCpa = pCpa;
+    ocCpa =
+        CPAs.retrieveCPAOrFail(
+            pCpa, OrderingConsistencyCPA.class, OrderingConsistencyAlgorithm.class);
+    cfa = pCfa;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+  }
+
+  /**
+   * Maps the properties of the {@code --spec} specification to the built-in target the analysis can
+   * decide. The ordering-consistency analysis does not use specification automata; it interprets
+   * the property itself. An empty specification (no {@code --spec}) yields an empty result.
+   * Properties the analysis cannot decide (memory safety/cleanup, deadlock, termination) are
+   * rejected rather than silently mis-verified, since an unsound "safe" verdict would be worse than
+   * an error.
+   *
+   * <p>The target must therefore come from a {@code .prp} property file: {@link
+   * Specification#getProperties()} reports only those. Any other specification file (an automaton
+   * {@code .spc} file, or a witness to validate) is rejected, because its automata would be dropped
+   * and the verdict would silently ignore them.
+   */
+  private static Optional<TargetProperty> targetPropertyOf(Specification pSpecification)
+      throws InvalidConfigurationException {
+    for (Path specFile : pSpecification.getFiles()) {
+      if (!MoreFiles.getFileExtension(specFile).equals("prp")) {
+        throw new InvalidConfigurationException(
+            "the ordering-consistency analysis does not support specification automata or"
+                + " witnesses, but got "
+                + specFile
+                + "; it needs a property file stating unreach-call, no-data-race, or no-overflow");
+      }
+    }
+    EnumSet<TargetProperty> targets = EnumSet.noneOf(TargetProperty.class);
+    for (Property property : pSpecification.getProperties()) {
+      if (property instanceof CommonVerificationProperty common) {
+        switch (common) {
+          case REACHABILITY, REACHABILITY_ERROR, REACHABILITY_LABEL ->
+              targets.add(TargetProperty.UNREACH_CALL);
+          case DATA_RACE -> targets.add(TargetProperty.DATA_RACE);
+          case OVERFLOW -> targets.add(TargetProperty.NO_OVERFLOW);
+          default ->
+              throw new InvalidConfigurationException(
+                  "the ordering-consistency analysis does not support the property '"
+                      + common
+                      + "'; supported: unreach-call, no-data-race, no-overflow");
+        }
+      } else {
+        throw new InvalidConfigurationException(
+            "the ordering-consistency analysis does not support the property '" + property + "'");
+      }
+    }
+    if (targets.size() > 1) {
+      throw new InvalidConfigurationException(
+          "the ordering-consistency analysis checks one property at a time, but got " + targets);
+    }
+    return targets.isEmpty() ? Optional.empty() : Optional.of(targets.iterator().next());
+  }
+
+  @Override
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    int bound = initialLoopBound;
+    while (true) {
+      shutdownNotifier.shutdownIfNecessary();
+      statistics.rounds++;
+      statistics.lastLoopBound = bound;
+      ocCpa.resetExploration(bound);
+      resetReachedSet(pReachedSet);
+
+      statistics.explorationTimer.start();
+      try {
+        // the inner algorithm returns at every target state; drain the waitlist completely, and
+        // between passes seed any newly created thread as a separate root (see seedThreadRoots)
+        do {
+          status = status.update(innerAlgorithm.run(pReachedSet));
+          seedThreadRoots(pReachedSet);
+        } while (pReachedSet.hasWaitingState());
+      } finally {
+        statistics.explorationTimer.stop();
+      }
+
+      RoundResult result = solveRound(pReachedSet);
+      if (result == RoundResult.VIOLATION) {
+        logger.log(Level.INFO, "Ordering-consistency analysis found a consistent violation.");
+        return status; // target states stay in the reached set
+      }
+      if (result == RoundResult.SAFE) {
+        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        return status;
+      }
+
+      // safe up to the bound, but a feasible execution may have been cut: deepen or give up
+      if (finalLoopBound >= 0 && bound >= finalLoopBound) {
+        logger.log(
+            Level.WARNING,
+            "Ordering-consistency loop bound exhausted at "
+                + bound
+                + "; the safety result is not sound.");
+        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        return status.withSound(false);
+      }
+      int next = bound + loopBoundStep;
+      bound = finalLoopBound >= 0 ? Math.min(next, finalLoopBound) : next;
+    }
+  }
+
+  private enum RoundResult {
+    /** A consistent violating execution exists within the bound. */
+    VIOLATION,
+    /** No violation, and no feasible execution was cut: the safe verdict is sound. */
+    SAFE,
+    /** No violation within the bound, but a feasible execution was cut at the loop bound. */
+    CUT
+  }
+
+  private RoundResult solveRound(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    OcExplorationRegistry registry = ocCpa.getRegistry();
+    statistics.eventCount = registry.getEvents().size();
+    statistics.instanceCount = registry.getInstances().size();
+    boolean truncated = registry.isTruncated();
+
+    Solver solver = ocCpa.getSolver();
+    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+
+    statistics.encodingTimer.start();
+    OcEncoder encoder;
+    ImmutableList<BooleanFormula> constraints;
+    try {
+      encoder =
+          new OcEncoder(
+              registry,
+              solver.getFormulaManager(),
+              encoding == EncodingMode.REFINEMENT,
+              shutdownNotifier);
+      ImmutableList.Builder<BooleanFormula> constraintBuilder = ImmutableList.builder();
+      constraintBuilder.addAll(encoder.getBaseConstraints());
+      if (encoding == EncodingMode.CLOCKS) {
+        constraintBuilder.addAll(encoder.getClockConstraints());
+      }
+      constraints = constraintBuilder.build();
+      statistics.rfCount = encoder.getRfPairs().size();
+      statistics.wsCount = encoder.getWsPairs().size();
+      statistics.csCount = encoder.getCsPairs().size();
+    } finally {
+      statistics.encodingTimer.stop();
+    }
+    if (dumpEvents) {
+      StringBuilder dump = new StringBuilder("Collected memory events:");
+      for (MemoryEvent event : registry.getEvents()) {
+        dump.append(
+            String.format(
+                "%n  #%d T%d %s loc=%s cssa=%s mutex=%s region=%s fill=%s edge=%s",
+                event.id(),
+                event.instanceId(),
+                event.kind(),
+                event.memoryLocation(),
+                event.cssaName(),
+                event.mutexId(),
+                event.regionId(),
+                event.fill(),
+                event.edge() == null ? "-" : event.edge().getDescription().replace('\n', ' ')));
+      }
+      writeDump(eventsDumpFile, "collected memory events", dump.toString());
+    }
+
+    // the property-specific violation formula, and whether any candidate exists at all: without one
+    // and without a truncated path the round is trivially safe
+    boolean hasCandidates =
+        switch (targetProperty) {
+          case UNREACH_CALL, NO_OVERFLOW ->
+              registry.getEvents().stream().anyMatch(e -> e.kind() == EventKind.ERROR);
+          case DATA_RACE -> !encoder.getRacePairs().isEmpty();
+        };
+    if (!hasCandidates && !truncated) {
+      return RoundResult.SAFE;
+    }
+    BooleanFormula violationConstraint =
+        switch (targetProperty) {
+          case UNREACH_CALL, NO_OVERFLOW -> encoder.getErrorConstraint();
+          case DATA_RACE -> encoder.getDataRaceConstraint();
+        };
+
+    statistics.solvingTimer.start();
+    try {
+      if (hasCandidates) {
+        try (ProverEnvironment prover =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          for (BooleanFormula constraint : constraints) {
+            prover.addConstraint(constraint);
+          }
+          for (BooleanFormula constraint : encoder.getJoinConstraints()) {
+            prover.addConstraint(constraint);
+          }
+          prover.addConstraint(violationConstraint);
+          boolean violation =
+              switch (encoding) {
+                case CLOCKS -> !prover.isUnsat();
+                case REFINEMENT -> runRefinementLoop(prover, encoder, bfmgr);
+              };
+          if (violation) {
+            if (dumpViolationModel) {
+              dumpViolationModel(prover, encoder);
+            }
+            if (exportExecutionGraph && executionGraphFile != null) {
+              exportExecutionGraph(prover, encoder);
+            }
+            if (exportSequentializedCounterexample && sequentializedCounterexampleFile != null) {
+              exportSequentializedCounterexample(prover, encoder);
+            }
+            attachCounterexample(pReachedSet, prover, encoder);
+            return RoundResult.VIOLATION;
+          }
+        }
+      }
+      if (!truncated) {
+        return RoundResult.SAFE;
+      }
+      return unwindingAssertionHolds(encoder, constraints, bfmgr)
+          ? RoundResult.SAFE
+          : RoundResult.CUT;
+    } catch (SolverException e) {
+      throw new CPAException("solving the ordering-consistency encoding failed", e);
+    } finally {
+      statistics.solvingTimer.stop();
+    }
+  }
+
+  /**
+   * The unwinding assertion: no feasible execution reaches any loop-bound cut point, so the
+   * structural truncation is harmless and a safe verdict is sound. Checking without the ordering
+   * constraints over-approximates reachability of the cuts, which errs only towards deepening.
+   */
+  private boolean unwindingAssertionHolds(
+      OcEncoder pEncoder, List<BooleanFormula> pConstraints, BooleanFormulaManagerView pBfmgr)
+      throws SolverException, InterruptedException {
+    List<BooleanFormula> cutGuards = pEncoder.getTruncationGuards();
+    if (cutGuards.isEmpty()) {
+      return false; // conservative: the flag is set but no cut point was recorded
+    }
+    try (ProverEnvironment prover = ocCpa.getSolver().newProverEnvironment()) {
+      for (BooleanFormula constraint : pConstraints) {
+        prover.addConstraint(constraint);
+      }
+      prover.addConstraint(pBfmgr.or(cutGuards));
+      boolean holds = prover.isUnsat();
+      if (holds) {
+        statistics.unwindingProofs++;
+      }
+      return holds;
+    }
+  }
+
+  private void resetReachedSet(ReachedSet pReachedSet) throws InterruptedException {
+    pReachedSet.clear();
+    CFANode entry = cfa.getMainFunction();
+    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+    pReachedSet.add(
+        topCpa.getInitialState(entry, partition), topCpa.getInitialPrecision(entry, partition));
+  }
+
+  /**
+   * Adds the roots of threads created during the last exploration pass to the reached set as
+   * separate parentless roots. A spawned thread has no CFA edge from its creator, so it is not a
+   * control-flow successor; making it a root keeps the reached set's ARG a clean forest (one tree
+   * per thread instance) and schedules the root for exploration in the next pass of the drain loop.
+   *
+   * <p>Because of this, the ARG of the reached set has multiple roots. Components that assume a
+   * single ARG root must not be used on it. For example, predicate-abstraction refinement computes
+   * the refinement only from the first root and would therefore underapproximate, ignoring the
+   * other roots (see <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/572#note_4077764506">MR
+   * 572 discussion</a>). This analysis never refines on the ARG: its refinement ({@link
+   * EncodingMode#REFINEMENT}) works on the SMT encoding of the events only.
+   */
+  private void seedThreadRoots(ReachedSet pReachedSet) throws InterruptedException {
+    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+    OrderingConsistencyState root;
+    while ((root = ocCpa.getRegistry().pollPendingThreadRoot()) != null) {
+      CFANode location = root.getLocationNode();
+      pReachedSet.add(new ARGState(root, null), topCpa.getInitialPrecision(location, partition));
+    }
+  }
+
+  /** Logs the enabled events (with clock values in CLOCKS mode) and read-from choices. */
+  private void dumpViolationModel(ProverEnvironment pProver, OcEncoder pEncoder)
+      throws SolverException {
+    var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+    StringBuilder dump = new StringBuilder("violation model:");
+    try (Model model = pProver.getModel()) {
+      for (var event : pEncoder.getEvents()) {
+        if (!Boolean.TRUE.equals(model.evaluate(pEncoder.getFullGuard(event)))) {
+          continue;
+        }
+        Object clock =
+            encoding == EncodingMode.CLOCKS
+                ? model.evaluate(imgr.makeVariable("__oc_clk_" + event.id()))
+                : "";
+        Object value = event.variable() == null ? "" : model.evaluate(event.variable());
+        dump.append(
+            String.format(
+                "%n  clk=%6s e%-3d T%d %-6s %-16s %s",
+                clock,
+                event.id(),
+                event.instanceId(),
+                event.kind(),
+                nullToEmpty(event.cssaName()),
+                value));
+      }
+      for (var rf : pEncoder.getRfPairs()) {
+        if (Boolean.TRUE.equals(model.evaluate(rf.variable()))) {
+          dump.append(
+              String.format(
+                  "%n  rf: e%d(%s) <- e%d(%s)",
+                  rf.read().id(), rf.read().cssaName(), rf.write().id(), rf.write().cssaName()));
+        }
+      }
+    }
+    writeDump(violationModelFile, "violation model", dump.toString());
+  }
+
+  private void writeDump(Path pFile, String pDescription, String pContent) {
+    try {
+      IO.writeFile(pFile, Charset.defaultCharset(), pContent);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write " + pDescription + " to " + pFile);
+    }
+  }
+
+  /**
+   * Writes the found violating execution as a DOT/graphviz execution graph: one node per enabled
+   * event (grouped into a per-thread cluster), program-order edges, create/join cross edges, and
+   * the chosen read-from edges. The file goes to the regular output folder and is suppressed in
+   * benchmark mode (the {@link FileOption} path is nulled by {@code output.disable}).
+   */
+  private void exportExecutionGraph(ProverEnvironment pProver, OcEncoder pEncoder)
+      throws SolverException {
+    var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+    OcExplorationRegistry registry = ocCpa.getRegistry();
+    Map<Integer, String> instanceNames = new LinkedHashMap<>();
+    registry.getInstances().forEach(i -> instanceNames.put(i.getId(), i.getFunctionName()));
+
+    StringBuilder dot = new StringBuilder();
+    dot.append("digraph ExecutionGraph {\n");
+    dot.append("  rankdir=TB;\n");
+    dot.append("  node [shape=box, fontname=\"monospace\"];\n");
+
+    try (Model model = pProver.getModel()) {
+      Set<Integer> enabled = new LinkedHashSet<>();
+      Map<Integer, List<MemoryEvent>> byInstance = new LinkedHashMap<>();
+      for (MemoryEvent event : pEncoder.getEvents()) {
+        if (Boolean.TRUE.equals(model.evaluate(pEncoder.getFullGuard(event)))) {
+          enabled.add(event.id());
+          byInstance.computeIfAbsent(event.instanceId(), k -> new ArrayList<>()).add(event);
+        }
+      }
+
+      for (Map.Entry<Integer, List<MemoryEvent>> entry : byInstance.entrySet()) {
+        int instanceId = entry.getKey();
+        dot.append(String.format("  subgraph cluster_T%d {%n", instanceId));
+        dot.append(
+            String.format(
+                "    label=\"T%d %s\"; color=gray;%n",
+                instanceId, instanceNames.getOrDefault(instanceId, "")));
+        for (MemoryEvent event : entry.getValue()) {
+          dot.append(
+              String.format(
+                  "    e%d [label=\"%s\"%s];%n",
+                  event.id(), nodeLabel(event, model, imgr), nodeStyle(event)));
+        }
+        dot.append("  }\n");
+      }
+
+      for (PoEdge edge : pEncoder.getProgramOrderDagEdges()) {
+        if (enabled.contains(edge.from().id()) && enabled.contains(edge.to().id())) {
+          dot.append(
+              String.format("  e%d -> e%d [label=\"po\"];%n", edge.from().id(), edge.to().id()));
+        }
+      }
+      for (var cross : pEncoder.getCrossPoEdges()) {
+        if (enabled.contains(cross.from().id()) && enabled.contains(cross.to().id())) {
+          String kind = cross.from().kind() == EventKind.CREATE ? "create" : "join";
+          dot.append(
+              String.format(
+                  "  e%d -> e%d [label=\"%s\", style=dashed, color=blue, constraint=false];%n",
+                  cross.from().id(), cross.to().id(), kind));
+        }
+      }
+      for (var rf : pEncoder.getRfPairs()) {
+        if (Boolean.TRUE.equals(model.evaluate(rf.variable()))) {
+          dot.append(
+              String.format(
+                  "  e%d -> e%d [label=\"rf\", color=red, constraint=false];%n",
+                  rf.write().id(), rf.read().id()));
+        }
+      }
+    }
+    dot.append("}\n");
+
+    try {
+      IO.writeFile(executionGraphFile, Charset.defaultCharset(), dot.toString());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not write the execution graph to " + executionGraphFile);
+    }
+  }
+
+  /** A DOT node label: event id, thread, kind, clock (CLOCKS mode) and value/mutex/target. */
+  private String nodeLabel(MemoryEvent event, Model model, IntegerFormulaManagerView imgr) {
+    StringBuilder label =
+        new StringBuilder("e" + event.id() + " T" + event.instanceId() + "\\n" + event.kind());
+    if (encoding == EncodingMode.CLOCKS) {
+      label.append(" @").append(model.evaluate(imgr.makeVariable("__oc_clk_" + event.id())));
+    }
+    if (event.variable() != null) {
+      String name =
+          event.memoryLocation() != null
+              ? event.memoryLocation().toString()
+              : String.valueOf(event.cssaName());
+      Object value = model.evaluate(event.variable());
+      label.append("\\n").append(name);
+      if (value != null) {
+        // an unconstrained value (e.g. a fill-init of a never-read cell) has no model assignment
+        label.append(" = ").append(value);
+      }
+    } else if (event.mutexId() != null) {
+      label.append("\\n").append(event.mutexId());
+    } else if (event.otherInstanceId() != MemoryEvent.NO_INSTANCE) {
+      label.append("\\nT").append(event.otherInstanceId());
+    }
+    return label.toString();
+  }
+
+  /** Highlights the reached error event; other events use the default box style. */
+  private static String nodeStyle(MemoryEvent event) {
+    return event.kind() == EventKind.ERROR ? ", style=filled, fillcolor=orangered" : "";
+  }
+
+  /**
+   * Writes the found violation as a sequentialized counterexample: the enabled events in a
+   * consistent execution order, each with its thread, kind, value, and CFA edge. This is the
+   * violating execution flattened to a single interleaving — the CPAchecker-native counterexample
+   * for a model-based analysis that has no single ARG path. Suppressed in benchmark mode.
+   */
+  private void exportSequentializedCounterexample(ProverEnvironment pProver, OcEncoder pEncoder)
+      throws SolverException {
+    StringBuilder trace = new StringBuilder();
+    try (Model model = pProver.getModel()) {
+      List<MemoryEvent> ordered = orderedViolationEvents(model, pEncoder);
+      trace.append(
+          String.format(
+              "Sequentialized ordering-consistency counterexample (%d events, encoding=%s):%n%n",
+              ordered.size(), encoding));
+      int step = 0;
+      for (MemoryEvent event : ordered) {
+        CFAEdge edge = event.edge() == null ? null : displayEdge(event, model);
+        String edgeText =
+            edge == null
+                ? ""
+                : String.format(
+                    "%s  %s",
+                    edge.getFileLocation(), edge.getDescription().replace('\n', ' ').strip());
+        trace.append(
+            String.format(
+                "  #%-3d T%-2d %-11s %-26s %s%n",
+                step, event.instanceId(), event.kind(), eventDetail(event, model), edgeText));
+        step++;
+      }
+    }
+    try {
+      IO.writeFile(sequentializedCounterexampleFile, Charset.defaultCharset(), trace.toString());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Could not write the sequentialized counterexample to "
+              + sequentializedCounterexampleFile);
+    }
+  }
+
+  static Optional<AExpressionStatement> assumptionFor(
+      MemoryEvent pEvent, CFAEdge pEdge, Model pModel) {
+    if (pEvent.variable() == null
+        || !(pEdge instanceof CStatementEdge statementEdge)
+        || !(statementEdge.getStatement() instanceof CExpressionAssignmentStatement assignment)) {
+      return Optional.empty();
+    }
+    CLeftHandSide lhs = assignment.getLeftHandSide();
+    CType type = lhs.getExpressionType().getCanonicalType();
+    if (!(type instanceof CSimpleType simpleType) || !simpleType.getType().isIntegerType()) {
+      return Optional.empty();
+    }
+    if (!(pModel.evaluate(pEvent.variable()) instanceof BigInteger value)) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new CExpressionStatement(
+            FileLocation.DUMMY,
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                type,
+                type,
+                lhs,
+                new CIntegerLiteralExpression(FileLocation.DUMMY, type, value),
+                BinaryOperator.EQUALS)));
+  }
+
+  /** The thread instance a CREATE event starts, or {@link MemoryEvent#NO_INSTANCE} otherwise. */
+  static int createdInstanceOf(MemoryEvent pEvent) {
+    return pEvent.kind() == EventKind.CREATE ? pEvent.otherInstanceId() : MemoryEvent.NO_INSTANCE;
+  }
+
+  /**
+   * Replicates the standard CPAchecker counterexample mechanism so the violation flows through the
+   * existing infrastructure (counterexample export, report, ...). A regular analysis leaves a
+   * target state whose parent chain to the root is the error path; here the "path" is one
+   * interleaving of the whole execution, which crosses thread trees and so has no counterpart in
+   * the forest-shaped reached set. We therefore build a synthetic {@link ARGPath} — a fresh chain
+   * of location-wrapping ARG states linked by the ordered events' CFA edges — and attach it as a
+   * {@link CounterexampleInfo} to the reached target state, exactly as {@code getOnePathTo} would
+   * for a normal analysis. The explicit (non-null) edge list is the path's full path, which is what
+   * the export prints.
+   */
+  private void attachCounterexample(
+      ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
+      throws SolverException {
+    OrderingConsistencyCounterexampleExtractor.attachCounterexample(
+        this, pReachedSet, pProver, pEncoder);
+  }
+
+  /**
+   * The event that ends the counterexample path: the reached error event for unreach-call, or the
+   * later (higher-clock) of the two racing accesses for no-data-race. Returns null if none is found
+   * (the counterexample is then skipped, but the verdict already stands).
+   */
+  MemoryEvent terminalViolationEvent(Model pModel, OcEncoder pEncoder) {
+    return switch (targetProperty) {
+      case UNREACH_CALL, NO_OVERFLOW -> {
+        MemoryEvent errorEvent = null;
+        for (MemoryEvent event : pEncoder.getEvents()) {
+          if (event.kind() == EventKind.ERROR
+              && Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(event)))) {
+            errorEvent = event;
+          }
+        }
+        yield errorEvent;
+      }
+      case DATA_RACE -> {
+        OcEncoder.RacePair race = findRace(pModel, pEncoder);
+        if (race == null) {
+          yield null;
+        }
+        // the later one in the execution order, not by clock: that order moves an access the model
+        // places inside another thread's atomic block behind the block's end
+        List<Integer> orderedIds =
+            Lists.transform(orderedViolationEvents(pModel, pEncoder), MemoryEvent::id);
+        yield orderedIds.indexOf(race.access1().id()) > orderedIds.indexOf(race.access2().id())
+            ? race.access1()
+            : race.access2();
+      }
+    };
+  }
+
+  /**
+   * A conflicting cross-instance access pair that is enabled and at adjacent clock values in the
+   * model — i.e. the concrete data race the solver found — or null if none matches.
+   */
+  OcEncoder.RacePair findRace(Model pModel, OcEncoder pEncoder) {
+    var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+    for (OcEncoder.RacePair pair : pEncoder.getRacePairs()) {
+      if (!Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(pair.access1())))
+          || !Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(pair.access2())))) {
+        continue;
+      }
+      if (pair.access1().isRegionAccess()
+          && !Boolean.TRUE.equals(
+              pModel.evaluate(pEncoder.sameAddress(pair.access1(), pair.access2())))) {
+        continue;
+      }
+      BigInteger clock1 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + pair.access1().id()));
+      BigInteger clock2 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + pair.access2().id()));
+      if (clock1 != null
+          && clock2 != null
+          && clock1.subtract(clock2).abs().equals(BigInteger.ONE)) {
+        return pair;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The enabled events of the violation model in a consistent execution order. In CLOCKS mode this
+   * is the exact sequentially-consistent order given by the integer clocks; in REFINEMENT mode it
+   * is a topological order of the happens-before relation (program order, thread create/join, and
+   * the chosen read-from edges), which is acyclic for a consistent violation.
+   */
+  List<MemoryEvent> orderedViolationEvents(Model pModel, OcEncoder pEncoder) {
+    List<MemoryEvent> enabled = new ArrayList<>();
+    for (MemoryEvent event : pEncoder.getEvents()) {
+      if (Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(event)))) {
+        enabled.add(event);
+      }
+    }
+    if (encoding == EncodingMode.CLOCKS) {
+      var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+      Map<Integer, BigInteger> clock = new HashMap<>();
+      for (MemoryEvent event : enabled) {
+        clock.put(event.id(), pModel.evaluate(imgr.makeVariable("__oc_clk_" + event.id())));
+      }
+      enabled.sort(
+          Comparator.comparing(
+                  (MemoryEvent e) -> clock.get(e.id()),
+                  Comparator.nullsFirst(Comparator.naturalOrder()))
+              .thenComparingInt(MemoryEvent::id));
+      return withContiguousAtomicBlocks(enabled);
+    }
+    return withContiguousAtomicBlocks(topologicalOrder(enabled, pEncoder, pModel));
+  }
+
+  /**
+   * Moves the events of other threads that are ordered inside an atomic block behind the end of
+   * that block. The pseudo-mutex only orders atomic blocks among each other, but a witness of the
+   * order must not interleave anything with them.
+   */
+  private static List<MemoryEvent> withContiguousAtomicBlocks(List<MemoryEvent> pOrdered) {
+    List<MemoryEvent> result = new ArrayList<>();
+    List<MemoryEvent> deferred = new ArrayList<>();
+    Deque<MemoryEvent> pending = new ArrayDeque<>(pOrdered);
+    Integer holder = null;
+    int depth = 0;
+    while (!pending.isEmpty()) {
+      MemoryEvent event = pending.poll();
+      if (holder != null && event.instanceId() != holder) {
+        deferred.add(event);
+        continue;
+      }
+      result.add(event);
+      if (MemoryEvent.ATOMIC_BLOCK_MUTEX.equals(event.mutexId())) {
+        if (event.kind() == EventKind.LOCK) {
+          holder = event.instanceId();
+          depth++;
+        } else if (event.kind() == EventKind.UNLOCK && holder != null && --depth == 0) {
+          holder = null;
+          deferred.reversed().forEach(pending::addFirst);
+          deferred.clear();
+        }
+      }
+    }
+    result.addAll(deferred);
+    return result;
+  }
+
+  /**
+   * A topological order of the happens-before relation over the enabled events (REFINEMENT mode).
+   */
+  private static List<MemoryEvent> topologicalOrder(
+      List<MemoryEvent> pEnabled, OcEncoder pEncoder, Model pModel) {
+    Map<Integer, MemoryEvent> byId = new LinkedHashMap<>();
+    for (MemoryEvent event : pEnabled) {
+      byId.put(event.id(), event);
+    }
+    Map<Integer, Set<Integer>> successors = new LinkedHashMap<>();
+    Map<Integer, Integer> indegree = new HashMap<>();
+    for (Integer id : byId.keySet()) {
+      successors.put(id, new LinkedHashSet<>());
+      indegree.put(id, 0);
+    }
+    List<PoEdge> hbEdges = new ArrayList<>(pEncoder.getProgramOrderDagEdges());
+    for (var cross : pEncoder.getCrossPoEdges()) {
+      hbEdges.add(new PoEdge(cross.from(), cross.to()));
+    }
+    for (var rf : pEncoder.getRfPairs()) {
+      if (Boolean.TRUE.equals(pModel.evaluate(rf.variable()))) {
+        hbEdges.add(new PoEdge(rf.write(), rf.read()));
+      }
+    }
+    // coherence (write-serialization) and from-read edges make the linearization respect the order
+    // of same-cell writes, so a read never appears before a co-later write of the value it did not
+    // read. Restricted to scalar writes, where a write-serialization pair is unambiguously
+    // same-cell
+    // (region accesses would need the model's address equality, so they keep the
+    // happens-before-only
+    // order).
+    for (var ws : pEncoder.getWsPairs()) {
+      if (ws.write1().isRegionAccess()
+          || !byId.containsKey(ws.write1().id())
+          || !byId.containsKey(ws.write2().id())) {
+        continue;
+      }
+      MemoryEvent from = null;
+      MemoryEvent to = null;
+      if (Boolean.TRUE.equals(pModel.evaluate(ws.var12()))) {
+        from = ws.write1();
+        to = ws.write2();
+      } else if (Boolean.TRUE.equals(pModel.evaluate(ws.var21()))) {
+        from = ws.write2();
+        to = ws.write1();
+      }
+      if (from != null && to != null) {
+        hbEdges.add(new PoEdge(from, to));
+        for (var rf : pEncoder.getRfPairs()) {
+          if (rf.write().id() == from.id()
+              && byId.containsKey(rf.read().id())
+              && Boolean.TRUE.equals(pModel.evaluate(rf.variable()))) {
+            hbEdges.add(new PoEdge(rf.read(), to));
+          }
+        }
+      }
+    }
+    for (PoEdge edge : hbEdges) {
+      int from = edge.from().id();
+      int to = edge.to().id();
+      if (byId.containsKey(from) && byId.containsKey(to) && successors.get(from).add(to)) {
+        indegree.merge(to, 1, Integer::sum);
+      }
+    }
+    // Kahn's algorithm; ties broken by event id so the trace is deterministic
+    PriorityQueue<Integer> ready = new PriorityQueue<>();
+    indegree.forEach(
+        (id, degree) -> {
+          if (degree == 0) {
+            ready.add(id);
+          }
+        });
+    List<MemoryEvent> ordered = new ArrayList<>();
+    while (!ready.isEmpty()) {
+      int id = ready.poll();
+      ordered.add(byId.get(id));
+      for (int next : successors.get(id)) {
+        if (indegree.merge(next, -1, Integer::sum) == 0) {
+          ready.add(next);
+        }
+      }
+    }
+    // a consistent violation is acyclic; if some events remain (unexpected cycle), append them by
+    // id
+    if (ordered.size() < pEnabled.size()) {
+      Set<Integer> placed = new HashSet<>();
+      for (MemoryEvent event : ordered) {
+        placed.add(event.id());
+      }
+      byId.values().stream()
+          .filter(event -> !placed.contains(event.id()))
+          .sorted(Comparator.comparingInt(MemoryEvent::id))
+          .forEach(ordered::add);
+    }
+    return ordered;
+  }
+
+  /**
+   * The CFA edge to show for an event. For a branch-condition read the stored edge is the
+   * (arbitrary) assume edge the shared read was attached to; the actual direction taken is
+   * recovered by evaluating the branch condition in the model, so the counterexample shows the real
+   * branch.
+   */
+  CFAEdge displayEdge(MemoryEvent event, Model model) {
+    Optional<OcExplorationRegistry.AssumeBranch> branch =
+        ocCpa.getRegistry().getAssumeBranch(event.id());
+    if (branch.isPresent()) {
+      return Boolean.TRUE.equals(model.evaluate(branch.orElseThrow().condition()))
+          ? branch.orElseThrow().firstEdge()
+          : branch.orElseThrow().secondEdge();
+    }
+    return event.edge();
+  }
+
+  /**
+   * One-line detail for a counterexample event: value for accesses, target for create/join, etc.
+   */
+  private String eventDetail(MemoryEvent event, Model model) {
+    if (event.variable() != null) {
+      String name =
+          event.memoryLocation() != null
+              ? event.memoryLocation().toString()
+              : String.valueOf(event.cssaName());
+      Object value = model.evaluate(event.variable());
+      return value == null ? name : name + " = " + value;
+    }
+    if (event.mutexId() != null) {
+      return event.mutexId();
+    }
+    if (event.otherInstanceId() != MemoryEvent.NO_INSTANCE) {
+      return "-> T" + event.otherInstanceId();
+    }
+    return "";
+  }
+
+  /** Returns true if a consistent violating model exists. */
+  private boolean runRefinementLoop(
+      ProverEnvironment pProver, OcEncoder pEncoder, BooleanFormulaManagerView pBfmgr)
+      throws SolverException, InterruptedException {
+    while (true) {
+      shutdownNotifier.shutdownIfNecessary();
+      if (pProver.isUnsat()) {
+        return false;
+      }
+      statistics.refinementIterations++;
+      ImmutableList<ImmutableList<ConsistencyChecker.Edge>> cycles;
+      try (Model model = pProver.getModel()) {
+        cycles = ConsistencyChecker.findCycles(pEncoder, model);
+      }
+      if (cycles.isEmpty()) {
+        return true;
+      }
+      for (ImmutableList<ConsistencyChecker.Edge> cycle : cycles) {
+        pProver.addConstraint(pBfmgr.not(pBfmgr.and(ConsistencyChecker.reasonsOf(cycle))));
+        statistics.conflictClauses++;
+      }
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (innerAlgorithm instanceof StatisticsProvider provider) {
+      provider.collectStatistics(pStatsCollection);
+    }
+    pStatsCollection.add(statistics);
+  }
+
+  private static final class OcStatistics implements Statistics {
+    private final Timer explorationTimer = new Timer();
+    private final Timer encodingTimer = new Timer();
+    private final Timer solvingTimer = new Timer();
+    private int eventCount;
+    private int instanceCount;
+    private int rfCount;
+    private int wsCount;
+    private int csCount;
+    private int refinementIterations;
+    private int conflictClauses;
+    private int rounds;
+    private int lastLoopBound;
+    private int unwindingProofs;
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      pOut.println("Deepening rounds:                    " + rounds);
+      pOut.println("Final loop bound:                    " + lastLoopBound);
+      pOut.println("Unwinding-assertion proofs:          " + unwindingProofs);
+      pOut.println("Thread instances:                    " + instanceCount);
+      pOut.println("Events:                              " + eventCount);
+      pOut.println("Read-from pairs:                     " + rfCount);
+      pOut.println("Write-serialization pairs:           " + wsCount);
+      pOut.println("Critical-section pairs:              " + csCount);
+      pOut.println("Refinement iterations:               " + refinementIterations);
+      pOut.println("Conflict clauses:                    " + conflictClauses);
+      pOut.println("Time for exploration:                " + explorationTimer);
+      pOut.println("Time for encoding:                   " + encodingTimer);
+      pOut.println("Time for solving:                    " + solvingTimer);
+    }
+
+    @Override
+    public String getName() {
+      return "Ordering-consistency algorithm";
+    }
+  }
+}

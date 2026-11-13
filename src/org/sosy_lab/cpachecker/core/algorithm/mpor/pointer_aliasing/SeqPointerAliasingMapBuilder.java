@@ -361,6 +361,7 @@ public record SeqPointerAliasingMapBuilder(
           functionStatement.getExpressionAssignmentStatement().getRightHandSide();
       Optional<SeqPointerAssignment> pointerAssignment =
           SeqPointerAliasingUtil.tryBuildPointerAssignment(
+              functionStatement.getThread(),
               leftHandSide,
               rightHandSide,
               functionStatement.getLeftHandSideCallContext(),

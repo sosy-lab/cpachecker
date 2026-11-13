@@ -37,10 +37,12 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.cdt.core.dom.ast.IASTAlignmentSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
+import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
@@ -78,6 +80,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.eclipse.cdt.core.dom.ast.IASTToken;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
@@ -88,6 +91,7 @@ import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IProblemType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier;
+import org.eclipse.cdt.core.dom.ast.c.ICASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
@@ -303,6 +307,7 @@ class ASTConverter {
   private static final String FUNC_OFFSETOF = "__builtin_offsetof";
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
+  private static final String FUNC_CHOOSE_EXPR = "__builtin_choose_expr";
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
@@ -311,6 +316,7 @@ class ASTConverter {
   private final EclipseCParserOptions options;
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
+  private final AlignedAttributeEvaluator alignedAttributeEvaluator;
   private final ASTOperatorConverter operatorConverter;
   private final ASTTypeConverter typeConverter;
   private final MachineModel machineModel;
@@ -352,6 +358,11 @@ class ASTConverter {
             pUnhandledAtomicOccurrences,
             pUnhandledThreadLocalOccurrences);
     literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
+    alignedAttributeEvaluator =
+        new AlignedAttributeEvaluator(
+            pMachineModel,
+            pParseContext,
+            name -> pScope.lookupTypedef(pScope.getFileSpecificTypeName(name)));
     operatorConverter = new ASTOperatorConverter(pParseContext);
     parseContext = pParseContext;
     machineModel = pMachineModel;
@@ -1059,7 +1070,8 @@ class ASTConverter {
 
   /**
    * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
-   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type, and
+   * the operand if it already has the union type.
    *
    * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
    * member type. If no member matches (or the union is empty), this method throws a {@link
@@ -1073,11 +1085,18 @@ class ASTConverter {
       return null;
     }
 
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
+    if (operandType
+        .withQualifiersSetTo(CTypeQualifiers.NONE)
+        .equals(compositeType.withQualifiersSetTo(CTypeQualifiers.NONE))) {
+      // GCC accepts casts of a union to its own type
+      return castOperand;
+    }
+
     if (compositeType.getMembers().isEmpty()) {
       throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
     }
 
-    CType operandType = castOperand.getExpressionType().getCanonicalType();
     CCompositeTypeMemberDeclaration matchingMember =
         findUnionMemberWithExactType(compositeType, operandType);
 
@@ -1353,6 +1372,19 @@ class ASTConverter {
           }
         }
       }
+    }
+
+    if (functionNameExpression instanceof CIdExpression idExpression
+        && FUNC_CHOOSE_EXPR.equals(idExpression.getName())
+        && e.getArguments().length == 3
+        && scope.lookupFunction(FUNC_CHOOSE_EXPR) == null) {
+      // GCC evaluates only the argument that the constant condition chooses
+      boolean condition =
+          evaluateIntegerConstantExpression(toExpression(e.getArguments()[0])).signum() != 0;
+      IASTExpression chosen = toExpression(e.getArguments()[condition ? 1 : 2]);
+      return chosen instanceof IASTFunctionCallExpression call
+          ? convert(call)
+          : convertExpressionWithoutSideEffects(chosen);
     }
 
     List<CExpression> params = new ArrayList<>();
@@ -2229,8 +2261,12 @@ class ASTConverter {
     }
   }
 
-  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(
-      final IASTDeclaration d, int nofMember) {
+  /**
+   * @param pTypePacked whether the composite type is packed, which applies to all its members
+   * @param pTypeAlignment the alignment of the composite type for its first member, or 0
+   */
+  private ImmutableList<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(
+      final IASTDeclaration d, int nofMember, boolean pTypePacked, int pTypeAlignment) {
     if (d.getParent() instanceof IASTCompositeTypeSpecifier) {
       // FIXME: remove conditional after debugging
     }
@@ -2242,9 +2278,28 @@ class ASTConverter {
       throw parseContext.parseError("unknown declaration type " + d.getClass().getSimpleName(), d);
     }
 
-    Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
-    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(sd.getDeclSpecifier(), d);
-    // TODO: add knowledge about sd.DeclSpecifier.alignmentSpecifiers
+    IASTDeclSpecifier declSpecifier = sd.getDeclSpecifier();
+    Pair<CStorageClass, ? extends CType> specifier = convert(declSpecifier);
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(declSpecifier, d);
+    // Alignment specifiers always apply to the member (C11 § 6.7.5 (6)).
+    boolean packed;
+    int alignment;
+    if (declSpecifier instanceof IASTCompositeTypeSpecifier
+        || declSpecifier instanceof IASTEnumerationSpecifier) {
+      // The member declaration defines a struct, union, or enum type in place. GCC applies
+      // attributes after its keyword or closing brace to this type and not to the member
+      // (https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html#Type-Attributes-1), so they are
+      // handled with the type. CDT also stores attributes before the keyword here, which GCC
+      // applies to the member (unsupported).
+      packed = false;
+      alignment = getAlignmentSpecifier(declSpecifier);
+    } else {
+      // The member has a basic type or refers to an existing type (e.g., "struct T" or a typedef
+      // name), so the attributes apply to the member.
+      packed = hasPackedAttribute(declSpecifier);
+      alignment =
+          Math.max(getAlignmentSpecifier(declSpecifier), getAlignedAttribute(declSpecifier));
+    }
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class inside composite type", d);
     }
@@ -2262,32 +2317,27 @@ class ASTConverter {
               compositeType);
     }
 
-    List<CCompositeTypeMemberDeclaration> result;
+    packed |= pTypePacked;
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, null, nofMember);
-      result = Collections.singletonList(newD);
-
-    } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, declarators[0], nofMember);
-      result = Collections.singletonList(newD);
-
-    } else {
-      result = new ArrayList<>(declarators.length);
-      for (IASTDeclarator c : declarators) {
-
-        result.add(createDeclarationForCompositeType(type, c, nofMember));
-      }
+      return ImmutableList.of(
+          createDeclarationForCompositeType(
+              type, null, nofMember, packed, Math.max(alignment, pTypeAlignment)));
     }
-
-    return result;
+    ImmutableList.Builder<CCompositeTypeMemberDeclaration> result =
+        ImmutableList.builderWithExpectedSize(declarators.length);
+    for (int i = 0; i < declarators.length; i++) {
+      int memberAlignment = i == 0 ? Math.max(alignment, pTypeAlignment) : alignment;
+      result.add(
+          createDeclarationForCompositeType(
+              type, declarators[i], nofMember, packed, memberAlignment));
+    }
+    return result.build();
   }
 
   private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(
-      CType type, IASTDeclarator d, int nofMember) {
+      CType type, IASTDeclarator d, int nofMember, boolean packed, int alignment) {
     String name = null;
 
     if (d != null) {
@@ -2299,13 +2349,15 @@ class ASTConverter {
 
       type = declarator.type();
       name = declarator.name();
+      packed |= hasPackedAttribute(d);
+      alignment = Math.max(alignment, getAlignedAttribute(d));
     }
 
     if (isNullOrEmpty(name)) {
       name = "__anon_type_member_" + nofMember;
     }
 
-    return new CCompositeTypeMemberDeclaration(type, name);
+    return new CCompositeTypeMemberDeclaration(type, name, packed, alignment);
   }
 
   private Declarator convert(IASTDeclarator d, CType specifier, boolean isFunctionParameter) {
@@ -2540,6 +2592,64 @@ class ASTConverter {
     return type;
   }
 
+  /** Whether the node has the GCC attribute packed. */
+  private static boolean hasPackedAttribute(IASTAttributeOwner pNode) {
+    return Arrays.stream(pNode.getAttributes())
+        .anyMatch(attribute -> getAttributeString(attribute.getName()).equals("packed"));
+  }
+
+  /**
+   * Return the maximum alignment that the GCC attributes aligned of the node request, or 0 if there
+   * is none. Documentation: https://gcc.gnu.org/onlinedocs/gcc/Common-Attributes.html#index-aligned
+   */
+  private int getAlignedAttribute(IASTAttributeOwner pNode) {
+    int alignment = 0;
+    for (IASTAttribute attribute : pNode.getAttributes()) {
+      if (getAttributeString(attribute.getName()).equals("aligned")) {
+        alignment = Math.max(alignment, evaluateAlignedAttribute(attribute));
+      }
+    }
+    return alignment;
+  }
+
+  /** Return the maximum alignment of the alignment specifiers (C11 § 6.7.5), or 0 if none. */
+  private int getAlignmentSpecifier(IASTDeclSpecifier pDeclSpecifier) {
+    int alignment = 0;
+    if (pDeclSpecifier instanceof ICASTDeclSpecifier cDeclSpecifier) {
+      for (IASTAlignmentSpecifier specifier : cDeclSpecifier.getAlignmentSpecifiers()) {
+        int value =
+            specifier.getTypeId() != null
+                ? machineModel.getAlignof(convert(specifier.getTypeId()))
+                : checkAlignment(
+                    evaluateIntegerConstantExpression(specifier.getExpression()), specifier);
+        alignment = Math.max(alignment, value);
+      }
+    }
+    return alignment;
+  }
+
+  private int checkAlignment(BigInteger pAlignment, IASTNode pNode) {
+    if (pAlignment.signum() < 0 || pAlignment.bitCount() > 1) {
+      throw parseContext.parseError("Alignment " + pAlignment + " is not a power of two", pNode);
+    }
+    return pAlignment.intValueExact();
+  }
+
+  private int evaluateAlignedAttribute(IASTAttribute pAttribute) {
+    IASTToken argument = pAttribute.getArgumentClause();
+    if (argument == null) {
+      // __BIGGEST_ALIGNMENT__ of GCC
+      return switch (machineModel) {
+        case LINUX32, LINUX64, ARM64 -> 16;
+        case ARM -> 8;
+      };
+    }
+    return checkAlignment(
+        alignedAttributeEvaluator.evaluate(
+            AlignedAttributeEvaluator.getTokens(argument), pAttribute),
+        pAttribute);
+  }
+
   /** Return normalized string for a name etc. in an attribute context. */
   private static String getAttributeString(char[] chars) {
     String s = String.valueOf(chars);
@@ -2751,11 +2861,16 @@ class ASTConverter {
   }
 
   private CCompositeType convert(IASTCompositeTypeSpecifier d) {
+    // Store the attributes of the type in its members: packed in all members and aligned in the
+    // first member. GCC defines this as equivalent, cf. CCompositeType.
+    boolean packed = hasPackedAttribute(d);
+    int alignment = getAlignedAttribute(d);
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(d.getMembers().length);
 
     int nofMember = 0;
     for (IASTDeclaration c : d.getMembers()) {
-      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c, nofMember);
+      List<CCompositeTypeMemberDeclaration> newCs =
+          convertDeclarationInCompositeType(c, nofMember, packed, list.isEmpty() ? alignment : 0);
       nofMember++;
       assert !newCs.isEmpty();
       list.addAll(newCs);
@@ -2768,6 +2883,9 @@ class ASTConverter {
           default ->
               throw parseContext.parseError("Unknown key " + d.getKey() + " for composite type", d);
         };
+    if (alignment > 0 && list.isEmpty()) {
+      throw parseContext.parseError("Unsupported aligned attribute for empty " + kind, d);
+    }
     String name = convert(d.getName());
     String origName = name;
     if (name.isEmpty()) {
@@ -2801,6 +2919,7 @@ class ASTConverter {
         }
       }
     }
+
     CCompositeType compositeType =
         new CCompositeType(typeConverter.convertCTypeQualifiers(d), kind, list, name, origName);
 
@@ -2830,7 +2949,7 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    CSimpleType integerType = getEnumerationType(list);
+    CSimpleType integerType = getEnumerationType(list, hasPackedAttribute(d));
     CEnumType enumType =
         new CEnumType(typeConverter.convertCTypeQualifiers(d), integerType, list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
@@ -2851,6 +2970,17 @@ class ASTConverter {
           CNumericTypes.SIGNED_LONG_LONG_INT,
           CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
+  /** GCC uses the smallest possible type for enumerations with the packed attribute. */
+  private static final ImmutableList<CSimpleType> PACKED_ENUM_REPRESENTATION_CANDIDATE_TYPES =
+      ImmutableList.<CSimpleType>builder()
+          .add(
+              CNumericTypes.SIGNED_CHAR,
+              CNumericTypes.UNSIGNED_CHAR,
+              CNumericTypes.SHORT_INT,
+              CNumericTypes.UNSIGNED_SHORT_INT)
+          .addAll(ENUM_REPRESENTATION_CANDIDATE_TYPES)
+          .build();
+
   /**
    * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
    * if needed.
@@ -2859,14 +2989,15 @@ class ASTConverter {
    * an unsigned integer type. The choice of type is implementation-defined, but shall be capable of
    * representing the values of all the members of the enumeration.
    */
-  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators) {
+  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators, boolean packed) {
     List<BigInteger> enumeratorValues = enumerators.stream().map(CEnumerator::getValue).toList();
 
     Preconditions.checkState(
         !enumeratorValues.isEmpty(), "enumeration does not provide any values");
     final BigInteger minValue = Collections.min(enumeratorValues);
     final BigInteger maxValue = Collections.max(enumeratorValues);
-    for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
+    for (CSimpleType integerType :
+        packed ? PACKED_ENUM_REPRESENTATION_CANDIDATE_TYPES : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
       if (minValue.compareTo(machineModel.getMinimalIntegerValue(integerType)) >= 0
           && maxValue.compareTo(machineModel.getMaximalIntegerValue(integerType)) <= 0) {
         // if all enumeration values are matching into the range, we use it
@@ -2984,7 +3115,8 @@ class ASTConverter {
     }
 
     CExpression subscriptExpression =
-        convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression());
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression()));
     CDesignator designator = new CArrayDesignator(fileLoc, subscriptExpression);
     return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
   }
@@ -3001,9 +3133,12 @@ class ASTConverter {
       elementType = ownerType;
     }
 
-    CExpression rangeFloor = convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor());
+    CExpression rangeFloor =
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor()));
     CExpression rangeCeiling =
-        convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling());
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling()));
 
     CDesignator designator = new CArrayRangeDesignator(fileLoc, rangeFloor, rangeCeiling);
     return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);

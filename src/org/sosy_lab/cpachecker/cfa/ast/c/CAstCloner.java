@@ -1,0 +1,513 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.ast.c;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+
+/**
+ * Deep-copies a C AST. The traversal itself is fixed here; everything a caller may want to change
+ * about a copy is an overridable hook:
+ *
+ * <ul>
+ *   <li>renaming: {@link #changeFunctionName}, {@link #changeQualifiedName}, {@link
+ *       #changeTypeQualifiedName}, {@link #cloneVariableDeclaration}, {@link #cloneIdDeclaration}
+ *   <li>types: {@link #cloneType}, {@link #cloneFunctionType} (both keep the original type by
+ *       default, because a copy that does not rename anything inside a type can share it)
+ *   <li>caching: {@link #lookupCache}, {@link #storeInCache} (no cache by default, so that a
+ *       stateful hook sees every occurrence of a node)
+ *   <li>memory accesses: {@link #replaceAccess}, which may swap out a whole dereference, subscript,
+ *       field reference or address-of expression
+ * </ul>
+ *
+ * <p>The clone tracks whether the node it is currently visiting is written or read ({@link
+ * #isLhs()}, set via {@link #cloneAstLeftSide} and {@link #cloneAstRightSide}). Subclasses that
+ * enable the cache must not let hooks depend on that flag, because the cache is not keyed by it.
+ */
+public abstract class CAstCloner extends AbstractTransformingCAstNodeVisitor<NoException> {
+
+  private final CExpressionCloner expCloner = new CExpressionCloner();
+
+  /** Whether the AST currently being cloned is on the left-hand side of an assignment/write. */
+  private boolean isLhs = false;
+
+  /** Returns a deep copy of the given AST node, or {@code null} for a {@code null} argument. */
+  @SuppressWarnings("unchecked")
+  public final @Nullable <T extends CAstNode> T cloneAst(final @Nullable T ast) {
+    if (ast == null) {
+      return null;
+    }
+
+    final AAstNode cached = lookupCache(ast);
+    if (cached != null) {
+      return (T) cached;
+    }
+
+    final AAstNode newAst = cloneAstDirect(ast);
+
+    storeInCache(ast, newAst);
+
+    return (T) newAst;
+  }
+
+  /** Returns a deep copy of an AST node that is written, e.g. an assignment's left-hand side. */
+  public final @Nullable <T extends CAstNode> T cloneAstLeftSide(final @Nullable T ast) {
+    return cloneAst(ast, true);
+  }
+
+  /** Returns a deep copy of an AST node that is read, e.g. an assignment's right-hand side. */
+  public final @Nullable <T extends CAstNode> T cloneAstRightSide(final @Nullable T ast) {
+    return cloneAst(ast, false);
+  }
+
+  private <T extends CAstNode> @Nullable T cloneAst(final @Nullable T ast, final boolean pIsLhs) {
+    final boolean oldIsLhs = isLhs;
+    isLhs = pIsLhs;
+    try {
+      return cloneAst(ast);
+    } finally {
+      isLhs = oldIsLhs;
+    }
+  }
+
+  /** Returns a copy of a sub-expression that is read, bypassing the cache like a visitor does. */
+  protected final CExpression cloneRvalue(final CExpression exp) {
+    final boolean oldIsLhs = isLhs;
+    isLhs = false;
+    try {
+      return exp.accept(expCloner);
+    } finally {
+      isLhs = oldIsLhs;
+    }
+  }
+
+  /** Returns a new list with cloned elements, each cloned as a read. */
+  protected final <T extends CAstNode> List<T> cloneAstList(final List<T> astList) {
+    final List<T> list = new ArrayList<>(astList.size());
+    for (T ast : astList) {
+      list.add(cloneAstRightSide(ast));
+    }
+    return list;
+  }
+
+  /** Whether the node currently being cloned is written rather than read. */
+  protected final boolean isLhs() {
+    return isLhs;
+  }
+
+  /** Returns the already existing copy of the given node, or {@code null} if there is none. */
+  @SuppressWarnings("unused")
+  protected @Nullable AAstNode lookupCache(final AAstNode ast) {
+    return null;
+  }
+
+  /** Offers a freshly created copy for caching. */
+  @SuppressWarnings("unused")
+  protected void storeInCache(final AAstNode ast, final AAstNode newAst) {}
+
+  /** Returns the type to use in the copy; the default shares the original type. */
+  protected @Nullable <T extends Type> T cloneType(final @Nullable T type) {
+    return type;
+  }
+
+  /** Returns the type to use for a copied {@link CFunctionDeclaration}. */
+  protected CFunctionType cloneFunctionType(final CFunctionType type) {
+    return cloneType(type);
+  }
+
+  /** Returns the name to use for a copied function; the default keeps the original name. */
+  protected String changeFunctionName(final String name) {
+    return name;
+  }
+
+  /** Returns the qualified name to use for a copied variable or parameter declaration. */
+  protected String changeQualifiedName(final CSimpleDeclaration decl) {
+    return decl.getQualifiedName();
+  }
+
+  /** Returns the qualified name to use for a copied typedef or enum constant. */
+  protected String changeTypeQualifiedName(final CSimpleDeclaration decl) {
+    return decl.getQualifiedName();
+  }
+
+  /**
+   * Returns the declaration to use for a copied variable declaration, without its initializer.
+   * Returning {@code decl} itself signals that the declaration needs no copy, in which case its
+   * initializer is left untouched as well.
+   */
+  @SuppressWarnings("unused")
+  protected CVariableDeclaration cloneVariableDeclaration(
+      final CVariableDeclaration decl, final boolean pIsWrite) {
+    return new CVariableDeclaration(
+        decl.getFileLocation(),
+        decl.isGlobal(),
+        decl.getCStorageClass(),
+        cloneType(decl.getType()),
+        decl.getName(),
+        decl.getOrigName(),
+        changeQualifiedName(decl),
+        null,
+        decl.hasThreadLocalStorage());
+  }
+
+  /** Returns the declaration to attach to a copied {@link CIdExpression} that is not a function. */
+  protected @Nullable CSimpleDeclaration cloneIdDeclaration(
+      final @Nullable CSimpleDeclaration decl) {
+    return cloneAst(decl);
+  }
+
+  /**
+   * Offers a replacement for a whole memory access (address-of, dereference, subscript, field
+   * reference or variable identifier), called with the original expression before its operands are
+   * cloned. Returning {@code null} keeps the default copy.
+   */
+  @SuppressWarnings("unused")
+  protected @Nullable CExpression replaceAccess(final CExpression exp) {
+    return null;
+  }
+
+  /** Returns a deep copy of the given AST node, without consulting the cache. */
+  private CAstNode cloneAstDirect(final CAstNode ast) {
+    return ast.accept(this);
+  }
+
+  @Override
+  public CAstNode visit(CFunctionCallExpression func) {
+    return new CFunctionCallExpression(
+        func.getFileLocation(),
+        cloneType(func.getExpressionType()),
+        cloneAst(func.getFunctionNameExpression()),
+        cloneAstList(func.getParameterExpressions()),
+        cloneAst(func.getDeclaration()));
+  }
+
+  @Override
+  public CAstNode visit(CInitializerExpression initializer) {
+    return new CInitializerExpression(
+        initializer.getFileLocation(), cloneAstRightSide(initializer.getExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CInitializerList initializer) {
+    return new CInitializerList(
+        initializer.getFileLocation(), cloneAstList(initializer.getInitializers()));
+  }
+
+  @Override
+  public CAstNode visit(CDesignatedInitializer initializer) {
+    return new CDesignatedInitializer(
+        initializer.getFileLocation(),
+        cloneAstList(initializer.getDesignators()),
+        cloneAstRightSide(initializer.getRightHandSide()));
+  }
+
+  @Override
+  public CAstNode visit(CVariableDeclaration decl) {
+    // Declaring a variable is always an initializing write, regardless of the ambient side.
+    CVariableDeclaration newDecl = cloneVariableDeclaration(decl, true);
+    if (newDecl == decl) {
+      return decl;
+    }
+    // Cache the declaration before cloning its initializer, as in `int x = x;`.
+    storeInCache(decl, newDecl);
+    newDecl.addInitializer(cloneAstRightSide(decl.getInitializer()));
+    return newDecl;
+  }
+
+  @Override
+  public CAstNode visit(CFunctionDeclaration decl) {
+    List<CParameterDeclaration> parameters = new ArrayList<>(decl.getParameters().size());
+    for (CParameterDeclaration param : decl.getParameters()) {
+      parameters.add(cloneAstRightSide(param));
+    }
+    return new CFunctionDeclaration(
+        decl.getFileLocation(),
+        cloneFunctionType(decl.getType()),
+        changeFunctionName(decl.getName()),
+        decl.getOrigName(),
+        parameters,
+        decl.getAttributes());
+  }
+
+  @Override
+  public CAstNode visit(CComplexTypeDeclaration decl) {
+    return new CComplexTypeDeclaration(
+        decl.getFileLocation(), decl.isGlobal(), cloneType(decl.getType()));
+  }
+
+  @Override
+  public CAstNode visit(CTypeDefDeclaration decl) {
+    return new CTypeDefDeclaration(
+        decl.getFileLocation(),
+        decl.isGlobal(),
+        cloneType(decl.getType()),
+        decl.getName(),
+        changeTypeQualifiedName(decl));
+  }
+
+  @Override
+  public CAstNode visit(CParameterDeclaration decl) {
+    // CParameterDeclaration's equals and hashCode are insufficient for caching.
+    CParameterDeclaration newDecl =
+        new CParameterDeclaration(
+            decl.getFileLocation(), cloneType(decl.getType()), decl.getName());
+    // parameters of a function declaration without a body have no qualified name
+    if (decl.getQualifiedName() != null) {
+      newDecl.setQualifiedName(changeQualifiedName(decl));
+    }
+    return newDecl;
+  }
+
+  @Override
+  public CAstNode visit(CEnumerator decl) {
+    CEnumerator newDecl =
+        new CEnumerator(
+            decl.getFileLocation(), decl.getName(), changeTypeQualifiedName(decl), decl.getValue());
+    newDecl.setEnum(cloneType(decl.getEnum()));
+    return newDecl;
+  }
+
+  @Override
+  public CAstNode visit(CFunctionCallAssignmentStatement stat) {
+    return new CFunctionCallAssignmentStatement(
+        stat.getFileLocation(),
+        cloneAstLeftSide(stat.getLeftHandSide()),
+        cloneAstRightSide(stat.getRightHandSide()));
+  }
+
+  @Override
+  public CAstNode visit(CExpressionAssignmentStatement stat) {
+    return new CExpressionAssignmentStatement(
+        stat.getFileLocation(),
+        cloneAstLeftSide(stat.getLeftHandSide()),
+        cloneAstRightSide(stat.getRightHandSide()));
+  }
+
+  @Override
+  public CAstNode visit(CFunctionCallStatement stat) {
+    return new CFunctionCallStatement(
+        stat.getFileLocation(), cloneAstRightSide(stat.getFunctionCallExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CExpressionStatement stat) {
+    return new CExpressionStatement(
+        stat.getFileLocation(), cloneAstRightSide(stat.getExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CReturnStatement ret) {
+    return cloneReturnStatement(ret.getFileLocation(), ret);
+  }
+
+  @Override
+  public CAstNode visit(CArrayDesignator designator) {
+    return new CArrayDesignator(
+        designator.getFileLocation(), cloneAstRightSide(designator.getSubscriptExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CArrayRangeDesignator designator) {
+    return new CArrayRangeDesignator(
+        designator.getFileLocation(),
+        cloneAstRightSide(designator.getFloorExpression()),
+        cloneAstRightSide(designator.getCeilExpression()));
+  }
+
+  @Override
+  public CAstNode visit(CFieldDesignator designator) {
+    return new CFieldDesignator(designator.getFileLocation(), designator.getFieldName());
+  }
+
+  @Override
+  public CAstNode visit(CBinaryExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CCastExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CUnaryExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CArraySubscriptExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CFieldReference exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CIdExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CPointerExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  @Override
+  public CAstNode visit(CComplexCastExpression exp) {
+    return exp.accept(expCloner);
+  }
+
+  private CReturnStatement cloneReturnStatement(
+      final FileLocation loc, final CReturnStatement ret) {
+    // The return value and the right-hand side of the assignment form are the same expression, so
+    // clone it only once: a stateful hook must see each access exactly once.
+    Optional<CAssignment> returnAssignment = ret.asAssignment();
+    if (returnAssignment.isPresent()
+        && returnAssignment.orElseThrow().getRightHandSide() instanceof CExpression) {
+      CAssignment clonedAssignment = cloneAst(returnAssignment.orElseThrow());
+      Optional<CExpression> returnExp =
+          ret.getReturnValue().isPresent()
+              ? Optional.of((CExpression) clonedAssignment.getRightHandSide())
+              : Optional.empty();
+      return new CReturnStatement(loc, returnExp, Optional.of(clonedAssignment));
+    }
+
+    Optional<CExpression> returnExp = ret.getReturnValue();
+    if (returnExp.isPresent()) {
+      returnExp = Optional.of(cloneAstRightSide(returnExp.orElseThrow()));
+    }
+    if (returnAssignment.isPresent()) {
+      returnAssignment = Optional.of(cloneAst(returnAssignment.orElseThrow()));
+    }
+    return new CReturnStatement(loc, returnExp, returnAssignment);
+  }
+
+  /**
+   * Clones CExpressions and calls cloneAst on non-expression-content. Note: caching sub-expressions
+   * is useless because of the location, that is different for each expression.
+   */
+  private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, NoException> {
+
+    @Override
+    protected CExpression visitDefault(CExpression exp) {
+      return exp;
+    }
+
+    @Override
+    public CExpression visit(CBinaryExpression exp) {
+      return new CBinaryExpression(
+          exp.getFileLocation(),
+          exp.getExpressionType(),
+          exp.getCalculationType(),
+          exp.getOperand1().accept(this),
+          exp.getOperand2().accept(this),
+          exp.getOperator());
+    }
+
+    @Override
+    public CExpression visit(CCastExpression exp) {
+      return new CCastExpression(
+          exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
+    }
+
+    @Override
+    public CExpression visit(CUnaryExpression exp) {
+      CExpression replacement = replaceAccess(exp);
+      if (replacement != null) {
+        return replacement;
+      }
+      return new CUnaryExpression(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          exp.getOperand().accept(this),
+          exp.getOperator());
+    }
+
+    @Override
+    public CExpression visit(CArraySubscriptExpression exp) {
+      CExpression replacement = replaceAccess(exp);
+      if (replacement != null) {
+        return replacement;
+      }
+      // the operands are always reads, regardless of the ambient access direction
+      return new CArraySubscriptExpression(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          cloneRvalue(exp.getArrayExpression()),
+          cloneRvalue(exp.getSubscriptExpression()));
+    }
+
+    @Override
+    public CExpression visit(CFieldReference exp) {
+      CExpression replacement = replaceAccess(exp);
+      if (replacement != null) {
+        return replacement;
+      }
+      return new CFieldReference(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          exp.getFieldName(),
+          cloneRvalue(exp.getFieldOwner()),
+          exp.isPointerDereference());
+    }
+
+    @Override
+    public CExpression visit(CIdExpression exp) {
+      // check for self-recursion --> replace self-calling functioncalls with new self-calling
+      // functioncalls
+      if (exp.getExpressionType() instanceof CFunctionType) {
+        return new CIdExpression(
+            exp.getFileLocation(),
+            cloneType(exp.getExpressionType()),
+            changeFunctionName(exp.getName()),
+            cloneAst(exp.getDeclaration()));
+      } else {
+        CExpression replacement = replaceAccess(exp);
+        if (replacement != null) {
+          return replacement;
+        }
+        return new CIdExpression(
+            exp.getFileLocation(),
+            cloneType(exp.getExpressionType()),
+            exp.getName(),
+            cloneIdDeclaration(exp.getDeclaration()));
+      }
+    }
+
+    @Override
+    public CExpression visit(CPointerExpression exp) {
+      CExpression replacement = replaceAccess(exp);
+      if (replacement != null) {
+        return replacement;
+      }
+      // the pointer itself is always read, regardless of the ambient access direction
+      return new CPointerExpression(
+          exp.getFileLocation(), cloneType(exp.getExpressionType()), cloneRvalue(exp.getOperand()));
+    }
+
+    @Override
+    public CExpression visit(CComplexCastExpression exp) {
+      return new CComplexCastExpression(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          exp.getOperand().accept(this),
+          exp.getType(),
+          exp.isRealCast());
+    }
+  }
+}

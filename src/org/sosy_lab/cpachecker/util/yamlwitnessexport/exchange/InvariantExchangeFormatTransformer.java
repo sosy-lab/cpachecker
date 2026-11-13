@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -488,13 +487,7 @@ public class InvariantExchangeFormatTransformer {
     ImmutableSet.Builder<Invariant> invariants = new ImmutableSet.Builder<>();
 
     for (ParsedInvariant parsed : parseInvariantSets(pEntries).invariants()) {
-      if (parsed.column().isEmpty()) {
-        // The consumers of an Invariant look up a CFA node for its line and column
-        logger.logf(
-            Level.WARNING, "Ignoring invariant without column information: %s", parsed.entry());
-        continue;
-      }
-      int column = parsed.column().orElseThrow();
+      OptionalInt column = parsed.column();
 
       if (parsed.isTransitionInvariant()) {
         invariants.add(

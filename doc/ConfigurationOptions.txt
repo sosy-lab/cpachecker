@@ -59,6 +59,7 @@ rootDirectory = "."
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -219,11 +220,40 @@ solver.synchronize = false
 # parallelity when solving larger queries.
 solver.synchronized.useSeperateProvers = false
 
+# Enable API tracing to record all calls to the JavaSMT library
+solver.trace = false
+
+# Sets how tracing errors should be handled
+solver.traceError = "log"
+  allowed values: [log, fail]
+
+# Export solver interaction as Java code into a file.
+solver.tracefile = no default value
+
 # Apply additional checks to catch common user errors.
 solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
+
+# Sets the engine to be used by this Z3 context, corresponding to Z3 option
+# 'engine=...'. Default: auto-config
+solver.z3.engine = "auto-config"
+  allowed values: [auto-config, datalog, bmc, spacer]
+
+# Further options for Z3 in addition to the default options. Format: 
+# "option.name=value" with ’,’ to separate options. Spaces, as well as
+# capitalization in the options are allowed. Option names and values can be
+# found in the Z3 documentation online:
+# https://microsoft.github.io/z3guide/programming/Parameters/ Example:
+# "spacer.order_children = 2, xform.inline_eager = FALSE,
+# xform.inline_linear=false,xform.slice=false,spacer.max_level=10". Please
+# use the dedicated configuration options, and not this option, for the
+# following Z3 options: logic, engine, optsmt_engine, priority,
+# smt.random_seed, and random_seed. Further, please do not configure the
+# following options, which are specified via JavaSMTs ProverOptions: model,
+# proof, unsat_core.
+solver.z3.furtherOptions = ""
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -236,6 +266,12 @@ solver.z3.legacy.requireProofs = true
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
+
+# SMT-LIB logic to configure the SMT solvers (i.e. all Provers created from a
+# SolverContext with this option) with. Default: ALL. Note: this option does
+# not cover specialized logic selection, e.g. 'spacer.logic'! Please use
+# 'furtherOptions' for those.
+solver.z3.logic = "ALL"
 
 # Ordering for objectives in the optimization context
 solver.z3.objectivePrioritizationMode = "box"
@@ -472,6 +508,10 @@ analysis.algorithm.MPOR.validateProgramCounters = true
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
+# use the ordering-consistency algorithm for concurrent programs, works only
+# with the OrderingConsistencyCPA
+analysis.algorithm.OrderingConsistency = false
+
 # use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -534,6 +574,12 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
+
+# decide the specification with simple rules, i.e., with arguments that need
+# no reasoning about what the program computes. This replaces the analysis
+# that would otherwise run, so use a portfolio to combine the rules with
+# another analysis.
+analysis.algorithm.simpleRules = false
 
 # Use termination algorithm to prove (non-)termination. This needs the
 # TerminationCPA as root CPA and an automaton CPA with
@@ -792,7 +838,7 @@ analysis.traversal.useLoopstack = false
 analysis.traversal.useNumberOfHeapObjects = false
 
 # handle abstract states with fewer running threads first? (needs
-# ThreadingCPA)
+# AbstractStateWithThreads)
 analysis.traversal.useNumberOfThreads = false
 
 # Use an implementation of postorder strategy that allows to select a
@@ -1153,8 +1199,9 @@ cfa.callgraph.export = true
 cfa.callgraph.file = "functionCalls.dot"
 cfa.callgraph.fileUsed = "functionCallsUsed.dot"
 
-# how often do we clone a function?
-cfa.cfaCloner.numberOfCopies = 5
+# how often do we clone a function? The ThreadingCPA uses one copy per
+# created thread.
+cfa.cfaCloner.numberOfCopies = 10
 
 # while this option is activated, before each use of a PointerExpression, or
 # a dereferenced field access the expression is checked if it is 0
@@ -2121,6 +2168,32 @@ cpa.composite.inCPAEnabledAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
+# Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore
+# certain variables during dependency calculation if there is no information
+# about them in the precision (e.g., no predicates referring to them).
+cpa.concurrent.abstractionAware = false
+
+# Aggregate basic blocks to MultiEdges. Similar to basic block aggregation
+# inthe CompositeCPA transfer relation, but only one global statement (i.e.,
+# astatement that accesses a global variable or uses heap memory) is included
+# in aMultiEdge, so that all concurrent thread interleavings are explored.
+cpa.concurrent.aggregateBasicBlocks = false
+
+# Merge operator: SEP never merges states; JOIN delegates to the wrapped
+# merge operator when thread states are compatible.
+cpa.concurrent.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR
+cpa.concurrent.partialOrderReductionAlgorithm = "SPOR"
+
+# Seed for the pseudo-random shuffling of the enabled threads in the
+# source-set heuristic. A single random-number generator is shared by
+# reference across all states of one analysis run, so successive shuffles
+# draw fresh values instead of every state restarting the same sequence; the
+# seed is fixed only to keep runs reproducible.
+cpa.concurrent.randomSeed = 0
+
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
@@ -2280,6 +2353,28 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# Maximum number of different assignments to collect per location for the
+# invariants of a correctness witness. If a location has more assignments
+# than this, no invariant is exported for it, because an incomplete
+# disjunction would be unsound. Use -1 for no limit (which needs memory
+# proportional to the length of the execution).
+cpa.interpreter.maxAssignmentsPerLocation = 100
+
+# Maximum number of assignments that are sampled during one execution.
+# Sampling is intended for programs whose inputs are read outside of any
+# loop, where the number of inputs is bounded by the program. This limit
+# protects against the unbounded number of solver calls that a program with
+# inputs in a loop would need. Use -1 for no limit.
+cpa.interpreter.maxSamples = 1000
+
+# Execute programs with inputs by asking the SMT solver for one assignment of
+# the inputs instead of aborting on the first nondeterministic choice. This
+# needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
+# and the ConstraintsCPA in the CPA configuration. Only one of the possible
+# executions is explored, so the analysis can then only report FALSE, never
+# TRUE.
+cpa.interpreter.sampleNondeterministicValues = false
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -2546,6 +2641,9 @@ cpa.monitor.pathcomputationlimit = 0
 # keep tracking nondeterministically-assigned variables even if they are used
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
+
+# calls to these functions are the reachability targets
+cpa.oc.errorFunctions = {"reach_error"}
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -3734,6 +3832,12 @@ cpa.smg2.cacheSubsets = false
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
 
+# If this Option is enabled, calloc returns 0 if the product of its arguments
+# can not be represented in size_t, as required by C23 and implemented by
+# common C libraries. Otherwise, the product is used as size of the
+# allocation.
+cpa.smg2.callocSizeOverflowReturnsZero = false
+
 # If this Option is enabled, C function atexit() will return a succeeding and
 # failing registration for each registration. Otherwise only succeeding.
 cpa.smg2.canAtexitFail = false
@@ -3753,11 +3857,22 @@ cpa.smg2.crashOnUnknownInConstraint = false
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}
 
+# If this Option is enabled, failure of calloc is simulated, returning 0 on
+# failure.
+cpa.smg2.enableCallocFail = true
+
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg2.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of malloc is simulated
+# If this Option is enabled, failure of malloc is simulated, i.e. it may
+# return 0. For calloc, see option enableCallocFail) and for realloc see
+# option enableReallocFail.
 cpa.smg2.enableMallocFail = true
+
+# If this Option is enabled, failure of realloc is simulated, i.e. it may
+# return 0 and leave the old memory given unchanged. This also applies to
+# realloc with a null pointer, which otherwise behaves like malloc.
+cpa.smg2.enableReallocFail = true
 
 # If true, memory with symbolic size can be zeroed, which allows usage of
 # zeroing allocation functions like calloc().
@@ -3955,6 +4070,17 @@ cpa.smg2.preciseSMGRead = true
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
 
+# Sets how realloc(ptr, 0) with a valid ptr is handled, which is
+# implementation-defined (C11 7.22.3 (1), C17 7.22.3.5 (3)) and undefined
+# since C23.
+# FREE_AND_ALLOCATE_ZERO_SIZE: the memory of ptr is freed and the result is
+# that of an allocation with size 0 (see option mallocZeroReturnsZero), e.g.
+# musl and BSD libc.
+# FREE_AND_RETURN_ZERO: the memory of ptr is freed and 0 is returned, e.g.
+# glibc.
+cpa.smg2.reallocWithZeroSize = FREE_AND_ALLOCATE_ZERO_SIZE
+  enum:     [FREE_AND_ALLOCATE_ZERO_SIZE, FREE_AND_RETURN_ZERO]
+
 # whether to use heuristic to avoid similar, repeated refinements
 cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
 
@@ -4121,8 +4247,8 @@ cpa.thread.supportSelfCreation = false
 cpa.threading.allowMultipleLHS = false
 
 # the maximal number of parallel threads, -1 for infinite. When combined with
-# 'useClonedFunctions=true', we need at least N cloned functions. The option
-# 'cfa.cfaCloner.numberOfCopies' should be set to N.
+# 'useClonedFunctions=true', each created thread gets new cloned functions,
+# thus 'cfa.cfaCloner.numberOfCopies' limits the number of created threads.
 cpa.threading.maxNumberOfThreads = 5
 
 # stop state-space-exploration once main is left. Setting this option to true
@@ -5235,6 +5361,45 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
+# write every collected memory event before solving (debugging aid)
+oc.dumpEvents = false
+
+# write the enabled events and read-from choices of a found violation model
+oc.dumpViolationModel = false
+
+# how the ordering constraints are decided
+oc.encoding = CLOCKS
+  enum:     [REFINEMENT, CLOCKS]
+
+# file for the collected memory-event dump
+oc.eventsDumpFile = "OrderingConsistency-events.txt"
+
+# file for the violation execution graph (DOT/graphviz)
+oc.executionGraphFile = "executionGraph.dot"
+
+# export the found violation as an execution graph in DOT/graphviz format
+oc.exportExecutionGraph = true
+
+# export the found violation as a sequentialized counterexample: the enabled
+# events in a consistent execution order, with their CFA edges
+oc.exportSequentializedCounterexample = true
+
+# give up when the loop bound exceeds this value; a negative value deepens
+# without bound
+oc.finalLoopBound = -1
+
+# loop bound of the first exploration round
+oc.initialLoopBound = 5
+
+# loop bound increase between iterative-deepening rounds
+oc.loopBoundStep = 5
+
+# file for the sequentialized counterexample trace
+oc.sequentializedCounterexampleFile = "Counterexample.oc.txt"
+
+# file for the violation-model dump
+oc.violationModelFile = "OrderingConsistency-model.txt"
+
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false
 
@@ -5704,6 +5869,27 @@ sampling.random.samplesToBeGenerated = 10
 # Stop after finding the first counterexample. This is useful when using this
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
+
+# The simple rules to use, by name. The default lists every rule of this
+# CPAchecker version, so switching a rule off or measuring a single rule
+# means removing the others from this list. A rule is applied only if it can
+# decide a proposition of the specification, and the statistics report which
+# rules were applied. A new rule has to be added here as well, which
+# SimpleRulesTest checks.
+simplerules.rules = {
+          "no-reachable-target-location",
+          "violation-on-every-execution",
+          "no-reachable-loop",
+          "endless-loop-on-every-execution",
+          "no-signed-overflow-possible",
+          "signed-overflow-on-every-execution",
+          "no-memory-operation",
+          "no-heap-allocation",
+          "all-accesses-inside-their-object",
+          "access-outside-object-on-every-execution",
+          "free-of-non-heap-object-on-every-execution",
+          "single-threaded",
+          "program-does-nothing"}
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"

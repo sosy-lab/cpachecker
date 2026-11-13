@@ -545,6 +545,25 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
+   * Whether the contents of a char array should be initialized from its string-literal initializer
+   * even though {@link
+   * CFormulaEncodingWithPointerAliasingOptions#handleStringLiteralInitializers()} is disabled. This
+   * is the case for relevant arrays that are not longer than the strings that builtin functions
+   * like strlen, strcmp, and strcpy handle precisely, because only then can these functions profit
+   * from the contents, and the cost is bounded.
+   */
+  private boolean isShortRelevantStringInitializer(
+      CVariableDeclaration declaration, CArrayType arrayType, CStringLiteralExpression literal) {
+    OptionalInt length = arrayType.getLengthAsInt();
+    return length.isPresent()
+        && length.orElseThrow() <= options.maxPreciseStrFunctionSize() + 1
+        && CTypes.isCharacterType(arrayType.getType())
+        // escape sequences are not decoded by CStringLiteralExpression#expandStringLiteral
+        && literal.getContentWithoutNullTerminator().indexOf('\\') < 0
+        && isRelevantVariable(declaration);
+  }
+
+  /**
    * Expands a string literal to an array of characters.
    *
    * @param assignments The list of assignments.
@@ -592,6 +611,47 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
     return result;
+  }
+
+  /**
+   * Returns the assignment of the null character that terminates the string in an array with a
+   * string-literal initializer, e.g., {@code s[5] = '\0'} for {@code char s[] = "hello"}. If the
+   * contents of such an array are not tracked, this single store still bounds functions like {@code
+   * strlen} on it, which could otherwise return any value.
+   *
+   * @return the assignment, or nothing if the position of the terminator is not known or the array
+   *     has no room for it (e.g., {@code char s[5] = "hello"})
+   */
+  private static Optional<SliceAssignment> makeStringTerminatorAssignment(
+      CIdExpression array, CArrayType arrayType, CInitializer initializer) {
+    if (!CTypes.isCharacterType(arrayType.getType())
+        || !(initializer instanceof CInitializerExpression initializerExpression)
+        || !(initializerExpression.getExpression() instanceof CStringLiteralExpression literal)) {
+      return Optional.empty();
+    }
+    String content = literal.getContentWithoutNullTerminator();
+    OptionalInt length = arrayType.getLengthAsInt();
+    // escape sequences are not decoded, so with them the position of the terminator is not known
+    if (content.indexOf('\\') >= 0
+        || length.isEmpty()
+        || content.length() >= length.orElseThrow()) {
+      return Optional.empty();
+    }
+    FileLocation location = array.getFileLocation();
+    CArraySubscriptExpression terminator =
+        new CArraySubscriptExpression(
+            location,
+            arrayType.getType(),
+            array,
+            new CIntegerLiteralExpression(
+                location, CNumericTypes.INT, BigInteger.valueOf(content.length())));
+    CCharLiteralExpression nullCharacter =
+        new CCharLiteralExpression(location, CNumericTypes.SIGNED_CHAR, '\0');
+    return Optional.of(
+        new SliceAssignment(
+            new SliceExpression(terminator),
+            Optional.of(terminator),
+            Optional.of(new SliceExpression(nullCharacter))));
   }
 
   /**
@@ -1016,32 +1076,29 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     CType lhsType = typeHandler.getSimplifiedType(declaration);
 
-    // special case: force array attachment if all of these are true:
-    // 1. we are currently handling a declaration with string initializer
-    // 3. the declaration is of an array
-    // 2. we do not handle string literal initializers explicitly, just using the __string__
-    // approximation
-    // in this special case, instead of copying all elements of __string__, we just force
-    // attachment of the array location to the __string__; this skips exhaustive __string__ reads
-    // and writes, and circumvents problems with differently-sized arrays as well
-    final boolean forceArrayAttachment;
-    if (initializer instanceof CInitializerExpression initializerExpression) {
-      CExpression rhs = initializerExpression.getExpression();
-      forceArrayAttachment =
-          rhs instanceof CStringLiteralExpression
-              && lhsType instanceof CArrayType
-              && !options.handleStringLiteralInitializers();
+    // An array with a string initializer is an object of its own, with an address different from
+    // the literal and from other arrays. It gets the contents of the literal if
+    // handleStringLiteralInitializers is enabled or if it is short and relevant (cf.
+    // isShortRelevantStringInitializer), otherwise its contents are nondeterministic.
+    final boolean expandStringLiteral;
+    final boolean untrackedStringInitializer;
+    if (initializer instanceof CInitializerExpression initializerExpression
+        && initializerExpression.getExpression() instanceof CStringLiteralExpression literal
+        && lhsType instanceof CArrayType arrayType) {
+      expandStringLiteral =
+          options.handleStringLiteralInitializers()
+              || isShortRelevantStringInitializer(declaration, arrayType, literal);
+      untrackedStringInitializer = !expandStringLiteral;
     } else {
-      forceArrayAttachment = false;
+      expandStringLiteral = options.handleStringLiteralInitializers();
+      untrackedStringInitializer = false;
     }
 
     // use normal assignment options with cast conversion, use old SSA indices if aliased as this is
-    // an initialization assignment, force array attachment according to the special case, leave
-    // everything else as-is
+    // an initialization assignment, leave everything else as-is
     AssignmentOptions assignmentOptions =
         new AssignmentOptions.Builder(ConversionType.CAST)
             .setUseOldSSAIndicesIfAliased(true)
-            .setForceArrayAttachment(forceArrayAttachment)
             .build();
     final AssignmentHandler assignmentHandler =
         new AssignmentHandler(
@@ -1061,7 +1118,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final SliceExpression lhsSlice = new SliceExpression(lhs);
 
       if (initializer != null) {
-        if (options.handleStringLiteralInitializers()) {
+        if (expandStringLiteral) {
           // TODO: see if this can be simplified, this block is just copied from the case
           // (initializer instanceof CInitializerList). Both cases might be unifyable by using
           // CInitializers.convertToAssignments
@@ -1072,17 +1129,25 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           return assignmentHandler.initializationAssign(lhs, declarationType, assignments);
         }
 
-        CExpression rhs = ((CInitializerExpression) initializer).getExpression();
-        if (forceArrayAttachment) {
-          // we are forcing array attachment, cast RHS to pointer type
-          CType lhsPointerType = CTypes.adjustFunctionOrArrayType(lhsType);
-          rhs = makeCastFromArrayToPointerIfNecessary(rhs, lhsPointerType);
-        }
-        SliceExpression rhsSlice = new SliceExpression(rhs);
-        SliceAssignment assignment =
-            new SliceAssignment(lhsSlice, Optional.of(lhs), Optional.of(rhsSlice));
+        Optional<SliceExpression> rhsSlice =
+            untrackedStringInitializer
+                ? Optional.empty()
+                : Optional.of(
+                    new SliceExpression(((CInitializerExpression) initializer).getExpression()));
+        SliceAssignment assignment = new SliceAssignment(lhsSlice, Optional.of(lhs), rhsSlice);
         // perform a slice assignment to lhs from rhs
-        result = assignmentHandler.assign(ImmutableList.of(assignment));
+        BooleanFormula initialization = assignmentHandler.assign(ImmutableList.of(assignment));
+        if (untrackedStringInitializer) {
+          Optional<SliceAssignment> terminator =
+              makeStringTerminatorAssignment(lhs, (CArrayType) lhsType, initializer);
+          if (terminator.isPresent()) {
+            initialization =
+                bfmgr.and(
+                    initialization,
+                    assignmentHandler.assign(ImmutableList.of(terminator.orElseThrow())));
+          }
+        }
+        result = initialization;
 
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
         // perform a slice assignment of nondet value to lhs

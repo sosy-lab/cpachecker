@@ -143,6 +143,94 @@ public class PthreadObjectSubstitution {
     return result;
   }
 
+  static boolean isPthreadObjectType(CType pType, PthreadObjectType pObjectType) {
+    String name = pObjectType.getName();
+    return switch (pType) {
+      case CArrayType arrayType -> isPthreadObjectType(arrayType.getType(), pObjectType);
+      case CPointerType pointerType -> isPthreadObjectType(pointerType.getType(), pObjectType);
+      case CBitFieldType bitFieldType -> isPthreadObjectType(bitFieldType.getType(), pObjectType);
+      case CTypedefType typedefType ->
+          typedefType.getName().equals(name)
+              || typedefType.getName().equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
+      case CElaboratedType elaboratedType ->
+          elaboratedType.getName().equals(name)
+              || elaboratedType
+                  .getName()
+                  .equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
+      case CCompositeType compositeType ->
+          compositeType.getName().equals(name)
+              || compositeType
+                  .getName()
+                  .equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
+      default -> false;
+    };
+  }
+
+  private static CInitializer substituteInitializerAtPath(
+      CInitializer pInitializer,
+      ImmutableList<Integer> pPath,
+      int pPathIndex,
+      CCompositeTypeMemberDeclaration pMember,
+      CInitializer pSubstituteInitializer) {
+
+    // the path was consumed completely
+    if (pPathIndex == pPath.size()) {
+      return pSubstituteInitializer;
+    }
+
+    if (!(pInitializer instanceof CInitializerList initializerList)) {
+      return pInitializer;
+    }
+
+    int targetIndex = pPath.get(pPathIndex);
+    List<CInitializer> newInitializers = new ArrayList<>(initializerList.getInitializers());
+    int actualIndex = targetIndex;
+
+    // A designated initializer uses its field name instead of its positional index.
+    for (int i = 0; i < newInitializers.size(); i++) {
+      CInitializer initializer = newInitializers.get(i);
+      if (initializer instanceof CDesignatedInitializer designatedInitializer
+          && designatedInitializer.getDesignators().stream()
+              .filter(CFieldDesignator.class::isInstance)
+              .map(CFieldDesignator.class::cast)
+              .anyMatch(designator -> designator.getFieldName().equals(pMember.getName()))) {
+        actualIndex = i;
+        break;
+      }
+    }
+
+    if (actualIndex < 0 || actualIndex >= newInitializers.size()) {
+      return pInitializer;
+    }
+
+    CInitializer targetInitializer = newInitializers.get(actualIndex);
+
+    if (targetInitializer instanceof CDesignatedInitializer designatedInitializer) {
+      CInitializer newRight =
+          substituteInitializerAtPath(
+              designatedInitializer.getRightHandSide(),
+              pPath,
+              pPathIndex + 1,
+              pMember,
+              pSubstituteInitializer);
+
+      newInitializers.set(
+          actualIndex,
+          new CDesignatedInitializer(
+              designatedInitializer.getFileLocation(),
+              designatedInitializer.getDesignators(),
+              newRight));
+
+    } else {
+      newInitializers.set(
+          actualIndex,
+          substituteInitializerAtPath(
+              targetInitializer, pPath, pPathIndex + 1, pMember, pSubstituteInitializer));
+    }
+
+    return new CInitializerList(initializerList.getFileLocation(), newInitializers);
+  }
+
   /**
    * Record containing the result of a pthread object type substitution.
    *
@@ -235,8 +323,7 @@ public class PthreadObjectSubstitution {
         // leave the current composite member
         currentPath.removeLast();
 
-        memberDeclarations.add(
-            new CCompositeTypeMemberDeclaration(memberResult.type(), memberDeclaration.getName()));
+        memberDeclarations.add(memberDeclaration.withType(memberResult.type()));
 
         isSubstituted |= memberResult.isSubstituted();
       }
@@ -341,93 +428,5 @@ public class PthreadObjectSubstitution {
           new CBitFieldType(innerResult.type(), pBitFieldType.getBitFieldSize()),
           innerResult.isSubstituted());
     }
-  }
-
-  private static boolean isPthreadObjectType(CType pType, PthreadObjectType pObjectType) {
-    String name = pObjectType.getName();
-    return switch (pType) {
-      case CArrayType arrayType -> isPthreadObjectType(arrayType.getType(), pObjectType);
-      case CPointerType pointerType -> isPthreadObjectType(pointerType.getType(), pObjectType);
-      case CBitFieldType bitFieldType -> isPthreadObjectType(bitFieldType.getType(), pObjectType);
-      case CTypedefType typedefType ->
-          typedefType.getName().equals(name)
-              || typedefType.getName().equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
-      case CElaboratedType elaboratedType ->
-          elaboratedType.getName().equals(name)
-              || elaboratedType
-                  .getName()
-                  .equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
-      case CCompositeType compositeType ->
-          compositeType.getName().equals(name)
-              || compositeType
-                  .getName()
-                  .equals(SequentializationParseTest.ANON_TYPE_KEYWORD + name);
-      default -> false;
-    };
-  }
-
-  private static CInitializer substituteInitializerAtPath(
-      CInitializer pInitializer,
-      ImmutableList<Integer> pPath,
-      int pPathIndex,
-      CCompositeTypeMemberDeclaration pMember,
-      CInitializer pSubstituteInitializer) {
-
-    // the path was consumed completely
-    if (pPathIndex == pPath.size()) {
-      return pSubstituteInitializer;
-    }
-
-    if (!(pInitializer instanceof CInitializerList initializerList)) {
-      return pInitializer;
-    }
-
-    int targetIndex = pPath.get(pPathIndex);
-    List<CInitializer> newInitializers = new ArrayList<>(initializerList.getInitializers());
-    int actualIndex = targetIndex;
-
-    // A designated initializer uses its field name instead of its positional index.
-    for (int i = 0; i < newInitializers.size(); i++) {
-      CInitializer initializer = newInitializers.get(i);
-      if (initializer instanceof CDesignatedInitializer designatedInitializer
-          && designatedInitializer.getDesignators().stream()
-              .filter(CFieldDesignator.class::isInstance)
-              .map(CFieldDesignator.class::cast)
-              .anyMatch(designator -> designator.getFieldName().equals(pMember.getName()))) {
-        actualIndex = i;
-        break;
-      }
-    }
-
-    if (actualIndex < 0 || actualIndex >= newInitializers.size()) {
-      return pInitializer;
-    }
-
-    CInitializer targetInitializer = newInitializers.get(actualIndex);
-
-    if (targetInitializer instanceof CDesignatedInitializer designatedInitializer) {
-      CInitializer newRight =
-          substituteInitializerAtPath(
-              designatedInitializer.getRightHandSide(),
-              pPath,
-              pPathIndex + 1,
-              pMember,
-              pSubstituteInitializer);
-
-      newInitializers.set(
-          actualIndex,
-          new CDesignatedInitializer(
-              designatedInitializer.getFileLocation(),
-              designatedInitializer.getDesignators(),
-              newRight));
-
-    } else {
-      newInitializers.set(
-          actualIndex,
-          substituteInitializerAtPath(
-              targetInitializer, pPath, pPathIndex + 1, pMember, pSubstituteInitializer));
-    }
-
-    return new CInitializerList(initializerList.getFileLocation(), newInitializers);
   }
 }

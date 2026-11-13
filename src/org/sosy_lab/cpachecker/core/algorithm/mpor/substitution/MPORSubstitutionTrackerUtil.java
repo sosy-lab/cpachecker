@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CLeftHandSideSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignmentType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -156,6 +156,7 @@ public class MPORSubstitutionTrackerUtil {
   // Pointer Assignments ===========================================================================
 
   static void trackPointerAssignment(
+      MPORThread pThread,
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
       SeqCallContext pCallContext,
@@ -165,6 +166,7 @@ public class MPORSubstitutionTrackerUtil {
 
     Optional<SeqPointerAssignment> pointerAssignment =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            pThread,
             pLeftHandSide,
             pRightHandSide,
             // since all raw assignments from the input program are not across a function (e.g.
@@ -181,6 +183,7 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   static void trackPointerAssignmentInVariableDeclaration(
+      MPORThread pThread,
       CVariableDeclaration pVariableDeclaration,
       CIdExpression pIdExpression,
       SeqCallContext pCallContext,
@@ -194,7 +197,12 @@ public class MPORSubstitutionTrackerUtil {
     if (pVariableDeclaration.getInitializer()
         instanceof CInitializerExpression initializerExpression) {
       trackPointerAssignment(
-          pIdExpression, initializerExpression.getExpression(), pCallContext, pInputCfa, pTracker);
+          pThread,
+          pIdExpression,
+          initializerExpression.getExpression(),
+          pCallContext,
+          pInputCfa,
+          pTracker);
     }
   }
 
@@ -220,8 +228,11 @@ public class MPORSubstitutionTrackerUtil {
       trackFieldReference(fieldReference, pCallContext, pIsWrite, pTracker);
 
     } else {
+      // Exclude subscript expressions e.g. 'i' from 'arr[i]', because 'arr' is the pointer that is
+      // actually the LHS (individual array indices are not tracked, only the entire array).
       CSimpleDeclaration declaration =
-          pLeftHandSide.accept(new CLeftHandSideSimpleDeclarationVisitor());
+          Iterables.getOnlyElement(
+              SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(pLeftHandSide, false));
       // do not consider CFunctionDeclarations
       if (SubstituteUtil.isSubstitutable(declaration)) {
         if (pIsWrite) {

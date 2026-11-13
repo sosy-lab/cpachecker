@@ -377,13 +377,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula) {
-    return new PathFormula(
-        bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
+    return makeEmptyPathFormulaWithContext(oldFormula.getSsa(), oldFormula.getPointerTargetSet());
   }
 
   @Override
   public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
-    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts, 0);
+    // Facts about equal strings refer to the constraints of the previous path formula.
+    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts.withoutStringFacts(), 0);
   }
 
   @Override

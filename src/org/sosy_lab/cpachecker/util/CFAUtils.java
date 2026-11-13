@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
@@ -131,6 +132,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -141,6 +143,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -487,13 +490,13 @@ public class CFAUtils {
             optionalIterationElement.orElseThrow().getIterationExpression();
         FileLocation location;
         if (optionalControlExpression.isPresent()
-            && optionalControlExpression.orElseThrow().edges().contains(pEdge)) {
+            && optionalControlExpression.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalControlExpression.orElseThrow().location();
         } else if (optionalInitClause.isPresent()
-            && optionalInitClause.orElseThrow().edges().contains(pEdge)) {
+            && optionalInitClause.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalInitClause.orElseThrow().location();
         } else if (optionalIterationExpression.isPresent()
-            && optionalIterationExpression.orElseThrow().edges().contains(pEdge)) {
+            && optionalIterationExpression.orElseThrow().edges().contains(pEdge.getOriginal())) {
           location = optionalIterationExpression.orElseThrow().location();
         } else {
           return Optional.empty();
@@ -1008,6 +1011,21 @@ public class CFAUtils {
   public static FluentIterable<AExpression> traverseLeftHandSideRecursively(ALeftHandSide root) {
     return (FluentIterable<AExpression>)
         (FluentIterable<?>) FluentIterable.from(AST_LHS_TRAVERSER.depthFirstPreOrder(root));
+  }
+
+  /** Returns the function name from a CFA edge if it contains a function call, or empty. */
+  public static Optional<String> getFunctionCallName(CFAEdge edge) {
+    if (edge instanceof CFunctionCallEdge callEdge) {
+      return Optional.of(callEdge.getSuccessor().getFunctionName());
+    }
+    if (edge instanceof AStatementEdge sEdge
+        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
+      AExpression funcNameExpr = funcCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (funcNameExpr instanceof AIdExpression funcName) {
+        return Optional.of(funcName.getName());
+      }
+    }
+    return Optional.empty();
   }
 
   private static final Traverser<AAstNode> AST_LHS_TRAVERSER =

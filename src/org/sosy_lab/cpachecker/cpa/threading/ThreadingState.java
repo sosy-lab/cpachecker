@@ -22,12 +22,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -37,15 +35,18 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithThreads;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessViolationV2Parser;
@@ -60,6 +61,7 @@ public class ThreadingState
     implements AbstractState,
         AbstractStateWithAssumptions,
         AbstractStateWithLocations,
+        AbstractStateWithThreads,
         Graphable,
         Partitionable,
         AbstractQueryableState {
@@ -104,6 +106,10 @@ public class ThreadingState
   // String :: identifier of a pthread_barrier_t  -->  Barrier
   private final PersistentMap<String, Barrier> barriers;
 
+  // String :: thread-id of a thread that terminated and is not joined yet
+  //   -->  CVariableDeclaration :: the variable that holds its result
+  private final PersistentMap<String, CVariableDeclaration> threadResults;
+
   /**
    * Assumptions about the program state that hold after the edge that produced this state, cf.
    * {@link #getAssumptions()}. They are not part of {@link #equals}, because the other CPAs already
@@ -132,6 +138,19 @@ public class ThreadingState
   @Nullable private final FunctionCallEdge entryFunction;
 
   /**
+   * The statement by which a thread passes its result and that only the ThreadingCPA knows, e.g.
+   * the assignment of the result to *p for pthread_join(t, p). Like {@link #entryFunction}, it is
+   * only set for the state directly after the edge, the predicate analysis encodes it, and {@link
+   * ThreadingTransferRelation#strengthen} deletes it.
+   *
+   * <p>Formulas built from the CFA edges of a path alone, e.g. by the {@link
+   * org.sosy_lab.cpachecker.util.predicates.PathChecker}, do not contain this statement. Thus it
+   * may only assign values that are unconstrained without it, otherwise a feasible path would be
+   * infeasible there.
+   */
+  @Nullable private final CStatementEdge resultEdge;
+
+  /**
    * This map contains the mapping of threadIds to the unique identifier used for witness
    * validation. Without a witness that refers to threads, it should always be empty. It is filled
    * by {@link ThreadingTransferRelation#strengthen}.
@@ -143,6 +162,12 @@ public class ThreadingState
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
+  /**
+   * The number of the next thread. Numbers are never reused: a number selects the cloned functions
+   * of a thread, so a new thread would otherwise overwrite the variables of a terminated thread.
+   */
+  private final int nextThreadNum;
+
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
@@ -151,10 +176,13 @@ public class ThreadingState
     onceRunners = PathCopyingPersistentTreeMap.of();
     finishedOnces = ImmutableSet.of();
     barriers = PathCopyingPersistentTreeMap.of();
+    threadResults = PathCopyingPersistentTreeMap.of();
     assumptions = ImmutableList.of();
     activeThread = null;
     entryFunction = null;
+    resultEdge = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
+    nextThreadNum = MIN_THREAD_NUM;
   }
 
   private ThreadingState(
@@ -165,10 +193,13 @@ public class ThreadingState
       PersistentMap<String, OnceRun> pOnceRunners,
       ImmutableSet<String> pFinishedOnces,
       PersistentMap<String, Barrier> pBarriers,
+      PersistentMap<String, CVariableDeclaration> pThreadResults,
       ImmutableList<CExpression> pAssumptions,
       String pActiveThread,
       FunctionCallEdge entryFunction,
-      PersistentMap<String, Integer> pThreadIdsForWitness) {
+      @Nullable CStatementEdge pResultEdge,
+      PersistentMap<String, Integer> pThreadIdsForWitness,
+      int pNextThreadNum) {
     threads = pThreads;
     locks = pLocks;
     recursiveMutexes = pRecursiveMutexes;
@@ -176,10 +207,13 @@ public class ThreadingState
     onceRunners = pOnceRunners;
     finishedOnces = pFinishedOnces;
     barriers = pBarriers;
+    threadResults = pThreadResults;
     assumptions = pAssumptions;
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
+    resultEdge = pResultEdge;
     threadIdsForWitness = pThreadIdsForWitness;
+    nextThreadNum = pNextThreadNum;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
@@ -191,10 +225,13 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withLocks(
@@ -207,10 +244,13 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withRecursiveMutexAttributes(
@@ -223,10 +263,13 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withOnces(
@@ -239,10 +282,13 @@ public class ThreadingState
         pOnceRunners,
         pFinishedOnces,
         barriers,
+        threadResults,
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withBarriers(PersistentMap<String, Barrier> pBarriers) {
@@ -254,10 +300,13 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         pBarriers,
+        threadResults,
         assumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private ThreadingState withThreadIdsForWitness(
@@ -270,17 +319,73 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         assumptions,
         activeThread,
         entryFunction,
-        pThreadIdsForWitness);
+        resultEdge,
+        pThreadIdsForWitness,
+        nextThreadNum);
   }
 
+  private ThreadingState withThreadResults(
+      PersistentMap<String, CVariableDeclaration> pThreadResults) {
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
+        barriers,
+        pThreadResults,
+        assumptions,
+        activeThread,
+        entryFunction,
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
+  }
+
+  /**
+   * Adds the thread. It drops the result of an earlier thread with the same identifier, which now
+   * denotes the new thread.
+   */
   public ThreadingState addThreadAndCopy(
       String id, int num, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(!threads.containsKey(id), "thread already exists");
-    return withThreads(threads.putAndCopy(id, new ThreadState(loc, stack, num)));
+    Preconditions.checkArgument(num >= nextThreadNum, "thread number %s is used already", num);
+    return new ThreadingState(
+        threads.putAndCopy(id, new ThreadState(loc, stack, num)),
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
+        barriers,
+        threadResults.removeAndCopy(id),
+        assumptions,
+        activeThread,
+        entryFunction,
+        resultEdge,
+        threadIdsForWitness,
+        num + 1);
+  }
+
+  /** Keeps the variable that holds the result of the thread for pthread_join. */
+  ThreadingState addThreadResultAndCopy(String id, CVariableDeclaration variable) {
+    return withThreadResults(threadResults.putAndCopy(id, variable));
+  }
+
+  @Nullable CVariableDeclaration getThreadResult(String id) {
+    return threadResults.get(id);
+  }
+
+  ThreadingState removeThreadResultAndCopy(String id) {
+    return threadResults.containsKey(id)
+        ? withThreadResults(threadResults.removeAndCopy(id))
+        : this;
   }
 
   public ThreadingState updateLocationAndCopy(String id, AbstractState stack, AbstractState loc) {
@@ -308,6 +413,11 @@ public class ThreadingState
     return threads.keySet();
   }
 
+  @Override
+  public int getNumberOfActiveThreads() {
+    return threads.size();
+  }
+
   public AbstractState getThreadCallstack(String id) {
     return Preconditions.checkNotNull(threads.get(id).getCallstack());
   }
@@ -316,23 +426,9 @@ public class ThreadingState
     return (LocationState) Preconditions.checkNotNull(threads.get(id).getLocation());
   }
 
-  Set<Integer> getThreadNums() {
-    SequencedSet<Integer> result = new LinkedHashSet<>();
-    for (ThreadState ts : threads.values()) {
-      result.add(ts.getNum());
-    }
-    Preconditions.checkState(result.size() == threads.size());
-    return result;
-  }
-
-  int getSmallestMissingThreadNum() {
-    int num = MIN_THREAD_NUM;
-    // TODO loop is not efficient for big number of threads
-    final Set<Integer> threadNums = getThreadNums();
-    while (threadNums.contains(num)) {
-      num++;
-    }
-    return num;
+  /** See {@link #nextThreadNum}. */
+  int getNextThreadNum() {
+    return nextThreadNum;
   }
 
   public ThreadingState addLockAndCopy(String threadId, String lockId) {
@@ -489,6 +585,11 @@ public class ThreadingState
             : ("\n and barriers={"
                 + Joiner.on(", ").withKeyValueSeparator("=").join(barriers)
                 + "}"))
+        + (threadResults.isEmpty()
+            ? ""
+            : ("\n and results of terminated threads={"
+                + Joiner.on(", ").withKeyValueSeparator("=").join(threadResults)
+                + "}"))
         + (assumptions.isEmpty() ? "" : ("\n assuming " + assumptions))
         + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
         + " \n"
@@ -506,8 +607,10 @@ public class ThreadingState
         && onceRunners.equals(ts.onceRunners)
         && finishedOnces.equals(ts.finishedOnces)
         && barriers.equals(ts.barriers)
+        && threadResults.equals(ts.threadResults)
         && Objects.equals(activeThread, ts.activeThread)
-        && threadIdsForWitness.equals(ts.threadIdsForWitness);
+        && threadIdsForWitness.equals(ts.threadIdsForWitness)
+        && nextThreadNum == ts.nextThreadNum;
   }
 
   @Override
@@ -520,8 +623,10 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         activeThread,
-        threadIdsForWitness);
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
@@ -747,10 +852,13 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         assumptions,
         pActiveThread,
         entryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   String getActiveThread() {
@@ -767,10 +875,13 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         assumptions,
         activeThread,
         pEntryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   /** See {@link #assumptions}. */
@@ -783,10 +894,13 @@ public class ThreadingState
         onceRunners,
         finishedOnces,
         barriers,
+        threadResults,
         pAssumptions,
         activeThread,
         entryFunction,
-        threadIdsForWitness);
+        resultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
   }
 
   /**
@@ -802,6 +916,30 @@ public class ThreadingState
   @Nullable
   public FunctionCallEdge getEntryFunction() {
     return entryFunction;
+  }
+
+  /** See {@link #resultEdge}. */
+  ThreadingState withResultEdge(@Nullable CStatementEdge pResultEdge) {
+    return new ThreadingState(
+        threads,
+        locks,
+        recursiveMutexes,
+        recursiveMutexAttributes,
+        onceRunners,
+        finishedOnces,
+        barriers,
+        threadResults,
+        assumptions,
+        activeThread,
+        entryFunction,
+        pResultEdge,
+        threadIdsForWitness,
+        nextThreadNum);
+  }
+
+  /** See {@link #resultEdge}. */
+  public @Nullable CStatementEdge getResultEdge() {
+    return resultEdge;
   }
 
   private @Nullable Integer getThreadIdForWitness(String threadId) {

@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -27,6 +28,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -82,6 +84,8 @@ import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractARGToCorrectnessWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ConcurrentARGToCorrectnessWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CorrectnessWitnessExportOptions;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -131,18 +135,6 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
-      name = "yamlProofWitness",
-      description =
-          "The template from which the different "
-              + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.yml");
-
-  @Option(
-      secure = true,
       name = "svLibCorrectnessWitness",
       description =
           "The file into which to write the correctness "
@@ -150,16 +142,6 @@ public class ARGStatistics implements Statistics {
               + "If not set no witness will be exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path svLibCorrectnessWitnessPath = Path.of("witness.svlib");
-
-  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
-  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
-  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
-  // added to make it possible to deactivate the export.
-  @Option(
-      secure = true,
-      name = "exportYamlCorrectnessWitness",
-      description = "export correctness witness in YAML format")
-  private boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
@@ -241,6 +223,7 @@ public class ARGStatistics implements Statistics {
   protected final CFA cfa;
 
   private final CEXExportOptions counterexampleOptions;
+  private final CorrectnessWitnessExportOptions correctnessWitnessOptions;
   private final PixelsWriterOptions argToBitmapExporterOptions;
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
@@ -263,6 +246,7 @@ public class ARGStatistics implements Statistics {
     config.inject(this, ARGStatistics.class); // needed for subclasses
 
     counterexampleOptions = new CEXExportOptions(config);
+    correctnessWitnessOptions = new CorrectnessWitnessExportOptions(config);
     argToBitmapExporterOptions = new PixelsWriterOptions(config);
     logger = pLogger;
     cpa = pCpa;
@@ -277,14 +261,14 @@ public class ARGStatistics implements Statistics {
         && proofWitnessDot == null
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
-        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)
+        && !correctnessWitnessOptions.hasYamlWitnessExport()
         && svLibCorrectnessWitnessPath == null) {
       exportARG = false;
     }
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
-    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
+    if (correctnessWitnessOptions.hasYamlWitnessExport()) {
       RelevantArgStatesCollector argStatesCollector =
           new RootExplorationArgStateCollector(
               pCFA.getAstCfaRelation() != null && pCFA.getLoopStructure().isPresent()
@@ -297,9 +281,15 @@ public class ARGStatistics implements Statistics {
             transformation.createARGToCorrectnessWitness(
                 config, pCFA, pSpecification, pLogger, argStatesCollector);
       } else {
+        // the concurrency analyses that need a specialized exporter, see there
+        Optional<AbstractARGToCorrectnessWitness> concurrentWitnessWriter =
+            ConcurrentARGToCorrectnessWitness.createIfNeeded(
+                config, pCFA, pSpecification, pLogger, pCpa);
         argToWitnessWriter =
-            new ARGToCorrectnessWitnessV2(
-                config, pCFA, pSpecification, pLogger, argStatesCollector);
+            concurrentWitnessWriter.isPresent()
+                ? concurrentWitnessWriter.orElseThrow()
+                : new ARGToCorrectnessWitnessV2(
+                    config, pCFA, pSpecification, pLogger, argStatesCollector);
       }
     } else {
       argToWitnessWriter = null;
@@ -453,14 +443,34 @@ public class ARGStatistics implements Statistics {
             || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
                 != null;
 
+    final ImmutableSet<ARGState> allRoots = ARGUtils.getRootStates(pReached);
     final Set<ARGState> rootStates =
         partitionedArg
-            ? ARGUtils.getRootStates(pReached)
+            ? allRoots
             : Collections.singleton(
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState : rootStates) {
       exportARG0(rootState, pReached, BiPredicates.pairIn(allTargetPathEdges), pResult);
+    }
+
+    // A non-partitioned forest (e.g. the per-thread trees of the ordering-consistency analysis) has
+    // several roots that share no partition key, so the per-root writers above all target the same
+    // ARG file and only the last tree survives. Rewrite that file once over every reached state so
+    // the whole forest is shown. Single-root and partitioned analyses never enter this branch.
+    if (!partitionedArg && allRoots.size() > 1 && argFile != null) {
+      List<ARGState> allArgStates = new ArrayList<>();
+      for (AbstractState state : pReached) {
+        ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+        if (argState != null) {
+          allArgStates.add(argState);
+        }
+      }
+      try (Writer w = IO.openOutputFile(argFile, Charset.defaultCharset())) {
+        ARGToDotWriter.write(w, allArgStates, "ARG");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG forest to file");
+      }
     }
   }
 
@@ -478,10 +488,11 @@ public class ARGStatistics implements Statistics {
     if (pResult == Result.TRUE
         || (exportYamlWitnessesForUnknownVerdict && pResult == Result.UNKNOWN)) {
       try {
-        if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+        if (correctnessWitnessOptions.hasYamlWitnessExport() && argToWitnessWriter != null) {
           if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
-              argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
+              argToWitnessWriter.export(
+                  rootState, pReached, correctnessWitnessOptions.getYamlWitnessPathTemplate());
             } catch (IOException | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,
@@ -646,18 +657,36 @@ public class ARGStatistics implements Statistics {
 
   public Map<ARGState, CounterexampleInfo> getAllCounterexamples(
       final UnmodifiableReachedSet pReached) {
-    ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
+    ImmutableMap.Builder<ARGState, CounterexampleInfo> registeredCounterexamples =
+        ImmutableMap.builder();
+    ImmutableList.Builder<ARGState> targetStatesWithoutCounterexample = ImmutableList.builder();
 
     for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
       if (!(targetState instanceof ARGState s)) {
         continue;
       }
-
-      ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
-          .ifPresent(cex -> counterexamples.put(s, cex));
+      s.getCounterexampleInformation()
+          .ifPresentOrElse(
+              cex -> registeredCounterexamples.put(s, cex),
+              () -> targetStatesWithoutCounterexample.add(s));
     }
 
-    Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();
+    // Only export counterexamples that for target states without explicit ones if there is no
+    // explicit one. This happens for BMC: multiple target states can exist while only one of them
+    // has been checked for feasability. Filtering here prevents the witness export to overwrite the
+    // checked correct counterexample with one that is unchecked and therefore potentially wrong.
+    // TODO: extend or replace this with a better solution that does not implicitely apply this
+    // potentially unexpected filtering
+    // see https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/596
+    Map<ARGState, CounterexampleInfo> allCounterexamples = registeredCounterexamples.buildOrThrow();
+    if (allCounterexamples.isEmpty()) {
+      ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
+      for (ARGState s : targetStatesWithoutCounterexample.build()) {
+        ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
+            .ifPresent(cex -> counterexamples.put(s, cex));
+      }
+      allCounterexamples = counterexamples.buildOrThrow();
+    }
     final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
         Maps.filterValues(allCounterexamples, CounterexampleInfo::isPreciseCounterExample);
     return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;
