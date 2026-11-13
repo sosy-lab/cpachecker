@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
@@ -97,6 +98,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -1055,9 +1057,9 @@ public class CFAUtils {
       Traverser.forTree(node -> node.accept_(LeftHandSideVisitor.INSTANCE));
 
   private static final Traverser<AAstNode> AST_TRAVERSER =
-      Traverser.forTree(node -> node.accept_(ChildPredicateVisitor.INSTANCE));
+      Traverser.forTree(node -> node.accept_(ChildExpressionVisitor.INSTANCE));
 
-  private static final class LeftHandSideVisitor extends ChildPredicateVisitor {
+  private static final class LeftHandSideVisitor extends ChildExpressionVisitor {
 
     private static final LeftHandSideVisitor INSTANCE = new LeftHandSideVisitor();
 
@@ -1067,10 +1069,10 @@ public class CFAUtils {
     }
   }
 
-  private static class ChildPredicateVisitor
+  private static class ChildExpressionVisitor
       extends AAstNodeVisitor<Iterable<? extends AAstNode>, NoException> {
 
-    private static final ChildPredicateVisitor INSTANCE = new ChildPredicateVisitor();
+    private static final ChildExpressionVisitor INSTANCE = new ChildExpressionVisitor();
 
     @Override
     public Iterable<AAstNode> visit(AArraySubscriptExpression pE) {
@@ -1550,6 +1552,16 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
       return visit((ABinaryExpression) pAcslBinaryTermPredicate);
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslBinaryPredicate pAcslBinaryPredicate) {
+      return visit((ABinaryExpression) pAcslBinaryPredicate);
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslUnaryPredicate pAcslUnaryPredicate) {
+      return visit((AUnaryExpression) pAcslUnaryPredicate);
     }
 
     @Override

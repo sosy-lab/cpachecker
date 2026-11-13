@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -59,20 +60,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.APredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -656,7 +648,7 @@ public class LiveVariablesTransferRelation
     }
   }
 
-  private static class LhsPointerDereferenceVisitor extends APredicateVisitor<Boolean, NoException>
+  private static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, NoException>
       implements CExpressionVisitor<Boolean, NoException> {
 
     LhsPointerDereferenceVisitor() {}
@@ -853,46 +845,6 @@ public class LiveVariablesTransferRelation
 
     @Override
     public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslIdPredicate pAcslIdPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslOldPredicate pAcslOldPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslTernaryPredicate pAcslTernaryPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslValidPredicate pAcslValidPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslQuantifiedPredicate pQuantifiedPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
       return false;
     }
   }
