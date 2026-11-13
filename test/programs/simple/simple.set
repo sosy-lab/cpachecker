@@ -34,3 +34,4 @@ memset/*.yml
 union_arrays/*.yml
 bitfields/*.yml
 scanf/*.yml
+symbolic_array_subscript/*.yml
