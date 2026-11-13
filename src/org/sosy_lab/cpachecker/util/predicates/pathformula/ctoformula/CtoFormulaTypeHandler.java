@@ -116,16 +116,33 @@ public class CtoFormulaTypeHandler {
   }
 
   /**
-   * Get the offset of a field, if it is byte-aligned. Offsets of bit fields that do not start at a
-   * byte boundary are returned as <code>OptionaLong.empty()</code>.
+   * Get the offset of a field, if it is byte-aligned. For a bitfield, it returns the byte the
+   * bitfield starts in. Bitfields that do not fit in a heap-cell of its type (in packed structs) or
+   * have no width return <code>OptionaLong.empty()</code>.
    */
   public OptionalLong getOffset(CCompositeType compositeType, final String memberName) {
+    if (compositeType.getMember(memberName).getType().getCanonicalType()
+        instanceof CBitFieldType bitFieldType) {
+      return getBitFieldOffset(compositeType, memberName, bitFieldType);
+    }
     final long bitOffset = getBitOffset(compositeType, memberName);
     if (bitOffset % machineModel.getSizeofCharInBits() == 0) {
       return OptionalLong.of(bitOffset / machineModel.getSizeofCharInBits());
     } else {
       return OptionalLong.empty();
     }
+  }
+
+  private OptionalLong getBitFieldOffset(
+      CCompositeType compositeType, final String memberName, final CBitFieldType bitFieldType) {
+    final long charBitSize = machineModel.getSizeofCharInBits();
+    final long bitOffset = getBitOffset(compositeType, memberName);
+    if (bitFieldType.getBitFieldSize() == 0
+        || bitOffset % charBitSize + bitFieldType.getBitFieldSize()
+            > getExactBitSizeof(bitFieldType.getType())) {
+      return OptionalLong.empty();
+    }
+    return OptionalLong.of(bitOffset / charBitSize);
   }
 
   /** See {@link #getOffset(CCompositeType, String)}. */
