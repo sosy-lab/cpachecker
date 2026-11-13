@@ -186,9 +186,11 @@ final class UntouchedAllocationCheck {
         }
         case PotentialCleanPath(WalkState predecessor) -> {
           // The current path is clean so far, but hasn't reached a memory allocation yet.
-          if (visited.add(predecessor)) {
-            worklist.push(predecessor);
+          if (!visited.add(predecessor)) {
+            // The walk is in a cycle that does not reach an allocation.
+            return false;
           }
+          worklist.push(predecessor);
         }
       }
     }
