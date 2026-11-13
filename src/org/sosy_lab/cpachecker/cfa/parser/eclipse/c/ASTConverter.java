@@ -3301,7 +3301,7 @@ class ASTConverter {
 
   private static boolean isCharArray(CType pType) {
     return pType.getCanonicalType() instanceof CArrayType arrayType
-        && arrayType.getType().getCanonicalType().asUnqualified() instanceof CSimpleType elemType
+        && arrayType.getType().getCanonicalType() instanceof CSimpleType elemType
         && elemType.getType() == CBasicType.CHAR;
   }
 
