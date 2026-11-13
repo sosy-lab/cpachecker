@@ -103,6 +103,7 @@ public final class CCompositeType implements CComplexType {
   }
 
   public CCompositeTypeMemberDeclaration getMember(String pMemberName) {
+    checkNotNull(pMemberName);
     for (CCompositeTypeMemberDeclaration member : getMembers()) {
       if (member.getName().equals(pMemberName)) {
         return member;
