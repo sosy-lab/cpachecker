@@ -466,4 +466,30 @@ public class CFAUtilsTest {
     // The dereference at the other call site of check is not on any path from the allocation.
     assertThat(isHavocOfUntouchedMallocBlock(program, "p")).isTrue();
   }
+
+  @Test(timeout = 20_000)
+  public void testHavocInUncalledMutualRecursion() throws Exception {
+    String program =
+        """
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        extern int __VERIFIER_nondet_int(void);
+        void *p;
+        void g();
+        void f() {
+          if (__VERIFIER_nondet_int()) {
+            __VERIFIER_nondet_memory(p, 8);
+          } else {
+            g();
+          }
+        }
+        void g() {
+          f();
+        }
+        int main() {
+          return 0;
+        }
+        """;
+    // f and g are their only callers, so leaving them through their call edges walks in a cycle.
+    assertThat(isHavocOfUntouchedMallocBlock(program, "p")).isFalse();
+  }
 }
