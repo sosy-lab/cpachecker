@@ -329,7 +329,7 @@ public class CFACreator {
       description =
           "Model setjmp and longjmp with a CFA transformation if the program calls setjmp only once"
               + " and in a non-recursive function. Calls of longjmp in other programs are kept.")
-  private boolean transformSetjmpLongjmp = false;
+  private boolean transformSetjmpLongjmp = true;
 
   @Option(
       secure = true,

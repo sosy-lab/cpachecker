@@ -1296,7 +1296,7 @@ cfa.threads.threadSelfJoin = "pthread_join_N"
 # Model setjmp and longjmp with a CFA transformation if the program calls
 # setjmp only once and in a non-recursive function. Calls of longjmp in other
 # programs are kept.
-cfa.transformSetjmpLongjmp = false
+cfa.transformSetjmpLongjmp = true
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
