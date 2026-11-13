@@ -68,9 +68,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class TerminationArgumentsToWitnessUtils {
 
-  // A sequence of digits that is not part of a name, e.g., not the 128 in __int128
-  private static final Pattern INTEGER_LITERAL = Pattern.compile("(?<![\\w.])\\d+");
-
   /**
    * Returns the scope of the variables in scope at the given node, in which a name of the input
    * program refers to the variable in scope, as in the invariants of a witness, and the names of
@@ -141,7 +138,8 @@ public class TerminationArgumentsToWitnessUtils {
    * not larger than the maximal value of long long.
    */
   private static boolean hasOnlyIntegerConstantsOfC(String pExpression) {
-    return INTEGER_LITERAL
+    // A sequence of digits that is not part of a name, e.g., not the 128 in __int128
+    return Pattern.compile("(?<![\\w.])\\d+")
         .matcher(pExpression)
         .results()
         .allMatch(literal -> new BigInteger(literal.group()).bitLength() < Long.SIZE);
