@@ -826,9 +826,13 @@ public final class ValueAnalysisState
         val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
         FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, simpleType);
-        val =
-            new CFloatLiteralExpression(
-                loc, machineModel, simpleType, pNum.floatingPointValue(precision));
+        FloatValue floatValue = pNum.floatingPointValue(precision);
+        if (floatValue.isNan()) {
+          // NaN is not equal to itself, so `x == NaN` would never hold
+          return Optional.of(
+              builder.buildBinaryExpressionUnchecked(pVar, pVar, BinaryOperator.NOT_EQUALS));
+        }
+        val = new CFloatLiteralExpression(loc, machineModel, simpleType, floatValue);
       } else {
         throw new AssertionError("Unexpected type: " + simpleType);
       }
