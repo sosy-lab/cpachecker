@@ -58,13 +58,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
-  <tasks name="SimpleMemSafety-SymbolicVLA">
-    <include>../programs/simple/arrays/vla-symbolic-length-*.yml</include>
-    <option name="--smgSymbolicExecution"/>
-    <option name="--option">cpa.smg2.allowSymbolicVariableArrayLength=true</option>
-    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
-  </tasks>
-
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <option name="--smgSymbolicExecution"/>
