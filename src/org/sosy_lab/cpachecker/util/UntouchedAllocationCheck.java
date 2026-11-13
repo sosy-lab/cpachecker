@@ -57,8 +57,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 final class UntouchedAllocationCheck {
 
-  private static final String NONDET_MEMORY_FUNCTION = "__VERIFIER_nondet_memory";
-
   /**
    * A function activation on the walk's call chain. The call site is empty if the walk does not
    * know the caller yet, which is only the case for the outermost frame.
@@ -130,9 +128,10 @@ final class UntouchedAllocationCheck {
 
   private Optional<String> getTargetVariable(CStatementEdge pNondetMemoryCall) {
     checkArgument(
-        CFAUtils.getFunctionCallName(pNondetMemoryCall).equals(Optional.of(NONDET_MEMORY_FUNCTION)),
+        CFAUtils.getFunctionCallName(pNondetMemoryCall)
+            .equals(Optional.of(VerifierNondetFunctions.getFunctionNameNondetMemory())),
         "Edge is not a call of %s: %s",
-        NONDET_MEMORY_FUNCTION,
+        VerifierNondetFunctions.getFunctionNameNondetMemory(),
         pNondetMemoryCall);
 
     List<CExpression> nondetMemoryCallArguments =

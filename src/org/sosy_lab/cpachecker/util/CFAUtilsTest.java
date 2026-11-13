@@ -292,9 +292,10 @@ public class CFAUtilsTest {
       String pProgram, String pHavocArgument, Map.Entry<String, String>... pCfaOptions)
       throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromString(pProgram, pCfaOptions);
+    String nondetMemoryFunction = VerifierNondetFunctions.getFunctionNameNondetMemory();
     CStatementEdge havocEdge =
         (CStatementEdge)
-            TestCfaUtils.getEdge("__VERIFIER_nondet_memory(" + pHavocArgument + ",", cfa);
+            TestCfaUtils.getEdge(nondetMemoryFunction + "(" + pHavocArgument + ",", cfa);
     return CFAUtils.isHavocOfUntouchedAllocation(havocEdge, "malloc"::equals);
   }
 

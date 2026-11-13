@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -748,7 +749,7 @@ class CExpressionVisitorWithPointerAliasing
           Formula destinationFormula = destinationAsAliasedLocation.getAddress();
           return Value.ofValue(destinationFormula);
 
-        } else if (functionName.equals("__VERIFIER_nondet_memory")) {
+        } else if (functionName.equals(VerifierNondetFunctions.getFunctionNameNondetMemory())) {
           // Setting each byte to a nondet value explicitly is expensive for large blocks,
           // so we only do it if we have to.
           // One case where we can avoid it:
@@ -977,7 +978,7 @@ class CExpressionVisitorWithPointerAliasing
       String name = idExpression.getName();
       if (StandardFunctions.neverWritesThroughPointerArguments(name)
           || BuiltinFloatFunctions.matchesModf(name) // write is encoded
-          || name.equals("__VERIFIER_nondet_memory") // write is encoded
+          || name.equals(VerifierNondetFunctions.getFunctionNameNondetMemory()) // write is encoded
           || name.equals(THREAD_JOIN)) { // write is encoded
         return false;
       }
