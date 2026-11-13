@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
@@ -49,7 +51,19 @@ public final class SmtLibDefineFunCommand implements SmtLibCommand, SvLibCommand
   public String toASTString() {
     return "(define-fun "
         + SmtLibSymbols.quoteIfNeeded(functionDeclaration.getName())
-        + functionDeclaration.getType().toASTString()
+        + " ("
+        + Joiner.on(" ")
+            .join(
+                Lists.transform(
+                    functionDeclaration.getParameters(),
+                    parameter ->
+                        "("
+                            + SmtLibSymbols.quoteIfNeeded(parameter.getName())
+                            + " "
+                            + parameter.getType().toASTString()
+                            + ")"))
+        + ") "
+        + functionDeclaration.getReturnType().toASTString()
         + " "
         + body.toASTString()
         + ")";

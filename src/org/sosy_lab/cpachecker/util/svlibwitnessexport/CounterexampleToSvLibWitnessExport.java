@@ -14,7 +14,9 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimaps;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibArrayConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
@@ -37,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -47,9 +52,15 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibBlankChoiceEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SmtLibModel;
@@ -80,6 +91,7 @@ import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class CounterexampleToSvLibWitnessExport {
   @SuppressWarnings("unused")
@@ -200,6 +212,68 @@ public class CounterexampleToSvLibWitnessExport {
       case SvLibSmtLibArrayType arrayType -> arrayValue(arrayType, ImmutableMap.of());
       default -> throw new UnsupportedOperationException("No value of type " + pType);
     };
+  }
+
+  /**
+   * The definitions of the declared functions, with the values of the counterexample for the
+   * arguments that it applies them to, and an arbitrary value for the other arguments.
+   */
+  private SmtLibModel createModel(ConcreteStatePath pPath) {
+    ImmutableListMultimap<String, ValueAssignment> values =
+        Multimaps.index(pPath.getFunctionValues(), ValueAssignment::getName);
+    ImmutableList.Builder<SmtLibDefineFunCommand> definitions = ImmutableList.builder();
+    for (SmtLibCommand command : svLibMetadata.smtLibCommands()) {
+      if (command instanceof SvLibDeclareFunCommand declareFun) {
+        SvLibSmtFunctionDeclaration function = declareFun.getFunctionDeclaration();
+        definitions.add(defineFunction(function, values.get(function.getName())));
+      }
+    }
+    return new SmtLibModel(
+        definitions.build(), ImmutableList.of(), ImmutableList.of(), FileLocation.DUMMY);
+  }
+
+  private static SmtLibDefineFunCommand defineFunction(
+      SvLibSmtFunctionDeclaration pFunction, List<ValueAssignment> pValues) {
+    List<SvLibType> argumentTypes = pFunction.getType().getInputTypes();
+    SvLibType resultType = pFunction.getType().getReturnType();
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> parametersBuilder =
+        ImmutableList.builder();
+    for (int i = 0; i < argumentTypes.size(); i++) {
+      parametersBuilder.add(
+          new SvLibParsingParameterDeclaration(
+              FileLocation.DUMMY, argumentTypes.get(i), "x" + i, pFunction.getName()));
+    }
+    ImmutableList<SvLibParsingParameterDeclaration> parameters = parametersBuilder.build();
+
+    SvLibTerm body = arbitraryValue(resultType);
+    for (ValueAssignment value : pValues) {
+      ImmutableList.Builder<SvLibTerm> argumentsMatch = ImmutableList.builder();
+      for (int i = 0; i < argumentTypes.size(); i++) {
+        argumentsMatch.add(
+            new SvLibSymbolApplicationTerm(
+                new SvLibIdTerm(
+                    SmtLibTheoryDeclarations.equality(argumentTypes.get(i)), FileLocation.DUMMY),
+                ImmutableList.of(
+                    new SvLibIdTerm(parameters.get(i).toSimpleDeclaration(), FileLocation.DUMMY),
+                    SvLibConstantTerm.of(
+                        value.getArgumentsInterpretation().get(i), argumentTypes.get(i))),
+                FileLocation.DUMMY));
+      }
+      body =
+          new SvLibSymbolApplicationTerm(
+              new SvLibIdTerm(SmtLibTheoryDeclarations.ite(resultType), FileLocation.DUMMY),
+              ImmutableList.of(
+                  SvLibTerm.booleanConjunction(argumentsMatch.build()),
+                  SvLibConstantTerm.of(value.getValue(), resultType),
+                  body),
+              FileLocation.DUMMY);
+    }
+
+    return new SmtLibDefineFunCommand(
+        new SvLibSmtFunctionDefinition(
+            FileLocation.DUMMY, pFunction.getName(), argumentTypes, resultType, parameters),
+        body,
+        FileLocation.DUMMY);
   }
 
   private SvLibInitProcVariablesStep setLocalVariablesForFunctionCall(
@@ -350,8 +424,7 @@ public class CounterexampleToSvLibWitnessExport {
 
     SvLibTrace trace =
         new SvLibTrace(
-            new SmtLibModel(
-                ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), FileLocation.DUMMY),
+            createModel(concretePath),
             globalVariableAssignmentBuilder.build(),
             entryCall,
             stepsBuilder.build(),

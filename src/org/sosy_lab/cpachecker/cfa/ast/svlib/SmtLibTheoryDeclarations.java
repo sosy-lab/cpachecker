@@ -149,6 +149,17 @@ public class SmtLibTheoryDeclarations {
    * different. It is generic over the argument type (which must be the same for all arguments) and
    * always returns a boolean.
    */
+  /** The SMT-LIB {@code =} for two arguments of the given type. */
+  public static SvLibFunctionDeclaration equality(SvLibType pArgumentType) {
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(pArgumentType, pArgumentType), SvLibSmtLibPredefinedType.BOOL),
+        "=",
+        "=",
+        ImmutableList.of());
+  }
+
   public static SvLibFunctionDeclaration distinct(SvLibType pArgumentType, int amountArguments) {
     Verify.verify(amountArguments >= 2);
     return SvLibFunctionDeclaration.logicBuiltinFunction(
